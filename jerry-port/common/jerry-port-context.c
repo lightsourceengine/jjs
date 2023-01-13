@@ -17,10 +17,6 @@
 
 #include "jerryscript-port.h"
 
-#ifndef JERRY_GLOBAL_HEAP_SIZE
-#define JERRY_GLOBAL_HEAP_SIZE 512
-#endif /* JERRY_GLOBAL_HEAP_SIZE */
-
 /**
  * Pointer to the current context.
  * Note that it is a global variable, and is not a thread safe implementation.

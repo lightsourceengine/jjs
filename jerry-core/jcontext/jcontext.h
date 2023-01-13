@@ -294,7 +294,7 @@ extern jerry_context_t jerry_global_context;
 /**
  * Size of heap
  */
-#define JMEM_HEAP_SIZE            ((size_t) (CONFIG_MEM_HEAP_SIZE))
+#define JMEM_HEAP_SIZE            ((size_t) (JERRY_GLOBAL_HEAP_SIZE * 1024))
 
 /**
  * Calculate heap area size, leaving space for a pointer to the free list
