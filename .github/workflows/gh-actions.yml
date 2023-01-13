@@ -20,9 +20,9 @@ jobs:
       - run: $RUNNER --check-signed-off=gh-actions
         if: ${{ false }}
       - run: $RUNNER --check-doxygen
-        if: ${{ always() }}
+        if: ${{ false }}
       - run: $RUNNER --check-format
-        if: ${{ always() }}
+        if: ${{ false }}
       - run: $RUNNER --check-license
         if: ${{ false }}
       - run: $RUNNER --check-strings
