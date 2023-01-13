@@ -7878,6 +7878,4 @@
   <test id="language/expressions/class/cpn-class-expr-fields-computed-property-name-from-await-expression.js"><reason></reason></test>
   <test id="language/expressions/class/cpn-class-expr-fields-methods-computed-property-name-from-await-expression.js"><reason></reason></test>
   <!-- END - Computed property name related tests -->
-  <test id="built-ins/Date/prototype/toISOString/15.9.5.43-0-10.js"><reason></reason></test>
-  <test id="built-ins/Date/prototype/toISOString/15.9.5.43-0-9.js"><reason></reason></test>
 </excludeList>
