@@ -41,12 +41,20 @@
 /**
  * Maximum global heap size in bytes
  */
+#if JERRY_EXTERNAL_CONTEXT
 #define CONFIG_MEM_HEAP_SIZE (JERRY_CONTEXT(cfg_global_heap_size) * 1024)
+#else
+#define CONFIG_MEM_HEAP_SIZE (JERRY_GLOBAL_HEAP_SIZE * 1024)
+#endif /* JERRY_EXTERNAL_CONTEXT */
 
 /**
  * Maximum stack usage size in bytes
  */
+#if JERRY_EXTERNAL_CONTEXT
 #define CONFIG_MEM_STACK_LIMIT (JERRY_CONTEXT(cfg_stack_limit) * 1024)
+#else
+#define CONFIG_MEM_STACK_LIMIT (JERRY_STACK_LIMIT * 1024)
+#endif /* JERRY_EXTERNAL_CONTEXT */
 
 /**
  * Allowed heap usage limit until next garbage collection
@@ -55,7 +63,16 @@
  * to try and reduce clutter from unreachable objects. If the allocated memory can't be reduced below the limit,
  * then the current limit will be incremented by CONFIG_MEM_HEAP_LIMIT.
  */
+#if JERRY_EXTERNAL_CONTEXT
 #define CONFIG_GC_LIMIT (JERRY_CONTEXT(cfg_gc_limit))
+#else
+#define CONFIG_MAX_GC_LIMIT 8192
+#if defined(JERRY_GC_LIMIT) && (JERRY_GC_LIMIT != 0)
+#define CONFIG_GC_LIMIT JERRY_GC_LIMIT
+#else /* !(defined(JERRY_GC_LIMIT) && (JERRY_GC_LIMIT != 0)) */
+#define CONFIG_GC_LIMIT (JERRY_MIN (CONFIG_MEM_HEAP_SIZE / 32, CONFIG_MAX_GC_LIMIT))
+#endif /* defined(JERRY_GC_LIMIT) && (JERRY_GC_LIMIT != 0) */
+#endif
 
 /**
  * Amount of newly allocated objects since the last GC run, represented as a fraction of all allocated objects,
@@ -64,9 +81,17 @@
  * The fraction is calculated as:
  *                1.0 / CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION
  */
+#if JERRY_EXTERNAL_CONTEXT
 #define CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION (JERRY_CONTEXT(cfg_gc_new_objects_fraction))
+#else
+#define CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION (16)
+#endif /* JERRY_EXTERNAL_CONTEXT */
 
+#if JERRY_EXTERNAL_CONTEXT
 #define CONFIG_GC_MARK_LIMIT (JERRY_CONTEXT(cfg_gc_mark_limit))
+#else
+#define CONFIG_GC_MARK_LIMIT JERRY_GC_MARK_LIMIT
+#endif /* JERRY_EXTERNAL_CONTEXT */
 
 #if !JERRY_SYSTEM_ALLOCATOR
 /**

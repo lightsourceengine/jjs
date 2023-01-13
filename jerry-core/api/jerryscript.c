@@ -190,7 +190,7 @@ jerry_init_ex (jerry_init_flag_t flags, /**< combination of Jerry flags */
     clean_options.gc_limit = JERRY_GC_LIMIT * 1024;
   }
 
-  if (!options || options->gc_limit == 0)
+  if (clean_options.gc_limit == 0)
   {
     clean_options.gc_limit = (clean_options.heap_size * 1024) / 32;
   }
