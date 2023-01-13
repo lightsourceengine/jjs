@@ -22,6 +22,7 @@ cscope.*
 __pycache__
 *.pyc
 .DS_Store
+.python-version
 
 # ctags and ID database
 tags
