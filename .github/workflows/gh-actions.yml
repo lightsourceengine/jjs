@@ -73,13 +73,16 @@ jobs:
   Windows_x64_Build_Correctness_Unit_Tests:
     runs-on: windows-2019
     steps:
-      - shell: pwsh
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: '2.7'
-      - run: $RUNNER -q --jerry-tests --skip-list=regression-test-issue-1386.js,date-setters.js
-      - run: $RUNNER -q --unittests --skip-list=unit-test-date-helpers
+      - name: JS Tests
+        run: $RUNNER -q --jerry-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        shell: pwsh
+      - name: C Unit Tests
+        run: $RUNNER -q --unittests --skip-list=unit-test-date-helpers
+        shell: pwsh
 
   Linux_x86-64_Build_Option_Tests:
     runs-on: ubuntu-20.04
