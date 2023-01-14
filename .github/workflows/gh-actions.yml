@@ -78,10 +78,10 @@ jobs:
         with:
           python-version: '2.7'
       - name: JS Tests
-        run: .\tools\run-tests.py -q --jerry-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        run: python .\tools\run-tests.py -q --jerry-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: pwsh
       - name: C Unit Tests
-        run: .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
+        run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
         shell: pwsh
 
   Linux_x86-64_Build_Option_Tests:
