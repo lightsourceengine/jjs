@@ -102,6 +102,8 @@ def get_arguments():
                          help=devhelp('build jerry with libfuzzer support (%(choices)s)'))
     compgrp.add_argument('--jerry-ext', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build jerry-ext (%(choices)s)')
+    compgrp.add_argument('--jerry-ext-debugger', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build jerry-ext debugger support (%(choices)s)')
     compgrp.add_argument('--jerry-math', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build and use jerry-math (%(choices)s)')
     compgrp.add_argument('--jerry-port', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -200,6 +202,7 @@ def generate_build_options(arguments):
     build_options_append('JERRY_CMDLINE_TEST', arguments.jerry_cmdline_test)
     build_options_append('JERRY_LIBFUZZER', arguments.libfuzzer)
     build_options_append('JERRY_EXT', arguments.jerry_ext)
+    build_options_append('JERRY_EXT_DEBUGGER', arguments.jerry_ext_debugger)
     build_options_append('JERRY_MATH', arguments.jerry_math)
     build_options_append('JERRY_PORT', arguments.jerry_port)
     build_options_append('UNITTESTS', arguments.unittests)

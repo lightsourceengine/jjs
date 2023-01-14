@@ -32,10 +32,6 @@ if(FEATURE_INIT_FINI)
   set(DEFINES_EXT ${DEFINES_EXT} ENABLE_INIT_FINI)
 endif()
 
-if (JERRY_DEBUGGER OR JERRY_CMDLINE)
-  set(ENABLE_EXT_DEBUGGER_API ON)
-endif()
-
 # Source directories
 set(SOURCE_EXT
   arg/arg-js-iterator-helper.c
@@ -52,7 +48,7 @@ set(SOURCE_EXT
   util/test262.c
 )
 
-if (ENABLE_EXT_DEBUGGER_API)
+if (JERRY_EXT_DEBUGGER)
   list(APPEND SOURCE_EXT
     debugger/debugger-common.c
     debugger/debugger-rp.c
@@ -72,7 +68,7 @@ target_link_libraries(${JERRY_EXT_NAME} jerry-core)
 
 set(JERRY_EXT_PKGCONFIG_LIBS)
 
-if("${PLATFORM}" STREQUAL "WINDOWS" AND ENABLE_EXT_DEBUGGER_API)
+if("${PLATFORM}" STREQUAL "WINDOWS" AND JERRY_EXT_DEBUGGER)
   target_link_libraries(${JERRY_EXT_NAME} ws2_32)
   set(JERRY_EXT_PKGCONFIG_LIBS -lws2_32)
 endif()

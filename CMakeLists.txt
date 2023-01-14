@@ -56,6 +56,7 @@ set(JERRY_CMDLINE_SNAPSHOT  OFF CACHE BOOL "Build jerry snapshot command line to
 set(JERRY_LIBFUZZER         OFF CACHE BOOL "Build jerry with libfuzzer support?")
 set(JERRY_PORT              ON  CACHE BOOL "Build default jerry port implementation?")
 set(JERRY_EXT               ON  CACHE BOOL "Build jerry-ext?")
+set(JERRY_EXT_DEBUGGER      ON  CACHE BOOL "Build jerry-ext debugger support?")
 set(JERRY_MATH              OFF CACHE BOOL "Build and use jerry-math?")
 set(UNITTESTS               OFF CACHE BOOL "Build unit tests?")
 set(DOCTESTS                OFF CACHE BOOL "Build doc tests?")
