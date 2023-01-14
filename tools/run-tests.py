@@ -422,10 +422,10 @@ def run_unittests(options):
         else:
             build_config = ""
 
-
         ret_test |= run_check(
             util.get_python_cmd_prefix() +
             [settings.UNITTEST_RUNNER_SCRIPT] +
+            (["--skip-list=" + options.skip_list] if options.skip_list else []) +
             [os.path.join(build_dir_path, 'tests', build_config)] +
             (["-q"] if options.quiet else [])
         )

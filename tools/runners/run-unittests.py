@@ -33,8 +33,16 @@ def get_arguments():
                         help='Execution runtime (e.g. qemu)')
     parser.add_argument('path',
                         help='Path of test binaries')
+    parser.add_argument('--skip-list', metavar='LIST',
+                        help='Add a comma separated list of patterns of the excluded binaries')
 
     script_args = parser.parse_args()
+
+    if script_args.skip_list:
+        script_args.skip_list = script_args.skip_list.split(',')
+    else:
+        script_args.skip_list = []
+
     return script_args
 
 
@@ -51,6 +59,15 @@ def get_unittests(path):
 
 def main(args):
     unittests = get_unittests(args.path)
+
+    def filter_tests(test, args):
+        for skipped in args.skip_list:
+            if skipped in test:
+                return False
+        return True
+
+    unittests = [test for test in unittests if filter_tests(test, args)]
+
     total = len(unittests)
     if total == 0:
         print("%s: no unit-* test to execute", args.path)
