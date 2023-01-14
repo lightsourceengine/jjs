@@ -32,17 +32,15 @@ if(FEATURE_INIT_FINI)
   set(DEFINES_EXT ${DEFINES_EXT} ENABLE_INIT_FINI)
 endif()
 
+if (JERRY_DEBUGGER OR JERRY_CMDLINE)
+  set(ENABLE_EXT_DEBUGGER_API ON)
+endif()
+
 # Source directories
 set(SOURCE_EXT
   arg/arg-js-iterator-helper.c
   arg/arg-transform-functions.c
   arg/arg.c
-  debugger/debugger-common.c
-  debugger/debugger-rp.c
-  debugger/debugger-serial.c
-  debugger/debugger-sha1.c
-  debugger/debugger-tcp.c
-  debugger/debugger-ws.c
   handle-scope/handle-scope-allocator.c
   handle-scope/handle-scope.c
   module/module.c
@@ -54,6 +52,17 @@ set(SOURCE_EXT
   util/test262.c
 )
 
+if (ENABLE_EXT_DEBUGGER_API)
+  list(APPEND SOURCE_EXT
+    debugger/debugger-common.c
+    debugger/debugger-rp.c
+    debugger/debugger-serial.c
+    debugger/debugger-sha1.c
+    debugger/debugger-tcp.c
+    debugger/debugger-ws.c
+  )
+endif()
+
 add_library(${JERRY_EXT_NAME} ${SOURCE_EXT})
 
 target_include_directories(${JERRY_EXT_NAME} PUBLIC ${INCLUDE_EXT_PUBLIC})
@@ -63,7 +72,7 @@ target_link_libraries(${JERRY_EXT_NAME} jerry-core)
 
 set(JERRY_EXT_PKGCONFIG_LIBS)
 
-if("${PLATFORM}" STREQUAL "WINDOWS" AND JERRY_DEBUGGER)
+if("${PLATFORM}" STREQUAL "WINDOWS" AND ENABLE_EXT_DEBUGGER_API)
   target_link_libraries(${JERRY_EXT_NAME} ws2_32)
   set(JERRY_EXT_PKGCONFIG_LIBS -lws2_32)
 endif()
