@@ -1,4 +1,4 @@
-/* Copyright JS Foundation and other contributors, http://js.foundation
+/* Copyright (c) 2023 Light Source Software, LLC. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,26 +13,9 @@
  * limitations under the License.
  */
 
-#ifndef JERRYSCRIPT_H
-#define JERRYSCRIPT_H
+#ifndef JJS_H
+#define JJS_H
 
-/**
- * Major version of JerryScript API.
- */
-#define JERRY_API_MAJOR_VERSION 4
+#include "jerryscript.h"
 
-/**
- * Minor version of JerryScript API.
- */
-#define JERRY_API_MINOR_VERSION 0
-
-/**
- * Patch version of JerryScript API.
- */
-#define JERRY_API_PATCH_VERSION 0
-
-#include "jerryscript-core.h"
-#include "jerryscript-debugger.h"
-#include "jerryscript-snapshot.h"
-
-#endif /* !JERRYSCRIPT_H */
+#endif /* JJS_H */
