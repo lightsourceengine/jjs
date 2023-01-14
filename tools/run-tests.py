@@ -69,7 +69,7 @@ JERRY_UNITTESTS_OPTIONS = [
 # Test options for jerry-tests
 JERRY_TESTS_OPTIONS = [
     Options('jerry_tests',
-            OPTIONS_COMMON +  OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT + OPTIONS_MEM_STRESS),
+            OPTIONS_COMMON + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT + OPTIONS_MEM_STRESS),
     Options('jerry_tests-snapshot',
             OPTIONS_COMMON + OPTIONS_SNAPSHOT + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT,
             ['--snapshot']),
@@ -188,6 +188,8 @@ def get_arguments():
                         help='Run buildoption-test')
     parser.add_argument('--all', '--precommit', action='store_true',
                         help='Run all tests')
+    parser.add_argument('--no-snapshot-tests', action='store_true', default=False,
+                        help='Disable snapshot tests for jerry-tests runs')
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -356,9 +358,12 @@ def run_jerry_tests(options):
         skip_list = []
 
         if job.name == 'jerry_tests-snapshot':
-            with open(settings.SNAPSHOT_TESTS_SKIPLIST, 'r') as snapshot_skip_list:
-                for line in snapshot_skip_list:
-                    skip_list.append(line.rstrip())
+            if options.no_snapshot_tests:
+                continue
+            else:
+                with open(settings.SNAPSHOT_TESTS_SKIPLIST, 'r') as snapshot_skip_list:
+                    for line in snapshot_skip_list:
+                        skip_list.append(line.rstrip())
 
         if options.skip_list:
             skip_list.append(options.skip_list)

@@ -69,20 +69,21 @@ jobs:
       - run: $RUNNER -q --jerry-tests --build-debug
       - run: $RUNNER -q --unittests --build-debug
 
-  # Note: Date().getDay() is broken on windows; tests only run on powershell locally
+  # Note: Date().getDay() is broken on windows, disable associated tests
   Windows_x64_Build_Correctness_Unit_Tests:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '2.7'
+          python-version: '3.8'
       - name: JS Tests
-        run: python .\tools\run-tests.py -q --jerry-tests --skip-list=regression-test-issue-1386.js,date-setters.js
-        shell: pwsh
+        # invoking snapshot via test python scripts is broken on windows
+        run: python .\tools\run-tests.py -q --jerry-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        shell: powershell
       - name: C Unit Tests
         run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
-        shell: pwsh
+        shell: powershell
 
   Linux_x86-64_Build_Option_Tests:
     runs-on: ubuntu-20.04
