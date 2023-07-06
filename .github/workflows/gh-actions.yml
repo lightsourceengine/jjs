@@ -34,6 +34,7 @@ jobs:
         if: ${{ always() }}
 
   Linux_x86-64_Build_Correctness_Debugger_Tests:
+    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -94,6 +95,7 @@ jobs:
       - run: $RUNNER --buildoption-test
 
   Conformance_Tests_ESNext:
+    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -109,6 +111,7 @@ jobs:
             build/tests/test262_tests_esnext/local/bin/test262.report
 
   Conformance_Tests_ESNext_Debug_A:
+    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -124,6 +127,7 @@ jobs:
             build/tests/test262_tests_esnext-debug/local/bin/test262.report
 
   Conformance_Tests_ESNext_Debug_B:
+    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
