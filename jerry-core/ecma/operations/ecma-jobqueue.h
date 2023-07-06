@@ -52,7 +52,7 @@ void ecma_enqueue_promise_async_reaction_job (ecma_value_t executable_object, ec
 void ecma_enqueue_promise_async_generator_job (ecma_value_t executable_object);
 void ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, ecma_value_t thenable, ecma_value_t then);
 void ecma_free_all_enqueued_jobs (void);
-
+bool ecma_has_enqueued_jobs (void);
 ecma_value_t ecma_process_all_enqueued_jobs (void);
 
 /**

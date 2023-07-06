@@ -535,6 +535,12 @@ ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, /**< promise to
   ecma_enqueue_job (&job_p->header);
 } /* ecma_enqueue_promise_resolve_thenable_job */
 
+bool
+ecma_has_enqueued_jobs (void)
+{
+  return (JERRY_CONTEXT (job_queue_head_p) != NULL);
+} /* ecma_process_all_enqueued_jobs */
+
 /**
  * Process enqueued Promise jobs until the first thrown error or until the
  * jobqueue becomes empty.

@@ -106,6 +106,7 @@ jerry_value_t jerry_parse_value (const jerry_value_t source, const jerry_parse_o
 jerry_value_t jerry_eval (const jerry_char_t *source_p, size_t source_size, uint32_t flags);
 jerry_value_t jerry_run (const jerry_value_t script);
 jerry_value_t jerry_run_jobs (void);
+bool jerry_has_pending_jobs (void);
 /**
  * jerry-api-code-exec @}
  */

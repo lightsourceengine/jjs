@@ -1150,6 +1150,13 @@ jerry_run_jobs (void)
   return jerry_return (ecma_process_all_enqueued_jobs ());
 } /* jerry_run_jobs */
 
+bool
+jerry_has_pending_jobs (void) {
+  jerry_assert_api_enabled ();
+
+  return ecma_has_enqueued_jobs ();
+} /* jerry_has_pending_jobs */
+
 /**
  * Get global object
  *
