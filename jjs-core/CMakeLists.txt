@@ -132,7 +132,7 @@ set(SOURCE_CORE_FILES
   api/jjs-debugger-transport.c
   api/jjs-debugger.c
   api/jjs-module.c
-  api/jjs-snapshot.c
+  api/jjs-api-snapshot.c
   api/jjs.c
   debugger/debugger.c
   ecma/base/ecma-alloc.c
@@ -340,7 +340,7 @@ if(ENABLE_AMALGAM)
 
   # Create single C/H file
   set(HEADER_CORE_FILES
-    api/jjs-snapshot.h
+      api/jjs-api-snapshot.h
     debugger/debugger.h
     ecma/base/ecma-alloc.h
     ecma/base/ecma-error-messages.inc.h

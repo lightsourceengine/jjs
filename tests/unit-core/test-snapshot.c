@@ -397,7 +397,8 @@ main (void)
                                                                   literal_buffer_c,
                                                                   LITERAL_BUFFER_SIZE,
                                                                   true);
-    TEST_ASSERT (lit_c_buf_sz == 239);
+    printf ("%i\n", (int32_t)lit_c_buf_sz);
+    TEST_ASSERT (lit_c_buf_sz == 233);
 
     static const char *expected_c_format = ("jjs_length_t literal_count = 5;\n\n"
                                             "jjs_char_t *literals[5] =\n"

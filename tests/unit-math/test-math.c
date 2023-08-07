@@ -24,16 +24,16 @@
 
 static bool passed = true;
 
-static void
-check_int (const char *expr, int computed, int expected)
-{
-  printf ("%s = %d [expected=%d] ", expr, computed, expected);
-
-  bool result = computed == expected;
-  printf ("%s\n", result ? "PASS" : "FAIL");
-
-  passed &= result;
-} /* check_int */
+//static void
+//check_int (const char *expr, int computed, int expected)
+//{
+//  printf ("%s = %d [expected=%d] ", expr, computed, expected);
+//
+//  bool result = computed == expected;
+//  printf ("%s\n", result ? "PASS" : "FAIL");
+//
+//  passed &= result;
+//} /* check_int */
 
 typedef union
 {

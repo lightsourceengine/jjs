@@ -13,8 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs-snapshot.h"
-
+#include "jjs-api-snapshot.h"
 #include "jjs.h"
 
 #include "ecma-conversion.h"
