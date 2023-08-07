@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef JJS_SNAPSHOT_H
-#define JJS_SNAPSHOT_H
+#ifndef JJS_API_SNAPSHOT_H
+#define JJS_API_SNAPSHOT_H
 
 #include "ecma-globals.h"
 
@@ -50,4 +50,4 @@ typedef enum
   JJS_SNAPSHOT_FOUR_BYTE_CPOINTER = (1u << 8) /**< deprecated, an unused placeholder now */
 } jjs_snapshot_global_flags_t;
 
-#endif /* !JJS_SNAPSHOT_H */
+#endif /* !JJS_API_SNAPSHOT_H */

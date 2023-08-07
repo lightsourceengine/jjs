@@ -480,7 +480,7 @@ if(ENABLE_AMALGAM)
     include/jjs-debugger.h
     include/jjs-port.h
     include/jjs-snapshot.h
-      jcontext/jcontext.h
+    jcontext/jcontext.h
     jmem/jmem-allocator-internal.h
     jmem/jmem.h
     jrt/jrt-bit-fields.h
