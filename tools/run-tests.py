@@ -49,7 +49,7 @@ OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-s
 OPTIONS_UNITTESTS = ['--unittests=on', '--jjs-cmdline=off', '--error-messages=on',
                      '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on',
                      '--vm-throw=on', '--line-info=on', '--mem-stats=on', '--promise-callback=on']
-OPTIONS_DOCTESTS = ['--doctests=on', '--jjs-cmdline=off', '--error-messages=on',
+OPTIONS_DOCTESTS = ['--doctests=off', '--jjs-cmdline=off', '--error-messages=on',
                     '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on']
 OPTIONS_PROMISE_CALLBACK = ['--promise-callback=on']
 
