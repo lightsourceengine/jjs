@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "jerryscript-port.h"
+#include "jjs-port.h"
 
 #include "mbed.h"
 
@@ -24,16 +24,16 @@
  * Aborts the program.
  */
 void
-jerry_port_fatal (jerry_fatal_code_t code)
+jjs_port_fatal (jjs_fatal_code_t code)
 {
   exit ((int) code);
-} /* jerry_port_fatal */
+} /* jjs_port_fatal */
 
 /**
  * Provide log message implementation for the engine.
  */
 void
-jerry_port_log (const char *message_p) /**< message */
+jjs_port_log (const char *message_p) /**< message */
 {
   while (*message_p != '\0')
   {
@@ -45,7 +45,7 @@ jerry_port_log (const char *message_p) /**< message */
 
     fputc (*message_p++, stderr);
   }
-} /* jerry_port_log */
+} /* jjs_port_log */
 
 /**
  * Dummy function to get the time zone adjustment.
@@ -53,20 +53,20 @@ jerry_port_log (const char *message_p) /**< message */
  * @return 0
  */
 int32_t
-jerry_port_local_tza (double unix_ms)
+jjs_port_local_tza (double unix_ms)
 {
   (void) unix_ms;
 
   return 0;
-} /* jerry_port_local_tza */
+} /* jjs_port_local_tza */
 
 /**
- * Implementation of jerry_port_current_time.
+ * Implementation of jjs_port_current_time.
  *
  * @return current timer's counter value in milliseconds
  */
 double
-jerry_port_current_time (void)
+jjs_port_current_time (void)
 {
   static uint64_t last_tick = 0;
   static time_t last_time = 0;
@@ -96,4 +96,4 @@ jerry_port_current_time (void)
   last_tick = curr_tick;
   last_time = curr_time;
   return result;
-} /* jerry_port_current_time */
+} /* jjs_port_current_time */

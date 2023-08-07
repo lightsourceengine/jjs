@@ -13,40 +13,40 @@
 # limitations under the License.
 cmake_minimum_required(VERSION 3.5)
 
-# Set JerryScript variables
-set(JERRY_ROOT_DIR ${PROJECT_DIR}/../../..)
-set(JERRY_BUILD_DIR ${JERRY_ROOT_DIR}/build/jerry)
-set(JERRY_INCLUDE_DIRS "${JERRY_ROOT_DIR}/jerry-ext/include" "${JERRY_ROOT_DIR}/jerry-core/include")
-set(JERRY_HEAP_SIZE 20)
+# Set JJS variables
+set(JJS_ROOT_DIR ${PROJECT_DIR}/../../..)
+set(JJS_BUILD_DIR ${JJS_ROOT_DIR}/build/jjs)
+set(JJS_INCLUDE_DIRS "${JJS_ROOT_DIR}/jjs-ext/include" "${JJS_ROOT_DIR}/jjs-core/include")
+set(JJS_HEAP_SIZE 20)
 
 # Make compile flags separated by spaces
 string(REPLACE ";" " " COMPILE_FLAGS "${COMPILE_OPTIONS};${C_COMPILE_OPTIONS}")
 
-# Build JerryScript
-execute_process(COMMAND ${JERRY_ROOT_DIR}/tools/build.py
+# Build JJS
+execute_process(COMMAND ${JJS_ROOT_DIR}/tools/build.py
                             --clean
-		                    --builddir=${JERRY_BUILD_DIR}
+		                    --builddir=${JJS_BUILD_DIR}
                             --lto=OFF
-                            --jerry-cmdline=OFF
-                            --jerry-math=OFF
+                            --jjs-cmdline=OFF
+                            --jjs-math=OFF
                             --amalgam=ON
-                            --mem-heap=${JERRY_HEAP_SIZE}
+                            --mem-heap=${JJS_HEAP_SIZE}
                             --profile=es.next
                             --compile-flag=${COMPILE_FLAGS}
                             --toolchain=${CMAKE_TOOLCHAIN_FILE})
 
-# Register JerryScript target application
-idf_component_register(SRCS "jerry-main.c" "jerry-port.c" INCLUDE_DIRS ${JERRY_INCLUDE_DIRS})
+# Register JJS target application
+idf_component_register(SRCS "jjs-main.c" "jjs-port.c" INCLUDE_DIRS ${JJS_INCLUDE_DIRS})
 
-add_library(jerry-core STATIC IMPORTED)
-add_library(jerry-ext STATIC IMPORTED)
-add_library(jerry-port STATIC IMPORTED)
+add_library(jjs-core STATIC IMPORTED)
+add_library(jjs-ext STATIC IMPORTED)
+add_library(jjs-port STATIC IMPORTED)
 
-set_target_properties(jerry-core PROPERTIES IMPORTED_LOCATION "${JERRY_BUILD_DIR}/lib/libjerry-core.a")
-set_target_properties(jerry-ext PROPERTIES IMPORTED_LOCATION "${JERRY_BUILD_DIR}/lib/libjerry-ext.a")
-set_target_properties(jerry-port PROPERTIES IMPORTED_LOCATION "${JERRY_BUILD_DIR}/lib/libjerry-port.a")
+set_target_properties(jjs-core PROPERTIES IMPORTED_LOCATION "${JJS_BUILD_DIR}/lib/libjjs-core.a")
+set_target_properties(jjs-ext PROPERTIES IMPORTED_LOCATION "${JJS_BUILD_DIR}/lib/libjjs-ext.a")
+set_target_properties(jjs-port PROPERTIES IMPORTED_LOCATION "${JJS_BUILD_DIR}/lib/libjjs-port.a")
 
-# jerry-core has espressif/main/jerry-port.c as dependency
-target_link_libraries(jerry-core INTERFACE ${COMPONENT_LIB})
-# jerry-main has jerry-core, jerry-ext, jerry-port as dependencies
-target_link_libraries(${COMPONENT_LIB} INTERFACE jerry-core jerry-ext jerry-port)
+# jjs-core has espressif/main/jjs-port.c as dependency
+target_link_libraries(jjs-core INTERFACE ${COMPONENT_LIB})
+# jjs-main has jjs-core, jjs-ext, jjs-port as dependencies
+target_link_libraries(${COMPONENT_LIB} INTERFACE jjs-core jjs-ext jjs-port)

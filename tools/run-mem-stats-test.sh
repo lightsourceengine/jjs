@@ -42,20 +42,20 @@ function is_mem_stats_build
   [ -x "$1" ] || fail_msg "Engine '$1' is not executable"
 
   tmpfile=`mktemp`
-  "$1" --mem-stats $tmpfile 2>&1 | grep -- "Ignoring JERRY_INIT_MEM_STATS flag because of !JMEM_STATS configuration." 2>&1 > /dev/null
+  "$1" --mem-stats $tmpfile 2>&1 | grep -- "Ignoring JJS_INIT_MEM_STATS flag because of !JMEM_STATS configuration." 2>&1 > /dev/null
   code=$?
   rm $tmpfile
 
   return $code
 }
 
-JERRY="$1"
+JJS="$1"
 shift
-is_mem_stats_build "$JERRY" || fail_msg "First engine specified should be built without memory statistics support"
+is_mem_stats_build "$JJS" || fail_msg "First engine specified should be built without memory statistics support"
 
-JERRY_MEM_STATS="$1"
+JJS_MEM_STATS="$1"
 shift
-is_mem_stats_build "$JERRY_MEM_STATS" && fail_msg "Second engine specified should be built with memory statistics support"
+is_mem_stats_build "$JJS_MEM_STATS" && fail_msg "Second engine specified should be built with memory statistics support"
 
 # Benchmarks list
 BENCHMARKS=""
@@ -78,7 +78,7 @@ do
   test=`basename $bench .js`
 
   echo "$test" | awk "$PRINT_TEST_NAME_AWK_SCRIPT"
-  MEM_STATS=$("$JERRY_MEM_STATS" --mem-stats --mem-stats-separate $bench | grep -e "Peak allocated =" | grep -o "[0-9]*")
-  RSS=$(./tools/rss-measure.sh "$JERRY" $bench | tail -n 1 | grep -o "[0-9]*")
+  MEM_STATS=$("$JJS_MEM_STATS" --mem-stats --mem-stats-separate $bench | grep -e "Peak allocated =" | grep -o "[0-9]*")
+  RSS=$(./tools/rss-measure.sh "$JJS" $bench | tail -n 1 | grep -o "[0-9]*")
   echo $MEM_STATS $RSS | xargs | awk "$PRINT_TOTAL_AWK_SCRIPT"
 done

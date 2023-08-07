@@ -13,67 +13,67 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
 static const char instanceof_source[] = "var x = function(o, c) {return (o instanceof c);}; x";
 
-static jerry_value_t
-external_function (const jerry_call_info_t *call_info_p, const jerry_value_t args_p[], const jerry_size_t args_count)
+static jjs_value_t
+external_function (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const jjs_size_t args_count)
 {
   (void) call_info_p;
   (void) args_p;
   (void) args_count;
 
-  return jerry_undefined ();
+  return jjs_undefined ();
 } /* external_function */
 
 static void
-test_instanceof (jerry_value_t instanceof, jerry_value_t constructor)
+test_instanceof (jjs_value_t instanceof, jjs_value_t constructor)
 {
-  jerry_value_t instance = jerry_construct (constructor, NULL, 0);
-  jerry_value_t args[2] = { instance, constructor };
+  jjs_value_t instance = jjs_construct (constructor, NULL, 0);
+  jjs_value_t args[2] = { instance, constructor };
 
-  jerry_value_t undefined = jerry_undefined ();
-  jerry_value_t result = jerry_call (instanceof, undefined, args, 2);
-  jerry_value_free (undefined);
+  jjs_value_t undefined = jjs_undefined ();
+  jjs_value_t result = jjs_call (instanceof, undefined, args, 2);
+  jjs_value_free (undefined);
 
-  TEST_ASSERT (!jerry_value_is_exception (result));
-  TEST_ASSERT (jerry_value_is_boolean (result));
+  TEST_ASSERT (!jjs_value_is_exception (result));
+  TEST_ASSERT (jjs_value_is_boolean (result));
 
-  TEST_ASSERT (jerry_value_is_true (result));
+  TEST_ASSERT (jjs_value_is_true (result));
 
-  jerry_value_free (instance);
-  jerry_value_free (result);
+  jjs_value_free (instance);
+  jjs_value_free (result);
 } /* test_instanceof */
 
 int
 main (void)
 {
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_value_t instanceof = jerry_eval ((jerry_char_t *) instanceof_source, sizeof (instanceof_source) - 1, true);
+  jjs_value_t instanceof = jjs_eval ((jjs_char_t *) instanceof_source, sizeof (instanceof_source) - 1, true);
 
   /* Test for a native-backed function. */
-  jerry_value_t constructor = jerry_function_external (external_function);
+  jjs_value_t constructor = jjs_function_external (external_function);
 
   test_instanceof (instanceof, constructor);
-  jerry_value_free (constructor);
+  jjs_value_free (constructor);
 
   /* Test for a JS constructor. */
-  jerry_value_t global = jerry_current_realm ();
-  jerry_value_t object_name = jerry_string_sz ("Object");
-  constructor = jerry_object_get (global, object_name);
-  jerry_value_free (object_name);
-  jerry_value_free (global);
+  jjs_value_t global = jjs_current_realm ();
+  jjs_value_t object_name = jjs_string_sz ("Object");
+  constructor = jjs_object_get (global, object_name);
+  jjs_value_free (object_name);
+  jjs_value_free (global);
 
   test_instanceof (instanceof, constructor);
-  jerry_value_free (constructor);
+  jjs_value_free (constructor);
 
-  jerry_value_free (instanceof);
+  jjs_value_free (instanceof);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 
   return 0;
 } /* main */

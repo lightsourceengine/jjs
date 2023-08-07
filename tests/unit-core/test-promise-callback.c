@@ -13,86 +13,86 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
 /* Note: RS = ReSolve, RJ = ReJect */
 typedef enum
 {
-  C = JERRY_PROMISE_EVENT_CREATE, /**< same as JERRY_PROMISE_CALLBACK_CREATE with undefined value */
-  RS = JERRY_PROMISE_EVENT_RESOLVE, /**< same as JERRY_PROMISE_CALLBACK_RESOLVE */
-  RJ = JERRY_PROMISE_EVENT_REJECT, /**< same as JERRY_PROMISE_CALLBACK_REJECT */
-  RSF = JERRY_PROMISE_EVENT_RESOLVE_FULFILLED, /**< same as JERRY_PROMISE_EVENT_RESOLVE_FULFILLED */
-  RJF = JERRY_PROMISE_EVENT_REJECT_FULFILLED, /**< same as JERRY_PROMISE_EVENT_REJECT_FULFILLED */
-  RWH = JERRY_PROMISE_EVENT_REJECT_WITHOUT_HANDLER, /**< same as JERRY_PROMISE_EVENT_REJECT_WITHOUT_HANDLER */
-  CHA = JERRY_PROMISE_EVENT_CATCH_HANDLER_ADDED, /**< same as JERRY_PROMISE_EVENT_CATCH_HANDLER_ADDED */
-  BR = JERRY_PROMISE_EVENT_BEFORE_REACTION_JOB, /**< same as JERRY_PROMISE_CALLBACK_BEFORE_REACTION_JOB */
-  AR = JERRY_PROMISE_EVENT_AFTER_REACTION_JOB, /**< same as JERRY_PROMISE_CALLBACK_AFTER_REACTION_JOB */
-  A = JERRY_PROMISE_EVENT_ASYNC_AWAIT, /**< same as JERRY_PROMISE_CALLBACK_ASYNC_AWAIT */
-  BRS = JERRY_PROMISE_EVENT_ASYNC_BEFORE_RESOLVE, /**< same as JERRY_PROMISE_CALLBACK_ASYNC_BEFORE_RESOLVE */
-  BRJ = JERRY_PROMISE_EVENT_ASYNC_BEFORE_REJECT, /**< same as JERRY_PROMISE_CALLBACK_ASYNC_BEFORE_REJECT */
-  ARS = JERRY_PROMISE_EVENT_ASYNC_AFTER_RESOLVE, /**< same as JERRY_PROMISE_CALLBACK_ASYNC_AFTER_RESOLVE */
-  ARJ = JERRY_PROMISE_EVENT_ASYNC_AFTER_REJECT, /**< same as JERRY_PROMISE_CALLBACK_ASYNC_AFTER_REJECT */
-  CP = UINT8_MAX - 1, /**< same as JERRY_PROMISE_CALLBACK_CREATE with Promise value */
+  C = JJS_PROMISE_EVENT_CREATE, /**< same as JJS_PROMISE_CALLBACK_CREATE with undefined value */
+  RS = JJS_PROMISE_EVENT_RESOLVE, /**< same as JJS_PROMISE_CALLBACK_RESOLVE */
+  RJ = JJS_PROMISE_EVENT_REJECT, /**< same as JJS_PROMISE_CALLBACK_REJECT */
+  RSF = JJS_PROMISE_EVENT_RESOLVE_FULFILLED, /**< same as JJS_PROMISE_EVENT_RESOLVE_FULFILLED */
+  RJF = JJS_PROMISE_EVENT_REJECT_FULFILLED, /**< same as JJS_PROMISE_EVENT_REJECT_FULFILLED */
+  RWH = JJS_PROMISE_EVENT_REJECT_WITHOUT_HANDLER, /**< same as JJS_PROMISE_EVENT_REJECT_WITHOUT_HANDLER */
+  CHA = JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED, /**< same as JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED */
+  BR = JJS_PROMISE_EVENT_BEFORE_REACTION_JOB, /**< same as JJS_PROMISE_CALLBACK_BEFORE_REACTION_JOB */
+  AR = JJS_PROMISE_EVENT_AFTER_REACTION_JOB, /**< same as JJS_PROMISE_CALLBACK_AFTER_REACTION_JOB */
+  A = JJS_PROMISE_EVENT_ASYNC_AWAIT, /**< same as JJS_PROMISE_CALLBACK_ASYNC_AWAIT */
+  BRS = JJS_PROMISE_EVENT_ASYNC_BEFORE_RESOLVE, /**< same as JJS_PROMISE_CALLBACK_ASYNC_BEFORE_RESOLVE */
+  BRJ = JJS_PROMISE_EVENT_ASYNC_BEFORE_REJECT, /**< same as JJS_PROMISE_CALLBACK_ASYNC_BEFORE_REJECT */
+  ARS = JJS_PROMISE_EVENT_ASYNC_AFTER_RESOLVE, /**< same as JJS_PROMISE_CALLBACK_ASYNC_AFTER_RESOLVE */
+  ARJ = JJS_PROMISE_EVENT_ASYNC_AFTER_REJECT, /**< same as JJS_PROMISE_CALLBACK_ASYNC_AFTER_REJECT */
+  CP = UINT8_MAX - 1, /**< same as JJS_PROMISE_CALLBACK_CREATE with Promise value */
   E = UINT8_MAX, /**< marks the end of the event list */
-} jerry_promise_callback_event_abbreviations_t;
+} jjs_promise_callback_event_abbreviations_t;
 
 static int user;
 static const uint8_t *next_event_p;
 
 static void
-promise_callback (jerry_promise_event_type_t event_type, /**< event type */
-                  const jerry_value_t object, /**< target object */
-                  const jerry_value_t value, /**< optional argument */
+promise_callback (jjs_promise_event_type_t event_type, /**< event type */
+                  const jjs_value_t object, /**< target object */
+                  const jjs_value_t value, /**< optional argument */
                   void *user_p) /**< user pointer passed to the callback */
 {
   TEST_ASSERT (user_p == (void *) &user);
 
   switch (event_type)
   {
-    case JERRY_PROMISE_EVENT_CREATE:
+    case JJS_PROMISE_EVENT_CREATE:
     {
-      TEST_ASSERT (jerry_value_is_promise (object));
-      if (jerry_value_is_undefined (value))
+      TEST_ASSERT (jjs_value_is_promise (object));
+      if (jjs_value_is_undefined (value))
       {
         break;
       }
 
-      TEST_ASSERT (jerry_value_is_promise (value));
+      TEST_ASSERT (jjs_value_is_promise (value));
       TEST_ASSERT (*next_event_p++ == CP);
       return;
     }
-    case JERRY_PROMISE_EVENT_RESOLVE:
-    case JERRY_PROMISE_EVENT_REJECT:
-    case JERRY_PROMISE_EVENT_RESOLVE_FULFILLED:
-    case JERRY_PROMISE_EVENT_REJECT_FULFILLED:
-    case JERRY_PROMISE_EVENT_REJECT_WITHOUT_HANDLER:
+    case JJS_PROMISE_EVENT_RESOLVE:
+    case JJS_PROMISE_EVENT_REJECT:
+    case JJS_PROMISE_EVENT_RESOLVE_FULFILLED:
+    case JJS_PROMISE_EVENT_REJECT_FULFILLED:
+    case JJS_PROMISE_EVENT_REJECT_WITHOUT_HANDLER:
     {
-      TEST_ASSERT (jerry_value_is_promise (object));
+      TEST_ASSERT (jjs_value_is_promise (object));
       break;
     }
-    case JERRY_PROMISE_EVENT_CATCH_HANDLER_ADDED:
-    case JERRY_PROMISE_EVENT_BEFORE_REACTION_JOB:
-    case JERRY_PROMISE_EVENT_AFTER_REACTION_JOB:
+    case JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED:
+    case JJS_PROMISE_EVENT_BEFORE_REACTION_JOB:
+    case JJS_PROMISE_EVENT_AFTER_REACTION_JOB:
     {
-      TEST_ASSERT (jerry_value_is_promise (object));
-      TEST_ASSERT (jerry_value_is_undefined (value));
+      TEST_ASSERT (jjs_value_is_promise (object));
+      TEST_ASSERT (jjs_value_is_undefined (value));
       break;
     }
-    case JERRY_PROMISE_EVENT_ASYNC_AWAIT:
+    case JJS_PROMISE_EVENT_ASYNC_AWAIT:
     {
-      TEST_ASSERT (jerry_value_is_object (object));
-      TEST_ASSERT (jerry_value_is_promise (value));
+      TEST_ASSERT (jjs_value_is_object (object));
+      TEST_ASSERT (jjs_value_is_promise (value));
       break;
     }
     default:
     {
-      TEST_ASSERT (event_type == JERRY_PROMISE_EVENT_ASYNC_BEFORE_RESOLVE
-                   || event_type == JERRY_PROMISE_EVENT_ASYNC_BEFORE_REJECT
-                   || event_type == JERRY_PROMISE_EVENT_ASYNC_AFTER_RESOLVE
-                   || event_type == JERRY_PROMISE_EVENT_ASYNC_AFTER_REJECT);
-      TEST_ASSERT (jerry_value_is_object (object));
+      TEST_ASSERT (event_type == JJS_PROMISE_EVENT_ASYNC_BEFORE_RESOLVE
+                   || event_type == JJS_PROMISE_EVENT_ASYNC_BEFORE_REJECT
+                   || event_type == JJS_PROMISE_EVENT_ASYNC_AFTER_RESOLVE
+                   || event_type == JJS_PROMISE_EVENT_ASYNC_AFTER_REJECT);
+      TEST_ASSERT (jjs_value_is_object (object));
       break;
     }
   }
@@ -106,14 +106,14 @@ run_eval (const uint8_t *event_list_p, /**< event list */
 {
   next_event_p = event_list_p;
 
-  jerry_value_t result = jerry_eval ((const jerry_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
 
-  TEST_ASSERT (!jerry_value_is_exception (result));
-  jerry_value_free (result);
+  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_value_free (result);
 
-  result = jerry_run_jobs ();
-  TEST_ASSERT (!jerry_value_is_exception (result));
-  jerry_value_free (result);
+  result = jjs_run_jobs ();
+  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_value_free (result);
 
   TEST_ASSERT (*next_event_p == UINT8_MAX);
 } /* run_eval */
@@ -124,16 +124,16 @@ main (void)
   TEST_INIT ();
 
   /* The test system enables this feature when Promises are enabled. */
-  TEST_ASSERT (jerry_feature_enabled (JERRY_FEATURE_PROMISE_CALLBACK));
+  TEST_ASSERT (jjs_feature_enabled (JJS_FEATURE_PROMISE_CALLBACK));
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_promise_event_filter_t filters =
-    (JERRY_PROMISE_EVENT_FILTER_CREATE | JERRY_PROMISE_EVENT_FILTER_RESOLVE | JERRY_PROMISE_EVENT_FILTER_REJECT
-     | JERRY_PROMISE_EVENT_FILTER_ERROR | JERRY_PROMISE_EVENT_FILTER_REACTION_JOB
-     | JERRY_PROMISE_EVENT_FILTER_ASYNC_MAIN | JERRY_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB);
+  jjs_promise_event_filter_t filters =
+    (JJS_PROMISE_EVENT_FILTER_CREATE | JJS_PROMISE_EVENT_FILTER_RESOLVE | JJS_PROMISE_EVENT_FILTER_REJECT
+     | JJS_PROMISE_EVENT_FILTER_ERROR | JJS_PROMISE_EVENT_FILTER_REACTION_JOB
+     | JJS_PROMISE_EVENT_FILTER_ASYNC_MAIN | JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB);
 
-  jerry_promise_on_event (filters, promise_callback, (void *) &user);
+  jjs_promise_on_event (filters, promise_callback, (void *) &user);
 
   /* Test promise creation. */
   static uint8_t events1[] = { C, C, C, E };
@@ -335,7 +335,7 @@ main (void)
             "p.then(() => {}).catch(() => {})\n");
 
   /* Test disabled filters. */
-  jerry_promise_on_event (JERRY_PROMISE_EVENT_FILTER_DISABLE, promise_callback, (void *) &user);
+  jjs_promise_on_event (JJS_PROMISE_EVENT_FILTER_DISABLE, promise_callback, (void *) &user);
 
   static uint8_t events24[] = { E };
 
@@ -345,8 +345,8 @@ main (void)
             "f(Promise.resolve(1))\n");
 
   /* Test filtered events. */
-  filters = JERRY_PROMISE_EVENT_FILTER_REACTION_JOB | JERRY_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB;
-  jerry_promise_on_event (filters, promise_callback, (void *) &user);
+  filters = JJS_PROMISE_EVENT_FILTER_REACTION_JOB | JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB;
+  jjs_promise_on_event (filters, promise_callback, (void *) &user);
 
   static uint8_t events25[] = { BR, AR, BRS, ARS, E };
 
@@ -355,6 +355,6 @@ main (void)
             "async function f(p) { await p }"
             "f(Promise.resolve(1).then(() => {}))\n");
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

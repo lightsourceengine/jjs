@@ -20,4 +20,4 @@ file(TOUCH ${SDKCONFIG})
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-project(jerryscript)
+project(jjs)

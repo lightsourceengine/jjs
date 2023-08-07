@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jerryscript-port.h"
+#include "jjs-port.h"
 
 /**
  * Dummy function to get the time zone adjustment.
@@ -24,13 +24,13 @@
  * @return 0
  */
 int32_t
-jerry_port_local_tza (double unix_ms)
+jjs_port_local_tza (double unix_ms)
 {
   (void) unix_ms;
 
   /* We live in UTC. */
   return 0;
-} /* jerry_port_local_tza */
+} /* jjs_port_local_tza */
 
 /**
  * Dummy function to get the current time.
@@ -38,7 +38,7 @@ jerry_port_local_tza (double unix_ms)
  * @return 0
  */
 double
-jerry_port_current_time (void)
+jjs_port_current_time (void)
 {
   return 0;
-} /* jerry_port_current_time */
+} /* jjs_port_current_time */

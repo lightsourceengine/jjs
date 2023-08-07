@@ -19,7 +19,7 @@ all:
 	$(MAKE) script
 
 
-## Targets for installing build dependencies of the ESP8266 JerryScript target.
+## Targets for installing build dependencies of the ESP8266 JJS target.
 
 # Install tools via apt.
 install-apt-get-deps:
@@ -35,14 +35,14 @@ install-esp-idf:
 	git clone https://github.com/espressif/esp-idf.git /tmp/esp-idf -b release/v4.4
 	IDF_PATH=/tmp/esp-idf python -m pip install --user -r /tmp/esp-idf/requirements.txt
 
-# Perform all the necessary (JerryScript-independent) installation steps.
+# Perform all the necessary (JJS-independent) installation steps.
 install-noapt: install-xtensa-esp32-gcc install-esp-idf
 install: install-apt-get-deps install-noapt
 
 
-## Targets for building ESP-IDF with JerryScript.
+## Targets for building ESP-IDF with JJS.
 
-# Build the firmware (ESP-IDF with JerryScript).
+# Build the firmware (ESP-IDF with JJS).
 script:
 	PATH=/tmp/xtensa-esp32-elf/bin:$(PATH) \
 	python /tmp/esp-idf/tools/idf.py \

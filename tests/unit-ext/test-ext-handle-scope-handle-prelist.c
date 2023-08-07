@@ -14,80 +14,80 @@
  */
 
 /**
- * Unit test for jerry-ext/handle-scope-handle-prelist.
+ * Unit test for jjs-ext/handle-scope-handle-prelist.
  *
- * Tests escaping jerry value that holds on scope's handle heap.
+ * Tests escaping JJS value that holds on scope's handle heap.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
-#include "jerryscript-ext/handle-scope.h"
+#include "jjs-ext/handle-scope.h"
 #include "test-common.h"
 
 static size_t native_free_cb_call_count;
-static const size_t handle_count = JERRYX_HANDLE_PRELIST_SIZE * 2;
+static const size_t handle_count = JJSX_HANDLE_PRELIST_SIZE * 2;
 
 static void
 native_free_cb (void *native_p, /**< native pointer */
-                jerry_object_native_info_t *info_p) /**< native info */
+                jjs_object_native_info_t *info_p) /**< native info */
 {
   (void) native_p;
   (void) info_p;
   ++native_free_cb_call_count;
 } /* native_free_cb */
 
-static const jerry_object_native_info_t native_info = {
+static const jjs_object_native_info_t native_info = {
   .free_cb = native_free_cb,
   .number_of_references = 0,
   .offset_of_references = 0,
 };
 
-static jerry_value_t
+static jjs_value_t
 create_object (void)
 {
-  jerryx_escapable_handle_scope scope;
-  jerryx_open_escapable_handle_scope (&scope);
+  jjsx_escapable_handle_scope scope;
+  jjsx_open_escapable_handle_scope (&scope);
 
-  jerry_value_t obj;
+  jjs_value_t obj;
   for (size_t idx = 0; idx < handle_count; idx++)
   {
-    obj = jerryx_create_handle (jerry_object ());
-    jerry_object_set_native_ptr (obj, &native_info, NULL);
+    obj = jjsx_create_handle (jjs_object ());
+    jjs_object_set_native_ptr (obj, &native_info, NULL);
   }
 
   // If leaves `escaped` uninitialized, there will be a style error on linux thrown by compiler
-  jerry_value_t escaped = 0;
-  jerryx_escape_handle (scope, obj, &escaped);
-  TEST_ASSERT (scope->prelist_handle_count == JERRYX_HANDLE_PRELIST_SIZE);
+  jjs_value_t escaped = 0;
+  jjsx_escape_handle (scope, obj, &escaped);
+  TEST_ASSERT (scope->prelist_handle_count == JJSX_HANDLE_PRELIST_SIZE);
 
-  jerryx_close_handle_scope (scope);
+  jjsx_close_handle_scope (scope);
   return escaped;
 } /* create_object */
 
 static void
 test_handle_scope_val (void)
 {
-  jerryx_handle_scope scope;
-  jerryx_open_handle_scope (&scope);
-  jerry_value_t obj = create_object ();
+  jjsx_handle_scope scope;
+  jjsx_open_handle_scope (&scope);
+  jjs_value_t obj = create_object ();
   (void) obj;
 
-  jerry_heap_gc (JERRY_GC_PRESSURE_LOW);
+  jjs_heap_gc (JJS_GC_PRESSURE_LOW);
   TEST_ASSERT (native_free_cb_call_count == (handle_count - 1));
 
-  jerryx_close_handle_scope (scope);
+  jjsx_close_handle_scope (scope);
 } /* test_handle_scope_val */
 
 int
 main (void)
 {
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
   native_free_cb_call_count = 0;
   test_handle_scope_val ();
 
-  jerry_heap_gc (JERRY_GC_PRESSURE_LOW);
+  jjs_heap_gc (JJS_GC_PRESSURE_LOW);
   TEST_ASSERT (native_free_cb_call_count == handle_count);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 } /* main */

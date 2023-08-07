@@ -31,14 +31,14 @@ import re
 from settings import FORMAT_SCRIPT, PROJECT_DIR
 
 
-MAGIC_STRINGS_INI = os.path.join(PROJECT_DIR, 'jerry-core', 'lit', 'lit-magic-strings.ini')
-MAGIC_STRINGS_INC_H = os.path.join(PROJECT_DIR, 'jerry-core', 'lit', 'lit-magic-strings.inc.h')
+MAGIC_STRINGS_INI = os.path.join(PROJECT_DIR, 'jjs-core', 'lit', 'lit-magic-strings.ini')
+MAGIC_STRINGS_INC_H = os.path.join(PROJECT_DIR, 'jjs-core', 'lit', 'lit-magic-strings.inc.h')
 
-ECMA_ERRORS_INI = os.path.join(PROJECT_DIR, 'jerry-core', 'ecma', 'base', 'ecma-error-messages.ini')
-ECMA_ERRORS_INC_H = os.path.join(PROJECT_DIR, 'jerry-core', 'ecma', 'base', 'ecma-error-messages.inc.h')
+ECMA_ERRORS_INI = os.path.join(PROJECT_DIR, 'jjs-core', 'ecma', 'base', 'ecma-error-messages.ini')
+ECMA_ERRORS_INC_H = os.path.join(PROJECT_DIR, 'jjs-core', 'ecma', 'base', 'ecma-error-messages.inc.h')
 
-PARSER_ERRORS_INI = os.path.join(PROJECT_DIR, 'jerry-core', 'parser', 'js', 'parser-error-messages.ini')
-PARSER_ERRORS_INC_H = os.path.join(PROJECT_DIR, 'jerry-core', 'parser', 'js', 'parser-error-messages.inc.h')
+PARSER_ERRORS_INI = os.path.join(PROJECT_DIR, 'jjs-core', 'parser', 'js', 'parser-error-messages.ini')
+PARSER_ERRORS_INC_H = os.path.join(PROJECT_DIR, 'jjs-core', 'parser', 'js', 'parser-error-messages.inc.h')
 
 LIMIT_MAGIC_STR_LENGTH = 255
 
@@ -55,7 +55,7 @@ def debug_dump(obj):
 
 
 def read_magic_string_defs(debug, ini_path, item_name):
-    # Read the `jerry-core/lit/lit-magic-strings.ini` file and returns the magic
+    # Read the `jjs-core/lit/lit-magic-strings.ini` file and returns the magic
     # string definitions found therein in the form of
     #   [LIT_MAGIC_STRINGS]
     #   LIT_MAGIC_STRING_xxx = "vvv"
@@ -161,7 +161,7 @@ def extract_magic_string_refs(debug, pattern, inc_h_filename):
                   'for {guard_stack})'
                   .format(fname=fname, guard_stack=guard_stack))
 
-    for root, _, files in os.walk(os.path.join(PROJECT_DIR, 'jerry-core')):
+    for root, _, files in os.walk(os.path.join(PROJECT_DIR, 'jjs-core')):
         for fname in files:
             if (fname.endswith('.c') or fname.endswith('.h')) \
                and fname != inc_h_filename:

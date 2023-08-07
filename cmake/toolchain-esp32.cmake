@@ -20,7 +20,7 @@ set(CMAKE_CXX_COMPILER xtensa-esp32-elf-g++)
 set(CMAKE_ASM_COMPILER xtensa-esp32-elf-gcc)
 
 # uncomment that if you want 4-bytes float (much faster on esp32)
-#add_definitions(-DJERRY_NUMBER_TYPE_FLOAT64=0)
+#add_definitions(-DJJS_NUMBER_TYPE_FLOAT64=0)
 
 set(CMAKE_C_FLAGS "-mlongcalls -Wno-frame-address" CACHE STRING "C Compiler Base Flags")
 set(CMAKE_CXX_FLAGS "-mlongcalls -Wno-frame-address" CACHE STRING "C++ Compiler Base Flags")

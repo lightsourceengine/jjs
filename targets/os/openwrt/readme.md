@@ -1,6 +1,6 @@
-# JerryScript for OpenWrt build guide
+# JJS for OpenWrt build guide
 
-This document describes the steps required to compile the JerryScript
+This document describes the steps required to compile the JJS
 for OpenWrt. For target device the TP-Link WR1043ND v1.x router is
 used. Please be advised, that if you have a different one minor
 modifications to this document could be required.
@@ -8,7 +8,7 @@ modifications to this document could be required.
 IMPORTANT!
 
 As the TP-Link WR1043ND is a mips based device and mips is a big-endian
-architecture a JerryScript snapshot which was built on an little-endian
+architecture a JJS snapshot which was built on an little-endian
 system will not work correctly. Thus it is advised that the
 snapshot functionally should be used with caution, that is
 DO NOT run snapshots generated on little-endian system(s) on
@@ -22,7 +22,7 @@ an archived repository: https://github.com/openwrt/archive
 
 ## OpenWrt toolchain setup
 
-To build the JerryScript for OpenWrt a toolchain is required for
+To build the JJS for OpenWrt a toolchain is required for
 the target router/device. The toolchain setup in this document was
 tested on an Ubuntu 16.04.3 LTS Linux.
 
@@ -77,7 +77,7 @@ $ mips-openwrt-linux-gcc --version # running this should print out the version i
 
 At this point we have the required compiler for OpenWrt.
 
-## Build JerryScript for OpenWrt
+## Build JJS for OpenWrt
 
 ### 0. Check environment
 
@@ -92,5 +92,5 @@ $ ./tools/build.py --toolchain cmake/toolchain_openwrt_mips.cmake \
 
 ### 2. Copy the binary
 
-After a successful build the `build/bin/jerry` binary file can be copied to the target device.
+After a successful build the `build/bin/jjs` binary file can be copied to the target device.
 On how to copy a binary file to an OpenWrt target device please see the OpenWrt manual(s).

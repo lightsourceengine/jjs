@@ -24,5 +24,5 @@ then
     exit 1
 fi
 
-find ./tools ./jerry-debugger -name "*.py" \
+find ./tools ./jjs-debugger -name "*.py" \
     | xargs pylint --rcfile=tools/pylint/pylintrc

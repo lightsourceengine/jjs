@@ -46,7 +46,7 @@ IncludeCategories:
     Priority: 0
   - Regex: '<[-./a-z]*>'
     Priority: 1
-  - Regex: '"jerryscript[-.a-z]*"'
+  - Regex: '"jjs[-.a-z]*"'
     Priority: 2
   - Regex: '"ecma[-.a-z]*"'
     Priority: 3
@@ -78,9 +78,9 @@ SpacesInSquareBrackets: false
 SpaceBeforeSquareBrackets: false
 Standard: Auto
 StatementMacros:
-  - JERRY_ASSERT
-  - JERRY_STATIC_ASSERT
-  - JERRY_UNREACHABLE
+  - JJS_ASSERT
+  - JJS_STATIC_ASSERT
+  - JJS_UNREACHABLE
 TabWidth: 0
 UseCRLF: false
 UseTab: Never

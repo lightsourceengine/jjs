@@ -23,22 +23,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jerryscript-port.h"
+#include "jjs-port.h"
 
-#define JERRY_UNUSED(x) ((void) (x))
+#define JJS_UNUSED(x) ((void) (x))
 
 #define TEST_ASSERT(x)                                           \
   do                                                             \
   {                                                              \
-    if (JERRY_UNLIKELY (!(x)))                                   \
+    if (JJS_UNLIKELY (!(x)))                                   \
     {                                                            \
-      jerry_log (JERRY_LOG_LEVEL_ERROR,                          \
+      jjs_log (JJS_LOG_LEVEL_ERROR,                          \
                  "TEST: Assertion '%s' failed at %s(%s):%lu.\n", \
                  #x,                                             \
                  __FILE__,                                       \
                  __func__,                                       \
                  (unsigned long) __LINE__);                      \
-      jerry_port_fatal (JERRY_FATAL_FAILED_ASSERTION);           \
+      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);           \
     }                                                            \
   } while (0)
 
@@ -49,7 +49,7 @@
     const char* __result = (const char*) (RESULT);                 \
     if (strcmp (__expected, __result) != 0)                        \
     {                                                              \
-      jerry_log (JERRY_LOG_LEVEL_ERROR,                            \
+      jjs_log (JJS_LOG_LEVEL_ERROR,                            \
                  "TEST: String comparison failed at %s(%s):%lu.\n" \
                  " Expected: '%s'\n Got: '%s'\n",                  \
                  __FILE__,                                         \
@@ -57,7 +57,7 @@
                  (unsigned long) __LINE__,                         \
                  __expected,                                       \
                  __result);                                        \
-      jerry_port_fatal (JERRY_FATAL_FAILED_ASSERTION);             \
+      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);             \
     }                                                              \
   } while (0)
 
@@ -72,7 +72,7 @@
     {                                            \
       double d;                                  \
       unsigned u;                                \
-    } now = { .d = jerry_port_current_time () }; \
+    } now = { .d = jjs_port_current_time () }; \
     srand (now.u);                               \
   } while (0)
 

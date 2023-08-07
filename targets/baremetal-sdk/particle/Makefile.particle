@@ -14,29 +14,29 @@
 
 PARTICLE_FIRMWARE := $(CURDIR)/../particle/firmware
 
-JERRYDIR ?= $(CURDIR)
-JERRYHEAP  ?= 16
+JJSDIR ?= $(CURDIR)
+JJSHEAP  ?= 16
 
-BUILD_DIR  ?= $(JERRYDIR)/build/particle
+BUILD_DIR  ?= $(JJSDIR)/build/particle
 
 EXT_CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4
 EXT_CFLAGS += -Wno-error=format=
 
-.PHONY: jerrycore jerry-main flash clean
+.PHONY: jjscore jjs-main flash clean
 
 PARTICLE_BUILD_CONFIG = \
-	 INCLUDE_DIRS=$(JERRYDIR)/jerry-core/include \
-	 LIBS=jerry-core \
+	 INCLUDE_DIRS=$(JJSDIR)/jjs-core/include \
+	 LIBS=jjs-core \
 	 PLATFORM=photon \
 	 LIB_DIRS=$(BUILD_DIR)/lib \
-	 APPDIR=$(JERRYDIR)/targets/baremetal-sdk/particle/source \
-	 TARGET_FILE=jerry_main \
+	 APPDIR=$(JJSDIR)/targets/baremetal-sdk/particle/source \
+	 TARGET_FILE=jjs_main \
 	 TARGET_DIR=$(BUILD_DIR) \
 	 LDFLAGS=--specs=nano.specs
 
-all: jerrycore jerry-main
+all: jjscore jjs-main
 
-jerrycore:
+jjscore:
 	mkdir -p $(BUILD_DIR)
 	cmake -B$(BUILD_DIR) -H./ \
 	 -DCMAKE_SYSTEM_NAME=MCU \
@@ -44,15 +44,15 @@ jerrycore:
 	 -DCMAKE_C_COMPILER=arm-none-eabi-gcc \
 	 -DCMAKE_C_COMPILER_WORKS=TRUE \
 	 -DENABLE_LTO=ON \
-	 -DJERRY_CMDLINE=OFF \
-	 -DJERRY_PROFILE=minimal \
+	 -DJJS_CMDLINE=OFF \
+	 -DJJS_PROFILE=minimal \
 	 -DENABLE_STRIP=OFF \
 	 -DEXTERNAL_COMPILE_FLAGS="$(EXT_CFLAGS)" \
-	 -DJERRY_GLOBAL_HEAP_SIZE=$(JERRYHEAP)
+	 -DJJS_GLOBAL_HEAP_SIZE=$(JJSHEAP)
 
-	make -C$(BUILD_DIR) jerry-core
+	make -C$(BUILD_DIR) jjs-core
 
-jerry-main: jerrycore
+jjs-main: jjscore
 	$(PARTICLE_BUILD_CONFIG) make -C$(PARTICLE_FIRMWARE) -f $(PARTICLE_FIRMWARE)/makefile
 
 flash:

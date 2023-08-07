@@ -1,5 +1,5 @@
 # Converting incompatible features with Babel
-To run ES6 sources with JerryScript that use unsupported language features, you can use Babel to transpile your code, which will output a semantically equivalent source file, where the unsupported features are replaced with ES5.1 code.
+To run ES6 sources with JJS that use unsupported language features, you can use Babel to transpile your code, which will output a semantically equivalent source file, where the unsupported features are replaced with ES5.1 code.
 Babel is a JavaScript compiler that is used to convert ES2015+ code into a backward-compatible version. You can find more information [here](https://babeljs.io/).
 
 ## Example

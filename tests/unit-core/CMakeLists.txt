@@ -16,10 +16,10 @@ cmake_minimum_required (VERSION 2.8.12)
 project (unit-core C)
 
 if (NOT IS_ABSOLUTE ${FEATURE_PROFILE})
-  set(FEATURE_PROFILE "${CMAKE_SOURCE_DIR}/jerry-core/profiles/${FEATURE_PROFILE}.profile")
+  set(FEATURE_PROFILE "${CMAKE_SOURCE_DIR}/jjs-core/profiles/${FEATURE_PROFILE}.profile")
 endif()
 
-if(${FEATURE_PROFILE} STREQUAL "${CMAKE_SOURCE_DIR}/jerry-core/profiles/minimal.profile")
+if(${FEATURE_PROFILE} STREQUAL "${CMAKE_SOURCE_DIR}/jjs-core/profiles/minimal.profile")
   message(FATAL_ERROR "minimal profile isn't supported in unit-core")
 endif()
 
@@ -97,8 +97,8 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-vm-throw.c
 )
 
-# jerry_heap_stats_t.size == 0 if system allocator is used.
-if(JERRY_SYSTEM_ALLOCATOR)
+# jjs_heap_stats_t.size == 0 if system allocator is used.
+if(JJS_SYSTEM_ALLOCATOR)
   list(REMOVE_ITEM SOURCE_UNIT_TEST_MAIN_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/test-mem-stats.c)
 endif()
 
@@ -113,7 +113,7 @@ foreach(SOURCE_UNIT_TEST_MAIN ${SOURCE_UNIT_TEST_MAIN_MODULES})
   target_include_directories(${TARGET_NAME} PRIVATE ${INCLUDE_CORE_PRIVATE})
   set_property(TARGET ${TARGET_NAME} PROPERTY LINK_FLAGS "${LINKER_FLAGS_COMMON}")
   set_property(TARGET ${TARGET_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
-  target_link_libraries(${TARGET_NAME} jerry-core jerry-port)
+  target_link_libraries(${TARGET_NAME} jjs-core jjs-port)
 
   add_dependencies(unittests-core ${TARGET_NAME})
 endforeach()

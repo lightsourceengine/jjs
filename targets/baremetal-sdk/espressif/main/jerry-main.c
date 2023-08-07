@@ -13,42 +13,42 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
-#include "jerryscript-ext/handlers.h"
-#include "jerryscript-ext/properties.h"
+#include "jjs.h"
+#include "jjs-ext/handlers.h"
+#include "jjs-ext/properties.h"
 
 /**
- * Jerryscript simple test
+ * JJS simple test
  */
 void app_main()
 {
-  jerry_value_t ret_value = jerry_undefined ();
-  const jerry_char_t script[] = "print ('Hello, World!');";
+  jjs_value_t ret_value = jjs_undefined ();
+  const jjs_char_t script[] = "print ('Hello, World!');";
 
   /* Initialize engine */
-  jerry_init (JERRY_INIT_EMPTY);
-  jerry_log_set_level (JERRY_LOG_LEVEL_DEBUG);
-  jerry_log (JERRY_LOG_LEVEL_DEBUG, "This test run the following script code: %s", script);
+  jjs_init (JJS_INIT_EMPTY);
+  jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
+  jjs_log (JJS_LOG_LEVEL_DEBUG, "This test run the following script code: %s", script);
 
   /* Register the print function in the global object */
-  jerryx_register_global ("print", jerryx_handler_print);
+  jjsx_register_global ("print", jjsx_handler_print);
 
   /* Setup Global scope code */
-  ret_value = jerry_parse (script, sizeof (script) - 1, NULL);
+  ret_value = jjs_parse (script, sizeof (script) - 1, NULL);
 
-  if (!jerry_value_is_exception (ret_value))
+  if (!jjs_value_is_exception (ret_value))
   {
     /* Execute the parsed source code in the Global scope */
-    ret_value = jerry_run (ret_value);
+    ret_value = jjs_run (ret_value);
   }
 
-  if (jerry_value_is_exception (ret_value))
+  if (jjs_value_is_exception (ret_value))
   {
-    jerry_log (JERRY_LOG_LEVEL_DEBUG, "Script error...\n\n");
+    jjs_log (JJS_LOG_LEVEL_DEBUG, "Script error...\n\n");
   }
 
-  jerry_value_free (ret_value);
+  jjs_value_free (ret_value);
 
   /* Cleanup engine */
-  jerry_cleanup ();
-} /* test_jerry */
+  jjs_cleanup ();
+} /* test_jjs */

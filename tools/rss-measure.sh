@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-JERRY=$1
+JJS=$1
 TEST=$2
 SLEEP=0.1
 OS=`uname -s | tr [:upper:] [:lower:]`
@@ -49,7 +49,7 @@ function print_entry()
 
 function run_test()
 {
-  $JERRY $TEST &
+  $JJS $TEST &
   PID=$!
 
   while kill -0 "$PID" > /dev/null 2>&1;

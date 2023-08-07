@@ -18,28 +18,28 @@ BOARD ?= K64F
 # defult toolchain
 TOOLCHAIN ?= GCC_ARM
 
-# path to jerryscript/targets/os/mbedos5
-JERRY_TARGET_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+# path to jjs/targets/os/mbedos5
+JJS_TARGET_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-# path to the root jerryscript directory
-JERRY_ROOT_DIR = $(realpath $(JERRY_TARGET_DIR)/../../..)
+# path to the root JJS directory
+JJS_ROOT_DIR = $(realpath $(JJS_TARGET_DIR)/../../..)
 
 # default build path
-BUILD_DIR ?= $(JERRY_ROOT_DIR)/build/mbed-os
+BUILD_DIR ?= $(JJS_ROOT_DIR)/build/mbed-os
 
-# default jerry heap size (in KB)
-JERRY_HEAP_SIZE ?= 70
+# default JJS heap size (in KB)
+JJS_HEAP_SIZE ?= 70
 
 define MBED_CLI_FLAGS
 	--clean
 	--build $(BUILD_DIR)
 	--source $(MBED_OS_DIR)
-	--source $(JERRY_ROOT_DIR)
-	--source $(JERRY_TARGET_DIR)
+	--source $(JJS_ROOT_DIR)
+	--source $(JJS_TARGET_DIR)
 	--toolchain $(TOOLCHAIN)
 	--target $(BOARD)
 	--artifact-name mbedos
-	--macro JERRY_GLOBAL_HEAP_SIZE=$(JERRY_HEAP_SIZE)
+	--macro JJS_GLOBAL_HEAP_SIZE=$(JJS_HEAP_SIZE)
 endef
 
 .PHONY: all
@@ -47,7 +47,7 @@ all: .build
 
 .PHONY: clean
 clean: .mbedignore-remove
-	rm -rf $(JERRY_ROOT_DIR)/build/mbed-os
+	rm -rf $(JJS_ROOT_DIR)/build/mbed-os
 
 .PHONY: flash
 flash: .mbed-set-flash-flag .build
@@ -66,8 +66,8 @@ flash: .mbed-set-flash-flag .build
 
 .PHONY: .mbedignore-copy
 .mbedignore-copy:
-	cp mbedignore.txt $(JERRY_ROOT_DIR)/.mbedignore
+	cp mbedignore.txt $(JJS_ROOT_DIR)/.mbedignore
 
 .PHONY: .mbedignore-remove
 .mbedignore-remove:
-	rm -f $(JERRY_ROOT_DIR)/.mbedignore
+	rm -f $(JJS_ROOT_DIR)/.mbedignore

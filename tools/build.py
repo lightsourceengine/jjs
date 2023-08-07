@@ -92,34 +92,34 @@ def get_arguments():
     compgrp = parser.add_argument_group('optional components')
     compgrp.add_argument('--doctests', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('build doctests (%(choices)s)'))
-    compgrp.add_argument('--jerry-cmdline', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='build jerry command line tool (%(choices)s)')
-    compgrp.add_argument('--jerry-cmdline-snapshot', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+    compgrp.add_argument('--jjs-cmdline', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build jjs command line tool (%(choices)s)')
+    compgrp.add_argument('--jjs-cmdline-snapshot', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build snapshot command line tool (%(choices)s)')
-    compgrp.add_argument('--jerry-cmdline-test', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help=devhelp('build test version of the jerry command line tool (%(choices)s)'))
+    compgrp.add_argument('--jjs-cmdline-test', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help=devhelp('build test version of the jjs command line tool (%(choices)s)'))
     compgrp.add_argument('--libfuzzer', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help=devhelp('build jerry with libfuzzer support (%(choices)s)'))
-    compgrp.add_argument('--jerry-ext', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='build jerry-ext (%(choices)s)')
-    compgrp.add_argument('--jerry-ext-debugger', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='build jerry-ext debugger support (%(choices)s)')
-    compgrp.add_argument('--jerry-math', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='build and use jerry-math (%(choices)s)')
-    compgrp.add_argument('--jerry-port', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='build default jerry port implementation (%(choices)s)')
+                         help=devhelp('build JJS with libfuzzer support (%(choices)s)'))
+    compgrp.add_argument('--jjs-ext', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build jjs-ext (%(choices)s)')
+    compgrp.add_argument('--jjs-ext-debugger', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build jjs-ext debugger support (%(choices)s)')
+    compgrp.add_argument('--jjs-math', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build and use jjs-math (%(choices)s)')
+    compgrp.add_argument('--jjs-port', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build default JJS port implementation (%(choices)s)')
     compgrp.add_argument('--unittests', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('build unittests (%(choices)s)'))
 
-    coregrp = parser.add_argument_group('jerry-core options')
+    coregrp = parser.add_argument_group('jjs-core options')
     coregrp.add_argument('--cpointer-32bit', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable 32 bit compressed pointers (%(choices)s)')
     coregrp.add_argument('--error-messages', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable error messages (%(choices)s)')
     coregrp.add_argument('--external-context', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable external context (%(choices)s)')
-    coregrp.add_argument('--jerry-debugger', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='enable the jerry debugger (%(choices)s)')
+    coregrp.add_argument('--jjs-debugger', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable the JJS debugger (%(choices)s)')
     coregrp.add_argument('--js-parser', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable js-parser (%(choices)s)')
     coregrp.add_argument('--function-to-string', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -163,9 +163,9 @@ def get_arguments():
     coregrp.add_argument('--vm-throw', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable VM throw callback (%(choices)s)')
 
-    maingrp = parser.add_argument_group('jerry-main options')
+    maingrp = parser.add_argument_group('jjs-main options')
     maingrp.add_argument('--link-map', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help=devhelp('enable the generation of link map for jerry command line tool (%(choices)s)'))
+                         help=devhelp('enable the generation of link map for jjs command line tool (%(choices)s)'))
     maingrp.add_argument('--compile-commands', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('enable the generation of compile_commands.json (%(choices)s)'))
 
@@ -197,46 +197,46 @@ def generate_build_options(arguments):
 
     # optional components
     build_options_append('DOCTESTS', arguments.doctests)
-    build_options_append('JERRY_CMDLINE', arguments.jerry_cmdline)
-    build_options_append('JERRY_CMDLINE_SNAPSHOT', arguments.jerry_cmdline_snapshot)
-    build_options_append('JERRY_CMDLINE_TEST', arguments.jerry_cmdline_test)
-    build_options_append('JERRY_LIBFUZZER', arguments.libfuzzer)
-    build_options_append('JERRY_EXT', arguments.jerry_ext)
-    build_options_append('JERRY_EXT_DEBUGGER', arguments.jerry_ext_debugger)
-    build_options_append('JERRY_MATH', arguments.jerry_math)
-    build_options_append('JERRY_PORT', arguments.jerry_port)
+    build_options_append('JJS_CMDLINE', arguments.jjs_cmdline)
+    build_options_append('JJS_CMDLINE_SNAPSHOT', arguments.jjs_cmdline_snapshot)
+    build_options_append('JJS_CMDLINE_TEST', arguments.jjs_cmdline_test)
+    build_options_append('JJS_LIBFUZZER', arguments.libfuzzer)
+    build_options_append('JJS_EXT', arguments.jjs_ext)
+    build_options_append('JJS_EXT_DEBUGGER', arguments.jjs_ext_debugger)
+    build_options_append('JJS_MATH', arguments.jjs_math)
+    build_options_append('JJS_PORT', arguments.jjs_port)
     build_options_append('UNITTESTS', arguments.unittests)
 
-    # jerry-core options
-    build_options_append('JERRY_CPOINTER_32_BIT', arguments.cpointer_32bit)
-    build_options_append('JERRY_ERROR_MESSAGES', arguments.error_messages)
-    build_options_append('JERRY_EXTERNAL_CONTEXT', arguments.external_context)
-    build_options_append('JERRY_DEBUGGER', arguments.jerry_debugger)
-    build_options_append('JERRY_PARSER', arguments.js_parser)
-    build_options_append('JERRY_FUNCTION_TO_STRING', arguments.function_to_string)
-    build_options_append('JERRY_LINE_INFO', arguments.line_info)
-    build_options_append('JERRY_LOGGING', arguments.logging)
-    build_options_append('JERRY_GLOBAL_HEAP_SIZE', arguments.mem_heap)
-    build_options_append('JERRY_GC_LIMIT', arguments.gc_limit)
-    build_options_append('JERRY_STACK_LIMIT', arguments.stack_limit)
-    build_options_append('JERRY_MEM_STATS', arguments.mem_stats)
-    build_options_append('JERRY_MEM_GC_BEFORE_EACH_ALLOC', arguments.mem_stress_test)
-    build_options_append('JERRY_PROFILE', arguments.profile)
-    build_options_append('JERRY_PROMISE_CALLBACK', arguments.promise_callback)
-    build_options_append('JERRY_REGEXP_STRICT_MODE', arguments.regexp_strict_mode)
-    build_options_append('JERRY_PARSER_DUMP_BYTE_CODE', arguments.show_opcodes)
-    build_options_append('JERRY_REGEXP_DUMP_BYTE_CODE', arguments.show_regexp_opcodes)
-    build_options_append('JERRY_SNAPSHOT_EXEC', arguments.snapshot_exec)
-    build_options_append('JERRY_SNAPSHOT_SAVE', arguments.snapshot_save)
-    build_options_append('JERRY_SYSTEM_ALLOCATOR', arguments.system_allocator)
-    build_options_append('JERRY_VALGRIND', arguments.valgrind)
-    build_options_append('JERRY_VM_HALT', arguments.vm_exec_stop)
-    build_options_append('JERRY_VM_THROW', arguments.vm_throw)
+    # jjs-core options
+    build_options_append('JJS_CPOINTER_32_BIT', arguments.cpointer_32bit)
+    build_options_append('JJS_ERROR_MESSAGES', arguments.error_messages)
+    build_options_append('JJS_EXTERNAL_CONTEXT', arguments.external_context)
+    build_options_append('JJS_DEBUGGER', arguments.jjs_debugger)
+    build_options_append('JJS_PARSER', arguments.js_parser)
+    build_options_append('JJS_FUNCTION_TO_STRING', arguments.function_to_string)
+    build_options_append('JJS_LINE_INFO', arguments.line_info)
+    build_options_append('JJS_LOGGING', arguments.logging)
+    build_options_append('JJS_GLOBAL_HEAP_SIZE', arguments.mem_heap)
+    build_options_append('JJS_GC_LIMIT', arguments.gc_limit)
+    build_options_append('JJS_STACK_LIMIT', arguments.stack_limit)
+    build_options_append('JJS_MEM_STATS', arguments.mem_stats)
+    build_options_append('JJS_MEM_GC_BEFORE_EACH_ALLOC', arguments.mem_stress_test)
+    build_options_append('JJS_PROFILE', arguments.profile)
+    build_options_append('JJS_PROMISE_CALLBACK', arguments.promise_callback)
+    build_options_append('JJS_REGEXP_STRICT_MODE', arguments.regexp_strict_mode)
+    build_options_append('JJS_PARSER_DUMP_BYTE_CODE', arguments.show_opcodes)
+    build_options_append('JJS_REGEXP_DUMP_BYTE_CODE', arguments.show_regexp_opcodes)
+    build_options_append('JJS_SNAPSHOT_EXEC', arguments.snapshot_exec)
+    build_options_append('JJS_SNAPSHOT_SAVE', arguments.snapshot_save)
+    build_options_append('JJS_SYSTEM_ALLOCATOR', arguments.system_allocator)
+    build_options_append('JJS_VALGRIND', arguments.valgrind)
+    build_options_append('JJS_VM_HALT', arguments.vm_exec_stop)
+    build_options_append('JJS_VM_THROW', arguments.vm_throw)
 
     if arguments.gc_mark_limit is not None:
-        build_options.append('-D%s=%s' % ('JERRY_GC_MARK_LIMIT', arguments.gc_mark_limit))
+        build_options.append('-D%s=%s' % ('JJS_GC_MARK_LIMIT', arguments.gc_mark_limit))
 
-    # jerry-main options
+    # jjs-main options
     build_options_append('ENABLE_LINK_MAP', arguments.link_map)
     build_options_append('ENABLE_COMPILE_COMMANDS', arguments.compile_commands)
 
@@ -256,7 +256,7 @@ def configure_output_dir(arguments):
     if not os.path.exists(arguments.builddir):
         os.makedirs(arguments.builddir)
 
-def configure_jerry(arguments):
+def configure_jjs(arguments):
     configure_output_dir(arguments)
 
     build_options = generate_build_options(arguments)
@@ -270,7 +270,7 @@ def configure_jerry(arguments):
 
     return subprocess.call(cmake_cmd)
 
-def make_jerry(arguments):
+def make_jjs(arguments):
     make_cmd = ['cmake', '--build', arguments.builddir, '--config', arguments.build_type]
     env = dict(os.environ)
     env['CMAKE_BUILD_PARALLEL_LEVEL'] = str(arguments.jobs)
@@ -280,8 +280,8 @@ def make_jerry(arguments):
 
     return proc.returncode
 
-def install_jerry(arguments):
-    install_target = 'INSTALL' if os.path.exists(os.path.join(arguments.builddir, 'Jerry.sln')) else 'install'
+def install_jjs(arguments):
+    install_target = 'INSTALL' if os.path.exists(os.path.join(arguments.builddir, 'jjs.sln')) else 'install'
     make_cmd = ['cmake', '--build', arguments.builddir, '--config', arguments.build_type, '--target', install_target]
     return subprocess.call(make_cmd)
 
@@ -296,13 +296,13 @@ def print_result(ret):
 def main():
     arguments = get_arguments()
 
-    ret = configure_jerry(arguments)
+    ret = configure_jjs(arguments)
 
     if not ret:
-        ret = make_jerry(arguments)
+        ret = make_jjs(arguments)
 
     if not ret and arguments.install is not None:
-        ret = install_jerry(arguments)
+        ret = install_jjs(arguments)
 
     print_result(ret)
     sys.exit(ret)

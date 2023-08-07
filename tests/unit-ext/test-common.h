@@ -16,24 +16,24 @@
 #ifndef TEST_COMMON_H
 #define TEST_COMMON_H
 
-#include "jerryscript-port.h"
+#include "jjs-port.h"
 
 #define ARRAY_SIZE(array) ((unsigned long) (sizeof (array) / sizeof ((array)[0])))
 
-#define JERRY_UNUSED(x) ((void) (x))
+#define JJS_UNUSED(x) ((void) (x))
 
 #define TEST_ASSERT(x)                                           \
   do                                                             \
   {                                                              \
     if (!(x))                                                    \
     {                                                            \
-      jerry_log (JERRY_LOG_LEVEL_ERROR,                          \
+      jjs_log (JJS_LOG_LEVEL_ERROR,                          \
                  "TEST: Assertion '%s' failed at %s(%s):%lu.\n", \
                  #x,                                             \
                  __FILE__,                                       \
                  __func__,                                       \
                  (unsigned long) __LINE__);                      \
-      jerry_port_fatal (JERRY_FATAL_FAILED_ASSERTION);           \
+      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);           \
     }                                                            \
   } while (0)
 

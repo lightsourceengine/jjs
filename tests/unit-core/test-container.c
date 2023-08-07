@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
@@ -21,127 +21,127 @@ static int global_counter;
 
 static void
 native_free_callback (void *native_p, /**< native pointer */
-                      jerry_object_native_info_t *info_p) /**< native info */
+                      jjs_object_native_info_t *info_p) /**< native info */
 {
   TEST_ASSERT (native_p == (void *) &global_counter);
   TEST_ASSERT (info_p->free_cb == native_free_callback);
   global_counter++;
 } /* native_free_callback */
 
-static const jerry_object_native_info_t native_info = {
+static const jjs_object_native_info_t native_info = {
   .free_cb = native_free_callback,
   .number_of_references = 0,
   .offset_of_references = 0,
 };
 
-static jerry_value_t
-create_array_from_container_handler (const jerry_call_info_t *call_info_p,
-                                     const jerry_value_t args_p[],
-                                     const jerry_length_t args_count)
+static jjs_value_t
+create_array_from_container_handler (const jjs_call_info_t *call_info_p,
+                                     const jjs_value_t args_p[],
+                                     const jjs_length_t args_count)
 {
-  JERRY_UNUSED (call_info_p);
+  JJS_UNUSED (call_info_p);
 
   if (args_count < 2)
   {
-    return jerry_undefined ();
+    return jjs_undefined ();
   }
 
   bool is_key_value_pairs = false;
-  jerry_value_t result = jerry_container_to_array (args_p[0], &is_key_value_pairs);
+  jjs_value_t result = jjs_container_to_array (args_p[0], &is_key_value_pairs);
 
-  TEST_ASSERT (is_key_value_pairs == jerry_value_is_true (args_p[1]));
+  TEST_ASSERT (is_key_value_pairs == jjs_value_is_true (args_p[1]));
   return result;
 } /* create_array_from_container_handler */
 
 static void
 run_eval (const char *source_p)
 {
-  jerry_value_t result = jerry_eval ((const jerry_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
 
-  TEST_ASSERT (!jerry_value_is_exception (result));
-  jerry_value_free (result);
+  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_value_free (result);
 } /* run_eval */
 
 static void
 run_eval_error (const char *source_p)
 {
-  jerry_value_t result = jerry_eval ((const jerry_char_t *) source_p, strlen (source_p), 0);
-  jerry_value_free (result);
+  jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_free (result);
 } /* run_eval_error */
 
 int
 main (void)
 {
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  if (!jerry_feature_enabled (JERRY_FEATURE_MAP) || !jerry_feature_enabled (JERRY_FEATURE_SET)
-      || !jerry_feature_enabled (JERRY_FEATURE_WEAKMAP) || !jerry_feature_enabled (JERRY_FEATURE_WEAKSET))
+  if (!jjs_feature_enabled (JJS_FEATURE_MAP) || !jjs_feature_enabled (JJS_FEATURE_SET)
+      || !jjs_feature_enabled (JJS_FEATURE_WEAKMAP) || !jjs_feature_enabled (JJS_FEATURE_WEAKSET))
   {
-    jerry_log (JERRY_LOG_LEVEL_ERROR, "Containers are disabled!\n");
-    jerry_cleanup ();
+    jjs_log (JJS_LOG_LEVEL_ERROR, "Containers are disabled!\n");
+    jjs_cleanup ();
     return 0;
   }
 
-  jerry_value_t instance_check;
-  jerry_value_t global = jerry_current_realm ();
-  jerry_value_t map_str = jerry_string_sz ("Map");
-  jerry_value_t set_str = jerry_string_sz ("Set");
-  jerry_value_t weakmap_str = jerry_string_sz ("WeakMap");
-  jerry_value_t weakset_str = jerry_string_sz ("WeakSet");
-  jerry_value_t global_map = jerry_object_get (global, map_str);
-  jerry_value_t global_set = jerry_object_get (global, set_str);
-  jerry_value_t global_weakmap = jerry_object_get (global, weakmap_str);
-  jerry_value_t global_weakset = jerry_object_get (global, weakset_str);
+  jjs_value_t instance_check;
+  jjs_value_t global = jjs_current_realm ();
+  jjs_value_t map_str = jjs_string_sz ("Map");
+  jjs_value_t set_str = jjs_string_sz ("Set");
+  jjs_value_t weakmap_str = jjs_string_sz ("WeakMap");
+  jjs_value_t weakset_str = jjs_string_sz ("WeakSet");
+  jjs_value_t global_map = jjs_object_get (global, map_str);
+  jjs_value_t global_set = jjs_object_get (global, set_str);
+  jjs_value_t global_weakmap = jjs_object_get (global, weakmap_str);
+  jjs_value_t global_weakset = jjs_object_get (global, weakset_str);
 
-  jerry_value_t function = jerry_function_external (create_array_from_container_handler);
-  jerry_value_t name = jerry_string_sz ("create_array_from_container");
-  jerry_value_t res = jerry_object_set (global, name, function);
-  TEST_ASSERT (!jerry_value_is_exception (res));
+  jjs_value_t function = jjs_function_external (create_array_from_container_handler);
+  jjs_value_t name = jjs_string_sz ("create_array_from_container");
+  jjs_value_t res = jjs_object_set (global, name, function);
+  TEST_ASSERT (!jjs_value_is_exception (res));
 
-  jerry_value_free (res);
-  jerry_value_free (name);
-  jerry_value_free (function);
+  jjs_value_free (res);
+  jjs_value_free (name);
+  jjs_value_free (function);
 
-  jerry_value_free (global);
+  jjs_value_free (global);
 
-  jerry_value_free (map_str);
-  jerry_value_free (set_str);
-  jerry_value_free (weakmap_str);
-  jerry_value_free (weakset_str);
+  jjs_value_free (map_str);
+  jjs_value_free (set_str);
+  jjs_value_free (weakmap_str);
+  jjs_value_free (weakset_str);
 
-  jerry_value_t empty_map = jerry_container (JERRY_CONTAINER_TYPE_MAP, NULL, 0);
-  TEST_ASSERT (jerry_container_type (empty_map) == JERRY_CONTAINER_TYPE_MAP);
-  instance_check = jerry_binary_op (JERRY_BIN_OP_INSTANCEOF, empty_map, global_map);
-  TEST_ASSERT (jerry_value_is_true (instance_check));
-  jerry_value_free (instance_check);
-  jerry_value_free (global_map);
-  jerry_value_free (empty_map);
+  jjs_value_t empty_map = jjs_container (JJS_CONTAINER_TYPE_MAP, NULL, 0);
+  TEST_ASSERT (jjs_container_type (empty_map) == JJS_CONTAINER_TYPE_MAP);
+  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_map, global_map);
+  TEST_ASSERT (jjs_value_is_true (instance_check));
+  jjs_value_free (instance_check);
+  jjs_value_free (global_map);
+  jjs_value_free (empty_map);
 
-  jerry_value_t empty_set = jerry_container (JERRY_CONTAINER_TYPE_SET, NULL, 0);
-  TEST_ASSERT (jerry_container_type (empty_set) == JERRY_CONTAINER_TYPE_SET);
-  instance_check = jerry_binary_op (JERRY_BIN_OP_INSTANCEOF, empty_set, global_set);
-  TEST_ASSERT (jerry_value_is_true (instance_check));
-  jerry_value_free (instance_check);
-  jerry_value_free (global_set);
-  jerry_value_free (empty_set);
+  jjs_value_t empty_set = jjs_container (JJS_CONTAINER_TYPE_SET, NULL, 0);
+  TEST_ASSERT (jjs_container_type (empty_set) == JJS_CONTAINER_TYPE_SET);
+  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_set, global_set);
+  TEST_ASSERT (jjs_value_is_true (instance_check));
+  jjs_value_free (instance_check);
+  jjs_value_free (global_set);
+  jjs_value_free (empty_set);
 
-  jerry_value_t empty_weakmap = jerry_container (JERRY_CONTAINER_TYPE_WEAKMAP, NULL, 0);
-  TEST_ASSERT (jerry_container_type (empty_weakmap) == JERRY_CONTAINER_TYPE_WEAKMAP);
-  instance_check = jerry_binary_op (JERRY_BIN_OP_INSTANCEOF, empty_weakmap, global_weakmap);
-  TEST_ASSERT (jerry_value_is_true (instance_check));
-  jerry_value_free (instance_check);
-  jerry_value_free (global_weakmap);
-  jerry_value_free (empty_weakmap);
+  jjs_value_t empty_weakmap = jjs_container (JJS_CONTAINER_TYPE_WEAKMAP, NULL, 0);
+  TEST_ASSERT (jjs_container_type (empty_weakmap) == JJS_CONTAINER_TYPE_WEAKMAP);
+  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_weakmap, global_weakmap);
+  TEST_ASSERT (jjs_value_is_true (instance_check));
+  jjs_value_free (instance_check);
+  jjs_value_free (global_weakmap);
+  jjs_value_free (empty_weakmap);
 
-  jerry_value_t empty_weakset = jerry_container (JERRY_CONTAINER_TYPE_WEAKSET, NULL, 0);
-  TEST_ASSERT (jerry_container_type (empty_weakset) == JERRY_CONTAINER_TYPE_WEAKSET);
-  instance_check = jerry_binary_op (JERRY_BIN_OP_INSTANCEOF, empty_weakset, global_weakset);
-  TEST_ASSERT (jerry_value_is_true (instance_check));
-  jerry_value_free (instance_check);
-  jerry_value_free (global_weakset);
-  jerry_value_free (empty_weakset);
+  jjs_value_t empty_weakset = jjs_container (JJS_CONTAINER_TYPE_WEAKSET, NULL, 0);
+  TEST_ASSERT (jjs_container_type (empty_weakset) == JJS_CONTAINER_TYPE_WEAKSET);
+  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_weakset, global_weakset);
+  TEST_ASSERT (jjs_value_is_true (instance_check));
+  jjs_value_free (instance_check);
+  jjs_value_free (global_weakset);
+  jjs_value_free (empty_weakset);
 
-  const jerry_char_t source[] = TEST_STRING_LITERAL ("(function () {\n"
+  const jjs_char_t source[] = TEST_STRING_LITERAL ("(function () {\n"
                                                      "  var o1 = {}\n"
                                                      "  var o2 = {}\n"
                                                      "  var o3 = {}\n"
@@ -150,14 +150,14 @@ main (void)
                                                      "  wm.set(o2, o3)\n"
                                                      "  return o3\n"
                                                      "})()\n");
-  jerry_value_t result = jerry_eval (source, sizeof (source) - 1, JERRY_PARSE_NO_OPTS);
-  TEST_ASSERT (jerry_value_is_object (result));
+  jjs_value_t result = jjs_eval (source, sizeof (source) - 1, JJS_PARSE_NO_OPTS);
+  TEST_ASSERT (jjs_value_is_object (result));
 
-  jerry_object_set_native_ptr (result, &native_info, (void *) &global_counter);
-  jerry_value_free (result);
+  jjs_object_set_native_ptr (result, &native_info, (void *) &global_counter);
+  jjs_value_free (result);
 
   global_counter = 0;
-  jerry_heap_gc (JERRY_GC_PRESSURE_LOW);
+  jjs_heap_gc (JJS_GC_PRESSURE_LOW);
   TEST_ASSERT (global_counter == 1);
 
   run_eval ("function assert(v) {\n"
@@ -241,6 +241,6 @@ main (void)
                   "var result = create_array_from_container(iter, false);\n"
                   "assert(result instanceof Error);");
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

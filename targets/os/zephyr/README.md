@@ -1,19 +1,19 @@
 ### About
 
-This folder contains files to run JerryScript on
+This folder contains files to run JJS on
 [STM32F4-Discovery board](https://www.st.com/en/evaluation-tools/stm32f4discovery.html) with
 [Zephyr](https://zephyrproject.org/).
 The document had been validated on Ubuntu 20.04 operating system.
 
 #### 1. Setup the build environment
 
-Clone the necessary projects into a `jerry-zephyr` directory.
+Clone the necessary projects into a `jjs-zephyr` directory.
 The latest tested working version of Zephyr is `v2.7.0`.
 
 ```sh
-mkdir jerry-zephyr && cd jerry-zephyr
+mkdir jjs-zephyr && cd jjs-zephyr
 
-git clone https://github.com/jerryscript-project/jerryscript.git
+git clone https://github.com/LightSourceEngine/jjs.git
 git clone https://github.com/zephyrproject-rtos/zephyr -b v2.7.0
 
 # Zephyr requires its toolchain.
@@ -23,8 +23,8 @@ wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.13.2/zeph
 The following directory structure has been created:
 
 ```
-jerry-zephyr
-  + jerryscript
+jjs-zephyr
+  + jjs
   |  + targets
   |      + os
   |        + zephyr
@@ -35,8 +35,8 @@ jerry-zephyr
 #### 2. Install dependencies of the projects
 
 ```sh
-# Assuming you are in jerry-zephyr folder.
-jerryscript/tools/apt-get-install-deps.sh
+# Assuming you are in jjs-zephyr folder.
+jjs/tools/apt-get-install-deps.sh
 
 # Tool dependencies of Zephyr.
 sudo apt install --no-install-recommends \
@@ -57,27 +57,27 @@ Note: CMake 3.20 is required. If the installed CMake is older, upgrade it for ex
 #### 3. Initialize west meta-tool for Zephyr
 
 ```
-# Assuming you are in jerry-zephyr folder.
+# Assuming you are in jjs-zephyr folder.
 west init -l zephyr
 west update hal_stm32 cmsis
 west zephyr-export
 ```
 
-#### 4. Build Zephyr (with JerryScript)
+#### 4. Build Zephyr (with JJS)
 
 ```
-# Assuming you are in jerry-zephyr folder.
-west build -p auto -b stm32f4_disco jerryscript/targets/os/zephyr/
+# Assuming you are in jjs-zephyr folder.
+west build -p auto -b stm32f4_disco jjs/targets/os/zephyr/
 ```
 
-The created binary is a `zephyr.elf` named file located in `jerry-zephyr/build/zephyr/bin/` folder.
+The created binary is a `zephyr.elf` named file located in `jjs-zephyr/build/zephyr/bin/` folder.
 
 #### 5. Flash
 
 Install `udev` rules which allows to flash STM32F4-Discovery as a regular user:
 
 ```
-# Assuming you are in jerry-zephyr folder.
+# Assuming you are in jjs-zephyr folder.
 sudo cp zephyr-toolchain-0.13.2/sysroots/x86_64-pokysdk-linux/usr/share/openocd/contrib/60-openocd.rules /etc/udev/rules.d
 sudo udevadm control --reload
 ```
@@ -85,7 +85,7 @@ sudo udevadm control --reload
 Connect Mini-USB for charging and flasing the device.
 
 ```
-# Assuming you are in jerry-zephyr folder.
+# Assuming you are in jjs-zephyr folder.
 west flash
 ```
 
@@ -111,12 +111,12 @@ The device should be visible as `/dev/ttyUSB0`. Use `minicom` communication prog
 sudo minicom --device=/dev/ttyUSB0 --baud=115200
 ```
 
-Press `RESET` on the board to get the initial message with JerryScript command prompt:
+Press `RESET` on the board to get the initial message with JJS command prompt:
 
 ```
 *** Booting Zephyr OS build v2.7.99-1786-ga08b65ef42db  ***
-JerryScript build: Nov 25 2021 14:17:17
-JerryScript API 3.0.0
+JJS build: Nov 25 2021 14:17:17
+JJS API 3.0.0
 Zephyr version 2.7.99
 js>
 ```

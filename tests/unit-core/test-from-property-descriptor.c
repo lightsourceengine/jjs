@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "config.h"
 #include "test-common.h"
@@ -23,58 +23,58 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_value_t object = jerry_object ();
-  jerry_value_t prop_name = jerry_string_sz ("length");
-  jerry_value_t value = jerry_boolean (true);
+  jjs_value_t object = jjs_object ();
+  jjs_value_t prop_name = jjs_string_sz ("length");
+  jjs_value_t value = jjs_boolean (true);
 
-  TEST_ASSERT (jerry_object_set (object, prop_name, prop_name));
-  TEST_ASSERT (jerry_object_has (object, prop_name));
-  TEST_ASSERT (jerry_object_has_own (object, prop_name));
+  TEST_ASSERT (jjs_object_set (object, prop_name, prop_name));
+  TEST_ASSERT (jjs_object_has (object, prop_name));
+  TEST_ASSERT (jjs_object_has_own (object, prop_name));
 
-  jerry_property_descriptor_t prop_desc;
-  TEST_ASSERT (jerry_object_get_own_prop (object, prop_name, &prop_desc));
+  jjs_property_descriptor_t prop_desc;
+  TEST_ASSERT (jjs_object_get_own_prop (object, prop_name, &prop_desc));
 
-  jerry_value_t from_object = jerry_property_descriptor_to_object (&prop_desc);
+  jjs_value_t from_object = jjs_property_descriptor_to_object (&prop_desc);
 
-  prop_name = jerry_string_sz ("value");
-  value = jerry_object_get (from_object, prop_name);
+  prop_name = jjs_string_sz ("value");
+  value = jjs_object_get (from_object, prop_name);
   TEST_ASSERT (value == prop_desc.value);
 
-  prop_name = jerry_string_sz ("writable");
-  value = jerry_object_get (from_object, prop_name);
-  TEST_ASSERT (jerry_value_is_true (value) == ((prop_desc.flags & JERRY_PROP_IS_WRITABLE) != 0));
+  prop_name = jjs_string_sz ("writable");
+  value = jjs_object_get (from_object, prop_name);
+  TEST_ASSERT (jjs_value_is_true (value) == ((prop_desc.flags & JJS_PROP_IS_WRITABLE) != 0));
 
-  prop_name = jerry_string_sz ("enumerable");
-  value = jerry_object_get (from_object, prop_name);
-  TEST_ASSERT (jerry_value_is_true (value) == ((prop_desc.flags & JERRY_PROP_IS_ENUMERABLE) != 0));
+  prop_name = jjs_string_sz ("enumerable");
+  value = jjs_object_get (from_object, prop_name);
+  TEST_ASSERT (jjs_value_is_true (value) == ((prop_desc.flags & JJS_PROP_IS_ENUMERABLE) != 0));
 
-  prop_name = jerry_string_sz ("configurable");
-  value = jerry_object_get (from_object, prop_name);
-  TEST_ASSERT (jerry_value_is_true (value) == ((prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE) != 0));
+  prop_name = jjs_string_sz ("configurable");
+  value = jjs_object_get (from_object, prop_name);
+  TEST_ASSERT (jjs_value_is_true (value) == ((prop_desc.flags & JJS_PROP_IS_CONFIGURABLE) != 0));
 
-  jerry_value_free (object);
-  jerry_value_free (prop_name);
-  jerry_value_free (value);
-  jerry_value_free (from_object);
-  jerry_property_descriptor_free (&prop_desc);
+  jjs_value_free (object);
+  jjs_value_free (prop_name);
+  jjs_value_free (value);
+  jjs_value_free (from_object);
+  jjs_property_descriptor_free (&prop_desc);
 
-  prop_desc.flags = JERRY_PROP_IS_CONFIGURABLE;
-  from_object = jerry_property_descriptor_to_object (&prop_desc);
-  TEST_ASSERT (jerry_value_is_exception (from_object));
-  jerry_value_free (from_object);
+  prop_desc.flags = JJS_PROP_IS_CONFIGURABLE;
+  from_object = jjs_property_descriptor_to_object (&prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (from_object));
+  jjs_value_free (from_object);
 
-  prop_desc.flags = JERRY_PROP_IS_ENUMERABLE;
-  from_object = jerry_property_descriptor_to_object (&prop_desc);
-  TEST_ASSERT (jerry_value_is_exception (from_object));
-  jerry_value_free (from_object);
+  prop_desc.flags = JJS_PROP_IS_ENUMERABLE;
+  from_object = jjs_property_descriptor_to_object (&prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (from_object));
+  jjs_value_free (from_object);
 
-  prop_desc.flags = JERRY_PROP_IS_WRITABLE;
-  from_object = jerry_property_descriptor_to_object (&prop_desc);
-  TEST_ASSERT (jerry_value_is_exception (from_object));
-  jerry_value_free (from_object);
+  prop_desc.flags = JJS_PROP_IS_WRITABLE;
+  from_object = jjs_property_descriptor_to_object (&prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (from_object));
+  jjs_value_free (from_object);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

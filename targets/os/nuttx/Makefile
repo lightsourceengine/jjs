@@ -14,31 +14,31 @@
 
 include $(APPDIR)/Make.defs
 
-# Jerryscript built-in application information.
-PROGNAME  = jerry
-PRIORITY  = $(CONFIG_INTERPRETERS_JERRYSCRIPT_PRIORITY)
-STACKSIZE = $(CONFIG_INTERPRETERS_JERRYSCRIPT_STACKSIZE)
+# JJS built-in application information.
+PROGNAME  = jjs
+PRIORITY  = $(CONFIG_INTERPRETERS_JJS_PRIORITY)
+STACKSIZE = $(CONFIG_INTERPRETERS_JJS_STACKSIZE)
 
-# Path to the JerryScript and NuttX projects. If not specified, it is
-# supposed that JerryScript is located next to the nuttx folder.
-JERRYSCRIPT_ROOT_DIR ?= $(abspath ../../../../jerryscript)
-NUTTX_INCLUDE_DIR ?= $(abspath $(JERRYSCRIPT_ROOT_DIR)/../nuttx/include)
+# Path to the JJS and NuttX projects. If not specified, it is
+# supposed that JJS is located next to the nuttx folder.
+JJS_ROOT_DIR ?= $(abspath ../../../../jjs)
+NUTTX_INCLUDE_DIR ?= $(abspath $(JJS_ROOT_DIR)/../nuttx/include)
 
 CFLAGS += -std=c99
-CFLAGS += -I$(JERRYSCRIPT_ROOT_DIR)/jerry-core/include
-CFLAGS += -I$(JERRYSCRIPT_ROOT_DIR)/jerry-ext/include
-CFLAGS += -I$(JERRYSCRIPT_ROOT_DIR)/jerry-math/include
+CFLAGS += -I$(JJS_ROOT_DIR)/jjs-core/include
+CFLAGS += -I$(JJS_ROOT_DIR)/jjs-ext/include
+CFLAGS += -I$(JJS_ROOT_DIR)/jjs-math/include
 
-# These libs should be copied from the JerryScript project.
-LIBS = libjerry-core.a libjerry-ext.a libjerry-math.a libjerry-port.a
+# These libs should be copied from the JJS project.
+LIBS = libjjs-core.a libjjs-ext.a libjjs-math.a libjjs-port.a
 
 ASRCS = setjmp.S
-CSRCS = jerry-port.c
-MAINSRC = jerry-main.c
+CSRCS = jjs-port.c
+MAINSRC = jjs-main.c
 
 .PHONY: copylibs
 copylibs:
-	cp $(JERRYSCRIPT_ROOT_DIR)/build/lib/lib*.a .
+	cp $(JJS_ROOT_DIR)/build/lib/lib*.a .
 
 $(LIBS): copylibs
 	$(firstword $(AR)) x $@
@@ -51,21 +51,21 @@ updateobjs:
 cleanlibs: updateobjs
 	rm -f $(OBJS)
 
-.PHONY: libjerry
-libjerry:
-	$(JERRYSCRIPT_ROOT_DIR)/tools/build.py \
+.PHONY: libjjs
+libjjs:
+	$(JJS_ROOT_DIR)/tools/build.py \
 		--clean \
 		--lto=OFF \
-		--jerry-cmdline=OFF \
-		--jerry-math=ON \
+		--jjs-cmdline=OFF \
+		--jjs-math=ON \
 		--amalgam=ON \
 		--mem-heap=70 \
 		--profile=es.next \
 		--compile-flag="-I${NUTTX_INCLUDE_DIR}" \
-		--toolchain=$(abspath $(JERRYSCRIPT_ROOT_DIR)/cmake/toolchain_mcu_stm32f4.cmake)
+		--toolchain=$(abspath $(JJS_ROOT_DIR)/cmake/toolchain_mcu_stm32f4.cmake)
 
 clean:: cleanlibs
 
-archive: libjerry $(LIBS) updateobjs
+archive: libjjs $(LIBS) updateobjs
 
 include $(APPDIR)/Application.mk

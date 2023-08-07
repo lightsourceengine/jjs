@@ -34,11 +34,11 @@ RE_FUNCTION_NAME_COMMENT = re.compile(
 
 CLANG_FORMAT_MIN_VERSION = 10
 
-FOLDERS = ["jerry-core",
-           "jerry-ext",
-           "jerry-port",
-           "jerry-math",
-           "jerry-main",
+FOLDERS = ["jjs-core",
+           "jjs-ext",
+           "jjs-port",
+           "jjs-math",
+           "jjs-main",
            "tests/unit-core",
            "tests/unit-ext",
            "tests/unit-math"]

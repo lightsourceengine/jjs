@@ -14,15 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ "${TRAVIS_REPO_SLUG}" == "jerryscript-project/jerryscript"
+if [[ "${TRAVIS_REPO_SLUG}" == "jjs-project/jjs"
   && ${TRAVIS_BRANCH} == "master"
   && ${TRAVIS_EVENT_TYPE} == "push" ]]
 then
   git fetch --unshallow
   build-wrapper-linux-x86-64 --out-dir bw-output \
     ./tools/build.py --error-messages=on \
-                     --jerry-cmdline-snapshot=on \
-                     --jerry-debugger=on \
+                     --jjs-cmdline-snapshot=on \
+                     --jjs-debugger=on \
                      --line-info=on \
                      --mem-stats=on \
                      --profile=es.next \
@@ -35,8 +35,8 @@ else
   # SonarQube analysis works only on the master branch.
   # Ensure the build works with the options used for the analysis.
   ./tools/build.py --error-messages=on \
-                   --jerry-cmdline-snapshot=on \
-                   --jerry-debugger=on \
+                   --jjs-cmdline-snapshot=on \
+                   --jjs-debugger=on \
                    --line-info=on \
                    --mem-stats=on \
                    --profile=es.next \

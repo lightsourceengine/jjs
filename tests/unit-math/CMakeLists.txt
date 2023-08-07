@@ -31,7 +31,7 @@ foreach(SOURCE_UNIT_TEST_MAIN ${SOURCE_UNIT_TEST_MAIN_MODULES})
   set_property(TARGET ${TARGET_NAME} PROPERTY LINK_FLAGS "${LINKER_FLAGS_COMMON}")
   set_property(TARGET ${TARGET_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
-  target_link_libraries(${TARGET_NAME} jerry-math)
+  target_link_libraries(${TARGET_NAME} jjs-math)
 
   add_dependencies(unittests-math ${TARGET_NAME})
 endforeach()

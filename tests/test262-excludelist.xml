@@ -3912,7 +3912,7 @@
   <test id="language/statements/switch/syntax/redeclaration/generator-name-redeclaration-attempt-with-async-generator.js"><reason></reason></test>
   <!-- END - ES2018: Asynchronous Iteration -->
 
-  <!-- Missing test262 support in JerryScript REPL - missing $262 object
+  <!-- Missing test262 support in JJS REPL - missing $262 object
        https://github.com/tc39/test262/blob/main/INTERPRETING.md#host-defined-functions
   -->
   <test id="annexB/built-ins/Array/from/iterator-method-emulates-undefined.js"><reason></reason></test>
@@ -4065,7 +4065,7 @@
   <test id="language/global-code/script-decl-lex-deletion.js"><reason></reason></test>
   <test id="language/global-code/script-decl-lex.js"><reason></reason></test>
   <test id="language/global-code/script-decl-var-err.js"><reason></reason></test>
-  <!-- Missing test262 support in JerryScript REPL - missing $262 object -->
+  <!-- Missing test262 support in JJS REPL - missing $262 object -->
 
   <!-- No longer valid tests: since ECMAScript v11 GetIterator operator should be performed
        before accessing "resolve" property
@@ -4079,7 +4079,7 @@
   <test id="built-ins/Promise/race/invoke-resolve-get-error.js"><reason></reason></test>
   <test id="built-ins/Promise/race/resolve-non-callable.js"><reason></reason></test>
 
-  <!-- Missing test262 support in JerryScript REPL - missing $262.detachArrayBuffer function
+  <!-- Missing test262 support in JJS REPL - missing $262.detachArrayBuffer function
        https://github.com/tc39/test262/blob/main/INTERPRETING.md#host-defined-functions
   -->
   <test id="built-ins/Atomics/notify/bigint/null-bufferdata-throws.js"><reason></reason></test>
@@ -4088,7 +4088,7 @@
   <test id="built-ins/Atomics/wait/null-bufferdata-throws.js"><reason></reason></test>
   <test id="built-ins/Atomics/waitAsync/bigint/null-bufferdata-throws.js"><reason></reason></test>
   <test id="built-ins/Atomics/waitAsync/null-bufferdata-throws.js"><reason></reason></test>
-  <!-- END - Missing test262 support in JerryScript REPL - missing $262.detachArrayBuffer function -->
+  <!-- END - Missing test262 support in JJS REPL - missing $262.detachArrayBuffer function -->
 
   <!-- Missing $test262.IsHTMLDDA support
   -->

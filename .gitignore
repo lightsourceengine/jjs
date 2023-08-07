@@ -29,7 +29,7 @@ tags
 ID
 
 # targets
-jerry-targetjs.h
+jjs-targetjs.h
 .output
 targets/esp8266/output.map
 targets/esp8266/libs

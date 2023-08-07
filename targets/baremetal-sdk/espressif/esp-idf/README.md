@@ -1,6 +1,6 @@
 ### About
 
-This folder contains files to run JerryScript on
+This folder contains files to run JJS on
 [ESP32 board](https://www.espressif.com/en/products/socs/esp32) with
 [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/).
 The document had been validated on Ubuntu 20.04 operating system.
@@ -9,14 +9,14 @@ The document had been validated on Ubuntu 20.04 operating system.
 
 #### 1. Setup the build environment
 
-Clone the necessary projects into a `jerry-esp` directory.
+Clone the necessary projects into a `jjs-esp` directory.
 The latest tested working version of ESP-IDF SDK is `release/v4.4`.
 
 ```sh
 # Create a base folder for all the projects.
-mkdir jerry-esp && cd jerry-esp
+mkdir jjs-esp && cd jjs-esp
 
-git clone https://github.com/jerryscript-project/jerryscript.git
+git clone https://github.com/LightSourceEngine/jjs.git
 git clone https://github.com/espressif/esp-idf.git -b release/v4.4
 
 # SDK requires Xtensa toolchain.
@@ -26,8 +26,8 @@ wget https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_4_0-esp-2021r2-linux-amd6
 The following directory structure has been created:
 
 ```
-jerry-esp
-  + jerryscript
+jjs-esp
+  + jjs
   |  + targets
   |      + baremetal-sdk
   |          + espressif
@@ -39,8 +39,8 @@ jerry-esp
 #### 2. Install dependencies of the projects
 
 ```sh
-# Assuming you are in jerry-esp folder.
-jerryscript/tools/apt-get-install-deps.sh
+# Assuming you are in jjs-esp folder.
+jjs/tools/apt-get-install-deps.sh
 
 # Install dependencies of esp-idf.
 python -m pip install --user -r esp-idf/requirements.txt
@@ -49,25 +49,25 @@ python -m pip install --user -r esp-idf/requirements.txt
 tar -xvf xtensa-esp32-elf-gcc8_4_0-esp-2021r2-linux-amd64.tar.gz
 ```
 
-#### 3. Build ESP-IDF (with JerryScript)
+#### 3. Build ESP-IDF (with JJS)
 
 ```sh
-# Assuming you are in jerry-esp folder.
+# Assuming you are in jjs-esp folder.
 PATH=${PWD}/xtensa-esp32-elf/bin:$PATH esp-idf/tools/idf.py \
-  --project-dir jerryscript/targets/baremetal-sdk/espressif \
-  --build-dir jerryscript/build/esp-idf \
+  --project-dir jjs/targets/baremetal-sdk/espressif \
+  --build-dir jjs/build/esp-idf \
   set-target esp32 \
   all
 ```
 
-The created binary is a `jerrycript.bin` named file located in `jerryscript/build/esp-idf` folder.
+The created binary is a `jjs.bin` named file located in `jjs/build/esp-idf` folder.
 
 #### 4. Flash the device
 
 Connect Micro-USB for charging and flashing the device. The device should be visible as /dev/ttyUSB0.
 
 ```sh
-# Assuming you are in jerry-esp folder.
+# Assuming you are in jjs-esp folder.
 sudo python esp-idf/components/esptool_py/esptool/esptool.py \
   --chip esp32 \
   --port /dev/ttyUSB0 \
@@ -78,9 +78,9 @@ sudo python esp-idf/components/esptool_py/esptool/esptool.py \
   --flash_mode dio \
   --flash_size detect \
   --flash_freq 40m \
-  0x1000 jerryscript/build/esp-idf/bootloader/bootloader.bin \
-  0x8000 jerryscript/build/esp-idf/partition_table/partition-table.bin \
-  0x10000 jerryscript/build/esp-idf/jerryscript.bin
+  0x1000 jjs/build/esp-idf/bootloader/bootloader.bin \
+  0x8000 jjs/build/esp-idf/partition_table/partition-table.bin \
+  0x10000 jjs/build/esp-idf/jjs.bin
 ```
 
 #### 5. Connect to the device
@@ -93,12 +93,12 @@ Other programs also can be used such as minicom, picocom, etc.
 * Press `CTRL` + `ALT` + `]` to exit monitor program
 
 ```sh
-# Assuming you are in jerry-esp folder.
+# Assuming you are in jjs-esp folder.
 PATH=${PWD}/xtensa-esp32-elf/bin:$PATH esp-idf/tools/idf_monitor.py \
   --port /dev/ttyUSB0 \
   --baud 115200 \
   --toolchain-prefix=xtensa-esp32-elf- \
-  jerryscript/build/esp-idf/jerryscript.elf
+  jjs/build/esp-idf/jjs.elf
 ```
 
 The following output should be captured:
@@ -108,7 +108,7 @@ I (0) cpu_start: App cpu up.
 I (326) cpu_start: Pro cpu start user code
 I (326) cpu_start: cpu freq: 160000000
 I (326) cpu_start: Application information:
-I (331) cpu_start: Project name:     jerryscript
+I (331) cpu_start: Project name:     jjs
 I (336) cpu_start: App version:      v2.4.0-278-ge815e540-dirty
 I (342) cpu_start: Compile time:     Jan 21 2022 11:38:44
 I (349) cpu_start: ELF file SHA256:  2e874acb5a45c0cb...

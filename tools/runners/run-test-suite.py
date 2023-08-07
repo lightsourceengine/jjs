@@ -30,7 +30,7 @@ def get_arguments():
     parser.add_argument('--runtime', metavar='FILE', default=execution_runtime,
                         help='Execution runtime (e.g. qemu)')
     parser.add_argument('--engine', metavar='FILE',
-                        help='JerryScript binary to run tests with')
+                        help='JJS binary to run tests with')
     parser.add_argument('--test-list', metavar='FILE',
                         help='File contains test paths to run')
     parser.add_argument('--skip-list', metavar='LIST',
@@ -164,7 +164,7 @@ def run_snapshot_tests(args, tests):
     execute_snapshot_cmd.extend([args.engine, '--exec-snapshot', 'js.snapshot'])
     execute_snapshot_cmd.extend(['--call-on-exit', '__checkAsync'])
 
-    # engine: jerry[.exe] -> snapshot generator: jerry-snapshot[.exe]
+    # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
     engine = os.path.splitext(args.engine)
     generate_snapshot_cmd.append(engine[0] + '-snapshot' + engine[1])
     generate_snapshot_cmd.append('generate')

@@ -19,13 +19,13 @@
 #include <sys/printk.h>
 #include <zephyr.h>
 
-#include "jerryscript-port.h"
-#include "jerryscript.h"
+#include "jjs-port.h"
+#include "jjs.h"
 
 #include "getline-zephyr.h"
-#include "jerryscript-ext/handlers.h"
-#include "jerryscript-ext/properties.h"
-#include "jerryscript-ext/repl.h"
+#include "jjs-ext/handlers.h"
+#include "jjs-ext/properties.h"
+#include "jjs-ext/repl.h"
 
 void
 main (void)
@@ -34,22 +34,22 @@ main (void)
   {
     double d;
     unsigned u;
-  } now = { .d = jerry_port_current_time () };
+  } now = { .d = jjs_port_current_time () };
   srand (now.u);
 
   uint32_t zephyr_ver = sys_kernel_version_get ();
-  printf ("JerryScript build: " __DATE__ " " __TIME__ "\n");
-  printf ("JerryScript API %d.%d.%d\n", JERRY_API_MAJOR_VERSION, JERRY_API_MINOR_VERSION, JERRY_API_PATCH_VERSION);
+  printf ("JJS build: " __DATE__ " " __TIME__ "\n");
+  printf ("JJS API %d.%d.%d\n", JJS_API_MAJOR_VERSION, JJS_API_MINOR_VERSION, JJS_API_PATCH_VERSION);
   printf ("Zephyr version %d.%d.%d\n",
           (int) SYS_KERNEL_VER_MAJOR (zephyr_ver),
           (int) SYS_KERNEL_VER_MINOR (zephyr_ver),
           (int) SYS_KERNEL_VER_PATCHLEVEL (zephyr_ver));
 
   zephyr_getline_init ();
-  jerry_init (JERRY_INIT_EMPTY);
-  jerryx_register_global ("print", jerryx_handler_print);
+  jjs_init (JJS_INIT_EMPTY);
+  jjsx_register_global ("print", jjsx_handler_print);
 
-  jerryx_repl ("js> ");
+  jjsx_repl ("js> ");
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 } /* main */

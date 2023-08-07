@@ -19,7 +19,7 @@ all:
 	$(MAKE) script
 
 
-## Targets for installing build dependencies of the ESP8266 JerryScript target.
+## Targets for installing build dependencies of the ESP8266 JJS target.
 
 # Install tools via apt.
 install-apt-get-deps:
@@ -35,14 +35,14 @@ install-espressif-sdk:
 	git clone https://github.com/espressif/ESP8266_RTOS_SDK.git /tmp/ESP8266_RTOS_SDK -b release/v3.4
 	python -m pip install --user -r /tmp/ESP8266_RTOS_SDK/requirements.txt
 
-# Perform all the necessary (JerryScript-independent) installation steps. - edited -
+# Perform all the necessary (JJS-independent) installation steps. - edited -
 install-noapt: install-xtensa-lx106-gcc install-espressif-sdk
 install: install-apt-get-deps install-noapt
 
 
-## Targets for building ESP8266 with JerryScript.
+## Targets for building ESP8266 with JJS.
 
-# Build the firmware (ESP8266 with JerryScript).
+# Build the firmware (ESP8266 with JJS).
 script:
 	PATH=/tmp/xtensa-lx106-elf/bin:$(PATH) \
 	python /tmp/ESP8266_RTOS_SDK/tools/idf.py \

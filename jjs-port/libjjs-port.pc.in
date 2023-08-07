@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libjjs-port
+Description: JJS: lightweight JavaScript engine (default port library)
+URL: https://github.com/LightSourceEngine/jjs
+Version: @JJS_VERSION@
+Libs: -L${libdir} -ljjs-port
+Cflags: -I${includedir}

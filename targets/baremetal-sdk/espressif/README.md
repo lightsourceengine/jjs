@@ -1,6 +1,6 @@
 ### About
 
-This folder contains files to run JerryScript on
+This folder contains files to run JJS on
 [ESP8666 board](https://www.espressif.com/en/products/socs/esp8266) with
 [ESP8266 RTOS SDK](https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/) and
 [ESP32 board](https://www.espressif.com/en/products/socs/esp32) with

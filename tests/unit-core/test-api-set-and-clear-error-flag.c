@@ -13,17 +13,17 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
 static void
-compare_str (jerry_value_t value, const char *str_p, size_t str_len)
+compare_str (jjs_value_t value, const char *str_p, size_t str_len)
 {
-  jerry_size_t size = jerry_string_size (value, JERRY_ENCODING_CESU8);
+  jjs_size_t size = jjs_string_size (value, JJS_ENCODING_CESU8);
   TEST_ASSERT (str_len == size);
-  JERRY_VLA (jerry_char_t, str_buff, size);
-  jerry_string_to_buffer (value, JERRY_ENCODING_CESU8, str_buff, size);
+  JJS_VLA (jjs_char_t, str_buff, size);
+  jjs_string_to_buffer (value, JJS_ENCODING_CESU8, str_buff, size);
   TEST_ASSERT (!memcmp (str_p, str_buff, str_len));
 } /* compare_str */
 
@@ -32,176 +32,176 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_value_t obj_val = jerry_object ();
-  obj_val = jerry_throw_value (obj_val, true);
-  jerry_value_t err_val = jerry_value_copy (obj_val);
+  jjs_value_t obj_val = jjs_object ();
+  obj_val = jjs_throw_value (obj_val, true);
+  jjs_value_t err_val = jjs_value_copy (obj_val);
 
-  obj_val = jerry_exception_value (err_val, true);
+  obj_val = jjs_exception_value (err_val, true);
 
   TEST_ASSERT (obj_val != err_val);
-  jerry_value_free (err_val);
-  jerry_value_free (obj_val);
+  jjs_value_free (err_val);
+  jjs_value_free (obj_val);
 
   const char pterodactylus[] = "Pterodactylus";
   const size_t pterodactylus_size = sizeof (pterodactylus) - 1;
 
-  jerry_value_t str = jerry_string_sz (pterodactylus);
-  jerry_value_t error = jerry_throw_value (str, true);
-  str = jerry_exception_value (error, true);
+  jjs_value_t str = jjs_string_sz (pterodactylus);
+  jjs_value_t error = jjs_throw_value (str, true);
+  str = jjs_exception_value (error, true);
 
   compare_str (str, pterodactylus, pterodactylus_size);
-  jerry_value_free (str);
+  jjs_value_free (str);
 
-  str = jerry_string_sz (pterodactylus);
-  error = jerry_throw_value (str, false);
-  jerry_value_free (str);
-  str = jerry_exception_value (error, true);
-
-  compare_str (str, pterodactylus, pterodactylus_size);
-  jerry_value_free (str);
-
-  str = jerry_string_sz (pterodactylus);
-  error = jerry_throw_abort (str, true);
-  str = jerry_exception_value (error, true);
+  str = jjs_string_sz (pterodactylus);
+  error = jjs_throw_value (str, false);
+  jjs_value_free (str);
+  str = jjs_exception_value (error, true);
 
   compare_str (str, pterodactylus, pterodactylus_size);
-  jerry_value_free (str);
+  jjs_value_free (str);
 
-  str = jerry_string_sz (pterodactylus);
-  error = jerry_throw_abort (str, false);
-  jerry_value_free (str);
-  str = jerry_exception_value (error, true);
-
-  compare_str (str, pterodactylus, pterodactylus_size);
-  jerry_value_free (str);
-
-  str = jerry_string_sz (pterodactylus);
-  error = jerry_throw_value (str, true);
-  error = jerry_throw_abort (error, true);
-  TEST_ASSERT (jerry_value_is_abort (error));
-  str = jerry_exception_value (error, true);
+  str = jjs_string_sz (pterodactylus);
+  error = jjs_throw_abort (str, true);
+  str = jjs_exception_value (error, true);
 
   compare_str (str, pterodactylus, pterodactylus_size);
-  jerry_value_free (str);
+  jjs_value_free (str);
 
-  str = jerry_string_sz (pterodactylus);
-  error = jerry_throw_value (str, true);
-  jerry_value_t error2 = jerry_throw_abort (error, false);
-  TEST_ASSERT (jerry_value_is_abort (error2));
-  jerry_value_free (error);
-  str = jerry_exception_value (error2, true);
+  str = jjs_string_sz (pterodactylus);
+  error = jjs_throw_abort (str, false);
+  jjs_value_free (str);
+  str = jjs_exception_value (error, true);
 
   compare_str (str, pterodactylus, pterodactylus_size);
-  jerry_value_free (str);
+  jjs_value_free (str);
+
+  str = jjs_string_sz (pterodactylus);
+  error = jjs_throw_value (str, true);
+  error = jjs_throw_abort (error, true);
+  TEST_ASSERT (jjs_value_is_abort (error));
+  str = jjs_exception_value (error, true);
+
+  compare_str (str, pterodactylus, pterodactylus_size);
+  jjs_value_free (str);
+
+  str = jjs_string_sz (pterodactylus);
+  error = jjs_throw_value (str, true);
+  jjs_value_t error2 = jjs_throw_abort (error, false);
+  TEST_ASSERT (jjs_value_is_abort (error2));
+  jjs_value_free (error);
+  str = jjs_exception_value (error2, true);
+
+  compare_str (str, pterodactylus, pterodactylus_size);
+  jjs_value_free (str);
 
   double test_num = 3.1415926;
-  jerry_value_t num = jerry_number (test_num);
-  jerry_value_t num2 = jerry_throw_value (num, false);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  jerry_value_free (num);
-  num2 = jerry_exception_value (num2, true);
-  TEST_ASSERT (jerry_value_as_number (num2) == test_num);
-  jerry_value_free (num2);
+  jjs_value_t num = jjs_number (test_num);
+  jjs_value_t num2 = jjs_throw_value (num, false);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  jjs_value_free (num);
+  num2 = jjs_exception_value (num2, true);
+  TEST_ASSERT (jjs_value_as_number (num2) == test_num);
+  jjs_value_free (num2);
 
-  num = jerry_number (test_num);
-  num2 = jerry_throw_value (num, true);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  num2 = jerry_exception_value (num2, true);
-  TEST_ASSERT (jerry_value_as_number (num2) == test_num);
-  jerry_value_free (num2);
+  num = jjs_number (test_num);
+  num2 = jjs_throw_value (num, true);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  num2 = jjs_exception_value (num2, true);
+  TEST_ASSERT (jjs_value_as_number (num2) == test_num);
+  jjs_value_free (num2);
 
-  num = jerry_number (test_num);
-  num2 = jerry_throw_value (num, false);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  jerry_value_free (num);
-  jerry_value_t num3 = jerry_throw_value (num2, false);
-  TEST_ASSERT (jerry_value_is_exception (num3));
-  jerry_value_free (num2);
-  num2 = jerry_exception_value (num3, true);
-  TEST_ASSERT (jerry_value_as_number (num2) == test_num);
-  jerry_value_free (num2);
+  num = jjs_number (test_num);
+  num2 = jjs_throw_value (num, false);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  jjs_value_free (num);
+  jjs_value_t num3 = jjs_throw_value (num2, false);
+  TEST_ASSERT (jjs_value_is_exception (num3));
+  jjs_value_free (num2);
+  num2 = jjs_exception_value (num3, true);
+  TEST_ASSERT (jjs_value_as_number (num2) == test_num);
+  jjs_value_free (num2);
 
-  num = jerry_number (test_num);
-  num2 = jerry_throw_value (num, true);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  num3 = jerry_throw_value (num2, true);
-  TEST_ASSERT (jerry_value_is_exception (num3));
-  num2 = jerry_exception_value (num3, true);
-  TEST_ASSERT (jerry_value_as_number (num2) == test_num);
-  jerry_value_free (num2);
+  num = jjs_number (test_num);
+  num2 = jjs_throw_value (num, true);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  num3 = jjs_throw_value (num2, true);
+  TEST_ASSERT (jjs_value_is_exception (num3));
+  num2 = jjs_exception_value (num3, true);
+  TEST_ASSERT (jjs_value_as_number (num2) == test_num);
+  jjs_value_free (num2);
 
-  num = jerry_number (test_num);
-  error = jerry_throw_abort (num, true);
-  TEST_ASSERT (jerry_value_is_abort (error));
-  num2 = jerry_throw_value (error, true);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  num = jerry_exception_value (num2, true);
-  TEST_ASSERT (jerry_value_as_number (num) == test_num);
-  jerry_value_free (num);
+  num = jjs_number (test_num);
+  error = jjs_throw_abort (num, true);
+  TEST_ASSERT (jjs_value_is_abort (error));
+  num2 = jjs_throw_value (error, true);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  num = jjs_exception_value (num2, true);
+  TEST_ASSERT (jjs_value_as_number (num) == test_num);
+  jjs_value_free (num);
 
-  num = jerry_number (test_num);
-  error = jerry_throw_abort (num, false);
-  jerry_value_free (num);
-  TEST_ASSERT (jerry_value_is_abort (error));
-  num2 = jerry_throw_value (error, true);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  num = jerry_exception_value (num2, true);
-  TEST_ASSERT (jerry_value_as_number (num) == test_num);
-  jerry_value_free (num);
+  num = jjs_number (test_num);
+  error = jjs_throw_abort (num, false);
+  jjs_value_free (num);
+  TEST_ASSERT (jjs_value_is_abort (error));
+  num2 = jjs_throw_value (error, true);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  num = jjs_exception_value (num2, true);
+  TEST_ASSERT (jjs_value_as_number (num) == test_num);
+  jjs_value_free (num);
 
-  num = jerry_number (test_num);
-  error = jerry_throw_abort (num, true);
-  TEST_ASSERT (jerry_value_is_abort (error));
-  num2 = jerry_throw_value (error, false);
-  jerry_value_free (error);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  num = jerry_exception_value (num2, true);
-  TEST_ASSERT (jerry_value_as_number (num) == test_num);
-  jerry_value_free (num);
+  num = jjs_number (test_num);
+  error = jjs_throw_abort (num, true);
+  TEST_ASSERT (jjs_value_is_abort (error));
+  num2 = jjs_throw_value (error, false);
+  jjs_value_free (error);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  num = jjs_exception_value (num2, true);
+  TEST_ASSERT (jjs_value_as_number (num) == test_num);
+  jjs_value_free (num);
 
-  num = jerry_number (test_num);
-  error = jerry_throw_abort (num, false);
-  jerry_value_free (num);
-  TEST_ASSERT (jerry_value_is_abort (error));
-  num2 = jerry_throw_value (error, false);
-  jerry_value_free (error);
-  TEST_ASSERT (jerry_value_is_exception (num2));
-  num = jerry_exception_value (num2, true);
-  TEST_ASSERT (jerry_value_as_number (num) == test_num);
-  jerry_value_free (num);
+  num = jjs_number (test_num);
+  error = jjs_throw_abort (num, false);
+  jjs_value_free (num);
+  TEST_ASSERT (jjs_value_is_abort (error));
+  num2 = jjs_throw_value (error, false);
+  jjs_value_free (error);
+  TEST_ASSERT (jjs_value_is_exception (num2));
+  num = jjs_exception_value (num2, true);
+  TEST_ASSERT (jjs_value_as_number (num) == test_num);
+  jjs_value_free (num);
 
-  jerry_value_t value = jerry_number (42);
-  value = jerry_exception_value (value, true);
-  jerry_value_free (value);
+  jjs_value_t value = jjs_number (42);
+  value = jjs_exception_value (value, true);
+  jjs_value_free (value);
 
-  value = jerry_number (42);
-  jerry_value_t value2 = jerry_exception_value (value, false);
-  jerry_value_free (value);
-  jerry_value_free (value2);
+  value = jjs_number (42);
+  jjs_value_t value2 = jjs_exception_value (value, false);
+  jjs_value_free (value);
+  jjs_value_free (value2);
 
-  value = jerry_number (42);
-  error = jerry_throw_value (value, true);
-  error = jerry_throw_value (error, true);
-  jerry_value_free (error);
+  value = jjs_number (42);
+  error = jjs_throw_value (value, true);
+  error = jjs_throw_value (error, true);
+  jjs_value_free (error);
 
-  value = jerry_number (42);
-  error = jerry_throw_abort (value, true);
-  error = jerry_throw_abort (error, true);
-  jerry_value_free (error);
+  value = jjs_number (42);
+  error = jjs_throw_abort (value, true);
+  error = jjs_throw_abort (error, true);
+  jjs_value_free (error);
 
-  value = jerry_number (42);
-  error = jerry_throw_value (value, true);
-  error2 = jerry_throw_value (error, false);
-  jerry_value_free (error);
-  jerry_value_free (error2);
+  value = jjs_number (42);
+  error = jjs_throw_value (value, true);
+  error2 = jjs_throw_value (error, false);
+  jjs_value_free (error);
+  jjs_value_free (error2);
 
-  value = jerry_number (42);
-  error = jerry_throw_abort (value, true);
-  error2 = jerry_throw_abort (error, false);
-  jerry_value_free (error);
-  jerry_value_free (error2);
+  value = jjs_number (42);
+  error = jjs_throw_abort (value, true);
+  error2 = jjs_throw_abort (error, false);
+  jjs_value_free (error);
+  jjs_value_free (error2);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 } /* main */

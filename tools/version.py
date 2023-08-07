@@ -24,7 +24,7 @@ import settings
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Display version of JerryScript',
+        description='Display version of JJS',
         epilog="""
             Extract version information from sources without relying on
             compiler or preprocessor features.
@@ -32,9 +32,9 @@ def main():
     )
     _ = parser.parse_args()
 
-    with open(os.path.join(settings.PROJECT_DIR, 'jerry-core', 'include', 'jerryscript.h'), 'r') as header:
+    with open(os.path.join(settings.PROJECT_DIR, 'jjs-core', 'include', 'jjs.h'), 'r') as header:
         version = {}
-        version_re = re.compile(r'\s*#define\s+JERRY_API_(?P<key>MAJOR|MINOR|PATCH)_VERSION\s+(?P<value>\S+)')
+        version_re = re.compile(r'\s*#define\s+JJS_API_(?P<key>MAJOR|MINOR|PATCH)_VERSION\s+(?P<value>\S+)')
         for line in header:
             match = version_re.match(line)
             if match:

@@ -13,54 +13,54 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "config.h"
 #include "test-common.h"
 
-static jerry_value_t
-check_eval (const jerry_call_info_t *call_info_p, /**< call information */
-            const jerry_value_t args_p[], /**< arguments list */
-            const jerry_length_t args_cnt) /**< arguments length */
+static jjs_value_t
+check_eval (const jjs_call_info_t *call_info_p, /**< call information */
+            const jjs_value_t args_p[], /**< arguments list */
+            const jjs_length_t args_cnt) /**< arguments length */
 {
-  JERRY_UNUSED (call_info_p);
+  JJS_UNUSED (call_info_p);
 
-  TEST_ASSERT (args_cnt == 2 && jerry_function_is_dynamic (args_p[0]) == jerry_value_is_true (args_p[1]));
-  return jerry_boolean (true);
+  TEST_ASSERT (args_cnt == 2 && jjs_function_is_dynamic (args_p[0]) == jjs_value_is_true (args_p[1]));
+  return jjs_boolean (true);
 } /* check_eval */
 
 static void
 test_parse (const char *source_p, /**< source code */
-            jerry_parse_options_t *options_p) /**< options passed to jerry_parse */
+            jjs_parse_options_t *options_p) /**< options passed to jjs_parse */
 {
-  jerry_value_t parse_result = jerry_parse ((const jerry_char_t *) source_p, strlen (source_p), options_p);
-  TEST_ASSERT (!jerry_value_is_exception (parse_result));
-  TEST_ASSERT (!jerry_function_is_dynamic (parse_result));
+  jjs_value_t parse_result = jjs_parse ((const jjs_char_t *) source_p, strlen (source_p), options_p);
+  TEST_ASSERT (!jjs_value_is_exception (parse_result));
+  TEST_ASSERT (!jjs_function_is_dynamic (parse_result));
 
-  jerry_value_t result;
+  jjs_value_t result;
 
-  if (options_p->options & JERRY_PARSE_HAS_ARGUMENT_LIST)
+  if (options_p->options & JJS_PARSE_HAS_ARGUMENT_LIST)
   {
-    jerry_value_t this_value = jerry_undefined ();
-    result = jerry_call (parse_result, this_value, NULL, 0);
-    jerry_value_free (this_value);
+    jjs_value_t this_value = jjs_undefined ();
+    result = jjs_call (parse_result, this_value, NULL, 0);
+    jjs_value_free (this_value);
   }
-  else if (options_p->options & JERRY_PARSE_MODULE)
+  else if (options_p->options & JJS_PARSE_MODULE)
   {
-    result = jerry_module_link (parse_result, NULL, NULL);
-    TEST_ASSERT (!jerry_value_is_exception (result));
-    jerry_value_free (result);
-    result = jerry_module_evaluate (parse_result);
+    result = jjs_module_link (parse_result, NULL, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (result));
+    jjs_value_free (result);
+    result = jjs_module_evaluate (parse_result);
   }
   else
   {
-    result = jerry_run (parse_result);
+    result = jjs_run (parse_result);
   }
 
-  TEST_ASSERT (!jerry_value_is_exception (result));
+  TEST_ASSERT (!jjs_value_is_exception (result));
 
-  jerry_value_free (parse_result);
-  jerry_value_free (result);
+  jjs_value_free (parse_result);
+  jjs_value_free (result);
 } /* test_parse */
 
 int
@@ -68,43 +68,43 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_value_t global_object_value = jerry_current_realm ();
+  jjs_value_t global_object_value = jjs_current_realm ();
 
-  jerry_value_t function_value = jerry_function_external (check_eval);
-  jerry_value_t function_name_value = jerry_string_sz ("check_eval");
-  jerry_value_free (jerry_object_set (global_object_value, function_name_value, function_value));
+  jjs_value_t function_value = jjs_function_external (check_eval);
+  jjs_value_t function_name_value = jjs_string_sz ("check_eval");
+  jjs_value_free (jjs_object_set (global_object_value, function_name_value, function_value));
 
-  jerry_value_free (function_name_value);
-  jerry_value_free (function_value);
-  jerry_value_free (global_object_value);
+  jjs_value_free (function_name_value);
+  jjs_value_free (function_value);
+  jjs_value_free (global_object_value);
 
-  jerry_parse_options_t parse_options;
+  jjs_parse_options_t parse_options;
   const char *source_p = TEST_STRING_LITERAL ("eval('check_eval(function() {}, true)')\n"
                                               "check_eval(function() {}, false)");
 
-  parse_options.options = JERRY_PARSE_NO_OPTS;
+  parse_options.options = JJS_PARSE_NO_OPTS;
   test_parse (source_p, &parse_options);
 
-  if (jerry_feature_enabled (JERRY_FEATURE_MODULE))
+  if (jjs_feature_enabled (JJS_FEATURE_MODULE))
   {
-    parse_options.options = JERRY_PARSE_MODULE;
+    parse_options.options = JJS_PARSE_MODULE;
     test_parse (source_p, &parse_options);
   }
 
-  parse_options.options = JERRY_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jerry_string_sz ("");
+  parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
+  parse_options.argument_list = jjs_string_sz ("");
   test_parse (source_p, &parse_options);
-  jerry_value_free (parse_options.argument_list);
+  jjs_value_free (parse_options.argument_list);
 
-  parse_options.options = JERRY_PARSE_NO_OPTS;
+  parse_options.options = JJS_PARSE_NO_OPTS;
   source_p = TEST_STRING_LITERAL ("check_eval(new Function('a', 'return a'), true)");
   test_parse (source_p, &parse_options);
 
   source_p = TEST_STRING_LITERAL ("check_eval(function() {}, true)");
-  jerry_value_free (jerry_eval ((const jerry_char_t *) source_p, strlen (source_p), JERRY_PARSE_NO_OPTS));
+  jjs_value_free (jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), JJS_PARSE_NO_OPTS));
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

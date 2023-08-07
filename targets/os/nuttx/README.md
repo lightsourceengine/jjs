@@ -1,6 +1,6 @@
 ### About
 
-This folder contains files to run JerryScript on
+This folder contains files to run JJS on
 [STM32F4-Discovery board](https://www.st.com/en/evaluation-tools/stm32f4discovery.html) with
 [NuttX](https://nuttx.apache.org/).
 The document had been validated on Ubuntu 20.04 operating system.
@@ -9,14 +9,14 @@ The document had been validated on Ubuntu 20.04 operating system.
 
 #### 1. Setup the build environment for STM32F4-Discovery board
 
-Clone the necessary projects into a `jerry-nuttx` directory.
+Clone the necessary projects into a `jjs-nuttx` directory.
 The latest tested working version of NuttX is 10.2.
 
 ```sh
 # Create a base folder for all the projects.
-mkdir jerry-nuttx && cd jerry-nuttx
+mkdir jjs-nuttx && cd jjs-nuttx
 
-git clone https://github.com/jerryscript-project/jerryscript.git
+git clone https://github.com/jjs-project/jjs.git
 git clone https://github.com/apache/incubator-nuttx.git nuttx -b releases/10.2
 git clone https://github.com/apache/incubator-nuttx-apps.git apps -b releases/10.2
 git clone https://bitbucket.org/nuttx/tools.git tools
@@ -26,8 +26,8 @@ git clone https://github.com/texane/stlink.git -b v1.5.1-patch
 The following directory structure is created after these commands:
 
 ```
-jerry-nuttx
-  + jerryscript
+jjs-nuttx
+  + jjs
   |  + targets
   |      + os
   |        + nuttx
@@ -40,8 +40,8 @@ jerry-nuttx
 #### 2. Install dependencies of the projects
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
-jerryscript/tools/apt-get-install-deps.sh
+# Assuming you are in jjs-nuttx folder.
+jjs/tools/apt-get-install-deps.sh
 
 # Toolchain dependencies of NuttX.
 sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi
@@ -57,17 +57,17 @@ sudo apt install \
 sudo apt install libusb-1.0-0-dev minicom
 ```
 
-#### 3. Copy JerryScript's application files to NuttX
+#### 3. Copy JJS's application files to NuttX
 
-Move JerryScript application files to `apps/interpreters/jerryscript` folder.
+Move JJS application files to `apps/interpreters/jjs` folder.
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
-mkdir -p apps/interpreters/jerryscript
-cp jerryscript/targets/os/nuttx/* apps/interpreters/jerryscript/
+# Assuming you are in jjs-nuttx folder.
+mkdir -p apps/interpreters/jjs
+cp jjs/targets/os/nuttx/* apps/interpreters/jjs/
 
 # Or more simply:
-# ln -s jerryscript/targets/os/nuttx apps/interpreters/jerryscript
+# ln -s jjs/targets/os/nuttx apps/interpreters/jjs
 ```
 
 #### 4. Build kconfig-frontend to configure NuttX
@@ -75,7 +75,7 @@ cp jerryscript/targets/os/nuttx/* apps/interpreters/jerryscript/
 Skip this section if `kconfig-frontends` had alrady been installed by package manager.
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 cd tools/kconfig-frontends
 
 ./configure \
@@ -97,26 +97,26 @@ PATH=${PWD}/install/bin:$PATH
 Configure NuttX for serial communication. A `.config` file contains all the options for the build.
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 cd nuttx/tools
 
 # Configure NuttX to use USB console shell.
 ./configure.sh stm32f4discovery:usbnsh
 ```
 
-By default, JerryScript is disabled so it is needed to modify the configuration file. It can
+By default, JJS is disabled so it is needed to modify the configuration file. It can
 be done by using menuconfig (section 5.1) or modifying the `.config` file directly (section 5.2).
 
-##### 5.1 Enable JerryScript using menuconfig
+##### 5.1 Enable JJS using menuconfig
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 # Might be required to run `make menuconfig` twice.
 make -C nuttx menuconfig
 ```
 
 * Enable `System Type -> FPU support`
-* Enable `Application Configuration -> Interpreters -> JerryScript`
+* Enable `Application Configuration -> Interpreters -> JJS`
 
 [Optional] Enabling ROMFS helps to flash JavaScript input files to the device's flash memory.
 
@@ -138,25 +138,25 @@ Note: These options are for the micro-sd card slot of STM32F4-Discovery base-boa
 * Enable `File systems -> FAT file system -> FAT upper/lower names`
 * Enable `File systems -> FAT file system -> FAT long file names`
 
-##### 5.2 Enable JerryScript without user interaction
+##### 5.2 Enable JJS without user interaction
 
 A simpler solution is to append the necessary content to the `.config` configuration file:
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 cat >> nuttx/.config << EOL
 CONFIG_ARCH_FPU=y
 CONFIG_SCHED_ONEXIT=y
-CONFIG_INTERPRETERS_JERRYSCRIPT=y
-CONFIG_INTERPRETERS_JERRYSCRIPT_PRIORITY=100
-CONFIG_INTERPRETERS_JERRYSCRIPT_STACKSIZE=16384
+CONFIG_INTERPRETERS_JJS=y
+CONFIG_INTERPRETERS_JJS_PRIORITY=100
+CONFIG_INTERPRETERS_JJS_STACKSIZE=16384
 EOL
 ```
 
 [Optional] Enable ROM File System
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 cat >> nuttx/.config << EOL
 CONFIG_BOARDCTL_ROMDISK=y
 CONFIG_FS_ROMFS=y
@@ -174,7 +174,7 @@ EOL
 Note: These options are for the micro-sd card slot of STM32F4-Discovery base-board.
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 cat >> nuttx/.config << EOL
 CONFIG_STM32_SDIO=y
 CONFIG_STM32_SDIO_DMAPRIO=0x00010000
@@ -214,13 +214,13 @@ Skip this section if MMCSD is used. Otherwise, generate a C header file from a c
 Try to minimize the size of the folder due to the limited capacity of flash memory.
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
-mkdir jerry-example
-# Let hello.js be a possible JavaScript input for JerryScript.
-cp jerryscript/tests/hello.js jerry-example
+# Assuming you are in jjs-nuttx folder.
+mkdir jjs-example
+# Let hello.js be a possible JavaScript input for JJS.
+cp jjs/tests/hello.js jjs-example
 
 # Generate ROMFS image from a custom folder.
-genromfs -f romfs_img -d jerry-example
+genromfs -f romfs_img -d jjs-example
 
 # Dump image as C header file and override NuttX's default ROMFS file.
 xxd -i romfs_img apps/nshlib/nsh_romfsimg.h
@@ -233,10 +233,10 @@ sed -i "s/unsigned/const\ unsigned/g" apps/nshlib/nsh_romfsimg.h
 
 Skip this section if ROMFS is used. Otherwise, copy your files to a FAT32 formatted memory card.
 
-#### 7. Build NuttX (with JerryScript)
+#### 7. Build NuttX (with JJS)
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 make -C nuttx
 ```
 
@@ -245,7 +245,7 @@ make -C nuttx
 Connect Mini-USB for charging and flasing the device.
 
 ```sh
-# Assuming you are in jerry-nuttx folder.
+# Assuming you are in jjs-nuttx folder.
 make -C stlink release
 
 sudo stlink/build/Release/st-flash write nuttx/nuttx.bin 0x8000000
@@ -269,25 +269,25 @@ NuttShell (NSH) NuttX-10.2.0
 nsh>
 ```
 
-#### 10. Run JerryScript
+#### 10. Run JJS
 
-##### 10.1 Run `jerry` without input
+##### 10.1 Run `jjs` without input
 
 ```
 NuttShell (NSH) NuttX-10.2.0
-nsh> jerry
+nsh> jjs
 No input files, running a hello world demo:
-Hello world 5 times from JerryScript
+Hello world 5 times from JJS
 ```
 
-##### 10.2 Run `jerry` with files from ROMFS
+##### 10.2 Run `jjs` with files from ROMFS
 
 ```
 NuttShell (NSH) NuttX-10.2.0
-nsh> jerry /etc/hello.js
+nsh> jjs /etc/hello.js
 ```
 
-##### 10.3 Run `jerry` with files from memory card
+##### 10.3 Run `jjs` with files from memory card
 
 After NuttX has initialized, the card reader should be visible as `/dev/mmcsd0` on the device.
 Mount it to be JavaScript files reachable.
@@ -295,5 +295,5 @@ Mount it to be JavaScript files reachable.
 ```
 NuttShell (NSH) NuttX-10.2.0
 nsh> mount -t vfat /dev/mmcsd0 /mnt
-nsh> jerry /mnt/hello.js
+nsh> jjs /mnt/hello.js
 ```

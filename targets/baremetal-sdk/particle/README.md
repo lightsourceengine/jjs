@@ -1,6 +1,6 @@
 ### About
 
-This folder contains files to run JerryScript beside Particle Device Firmware on Photon board.
+This folder contains files to run JJS beside Particle Device Firmware on Photon board.
 It  runs a mini example, blinking an LED which is the "Hello World" example of the microcontroller universe.
 
 ### How to build
@@ -12,7 +12,7 @@ The folder tree related would look like this.
 
 ```
 root
-  + jerryscript
+  + jjs
   |  + targets
   |      + os
   |        + particle
@@ -49,17 +49,17 @@ cd modules
 make PLATFORM=photon clean all program-dfu
 ```
 
-#### 3. Build JerryScript
+#### 3. Build JJS
 
 ```
 # assume you are in root folder
-cd jerryscript
+cd jjs
 make -f ./targets/baremetal-sdk/particle/Makefile.particle
 ```
 
 This will create a binary file in the `/build/particle/` folder:
 ```
-jerry_main.bin
+jjs_main.bin
 ```
 
 That’s the binary what we’ll be flashing with dfu-util.
@@ -77,7 +77,7 @@ make -f targets/baremetal-sdk/particle/Makefile.particle flash
 You can also use this dfu-util command directly to upload your BIN file to the Photon’s application memory:
 
 ```
-dfu-util -d 2b04:d006 -a 0 -i 0 -s 0x80A0000:leave -D build/particle/jerry_main.bin
+dfu-util -d 2b04:d006 -a 0 -i 0 -s 0x80A0000:leave -D build/particle/jjs_main.bin
 ```
 
 #### 5. Cleaning

@@ -19,7 +19,7 @@ all:
 	$(MAKE) script
 
 
-## Targets for installing build dependencies of the Zephyr JerryScript target.
+## Targets for installing build dependencies of the Zephyr JJS target.
 
 # Install tools via apt.
 install-apt-get-deps:
@@ -42,12 +42,12 @@ install-cmake:
 	pip install cmake
 	cmake --version
 
-# Perform all the necessary (JerryScript-independent) installation steps.
+# Perform all the necessary (JJS-independent) installation steps.
 install-noapt: install-zephyr-toolchain install-zephyr install-cmake
 install: install-apt-get-deps install-noapt
 
 
-## Targets for building Zephyr with JerryScript.
+## Targets for building Zephyr with JJS.
 
 # Initialize west meta-tool
 init-west:
@@ -55,7 +55,7 @@ init-west:
 	west update hal_stm32 cmsis
 	west zephyr-export
 
-# Build the firmware (Zephyr with JerryScript).
+# Build the firmware (Zephyr with JJS).
 SHELL=bash
 script: init-west
 	export ZEPHYR_TOOLCHAIN_VARIANT=zephyr && \

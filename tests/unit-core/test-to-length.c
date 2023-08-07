@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "jerryscript-types.h"
-#include "jerryscript.h"
+#include "jjs-types.h"
+#include "jjs.h"
 
 #include "ecma-conversion.h"
 #include "ecma-errors.h"
@@ -52,7 +52,7 @@ main (void)
   TEST_ASSERT (num == 123);
 
   /* 1, 3 */
-  ecma_value_t error_throw = ecma_raise_standard_error (JERRY_ERROR_TYPE, ECMA_ERR_INVALID_ARRAY_LENGTH);
+  ecma_value_t error_throw = ecma_raise_standard_error (JJS_ERROR_TYPE, ECMA_ERR_INVALID_ARRAY_LENGTH);
 
   result = ecma_op_to_length (error_throw, &num);
 

@@ -14,8 +14,8 @@
  */
 
 /*
- * Unit test generator for jerry-math.
- * To be compiled separately from the rest of jerry and to be linked to a trusted libm.
+ * Unit test generator for jjs-math.
+ * To be compiled separately from the rest of JJS and to be linked to a trusted libm.
  * Its output should be redirected to test-math.inc.h.
  *
  * Example:
@@ -311,7 +311,7 @@ main (int argc, char **args)
   GEN_DBL_TEST (ceil (-7.37e+19));
 
   /* copysign tests */
-  /* SKIPPED: not publicly declared in jerry-math
+  /* SKIPPED: not publicly declared in jjs-math
   GEN_DBL_TEST (copysign (0.0, 0.0));
   GEN_DBL_TEST (copysign (0.0, -0.0));
   GEN_DBL_TEST (copysign (-0.0, 0.0));
@@ -759,7 +759,7 @@ main (int argc, char **args)
   GEN_DBL_TEST (pow (0.7, 1.2));
 
   /* scalbn tests */
-  /* SKIPPED: not publicly declared in jerry-math
+  /* SKIPPED: not publicly declared in jjs-math
   GEN_DBL_TEST (scalbn (0.0, 0));
   GEN_DBL_TEST (scalbn (-0.0, 0));
   GEN_DBL_TEST (scalbn (0.0, 1));

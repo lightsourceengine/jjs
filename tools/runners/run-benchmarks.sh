@@ -24,23 +24,23 @@ function run ()
 }
 
 echo "Running Sunspider:"
-#run jerry/sunspider/3d-morph // too fast
-run jerry/sunspider/bitops-3bit-bits-in-byte
-run jerry/sunspider/bitops-bits-in-byte
-run jerry/sunspider/bitops-bitwise-and
-run jerry/sunspider/controlflow-recursive
-run jerry/sunspider/math-cordic
-run jerry/sunspider/math-partial-sums
-run jerry/sunspider/math-spectral-norm
+#run jjs/sunspider/3d-morph // too fast
+run jjs/sunspider/bitops-3bit-bits-in-byte
+run jjs/sunspider/bitops-bits-in-byte
+run jjs/sunspider/bitops-bitwise-and
+run jjs/sunspider/controlflow-recursive
+run jjs/sunspider/math-cordic
+run jjs/sunspider/math-partial-sums
+run jjs/sunspider/math-spectral-norm
 
-echo "Running Jerry:"
-run jerry/cse
-run jerry/cse_loop
-run jerry/cse_ready_loop
-run jerry/empty_loop
-run jerry/function_loop
-run jerry/loop_arithmetics_10kk
-run jerry/loop_arithmetics_1kk
+echo "Running JJS:"
+run jjs/cse
+run jjs/cse_loop
+run jjs/cse_ready_loop
+run jjs/empty_loop
+run jjs/function_loop
+run jjs/loop_arithmetics_10kk
+run jjs/loop_arithmetics_1kk
 
 echo "Running UBench:"
 run ubench/function-closure

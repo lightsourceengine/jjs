@@ -13,25 +13,25 @@
 # limitations under the License.
 
 # application name
-APPLICATION = riot_jerryscript
+APPLICATION = riot_jjsscript
 
 # default BOARD enviroment
 BOARD ?= stm32f4discovery
 
-# path to jerryscript/targets/os/riot
+# path to jjs/targets/os/riot
 TARGET_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-# path to the JERRYSCRIPT directory
-JERRYDIR ?= $(TARGET_DIR)/../../..
+# path to the JJS directory
+JJSDIR ?= $(TARGET_DIR)/../../..
 
 # path to the RIOT base directory
-RIOTBASE ?= $(JERRYDIR)/../RIOT
+RIOTBASE ?= $(JJSDIR)/../RIOT
 
 # path to the application directory
-APPDIR ?= $(JERRYDIR)/targets/os/riot/source
+APPDIR ?= $(JJSDIR)/targets/os/riot/source
 
 # path to the binary directory
-BUILDDIR ?= $(JERRYDIR)/build/riot-stm32f4
+BUILDDIR ?= $(JJSDIR)/build/riot-stm32f4
 
 # path to the binary directory
 BINDIR ?= $(BUILDDIR)/bin
@@ -39,29 +39,29 @@ BINDIR ?= $(BUILDDIR)/bin
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-INCLUDES += -I$(JERRYDIR)/jerry-core/include
-INCLUDES += -I$(JERRYDIR)/jerry-ext/include
+INCLUDES += -I$(JJSDIR)/jjs-core/include
+INCLUDES += -I$(JJSDIR)/jjs-ext/include
 
-ARCHIVES += $(JERRYDIR)/build/lib/libjerry-core.a
-ARCHIVES += $(JERRYDIR)/build/lib/libjerry-ext.a
-ARCHIVES += $(JERRYDIR)/build/lib/libjerry-port.a
+ARCHIVES += $(JJSDIR)/build/lib/libjjs-core.a
+ARCHIVES += $(JJSDIR)/build/lib/libjjs-ext.a
+ARCHIVES += $(JJSDIR)/build/lib/libjjs-port.a
 
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += posix_sleep
 
-.PHONY: libjerry
-libjerry:
-	$(JERRYDIR)/tools/build.py \
+.PHONY: libjjs
+libjjs:
+	$(JJSDIR)/tools/build.py \
 		--clean \
 		--lto=OFF \
-		--jerry-cmdline=OFF \
-		--jerry-math=ON \
+		--jjs-cmdline=OFF \
+		--jjs-math=ON \
 		--amalgam=ON \
 		--mem-heap=70 \
 		--profile=es.next \
 		--compile-flag=-fshort-enums \
-		--toolchain=$(abspath $(JERRYDIR)/cmake/toolchain_mcu_stm32f4.cmake)
+		--toolchain=$(abspath $(JJSDIR)/cmake/toolchain_mcu_stm32f4.cmake)
 
 .PHONY: clear-cflags
 clear-cflags:
@@ -73,7 +73,7 @@ restore-cflags:
 	$(eval CFLAGS := $(BACKUP))
 
 # CFLAGS is filled by Makefile.include that is only for RIOT.
-# Clear CFLAGS temporarily while compiling JerryScript.
-all: clear-cflags libjerry restore-cflags
+# Clear CFLAGS temporarily while compiling JJS.
+all: clear-cflags libjjs restore-cflags
 
 include $(RIOTBASE)/Makefile.include

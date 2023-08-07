@@ -40,11 +40,11 @@ LICENSE = re.compile(
 
 INCLUDE_DIRS = [
     'cmake',
-    'jerry-core',
-    'jerry-ext',
-    'jerry-math',
-    'jerry-main',
-    'jerry-port',
+    'jjs-core',
+    'jjs-ext',
+    'jjs-math',
+    'jjs-main',
+    'jjs-port',
     'targets',
     'tests',
     'tools',

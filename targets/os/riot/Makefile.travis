@@ -19,7 +19,7 @@ all:
 	$(MAKE) script
 
 
-## Targets for installing build dependencies of the RIOT JerryScript target.
+## Targets for installing build dependencies of the RIOT JJS target.
 
 # Install cross-compiler via apt.
 install-apt-get-deps:
@@ -29,12 +29,12 @@ install-apt-get-deps:
 install-clone-riot:
 	git clone https://github.com/RIOT-OS/RIOT.git ../RIOT -b 2021.10
 
-# Perform all the necessary (JerryScript-independent) installation steps.
+# Perform all the necessary (JJS-independent) installation steps.
 install-noapt: install-clone-riot
 install: install-apt-get-deps install-noapt
 
-## Targets for building RIOT with JerryScript.
+## Targets for building RIOT with JJS.
 
-# Build the firmware (RIOT with JerryScript).
+# Build the firmware (RIOT with JJS).
 script:
 	$(MAKE) -f ./targets/os/riot/Makefile

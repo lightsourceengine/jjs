@@ -1,12 +1,12 @@
 {
-  "name": "jerryscript",
+  "name": "jjs",
   "description": "Ultra-lightweight JavaScript engine for the Internet of Things.",
   "scripts": {
     "transpile": "scripty"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jerryscript-project/jerryscript.git"
+    "url": "git+https://github.com/LightSourceEngine/jjs.git"
   },
   "license": "Apache-2.0",
   "devDependencies": {

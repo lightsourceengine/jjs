@@ -13,13 +13,13 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
-#include "jerryscript-ext/module.h"
+#include "jjs-ext/module.h"
 
 #define MODULE_NAME my_broken_module
 
 /*
  * A broken module to test that the loader complains about the absence of on_resolve ()
  */
-JERRYX_NATIVE_MODULE (MODULE_NAME, NULL)
+JJSX_NATIVE_MODULE (MODULE_NAME, NULL)

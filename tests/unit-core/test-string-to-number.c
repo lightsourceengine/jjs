@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
@@ -28,13 +28,13 @@ main (void)
 {
   TEST_INIT ();
 
-  const jerry_char_t *strings[] = {
-    (const jerry_char_t *) "1",         (const jerry_char_t *) "0.5",       (const jerry_char_t *) "12345",
-    (const jerry_char_t *) "1e-45",     (const jerry_char_t *) "-2.5e+38",  (const jerry_char_t *) "-2.5e38",
-    (const jerry_char_t *) "- 2.5e+38", (const jerry_char_t *) "-2 .5e+38", (const jerry_char_t *) "-2. 5e+38",
-    (const jerry_char_t *) "-2.5e+ 38", (const jerry_char_t *) "-2.5 e+38", (const jerry_char_t *) "-2.5e +38",
-    (const jerry_char_t *) "NaN",       (const jerry_char_t *) "abc",       (const jerry_char_t *) "   Infinity  ",
-    (const jerry_char_t *) "-Infinity", (const jerry_char_t *) "0",         (const jerry_char_t *) "0",
+  const jjs_char_t *strings[] = {
+    (const jjs_char_t *) "1",         (const jjs_char_t *) "0.5",       (const jjs_char_t *) "12345",
+    (const jjs_char_t *) "1e-45",     (const jjs_char_t *) "-2.5e+38",  (const jjs_char_t *) "-2.5e38",
+    (const jjs_char_t *) "- 2.5e+38", (const jjs_char_t *) "-2 .5e+38", (const jjs_char_t *) "-2. 5e+38",
+    (const jjs_char_t *) "-2.5e+ 38", (const jjs_char_t *) "-2.5 e+38", (const jjs_char_t *) "-2.5e +38",
+    (const jjs_char_t *) "NaN",       (const jjs_char_t *) "abc",       (const jjs_char_t *) "   Infinity  ",
+    (const jjs_char_t *) "-Infinity", (const jjs_char_t *) "0",         (const jjs_char_t *) "0",
   };
 
   const ecma_number_t nums[] = { (ecma_number_t) 1.0,       (ecma_number_t) 0.5,      (ecma_number_t) 12345.0,

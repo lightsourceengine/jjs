@@ -18,27 +18,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jerryscript-port.h"
-#include "jerryscript.h"
+#include "jjs-port.h"
+#include "jjs.h"
 
-#include "jerryscript-ext/debugger.h"
-#include "jerryscript-ext/handlers.h"
-#include "jerryscript-ext/print.h"
-#include "jerryscript-ext/properties.h"
-#include "jerryscript-ext/repl.h"
-#include "jerryscript-ext/sources.h"
+#include "jjs-ext/debugger.h"
+#include "jjs-ext/handlers.h"
+#include "jjs-ext/print.h"
+#include "jjs-ext/properties.h"
+#include "jjs-ext/repl.h"
+#include "jjs-ext/sources.h"
 #include "setjmp.h"
 
 /**
  * Maximum command line arguments number.
  */
-#define JERRY_MAX_COMMAND_LINE_ARGS (16)
+#define JJS_MAX_COMMAND_LINE_ARGS (16)
 
 /**
- * Standalone Jerry exit codes.
+ * Standalone JJS exit codes.
  */
-#define JERRY_STANDALONE_EXIT_CODE_OK   (0)
-#define JERRY_STANDALONE_EXIT_CODE_FAIL (1)
+#define JJS_STANDALONE_EXIT_CODE_OK   (0)
+#define JJS_STANDALONE_EXIT_CODE_FAIL (1)
 
 /**
  * Context size of the SYNTAX_ERROR
@@ -73,7 +73,7 @@ static uint32_t
 str_to_uint (const char *num_str_p, /**< string to convert */
              char **out_p) /**< [out] end of the number */
 {
-  assert (jerry_feature_enabled (JERRY_FEATURE_ERROR_MESSAGES));
+  assert (jjs_feature_enabled (JJS_FEATURE_ERROR_MESSAGES));
 
   uint32_t result = 0;
 
@@ -97,16 +97,16 @@ str_to_uint (const char *num_str_p, /**< string to convert */
  */
 static void
 register_js_function (const char *name_p, /**< name of the function */
-                      jerry_external_handler_t handler_p) /**< function callback */
+                      jjs_external_handler_t handler_p) /**< function callback */
 {
-  jerry_value_t result_val = jerryx_register_global (name_p, handler_p);
+  jjs_value_t result_val = jjsx_register_global (name_p, handler_p);
 
-  if (jerry_value_is_exception (result_val))
+  if (jjs_value_is_exception (result_val))
   {
-    jerry_log (JERRY_LOG_LEVEL_WARNING, "Warning: failed to register '%s' method.", name_p);
+    jjs_log (JJS_LOG_LEVEL_WARNING, "Warning: failed to register '%s' method.", name_p);
   }
 
-  jerry_value_free (result_val);
+  jjs_value_free (result_val);
 } /* register_js_function */
 
 /**
@@ -119,53 +119,53 @@ int
 main (int argc, FAR char *argv[])
 #else /* !defined(CONFIG_BUILD_KERNEL) */
 int
-jerry_main (int argc, char *argv[])
+jjs_main (int argc, char *argv[])
 #endif /* defined(CONFIG_BUILD_KERNEL) */
 {
-  if (argc > JERRY_MAX_COMMAND_LINE_ARGS)
+  if (argc > JJS_MAX_COMMAND_LINE_ARGS)
   {
-    jerry_log (JERRY_LOG_LEVEL_ERROR,
+    jjs_log (JJS_LOG_LEVEL_ERROR,
                "Too many command line arguments. Current maximum is %d\n",
-               JERRY_MAX_COMMAND_LINE_ARGS);
+               JJS_MAX_COMMAND_LINE_ARGS);
 
-    return JERRY_STANDALONE_EXIT_CODE_FAIL;
+    return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  const char *file_names[JERRY_MAX_COMMAND_LINE_ARGS];
+  const char *file_names[JJS_MAX_COMMAND_LINE_ARGS];
   int i;
   int files_counter = 0;
   bool start_debug_server = false;
   uint16_t debug_port = 5001;
 
-  jerry_init_flag_t flags = JERRY_INIT_EMPTY;
+  jjs_init_flag_t flags = JJS_INIT_EMPTY;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp ("-h", argv[i]) || !strcmp ("--help", argv[i]))
     {
       print_help (argv[0]);
-      return JERRY_STANDALONE_EXIT_CODE_OK;
+      return JJS_STANDALONE_EXIT_CODE_OK;
     }
     else if (!strcmp ("--mem-stats", argv[i]))
     {
-      flags |= JERRY_INIT_MEM_STATS;
-      jerry_log_set_level (JERRY_LOG_LEVEL_DEBUG);
+      flags |= JJS_INIT_MEM_STATS;
+      jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
     }
     else if (!strcmp ("--show-opcodes", argv[i]))
     {
-      flags |= JERRY_INIT_SHOW_OPCODES | JERRY_INIT_SHOW_REGEXP_OPCODES;
-      jerry_log_set_level (JERRY_LOG_LEVEL_DEBUG);
+      flags |= JJS_INIT_SHOW_OPCODES | JJS_INIT_SHOW_REGEXP_OPCODES;
+      jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
     }
     else if (!strcmp ("--log-level", argv[i]))
     {
       if (++i < argc && strlen (argv[i]) == 1 && argv[i][0] >= '0' && argv[i][0] <= '3')
       {
-        jerry_log_set_level (argv[i][0] - '0');
+        jjs_log_set_level (argv[i][0] - '0');
       }
       else
       {
-        jerry_log (JERRY_LOG_LEVEL_ERROR, "Error: wrong format or invalid argument\n");
-        return JERRY_STANDALONE_EXIT_CODE_FAIL;
+        jjs_log (JJS_LOG_LEVEL_ERROR, "Error: wrong format or invalid argument\n");
+        return JJS_STANDALONE_EXIT_CODE_FAIL;
       }
     }
     else if (!strcmp ("--start-debug-server", argv[i]))
@@ -180,8 +180,8 @@ jerry_main (int argc, char *argv[])
       }
       else
       {
-        jerry_log (JERRY_LOG_LEVEL_ERROR, "Error: wrong format or invalid argument\n");
-        return JERRY_STANDALONE_EXIT_CODE_FAIL;
+        jjs_log (JJS_LOG_LEVEL_ERROR, "Error: wrong format or invalid argument\n");
+        return JJS_STANDALONE_EXIT_CODE_FAIL;
       }
     }
     else
@@ -190,49 +190,49 @@ jerry_main (int argc, char *argv[])
     }
   }
 
-  jerry_init (flags);
+  jjs_init (flags);
 
   if (start_debug_server)
   {
-    jerryx_debugger_after_connect (jerryx_debugger_tcp_create (debug_port) && jerryx_debugger_ws_create ());
+    jjsx_debugger_after_connect (jjsx_debugger_tcp_create (debug_port) && jjsx_debugger_ws_create ());
   }
 
-  register_js_function ("assert", jerryx_handler_assert);
-  register_js_function ("gc", jerryx_handler_gc);
-  register_js_function ("print", jerryx_handler_print);
+  register_js_function ("assert", jjsx_handler_assert);
+  register_js_function ("gc", jjsx_handler_gc);
+  register_js_function ("print", jjsx_handler_print);
 
-  jerry_value_t ret_value = jerry_undefined ();
-  int ret_code = JERRY_STANDALONE_EXIT_CODE_OK;
+  jjs_value_t ret_value = jjs_undefined ();
+  int ret_code = JJS_STANDALONE_EXIT_CODE_OK;
 
   if (files_counter == 0)
   {
-    jerryx_repl ("jerry> ");
+    jjsx_repl ("jjs> ");
   }
   else
   {
     for (i = 0; i < files_counter; i++)
     {
-      ret_value = jerryx_source_exec_script (file_names[i]);
-      if (jerry_value_is_exception (ret_value))
+      ret_value = jjsx_source_exec_script (file_names[i]);
+      if (jjs_value_is_exception (ret_value))
       {
-        ret_code = JERRY_STANDALONE_EXIT_CODE_FAIL;
-        jerryx_print_unhandled_exception (ret_value);
+        ret_code = JJS_STANDALONE_EXIT_CODE_FAIL;
+        jjsx_print_unhandled_exception (ret_value);
         break;
       }
 
-      jerry_value_free (ret_value);
+      jjs_value_free (ret_value);
     }
   }
 
-  ret_value = jerry_run_jobs ();
+  ret_value = jjs_run_jobs ();
 
-  if (jerry_value_is_exception (ret_value))
+  if (jjs_value_is_exception (ret_value))
   {
-    ret_code = JERRY_STANDALONE_EXIT_CODE_FAIL;
+    ret_code = JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  jerry_value_free (ret_value);
-  jerry_cleanup ();
+  jjs_value_free (ret_value);
+  jjs_cleanup ();
 
   return ret_code;
 } /* main */

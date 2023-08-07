@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#  This file converts ./js/*.js to a C-array in ./source/jerry-targetjs.h file
+#  This file converts ./js/*.js to a C-array in ./source/jjs-targetjs.h file
 
 import argparse
 import glob
@@ -24,8 +24,8 @@ import re
 from gen_c_source import LICENSE, format_code
 
 
-HEADER = '''#ifndef JERRY_TARGETJS_H
-#define JERRY_TARGETJS_H
+HEADER = '''#ifndef JJS_TARGETJS_H
+#define JJS_TARGETJS_H
 '''
 
 FOOTER = '''
@@ -92,7 +92,7 @@ def main():
     parser.add_argument('--dest',
                         dest='output_path',
                         default='./source',
-                        help="Destination directory of 'jerry-targetjs.h' (default: %(default)s)")
+                        help="Destination directory of 'jjs-targetjs.h' (default: %(default)s)")
 
     script_args = parser.parse_args()
 
@@ -118,7 +118,7 @@ def main():
     gen_output.append("\n".join(gen_structs))
     gen_output.append(FOOTER)
 
-    with open(os.path.join(script_args.output_path, 'jerry-targetjs.h'), 'w') as gen_file:
+    with open(os.path.join(script_args.output_path, 'jjs-targetjs.h'), 'w') as gen_file:
         gen_file.write("\n".join(gen_output))
 
 

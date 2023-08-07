@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
@@ -23,26 +23,26 @@ static int global_counter = 0;
 
 static void
 native_free_callback (void *native_p, /**< native pointer */
-                      jerry_object_native_info_t *info_p) /**< native info */
+                      jjs_object_native_info_t *info_p) /**< native info */
 {
   (void) native_p;
   TEST_ASSERT (info_p->free_cb == native_free_callback);
   global_counter++;
 } /* native_free_callback */
 
-static const jerry_object_native_info_t native_info_1 = {
+static const jjs_object_native_info_t native_info_1 = {
   .free_cb = native_free_callback,
   .number_of_references = 0,
   .offset_of_references = 0,
 };
 
-static const jerry_object_native_info_t native_info_2 = {
+static const jjs_object_native_info_t native_info_2 = {
   .free_cb = NULL,
   .number_of_references = 0,
   .offset_of_references = 0,
 };
 
-static const jerry_object_native_info_t native_info_3 = {
+static const jjs_object_native_info_t native_info_3 = {
   .free_cb = NULL,
   .number_of_references = 0,
   .offset_of_references = 0,
@@ -51,9 +51,9 @@ static const jerry_object_native_info_t native_info_3 = {
 typedef struct
 {
   uint32_t check_before;
-  jerry_value_t a;
-  jerry_value_t b;
-  jerry_value_t c;
+  jjs_value_t a;
+  jjs_value_t b;
+  jjs_value_t c;
   uint32_t check_after;
 } test_references_t;
 
@@ -65,7 +65,7 @@ static int call_count = 0;
 
 static void
 native_references_free_callback (void *native_p, /**< native pointer */
-                                 jerry_object_native_info_t *info_p) /**< native info */
+                                 jjs_object_native_info_t *info_p) /**< native info */
 {
   test_references_t *refs_p = (test_references_t *) native_p;
 
@@ -76,18 +76,18 @@ native_references_free_callback (void *native_p, /**< native pointer */
 
   uint32_t check = refs_p->check_before;
 
-  jerry_native_ptr_free (native_p, info_p);
+  jjs_native_ptr_free (native_p, info_p);
 
-  TEST_ASSERT (jerry_value_is_undefined (refs_p->a));
-  TEST_ASSERT (jerry_value_is_undefined (refs_p->b));
-  TEST_ASSERT (jerry_value_is_undefined (refs_p->c));
+  TEST_ASSERT (jjs_value_is_undefined (refs_p->a));
+  TEST_ASSERT (jjs_value_is_undefined (refs_p->b));
+  TEST_ASSERT (jjs_value_is_undefined (refs_p->c));
   TEST_ASSERT (refs_p->check_before == check);
   TEST_ASSERT (refs_p->check_after == check);
 
   call_count++;
 } /* native_references_free_callback */
 
-static const jerry_object_native_info_t native_info_4 = {
+static const jjs_object_native_info_t native_info_4 = {
   .free_cb = native_references_free_callback,
   .number_of_references = 3,
   .offset_of_references = (uint16_t) offsetof (test_references_t, a),
@@ -104,37 +104,37 @@ init_references (test_references_t *refs_p, /**< native pointer */
   refs_p->c = 3;
   refs_p->check_after = check;
 
-  jerry_native_ptr_init ((void *) refs_p, &native_info_4);
+  jjs_native_ptr_init ((void *) refs_p, &native_info_4);
 
-  TEST_ASSERT (jerry_value_is_undefined (refs_p->a));
-  TEST_ASSERT (jerry_value_is_undefined (refs_p->b));
-  TEST_ASSERT (jerry_value_is_undefined (refs_p->c));
+  TEST_ASSERT (jjs_value_is_undefined (refs_p->a));
+  TEST_ASSERT (jjs_value_is_undefined (refs_p->b));
+  TEST_ASSERT (jjs_value_is_undefined (refs_p->c));
   TEST_ASSERT (refs_p->check_before == check);
   TEST_ASSERT (refs_p->check_after == check);
 } /* init_references */
 
 static void
 set_references (test_references_t *refs_p, /**< native pointer */
-                jerry_value_t value1, /**< first value to be set */
-                jerry_value_t value2, /**< second value to be set */
-                jerry_value_t value3) /**< third value to be set */
+                jjs_value_t value1, /**< first value to be set */
+                jjs_value_t value2, /**< second value to be set */
+                jjs_value_t value3) /**< third value to be set */
 {
-  jerry_native_ptr_set (&refs_p->a, value1);
-  jerry_native_ptr_set (&refs_p->b, value2);
-  jerry_native_ptr_set (&refs_p->c, value3);
+  jjs_native_ptr_set (&refs_p->a, value1);
+  jjs_native_ptr_set (&refs_p->b, value2);
+  jjs_native_ptr_set (&refs_p->c, value3);
 
-  TEST_ASSERT (jerry_value_is_object (value1) ? jerry_value_is_object (refs_p->a) : jerry_value_is_string (refs_p->a));
-  TEST_ASSERT (jerry_value_is_object (value2) ? jerry_value_is_object (refs_p->b) : jerry_value_is_string (refs_p->b));
-  TEST_ASSERT (jerry_value_is_object (value3) ? jerry_value_is_object (refs_p->c) : jerry_value_is_string (refs_p->c));
+  TEST_ASSERT (jjs_value_is_object (value1) ? jjs_value_is_object (refs_p->a) : jjs_value_is_string (refs_p->a));
+  TEST_ASSERT (jjs_value_is_object (value2) ? jjs_value_is_object (refs_p->b) : jjs_value_is_string (refs_p->b));
+  TEST_ASSERT (jjs_value_is_object (value3) ? jjs_value_is_object (refs_p->c) : jjs_value_is_string (refs_p->c));
 } /* set_references */
 
 static void
-check_native_info (jerry_value_t object_value, /**< object value */
-                   const jerry_object_native_info_t *native_info_p, /**< native info */
+check_native_info (jjs_value_t object_value, /**< object value */
+                   const jjs_object_native_info_t *native_info_p, /**< native info */
                    void *expected_pointer_p) /**< expected pointer */
 {
-  TEST_ASSERT (jerry_object_has_native_ptr (object_value, native_info_p));
-  void *native_pointer_p = jerry_object_get_native_ptr (object_value, native_info_p);
+  TEST_ASSERT (jjs_object_has_native_ptr (object_value, native_info_p));
+  void *native_pointer_p = jjs_object_get_native_ptr (object_value, native_info_p);
   TEST_ASSERT (native_pointer_p == expected_pointer_p);
 } /* check_native_info */
 
@@ -142,193 +142,193 @@ int
 main (void)
 {
   TEST_INIT ();
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_value_t object_value = jerry_object ();
+  jjs_value_t object_value = jjs_object ();
 
-  jerry_object_set_native_ptr (object_value, &native_info_1, global_p);
-  jerry_object_set_native_ptr (object_value, &native_info_2, NULL);
+  jjs_object_set_native_ptr (object_value, &native_info_1, global_p);
+  jjs_object_set_native_ptr (object_value, &native_info_2, NULL);
 
   check_native_info (object_value, &native_info_1, global_p);
   check_native_info (object_value, &native_info_2, NULL);
 
-  jerry_value_free (object_value);
+  jjs_value_free (object_value);
 
-  jerry_heap_gc (JERRY_GC_PRESSURE_HIGH);
+  jjs_heap_gc (JJS_GC_PRESSURE_HIGH);
   TEST_ASSERT (global_counter == 1);
   global_counter = 0;
 
-  object_value = jerry_object ();
+  object_value = jjs_object ();
 
-  jerry_object_set_native_ptr (object_value, &native_info_1, global_p);
-  jerry_object_set_native_ptr (object_value, &native_info_2, NULL);
+  jjs_object_set_native_ptr (object_value, &native_info_1, global_p);
+  jjs_object_set_native_ptr (object_value, &native_info_2, NULL);
 
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_1));
 
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_1));
   check_native_info (object_value, &native_info_2, NULL);
 
-  TEST_ASSERT (!jerry_object_delete_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (!jjs_object_delete_native_ptr (object_value, &native_info_1));
 
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_1));
   check_native_info (object_value, &native_info_2, NULL);
 
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_2));
 
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_1));
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_2));
 
-  jerry_object_set_native_ptr (object_value, &native_info_1, NULL);
+  jjs_object_set_native_ptr (object_value, &native_info_1, NULL);
 
   check_native_info (object_value, &native_info_1, NULL);
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_2));
 
-  jerry_object_set_native_ptr (object_value, &native_info_2, global_p);
+  jjs_object_set_native_ptr (object_value, &native_info_2, global_p);
 
   check_native_info (object_value, &native_info_1, NULL);
   check_native_info (object_value, &native_info_2, global_p);
 
-  jerry_object_set_native_ptr (object_value, &native_info_1, global_p);
+  jjs_object_set_native_ptr (object_value, &native_info_1, global_p);
 
   check_native_info (object_value, &native_info_1, global_p);
   check_native_info (object_value, &native_info_2, global_p);
 
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_1));
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_2));
 
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_1));
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_2));
 
-  jerry_object_set_native_ptr (object_value, &native_info_1, global_p);
-  jerry_object_set_native_ptr (object_value, &native_info_2, NULL);
-  jerry_object_set_native_ptr (object_value, &native_info_3, global_p);
+  jjs_object_set_native_ptr (object_value, &native_info_1, global_p);
+  jjs_object_set_native_ptr (object_value, &native_info_2, NULL);
+  jjs_object_set_native_ptr (object_value, &native_info_3, global_p);
 
   check_native_info (object_value, &native_info_1, global_p);
   check_native_info (object_value, &native_info_2, NULL);
   check_native_info (object_value, &native_info_3, global_p);
 
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_1));
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_2));
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_3));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_3));
 
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_1));
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_2));
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_3));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_3));
 
-  jerry_object_set_native_ptr (object_value, &native_info_1, NULL);
-  jerry_object_set_native_ptr (object_value, &native_info_2, global_p);
-  jerry_object_set_native_ptr (object_value, &native_info_3, NULL);
+  jjs_object_set_native_ptr (object_value, &native_info_1, NULL);
+  jjs_object_set_native_ptr (object_value, &native_info_2, global_p);
+  jjs_object_set_native_ptr (object_value, &native_info_3, NULL);
 
   check_native_info (object_value, &native_info_1, NULL);
   check_native_info (object_value, &native_info_2, global_p);
   check_native_info (object_value, &native_info_3, NULL);
 
   /* Reversed delete order. */
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_3));
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_2));
-  TEST_ASSERT (jerry_object_delete_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_3));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object_value, &native_info_1));
 
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_1));
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_2));
-  TEST_ASSERT (!jerry_object_has_native_ptr (object_value, &native_info_3));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_1));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_2));
+  TEST_ASSERT (!jjs_object_has_native_ptr (object_value, &native_info_3));
 
   /* Test value references */
-  jerry_value_t string1_value = jerry_string_sz ("String1");
-  jerry_value_t string2_value = jerry_string_sz ("String2");
+  jjs_value_t string1_value = jjs_string_sz ("String1");
+  jjs_value_t string2_value = jjs_string_sz ("String2");
 
-  jerry_value_t object1_value = jerry_object ();
-  jerry_value_t object2_value = jerry_object ();
+  jjs_value_t object1_value = jjs_object ();
+  jjs_value_t object2_value = jjs_object ();
 
   init_references (&test_references1, 0x12345678);
   init_references (&test_references2, 0x87654321);
 
-  jerry_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references1);
-  jerry_object_set_native_ptr (object2_value, &native_info_4, (void *) &test_references2);
+  jjs_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references1);
+  jjs_object_set_native_ptr (object2_value, &native_info_4, (void *) &test_references2);
 
   /* Assign values (cross reference between object1 and object2). */
   set_references (&test_references1, string1_value, object2_value, string2_value);
   set_references (&test_references2, string2_value, object1_value, string1_value);
 
-  jerry_heap_gc (JERRY_GC_PRESSURE_HIGH);
+  jjs_heap_gc (JJS_GC_PRESSURE_HIGH);
 
   /* Reassign values. */
   set_references (&test_references1, object2_value, string2_value, string1_value);
   set_references (&test_references2, object1_value, string1_value, string2_value);
 
-  jerry_heap_gc (JERRY_GC_PRESSURE_HIGH);
+  jjs_heap_gc (JJS_GC_PRESSURE_HIGH);
 
-  jerry_value_free (object1_value);
-  jerry_value_free (object2_value);
+  jjs_value_free (object1_value);
+  jjs_value_free (object2_value);
 
-  object1_value = jerry_object ();
-  object2_value = jerry_object ();
+  object1_value = jjs_object ();
+  object2_value = jjs_object ();
 
   init_references (&test_references3, 0x12344321);
 
   /* Assign the same native pointer to multiple objects. */
-  jerry_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references3);
-  jerry_object_set_native_ptr (object2_value, &native_info_4, (void *) &test_references3);
+  jjs_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references3);
+  jjs_object_set_native_ptr (object2_value, &native_info_4, (void *) &test_references3);
 
   set_references (&test_references3, object1_value, object2_value, string1_value);
 
-  jerry_heap_gc (JERRY_GC_PRESSURE_HIGH);
+  jjs_heap_gc (JJS_GC_PRESSURE_HIGH);
 
   init_references (&test_references4, 0x87655678);
 
   /* Re-assign reference */
-  jerry_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references4);
+  jjs_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references4);
 
   set_references (&test_references4, string1_value, string2_value, string1_value);
 
-  jerry_object_set_native_ptr (object1_value, &native_info_4, NULL);
+  jjs_object_set_native_ptr (object1_value, &native_info_4, NULL);
 
-  jerry_native_ptr_free ((void *) &test_references4, &native_info_4);
+  jjs_native_ptr_free ((void *) &test_references4, &native_info_4);
 
-  /* Calling jerry_native_ptr_init with test_references4 is optional here. */
+  /* Calling jjs_native_ptr_init with test_references4 is optional here. */
 
-  jerry_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references4);
+  jjs_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references4);
 
   set_references (&test_references4, string2_value, string1_value, string2_value);
 
-  TEST_ASSERT (jerry_object_delete_native_ptr (object1_value, &native_info_4));
+  TEST_ASSERT (jjs_object_delete_native_ptr (object1_value, &native_info_4));
 
-  jerry_native_ptr_free ((void *) &test_references4, &native_info_4);
+  jjs_native_ptr_free ((void *) &test_references4, &native_info_4);
 
-  jerry_value_free (object1_value);
-  jerry_value_free (object2_value);
+  jjs_value_free (object1_value);
+  jjs_value_free (object2_value);
 
   /* Delete references */
   for (int i = 0; i < 3; i++)
   {
-    object1_value = jerry_object ();
+    object1_value = jjs_object ();
 
-    jerry_object_set_native_ptr (object1_value, NULL, global_p);
-    jerry_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references4);
-    jerry_object_set_native_ptr (object1_value, &native_info_2, global_p);
+    jjs_object_set_native_ptr (object1_value, NULL, global_p);
+    jjs_object_set_native_ptr (object1_value, &native_info_4, (void *) &test_references4);
+    jjs_object_set_native_ptr (object1_value, &native_info_2, global_p);
     set_references (&test_references4, string1_value, string2_value, object1_value);
 
-    jerry_heap_gc (JERRY_GC_PRESSURE_HIGH);
+    jjs_heap_gc (JJS_GC_PRESSURE_HIGH);
 
     if (i == 1)
     {
-      TEST_ASSERT (jerry_object_delete_native_ptr (object1_value, NULL));
+      TEST_ASSERT (jjs_object_delete_native_ptr (object1_value, NULL));
     }
     else if (i == 2)
     {
-      TEST_ASSERT (jerry_object_delete_native_ptr (object1_value, &native_info_2));
+      TEST_ASSERT (jjs_object_delete_native_ptr (object1_value, &native_info_2));
     }
 
-    TEST_ASSERT (jerry_object_delete_native_ptr (object1_value, &native_info_4));
-    jerry_native_ptr_free ((void *) &test_references4, &native_info_4);
-    jerry_value_free (object1_value);
+    TEST_ASSERT (jjs_object_delete_native_ptr (object1_value, &native_info_4));
+    jjs_native_ptr_free ((void *) &test_references4, &native_info_4);
+    jjs_value_free (object1_value);
   }
 
-  jerry_value_free (string1_value);
-  jerry_value_free (string2_value);
+  jjs_value_free (string1_value);
+  jjs_value_free (string2_value);
 
-  jerry_value_free (object_value);
+  jjs_value_free (object_value);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 
   TEST_ASSERT (global_counter == 0);
   TEST_ASSERT (call_count == 3);

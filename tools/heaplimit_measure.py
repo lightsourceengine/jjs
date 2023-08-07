@@ -29,14 +29,14 @@ BASE_PATH = os.path.join(TOOLS_PATH, '..')
 FLAG_CLEAN = '--clean'
 FLAG_DEBUG = '--debug'
 FLAG_HEAPLIMIT = '--mem-heap'
-JERRY_BUILDER = os.path.join(BASE_PATH, 'tools', 'build.py')
-JERRY_BIN = os.path.join(BASE_PATH, 'build', 'bin', 'jerry')
+JJS_BUILDER = os.path.join(BASE_PATH, 'tools', 'build.py')
+JJS_BIN = os.path.join(BASE_PATH, 'build', 'bin', 'jjs')
 TEST_DIR = os.path.join(BASE_PATH, 'tests')
 
 
 def get_args():
     """ Parse input arguments. """
-    desc = 'Finds the smallest possible JerryHeap size without failing to run the given js file'
+    desc = 'Finds the smallest possible JJS heap size without failing to run the given js file'
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('testfile')
     parser.add_argument('--heapsize', type=int, default=512,
@@ -50,7 +50,7 @@ def get_args():
 
 
 def check_files(opts):
-    files = [JERRY_BUILDER, opts.testfile]
+    files = [JJS_BUILDER, opts.testfile]
     for _file in files:
         if not os.path.isfile(_file):
             sys.exit("File not found: %s" % _file)
@@ -59,7 +59,7 @@ def check_files(opts):
 def build_bin(heapsize, opts):
     """ Run tools/build.py script """
     command = [
-        JERRY_BUILDER,
+        JJS_BUILDER,
         FLAG_CLEAN,
         FLAG_HEAPLIMIT,
         str(heapsize)
@@ -68,7 +68,7 @@ def build_bin(heapsize, opts):
     if opts.buildtype == 'debug':
         command.append(FLAG_DEBUG)
 
-    print('Building JerryScript with: %s' % (' '.join(command)))
+    print('Building JJS with: %s' % (' '.join(command)))
     subprocess.check_output(command)
 
 
@@ -76,7 +76,7 @@ def run_test(opts):
     """ Run the testfile to get the exitcode. """
     try:
         testfile = os.path.abspath(opts.testfile)
-        run_cmd = [JERRY_BIN, testfile]
+        run_cmd = [JJS_BIN, testfile]
         # check output will raise an error if the exit code is not 0
         subprocess.check_output(run_cmd, cwd=TEST_DIR)
     except subprocess.CalledProcessError as err:
@@ -86,14 +86,14 @@ def run_test(opts):
 
 
 def heap_limit(opts):
-    """ Find the minimal size of jerryheap to pass """
+    """ Find the minimal size of JJS heap to pass """
     goodheap = opts.heapsize
     lowheap = 0
     hiheap = opts.heapsize
 
     while lowheap < hiheap:
         build_bin(hiheap, opts)
-        assert os.path.isfile(JERRY_BIN), 'Jerry binary file does not exists'
+        assert os.path.isfile(JJS_BIN), 'JJS binary file does not exists'
 
         exitcode = run_test(opts)
         if exitcode != 0:

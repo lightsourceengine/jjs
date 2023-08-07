@@ -15,9 +15,9 @@
 
 #include <string.h>
 
-#include "jerryscript.h"
+#include "jjs.h"
 
-#include "jerryscript-ext/module.h"
+#include "jjs-ext/module.h"
 #include "test-common.h"
 
 int
@@ -25,51 +25,51 @@ main (int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  jerry_char_t buffer[256];
-  jerry_size_t bytes_copied;
-  const jerryx_module_resolver_t *resolver = &jerryx_module_native_resolver;
-  jerry_value_t module_name;
+  jjs_char_t buffer[256];
+  jjs_size_t bytes_copied;
+  const jjsx_module_resolver_t *resolver = &jjsx_module_native_resolver;
+  jjs_value_t module_name;
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
   /* Attempt to load a non-existing module. */
-  module_name = jerry_string_sz ("some-unknown-module-name");
-  jerry_value_t module = jerryx_module_resolve (module_name, &resolver, 1);
-  jerry_value_free (module_name);
+  module_name = jjs_string_sz ("some-unknown-module-name");
+  jjs_value_t module = jjsx_module_resolve (module_name, &resolver, 1);
+  jjs_value_free (module_name);
 
-  TEST_ASSERT (jerry_value_is_exception (module));
+  TEST_ASSERT (jjs_value_is_exception (module));
 
   /* Retrieve the error message. */
-  module = jerry_exception_value (module, true);
-  jerry_value_t prop_name = jerry_string_sz ("message");
-  jerry_value_t prop = jerry_object_get (module, prop_name);
+  module = jjs_exception_value (module, true);
+  jjs_value_t prop_name = jjs_string_sz ("message");
+  jjs_value_t prop = jjs_object_get (module, prop_name);
 
   /* Assert that the error message is a string with specific contents. */
-  TEST_ASSERT (jerry_value_is_string (prop));
+  TEST_ASSERT (jjs_value_is_string (prop));
 
-  bytes_copied = jerry_string_to_buffer (prop, JERRY_ENCODING_UTF8, buffer, sizeof (buffer));
+  bytes_copied = jjs_string_to_buffer (prop, JJS_ENCODING_UTF8, buffer, sizeof (buffer));
   buffer[bytes_copied] = 0;
   TEST_ASSERT (!strcmp ((const char *) buffer, "Module not found"));
 
   /* Release the error message property name and value. */
-  jerry_value_free (prop);
-  jerry_value_free (prop_name);
+  jjs_value_free (prop);
+  jjs_value_free (prop_name);
 
   /* Retrieve the moduleName property. */
-  prop_name = jerry_string_sz ("moduleName");
-  prop = jerry_object_get (module, prop_name);
+  prop_name = jjs_string_sz ("moduleName");
+  prop = jjs_object_get (module, prop_name);
 
   /* Assert that the moduleName property is a string containing the requested module name. */
-  TEST_ASSERT (jerry_value_is_string (prop));
+  TEST_ASSERT (jjs_value_is_string (prop));
 
-  bytes_copied = jerry_string_to_buffer (prop, JERRY_ENCODING_UTF8, buffer, sizeof (buffer));
+  bytes_copied = jjs_string_to_buffer (prop, JJS_ENCODING_UTF8, buffer, sizeof (buffer));
   buffer[bytes_copied] = 0;
   TEST_ASSERT (!strcmp ((const char *) buffer, "some-unknown-module-name"));
 
   /* Release everything. */
-  jerry_value_free (prop);
-  jerry_value_free (prop_name);
-  jerry_value_free (module);
+  jjs_value_free (prop);
+  jjs_value_free (prop_name);
+  jjs_value_free (module);
 
   return 0;
 } /* main */

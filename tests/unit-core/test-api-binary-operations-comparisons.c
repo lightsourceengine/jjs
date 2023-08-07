@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
@@ -24,9 +24,9 @@
 
 typedef struct
 {
-  jerry_binary_op_t op;
-  jerry_value_t lhs;
-  jerry_value_t rhs;
+  jjs_binary_op_t op;
+  jjs_value_t lhs;
+  jjs_value_t rhs;
   bool expected;
 } test_entry_t;
 
@@ -35,171 +35,171 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_value_t obj1 = jerry_eval ((const jerry_char_t *) "o={x:1};o", 9, JERRY_PARSE_NO_OPTS);
-  jerry_value_t obj2 = jerry_eval ((const jerry_char_t *) "o={x:1};o", 9, JERRY_PARSE_NO_OPTS);
-  jerry_value_t err1 = jerry_throw_sz (JERRY_ERROR_SYNTAX, "error");
+  jjs_value_t obj1 = jjs_eval ((const jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
+  jjs_value_t obj2 = jjs_eval ((const jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
+  jjs_value_t err1 = jjs_throw_sz (JJS_ERROR_SYNTAX, "error");
 
   test_entry_t tests[] = {
     /* Testing strict equal comparison */
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_number (5.0), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_number (3.1), jerry_number (10), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_number (3.1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_number (3.1), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_string_sz ("example string"), jerry_string_sz ("example string"), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_string_sz ("example string"), jerry_undefined (), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_string_sz ("example string"), jerry_null (), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_string_sz ("example string"), jerry_number (5.0), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_undefined (), jerry_undefined (), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_undefined (), jerry_null (), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_null (), jerry_null (), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_boolean (true), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_boolean (true), jerry_boolean (false), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_boolean (false), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_boolean (false), jerry_boolean (false), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_value_copy (obj1), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_value_copy (obj2), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj2), jerry_value_copy (obj1), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_null (), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_boolean (false), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_number (5.0), false),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (obj1), jerry_string_sz ("example string"), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_number (5.0), jjs_number (5.0), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_number (3.1), jjs_number (10), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_number (3.1), jjs_undefined (), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_number (3.1), jjs_boolean (true), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_string_sz ("example string"), jjs_string_sz ("example string"), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_string_sz ("example string"), jjs_undefined (), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_string_sz ("example string"), jjs_null (), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_string_sz ("example string"), jjs_number (5.0), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_undefined (), jjs_undefined (), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_undefined (), jjs_null (), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_null (), jjs_null (), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_boolean (true), jjs_boolean (true), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_boolean (true), jjs_boolean (false), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_boolean (false), jjs_boolean (true), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_boolean (false), jjs_boolean (false), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_value_copy (obj1), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_value_copy (obj2), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj2), jjs_value_copy (obj1), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_null (), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_undefined (), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_boolean (true), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_boolean (false), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_number (5.0), false),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (obj1), jjs_string_sz ("example string"), false),
 
     /* Testing equal comparison */
-    T (JERRY_BIN_OP_EQUAL, jerry_number (5.0), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_number (3.1), jerry_number (10), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_number (3.1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_number (3.1), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_string_sz ("example string"), jerry_string_sz ("example string"), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_string_sz ("example string"), jerry_undefined (), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_string_sz ("example string"), jerry_null (), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_string_sz ("example string"), jerry_number (5.0), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_undefined (), jerry_undefined (), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_undefined (), jerry_null (), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_null (), jerry_null (), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_boolean (true), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_boolean (true), jerry_boolean (false), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_boolean (false), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_boolean (false), jerry_boolean (false), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_value_copy (obj1), true),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_value_copy (obj2), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj2), jerry_value_copy (obj1), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_null (), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_boolean (false), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_number (5.0), false),
-    T (JERRY_BIN_OP_EQUAL, jerry_value_copy (obj1), jerry_string_sz ("example string"), false),
+    T (JJS_BIN_OP_EQUAL, jjs_number (5.0), jjs_number (5.0), true),
+    T (JJS_BIN_OP_EQUAL, jjs_number (3.1), jjs_number (10), false),
+    T (JJS_BIN_OP_EQUAL, jjs_number (3.1), jjs_undefined (), false),
+    T (JJS_BIN_OP_EQUAL, jjs_number (3.1), jjs_boolean (true), false),
+    T (JJS_BIN_OP_EQUAL, jjs_string_sz ("example string"), jjs_string_sz ("example string"), true),
+    T (JJS_BIN_OP_EQUAL, jjs_string_sz ("example string"), jjs_undefined (), false),
+    T (JJS_BIN_OP_EQUAL, jjs_string_sz ("example string"), jjs_null (), false),
+    T (JJS_BIN_OP_EQUAL, jjs_string_sz ("example string"), jjs_number (5.0), false),
+    T (JJS_BIN_OP_EQUAL, jjs_undefined (), jjs_undefined (), true),
+    T (JJS_BIN_OP_EQUAL, jjs_undefined (), jjs_null (), true),
+    T (JJS_BIN_OP_EQUAL, jjs_null (), jjs_null (), true),
+    T (JJS_BIN_OP_EQUAL, jjs_boolean (true), jjs_boolean (true), true),
+    T (JJS_BIN_OP_EQUAL, jjs_boolean (true), jjs_boolean (false), false),
+    T (JJS_BIN_OP_EQUAL, jjs_boolean (false), jjs_boolean (true), false),
+    T (JJS_BIN_OP_EQUAL, jjs_boolean (false), jjs_boolean (false), true),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_value_copy (obj1), true),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_value_copy (obj2), false),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj2), jjs_value_copy (obj1), false),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_null (), false),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_undefined (), false),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_boolean (true), false),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_boolean (false), false),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_number (5.0), false),
+    T (JJS_BIN_OP_EQUAL, jjs_value_copy (obj1), jjs_string_sz ("example string"), false),
 
     /* Testing less comparison */
-    T (JERRY_BIN_OP_LESS, jerry_number (5.0), jerry_number (5.0), false),
-    T (JERRY_BIN_OP_LESS, jerry_number (3.1), jerry_number (10), true),
-    T (JERRY_BIN_OP_LESS, jerry_number (3.1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_LESS, jerry_number (3.1), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_LESS, jerry_string_sz ("1"), jerry_string_sz ("2"), true),
-    T (JERRY_BIN_OP_LESS, jerry_string_sz ("1"), jerry_undefined (), false),
-    T (JERRY_BIN_OP_LESS, jerry_string_sz ("1"), jerry_null (), false),
-    T (JERRY_BIN_OP_LESS, jerry_string_sz ("1"), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_LESS, jerry_undefined (), jerry_undefined (), false),
-    T (JERRY_BIN_OP_LESS, jerry_undefined (), jerry_null (), false),
-    T (JERRY_BIN_OP_LESS, jerry_null (), jerry_null (), false),
-    T (JERRY_BIN_OP_LESS, jerry_boolean (true), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_LESS, jerry_boolean (true), jerry_boolean (false), false),
-    T (JERRY_BIN_OP_LESS, jerry_boolean (false), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_LESS, jerry_boolean (false), jerry_boolean (false), false),
+    T (JJS_BIN_OP_LESS, jjs_number (5.0), jjs_number (5.0), false),
+    T (JJS_BIN_OP_LESS, jjs_number (3.1), jjs_number (10), true),
+    T (JJS_BIN_OP_LESS, jjs_number (3.1), jjs_undefined (), false),
+    T (JJS_BIN_OP_LESS, jjs_number (3.1), jjs_boolean (true), false),
+    T (JJS_BIN_OP_LESS, jjs_string_sz ("1"), jjs_string_sz ("2"), true),
+    T (JJS_BIN_OP_LESS, jjs_string_sz ("1"), jjs_undefined (), false),
+    T (JJS_BIN_OP_LESS, jjs_string_sz ("1"), jjs_null (), false),
+    T (JJS_BIN_OP_LESS, jjs_string_sz ("1"), jjs_number (5.0), true),
+    T (JJS_BIN_OP_LESS, jjs_undefined (), jjs_undefined (), false),
+    T (JJS_BIN_OP_LESS, jjs_undefined (), jjs_null (), false),
+    T (JJS_BIN_OP_LESS, jjs_null (), jjs_null (), false),
+    T (JJS_BIN_OP_LESS, jjs_boolean (true), jjs_boolean (true), false),
+    T (JJS_BIN_OP_LESS, jjs_boolean (true), jjs_boolean (false), false),
+    T (JJS_BIN_OP_LESS, jjs_boolean (false), jjs_boolean (true), true),
+    T (JJS_BIN_OP_LESS, jjs_boolean (false), jjs_boolean (false), false),
 
     /* Testing less or equal comparison */
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_number (5.0), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_number (5.1), jerry_number (5.0), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_number (3.1), jerry_number (10), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_number (3.1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_number (3.1), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_string_sz ("1"), jerry_string_sz ("2"), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_string_sz ("1"), jerry_string_sz ("1"), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_string_sz ("1"), jerry_undefined (), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_string_sz ("1"), jerry_null (), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_string_sz ("1"), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_string_sz ("5.0"), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_undefined (), jerry_undefined (), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_undefined (), jerry_null (), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_null (), jerry_null (), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_boolean (true), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_boolean (true), jerry_boolean (false), false),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_boolean (false), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_LESS_EQUAL, jerry_boolean (false), jerry_boolean (false), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_number (5.0), jjs_number (5.0), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_number (5.1), jjs_number (5.0), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_number (3.1), jjs_number (10), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_number (3.1), jjs_undefined (), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_number (3.1), jjs_boolean (true), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_string_sz ("1"), jjs_string_sz ("2"), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_string_sz ("1"), jjs_string_sz ("1"), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_string_sz ("1"), jjs_undefined (), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_string_sz ("1"), jjs_null (), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_string_sz ("1"), jjs_number (5.0), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_string_sz ("5.0"), jjs_number (5.0), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_undefined (), jjs_undefined (), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_undefined (), jjs_null (), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_null (), jjs_null (), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_boolean (true), jjs_boolean (true), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_boolean (true), jjs_boolean (false), false),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_boolean (false), jjs_boolean (true), true),
+    T (JJS_BIN_OP_LESS_EQUAL, jjs_boolean (false), jjs_boolean (false), true),
 
     /* Testing greater comparison */
-    T (JERRY_BIN_OP_GREATER, jerry_number (5.0), jerry_number (5.0), false),
-    T (JERRY_BIN_OP_GREATER, jerry_number (10), jerry_number (3.1), true),
-    T (JERRY_BIN_OP_GREATER, jerry_number (3.1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_GREATER, jerry_number (3.1), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_GREATER, jerry_string_sz ("2"), jerry_string_sz ("1"), true),
-    T (JERRY_BIN_OP_GREATER, jerry_string_sz ("1"), jerry_string_sz ("2"), false),
-    T (JERRY_BIN_OP_GREATER, jerry_string_sz ("1"), jerry_undefined (), false),
-    T (JERRY_BIN_OP_GREATER, jerry_string_sz ("1"), jerry_null (), true),
-    T (JERRY_BIN_OP_GREATER, jerry_number (5.0), jerry_string_sz ("1"), true),
-    T (JERRY_BIN_OP_GREATER, jerry_undefined (), jerry_undefined (), false),
-    T (JERRY_BIN_OP_GREATER, jerry_undefined (), jerry_null (), false),
-    T (JERRY_BIN_OP_GREATER, jerry_null (), jerry_null (), false),
-    T (JERRY_BIN_OP_GREATER, jerry_boolean (true), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_GREATER, jerry_boolean (true), jerry_boolean (false), true),
-    T (JERRY_BIN_OP_GREATER, jerry_boolean (false), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_GREATER, jerry_boolean (false), jerry_boolean (false), false),
+    T (JJS_BIN_OP_GREATER, jjs_number (5.0), jjs_number (5.0), false),
+    T (JJS_BIN_OP_GREATER, jjs_number (10), jjs_number (3.1), true),
+    T (JJS_BIN_OP_GREATER, jjs_number (3.1), jjs_undefined (), false),
+    T (JJS_BIN_OP_GREATER, jjs_number (3.1), jjs_boolean (true), true),
+    T (JJS_BIN_OP_GREATER, jjs_string_sz ("2"), jjs_string_sz ("1"), true),
+    T (JJS_BIN_OP_GREATER, jjs_string_sz ("1"), jjs_string_sz ("2"), false),
+    T (JJS_BIN_OP_GREATER, jjs_string_sz ("1"), jjs_undefined (), false),
+    T (JJS_BIN_OP_GREATER, jjs_string_sz ("1"), jjs_null (), true),
+    T (JJS_BIN_OP_GREATER, jjs_number (5.0), jjs_string_sz ("1"), true),
+    T (JJS_BIN_OP_GREATER, jjs_undefined (), jjs_undefined (), false),
+    T (JJS_BIN_OP_GREATER, jjs_undefined (), jjs_null (), false),
+    T (JJS_BIN_OP_GREATER, jjs_null (), jjs_null (), false),
+    T (JJS_BIN_OP_GREATER, jjs_boolean (true), jjs_boolean (true), false),
+    T (JJS_BIN_OP_GREATER, jjs_boolean (true), jjs_boolean (false), true),
+    T (JJS_BIN_OP_GREATER, jjs_boolean (false), jjs_boolean (true), false),
+    T (JJS_BIN_OP_GREATER, jjs_boolean (false), jjs_boolean (false), false),
 
     /* Testing greater or equal comparison */
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_number (5.0), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_number (5.0), jerry_number (5.1), false),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_number (10), jerry_number (3.1), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_number (3.1), jerry_undefined (), false),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_number (3.1), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_string_sz ("2"), jerry_string_sz ("1"), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_string_sz ("1"), jerry_string_sz ("1"), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_string_sz ("1"), jerry_undefined (), false),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_string_sz ("1"), jerry_null (), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_number (5.0), jerry_string_sz ("1"), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_string_sz ("5.0"), jerry_number (5.0), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_undefined (), jerry_undefined (), false),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_undefined (), jerry_null (), false),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_null (), jerry_null (), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_boolean (true), jerry_boolean (true), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_boolean (true), jerry_boolean (false), true),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_boolean (false), jerry_boolean (true), false),
-    T (JERRY_BIN_OP_GREATER_EQUAL, jerry_boolean (false), jerry_boolean (false), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_number (5.0), jjs_number (5.0), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_number (5.0), jjs_number (5.1), false),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_number (10), jjs_number (3.1), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_number (3.1), jjs_undefined (), false),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_number (3.1), jjs_boolean (true), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_string_sz ("2"), jjs_string_sz ("1"), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_string_sz ("1"), jjs_string_sz ("1"), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_string_sz ("1"), jjs_undefined (), false),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_string_sz ("1"), jjs_null (), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_number (5.0), jjs_string_sz ("1"), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_string_sz ("5.0"), jjs_number (5.0), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_undefined (), jjs_undefined (), false),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_undefined (), jjs_null (), false),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_null (), jjs_null (), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_boolean (true), jjs_boolean (true), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_boolean (true), jjs_boolean (false), true),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_boolean (false), jjs_boolean (true), false),
+    T (JJS_BIN_OP_GREATER_EQUAL, jjs_boolean (false), jjs_boolean (false), true),
   };
 
   for (uint32_t idx = 0; idx < sizeof (tests) / sizeof (test_entry_t); idx++)
   {
-    jerry_value_t result = jerry_binary_op (tests[idx].op, tests[idx].lhs, tests[idx].rhs);
-    TEST_ASSERT (!jerry_value_is_exception (result));
-    TEST_ASSERT (jerry_value_is_true (result) == tests[idx].expected);
-    jerry_value_free (tests[idx].lhs);
-    jerry_value_free (tests[idx].rhs);
-    jerry_value_free (result);
+    jjs_value_t result = jjs_binary_op (tests[idx].op, tests[idx].lhs, tests[idx].rhs);
+    TEST_ASSERT (!jjs_value_is_exception (result));
+    TEST_ASSERT (jjs_value_is_true (result) == tests[idx].expected);
+    jjs_value_free (tests[idx].lhs);
+    jjs_value_free (tests[idx].rhs);
+    jjs_value_free (result);
   }
 
   test_entry_t error_tests[] = {
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (err1), jerry_value_copy (err1), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_value_copy (err1), jerry_undefined (), true),
-    T (JERRY_BIN_OP_STRICT_EQUAL, jerry_undefined (), jerry_value_copy (err1), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (err1), jjs_value_copy (err1), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_value_copy (err1), jjs_undefined (), true),
+    T (JJS_BIN_OP_STRICT_EQUAL, jjs_undefined (), jjs_value_copy (err1), true),
   };
 
   for (uint32_t idx = 0; idx < sizeof (error_tests) / sizeof (test_entry_t); idx++)
   {
-    jerry_value_t result = jerry_binary_op (tests[idx].op, error_tests[idx].lhs, error_tests[idx].rhs);
-    TEST_ASSERT (jerry_value_is_exception (result) == error_tests[idx].expected);
-    jerry_value_free (error_tests[idx].lhs);
-    jerry_value_free (error_tests[idx].rhs);
-    jerry_value_free (result);
+    jjs_value_t result = jjs_binary_op (tests[idx].op, error_tests[idx].lhs, error_tests[idx].rhs);
+    TEST_ASSERT (jjs_value_is_exception (result) == error_tests[idx].expected);
+    jjs_value_free (error_tests[idx].lhs);
+    jjs_value_free (error_tests[idx].rhs);
+    jjs_value_free (result);
   }
 
-  jerry_value_free (obj1);
-  jerry_value_free (obj2);
-  jerry_value_free (err1);
+  jjs_value_free (obj1);
+  jjs_value_free (obj2);
+  jjs_value_free (err1);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 
   return 0;
 } /* main */

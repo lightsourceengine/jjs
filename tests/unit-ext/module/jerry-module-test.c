@@ -15,9 +15,9 @@
 
 #include <string.h>
 
-#include "jerryscript.h"
+#include "jjs.h"
 
-#include "jerryscript-ext/module.h"
+#include "jjs-ext/module.h"
 #include "test-common.h"
 
 /* Load a module. */
@@ -78,21 +78,21 @@ const char eval_string7[] = "(function() {"
  * Define a resolver for a module named "differently-handled-module" to check that custom resolvers work.
  */
 static bool
-resolve_differently_handled_module (const jerry_value_t name, jerry_value_t *result)
+resolve_differently_handled_module (const jjs_value_t name, jjs_value_t *result)
 {
-  jerry_size_t name_size = jerry_string_size (name, JERRY_ENCODING_UTF8);
-  JERRY_VLA (jerry_char_t, name_string, name_size);
-  jerry_string_to_buffer (name, JERRY_ENCODING_UTF8, name_string, name_size);
+  jjs_size_t name_size = jjs_string_size (name, JJS_ENCODING_UTF8);
+  JJS_VLA (jjs_char_t, name_string, name_size);
+  jjs_string_to_buffer (name, JJS_ENCODING_UTF8, name_string, name_size);
 
   if (!strncmp ((char *) name_string, "differently-handled-module", name_size))
   {
-    (*result) = jerry_number (29);
+    (*result) = jjs_number (29);
     return true;
   }
   return false;
 } /* resolve_differently_handled_module */
 
-static jerryx_module_resolver_t differently_handled_module_resolver = { NULL, resolve_differently_handled_module };
+static jjsx_module_resolver_t differently_handled_module_resolver = { NULL, resolve_differently_handled_module };
 
 /*
  * Define module "cache-check" via its own resolver as an empty object. Since objects are accessible only via references
@@ -100,68 +100,68 @@ static jerryx_module_resolver_t differently_handled_module_resolver = { NULL, re
  * on the first attempt and establish that the two are in fact the same object - which in turn shows that caching works.
  */
 static bool
-cache_check (const jerry_value_t name, jerry_value_t *result)
+cache_check (const jjs_value_t name, jjs_value_t *result)
 {
-  jerry_size_t name_size = jerry_string_size (name, JERRY_ENCODING_UTF8);
-  JERRY_VLA (jerry_char_t, name_string, name_size);
-  jerry_string_to_buffer (name, JERRY_ENCODING_UTF8, name_string, name_size);
+  jjs_size_t name_size = jjs_string_size (name, JJS_ENCODING_UTF8);
+  JJS_VLA (jjs_char_t, name_string, name_size);
+  jjs_string_to_buffer (name, JJS_ENCODING_UTF8, name_string, name_size);
 
   if (!strncmp ((char *) name_string, "cache-check", name_size))
   {
-    (*result) = jerry_object ();
+    (*result) = jjs_object ();
     return true;
   }
   return false;
 } /* cache_check */
 
-static jerryx_module_resolver_t cache_check_resolver = { NULL, cache_check };
+static jjsx_module_resolver_t cache_check_resolver = { NULL, cache_check };
 
-static const jerryx_module_resolver_t *resolvers[3] = { &jerryx_module_native_resolver,
+static const jjsx_module_resolver_t *resolvers[3] = { &jjsx_module_native_resolver,
                                                         &differently_handled_module_resolver,
                                                         &cache_check_resolver };
 
-static jerry_value_t
-handle_clear_require_cache (const jerry_call_info_t *call_info_p,
-                            const jerry_value_t args_p[],
-                            const jerry_length_t args_count)
+static jjs_value_t
+handle_clear_require_cache (const jjs_call_info_t *call_info_p,
+                            const jjs_value_t args_p[],
+                            const jjs_length_t args_count)
 {
   (void) call_info_p;
   (void) args_count;
 
   TEST_ASSERT (args_count == 1);
-  jerryx_module_clear_cache (args_p[0], resolvers, 3);
+  jjsx_module_clear_cache (args_p[0], resolvers, 3);
 
   return 0;
 } /* handle_clear_require_cache */
 
-static jerry_value_t
-handle_require (const jerry_call_info_t *call_info_p, const jerry_value_t args_p[], const jerry_length_t args_count)
+static jjs_value_t
+handle_require (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const jjs_length_t args_count)
 {
   (void) call_info_p;
   (void) args_count;
 
-  jerry_value_t return_value = 0;
+  jjs_value_t return_value = 0;
 
   TEST_ASSERT (args_count == 1);
-  return_value = jerryx_module_resolve (args_p[0], resolvers, 3);
+  return_value = jjsx_module_resolve (args_p[0], resolvers, 3);
 
   return return_value;
 } /* handle_require */
 
 static void
-assert_number (jerry_value_t js_value, double expected_result)
+assert_number (jjs_value_t js_value, double expected_result)
 {
-  TEST_ASSERT (!jerry_value_is_exception (js_value));
-  TEST_ASSERT (jerry_value_as_number (js_value) == expected_result);
+  TEST_ASSERT (!jjs_value_is_exception (js_value));
+  TEST_ASSERT (jjs_value_as_number (js_value) == expected_result);
 } /* assert_number */
 
 static void
 eval_one (const char *the_string, double expected_result)
 {
-  jerry_value_t js_eval_result =
-    jerry_eval ((const jerry_char_t *) the_string, strlen (the_string), JERRY_PARSE_STRICT_MODE);
+  jjs_value_t js_eval_result =
+    jjs_eval ((const jjs_char_t *) the_string, strlen (the_string), JJS_PARSE_STRICT_MODE);
   assert_number (js_eval_result, expected_result);
-  jerry_value_free (js_eval_result);
+  jjs_value_free (js_eval_result);
 } /* eval_one */
 
 #ifndef ENABLE_INIT_FINI
@@ -174,37 +174,37 @@ main (int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  jerry_value_t js_global = 0, js_function = 0, js_property_name = 0;
-  jerry_value_t res;
+  jjs_value_t js_global = 0, js_function = 0, js_property_name = 0;
+  jjs_value_t res;
 
 #ifndef ENABLE_INIT_FINI
   my_broken_module_register ();
   my_custom_module_register ();
 #endif /* !ENABLE_INIT_FINI */
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  js_global = jerry_current_realm ();
+  js_global = jjs_current_realm ();
 
-  js_function = jerry_function_external (handle_require);
-  js_property_name = jerry_string_sz ("require");
-  res = jerry_object_set (js_global, js_property_name, js_function);
-  TEST_ASSERT (!jerry_value_is_exception (res));
-  TEST_ASSERT (jerry_value_is_boolean (res) && jerry_value_is_true (res));
-  jerry_value_free (res);
-  jerry_value_free (js_property_name);
-  jerry_value_free (js_function);
+  js_function = jjs_function_external (handle_require);
+  js_property_name = jjs_string_sz ("require");
+  res = jjs_object_set (js_global, js_property_name, js_function);
+  TEST_ASSERT (!jjs_value_is_exception (res));
+  TEST_ASSERT (jjs_value_is_boolean (res) && jjs_value_is_true (res));
+  jjs_value_free (res);
+  jjs_value_free (js_property_name);
+  jjs_value_free (js_function);
 
-  js_function = jerry_function_external (handle_clear_require_cache);
-  js_property_name = jerry_string_sz ("clear_require_cache");
-  res = jerry_object_set (js_global, js_property_name, js_function);
-  TEST_ASSERT (!jerry_value_is_exception (res));
-  TEST_ASSERT (jerry_value_is_boolean (res) && jerry_value_is_true (res));
-  jerry_value_free (res);
-  jerry_value_free (js_property_name);
-  jerry_value_free (js_function);
+  js_function = jjs_function_external (handle_clear_require_cache);
+  js_property_name = jjs_string_sz ("clear_require_cache");
+  res = jjs_object_set (js_global, js_property_name, js_function);
+  TEST_ASSERT (!jjs_value_is_exception (res));
+  TEST_ASSERT (jjs_value_is_boolean (res) && jjs_value_is_true (res));
+  jjs_value_free (res);
+  jjs_value_free (js_property_name);
+  jjs_value_free (js_function);
 
-  jerry_value_free (js_global);
+  jjs_value_free (js_global);
 
   eval_one (eval_string1, 42);
   eval_one (eval_string2, 29);
@@ -214,5 +214,5 @@ main (int argc, char **argv)
   eval_one (eval_string6, 1);
   eval_one (eval_string7, 1);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 } /* main */

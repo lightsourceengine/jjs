@@ -17,30 +17,30 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(NONE)
 
-set(JERRY_BASE ${CMAKE_SOURCE_DIR}/../../..)
+set(JJS_BASE ${CMAKE_SOURCE_DIR}/../../..)
 
-# Build JerryScript
-execute_process(COMMAND ${JERRY_BASE}/tools/build.py
+# Build JJS
+execute_process(COMMAND ${JJS_BASE}/tools/build.py
                             --clean
                             --lto=OFF
-                            --jerry-cmdline=OFF
-                            --jerry-math=ON
+                            --jjs-cmdline=OFF
+                            --jjs-math=ON
                             --amalgam=ON
                             --mem-heap=70
                             --profile=es.next
-                            --toolchain=${JERRY_BASE}/cmake/toolchain_mcu_stm32f4.cmake)
+                            --toolchain=${JJS_BASE}/cmake/toolchain_mcu_stm32f4.cmake)
 
 # Define library targets
-add_library(jerry-core STATIC IMPORTED)
-add_library(jerry-ext STATIC IMPORTED)
-add_library(jerry-port STATIC IMPORTED)
+add_library(jjs-core STATIC IMPORTED)
+add_library(jjs-ext STATIC IMPORTED)
+add_library(jjs-port STATIC IMPORTED)
 
 # Define include directories and archives
-set_target_properties(jerry-core PROPERTIES IMPORTED_LOCATION ${JERRY_BASE}/build/lib/libjerry-core.a)
-set_target_properties(jerry-core PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${JERRY_BASE}/jerry-core/include)
-set_target_properties(jerry-ext PROPERTIES IMPORTED_LOCATION ${JERRY_BASE}/build/lib/libjerry-ext.a)
-set_target_properties(jerry-ext PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${JERRY_BASE}/jerry-ext/include)
-set_target_properties(jerry-port PROPERTIES IMPORTED_LOCATION ${JERRY_BASE}/build/lib/libjerry-port.a)
+set_target_properties(jjs-core PROPERTIES IMPORTED_LOCATION ${JJS_BASE}/build/lib/libjjs-core.a)
+set_target_properties(jjs-core PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${JJS_BASE}/jjs-core/include)
+set_target_properties(jjs-ext PROPERTIES IMPORTED_LOCATION ${JJS_BASE}/build/lib/libjjs-ext.a)
+set_target_properties(jjs-ext PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${JJS_BASE}/jjs-ext/include)
+set_target_properties(jjs-port PROPERTIES IMPORTED_LOCATION ${JJS_BASE}/build/lib/libjjs-port.a)
 
-target_sources(app PRIVATE src/jerry-main.c src/getline-zephyr.c src/jerry-port.c)
-target_link_libraries(app PUBLIC jerry-core jerry-ext jerry-port)
+target_sources(app PRIVATE src/jjs-main.c src/getline-zephyr.c src/jjs-port.c)
+target_link_libraries(app PUBLIC jjs-core jjs-ext jjs-port)

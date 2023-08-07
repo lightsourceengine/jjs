@@ -19,7 +19,7 @@ all:
 	$(MAKE) script
 
 
-## Targets for installing build dependencies of the NuttX JerryScript target.
+## Targets for installing build dependencies of the NuttX JJS target.
 
 # Install cross-compiler and tools via apt.
 install-apt-get-deps:
@@ -42,25 +42,25 @@ install-clone-nuttx:
 	git clone https://github.com/apache/incubator-nuttx-apps.git ../apps -b releases/10.2
 	git clone https://github.com/apache/incubator-nuttx.git ../nuttx -b releases/10.2
 
-# Perform all the necessary (JerryScript-independent) installation steps.
+# Perform all the necessary (JJS-independent) installation steps.
 install-noapt: install-kconfig install-clone-nuttx
 install: install-apt-get-deps install-noapt
 
 
-## Targets for building NuttX with JerryScript.
+## Targets for building NuttX with JJS.
 
-# Link in the NuttX JerryScript target directory under the NuttX apps tree.
-script-add-jerryscript-app:
-	ln -s ../../jerryscript/targets/os/nuttx ../apps/interpreters/jerryscript
+# Link in the NuttX JJS target directory under the NuttX apps tree.
+script-add-jjs-app:
+	ln -s ../../jjs/targets/os/nuttx ../apps/interpreters/jjs
 
 # Configure USB shell.
 script-configure-usbnsh:
 	cd ../nuttx/tools && PATH=$(LOCAL_INSTALL)/bin:$$PATH ./configure.sh stm32f4discovery:usbnsh
 
-# Configure and build the firmware (NuttX with JerryScript).
-script: script-add-jerryscript-app script-configure-usbnsh
+# Configure and build the firmware (NuttX with JJS).
+script: script-add-jjs-app script-configure-usbnsh
 	echo 'CONFIG_ARCH_FPU=y' >> ../nuttx/.config
 	echo 'CONFIG_SCHED_ONEXIT=y' >> ../nuttx/.config
-	echo 'CONFIG_INTERPRETERS_JERRYSCRIPT=y'>> ../nuttx/.config
+	echo 'CONFIG_INTERPRETERS_JJS=y'>> ../nuttx/.config
 	PATH=$(LOCAL_INSTALL)/bin:$$PATH $(MAKE) -C ../nuttx olddefconfig
 	PATH=$(LOCAL_INSTALL)/bin:$$PATH $(MAKE) -C ../nuttx

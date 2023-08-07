@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
@@ -21,30 +21,30 @@
 static void
 test_to_uint32 (double input, uint32_t test_number)
 {
-  jerry_value_t number_val = jerry_number (input);
-  uint32_t uint_number = jerry_value_as_uint32 (number_val);
+  jjs_value_t number_val = jjs_number (input);
+  uint32_t uint_number = jjs_value_as_uint32 (number_val);
   TEST_ASSERT (uint_number == test_number);
-  jerry_value_free (number_val);
+  jjs_value_free (number_val);
 } /* test_to_uint32 */
 
 // basic toInt32 tester method
 static void
 test_to_int32 (double input, int32_t test_number)
 {
-  jerry_value_t number_val = jerry_number (input);
-  int32_t int_number = jerry_value_as_int32 (number_val);
+  jjs_value_t number_val = jjs_number (input);
+  int32_t int_number = jjs_value_as_int32 (number_val);
   TEST_ASSERT (int_number == test_number);
-  jerry_value_free (number_val);
+  jjs_value_free (number_val);
 } /* test_to_int32 */
 
 // basic toInteger tester method
 static void
 test_to_interger (double input, double test_number)
 {
-  jerry_value_t number_val = jerry_number (input);
-  double double_number = jerry_value_as_integer (number_val);
+  jjs_value_t number_val = jjs_number (input);
+  double double_number = jjs_value_as_integer (number_val);
   TEST_ASSERT (double_number == test_number);
-  jerry_value_free (number_val);
+  jjs_value_free (number_val);
 } /* test_to_interger */
 
 int
@@ -52,7 +52,7 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
   // few toUint32 test-cases
   test_to_uint32 (1.0, 1);
@@ -115,22 +115,22 @@ main (void)
   test_to_interger (-4294967297, -4294967297);
 
   // few test-cases which return with error
-  jerry_value_t error_val = jerry_throw_sz (JERRY_ERROR_TYPE, "error");
-  double number = jerry_value_as_integer (error_val);
-  jerry_value_free (error_val);
+  jjs_value_t error_val = jjs_throw_sz (JJS_ERROR_TYPE, "error");
+  double number = jjs_value_as_integer (error_val);
+  jjs_value_free (error_val);
   TEST_ASSERT (number == 0);
 
-  error_val = jerry_symbol_with_description (error_val);
-  number = jerry_value_as_integer (error_val);
+  error_val = jjs_symbol_with_description (error_val);
+  number = jjs_value_as_integer (error_val);
   TEST_ASSERT (number == 0);
-  jerry_value_free (error_val);
+  jjs_value_free (error_val);
 
   error_val =
-    jerry_eval ((const jerry_char_t *) "({ valueOf() { throw new TypeError('foo')}})", 44, JERRY_PARSE_NO_OPTS);
-  number = jerry_value_as_integer (error_val);
+    jjs_eval ((const jjs_char_t *) "({ valueOf() { throw new TypeError('foo')}})", 44, JJS_PARSE_NO_OPTS);
+  number = jjs_value_as_integer (error_val);
   TEST_ASSERT (number == 0);
-  jerry_value_free (error_val);
+  jjs_value_free (error_val);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

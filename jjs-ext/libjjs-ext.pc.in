@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libjjs-ext
+Description: JJS: lightweight JavaScript engine (extensions library)
+URL: https://github.com/LightSourceEngine/jjs
+Version: @JJS_VERSION@
+Requires.private: libjjs-core
+Libs: -L${libdir} -ljjs-ext
+Libs.private: @JJS_EXT_PKGCONFIG_LIBS@
+Cflags: -I${includedir}

@@ -13,49 +13,49 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
 int
 main (void)
 {
-  if (!jerry_feature_enabled (JERRY_FEATURE_BIGINT))
+  if (!jjs_feature_enabled (JJS_FEATURE_BIGINT))
   {
-    jerry_log (JERRY_LOG_LEVEL_ERROR, "Bigint support is disabled!\n");
+    jjs_log (JJS_LOG_LEVEL_ERROR, "Bigint support is disabled!\n");
     return 0;
   }
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_value_t string = jerry_string_sz ("0xfffffff1fffffff2fffffff3");
-  TEST_ASSERT (!jerry_value_is_exception (string));
+  jjs_value_t string = jjs_string_sz ("0xfffffff1fffffff2fffffff3");
+  TEST_ASSERT (!jjs_value_is_exception (string));
 
-  jerry_value_t bigint = jerry_value_to_bigint (string);
-  jerry_value_free (string);
+  jjs_value_t bigint = jjs_value_to_bigint (string);
+  jjs_value_free (string);
 
-  TEST_ASSERT (!jerry_value_is_exception (bigint));
-  TEST_ASSERT (jerry_value_is_bigint (bigint));
+  TEST_ASSERT (!jjs_value_is_exception (bigint));
+  TEST_ASSERT (jjs_value_is_bigint (bigint));
 
-  string = jerry_value_to_string (bigint);
-  TEST_ASSERT (!jerry_value_is_exception (string));
+  string = jjs_value_to_string (bigint);
+  TEST_ASSERT (!jjs_value_is_exception (string));
 
-  static jerry_char_t str_buffer[64];
+  static jjs_char_t str_buffer[64];
   const char *expected_string_p = "79228162256009920505775652851";
 
-  jerry_size_t size = jerry_string_to_buffer (string, JERRY_ENCODING_CESU8, str_buffer, sizeof (str_buffer));
+  jjs_size_t size = jjs_string_to_buffer (string, JJS_ENCODING_CESU8, str_buffer, sizeof (str_buffer));
   TEST_ASSERT (size == strlen (expected_string_p));
   TEST_ASSERT (memcmp (str_buffer, expected_string_p, size) == 0);
-  jerry_value_free (string);
+  jjs_value_free (string);
 
-  TEST_ASSERT (jerry_bigint_digit_count (bigint) == 2);
+  TEST_ASSERT (jjs_bigint_digit_count (bigint) == 2);
 
   uint64_t digits_buffer[4];
   bool sign;
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = true;
-  jerry_bigint_to_digits (bigint, digits_buffer, 0, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 0, &sign);
   TEST_ASSERT (sign == false);
   TEST_ASSERT (digits_buffer[0] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
@@ -64,7 +64,7 @@ main (void)
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = true;
-  jerry_bigint_to_digits (bigint, digits_buffer, 1, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 1, &sign);
   TEST_ASSERT (sign == false);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
@@ -73,7 +73,7 @@ main (void)
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = true;
-  jerry_bigint_to_digits (bigint, digits_buffer, 2, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 2, &sign);
   TEST_ASSERT (sign == false);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == 0xfffffff1ull);
@@ -82,7 +82,7 @@ main (void)
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = true;
-  jerry_bigint_to_digits (bigint, digits_buffer, 3, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 3, &sign);
   TEST_ASSERT (sign == false);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == 0xfffffff1ull);
@@ -90,44 +90,44 @@ main (void)
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  jerry_bigint_to_digits (bigint, digits_buffer, 4, NULL);
+  jjs_bigint_to_digits (bigint, digits_buffer, 4, NULL);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == 0xfffffff1ull);
   TEST_ASSERT (digits_buffer[2] == 0);
   TEST_ASSERT (digits_buffer[3] == 0);
 
-  jerry_value_free (bigint);
+  jjs_value_free (bigint);
 
   digits_buffer[0] = 0;
   digits_buffer[1] = 0;
   digits_buffer[2] = 0;
   /* Sign of zero value is always positive, even if we set negative. */
-  bigint = jerry_bigint (digits_buffer, 3, true);
-  TEST_ASSERT (jerry_value_is_bigint (bigint));
-  TEST_ASSERT (jerry_bigint_digit_count (bigint) == 0);
+  bigint = jjs_bigint (digits_buffer, 3, true);
+  TEST_ASSERT (jjs_value_is_bigint (bigint));
+  TEST_ASSERT (jjs_bigint_digit_count (bigint) == 0);
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = true;
-  jerry_bigint_to_digits (bigint, digits_buffer, 2, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 2, &sign);
   TEST_ASSERT (sign == false);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == 0);
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
-  jerry_value_free (bigint);
+  jjs_value_free (bigint);
 
   digits_buffer[0] = 1;
   digits_buffer[1] = 0;
   digits_buffer[2] = 0;
   digits_buffer[3] = 0;
-  bigint = jerry_bigint (digits_buffer, 4, true);
-  TEST_ASSERT (jerry_value_is_bigint (bigint));
-  TEST_ASSERT (jerry_bigint_digit_count (bigint) == 1);
+  bigint = jjs_bigint (digits_buffer, 4, true);
+  TEST_ASSERT (jjs_value_is_bigint (bigint));
+  TEST_ASSERT (jjs_bigint_digit_count (bigint) == 1);
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = false;
-  jerry_bigint_to_digits (bigint, digits_buffer, 1, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 1, &sign);
   TEST_ASSERT (sign == true);
   TEST_ASSERT (digits_buffer[0] == 1);
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
@@ -136,26 +136,26 @@ main (void)
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = false;
-  jerry_bigint_to_digits (bigint, digits_buffer, 2, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 2, &sign);
   TEST_ASSERT (sign == true);
   TEST_ASSERT (digits_buffer[0] == 1);
   TEST_ASSERT (digits_buffer[1] == 0);
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
-  jerry_value_free (bigint);
+  jjs_value_free (bigint);
 
   digits_buffer[0] = 0;
   digits_buffer[1] = 1;
   digits_buffer[2] = 0;
   digits_buffer[3] = 0;
-  bigint = jerry_bigint (digits_buffer, 4, true);
-  TEST_ASSERT (jerry_value_is_bigint (bigint));
-  TEST_ASSERT (jerry_bigint_digit_count (bigint) == 2);
+  bigint = jjs_bigint (digits_buffer, 4, true);
+  TEST_ASSERT (jjs_value_is_bigint (bigint));
+  TEST_ASSERT (jjs_bigint_digit_count (bigint) == 2);
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = false;
-  jerry_bigint_to_digits (bigint, digits_buffer, 1, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 1, &sign);
   TEST_ASSERT (sign == true);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
@@ -164,7 +164,7 @@ main (void)
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = false;
-  jerry_bigint_to_digits (bigint, digits_buffer, 2, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 2, &sign);
   TEST_ASSERT (sign == true);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == 1);
@@ -173,15 +173,15 @@ main (void)
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
   sign = false;
-  jerry_bigint_to_digits (bigint, digits_buffer, 3, &sign);
+  jjs_bigint_to_digits (bigint, digits_buffer, 3, &sign);
   TEST_ASSERT (sign == true);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == 1);
   TEST_ASSERT (digits_buffer[2] == 0);
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
-  jerry_value_free (bigint);
+  jjs_value_free (bigint);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

@@ -1,6 +1,6 @@
 ### About
 
-This folder contains files to run JerryScript on
+This folder contains files to run JJS on
 [ESP8666 board](https://www.espressif.com/en/products/socs/esp8266) with
 [ESP8266 RTOS SDK](https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/).
 The document had been validated on Ubuntu 20.04 operating system.
@@ -9,14 +9,14 @@ The document had been validated on Ubuntu 20.04 operating system.
 
 #### 1. Setup the build environment
 
-Clone the necessary projects into a `jerry-esp` directory.
+Clone the necessary projects into a `jjs-esp` directory.
 The latest tested working version of ESP8266 RTOS SDK is `release/v3.4`.
 
 ```sh
 # Create a base folder for all the projects.
-mkdir jerry-esp && cd jerry-esp
+mkdir jjs-esp && cd jjs-esp
 
-git clone https://github.com/jerryscript-project/jerryscript.git
+git clone https://github.com/LightSourceEngine/jjs.git
 git clone https://github.com/espressif/ESP8266_RTOS_SDK -b release/v3.4
 
 # SDK requires Xtensa toolchain.
@@ -26,8 +26,8 @@ wget https://dl.espressif.com/dl/xtensa-lx106-elf-gcc8_4_0-esp-2020r3-linux-amd6
 The following directory structure has been created:
 
 ```
-jerry-esp
-  + jerryscript
+jjs-esp
+  + jjs
   |  + targets
   |      + baremetal-sdk
   |          + espressif
@@ -39,8 +39,8 @@ jerry-esp
 #### 2. Install dependencies of the projects
 
 ```sh
-# Assuming you are in jerry-esp folder.
-jerryscript/tools/apt-get-install-deps.sh
+# Assuming you are in jjs-esp folder.
+jjs/tools/apt-get-install-deps.sh
 
 # Install dependencies of ESP8266-RTOS-SDK.
 python -m pip install --user -r ESP8266_RTOS_SDK/requirements.txt
@@ -49,24 +49,24 @@ python -m pip install --user -r ESP8266_RTOS_SDK/requirements.txt
 tar -xvf xtensa-lx106-elf-gcc8_4_0-esp-2020r3-linux-amd64.tar.gz
 ```
 
-#### 3. Build ESP8266-RTOS-SDK (with JerryScript)
+#### 3. Build ESP8266-RTOS-SDK (with JJS)
 
 ```sh
-# Assuming you are in jerry-esp folder.
+# Assuming you are in jjs-esp folder.
 PATH=${PWD}/xtensa-lx106-elf/bin:$PATH ESP8266_RTOS_SDK/tools/idf.py \
-  --project-dir jerryscript/targets/baremetal-sdk/espressif \
-  --build-dir jerryscript/build/esp8266-rtos-sdk \
+  --project-dir jjs/targets/baremetal-sdk/espressif \
+  --build-dir jjs/build/esp8266-rtos-sdk \
   all
 ```
 
-The created binary is a `jerryscript.bin` named file located in `jerryscript/build/esp8266-rtos-sdk` folder.
+The created binary is a `jjs.bin` named file located in `jjs/build/esp8266-rtos-sdk` folder.
 
 #### 4. Flash the device
 
 Connect Micro-USB for charging and flashing the device. The device should be visible as /dev/ttyUSB0.
 
 ```sh
-# Assuming you are in jerry-esp folder.
+# Assuming you are in jjs-esp folder.
 sudo python ESP8266_RTOS_SDK/components/esptool_py/esptool/esptool.py \
   --port /dev/ttyUSB0 \
   --baud 460800 \
@@ -76,9 +76,9 @@ sudo python ESP8266_RTOS_SDK/components/esptool_py/esptool/esptool.py \
   --flash_mode dio \
   --flash_freq 40m \
   --flash_size 2MB \
-  0x0 jerryscript/build/esp8266-rtos-sdk/bootloader/bootloader.bin \
-  0x8000 jerryscript/build/esp8266-rtos-sdk/partition_table/partition-table.bin \
-  0x10000 jerryscript/build/esp8266-rtos-sdk/jerryscript.bin
+  0x0 jjs/build/esp8266-rtos-sdk/bootloader/bootloader.bin \
+  0x8000 jjs/build/esp8266-rtos-sdk/partition_table/partition-table.bin \
+  0x10000 jjs/build/esp8266-rtos-sdk/jjs.bin
 ```
 
 #### 5. Connect to the device
@@ -91,12 +91,12 @@ Other programs also can be used such as minicom, picocom, etc.
 * Press `CTRL` + `ALT` + `]` to exit monitor program
 
 ```sh
-# Assuming you are in jerry-esp folder.
+# Assuming you are in jjs-esp folder.
 sudo PATH=${PWD}/xtensa-lx106-elf/bin:$PATH ESP8266_RTOS_SDK/tools/idf_monitor.py \
   --port /dev/ttyUSB0 \
   --baud 78880 \
   --toolchain-prefix=xtensa-lx106-elf- \
-  jerryscript/build/esp8266-rtos-sdk/jerryscript.elf
+  jjs/build/esp8266-rtos-sdk/jjs.elf
 ```
 
 The following output should be captured:

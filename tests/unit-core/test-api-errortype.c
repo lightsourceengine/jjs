@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
@@ -22,52 +22,52 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_error_t errors[] = { JERRY_ERROR_COMMON, JERRY_ERROR_EVAL, JERRY_ERROR_RANGE, JERRY_ERROR_REFERENCE,
-                             JERRY_ERROR_SYNTAX, JERRY_ERROR_TYPE, JERRY_ERROR_URI };
+  jjs_error_t errors[] = { JJS_ERROR_COMMON, JJS_ERROR_EVAL, JJS_ERROR_RANGE, JJS_ERROR_REFERENCE,
+                             JJS_ERROR_SYNTAX, JJS_ERROR_TYPE, JJS_ERROR_URI };
 
   for (size_t idx = 0; idx < sizeof (errors) / sizeof (errors[0]); idx++)
   {
-    jerry_value_t error_obj = jerry_throw_sz (errors[idx], "test");
-    TEST_ASSERT (jerry_value_is_exception (error_obj));
-    TEST_ASSERT (jerry_error_type (error_obj) == errors[idx]);
+    jjs_value_t error_obj = jjs_throw_sz (errors[idx], "test");
+    TEST_ASSERT (jjs_value_is_exception (error_obj));
+    TEST_ASSERT (jjs_error_type (error_obj) == errors[idx]);
 
-    error_obj = jerry_exception_value (error_obj, true);
+    error_obj = jjs_exception_value (error_obj, true);
 
-    TEST_ASSERT (jerry_error_type (error_obj) == errors[idx]);
+    TEST_ASSERT (jjs_error_type (error_obj) == errors[idx]);
 
-    jerry_value_free (error_obj);
+    jjs_value_free (error_obj);
   }
 
-  jerry_value_t test_values[] = {
-    jerry_number (11),
-    jerry_string_sz ("message"),
-    jerry_boolean (true),
-    jerry_object (),
+  jjs_value_t test_values[] = {
+    jjs_number (11),
+    jjs_string_sz ("message"),
+    jjs_boolean (true),
+    jjs_object (),
   };
 
   for (size_t idx = 0; idx < sizeof (test_values) / sizeof (test_values[0]); idx++)
   {
-    jerry_error_t error_type = jerry_error_type (test_values[idx]);
-    TEST_ASSERT (error_type == JERRY_ERROR_NONE);
-    jerry_value_free (test_values[idx]);
+    jjs_error_t error_type = jjs_error_type (test_values[idx]);
+    TEST_ASSERT (error_type == JJS_ERROR_NONE);
+    jjs_value_free (test_values[idx]);
   }
 
   char test_source[] = "\xF0\x9D\x84\x9E";
 
-  jerry_value_t result = jerry_parse ((const jerry_char_t *) test_source, sizeof (test_source) - 1, NULL);
-  TEST_ASSERT (jerry_value_is_exception (result));
-  TEST_ASSERT (jerry_error_type (result) == JERRY_ERROR_SYNTAX);
+  jjs_value_t result = jjs_parse ((const jjs_char_t *) test_source, sizeof (test_source) - 1, NULL);
+  TEST_ASSERT (jjs_value_is_exception (result));
+  TEST_ASSERT (jjs_error_type (result) == JJS_ERROR_SYNTAX);
 
-  jerry_value_free (result);
+  jjs_value_free (result);
 
   char test_invalid_error[] = "Object.create(Error.prototype)";
-  result = jerry_eval ((const jerry_char_t *) test_invalid_error, sizeof (test_invalid_error) - 1, JERRY_PARSE_NO_OPTS);
-  TEST_ASSERT (!jerry_value_is_exception (result) && jerry_value_is_object (result));
-  TEST_ASSERT (jerry_error_type (result) == JERRY_ERROR_NONE);
+  result = jjs_eval ((const jjs_char_t *) test_invalid_error, sizeof (test_invalid_error) - 1, JJS_PARSE_NO_OPTS);
+  TEST_ASSERT (!jjs_value_is_exception (result) && jjs_value_is_object (result));
+  TEST_ASSERT (jjs_error_type (result) == JJS_ERROR_NONE);
 
-  jerry_value_free (result);
+  jjs_value_free (result);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
 } /* main */

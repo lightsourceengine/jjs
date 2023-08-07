@@ -1,5 +1,5 @@
 wrongmathcall:tests/unit-math/test-math.inc.h
-variableScope:jerry-math/*.c
-invalidPointerCast:jerry-math/*.c
+variableScope:jjs-math/*.c
+invalidPointerCast:jjs-math/*.c
 
-ConfigurationNotChecked:jerry-core/*.inc.h
+ConfigurationNotChecked:jjs-core/*.inc.h

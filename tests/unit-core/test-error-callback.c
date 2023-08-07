@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "test-common.h"
 
@@ -21,7 +21,7 @@ static bool error_object_created_callback_is_running = false;
 static int error_object_created_callback_count = 0;
 
 static void
-error_object_created_callback (const jerry_value_t error_object_t, /**< new error object */
+error_object_created_callback (const jjs_value_t error_object_t, /**< new error object */
                                void *user_p) /**< user pointer */
 {
   TEST_ASSERT (!error_object_created_callback_is_running);
@@ -30,21 +30,21 @@ error_object_created_callback (const jerry_value_t error_object_t, /**< new erro
   error_object_created_callback_is_running = true;
   error_object_created_callback_count++;
 
-  jerry_value_t name = jerry_string_sz ("message");
-  jerry_value_t message = jerry_string_sz ("Replaced message!");
+  jjs_value_t name = jjs_string_sz ("message");
+  jjs_value_t message = jjs_string_sz ("Replaced message!");
 
-  jerry_value_t result = jerry_object_set (error_object_t, name, message);
-  TEST_ASSERT (jerry_value_is_boolean (result) && jerry_value_is_true (result));
-  jerry_value_free (result);
+  jjs_value_t result = jjs_object_set (error_object_t, name, message);
+  TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
+  jjs_value_free (result);
 
   /* This SyntaxError must not trigger a recusrsive call of the this callback. */
   const char *source_p = "Syntax Error in JS!";
-  result = jerry_eval ((const jerry_char_t *) source_p, strlen (source_p), 0);
-  TEST_ASSERT (jerry_value_is_exception (result));
+  result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
+  TEST_ASSERT (jjs_value_is_exception (result));
 
-  jerry_value_free (result);
-  jerry_value_free (message);
-  jerry_value_free (name);
+  jjs_value_free (result);
+  jjs_value_free (message);
+  jjs_value_free (name);
 
   error_object_created_callback_is_running = false;
 } /* error_object_created_callback */
@@ -55,9 +55,9 @@ run_test (const char *source_p)
   /* Run the code 5 times. */
   for (int i = 0; i < 5; i++)
   {
-    jerry_value_t result = jerry_eval ((const jerry_char_t *) source_p, strlen (source_p), 0);
-    TEST_ASSERT (jerry_value_is_boolean (result) && jerry_value_is_true (result));
-    jerry_value_free (result);
+    jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
+    TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
+    jjs_value_free (result);
   }
 } /* run_test */
 
@@ -69,9 +69,9 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_error_on_created (error_object_created_callback, (void *) &error_object_created_callback_count);
+  jjs_error_on_created (error_object_created_callback, (void *) &error_object_created_callback_count);
 
   run_test ("var result = false\n"
             "try {\n"
@@ -84,10 +84,10 @@ main (void)
   run_test ("var error = new Error()\n"
             "error.message === 'Replaced message!'\n");
 
-  jerry_value_free (jerry_error_sz (JERRY_ERROR_COMMON, "Message"));
+  jjs_value_free (jjs_error_sz (JJS_ERROR_COMMON, "Message"));
 
   TEST_ASSERT (error_object_created_callback_count == 11);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

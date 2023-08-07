@@ -25,9 +25,9 @@ import re
 import shutil
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-JERRY_CORE = os.path.join(ROOT_DIR, 'jerry-core')
-JERRY_PORT = os.path.join(ROOT_DIR, 'jerry-port')
-JERRY_MATH = os.path.join(ROOT_DIR, 'jerry-math')
+JJS_CORE = os.path.join(ROOT_DIR, 'jjs-core')
+JJS_PORT = os.path.join(ROOT_DIR, 'jjs-port')
+JJS_MATH = os.path.join(ROOT_DIR, 'jjs-math')
 
 
 class Amalgamator(object):
@@ -246,78 +246,78 @@ def amalgamate(base_dir, input_files=(), output_file=None,
         amalgam.write_output(output)
 
 
-def amalgamate_jerry_core(output_dir):
+def amalgamate_jjs_core(output_dir):
     amalgamate(
-        base_dir=JERRY_CORE,
+        base_dir=JJS_CORE,
         input_files=[
-            os.path.join(JERRY_CORE, 'api', 'jerryscript.c'),
+            os.path.join(JJS_CORE, 'api', 'jjs.c'),
             # Add the global built-in by default to include some common items
             # to avoid problems with common built-in headers
-            os.path.join(JERRY_CORE, 'ecma', 'builtin-objects', 'ecma-builtins.c'),
+            os.path.join(JJS_CORE, 'ecma', 'builtin-objects', 'ecma-builtins.c'),
         ],
-        output_file=os.path.join(output_dir, 'jerryscript.c'),
+        output_file=os.path.join(output_dir, 'jjs.c'),
         append_c_files=True,
         remove_includes=[
-            'jerryscript.h',
-            'jerryscript-compiler.h',
-            'jerryscript-core.h',
-            'jerryscript-debugger.h',
-            'jerryscript-debugger-transport.h',
-            'jerryscript-port.h',
-            'jerryscript-snapshot.h',
+            'jjs.h',
+            'jjs-compiler.h',
+            'jjs-core.h',
+            'jjs-debugger.h',
+            'jjs-debugger-transport.h',
+            'jjs-port.h',
+            'jjs-snapshot.h',
             'config.h',
         ],
-        extra_includes=['jerryscript.h'],
+        extra_includes=['jjs.h'],
     )
 
     amalgamate(
-        base_dir=JERRY_CORE,
+        base_dir=JJS_CORE,
         input_files=[
-            os.path.join(JERRY_CORE, 'include', 'jerryscript.h'),
-            os.path.join(JERRY_CORE, 'include', 'jerryscript-port.h'),
-            os.path.join(JERRY_CORE, 'include', 'jerryscript-debugger-transport.h'),
+            os.path.join(JJS_CORE, 'include', 'jjs.h'),
+            os.path.join(JJS_CORE, 'include', 'jjs-port.h'),
+            os.path.join(JJS_CORE, 'include', 'jjs-debugger-transport.h'),
         ],
-        output_file=os.path.join(output_dir, 'jerryscript.h'),
+        output_file=os.path.join(output_dir, 'jjs.h'),
         remove_includes=['config.h'],
-        extra_includes=['jerryscript-config.h'],
+        extra_includes=['jjs-config.h'],
     )
 
-    shutil.copyfile(os.path.join(JERRY_CORE, 'config.h'),
-                    os.path.join(output_dir, 'jerryscript-config.h'))
+    shutil.copyfile(os.path.join(JJS_CORE, 'config.h'),
+                    os.path.join(output_dir, 'jjs-config.h'))
 
 
-def amalgamate_jerry_port(output_dir):
+def amalgamate_jjs_port(output_dir):
     amalgamate(
-        base_dir=JERRY_PORT,
-        output_file=os.path.join(output_dir, 'jerryscript-port.c'),
+        base_dir=JJS_PORT,
+        output_file=os.path.join(output_dir, 'jjs-port.c'),
         append_c_files=True,
         remove_includes=[
-            'jerryscript-port.h',
+            'jjs-port.h',
         ],
         extra_includes=[
-            'jerryscript.h',
+            'jjs.h',
         ],
     )
 
 
-def amalgamate_jerry_math(output_dir):
+def amalgamate_jjs_math(output_dir):
     amalgamate(
-        base_dir=JERRY_MATH,
-        output_file=os.path.join(output_dir, 'jerryscript-math.c'),
+        base_dir=JJS_MATH,
+        output_file=os.path.join(output_dir, 'jjs-math.c'),
         append_c_files=True,
     )
 
-    shutil.copyfile(os.path.join(JERRY_MATH, 'include', 'math.h'),
+    shutil.copyfile(os.path.join(JJS_MATH, 'include', 'math.h'),
                     os.path.join(output_dir, 'math.h'))
 
 def main():
     parser = argparse.ArgumentParser(description='Generate amalgamated sources.')
-    parser.add_argument('--jerry-core', action='store_true',
-                        help='amalgamate jerry-core files')
-    parser.add_argument('--jerry-port', action='store_true',
-                        help='amalgamate jerry-port files')
-    parser.add_argument('--jerry-math', action='store_true',
-                        help='amalgamate jerry-math files')
+    parser.add_argument('--jjs-core', action='store_true',
+                        help='amalgamate jjs-core files')
+    parser.add_argument('--jjs-port', action='store_true',
+                        help='amalgamate jjs-port files')
+    parser.add_argument('--jjs-math', action='store_true',
+                        help='amalgamate jjs-math files')
     parser.add_argument('--output-dir', metavar='DIR', default='amalgam',
                         help='output dir (default: %(default)s)')
     parser.add_argument('--verbose', '-v', action='store_true',
@@ -333,14 +333,14 @@ def main():
     except os.error:
         pass
 
-    if args.jerry_core:
-        amalgamate_jerry_core(args.output_dir)
+    if args.jjs_core:
+        amalgamate_jjs_core(args.output_dir)
 
-    if args.jerry_port:
-        amalgamate_jerry_port(args.output_dir)
+    if args.jjs_port:
+        amalgamate_jjs_port(args.output_dir)
 
-    if args.jerry_math:
-        amalgamate_jerry_math(args.output_dir)
+    if args.jjs_math:
+        amalgamate_jjs_math(args.output_dir)
 
 
 if __name__ == '__main__':

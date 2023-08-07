@@ -20,8 +20,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "jerryscript-port.h"
-#include "jerryscript.h"
+#include "jjs-port.h"
+#include "jjs.h"
 
 #include "esp_log.h"
 #include "esp_system.h"
@@ -34,25 +34,25 @@ static const char ESP_JS_TAG[] = "JS";
  * Provide log message implementation for the engine.
  */
 void
-jerry_port_log (const char *message_p) /**< message */
+jjs_port_log (const char *message_p) /**< message */
 {
   ESP_LOGI (ESP_JS_TAG, "%s", message_p);
-} /* jerry_port_log */
+} /* jjs_port_log */
 
 /**
- * Implementation of jerry_port_fatal.
+ * Implementation of jjs_port_fatal.
  * Calls 'abort' if exit code is non-zero, 'exit' otherwise.
  */
 void
-jerry_port_fatal (jerry_fatal_code_t code) /**< cause of error */
+jjs_port_fatal (jjs_fatal_code_t code) /**< cause of error */
 {
   ESP_LOGE (ESP_JS_TAG, "Fatal error: %d", code);
   vTaskSuspend (NULL);
   abort ();
-} /* jerry_port_fatal */
+} /* jjs_port_fatal */
 
 /**
- * Default implementation of jerry_port_local_tza. Uses the 'tm_gmtoff' field
+ * Default implementation of jjs_port_local_tza. Uses the 'tm_gmtoff' field
  * of 'struct tm' (a GNU extension) filled by 'localtime_r' if available on the
  * system, does nothing otherwise.
  *
@@ -60,7 +60,7 @@ jerry_port_fatal (jerry_fatal_code_t code) /**< cause of error */
  *         available. Otherwise, returns 0, assuming UTC time.
  */
 int32_t
-jerry_port_local_tza (double unix_ms)
+jjs_port_local_tza (double unix_ms)
 {
   struct tm tm;
   char buf[8];
@@ -69,17 +69,17 @@ jerry_port_local_tza (double unix_ms)
   localtime_r (&now, &tm);
   strftime (buf, 8, "%z", &tm);
   return -atoi (buf) * 3600 * 1000 / 100;
-} /* jerry_port_local_tza */
+} /* jjs_port_local_tza */
 
 /**
- * Implementation of jerry_port_get_current_time.
+ * Implementation of jjs_port_get_current_time.
  * Uses 'gettimeofday' if available on the system, does nothing otherwise.
  *
  * @return milliseconds since Unix epoch if 'gettimeofday' is available
  *         0 - otherwise.
  */
 double
-jerry_port_current_time (void)
+jjs_port_current_time (void)
 {
   struct timeval tv;
 
@@ -88,4 +88,4 @@ jerry_port_current_time (void)
     return ((double) tv.tv_sec) * 1000.0 + ((double) tv.tv_usec) / 1000.0;
   }
   return 0.0;
-} /* jerry_port_current_time */
+} /* jjs_port_current_time */

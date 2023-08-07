@@ -15,7 +15,7 @@
 # limitations under the License.
 
 MAGIC_STRINGS_GEN="tools/gen-strings.py"
-MAGIC_STRINGS_INC_H="jerry-core/lit/lit-magic-strings.inc.h"
+MAGIC_STRINGS_INC_H="jjs-core/lit/lit-magic-strings.inc.h"
 MAGIC_STRINGS_TEMP=`mktemp lit-magic-strings.inc.h.XXXXXXXXXX`
 
 cp $MAGIC_STRINGS_INC_H $MAGIC_STRINGS_TEMP

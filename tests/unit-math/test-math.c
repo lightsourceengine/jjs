@@ -14,7 +14,7 @@
  */
 
 /**
- * Unit test for jerry-math
+ * Unit test for jjs-math
  */
 
 #include <math.h>

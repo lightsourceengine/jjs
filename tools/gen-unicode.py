@@ -33,12 +33,12 @@ DERIVED_PROPS_FILE = 'DerivedCoreProperties.txt'
 PROP_LIST_FILE = 'PropList.txt'
 CASE_FOLDING_FILE = 'CaseFolding.txt'
 
-RANGES_C_SOURCE = os.path.join(PROJECT_DIR, 'jerry-core/lit/lit-unicode-ranges.inc.h')
-RANGES_SUP_C_SOURCE = os.path.join(PROJECT_DIR, 'jerry-core/lit/lit-unicode-ranges-sup.inc.h')
-CONVERSIONS_C_SOURCE = os.path.join(PROJECT_DIR, 'jerry-core/lit/lit-unicode-conversions.inc.h')
-CONVERSIONS_SUP_C_SOURCE = os.path.join(PROJECT_DIR, 'jerry-core/lit/lit-unicode-conversions-sup.inc.h')
-FOLDING_C_SOURCE = os.path.join(PROJECT_DIR, 'jerry-core/lit/lit-unicode-folding.inc.h')
-FOLDING_SUP_C_SOURCE = os.path.join(PROJECT_DIR, 'jerry-core/lit/lit-unicode-folding-sup.inc.h')
+RANGES_C_SOURCE = os.path.join(PROJECT_DIR, 'jjs-core/lit/lit-unicode-ranges.inc.h')
+RANGES_SUP_C_SOURCE = os.path.join(PROJECT_DIR, 'jjs-core/lit/lit-unicode-ranges-sup.inc.h')
+CONVERSIONS_C_SOURCE = os.path.join(PROJECT_DIR, 'jjs-core/lit/lit-unicode-conversions.inc.h')
+CONVERSIONS_SUP_C_SOURCE = os.path.join(PROJECT_DIR, 'jjs-core/lit/lit-unicode-conversions-sup.inc.h')
+FOLDING_C_SOURCE = os.path.join(PROJECT_DIR, 'jjs-core/lit/lit-unicode-folding.inc.h')
+FOLDING_SUP_C_SOURCE = os.path.join(PROJECT_DIR, 'jjs-core/lit/lit-unicode-folding-sup.inc.h')
 
 UNICODE_PLANE_TYPE_BASIC = 0
 UNICODE_PLANE_TYPE_SUPPLEMENTARY = 1
@@ -103,7 +103,7 @@ class UnicodeBasicSource(object):
     def add_table(self, table, description, table_type, category, table_name):
         if table and sum(table) != 0:
             self._data.append(description)
-            self._data.append("static const %s lit_unicode_%s%s%s[] JERRY_ATTR_CONST_DATA ="
+            self._data.append("static const %s lit_unicode_%s%s%s[] JJS_ATTR_CONST_DATA ="
                               % (table_type,
                                  category.lower(),
                                  "_" + table_name if table_name else "",

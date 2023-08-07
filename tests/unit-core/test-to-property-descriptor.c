@@ -13,50 +13,50 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "config.h"
 #include "test-common.h"
 
-static jerry_value_t
+static jjs_value_t
 create_property_descriptor (const char *script_p) /**< source code */
 {
-  jerry_value_t result = jerry_eval ((const jerry_char_t *) script_p, strlen (script_p), 0);
-  TEST_ASSERT (jerry_value_is_object (result));
+  jjs_value_t result = jjs_eval ((const jjs_char_t *) script_p, strlen (script_p), 0);
+  TEST_ASSERT (jjs_value_is_object (result));
   return result;
 } /* create_property_descriptor */
 
 static void
-check_attribute (jerry_value_t attribute, /**< attribute to be checked */
-                 jerry_value_t object, /**< original object */
+check_attribute (jjs_value_t attribute, /**< attribute to be checked */
+                 jjs_value_t object, /**< original object */
                  const char *name_p) /**< name of the attribute */
 {
-  jerry_value_t prop_name = jerry_string_sz (name_p);
-  jerry_value_t value = jerry_object_get (object, prop_name);
+  jjs_value_t prop_name = jjs_string_sz (name_p);
+  jjs_value_t value = jjs_object_get (object, prop_name);
 
-  if (jerry_value_is_undefined (value))
+  if (jjs_value_is_undefined (value))
   {
-    TEST_ASSERT (jerry_value_is_null (attribute));
+    TEST_ASSERT (jjs_value_is_null (attribute));
   }
   else
   {
-    jerry_value_t result = jerry_binary_op (JERRY_BIN_OP_STRICT_EQUAL, attribute, value);
-    TEST_ASSERT (jerry_value_is_true (result));
-    jerry_value_free (result);
+    jjs_value_t result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, attribute, value);
+    TEST_ASSERT (jjs_value_is_true (result));
+    jjs_value_free (result);
   }
 
-  jerry_value_free (value);
-  jerry_value_free (prop_name);
+  jjs_value_free (value);
+  jjs_value_free (prop_name);
 } /* check_attribute */
 
-static jerry_property_descriptor_t
-to_property_descriptor (jerry_value_t object /**< object */)
+static jjs_property_descriptor_t
+to_property_descriptor (jjs_value_t object /**< object */)
 {
-  jerry_property_descriptor_t prop_desc = jerry_property_descriptor ();
+  jjs_property_descriptor_t prop_desc = jjs_property_descriptor ();
 
-  jerry_value_t result = jerry_property_descriptor_from_object (object, &prop_desc);
-  TEST_ASSERT (jerry_value_is_boolean (result) && jerry_value_is_true (result));
-  jerry_value_free (result);
+  jjs_value_t result = jjs_property_descriptor_from_object (object, &prop_desc);
+  TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
+  jjs_value_free (result);
 
   return prop_desc;
 } /* to_property_descriptor */
@@ -66,28 +66,28 @@ main (void)
 {
   TEST_INIT ();
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
   /* Next test. */
   const char *source_p = "({ value:'X', writable:true, enumerable:true, configurable:true })";
-  jerry_value_t object = create_property_descriptor (source_p);
+  jjs_value_t object = create_property_descriptor (source_p);
 
-  jerry_property_descriptor_t prop_desc = to_property_descriptor (object);
+  jjs_property_descriptor_t prop_desc = to_property_descriptor (object);
 
   check_attribute (prop_desc.value, object, "value");
 
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_VALUE_DEFINED);
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_GET_DEFINED));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_SET_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_WRITABLE_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_WRITABLE);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_ENUMERABLE_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_ENUMERABLE);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_VALUE_DEFINED);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_GET_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_SET_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_WRITABLE_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_WRITABLE);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_ENUMERABLE_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_ENUMERABLE);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE);
 
-  jerry_value_free (object);
-  jerry_property_descriptor_free (&prop_desc);
+  jjs_value_free (object);
+  jjs_property_descriptor_free (&prop_desc);
 
   /* Next test. */
   source_p = "({ writable:false, configurable:true })";
@@ -95,17 +95,17 @@ main (void)
 
   prop_desc = to_property_descriptor (object);
 
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_VALUE_DEFINED));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_GET_DEFINED));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_SET_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_WRITABLE_DEFINED);
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_WRITABLE));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_ENUMERABLE_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_VALUE_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_GET_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_SET_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_WRITABLE_DEFINED);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_WRITABLE));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_ENUMERABLE_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE);
 
-  jerry_value_free (object);
-  jerry_property_descriptor_free (&prop_desc);
+  jjs_value_free (object);
+  jjs_property_descriptor_free (&prop_desc);
 
   /* Next test. */
   /* Note: the 'set' property is defined, and it has a value of undefined.
@@ -118,16 +118,16 @@ main (void)
   check_attribute (prop_desc.getter, object, "get");
   check_attribute (prop_desc.setter, object, "set");
 
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_VALUE_DEFINED));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_WRITABLE_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_GET_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_SET_DEFINED);
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_ENUMERABLE_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_VALUE_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_WRITABLE_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_GET_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_SET_DEFINED);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_ENUMERABLE_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE);
 
-  jerry_value_free (object);
-  jerry_property_descriptor_free (&prop_desc);
+  jjs_value_free (object);
+  jjs_property_descriptor_free (&prop_desc);
 
   /* Next test. */
   source_p = "({ get: undefined, enumerable:false })";
@@ -137,16 +137,16 @@ main (void)
 
   check_attribute (prop_desc.getter, object, "get");
 
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_VALUE_DEFINED));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_WRITABLE_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_GET_DEFINED);
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_SET_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_ENUMERABLE_DEFINED);
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_ENUMERABLE));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_VALUE_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_WRITABLE_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_GET_DEFINED);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_SET_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_ENUMERABLE_DEFINED);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_ENUMERABLE));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED));
 
-  jerry_value_free (object);
-  jerry_property_descriptor_free (&prop_desc);
+  jjs_value_free (object);
+  jjs_property_descriptor_free (&prop_desc);
 
   /* Next test. */
   source_p = "({ set: function(v) {}, enumerable:true, configurable:false })";
@@ -156,33 +156,33 @@ main (void)
 
   check_attribute (prop_desc.setter, object, "set");
 
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_VALUE_DEFINED));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_WRITABLE_DEFINED));
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_GET_DEFINED));
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_SET_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_ENUMERABLE_DEFINED);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_ENUMERABLE);
-  TEST_ASSERT (prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE_DEFINED);
-  TEST_ASSERT (!(prop_desc.flags & JERRY_PROP_IS_CONFIGURABLE));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_VALUE_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_WRITABLE_DEFINED));
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_GET_DEFINED));
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_SET_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_ENUMERABLE_DEFINED);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_ENUMERABLE);
+  TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
+  TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_CONFIGURABLE));
 
-  jerry_value_free (object);
-  jerry_property_descriptor_free (&prop_desc);
+  jjs_value_free (object);
+  jjs_property_descriptor_free (&prop_desc);
 
   /* Next test. */
   source_p = "({ get: function(v) {}, writable:true })";
   object = create_property_descriptor (source_p);
-  jerry_value_t result = jerry_property_descriptor_from_object (object, &prop_desc);
-  TEST_ASSERT (jerry_value_is_exception (result));
-  jerry_value_free (result);
-  jerry_value_free (object);
+  jjs_value_t result = jjs_property_descriptor_from_object (object, &prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (result));
+  jjs_value_free (result);
+  jjs_value_free (object);
 
   /* Next test. */
-  object = jerry_null ();
-  result = jerry_property_descriptor_from_object (object, &prop_desc);
-  TEST_ASSERT (jerry_value_is_exception (result));
-  jerry_value_free (result);
-  jerry_value_free (object);
+  object = jjs_null ();
+  result = jjs_property_descriptor_from_object (object, &prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (result));
+  jjs_value_free (result);
+  jjs_value_free (object);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */

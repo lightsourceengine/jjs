@@ -19,9 +19,9 @@ platform:
 init:
   - cmake -version
 before_build:
-  - if "%PLATFORM%"=="Win32" cmake -G"Visual Studio 15 2017" -Bbuild -H. -DJERRY_DEBUGGER=ON
-  - if "%PLATFORM%"=="x64" cmake -G"Visual Studio 15 2017 Win64" -Bbuild -H. -DJERRY_DEBUGGER=ON
+  - if "%PLATFORM%"=="Win32" cmake -G"Visual Studio 15 2017" -Bbuild -H. -DJJS_DEBUGGER=ON
+  - if "%PLATFORM%"=="x64" cmake -G"Visual Studio 15 2017 Win64" -Bbuild -H. -DJJS_DEBUGGER=ON
 build:
-  project: build\Jerry.sln
+  project: build\jjs.sln
   parallel: false # FIXME: This should not be needed but right now it is: msbuild generates all amalgamated files twice, at the same time in parallel builds, leading to I/O errors.
   verbosity: minimal

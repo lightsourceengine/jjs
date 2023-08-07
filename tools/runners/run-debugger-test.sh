@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-JERRY=$1
+JJS=$1
 CHANNEL=$2
 DEBUGGER_CLIENT=$3
 TEST_CASE=$4
@@ -25,19 +25,19 @@ TERM_RED='\033[1;31m'
 TERM_GREEN='\033[1;32m'
 
 if [[ $TEST_CASE == *"client_source"* ]]; then
-  START_DEBUG_SERVER="${JERRY} --start-debug-server --debug-channel ${CHANNEL} --debugger-wait-source &"
+  START_DEBUG_SERVER="${JJS} --start-debug-server --debug-channel ${CHANNEL} --debugger-wait-source &"
   if [[ $TEST_CASE == *"client_source_multiple"* ]]; then
     CLIENT_ARGS="--client-source ${TEST_CASE}_2.js ${TEST_CASE}_1.js"
   else
     CLIENT_ARGS="--client-source ${TEST_CASE}.js"
   fi
 else
-  START_DEBUG_SERVER="${JERRY} ${TEST_CASE}.js --start-debug-server --debug-channel ${CHANNEL} &"
+  START_DEBUG_SERVER="${JJS} ${TEST_CASE}.js --start-debug-server --debug-channel ${CHANNEL} &"
 fi
 
 echo "$START_DEBUG_SERVER"
 eval "$START_DEBUG_SERVER"
-JERRY_PID=$!
+JJS_PID=$!
 sleep 1s
 
 RESULT_TEMP=`mktemp ${TEST_CASE}.out.XXXXXXXXXX`
@@ -54,9 +54,9 @@ STATUS_CODE=$?
 
 rm -f ${RESULT_TEMP}
 
-wait $JERRY_PID
-JERRY_EXIT_CODE=$?
-if [ ${STATUS_CODE} -ne 0 ] || [ ${JERRY_EXIT_CODE} -gt 1 ]
+wait $JJS_PID
+JJS_EXIT_CODE=$?
+if [ ${STATUS_CODE} -ne 0 ] || [ ${JJS_EXIT_CODE} -gt 1 ]
 then
   echo -e "${TERM_RED}FAIL: ${TEST_CASE}${TERM_NORMAL}\n"
 else

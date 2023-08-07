@@ -35,9 +35,9 @@ def get_arguments():
     parser.add_argument('--runtime', metavar='FILE', default=execution_runtime,
                         help='Execution runtime (e.g. qemu)')
     parser.add_argument('--engine', metavar='FILE', required=True,
-                        help='JerryScript binary to run tests with')
+                        help='JJS binary to run tests with')
     parser.add_argument('--test262-object', action='store_true', default=False,
-                        help='JerryScript engine create test262 object')
+                        help='JJS engine create test262 object')
     parser.add_argument('--test-dir', metavar='DIR', required=True,
                         help='Directory contains test262 test suite')
     group = parser.add_mutually_exclusive_group(required=True)

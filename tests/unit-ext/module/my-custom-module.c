@@ -13,16 +13,16 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
-#include "jerryscript-ext/module.h"
+#include "jjs-ext/module.h"
 
 #define MODULE_NAME my_custom_module
 
-static jerry_value_t
+static jjs_value_t
 my_custom_module_on_resolve (void)
 {
-  return jerry_number (42);
+  return jjs_number (42);
 } /* my_custom_module_on_resolve */
 
-JERRYX_NATIVE_MODULE (MODULE_NAME, my_custom_module_on_resolve)
+JJSX_NATIVE_MODULE (MODULE_NAME, my_custom_module_on_resolve)

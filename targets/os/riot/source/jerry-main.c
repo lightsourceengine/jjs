@@ -17,68 +17,68 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jerryscript-port.h"
-#include "jerryscript.h"
+#include "jjs-port.h"
+#include "jjs.h"
 
-#include "jerryscript-ext/handlers.h"
-#include "jerryscript-ext/properties.h"
+#include "jjs-ext/handlers.h"
+#include "jjs-ext/properties.h"
 #include "shell.h"
 
 /**
- * Standalone Jerry exit codes
+ * Standalone JJS exit codes
  */
-#define JERRY_STANDALONE_EXIT_CODE_OK   (0)
-#define JERRY_STANDALONE_EXIT_CODE_FAIL (1)
+#define JJS_STANDALONE_EXIT_CODE_OK   (0)
+#define JJS_STANDALONE_EXIT_CODE_FAIL (1)
 
 /**
- * Jerryscript simple test
+ * JJS simple test
  */
 int
-test_jerry (int argc, char **argv)
+test_jjs (int argc, char **argv)
 {
   /* Suppress compiler errors */
   (void) argc;
   (void) argv;
 
-  jerry_value_t ret_value = jerry_undefined ();
+  jjs_value_t ret_value = jjs_undefined ();
 
-  const jerry_char_t script[] = "print ('Hello, World!');";
+  const jjs_char_t script[] = "print ('Hello, World!');";
   printf ("This test run the following script code: [%s]\n\n", script);
 
   /* Initialize engine */
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
   /* Register the print function in the global object. */
-  jerryx_register_global ("print", jerryx_handler_print);
+  jjsx_register_global ("print", jjsx_handler_print);
 
   /* Setup Global scope code */
-  ret_value = jerry_parse (script, sizeof (script) - 1, NULL);
+  ret_value = jjs_parse (script, sizeof (script) - 1, NULL);
 
-  if (!jerry_value_is_exception (ret_value))
+  if (!jjs_value_is_exception (ret_value))
   {
     /* Execute the parsed source code in the Global scope */
-    ret_value = jerry_run (ret_value);
+    ret_value = jjs_run (ret_value);
   }
 
-  int ret_code = JERRY_STANDALONE_EXIT_CODE_OK;
+  int ret_code = JJS_STANDALONE_EXIT_CODE_OK;
 
-  if (jerry_value_is_exception (ret_value))
+  if (jjs_value_is_exception (ret_value))
   {
     printf ("Script Error!");
 
-    ret_code = JERRY_STANDALONE_EXIT_CODE_FAIL;
+    ret_code = JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  jerry_value_free (ret_value);
+  jjs_value_free (ret_value);
 
   /* Cleanup engine */
-  jerry_cleanup ();
+  jjs_cleanup ();
 
   return ret_code;
 
-} /* test_jerry */
+} /* test_jjs */
 
-const shell_command_t shell_commands[] = { { "test", "Jerryscript Hello World test", test_jerry },
+const shell_command_t shell_commands[] = { { "test", "JJS Hello World test", test_jjs },
                                            { NULL, NULL, NULL } };
 
 int
@@ -88,7 +88,7 @@ main (void)
   {
     double d;
     unsigned u;
-  } now = { .d = jerry_port_current_time () };
+  } now = { .d = jjs_port_current_time () };
   srand (now.u);
   printf ("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
   printf ("This board features a(n) %s MCU.\n", RIOT_MCU);

@@ -45,16 +45,16 @@ OPTIONS_STACK_LIMIT = ['--stack-limit=96']
 OPTIONS_GC_MARK_LIMIT = ['--gc-mark-limit=16']
 OPTIONS_MEM_STRESS = ['--mem-stress-test=on']
 OPTIONS_DEBUG = ['--debug']
-OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jerry-cmdline-snapshot=on']
-OPTIONS_UNITTESTS = ['--unittests=on', '--jerry-cmdline=off', '--error-messages=on',
+OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-snapshot=on']
+OPTIONS_UNITTESTS = ['--unittests=on', '--jjs-cmdline=off', '--error-messages=on',
                      '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on',
                      '--vm-throw=on', '--line-info=on', '--mem-stats=on', '--promise-callback=on']
-OPTIONS_DOCTESTS = ['--doctests=on', '--jerry-cmdline=off', '--error-messages=on',
+OPTIONS_DOCTESTS = ['--doctests=on', '--jjs-cmdline=off', '--error-messages=on',
                     '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on']
 OPTIONS_PROMISE_CALLBACK = ['--promise-callback=on']
 
 # Test options for unittests
-JERRY_UNITTESTS_OPTIONS = [
+JJS_UNITTESTS_OPTIONS = [
     Options('doctests',
             OPTIONS_COMMON + OPTIONS_DOCTESTS + OPTIONS_PROMISE_CALLBACK),
     Options('unittests',
@@ -63,20 +63,20 @@ JERRY_UNITTESTS_OPTIONS = [
             OPTIONS_COMMON + OPTIONS_UNITTESTS
             + ['--cmake-param=-DFEATURE_INIT_FINI=ON']),
     Options('unittests-math',
-            OPTIONS_COMMON + OPTIONS_UNITTESTS + ['--jerry-math=on']),
+            OPTIONS_COMMON + OPTIONS_UNITTESTS + ['--jjs-math=on']),
 ]
 
-# Test options for jerry-tests
-JERRY_TESTS_OPTIONS = [
-    Options('jerry_tests',
+# Test options for jjs-tests
+JJS_TESTS_OPTIONS = [
+    Options('jjs_tests',
             OPTIONS_COMMON + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT + OPTIONS_MEM_STRESS),
-    Options('jerry_tests-snapshot',
+    Options('jjs_tests-snapshot',
             OPTIONS_COMMON + OPTIONS_SNAPSHOT + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT,
             ['--snapshot']),
-    Options('jerry_tests-cpointer_32bit',
+    Options('jjs_tests-cpointer_32bit',
             OPTIONS_COMMON + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT
             + ['--cpointer-32bit=on', '--mem-heap=1024']),
-    Options('jerry_tests-external_context',
+    Options('jjs_tests-external_context',
             OPTIONS_COMMON + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT
             + ['--external-context=on']),
 ]
@@ -87,14 +87,14 @@ TEST262_TEST_SUITE_OPTIONS = [
             OPTIONS_COMMON + ['--line-info=on', '--error-messages=on', '--mem-heap=20480']),
 ]
 
-# Test options for jerry-debugger
+# Test options for jjs-debugger
 DEBUGGER_TEST_OPTIONS = [
-    Options('jerry_debugger_tests',
-            ['--jerry-debugger=on'])
+    Options('jjs_debugger_tests',
+            ['--jjs-debugger=on'])
 ]
 
 # Test options for buildoption-test
-JERRY_BUILDOPTIONS = [
+JJS_BUILDOPTIONS = [
     Options('buildoption_test-lto',
             ['--lto=on']),
     Options('buildoption_test-error_messages',
@@ -117,30 +117,30 @@ JERRY_BUILDOPTIONS = [
                 platform.system() != 'Linux' or (platform.machine() != 'i386' and platform.machine() != 'x86_64'),
                 '-m32 is only supported on x86[-64]-linux')
            ),
-    Options('buildoption_test-jerry_math',
-            ['--jerry-math=on']),
+    Options('buildoption_test-jjs_math',
+            ['--jjs-math=on']),
     Options('buildoption_test-no_lcache_prophashmap',
-            ['--compile-flag=-DJERRY_LCACHE=0', '--compile-flag=-DJERRY_PROPERTY_HASHMAP=0']),
+            ['--compile-flag=-DJJS_LCACHE=0', '--compile-flag=-DJJS_PROPERTY_HASHMAP=0']),
     Options('buildoption_test-external_context',
             ['--external-context=on']),
     Options('buildoption_test-shared_libs',
             ['--shared-libs=on'],
             skip=skip_if((sys.platform == 'win32'), 'Not yet supported, link failure on Windows')),
     Options('buildoption_test-cmdline_test',
-            ['--jerry-cmdline-test=on'],
+            ['--jjs-cmdline-test=on'],
             skip=skip_if((sys.platform == 'win32'), 'rand() can\'t be overriden on Windows (benchmarking.c)')),
     Options('buildoption_test-cmdline_snapshot',
-            ['--jerry-cmdline-snapshot=on']),
+            ['--jjs-cmdline-snapshot=on']),
     Options('buildoption_test-recursion_limit',
             OPTIONS_STACK_LIMIT),
     Options('buildoption_test-gc-mark_limit',
             OPTIONS_GC_MARK_LIMIT),
-    Options('buildoption_test-jerry-debugger',
-            ['--jerry-debugger=on']),
+    Options('buildoption_test-jjs-debugger',
+            ['--jjs-debugger=on']),
     Options('buildoption_test-module-off',
-            ['--compile-flag=-DJERRY_MODULE_SYSTEM=0', '--lto=off']),
+            ['--compile-flag=-DJJS_MODULE_SYSTEM=0', '--lto=off']),
     Options('buildoption_test-builtin-proxy-off',
-            ['--compile-flag=-DJERRY_BUILTIN_PROXY=0']),
+            ['--compile-flag=-DJJS_BUILTIN_PROXY=0']),
 ]
 
 def get_arguments():
@@ -171,11 +171,11 @@ def get_arguments():
     parser.add_argument('--check-strings', action='store_true',
                         help='Run "magic string source code generator should be executed" check')
     parser.add_argument('--build-debug', action='store_true',
-                        help='Build debug version jerryscript')
-    parser.add_argument('--jerry-debugger', action='store_true',
-                        help='Run jerry-debugger tests')
-    parser.add_argument('--jerry-tests', action='store_true',
-                        help='Run jerry-tests')
+                        help='Build debug version JJS')
+    parser.add_argument('--jjs-debugger', action='store_true',
+                        help='Run jjs-debugger tests')
+    parser.add_argument('--jjs-tests', action='store_true',
+                        help='Run jjs-tests')
     parser.add_argument('--test262', default=False, const='default',
                         nargs='?', choices=['default', 'all', 'update'],
                         help='Run test262 - default: all tests except excludelist, ' +
@@ -189,7 +189,7 @@ def get_arguments():
     parser.add_argument('--all', '--precommit', action='store_true',
                         help='Run all tests')
     parser.add_argument('--no-snapshot-tests', action='store_true', default=False,
-                        help='Disable snapshot tests for jerry-tests runs')
+                        help='Disable snapshot tests for jjs-tests runs')
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -262,7 +262,7 @@ def create_binary(job, options):
 
 def get_binary_path(build_dir_path):
     executable_extension = '.exe' if sys.platform == 'win32' else ''
-    return os.path.join(build_dir_path, 'local', 'bin', 'jerry' + executable_extension)
+    return os.path.join(build_dir_path, 'local', 'bin', 'jjs' + executable_extension)
 
 def hash_binary(bin_path):
     blocksize = 65536
@@ -315,7 +315,7 @@ def run_check(runnable, env=None):
     proc.wait()
     return proc.returncode
 
-def run_jerry_debugger_tests(options):
+def run_jjs_debugger_tests(options):
     ret_build = ret_test = 0
     for job in DEBUGGER_TEST_OPTIONS:
         ret_build, build_dir_path = create_binary(job, options)
@@ -343,21 +343,21 @@ def run_jerry_debugger_tests(options):
 
     return ret_build | ret_test
 
-def run_jerry_tests(options):
+def run_jjs_tests(options):
     ret_build = ret_test = 0
-    for job, ret_build, test_cmd in iterate_test_runner_jobs(JERRY_TESTS_OPTIONS, options):
+    for job, ret_build, test_cmd in iterate_test_runner_jobs(JJS_TESTS_OPTIONS, options):
         if ret_build:
             break
 
         test_cmd.append('--test-dir')
-        test_cmd.append(settings.JERRY_TESTS_DIR)
+        test_cmd.append(settings.JJS_TESTS_DIR)
 
         if options.quiet:
             test_cmd.append("-q")
 
         skip_list = []
 
-        if job.name == 'jerry_tests-snapshot':
+        if job.name == 'jjs_tests-snapshot':
             if options.no_snapshot_tests:
                 continue
             else:
@@ -410,7 +410,7 @@ def run_test262_test_suite(options):
 
 def run_unittests(options):
     ret_build = ret_test = 0
-    for job in JERRY_UNITTESTS_OPTIONS:
+    for job in JJS_UNITTESTS_OPTIONS:
         if job.skip:
             report_skip(job)
             continue
@@ -438,7 +438,7 @@ def run_unittests(options):
     return ret_build | ret_test
 
 def run_buildoption_test(options):
-    for job in JERRY_BUILDOPTIONS:
+    for job in JJS_BUILDOPTIONS:
         if job.skip:
             report_skip(job)
             continue
@@ -462,8 +462,8 @@ def main(options):
         Check(options.check_format, run_check, [settings.FORMAT_SCRIPT]),
         Check(options.check_license, run_check, [settings.LICENSE_SCRIPT]),
         Check(options.check_strings, run_check, [settings.STRINGS_SCRIPT]),
-        Check(options.jerry_debugger, run_jerry_debugger_tests, options),
-        Check(options.jerry_tests, run_jerry_tests, options),
+        Check(options.jjs_debugger, run_jjs_debugger_tests, options),
+        Check(options.jjs_tests, run_jjs_tests, options),
         Check(options.test262, run_test262_test_suite, options),
         Check(options.unittests, run_unittests, options),
         Check(options.buildoption_test, run_buildoption_test, options),

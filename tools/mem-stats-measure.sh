@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-JERRY=$1
+JJS=$1
 TEST=$2
 
-MEM_PEAK=`$JERRY $TEST --mem-stats | grep "Peak allocated =" | awk '{print $4}'`
+MEM_PEAK=`$JJS $TEST --mem-stats | grep "Peak allocated =" | awk '{print $4}'`
 
 echo $MEM_PEAK

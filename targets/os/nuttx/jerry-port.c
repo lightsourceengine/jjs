@@ -17,16 +17,16 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "jerryscript-port.h"
+#include "jjs-port.h"
 
 /**
- * Default implementation of jerry_port_log. Prints log messages to stderr.
+ * Default implementation of jjs_port_log. Prints log messages to stderr.
  */
 void
-jerry_port_log (const char *message_p) /**< message */
+jjs_port_log (const char *message_p) /**< message */
 {
   (void) message_p;
-} /* jerry_port_log */
+} /* jjs_port_log */
 
 /**
  * Read a line from standard input as a zero-terminated string.
@@ -36,21 +36,21 @@ jerry_port_log (const char *message_p) /**< message */
  * @return pointer to the buffer storing the string,
  *         or NULL if end of input
  */
-jerry_char_t *
-jerry_port_line_read (jerry_size_t *out_size_p)
+jjs_char_t *
+jjs_port_line_read (jjs_size_t *out_size_p)
 {
   (void) out_size_p;
   return NULL;
-} /* jerry_port_line_read */
+} /* jjs_port_line_read */
 
 /**
  * Aborts the program.
  */
 void
-jerry_port_fatal (jerry_fatal_code_t code)
+jjs_port_fatal (jjs_fatal_code_t code)
 {
   exit ((int) code);
-} /* jerry_port_fatal */
+} /* jjs_port_fatal */
 
 /**
  * Dummy function to get the time zone adjustment.
@@ -58,13 +58,13 @@ jerry_port_fatal (jerry_fatal_code_t code)
  * @return 0
  */
 int32_t
-jerry_port_local_tza (double unix_ms)
+jjs_port_local_tza (double unix_ms)
 {
   (void) unix_ms;
 
   /* We live in UTC. */
   return 0;
-} /* jerry_port_local_tza */
+} /* jjs_port_local_tza */
 
 /**
  * Dummy function to get the current time.
@@ -72,7 +72,7 @@ jerry_port_local_tza (double unix_ms)
  * @return 0
  */
 double
-jerry_port_current_time (void)
+jjs_port_current_time (void)
 {
   return 0;
-} /* jerry_port_current_time */
+} /* jjs_port_current_time */

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "jerryscript.h"
+#include "jjs.h"
 
 #include "config.h"
 #include "test-common.h"
@@ -22,7 +22,7 @@ static int mode = 0;
 static int counter = 0;
 
 static void
-vm_throw_callback (const jerry_value_t error_value, /**< captured error */
+vm_throw_callback (const jjs_value_t error_value, /**< captured error */
                    void *user_p) /**< user pointer */
 {
   TEST_ASSERT (user_p == (void *) &mode);
@@ -33,34 +33,34 @@ vm_throw_callback (const jerry_value_t error_value, /**< captured error */
     case 0:
     {
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jerry_value_is_number (error_value) && jerry_value_as_number (error_value) == -5.6);
+      TEST_ASSERT (jjs_value_is_number (error_value) && jjs_value_as_number (error_value) == -5.6);
       break;
     }
     case 1:
     {
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jerry_value_is_null (error_value));
+      TEST_ASSERT (jjs_value_is_null (error_value));
       break;
     }
     case 2:
     {
-      jerry_char_t string_buf[2];
-      jerry_size_t size = sizeof (string_buf);
+      jjs_char_t string_buf[2];
+      jjs_size_t size = sizeof (string_buf);
 
       string_buf[0] = '\0';
       string_buf[1] = '\0';
 
       TEST_ASSERT (counter >= 1 && counter <= 3);
-      TEST_ASSERT (jerry_value_is_string (error_value));
-      TEST_ASSERT (jerry_string_size (error_value, JERRY_ENCODING_CESU8) == size);
-      TEST_ASSERT (jerry_string_to_buffer (error_value, JERRY_ENCODING_CESU8, string_buf, size) == size);
+      TEST_ASSERT (jjs_value_is_string (error_value));
+      TEST_ASSERT (jjs_string_size (error_value, JJS_ENCODING_CESU8) == size);
+      TEST_ASSERT (jjs_string_to_buffer (error_value, JJS_ENCODING_CESU8, string_buf, size) == size);
       TEST_ASSERT (string_buf[0] == 'e' && string_buf[1] == (char) ('0' + counter));
       break;
     }
     case 3:
     {
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jerry_error_type (error_value) == JERRY_ERROR_RANGE);
+      TEST_ASSERT (jjs_error_type (error_value) == JJS_ERROR_RANGE);
       break;
     }
     case 4:
@@ -68,31 +68,31 @@ vm_throw_callback (const jerry_value_t error_value, /**< captured error */
       TEST_ASSERT (mode == 4);
       TEST_ASSERT (counter >= 1 && counter <= 2);
 
-      jerry_error_t error = (counter == 1) ? JERRY_ERROR_REFERENCE : JERRY_ERROR_TYPE;
-      TEST_ASSERT (jerry_error_type (error_value) == error);
+      jjs_error_t error = (counter == 1) ? JJS_ERROR_REFERENCE : JJS_ERROR_TYPE;
+      TEST_ASSERT (jjs_error_type (error_value) == error);
       break;
     }
     case 5:
     case 6:
     {
       TEST_ASSERT (counter >= 1 && counter <= 2);
-      TEST_ASSERT (jerry_value_is_false (error_value));
+      TEST_ASSERT (jjs_value_is_false (error_value));
       break;
     }
     default:
     {
       TEST_ASSERT (mode == 8 || mode == 9);
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jerry_value_is_true (error_value));
+      TEST_ASSERT (jjs_value_is_true (error_value));
       break;
     }
   }
 } /* vm_throw_callback */
 
-static jerry_value_t
-native_handler (const jerry_call_info_t *call_info_p, /**< call info */
-                const jerry_value_t args_p[], /**< arguments */
-                const jerry_length_t args_count) /**< arguments length */
+static jjs_value_t
+native_handler (const jjs_call_info_t *call_info_p, /**< call info */
+                const jjs_value_t args_p[], /**< arguments */
+                const jjs_length_t args_count) /**< arguments length */
 {
   (void) call_info_p;
   (void) args_p;
@@ -100,23 +100,23 @@ native_handler (const jerry_call_info_t *call_info_p, /**< call info */
 
   if (mode == 7)
   {
-    jerry_value_t result = jerry_throw_sz (JERRY_ERROR_COMMON, "Error!");
+    jjs_value_t result = jjs_throw_sz (JJS_ERROR_COMMON, "Error!");
 
-    TEST_ASSERT (!jerry_exception_is_captured (result));
-    jerry_exception_allow_capture (result, false);
-    TEST_ASSERT (jerry_exception_is_captured (result));
+    TEST_ASSERT (!jjs_exception_is_captured (result));
+    jjs_exception_allow_capture (result, false);
+    TEST_ASSERT (jjs_exception_is_captured (result));
     return result;
   }
 
-  jerry_char_t source[] = TEST_STRING_LITERAL ("throw false");
-  jerry_value_t result = jerry_eval (source, sizeof (source) - 1, JERRY_PARSE_NO_OPTS);
+  jjs_char_t source[] = TEST_STRING_LITERAL ("throw false");
+  jjs_value_t result = jjs_eval (source, sizeof (source) - 1, JJS_PARSE_NO_OPTS);
 
-  TEST_ASSERT (jerry_exception_is_captured (result));
+  TEST_ASSERT (jjs_exception_is_captured (result));
 
   if (mode == 6)
   {
-    jerry_exception_allow_capture (result, true);
-    TEST_ASSERT (!jerry_exception_is_captured (result));
+    jjs_exception_allow_capture (result, true);
+    TEST_ASSERT (!jjs_exception_is_captured (result));
   }
   return result;
 } /* native_handler */
@@ -125,9 +125,9 @@ static void
 do_eval (const char *script_p, /**< script to evaluate */
          bool should_throw) /**< script throws an error */
 {
-  jerry_value_t result = jerry_eval ((const jerry_char_t *) script_p, strlen (script_p), JERRY_PARSE_NO_OPTS);
-  TEST_ASSERT (jerry_value_is_exception (result) == should_throw);
-  jerry_value_free (result);
+  jjs_value_t result = jjs_eval ((const jjs_char_t *) script_p, strlen (script_p), JJS_PARSE_NO_OPTS);
+  TEST_ASSERT (jjs_value_is_exception (result) == should_throw);
+  jjs_value_free (result);
 } /* do_eval */
 
 int
@@ -136,14 +136,14 @@ main (void)
   TEST_INIT ();
 
   /* Test stopping an infinite loop. */
-  if (!jerry_feature_enabled (JERRY_FEATURE_VM_THROW))
+  if (!jjs_feature_enabled (JJS_FEATURE_VM_THROW))
   {
     return 0;
   }
 
-  jerry_init (JERRY_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
-  jerry_on_throw (vm_throw_callback, (void *) &mode);
+  jjs_on_throw (vm_throw_callback, (void *) &mode);
 
   mode = 0;
   counter = 0;
@@ -183,14 +183,14 @@ main (void)
   TEST_ASSERT (counter == 2);
 
   /* Native functions may trigger the call twice: */
-  jerry_value_t global_object_value = jerry_current_realm ();
-  jerry_value_t function_value = jerry_function_external (native_handler);
-  jerry_value_t function_name_value = jerry_string_sz ("native");
+  jjs_value_t global_object_value = jjs_current_realm ();
+  jjs_value_t function_value = jjs_function_external (native_handler);
+  jjs_value_t function_name_value = jjs_string_sz ("native");
 
-  jerry_value_free (jerry_object_set (global_object_value, function_name_value, function_value));
-  jerry_value_free (function_name_value);
-  jerry_value_free (function_value);
-  jerry_value_free (global_object_value);
+  jjs_value_free (jjs_object_set (global_object_value, function_name_value, function_value));
+  jjs_value_free (function_name_value);
+  jjs_value_free (function_value);
+  jjs_value_free (global_object_value);
 
   mode = 5;
   counter = 0;
@@ -222,12 +222,12 @@ main (void)
            true);
   TEST_ASSERT (counter == 1);
 
-  jerry_value_t value = jerry_object ();
-  TEST_ASSERT (!jerry_exception_is_captured (value));
-  jerry_exception_allow_capture (value, false);
-  TEST_ASSERT (!jerry_exception_is_captured (value));
-  jerry_value_free (value);
+  jjs_value_t value = jjs_object ();
+  TEST_ASSERT (!jjs_exception_is_captured (value));
+  jjs_exception_allow_capture (value, false);
+  TEST_ASSERT (!jjs_exception_is_captured (value));
+  jjs_value_free (value);
 
-  jerry_cleanup ();
+  jjs_cleanup ();
   return 0;
 } /* main */
