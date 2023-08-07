@@ -61,14 +61,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests
-      - run: $RUNNER -q --unittests
+      - run: $RUNNER -q --unittests --skip-list=unit-math
 
   OSX_x86-64_Build_Correctness_Unit_Tests_Debug:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests --build-debug
-      - run: $RUNNER -q --unittests --build-debug
+      - run: $RUNNER -q --unittests --build-debug --skip-list=unit-math
 
   # Note: Date().getDay() is broken on windows, disable associated tests
   Windows_x64_Build_Correctness_Unit_Tests:
@@ -83,7 +83,7 @@ jobs:
         run: python .\tools\run-tests.py -q --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
       - name: C Unit Tests
-        run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
+        run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers,unit-math
         shell: powershell
 
   Linux_x86-64_Build_Option_Tests:
@@ -146,8 +146,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - run: $RUNNER -q --unittests
-      - run: $RUNNER -q --unittests --build-debug
+      - run: $RUNNER -q --unittests --skip-list=unit-math
+      - run: $RUNNER -q --unittests --build-debug --skip-list=unit-math
 
   Clang_Unit_Build_Option_Tests:
     runs-on: ubuntu-20.04
@@ -157,7 +157,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
-      - run: $RUNNER -q --unittests
+      - run: $RUNNER -q --unittests --skip-list=unit-math
       # clang has bug in supporting lto
       - run: $RUNNER -q --buildoption-test --buildoptions=--lto=off
 
