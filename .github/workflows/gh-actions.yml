@@ -34,17 +34,18 @@ jobs:
         if: ${{ always() }}
 
   Linux_x86-64_Build_Correctness_Debugger_Tests:
-    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: "gabrielfalcao/pyenv-action@v11"
         with:
-          python-version: '2.7' # needed by jjs-debugger
+          default: 3.9
+          versions: 3.9, 2.7.18
+      - run: pyenv global 3.9 2.7.18
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --jjs-tests --build-debug
-      - run: $RUNNER -q --jjs-debugger
-      - run: $RUNNER -q --jjs-debugger --build-debug
+      - run: python2 $RUNNER -q --jjs-debugger
+      - run: python2 $RUNNER -q --jjs-debugger --build-debug
 
   Linux_x86_cpointer-32bit_Build_Correctness_Tests:
     runs-on: ubuntu-20.04
