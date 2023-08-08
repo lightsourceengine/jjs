@@ -57,7 +57,6 @@ set(JJS_LIBFUZZER             OFF CACHE BOOL "Build JJS with libfuzzer support?"
 set(JJS_PORT                  ON  CACHE BOOL "Build default JJS port implementation?")
 set(JJS_EXT                   ON  CACHE BOOL "Build jjs-ext?")
 set(JJS_EXT_DEBUGGER          ON  CACHE BOOL "Build jjs-ext debugger support?")
-set(JJS_MATH                  OFF CACHE BOOL "Build and use jjs-math?")
 set(UNITTESTS                 OFF CACHE BOOL "Build unit tests?")
 set(DOCTESTS                  OFF CACHE BOOL "Build doc tests?")
 
@@ -265,11 +264,6 @@ endif()
 # Used as placeholder to attach amalgamated build targets to
 add_custom_target(amalgam)
 
-# JJS's libm
-if(JJS_MATH)
-  add_subdirectory(jjs-math)
-endif()
-
 # JJS's core
 add_subdirectory(jjs-core)
 
@@ -291,9 +285,6 @@ endif()
 # Unittests
 if(UNITTESTS)
   add_subdirectory(tests/unit-core)
-  if(JJS_MATH)
-    add_subdirectory(tests/unit-math)
-  endif()
   if(JJS_EXT)
     add_subdirectory(tests/unit-ext)
   endif()
