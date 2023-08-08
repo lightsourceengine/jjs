@@ -38,9 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: "gabrielfalcao/pyenv-action@v11"
-        with:
-          versions: 3.11.1, 2.7.18
-      - run: pyenv global 3.11.1 2.7.18
+        default: 3.8.16
+          versions: 3.8.16 2.7.18
+      - run: pyenv global 3.8.16 2.7.18
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --jjs-tests --build-debug
       - run: python2 $RUNNER -q --jjs-debugger
