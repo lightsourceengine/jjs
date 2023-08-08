@@ -92,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: ./tools/build.py --amalgam ON
-      - run: cd build && tar -czf amalgam.tgz amalgam && zip -r amalgam
+      - run: cd build && tar -czf amalgam.tgz amalgam && zip -r amalgam.zip amalgam
       - uses: actions/upload-artifact@v3.1.2
         if: success()
         with:

@@ -36,7 +36,7 @@ fi
 mkdir -p "${TAG}/bin"
 
 # copy jjs commandline programs
-cp bin/jjs bin/jjs-snapshot "${TAG}/bin"
+cp bin/jjs* "${TAG}/bin"
 
 # archive
 JJS_ARCHIVE="${TAG}.${ARCHIVE}"
