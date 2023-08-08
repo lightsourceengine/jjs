@@ -63,6 +63,58 @@ jobs:
       - run: sudo apt install gcc-multilib
       - run: $RUNNER --buildoption-test
 
+  linux_x86-64_release_asan:
+    runs-on: ubuntu-20.04
+    env:
+      ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-multilib
+      - run: >-
+          $RUNNER -q --jjs-tests
+          --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-m32,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
+          --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
+
+  linux_x86-64_debug_asan:
+    runs-on: ubuntu-20.04
+    env:
+      ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-multilib
+      - run: >-
+          $RUNNER -q --jjs-tests --build-debug
+          --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-m32,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
+          --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
+
+  linux_aarch64_release:
+    runs-on: ubuntu-20.04
+    env:
+      RUNTIME: qemu-aarch64-static
+      TIMEOUT: 300
+      JJS_BUILD_OPTS: --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
+      - run: $RUNNER -q $JJS_BUILD_OPTS --jjs-tests
+      - run: $RUNNER -q $JJS_BUILD_OPTS --unittests
+
+  linux_aarch64_debug:
+    runs-on: ubuntu-20.04
+    env:
+      RUNTIME: qemu-aarch64-static
+      TIMEOUT: 300
+      BUILD_OPTS: --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static --build-debug
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
+      - run: $RUNNER -q $JJS_BUILD_OPTS --jjs-tests
+      - run: $RUNNER -q $JJS_BUILD_OPTS --unittests
+
   macos_x86-64_release:
     runs-on: macos-11
     steps:
@@ -85,18 +137,8 @@ jobs:
           default: 2.7.18
           command: python2 $RUNNER -q --jjs-debugger --build-debug
 
-  Linux_x86_cpointer-32bit_Build_Correctness_Tests:
-    runs-on: ubuntu-20.04
-    if: false # XXX: 32-bit debug builds are broken - some tests failing with RangeError
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-multilib
-      - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on
-      - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on --build-debug
-
   # Note: Date().getDay() is broken on windows, disable associated tests
-  Windows_x64_Build_Correctness_Unit_Tests:
+  windows_x64_release:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -110,6 +152,32 @@ jobs:
       - name: C Unit Tests
         run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
         shell: powershell
+
+  # Note: Date().getDay() is broken on windows, disable associated tests
+  windows_x64_debug:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: JS Tests
+        # invoking snapshot via test python scripts is broken on windows
+        run: python .\tools\run-tests.py -q --build-debug --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        shell: powershell
+      - name: C Unit Tests
+        run: python .\tools\run-tests.py -q --build-debug --unittests --skip-list=unit-test-date-helpers
+        shell: powershell
+
+  Linux_x86_cpointer-32bit_Build_Correctness_Tests:
+    runs-on: ubuntu-20.04
+    if: false # XXX: 32-bit debug builds are broken - some tests failing with RangeError
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-multilib
+      - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on
+      - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on --build-debug
 
   Conformance_Tests_ESNext:
     runs-on: ubuntu-20.04
@@ -156,13 +224,6 @@ jobs:
           path: |
             build/tests/test262_tests_esnext-debug/local/bin/test262.report
 
-  Unit_Tests:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - run: $RUNNER -q --unittests
-      - run: $RUNNER -q --unittests --build-debug
-
   Clang_Unit_Build_Option_Tests:
     runs-on: ubuntu-20.04
     env:
@@ -174,32 +235,6 @@ jobs:
       - run: $RUNNER -q --unittests
       # clang has bug in supporting lto
       - run: $RUNNER -q --buildoption-test --buildoptions=--lto=off
-
-  ASAN_Tests:
-    runs-on: ubuntu-20.04
-    env:
-      ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-multilib
-      - run: >-
-          $RUNNER -q --jjs-tests
-          --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-m32,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
-          --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
-
-  ASAN_Tests_Debug:
-    runs-on: ubuntu-20.04
-    env:
-      ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-multilib
-      - run: >-
-          $RUNNER -q --jjs-tests --build-debug
-          --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-m32,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
-          --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
 
   UBSAN_Tests:
     runs-on: ubuntu-20.04
@@ -245,29 +280,3 @@ jobs:
       - run: >-
           $RUNNER -q --jjs-tests --build-debug
           --buildoptions=--toolchain=cmake/toolchain_linux_armv7l.cmake,--linker-flag=-static
-
-  Linux_AArch64_Tests:
-    runs-on: ubuntu-20.04
-    env:
-      RUNTIME: qemu-aarch64-static
-      TIMEOUT: 300
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
-      - run: >-
-          $RUNNER -q --jjs-tests
-          --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static
-
-  Linux_AArch64_Tests_Debug:
-    runs-on: ubuntu-20.04
-    env:
-      RUNTIME: qemu-aarch64-static
-      TIMEOUT: 300
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
-      - run: >-
-          $RUNNER -q --jjs-tests --build-debug
-          --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static
