@@ -1,0 +1,45 @@
+name: veil-runtime
+
+on:
+  workflow_dispatch:
+
+env:
+  JJS_TAG_PREFIX=jjs-4.0.0
+
+jobs:
+  linux-x64:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: ./tools/build.py --mem-heap 8192 --jjs-cmdline ON --jjs-cmdline-snapshot ON --linker-flag=-static
+      - run: ./tools/create-release-bundle.sh $JJS_TAG_PREFIX-linux-x64 tgz
+      - uses: actions/upload-artifact@v3.1.2
+        if: success()
+        with:
+          name: jjs-release-artifacts
+          path: |
+            build/jjs-*.tgz
+  macos-x64:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: ./tools/build.py --mem-heap 8192 --jjs-cmdline ON --jjs-cmdline-snapshot ON
+      - run: ./tools/create-release-bundle.sh $JJS_TAG_PREFIX-macos-x64 tgz
+      - uses: actions/upload-artifact@v3.1.2
+        if: success()
+        with:
+          name: jjs-release-artifacts
+          path: |
+            build/jjs-*.tgz
+  windows-x64:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v3
+      - run: ./tools/build.py --mem-heap 8192 --jjs-cmdline ON --jjs-cmdline-snapshot ON
+      - run: ./tools/create-release-bundle.sh jjs-4.0.0-windows-x64 zip
+      - uses: actions/upload-artifact@v3.1.2
+        if: success()
+        with:
+          name: jjs-release-artifacts
+          path: |
+            build/jjs-*.zip

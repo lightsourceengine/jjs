@@ -233,7 +233,7 @@ jobs:
         with:
           default: 2.7.18
           command: python2 $RUNNER --test262 update
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
           name: Test262-ESNext-results
@@ -248,7 +248,7 @@ jobs:
         with:
           default: 2.7.18
           command: $RUNNER --test262 update --build-debug --test262-test-list=built-ins,annexB,harness,intl402
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
           name: Test262-ESNext-Debug-A-results
@@ -263,7 +263,7 @@ jobs:
         with:
           default: 2.7.18
           command: $RUNNER --test262 update --build-debug --test262-test-list=language
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
           name: Test262-ESNext-Debug-B-results
