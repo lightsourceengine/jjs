@@ -107,7 +107,7 @@ jobs:
     env:
       RUNTIME: qemu-aarch64-static
       TIMEOUT: 300
-      BUILD_OPTS: --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static --build-debug
+      JJS_BUILD_OPTS: --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static --build-debug
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt update
