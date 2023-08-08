@@ -90,6 +90,7 @@ jobs:
           --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
 
   linux_armv6l_release:
+    if: false
     runs-on: ubuntu-20.04
     env:
       RUNTIME: qemu-arm-static

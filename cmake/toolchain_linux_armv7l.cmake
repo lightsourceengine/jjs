@@ -21,4 +21,4 @@ set(CMAKE_C_COMPILER arm-linux-gnueabihf-gcc)
 #
 # If this is changed, setjmp / longjmp for ARMv7 should be updated accordingly
 #
-set(FLAGS_COMMON_ARCH -mthumb -mfpu=vfp -march=armv7 -fno-short-enums -mlittle-endian -fsigned-char)
+set(FLAGS_COMMON_ARCH -mthumb -mfpu=vfp -march=armv7)

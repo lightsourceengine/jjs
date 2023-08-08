@@ -104,8 +104,6 @@ def get_arguments():
                          help='build jjs-ext (%(choices)s)')
     compgrp.add_argument('--jjs-ext-debugger', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build jjs-ext debugger support (%(choices)s)')
-    compgrp.add_argument('--jjs-math', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='build and use jjs-math (%(choices)s)')
     compgrp.add_argument('--jjs-port', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build default JJS port implementation (%(choices)s)')
     compgrp.add_argument('--unittests', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -203,7 +201,6 @@ def generate_build_options(arguments):
     build_options_append('JJS_LIBFUZZER', arguments.libfuzzer)
     build_options_append('JJS_EXT', arguments.jjs_ext)
     build_options_append('JJS_EXT_DEBUGGER', arguments.jjs_ext_debugger)
-    build_options_append('JJS_MATH', arguments.jjs_math)
     build_options_append('JJS_PORT', arguments.jjs_port)
     build_options_append('UNITTESTS', arguments.unittests)
 
