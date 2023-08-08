@@ -38,8 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: curl https://pyenv.run | bash
-      - run: export PYENV_ROOT="$HOME/.pyenv"
-      - run: export PATH="/bin:$PATH"
+      - run: echo "$HOME/.pyenv" >> $GITHUB_PATH
       - run: pyenv install 2.7.18
       - run: pyenv global system 2.7.18
       - run: $RUNNER -q --jjs-tests
