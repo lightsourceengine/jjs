@@ -4,15 +4,45 @@ on:
   workflow_dispatch:
 
 env:
-  JJS_TAG_PREFIX=jjs-4.0.0
+  JJS_TAG_PREFIX: jjs-4.0.0
+  RUNNER: ./tools/build.py --mem-heap 8192 --jjs-cmdline ON --jjs-cmdline-snapshot ON --jjs-debugger ON --error-messages ON
+  BUNDLER: ./tools/create-release-bundle.sh
 
 jobs:
   linux-x64:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - run: ./tools/build.py --mem-heap 8192 --jjs-cmdline ON --jjs-cmdline-snapshot ON --linker-flag=-static
-      - run: ./tools/create-release-bundle.sh $JJS_TAG_PREFIX-linux-x64 tgz
+      - run: $RUNNER --linker-flag=-static
+      - run: $BUNDLER $JJS_TAG_PREFIX-linux-x64 tgz
+      - uses: actions/upload-artifact@v3.1.2
+        if: success()
+        with:
+          name: jjs-release-artifacts
+          path: |
+            build/jjs-*.tgz
+  linux-armv7l:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-arm-linux-gnueabihf
+      - run: $RUNNER --toolchain=cmake/toolchain_linux_armv7l.cmake --linker-flag=-static
+      - run: $BUNDLER $JJS_TAG_PREFIX-linux-armv7l tgz
+      - uses: actions/upload-artifact@v3.1.2
+        if: success()
+        with:
+          name: jjs-release-artifacts
+          path: |
+            build/jjs-*.tgz
+  linux-aarch64:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-aarch64-linux-gnu
+      - run: $RUNNER --toolchain=cmake/toolchain_linux_aarch64.cmake --linker-flag=-static
+      - run: $BUNDLER $JJS_TAG_PREFIX-linux-aarch64 tgz
       - uses: actions/upload-artifact@v3.1.2
         if: success()
         with:
@@ -20,11 +50,23 @@ jobs:
           path: |
             build/jjs-*.tgz
   macos-x64:
-    runs-on: ubuntu-20.04
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v3
-      - run: ./tools/build.py --mem-heap 8192 --jjs-cmdline ON --jjs-cmdline-snapshot ON
-      - run: ./tools/create-release-bundle.sh $JJS_TAG_PREFIX-macos-x64 tgz
+      - run: $RUNNER
+      - run: $BUNDLER $JJS_TAG_PREFIX-macos-x64 tgz
+      - uses: actions/upload-artifact@v3.1.2
+        if: success()
+        with:
+          name: jjs-release-artifacts
+          path: |
+            build/jjs-*.tgz
+  macos-arm64:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+      - run: $RUNNER "--compile-flag=-arch arm64"
+      - run: $BUNDLER $JJS_TAG_PREFIX-macos-arm64 tgz
       - uses: actions/upload-artifact@v3.1.2
         if: success()
         with:
@@ -35,8 +77,8 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
-      - run: ./tools/build.py --mem-heap 8192 --jjs-cmdline ON --jjs-cmdline-snapshot ON
-      - run: ./tools/create-release-bundle.sh jjs-4.0.0-windows-x64 zip
+      - run: $RUNNER
+      - run: $BUNDLER $JJS_TAG_PREFIX-windows-x64 zip
       - uses: actions/upload-artifact@v3.1.2
         if: success()
         with:
