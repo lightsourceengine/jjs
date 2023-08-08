@@ -1,4 +1,4 @@
-name: veil-runtime
+name: jjs-release
 
 on:
   workflow_dispatch:
