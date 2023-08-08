@@ -62,8 +62,6 @@ JJS_UNITTESTS_OPTIONS = [
     Options('unittests-init-fini',
             OPTIONS_COMMON + OPTIONS_UNITTESTS
             + ['--cmake-param=-DFEATURE_INIT_FINI=ON']),
-    Options('unittests-math',
-            OPTIONS_COMMON + OPTIONS_UNITTESTS + ['--jjs-math=on']),
 ]
 
 # Test options for jjs-tests
@@ -117,8 +115,6 @@ JJS_BUILDOPTIONS = [
                 platform.system() != 'Linux' or (platform.machine() != 'i386' and platform.machine() != 'x86_64'),
                 '-m32 is only supported on x86[-64]-linux')
            ),
-    Options('buildoption_test-jjs_math',
-            ['--jjs-math=on']),
     Options('buildoption_test-no_lcache_prophashmap',
             ['--compile-flag=-DJJS_LCACHE=0', '--compile-flag=-DJJS_PROPERTY_HASHMAP=0']),
     Options('buildoption_test-external_context',

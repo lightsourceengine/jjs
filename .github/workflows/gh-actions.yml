@@ -33,18 +33,27 @@ jobs:
       - run: $RUNNER --check-cppcheck
         if: ${{ always() }}
 
-  Linux_x86-64_Build_Correctness_Debugger_Tests:
+  linux_x86-64_release:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests
-      - run: $RUNNER -q --jjs-tests --build-debug
+      - run: $RUNNER -q --unittests
       - uses: "gabrielfalcao/pyenv-action@v16"
         with:
           default: 2.7.18
-          command: |
-            python2 $RUNNER -q --jjs-debugger
-            python2 $RUNNER -q --jjs-debugger --build-debug
+          command: python2 $RUNNER -q --jjs-debugger
+
+  linux_x86-64_debug:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: $RUNNER -q --jjs-tests --build-debug
+      - run: $RUNNER -q --unittests --build-debug
+      - uses: "gabrielfalcao/pyenv-action@v16"
+        with:
+          default: 2.7.18
+          command: python2 $RUNNER -q --jjs-debugger --build-debug
 
   Linux_x86_cpointer-32bit_Build_Correctness_Tests:
     runs-on: ubuntu-20.04
@@ -61,14 +70,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests
-      - run: $RUNNER -q --unittests --skip-list=unit-math
+      - run: $RUNNER -q --unittests
 
   OSX_x86-64_Build_Correctness_Unit_Tests_Debug:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests --build-debug
-      - run: $RUNNER -q --unittests --build-debug --skip-list=unit-math
+      - run: $RUNNER -q --unittests --build-debug
 
   # Note: Date().getDay() is broken on windows, disable associated tests
   Windows_x64_Build_Correctness_Unit_Tests:
@@ -83,7 +92,7 @@ jobs:
         run: python .\tools\run-tests.py -q --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
       - name: C Unit Tests
-        run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers,unit-math
+        run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
         shell: powershell
 
   Linux_x86-64_Build_Option_Tests:
@@ -95,30 +104,28 @@ jobs:
       - run: $RUNNER --buildoption-test
 
   Conformance_Tests_ESNext:
-    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: "gabrielfalcao/pyenv-action@v16"
         with:
-          python-version: '2.7'
-      - run: $RUNNER --test262 update
+          default: 2.7.18
+          command: python2 $RUNNER --test262 update
       - uses: actions/upload-artifact@v2
         if: success() || failure()
         with:
           name: Test262-ESNext-results
-          path:  |
+          path: |
             build/tests/test262_tests_esnext/local/bin/test262.report
 
   Conformance_Tests_ESNext_Debug_A:
-    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: "gabrielfalcao/pyenv-action@v16"
         with:
-          python-version: '2.7'
-      - run: $RUNNER --test262 update --build-debug --test262-test-list=built-ins,annexB,harness,intl402
+          default: 2.7.18
+          command: $RUNNER --test262 update --build-debug --test262-test-list=built-ins,annexB,harness,intl402
       - uses: actions/upload-artifact@v2
         if: success() || failure()
         with:
@@ -127,14 +134,13 @@ jobs:
             build/tests/test262_tests_esnext-debug/local/bin/test262.report
 
   Conformance_Tests_ESNext_Debug_B:
-    if: false # python 2.7 is not supported in this runner image
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: "gabrielfalcao/pyenv-action@v16"
         with:
-          python-version: '2.7'
-      - run: $RUNNER --test262 update --build-debug --test262-test-list=language
+          default: 2.7.18
+          command: $RUNNER --test262 update --build-debug --test262-test-list=language
       - uses: actions/upload-artifact@v2
         if: success() || failure()
         with:
@@ -146,8 +152,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - run: $RUNNER -q --unittests --skip-list=unit-math
-      - run: $RUNNER -q --unittests --build-debug --skip-list=unit-math
+      - run: $RUNNER -q --unittests
+      - run: $RUNNER -q --unittests --build-debug
 
   Clang_Unit_Build_Option_Tests:
     runs-on: ubuntu-20.04
@@ -157,7 +163,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
-      - run: $RUNNER -q --unittests --skip-list=unit-math
+      - run: $RUNNER -q --unittests
       # clang has bug in supporting lto
       - run: $RUNNER -q --buildoption-test --buildoptions=--lto=off
 
