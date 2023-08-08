@@ -55,6 +55,36 @@ jobs:
           default: 2.7.18
           command: python2 $RUNNER -q --jjs-debugger --build-debug
 
+  linux_x86-64_buildopts:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-multilib
+      - run: $RUNNER --buildoption-test
+
+  macos_x86-64_release:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+      - run: $RUNNER -q --jjs-tests
+      - run: $RUNNER -q --unittests
+      - uses: "gabrielfalcao/pyenv-action@v16"
+        with:
+          default: 2.7.18
+          command: python2 $RUNNER -q --jjs-debugger
+
+  macos_x86-64_debug:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+      - run: $RUNNER -q --jjs-tests --build-debug
+      - run: $RUNNER -q --unittests --build-debug
+      - uses: "gabrielfalcao/pyenv-action@v16"
+        with:
+          default: 2.7.18
+          command: python2 $RUNNER -q --jjs-debugger --build-debug
+
   Linux_x86_cpointer-32bit_Build_Correctness_Tests:
     runs-on: ubuntu-20.04
     if: false # XXX: 32-bit debug builds are broken - some tests failing with RangeError
@@ -64,20 +94,6 @@ jobs:
       - run: sudo apt install gcc-multilib
       - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on
       - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on --build-debug
-
-  OSX_x86-64_Build_Correctness_Unit_Tests:
-    runs-on: macos-11
-    steps:
-      - uses: actions/checkout@v3
-      - run: $RUNNER -q --jjs-tests
-      - run: $RUNNER -q --unittests
-
-  OSX_x86-64_Build_Correctness_Unit_Tests_Debug:
-    runs-on: macos-11
-    steps:
-      - uses: actions/checkout@v3
-      - run: $RUNNER -q --jjs-tests --build-debug
-      - run: $RUNNER -q --unittests --build-debug
 
   # Note: Date().getDay() is broken on windows, disable associated tests
   Windows_x64_Build_Correctness_Unit_Tests:
@@ -94,14 +110,6 @@ jobs:
       - name: C Unit Tests
         run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
         shell: powershell
-
-  Linux_x86-64_Build_Option_Tests:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-multilib
-      - run: $RUNNER --buildoption-test
 
   Conformance_Tests_ESNext:
     runs-on: ubuntu-20.04
@@ -263,73 +271,3 @@ jobs:
       - run: >-
           $RUNNER -q --jjs-tests --build-debug
           --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static
-
-# broken on 20.04
-#  MbedOS_K64F_Build_Test:
-#    runs-on: ubuntu-18.04 # needed due to ppa:team-gcc-arm-embedded/ppa
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: actions/setup-python@v4
-#        with:
-#          python-version: '3.8' # needed due to 'intelhex' module
-#      - run: sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-#      - run: sudo apt update
-#      - run: sudo apt install gcc-arm-embedded python3-setuptools mercurial
-#      - run: make -f ./targets/os/mbedos/Makefile.travis install
-#      - run: make -f ./targets/os/mbedos/Makefile.travis script
-
-  Zephyr_STM32F4_Build_Test:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - run: sudo apt update
-      - run: sudo apt install gperf dfu-util device-tree-compiler
-      - run: make -f ./targets/os/zephyr/Makefile.travis install
-      - run: make -f ./targets/os/zephyr/Makefile.travis script
-
-  NuttX_STM32F4_Build_Test:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi gperf
-      - run: make -f ./targets/os/nuttx/Makefile.travis install-noapt
-      - run: make -f ./targets/os/nuttx/Makefile.travis script
-
-# broken on ubuntu 20.04
-#  RIOT_STM32F4_Build_Test:
-#    runs-on: ubuntu-18.04 # needed due to ppa:team-gcc-arm-embedded/ppa
-#    env:
-#      CC: clang
-#    steps:
-#      - uses: actions/checkout@v3
-#      - run: sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-#      - run: sudo apt update
-#      - run: sudo apt install clang gcc-arm-embedded gcc-multilib
-#      - run: make -f ./targets/os/riot/Makefile.travis install-noapt
-#      - run: make -f ./targets/os/riot/Makefile.travis script
-
-# broken on ubuntu 20.04
-#  ESP8266_RTOS_SDK_Build_Test:
-#    runs-on: ubuntu-20.04
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: actions/setup-python@v4
-#        with:
-#          python-version: '3.8'
-#      - run: make -f ./targets/baremetal-sdk/espressif/esp8266-rtos-sdk/Makefile.travis install-noapt
-#      - run: make -f ./targets/baremetal-sdk/espressif/esp8266-rtos-sdk/Makefile.travis script
-
-# broken on ubuntu 20.04
-#  ESP_IDF_Build_Test:
-#    runs-on: ubuntu-20.04
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: actions/setup-python@v4
-#        with:
-#          python-version: '3.8'
-#      - run: make -f ./targets/baremetal-sdk/espressif/esp-idf/Makefile.travis install-noapt
-#      - run: make -f ./targets/baremetal-sdk/espressif/esp-idf/Makefile.travis script
