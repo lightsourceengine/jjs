@@ -37,14 +37,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - run: curl https://pyenv.run | bash
-      - run: echo "$HOME/.pyenv" >> $GITHUB_PATH
-      - run: pyenv install 2.7.18
-      - run: pyenv global system 2.7.18
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --jjs-tests --build-debug
-      - run: python2 $RUNNER -q --jjs-debugger
-      - run: python2 $RUNNER -q --jjs-debugger --build-debug
+      - uses: "gabrielfalcao/pyenv-action@v16"
+        with:
+          default: 2.7.18
+          command: |
+            python2 $RUNNER -q --jjs-debugger
+            python2 $RUNNER -q --jjs-debugger --build-debug
 
   Linux_x86_cpointer-32bit_Build_Correctness_Tests:
     runs-on: ubuntu-20.04
