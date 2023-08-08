@@ -9,7 +9,7 @@ set -e
 
 # cd to source root
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
-cd "../${SCRIPT_DIR}"
+cd "${SCRIPT_DIR}/.."
 
 # parse arguments
 TAG=$1
