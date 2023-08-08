@@ -37,11 +37,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: "gabrielfalcao/pyenv-action@v11"
-        with:
-          default: 3.8.16
-          versions: 3.8.16 2.7.18
-      - run: pyenv global 3.8.16 2.7.18
+      - run: curl https://pyenv.run | bash
+      - run: pyenv install 2.7.18
+      - run: pyenv global system 2.7.18
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --jjs-tests --build-debug
       - run: python2 $RUNNER -q --jjs-debugger
