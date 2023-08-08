@@ -176,10 +176,6 @@ jobs:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --unittests
-      - uses: "gabrielfalcao/pyenv-action@v16"
-        with:
-          default: 2.7.18
-          command: python2 $RUNNER -q --jjs-debugger
 
   macos_x86-64_debug:
     runs-on: macos-11
@@ -187,10 +183,6 @@ jobs:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests --build-debug
       - run: $RUNNER -q --unittests --build-debug
-      - uses: "gabrielfalcao/pyenv-action@v16"
-        with:
-          default: 2.7.18
-          command: python2 $RUNNER -q --jjs-debugger --build-debug
 
   # Note: Date().getDay() is broken on windows, disable associated tests
   windows_x64_release:
