@@ -1,13 +1,13 @@
 # JJS: Just JavaScript
 
-Small, modern JavaScript runtime for embedding in C/C++ applications.
+Small, modern JavaScript engine for embedding in C/C++ applications.
 
 # Motivation
 
-JavaScript runtimes, like V8, are fantastic, but they bring long compile times, large memory footprints, and 
-can be difficult or impossible to compile on some platforms. The small runtimes, like QuickJS, are not
+JavaScript engines, like V8, are fantastic, but they bring long compile times, large memory footprints, and 
+can be difficult or impossible to compile for older platforms. The small engines, like QuickJS, are not
 frequently updated and lack modern JavaScript support. JJS aims to address the use case of just embedding a 
-small, modern JavaScript runtime into an application. 
+small, modern JavaScript engine into an application. 
 
 # Background
 
@@ -36,22 +36,24 @@ The only reasonable option was to fork the project and rebrand to continue devel
 * Add module support to snapshots
 * Improve snapshot tooling
 * Fix ECMA conformance tests
-* MSVC and Zig compiler support
+* Zig compiler support
 
 # Changes
 
 * Set the initial JJS version to 4.0.0.
-* Add heap configuration at runtime initialization.
+* Add heap configuration at engine initialization.
 * Add jjs_has_pending_jobs() API to check for pending async tasks.
 * Fix import/export parsing bugs.
 * Fix global variable scope bug when importing.
 * Rebranded API to remove problematic "jerry" prefix.
+* Add MSVC compiler support.
 
 # Out of Scope
 
 * Continued support for microcontrollers.
 * WASM.
 * Internalization and Localization.
+* Temporal.
 
 # License
 
