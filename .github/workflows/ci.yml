@@ -122,7 +122,7 @@ jobs:
     env:
       RUNTIME: qemu-arm-static
       TIMEOUT: 300
-      JJS_BUILD_OPTS: -q --buildoptions=--toolchain=cmake/toolchain_linux_armv7l.cmake
+      JJS_BUILD_OPTS: -q --buildoptions=--toolchain=cmake/toolchain_linux_armv7l.cmake,--linker-flag=-static
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt update
