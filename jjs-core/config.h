@@ -190,7 +190,7 @@
  * If value is 0, the default is 1/32 of JJS_HEAP_SIZE
  */
 #ifndef JJS_GC_LIMIT
-#define JJS_GC_LIMIT 0
+#define JJS_GC_LIMIT (0)
 #endif /* !defined (JJS_GC_LIMIT) */
 
 /**

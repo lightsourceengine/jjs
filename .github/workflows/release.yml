@@ -78,10 +78,25 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: $RUNNER
+        shell: bash
       - run: $BUNDLER $JJS_TAG_PREFIX-windows-x64 zip
+        shell: bash
       - uses: actions/upload-artifact@v3.1.2
         if: success()
         with:
           name: jjs-release-artifacts
           path: |
             build/jjs-*.zip
+  amalgam:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: ./tools/build.py --amalgam ON
+      - run: cd build && tar -czf amalgam.tgz amalgam && zip -r amalgam
+      - uses: actions/upload-artifact@v3.1.2
+        if: success()
+        with:
+          name: jjs-release-artifacts
+          path: |
+            build/amalgam.tgz
+            build/amalgam.zip
