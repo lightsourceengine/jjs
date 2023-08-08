@@ -49,7 +49,8 @@ rm -f "${JJS_ARCHIVE}"
 if [ "${ARCHIVE}" = "tgz" ]; then
   tar -czf "${JJS_ARCHIVE}" "${TAG}"
 else
-  zip -r "${JJS_ARCHIVE}" "${TAG}"
+  # zip is not available on windows github actions runner. use 7z instead.
+  7z a -r -tzip "${JJS_ARCHIVE}" "${TAG}"
 fi
 
 # cleanup staging directory
