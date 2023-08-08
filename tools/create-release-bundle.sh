@@ -36,7 +36,11 @@ fi
 mkdir -p "${TAG}/bin"
 
 # copy jjs commandline programs
-cp bin/jjs* "${TAG}/bin"
+if [ -d "bin/MinSizeRel" ]; then
+  cp bin/MinSizeRel/jjs* "${TAG}/bin"
+else
+  cp bin/jjs* "${TAG}/bin"
+fi
 
 # archive
 JJS_ARCHIVE="${TAG}.${ARCHIVE}"
