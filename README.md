@@ -1,4 +1,4 @@
-# JJS: Just JavaScript
+# JJS: JustJavaScript
 
 Small, modern JavaScript engine for embedding in C/C++ applications.
 

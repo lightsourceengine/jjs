@@ -13,6 +13,13 @@
 # limitations under the License.
 
 project (unit-doc C)
+
+# PythonInterp deprecated in cmake 3.12 and removed in 3.27
+# switch to FindPython when project upgrades past 3.12
+if (${CMAKE_VERSION} GREATER "3.27")
+  cmake_policy(SET CMP0148 OLD)
+endif()
+
 find_package(PythonInterp REQUIRED)
 
 set(GEN_DOCTEST "${CMAKE_SOURCE_DIR}/tools/gen-doctest.py")
