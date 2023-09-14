@@ -672,7 +672,7 @@ ecma_snapshot_get_literal (const uint8_t *literal_base_p, /**< literal start */
 #if JJS_BUILTIN_BIGINT
   if (literal_value & JJS_SNAPSHOT_LITERAL_IS_BIGINT)
   {
-    uint32_t bigint_sign_and_size = *(uint32_t *) literal_p;
+    uint32_t bigint_sign_and_size = (literal_p[3] << 24) | (literal_p[2] << 16) | (literal_p[1] << 8) | literal_p[0];
     uint32_t size = bigint_sign_and_size & ~(uint32_t) (sizeof (ecma_bigint_digit_t) - 1);
 
     ecma_extended_primitive_t *bigint_p = ecma_bigint_create (size);

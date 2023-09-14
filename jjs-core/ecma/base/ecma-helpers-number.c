@@ -16,10 +16,14 @@
 #include "ecma-helpers-number.h"
 
 #include <math.h>
+#include <limits.h>
 
 #include "ecma-conversion.h"
 
 #include "lit-char-helpers.h"
+
+#define INT_MAX_PLUS1  (((double)INT_MAX/2.0 + 1.0)*2.0)
+#define INT_MIN_MINUS1 (((double)INT_MIN/2.0 - 1.0)*2.0)
 
 /** \addtogroup ecma ECMA
  * @{
@@ -126,6 +130,32 @@ ecma_number_create (bool sign, /**< sign */
 
   return ecma_number_from_binary (binary);
 } /* ecma_number_create */
+
+/**
+ * Try to convert ecma-number to ecma-integer.
+ *
+ * @param ecma_number value
+ * @param result output ecma-integer value
+ * @return true: if conversion was successful, false: number is non a number or out of integer range.
+ */
+bool ecma_number_try_integer_cast(ecma_number_t ecma_number, ecma_integer_value_t* result)
+{
+#if INT_MIN == -INT_MAX
+  if ((ecma_number < INT_MAX_PLUS1) && (ecma_number > INT_MIN_MINUS1))
+  {
+#else
+  if ((ecma_number < INT_MAX_PLUS1) && (ecma_number + INT_MIN > -1.0))
+  {
+#endif
+    *result = (ecma_integer_value_t) ecma_number;
+
+    return ((ecma_number_t) *result == ecma_number
+        && ((*result == 0) ? ecma_number_to_binary (ecma_number) == ECMA_NUMBER_BINARY_ZERO
+                                 : ECMA_IS_INTEGER_NUMBER (*result)));
+  } else {
+    return false;
+  }
+} /* ecma_number_try_integer_cast */
 
 /**
  * Check if ecma-number is NaN

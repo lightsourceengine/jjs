@@ -3197,7 +3197,7 @@ parser_compiled_code_set_function_name (parser_context_t *context_p, /**< contex
   }
 
   parser_scope_stack_t *scope_stack_start_p = context_p->scope_stack_p;
-  parser_scope_stack_t *scope_stack_p = scope_stack_start_p + context_p->scope_stack_top;
+  parser_scope_stack_t *scope_stack_p = scope_stack_start_p ? scope_stack_start_p + context_p->scope_stack_top : NULL;
 
   while (scope_stack_p > scope_stack_start_p)
   {

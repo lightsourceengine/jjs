@@ -2397,7 +2397,8 @@ lexer_construct_literal_object (parser_context_t *context_p, /**< context */
       if (search_scope_stack)
       {
         parser_scope_stack_t *scope_stack_start_p = context_p->scope_stack_p;
-        parser_scope_stack_t *scope_stack_p = scope_stack_start_p + context_p->scope_stack_top;
+        parser_scope_stack_t *scope_stack_p
+          = scope_stack_start_p ? scope_stack_start_p + context_p->scope_stack_top : NULL;
 
         while (scope_stack_p > scope_stack_start_p)
         {
@@ -2504,7 +2505,7 @@ lexer_construct_number_object (parser_context_t *context_p, /**< context */
       num = ecma_utf8_string_to_number (context_p->token.lit_location.char_p, length, options);
     }
 
-    if (is_expr)
+    if (is_expr && num > 0 && num <= CBC_PUSH_NUMBER_BYTE_RANGE_END)
     {
       int32_t int_num = (int32_t) num;
 

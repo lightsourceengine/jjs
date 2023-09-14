@@ -47,6 +47,8 @@ uint32_t ecma_number_biased_exp (ecma_binary_num_t binary);
 uint64_t ecma_number_fraction (ecma_binary_num_t binary);
 ecma_number_t ecma_number_create (bool sign, uint32_t biased_exp, uint64_t fraction);
 
+bool ecma_number_try_integer_cast(ecma_number_t ecma_number, ecma_integer_value_t* result);
+
 /**
  * Maximum number of significant decimal digits that an ecma-number can store
  */

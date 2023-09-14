@@ -322,7 +322,6 @@ parser_module_parse_import_clause (parser_context_t *context_p) /**< parser cont
 
     if (context_p->token.type != LEXER_LITERAL || context_p->token.lit_location.type != LEXER_IDENT_LITERAL)
     {
-      printf("before raise error!!!\n");
       parser_raise_error (context_p, PARSER_ERR_IDENTIFIER_EXPECTED);
     }
 

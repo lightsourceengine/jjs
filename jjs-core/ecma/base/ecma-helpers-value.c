@@ -569,11 +569,9 @@ ecma_make_length_value (ecma_length_t number) /**< number to be encoded */
 ecma_value_t
 ecma_make_number_value (ecma_number_t ecma_number) /**< number to be encoded */
 {
-  ecma_integer_value_t integer_value = (ecma_integer_value_t) ecma_number;
+  ecma_integer_value_t integer_value;
 
-  if ((ecma_number_t) integer_value == ecma_number
-      && ((integer_value == 0) ? ecma_is_number_equal_to_positive_zero (ecma_number)
-                               : ECMA_IS_INTEGER_NUMBER (integer_value)))
+  if (ecma_number_try_integer_cast (ecma_number, &integer_value))
   {
     return ecma_make_integer_value (integer_value);
   }

@@ -2342,7 +2342,7 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
     }
 
     context_p->scope_stack_p = scope_stack_p;
-    scope_stack_end_p = scope_stack_p + context_p->scope_stack_size;
+    scope_stack_end_p = scope_stack_p ? scope_stack_p + context_p->scope_stack_size : NULL;
 
     if (option_flags & (SCANNER_CREATE_VARS_IS_SCRIPT | SCANNER_CREATE_VARS_IS_MODULE))
     {
