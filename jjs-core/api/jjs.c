@@ -6362,9 +6362,8 @@ jjs_arraybuffer_data (const jjs_value_t array_buffer) /**< Array Buffer to use *
   return (uint8_t *) ecma_arraybuffer_get_buffer (arraybuffer_p);
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (array_buffer);
-#endif /* JJS_BUILTIN_TYPEDARRAY */
-
   return NULL;
+#endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_arraybuffer_data */
 
 /**

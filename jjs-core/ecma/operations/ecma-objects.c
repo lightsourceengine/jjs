@@ -1593,16 +1593,6 @@ ecma_op_object_put_with_receiver (ecma_object_t *object_p, /**< the object */
       }
 
       return ecma_op_object_put_apply_receiver (receiver, property_name_p, value, is_throw);
-
-      ecma_property_value_t *new_prop_value_p;
-      new_prop_value_p = ecma_create_named_data_property (object_p,
-                                                          property_name_p,
-                                                          ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
-                                                          NULL);
-
-      JJS_ASSERT (ecma_is_value_undefined (new_prop_value_p->value));
-      new_prop_value_p->value = ecma_copy_value_if_not_object (value);
-      return ECMA_VALUE_TRUE;
     }
   }
 
