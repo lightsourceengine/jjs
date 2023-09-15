@@ -221,10 +221,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: "gabrielfalcao/pyenv-action@v16"
-        with:
-          default: 2.7.18
-          command: python2 $RUNNER --test262 update
+      - name: Run Tests
+        run: python $RUNNER --test262 update
       - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
@@ -236,10 +234,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: "gabrielfalcao/pyenv-action@v16"
-        with:
-          default: 2.7.18
-          command: $RUNNER --test262 update --build-debug --test262-test-list=built-ins,annexB,harness,intl402
+      - name: Run Tests
+        run: $RUNNER --test262 update --build-debug --test262-test-list=built-ins,annexB,harness,intl402
       - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
@@ -251,10 +247,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - uses: "gabrielfalcao/pyenv-action@v16"
-        with:
-          default: 2.7.18
-          command: $RUNNER --test262 update --build-debug --test262-test-list=language
+      - name: Run Tests
+        run: $RUNNER --test262 update --build-debug --test262-test-list=language
       - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
