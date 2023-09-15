@@ -3307,6 +3307,31 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
           ecma_fast_free_value (value);
           continue;
         }
+        case VM_OC_BRANCH_OPTIONAL_CHAIN:
+        {
+          left_value = stack_top_p[-1];
+
+          bool pop_reference = byte_code_p[0] == CBC_EXT_OPCODE && byte_code_p[1] == CBC_EXT_POP_REFERENCE;
+
+          if (!ecma_is_value_null (left_value) && !ecma_is_value_undefined (left_value))
+          {
+            if (pop_reference)
+            {
+              byte_code_p += 2;
+            }
+
+            continue;
+          }
+
+          stack_top_p[-1] = ECMA_VALUE_UNDEFINED;
+          byte_code_p = byte_code_start_p + branch_offset;
+
+          if (!pop_reference)
+          {
+            continue;
+          }
+          /* FALLTHRU */
+        }
         case VM_OC_POP_REFERENCE:
         {
           ecma_free_value (stack_top_p[-2]);

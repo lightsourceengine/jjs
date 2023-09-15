@@ -20,7 +20,8 @@
 ECMA_ERROR_DEF (ECMA_ERR_INVALID_GROUP, "Invalid group")
 ECMA_ERROR_DEF (ECMA_ERR_INVALID_ESCAPE, "Invalid escape")
 #endif /* JJS_BUILTIN_REGEXP */
-#if JJS_BUILTIN_ATOMICS || JJS_BUILTIN_TYPEDARRAY
+#if JJS_BUILTIN_ATOMICS \
+|| JJS_BUILTIN_TYPEDARRAY
 ECMA_ERROR_DEF (ECMA_ERR_INVALID_LENGTH, "Invalid length")
 #endif /* JJS_BUILTIN_ATOMICS \
 || JJS_BUILTIN_TYPEDARRAY */
@@ -266,7 +267,8 @@ ECMA_ERROR_DEF (ECMA_ERR_UNKNOWN_EXPORT, "Native module export not found")
 #endif /* JJS_MODULE_SYSTEM */
 ECMA_ERROR_DEF (ECMA_ERR_PASSED_ARGUMENT_IS_NOT_A_REALM, "Passed argument is not a realm")
 ECMA_ERROR_DEF (ECMA_ERR_PRIVATE_METHOD_IS_NOT_WRITABLE, "Private method is not writable")
-#if JJS_BUILTIN_BIGINT || JJS_BUILTIN_NUMBER
+#if JJS_BUILTIN_BIGINT \
+|| JJS_BUILTIN_NUMBER
 ECMA_ERROR_DEF (ECMA_ERR_RADIX_IS_OUT_OF_RANGE, "Radix must be between 2 and 36")
 #endif /* JJS_BUILTIN_BIGINT \
 || JJS_BUILTIN_NUMBER */
@@ -331,10 +333,12 @@ ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_FUNCTION, "Argument 'this' is not a f
 #if JJS_BUILTIN_ATOMICS
 ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_NOT_SHARED_ARRAY_BUFFER, "Argument is not SharedArrayBuffer")
 #endif /* JJS_BUILTIN_ATOMICS */
-#if JJS_BUILTIN_ARRAY || JJS_BUILTIN_CONTAINER || JJS_BUILTIN_TYPEDARRAY
+#if JJS_BUILTIN_ARRAY \
+|| JJS_BUILTIN_CONTAINER \
+|| JJS_BUILTIN_TYPEDARRAY
 ECMA_ERROR_DEF (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE, "Callback function is not callable")
 #endif /* JJS_BUILTIN_ARRAY \
-|| JJS_BUILTIN_CONTAINER    \
+|| JJS_BUILTIN_CONTAINER \
 || JJS_BUILTIN_TYPEDARRAY */
 #if JJS_BUILTIN_TYPEDARRAY
 ECMA_ERROR_DEF (ECMA_ERR_INITIAL_VALUE_CANNOT_BE_UNDEFINED, "Initial value cannot be undefined")
@@ -371,7 +375,8 @@ ECMA_ERROR_DEF (ECMA_ERR_MAXIMUM_TYPEDARRAY_SIZE_IS_REACHED, "Maximum TypedArray
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 ECMA_ERROR_DEF (ECMA_ERR_THE_GIVEN_ARGUMENT_IS_NOT_A_SYMBOL, "The given argument is not a Symbol")
 ECMA_ERROR_DEF (ECMA_ERR_PARAMETER_REJECT_MUST_BE_CALLABLE, "'reject' parameter must be callable")
-#if JJS_BUILTIN_ATOMICS || JJS_BUILTIN_TYPEDARRAY
+#if JJS_BUILTIN_ATOMICS \
+|| JJS_BUILTIN_TYPEDARRAY
 ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_TYPED_ARRAY, "Argument 'this' is not a TypedArray")
 #endif /* JJS_BUILTIN_ATOMICS \
 || JJS_BUILTIN_TYPEDARRAY */
@@ -586,8 +591,7 @@ ECMA_ERROR_DEF (ECMA_ERR_SNAPSHOT_FLAG_NOT_SUPPORTED, "Unsupported generate snap
 ECMA_ERROR_DEF (ECMA_ERR_UNSUPPORTED_SNAPSHOT_EXEC_FLAGS_ARE_SPECIFIED, "Unsupported snapshot exec flags are specified")
 #endif /* JJS_SNAPSHOT_EXEC */
 ECMA_ERROR_DEF (ECMA_ERR_VALUE_FOR_CLASS_HERITAGE_IS_NOT_A_CONSTRUCTOR, "Value for class heritage is not a constructor")
-ECMA_ERROR_DEF (ECMA_ERR_TOO_MANY_ARGUMENTS_DECLARED_FOR_FUNCTION_APPLY,
-                "Too many arguments declared for Function.apply")
+ECMA_ERROR_DEF (ECMA_ERR_TOO_MANY_ARGUMENTS_DECLARED_FOR_FUNCTION_APPLY, "Too many arguments declared for Function.apply")
 #if JJS_ERROR_MESSAGES
 ECMA_ERROR_DEF (ECMA_ERR_ACCESSOR_FUNCTIONS_INVOKE_WITH_NEW, "Accessor functions cannot be invoked with 'new'")
 #endif /* JJS_ERROR_MESSAGES */
@@ -595,15 +599,13 @@ ECMA_ERROR_DEF (ECMA_ERR_ACCESSOR_FUNCTIONS_INVOKE_WITH_NEW, "Accessor functions
 ECMA_ERROR_DEF (ECMA_ERR_LINK_TO_MODULE_IN_ERROR_STATE, "Cannot link to a module which is in error state")
 #endif /* JJS_MODULE_SYSTEM */
 #if JJS_BUILTIN_BIGINT
-ECMA_ERROR_DEF (ECMA_ERR_ONLY_INTEGER_NUMBERS_CAN_BE_CONVERTED_TO_BIGINT,
-                "Only integer numbers can be converted to BigInt")
+ECMA_ERROR_DEF (ECMA_ERR_ONLY_INTEGER_NUMBERS_CAN_BE_CONVERTED_TO_BIGINT, "Only integer numbers can be converted to BigInt")
 #endif /* JJS_BUILTIN_BIGINT */
 #if JJS_BUILTIN_TYPEDARRAY
 ECMA_ERROR_DEF (ECMA_ERR_TYPEDARRAY_INTRINSTIC_DIRECTLY_CALLED, "TypedArray intrinstic cannot be directly called")
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 #if JJS_BUILTIN_BIGINT
-ECMA_ERROR_DEF (ECMA_ERR_UNSIGNED_RIGHT_SHIFT_IS_NOT_ALLOWED_FOR_BIGINTS,
-                "Unsigned right shift is not allowed for BigInts")
+ECMA_ERROR_DEF (ECMA_ERR_UNSIGNED_RIGHT_SHIFT_IS_NOT_ALLOWED_FOR_BIGINTS, "Unsigned right shift is not allowed for BigInts")
 #endif /* JJS_BUILTIN_BIGINT */
 ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_ASYNC_GENERATOR, "Argument 'this' is not an async generator object")
 ECMA_ERROR_DEF (ECMA_ERR_CLASS_EXTENDS_NOT_CONSTRUCTOR, "Class extends value is not a constructor or null")
@@ -611,12 +613,10 @@ ECMA_ERROR_DEF (ECMA_ERR_CLASS_EXTENDS_NOT_CONSTRUCTOR, "Class extends value is 
 ECMA_ERROR_DEF (ECMA_ERR_GENERATOR_FUNCTIONS_INVOKE_WITH_NEW, "Generator functions cannot be invoked with 'new'")
 #endif /* JJS_ERROR_MESSAGES */
 #if JJS_BUILTIN_REGEXP
-ECMA_ERROR_DEF (ECMA_ERR_RETURN_VALUE_OF_EXEC_MUST_BE_AN_OBJECT_OR_NULL,
-                "Return value of 'exec' must be an object or null")
+ECMA_ERROR_DEF (ECMA_ERR_RETURN_VALUE_OF_EXEC_MUST_BE_AN_OBJECT_OR_NULL, "Return value of 'exec' must be an object or null")
 #endif /* JJS_BUILTIN_REGEXP */
 #if JJS_BUILTIN_DATAVIEW
-ECMA_ERROR_DEF (ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER,
-                "Start offset is outside the bounds of the buffer")
+ECMA_ERROR_DEF (ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER, "Start offset is outside the bounds of the buffer")
 #endif /* JJS_BUILTIN_DATAVIEW */
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
 ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_SHARED_ARRAY_BUFFER, "Argument 'this' is not a SharedArrayBuffer object")
@@ -630,11 +630,9 @@ ECMA_ERROR_DEF (ECMA_ERR_CLASS_IS_NON_CONFIGURABLE, "Prototype property of a cla
 #if JJS_BUILTIN_ARRAY
 ECMA_ERROR_DEF (ECMA_ERR_PUSHING_TOO_HIGH_ELEMENT, "Pushing element over 2**53-1 length is disallowed")
 #endif /* JJS_BUILTIN_ARRAY */
-ECMA_ERROR_DEF (ECMA_ERR_THE_REQUESTED_PROPERTY_UPDATE_CANNOT_BE_PERFORMED,
-                "The requested property update cannot be performed")
+ECMA_ERROR_DEF (ECMA_ERR_THE_REQUESTED_PROPERTY_UPDATE_CANNOT_BE_PERFORMED, "The requested property update cannot be performed")
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_CONFIGURABLE_KEYS,
-                "Trap result did not include all configurable keys")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_CONFIGURABLE_KEYS, "Trap result did not include all configurable keys")
 ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_TARGET_NOT_EXTENSIBLE, "Trap returned truish for target is not extensible")
 #endif /* JJS_BUILTIN_PROXY */
 #if JJS_BUILTIN_NUMBER
@@ -644,8 +642,7 @@ ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_NUMBER, "Argument 'this' is not a num
 ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_STRING_OBJECT, "Argument 'this' is not a string or a String object")
 #endif /* JJS_BUILTIN_STRING */
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
-ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_SHARED_ARRAY_BUFFER_OBJECT,
-                "Argument 'this' is not an SharedArrayBuffer object")
+ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_THIS_NOT_SHARED_ARRAY_BUFFER_OBJECT, "Argument 'this' is not an SharedArrayBuffer object")
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 #if JJS_ERROR_MESSAGES
 ECMA_ERROR_DEF (ECMA_ERR_ASYNC_ARROW_FUNCTIONS_INVOKE_WITH_NEW, "Async arrow functions cannot be invoked with 'new'")
@@ -654,106 +651,73 @@ ECMA_ERROR_DEF (ECMA_ERR_ASYNC_ARROW_FUNCTIONS_INVOKE_WITH_NEW, "Async arrow fun
 ECMA_ERROR_DEF (ECMA_ERR_UNSHIFT_TOO_HIGH, "Unshift elements over 2**53-1 length is disallowed")
 #endif /* JJS_BUILTIN_ARRAY */
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_NON_CONFIGURABLE_KEYS,
-                "Trap result did not include all non-configurable keys")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_NON_CONFIGURABLE_KEYS, "Trap result did not include all non-configurable keys")
 #endif /* JJS_BUILTIN_PROXY */
 #if JJS_ERROR_MESSAGES
-ECMA_ERROR_DEF (ECMA_ERR_ASYNC_GENERATOR_FUNCTIONS_INVOKE_WITH_NEW,
-                "Async generator functions cannot be invoked with 'new'")
+ECMA_ERROR_DEF (ECMA_ERR_ASYNC_GENERATOR_FUNCTIONS_INVOKE_WITH_NEW, "Async generator functions cannot be invoked with 'new'")
 #endif /* JJS_ERROR_MESSAGES */
 #if JJS_BUILTIN_REFLECT
-ECMA_ERROR_DEF (ECMA_ERR_REFLECT_EXPECTS_AN_OBJECT_AS_SECOND_ARGUMENT,
-                "Reflect.construct expects an object as second argument")
+ECMA_ERROR_DEF (ECMA_ERR_REFLECT_EXPECTS_AN_OBJECT_AS_SECOND_ARGUMENT, "Reflect.construct expects an object as second argument")
 #endif /* JJS_BUILTIN_REFLECT */
 #if JJS_ERROR_MESSAGES
-ECMA_ERROR_DEF (ECMA_ERR_SCRIPT_GLOBAL_FUNCTIONS_INVOKE_WITH_NEW,
-                "Script (global) functions cannot be invoked with 'new'")
+ECMA_ERROR_DEF (ECMA_ERR_SCRIPT_GLOBAL_FUNCTIONS_INVOKE_WITH_NEW, "Script (global) functions cannot be invoked with 'new'")
 #endif /* JJS_ERROR_MESSAGES */
 #if JJS_BUILTIN_PROXY
 ECMA_ERROR_DEF (ECMA_ERR_CANNOT_CREATE_PROXY, "Cannot create Proxy with a non-object target or handler")
 #endif /* JJS_BUILTIN_PROXY */
-ECMA_ERROR_DEF (ECMA_ERR_DERIVED_CTOR_RETURN_NOR_OBJECT_OR_UNDEFINED,
-                "Derived constructors may only return object or undefined")
+ECMA_ERROR_DEF (ECMA_ERR_DERIVED_CTOR_RETURN_NOR_OBJECT_OR_UNDEFINED, "Derived constructors may only return object or undefined")
 #if JJS_SNAPSHOT_EXEC
-ECMA_ERROR_DEF (ECMA_ERR_INVALID_SNAPSHOT_VERSION_OR_FEATURES,
-                "Invalid snapshot version or unsupported features present")
+ECMA_ERROR_DEF (ECMA_ERR_INVALID_SNAPSHOT_VERSION_OR_FEATURES, "Invalid snapshot version or unsupported features present")
 #endif /* JJS_SNAPSHOT_EXEC */
 #if JJS_BUILTIN_TYPEDARRAY
-ECMA_ERROR_DEF (ECMA_ERR_TYPEDARRAY_SMALLER_THAN_FILTER_CALL_RESULT,
-                "Constructed TypedArray is smaller than filter call result")
-ECMA_ERROR_DEF (ECMA_ERR_DERIVED_ARRAY_BUFFER_CTOR_BUFFER_TOO_SMALL,
-                "Derived ArrayBuffer constructor created a too small buffer")
+ECMA_ERROR_DEF (ECMA_ERR_TYPEDARRAY_SMALLER_THAN_FILTER_CALL_RESULT, "Constructed TypedArray is smaller than filter call result")
+ECMA_ERROR_DEF (ECMA_ERR_DERIVED_ARRAY_BUFFER_CTOR_BUFFER_TOO_SMALL, "Derived ArrayBuffer constructor created a too small buffer")
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_EXTENSIBILITY,
-                "Trap result does not reflect extensibility of Proxy target")
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_EXTRA_KEYS_FOR_A_NON_EXTENSIBLE_TARGET,
-                "Trap returned extra keys for a non-extensible Proxy target")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_EXTENSIBILITY, "Trap result does not reflect extensibility of Proxy target")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_EXTRA_KEYS_FOR_A_NON_EXTENSIBLE_TARGET, "Trap returned extra keys for a non-extensible Proxy target")
 #endif /* JJS_BUILTIN_PROXY */
 #if JJS_BUILTIN_TYPEDARRAY
-ECMA_ERROR_DEF (ECMA_ERR_ARRAY_BUFFER_RETURNED_THIS_FROM_CONSTRUCTOR,
-                "ArrayBuffer subclass returned this from species constructor")
+ECMA_ERROR_DEF (ECMA_ERR_ARRAY_BUFFER_RETURNED_THIS_FROM_CONSTRUCTOR, "ArrayBuffer subclass returned this from species constructor")
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 #if JJS_BUILTIN_DATAVIEW
-ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_BUFFER_NOT_ARRAY_OR_SHARED_BUFFER,
-                "Argument 'buffer' is not an ArrayBuffer or SharedArrayBuffer")
+ECMA_ERROR_DEF (ECMA_ERR_ARGUMENT_BUFFER_NOT_ARRAY_OR_SHARED_BUFFER, "Argument 'buffer' is not an ArrayBuffer or SharedArrayBuffer")
 #endif /* JJS_BUILTIN_DATAVIEW */
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_INEXTENSIBILITY,
-                "Trap result does not reflect inextensibility of Proxy target")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_INEXTENSIBILITY, "Trap result does not reflect inextensibility of Proxy target")
 #endif /* JJS_BUILTIN_PROXY */
 #if JJS_BUILTIN_TYPEDARRAY
-ECMA_ERROR_DEF (ECMA_ERR_TYPEDARRAY_INTRINSTIC_CALLED_BY_NEW_EXPRESSION,
-                "TypedArray intrinstic cannot be called by a 'new' expression")
+ECMA_ERROR_DEF (ECMA_ERR_TYPEDARRAY_INTRINSTIC_CALLED_BY_NEW_EXPRESSION, "TypedArray intrinstic cannot be called by a 'new' expression")
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 #if JJS_BUILTIN_BIGINT && JJS_BUILTIN_TYPEDARRAY
-ECMA_ERROR_DEF (ECMA_ERR_CONTENTTYPE_RETURNED_TYPEDARRAY_NOT_MATCH_SOURCE,
-                "TypedArray returned by [[ContentType]] does not match source")
+ECMA_ERROR_DEF (ECMA_ERR_CONTENTTYPE_RETURNED_TYPEDARRAY_NOT_MATCH_SOURCE, "TypedArray returned by [[ContentType]] does not match source")
 #endif /* JJS_BUILTIN_BIGINT && JJS_BUILTIN_TYPEDARRAY */
 #if JJS_BUILTIN_BIGINT
 ECMA_ERROR_DEF (ECMA_ERR_ALLOCATE_BIGINT_STRING, "Cannot allocate memory for a string representation of a BigInt value")
 #endif /* JJS_BUILTIN_BIGINT */
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TARGET_NOT_EXTENSIBLE_DIFFERENT_PROTOTYPE_RETURNED,
-                "Target object is non-extensible and trap returned different prototype")
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_ADDING_PROPERTY_NON_EXTENSIBLE_TARGET,
-                "Trap returned truish for adding property to the non-extensible target")
+ECMA_ERROR_DEF (ECMA_ERR_TARGET_NOT_EXTENSIBLE_DIFFERENT_PROTOTYPE_RETURNED, "Target object is non-extensible and trap returned different prototype")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_ADDING_PROPERTY_NON_EXTENSIBLE_TARGET, "Trap returned truish for adding property to the non-extensible target")
 #endif /* JJS_BUILTIN_PROXY */
-ECMA_ERROR_DEF (ECMA_ERR_CANNOT_READ_PRIVATE_MEMBER_TO_AN_OBJECT_WHOSE_CLASS_DID_NOT_DECLARE_IT,
-                "Cannot read private member to an object whose class did not declare it")
+ECMA_ERROR_DEF (ECMA_ERR_CANNOT_READ_PRIVATE_MEMBER_TO_AN_OBJECT_WHOSE_CLASS_DID_NOT_DECLARE_IT, "Cannot read private member to an object whose class did not declare it")
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_GIVEN_PROPERTY_IS_A_NON_CONFIGURABLE,
-                "Given property is a non-configurable data property on the proxy target")
+ECMA_ERROR_DEF (ECMA_ERR_GIVEN_PROPERTY_IS_A_NON_CONFIGURABLE, "Given property is a non-configurable data property on the proxy target")
 #endif /* JJS_BUILTIN_PROXY */
-ECMA_ERROR_DEF (ECMA_ERR_CANNOT_WRITE_PRIVATE_MEMBER_TO_AN_OBJECT_WHOSE_CLASS_DID_NOT_DECLARE_IT,
-                "Cannot write private member to an object whose class did not declare it")
+ECMA_ERROR_DEF (ECMA_ERR_CANNOT_WRITE_PRIVATE_MEMBER_TO_AN_OBJECT_WHOSE_CLASS_DID_NOT_DECLARE_IT, "Cannot write private member to an object whose class did not declare it")
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_FALSISH_PROPERTY_TARGET_NOT_EXTENSIBLE,
-                "Trap returned falsish for property but the proxy target is not extensible")
-ECMA_ERROR_DEF (ECMA_ERR_PROXY_PROPERTY_NOT_CONFIGURABLE_NOT_HAVE_GETTER,
-                "Property of a Proxy is non-configurable and does not have a getter function")
-ECMA_ERROR_DEF (ECMA_ERR_TARGET_PROPERTY_CONFIGURE_ACCESSOR_WITHOUT_SETTER,
-                "The property of a Proxy target is a non configurable accessor without a setter")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_FALSISH_PROPERTY_TARGET_NOT_EXTENSIBLE, "Trap returned falsish for property but the proxy target is not extensible")
+ECMA_ERROR_DEF (ECMA_ERR_PROXY_PROPERTY_NOT_CONFIGURABLE_NOT_HAVE_GETTER, "Property of a Proxy is non-configurable and does not have a getter function")
+ECMA_ERROR_DEF (ECMA_ERR_TARGET_PROPERTY_CONFIGURE_ACCESSOR_WITHOUT_SETTER, "The property of a Proxy target is a non configurable accessor without a setter")
 #endif /* JJS_BUILTIN_PROXY */
-ECMA_ERROR_DEF (ECMA_ERR_LET_CONST_NOT_INITIALIZED,
-                "Variables declared by let/const must be initialized before reading their value")
+ECMA_ERROR_DEF (ECMA_ERR_LET_CONST_NOT_INITIALIZED, "Variables declared by let/const must be initialized before reading their value")
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_PROPERTY_NON_CONFIGURABLE,
-                "Trap returned truish for property which is non-configurable in the proxy target")
-ECMA_ERROR_DEF (ECMA_ERR_TARGET_NOT_EXTENSIBLE_NOT_RETURNED_ITS_PROTOTYPE,
-                "Proxy target is non-extensible, but the trap did not return its actual prototype")
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_FALSISH_PROPERTY_NON_CONFIGURABLE,
-                "Trap returned falsish for property which exists in the proxy target as non-configurable")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_PROPERTY_NON_CONFIGURABLE, "Trap returned truish for property which is non-configurable in the proxy target")
+ECMA_ERROR_DEF (ECMA_ERR_TARGET_NOT_EXTENSIBLE_NOT_RETURNED_ITS_PROTOTYPE, "Proxy target is non-extensible, but the trap did not return its actual prototype")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_FALSISH_PROPERTY_NON_CONFIGURABLE, "Trap returned falsish for property which exists in the proxy target as non-configurable")
 #endif /* JJS_BUILTIN_PROXY */
-ECMA_ERROR_DEF (ECMA_ERR_CALL_SUPER_CONSTRUCTOR_DERIVED_CLASS_BEFORE_THIS,
-                "Must call super constructor in derived class before accessing 'this' or returning from it")
+ECMA_ERROR_DEF (ECMA_ERR_CALL_SUPER_CONSTRUCTOR_DERIVED_CLASS_BEFORE_THIS, "Must call super constructor in derived class before accessing 'this' or returning from it")
 #if JJS_BUILTIN_PROXY
-ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY,
-                "Trap returned truish for defining non-configurable property which is non-existent in the target")
-ECMA_ERROR_DEF (
-  ECMA_ERR_TRAP_TRUISH_ADD_PROPERTY_INCOMPATIBLE_OTHER_PROP,
-  "Trap returned truish for adding property that is incompatible with the existing property in the target")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY, "Trap returned truish for defining non-configurable property which is non-existent in the target")
+ECMA_ERROR_DEF (ECMA_ERR_TRAP_TRUISH_ADD_PROPERTY_INCOMPATIBLE_OTHER_PROP, "Trap returned truish for adding property that is incompatible with the existing property in the target")
 #endif /* JJS_BUILTIN_PROXY */
-ECMA_ERROR_DEF (ECMA_ERR_CANNOT_ACCESS_CALLER_CALLE_ARGUMENTS,
-                "'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the "
-                "arguments objects for calls to them")
+ECMA_ERROR_DEF (ECMA_ERR_CANNOT_ACCESS_CALLER_CALLE_ARGUMENTS, "'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them")

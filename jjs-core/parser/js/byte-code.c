@@ -28,7 +28,7 @@ JJS_STATIC_ASSERT (offsetof (cbc_uint8_arguments_t, script_value) == offsetof (c
  * whenever new bytecodes are introduced or existing ones have been deleted.
  */
 JJS_STATIC_ASSERT (CBC_END == 238, number_of_cbc_opcodes_changed);
-JJS_STATIC_ASSERT (CBC_EXT_END == 167, number_of_cbc_ext_opcodes_changed);
+JJS_STATIC_ASSERT (CBC_EXT_END == 170, number_of_cbc_ext_opcodes_changed);
 
 #if JJS_PARSER || JJS_PARSER_DUMP_BYTE_CODE
 
