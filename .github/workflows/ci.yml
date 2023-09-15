@@ -189,9 +189,6 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
       - name: JS Tests
         # invoking snapshot via test python scripts is broken on windows
         run: python .\tools\run-tests.py -q --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
@@ -206,9 +203,6 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.8'
       - name: JS Tests
         # invoking snapshot via test python scripts is broken on windows
         run: python .\tools\run-tests.py -q --build-debug --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
