@@ -1,6 +1,6 @@
 # Produced files
 .mbedignore
-build/*
+build
 cmake-build-*/
 
 # IDE related files
@@ -41,3 +41,7 @@ docs/doxygen
 # Tests
 tests/test262/
 .vs
+
+# zig
+zig-cache/
+zig-out/

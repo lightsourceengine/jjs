@@ -277,3 +277,16 @@ jobs:
       - run: sudo apt install gcc-multilib
       - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on
       - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on --build-debug
+
+  zig_example:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: goto-bus-stop/setup-zig@v2.1.1
+        with:
+          version: 0.11.0
+      - run: python tools/build.py --amalgam ON
+      - run: cd zig/example && zig build run
