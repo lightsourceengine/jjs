@@ -197,7 +197,7 @@ jobs:
         run: python .\tools\run-tests.py -q --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
       - name: C Unit Tests
-        run: python .\tools\run-tests.py -q --unittests --skip-list=unit-test-date-helpers
+        run: python .\tools\run-tests.py -q --unittests
         shell: powershell
 
   # Note: Date().getDay() is broken on windows, disable associated tests
@@ -214,7 +214,7 @@ jobs:
         run: python .\tools\run-tests.py -q --build-debug --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
       - name: C Unit Tests
-        run: python .\tools\run-tests.py -q --build-debug --unittests --skip-list=unit-test-date-helpers
+        run: python .\tools\run-tests.py -q --build-debug --unittests
         shell: powershell
 
   ecma_test262_release:
