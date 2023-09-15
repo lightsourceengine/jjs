@@ -140,13 +140,7 @@ ecma_number_create (bool sign, /**< sign */
  */
 bool ecma_number_try_integer_cast(ecma_number_t ecma_number, ecma_integer_value_t* result)
 {
-#if INT_MIN == -INT_MAX
-  if ((ecma_number < INT_MAX_PLUS1) && (ecma_number > INT_MIN_MINUS1))
-  {
-#else
-  if ((ecma_number < INT_MAX_PLUS1) && (ecma_number + INT_MIN > -1.0))
-  {
-#endif
+  if (!isnan(ecma_number) && (ecma_number < INT_MAX_PLUS1) && (ecma_number > INT_MIN_MINUS1)) {
     *result = (ecma_integer_value_t) ecma_number;
 
     return ((ecma_number_t) *result == ecma_number
