@@ -515,10 +515,6 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-#if defined(JJS_EXTERNAL_CONTEXT) && (JJS_EXTERNAL_CONTEXT == 1)
-  context_init ();
-#endif /* defined (JJS_EXTERNAL_CONTEXT) && (JJS_EXTERNAL_CONTEXT == 1) */
-
   jjs_init (JJS_INIT_EMPTY);
 
   size_t lit_buf_sz = 0;
@@ -678,11 +674,7 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
     jjs_log (JJS_LOG_LEVEL_ERROR, "Error: at least two input files must be passed.\n");
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
-
-#if defined(JJS_EXTERNAL_CONTEXT) && (JJS_EXTERNAL_CONTEXT == 1)
-  context_init ();
-#endif /* defined (JJS_EXTERNAL_CONTEXT) && (JJS_EXTERNAL_CONTEXT == 1) */
-
+  
   jjs_init (JJS_INIT_EMPTY);
 
   const char *error_p = NULL;
