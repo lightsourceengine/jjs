@@ -27,9 +27,8 @@ The only reasonable option was to fork the project and rebrand to continue devel
 
 # Roadmap
 
-* Optional Chaining
 * Top Level Await
-* WeakRef and FinalizationRegistry
+* FinalizationRegistry
 * C++ Bindings
 * Performance improvements
 * Fix parse errors with private fields
@@ -47,6 +46,9 @@ The only reasonable option was to fork the project and rebrand to continue devel
 * Fix global variable scope bug when importing.
 * Rebranded API to remove problematic "jerry" prefix.
 * Add MSVC compiler support.
+* Added Optional Chaining (https://github.com/tc39/proposal-optional-chaining)
+* Fix issues with undefined behavior.
+* Some support for compiling and embedding with Zig.
 
 # Out of Scope
 
