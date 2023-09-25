@@ -36,7 +36,7 @@ jjsx_module_create_error (jjs_error_t error_type, /**< the type of error to crea
                             const char *message, /**< the error message */
                             const jjs_value_t module_name) /**< the module name */
 {
-  jjs_value_t error_object = jjs_error_sz (error_type, message);
+  jjs_value_t error_object = jjs_error_sz (error_type, message, jjs_undefined());
   jjs_value_t property_name = jjs_string_sz (module_name_property_name);
 
   jjs_value_free (jjs_object_set (error_object, property_name, module_name));

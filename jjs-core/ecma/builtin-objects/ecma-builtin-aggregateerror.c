@@ -58,6 +58,7 @@ ecma_builtin_aggregate_error_dispatch_call (const ecma_value_t *arguments_list_p
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
   ecma_value_t message_val = ECMA_VALUE_UNDEFINED;
   ecma_value_t error_val = ECMA_VALUE_UNDEFINED;
+  ecma_value_t options_val = ECMA_VALUE_UNDEFINED;
 
   if (arguments_list_len > 0)
   {
@@ -67,9 +68,13 @@ ecma_builtin_aggregate_error_dispatch_call (const ecma_value_t *arguments_list_p
     {
       message_val = arguments_list_p[1];
     }
+
+    if (arguments_list_len > 2) {
+      options_val = arguments_list_p[2];
+    }
   }
 
-  return ecma_new_aggregate_error (error_val, message_val);
+  return ecma_new_aggregate_error (error_val, message_val, options_val);
 } /* ecma_builtin_aggregate_error_dispatch_call */
 
 /**

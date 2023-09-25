@@ -682,7 +682,7 @@ main (void)
       jjs_object (),
       jjs_null (),
       jjs_arraybuffer (16),
-      jjs_error_sz (JJS_ERROR_TYPE, "error"),
+      jjs_error_sz (JJS_ERROR_TYPE, "error", jjs_undefined()),
       jjs_undefined (),
       jjs_promise (),
     };

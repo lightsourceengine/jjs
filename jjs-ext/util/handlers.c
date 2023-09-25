@@ -83,13 +83,27 @@ jjsx_handler_assert (const jjs_call_info_t *call_info_p, /**< call information *
 {
   (void) call_info_p; /* unused */
 
-  if (args_cnt == 1 && jjs_value_is_true (args_p[0]))
+  if (args_cnt > 0 && jjs_value_is_true (args_p[0]))
   {
     return jjs_boolean (true);
   }
 
+  if (args_cnt > 1 && jjs_value_is_string (args_p[1]))
+  {
+    uint8_t buffer[256];
+
+    jjs_size_t written = jjs_string_to_buffer (args_p[1], JJS_ENCODING_UTF8, buffer, sizeof (buffer) - 1);
+    buffer[written] = '\0';
+
+    jjs_log (JJS_LOG_LEVEL_ERROR, "Script Error: assertion failed: %s\n", buffer);
+  }
+  else
+  {
+    jjs_log (JJS_LOG_LEVEL_ERROR, "Script Error: assertion failed\n");
+  }
+
   /* Assert failed, print a bit of JS backtrace */
-  jjs_log (JJS_LOG_LEVEL_ERROR, "Script Error: assertion failed\n");
+
   jjsx_print_backtrace (5);
 
   jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);

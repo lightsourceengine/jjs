@@ -605,16 +605,12 @@
   <test id="built-ins/DataView/prototype/setUint32/resizable-buffer.js"><reason></reason></test>
   <test id="built-ins/DataView/prototype/setUint8/resizable-buffer.js"><reason></reason></test>
   <test id="built-ins/Error/cause_abrupt.js"><reason></reason></test>
-  <test id="built-ins/Error/cause_property.js"><reason></reason></test>
-  <test id="built-ins/Error/constructor.js"><reason></reason></test>
   <test id="built-ins/FinalizationRegistry/is-a-constructor.js"><reason></reason></test>
   <test id="built-ins/FinalizationRegistry/prototype/cleanupSome/not-a-constructor.js"><reason></reason></test>
   <test id="built-ins/FinalizationRegistry/prototype/register/not-a-constructor.js"><reason></reason></test>
   <test id="built-ins/FinalizationRegistry/prototype/unregister/not-a-constructor.js"><reason></reason></test>
   <test id="built-ins/Function/internals/Call/class-ctor-realm.js"><reason></reason></test>
   <test id="built-ins/Function/prototype/bind/instance-length-tointeger.js"><reason></reason></test>
-  <test id="built-ins/NativeErrors/AggregateError/cause-property.js"><reason></reason></test>
-  <test id="built-ins/NativeErrors/cause_property_native_error.js"><reason></reason></test>
   <test id="built-ins/Object/freeze/proxy-with-defineProperty-handler.js"><reason></reason></test>
   <test id="built-ins/Array/length/define-own-prop-length-coercion-order-set.js"><reason></reason></test>
   <test id="built-ins/Array/prototype/Symbol.unscopables/value.js"><reason></reason></test>

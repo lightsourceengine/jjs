@@ -1035,8 +1035,8 @@ jjs_value_t jjs_regexp_sz (const char *pattern_p, uint16_t flags);
  * @defgroup jjs-api-error-ctor Constructors
  * @{
  */
-jjs_value_t jjs_error (jjs_error_t type, const jjs_value_t message);
-jjs_value_t jjs_error_sz (jjs_error_t type, const char *message_p);
+jjs_value_t jjs_error (jjs_error_t type, const jjs_value_t message, const jjs_value_t options);
+jjs_value_t jjs_error_sz (jjs_error_t type, const char *message_p, const jjs_value_t options);
 /**
  * jjs-api-error-ctor @}
  */
@@ -1061,6 +1061,25 @@ void jjs_error_on_created (jjs_error_object_created_cb_t callback, void *user_p)
 
 /**
  * jjs-api-error @}
+ */
+
+/**
+ * @defgroup jjs-api-aggregate-error AggregateError
+ * @{
+ */
+
+/**
+ * @defgroup jjs-api-aggregate-error-ctor Constructors
+ * @{
+ */
+jjs_value_t jjs_aggregate_error (const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options);
+jjs_value_t jjs_aggregate_error_sz (const jjs_value_t errors, const char *message_p, const jjs_value_t options);
+/**
+ * jjs-api-aggregate-error--ctor @}
+ */
+
+/**
+ * jjs-api-aggregate-error @}
  */
 
 /**

@@ -29,6 +29,8 @@
 
 jjs_error_t ecma_get_error_type (ecma_object_t *error_object_p);
 ecma_object_t *ecma_new_standard_error (jjs_error_t error_type, ecma_string_t *message_string_p);
+ecma_object_t *ecma_new_standard_error_with_options (jjs_error_t error_type, ecma_string_t *message_string_p, ecma_value_t options_val);
+
 #if JJS_ERROR_MESSAGES
 ecma_value_t ecma_raise_standard_error_with_format (jjs_error_t error_type, const char *msg_p, ...);
 #endif /* JJS_ERROR_MESSAGES */
@@ -40,7 +42,7 @@ ecma_value_t ecma_raise_syntax_error (ecma_error_msg_t msg);
 ecma_value_t ecma_raise_type_error (ecma_error_msg_t msg);
 ecma_value_t ecma_raise_uri_error (ecma_error_msg_t msg);
 ecma_value_t ecma_raise_maximum_callstack_error (void);
-ecma_value_t ecma_new_aggregate_error (ecma_value_t error_list_val, ecma_value_t message_val);
+ecma_value_t ecma_new_aggregate_error (ecma_value_t error_list_val, ecma_value_t message_val, ecma_value_t options_val);
 ecma_value_t ecma_raise_aggregate_error (ecma_value_t error_list_val, ecma_value_t message_val);
 
 /**

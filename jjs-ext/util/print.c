@@ -28,12 +28,12 @@
 /**
  * Print buffer size
  */
-#define JJSX_PRINT_BUFFER_SIZE 64
+#define JJSX_PRINT_BUFFER_SIZE 128
 
 /**
  * Max line size that will be printed on a Syntax Error
  */
-#define JJSX_SYNTAX_ERROR_MAX_LINE_LENGTH 256
+#define JJSX_SYNTAX_ERROR_MAX_LINE_LENGTH 512
 
 /**
  * Struct for buffering print outpu

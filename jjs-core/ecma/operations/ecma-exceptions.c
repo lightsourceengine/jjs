@@ -41,22 +41,10 @@
  * @{
  */
 
-/**
- * Standard ecma-error object constructor.
- *
- * Note:
- *    message_string_p can be NULL.
- *
- * Note:
- *    calling with JJS_ERROR_NONE does not make sense thus it will
- *    cause a fault in the system.
- *
- * @return pointer to ecma-object representing specified error
- *         with reference counter set to one.
- */
 ecma_object_t *
-ecma_new_standard_error (jjs_error_t error_type, /**< native error type */
-                         ecma_string_t *message_string_p) /**< message string */
+ecma_new_standard_error_with_options (jjs_error_t error_type,
+                                      ecma_string_t *message_string_p,
+                                      ecma_value_t options_val)
 {
 #if JJS_BUILTIN_ERRORS
   ecma_builtin_id_t prototype_id = ECMA_BUILTIN_ID__COUNT;
@@ -139,6 +127,29 @@ ecma_new_standard_error (jjs_error_t error_type, /**< native error type */
     prop_value_p->value = ecma_make_string_value (message_string_p);
   }
 
+  if (ecma_is_value_object (options_val))
+  {
+    ecma_object_t *options_object_p = ecma_get_object_from_value (options_val);
+    // TODO: this property access can throw an error that should be passed up to the caller
+    ecma_value_t options_cause_value = ecma_op_object_get_by_magic_id (options_object_p, LIT_MAGIC_STRING_CAUSE);
+
+    if (!ECMA_IS_VALUE_ERROR (options_cause_value))
+    {
+      ecma_property_value_t *prop_value_p = ecma_create_named_data_property (
+        error_object_p,
+        ecma_get_magic_string (LIT_MAGIC_STRING_CAUSE),
+        ECMA_PROPERTY_CONFIGURABLE_WRITABLE,
+        NULL);
+
+      ecma_named_data_property_assign_value (error_object_p, prop_value_p, options_cause_value);
+      ecma_free_value (options_cause_value);
+    }
+    else
+    {
+      ecma_free_value (options_cause_value);
+    }
+  }
+
   /* Avoid calling the decorator function recursively. */
   if (JJS_CONTEXT (error_object_created_callback_p) != NULL
       && !(JJS_CONTEXT (status_flags) & ECMA_STATUS_ERROR_UPDATE))
@@ -166,6 +177,27 @@ ecma_new_standard_error (jjs_error_t error_type, /**< native error type */
   }
 
   return error_object_p;
+}
+
+/**
+ * Standard ecma-error object constructor.
+ *
+ * Note:
+ *    message_string_p can be NULL.
+ *    cause_p can be NULL.
+ *
+ * Note:
+ *    calling with JJS_ERROR_NONE does not make sense thus it will
+ *    cause a fault in the system.
+ *
+ * @return pointer to ecma-object representing specified error
+ *         with reference counter set to one.
+ */
+ecma_object_t *
+ecma_new_standard_error (jjs_error_t error_type, /**< native error type */
+                         ecma_string_t *message_string_p) /**< message string */
+{
+  return ecma_new_standard_error_with_options (error_type, message_string_p, ECMA_VALUE_UNDEFINED);
 } /* ecma_new_standard_error */
 
 /**
@@ -175,7 +207,8 @@ ecma_new_standard_error (jjs_error_t error_type, /**< native error type */
  */
 ecma_value_t
 ecma_new_aggregate_error (ecma_value_t error_list_val, /**< errors list */
-                          ecma_value_t message_val) /**< message string */
+                          ecma_value_t message_val, /**< message string */
+                          ecma_value_t options_val) /**< options object */
 {
   ecma_object_t *new_error_object_p;
 
@@ -188,12 +221,12 @@ ecma_new_aggregate_error (ecma_value_t error_list_val, /**< errors list */
       return ECMA_VALUE_ERROR;
     }
 
-    new_error_object_p = ecma_new_standard_error (JJS_ERROR_AGGREGATE, message_string_p);
+    new_error_object_p = ecma_new_standard_error_with_options (JJS_ERROR_AGGREGATE, message_string_p, options_val);
     ecma_deref_ecma_string (message_string_p);
   }
   else
   {
-    new_error_object_p = ecma_new_standard_error (JJS_ERROR_AGGREGATE, NULL);
+    new_error_object_p = ecma_new_standard_error_with_options (JJS_ERROR_AGGREGATE, NULL, options_val);
   }
 
   ecma_value_t using_iterator = ecma_op_get_method_by_symbol_id (error_list_val, LIT_GLOBAL_SYMBOL_ITERATOR);
@@ -506,7 +539,7 @@ ecma_value_t
 ecma_raise_aggregate_error (ecma_value_t error_list_val, /**< errors list */
                             ecma_value_t message_val) /**< error message */
 {
-  ecma_value_t aggre_val = ecma_new_aggregate_error (error_list_val, message_val);
+  ecma_value_t aggre_val = ecma_new_aggregate_error (error_list_val, message_val, ECMA_VALUE_UNDEFINED);
   jcontext_raise_exception (aggre_val);
 
   return ECMA_VALUE_ERROR;

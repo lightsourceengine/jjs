@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-function Test262Error(message) {
+function Regression4463Error(message) {
   this.message = message || "";
 }
 
-Test262Error.prototype.toString = function () {
-  return "Test262Error: " + this.message;
+Regression4463Error.prototype.toString = function () {
+  return "Regression4463Error: " + this.message;
 };
 
 var newTarget = function () {}.bind(null);
 Object.defineProperty(newTarget, "prototype", {
   get() {
-    throw new Test262Error();
+    throw new Regression4463Error();
   },
 });
 
@@ -43,8 +43,8 @@ for (var type of typedArrayConstructors) {
   try {
     Reflect.construct(Uint8ClampedArray, [], newTarget);
   } catch (error) {
-    if (!(error instanceof Test262Error)) {
-      throw "error must be instanceof Test262Error";
+    if (!(error instanceof Regression4463Error)) {
+      throw "error must be instanceof Regression4463Error";
     }
   }
 }

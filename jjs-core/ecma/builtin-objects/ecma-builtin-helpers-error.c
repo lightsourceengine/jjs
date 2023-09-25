@@ -53,7 +53,14 @@ ecma_builtin_helper_error_dispatch_call (jjs_error_t error_type, /**< native err
       return ECMA_VALUE_ERROR;
     }
 
-    ecma_object_t *new_error_object_p = ecma_new_standard_error (error_type, message_string_p);
+    ecma_value_t options_val = ECMA_VALUE_UNDEFINED;
+
+    if (arguments_list_len > 1 && ecma_is_value_object (arguments_list_p[1]))
+    {
+      options_val = arguments_list_p[1];
+    }
+
+    ecma_object_t *new_error_object_p = ecma_new_standard_error_with_options (error_type, message_string_p, options_val);
 
     ecma_deref_ecma_string (message_string_p);
     return ecma_make_object_value (new_error_object_p);

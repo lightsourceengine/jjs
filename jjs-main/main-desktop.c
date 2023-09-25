@@ -98,9 +98,11 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
   if (arguments_p->option_flags & OPT_FLAG_TEST262_OBJECT)
   {
     jjsx_test262_register ();
+    jjsx_test262_register_assert();
+  } else {
+    jjsx_register_global ("assert", jjsx_handler_assert);
   }
 
-  jjsx_register_global ("assert", jjsx_handler_assert);
   jjsx_register_global ("gc", jjsx_handler_gc);
   jjsx_register_global ("print", jjsx_handler_print);
   jjsx_register_global ("sourceName", jjsx_handler_source_name);

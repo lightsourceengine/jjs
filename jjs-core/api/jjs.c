@@ -2460,7 +2460,8 @@ jjs_boolean (bool value) /**< bool value from which a jjs_value_t will be create
  */
 jjs_value_t
 jjs_error (jjs_error_t error_type, /**< type of error */
-             const jjs_value_t message) /**< message of the error */
+             const jjs_value_t message, /**< message of the error */
+             const jjs_value_t options)  /**< options */
 {
   jjs_assert_api_enabled ();
 
@@ -2470,7 +2471,7 @@ jjs_error (jjs_error_t error_type, /**< type of error */
     message_p = ecma_get_string_from_value (message);
   }
 
-  ecma_object_t *error_object_p = ecma_new_standard_error ((jjs_error_t) error_type, message_p);
+  ecma_object_t *error_object_p = ecma_new_standard_error_with_options((jjs_error_t) error_type, message_p, options);
 
   return ecma_make_object_value (error_object_p);
 } /* jjs_error */
@@ -2483,8 +2484,8 @@ jjs_error (jjs_error_t error_type, /**< type of error */
  */
 jjs_value_t
 jjs_error_sz (jjs_error_t error_type, /**< type of error */
-                const char *message_p) /**< value of 'message' property
-                                        *   of constructed error object */
+                const char *message_p, /**< message of the error */
+                const jjs_value_t options)  /**< options */
 {
   jjs_value_t message = ECMA_VALUE_UNDEFINED;
 
@@ -2493,11 +2494,59 @@ jjs_error_sz (jjs_error_t error_type, /**< type of error */
     message = jjs_string_sz (message_p);
   }
 
-  ecma_value_t error = jjs_error (error_type, message);
+  ecma_value_t error = jjs_error (error_type, message, options);
   ecma_free_value (message);
 
   return error;
 } /* jjs_error_sz */
+
+/**
+ * Create an AggregateError object.
+ *
+ * If the errors argument is not iterable, an exception will be returned.
+ *
+ * The message argument will be toString()'d.
+ *
+ * If the options argument is an object containing a "cause" property, this cause property will be
+ * copied to the new error object. Otherwise, the options argument is ignored.
+ *
+ * @param errors iterable value, like an Array or Set
+ * @param message_p value to set as message
+ * @param options optional options object containing "cause"
+ * @return AggregateError object or exception if errors is not iterable
+ */
+jjs_value_t jjs_aggregate_error (const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options) {
+  jjs_assert_api_enabled ();
+
+  return ecma_new_aggregate_error(errors, message, options);
+} /* jjs_aggregate_error */
+
+/**
+ * Create an AggregateError object with a zero-terminated string as a message.
+ *
+ * If the errors argument is not iterable, an exception will be returned.
+ *
+ * If the options argument is an object containing a "cause" property, this cause property will be
+ * copied to the new error object. Otherwise, the options argument is ignored.
+ *
+ * @param errors iterable value, like an Array or Set
+ * @param message_p null terminated string message
+ * @param options optional options object containing "cause"
+ * @return AggregateError object or exception if errors is not iterable
+ */
+jjs_value_t jjs_aggregate_error_sz (const jjs_value_t errors, const char *message_p, const jjs_value_t options) {
+  jjs_value_t message = ECMA_VALUE_UNDEFINED;
+
+  if (message_p != NULL)
+  {
+    message = jjs_string_sz (message_p);
+  }
+
+  ecma_value_t error = jjs_aggregate_error (errors, message, options);
+  ecma_free_value (message);
+
+  return error;
+} /* jjs_aggregate_error_sz */
 
 /**
  * Create an exception by constructing an Error object with the specified type and the provided string value as the
@@ -2509,7 +2558,7 @@ jjs_value_t
 jjs_throw (jjs_error_t error_type, /**< type of error */
              const jjs_value_t message) /**< message value */
 {
-  return jjs_throw_value (jjs_error (error_type, message), true);
+  return jjs_throw_value (jjs_error (error_type, message, ECMA_VALUE_UNDEFINED), true);
 } /* jjs_throw */
 
 /**
@@ -2523,7 +2572,7 @@ jjs_throw_sz (jjs_error_t error_type, /**< type of error */
                 const char *message_p) /**< value of 'message' property
                                         *   of constructed error object */
 {
-  return jjs_throw_value (jjs_error_sz (error_type, message_p), true);
+  return jjs_throw_value (jjs_error_sz (error_type, message_p, ECMA_VALUE_UNDEFINED), true);
 } /* jjs_throw_sz */
 
 /**

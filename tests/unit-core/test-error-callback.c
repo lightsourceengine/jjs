@@ -84,7 +84,7 @@ main (void)
   run_test ("var error = new Error()\n"
             "error.message === 'Replaced message!'\n");
 
-  jjs_value_free (jjs_error_sz (JJS_ERROR_COMMON, "Message"));
+  jjs_value_free (jjs_error_sz (JJS_ERROR_COMMON, "Message", jjs_undefined()));
 
   TEST_ASSERT (error_object_created_callback_count == 11);
 
