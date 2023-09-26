@@ -2865,11 +2865,11 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
   ecma_free_value (tioi_result);
 
   // 4, 5
-  ecma_length_t actual_index = (relative_index >= 0) ? (ecma_length_t)relative_index
-                                                     : len + (ecma_length_t)relative_index;
+  ecma_number_t len_n = (ecma_number_t)len;
+  ecma_number_t actual_index_n = (relative_index >= 0) ? relative_index : len_n + relative_index;
 
   // 6
-  if (actual_index >= len || actual_index < 0)
+  if (actual_index_n >= len_n || actual_index_n < 0)
   {
     return ecma_raise_range_error (ECMA_ERR_INVALID_RANGE_OF_INDEX);
   }
@@ -2880,11 +2880,13 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
   // 8
   ecma_length_t k = 0;
   ecma_value_t value = args_number > 1 ? args[1] : ECMA_VALUE_UNDEFINED;
+  ecma_length_t actual_index = (ecma_length_t)actual_index_n;
 
   // 9
   while (k < len) {
     if (k == actual_index)
     {
+      // 9.b, 9.d
       ecma_value_t result = ecma_op_object_put_by_index (a, k, value, true);
 
       if (ECMA_IS_VALUE_ERROR (result)) {
@@ -2896,6 +2898,7 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
     }
     else
     {
+      // 9.c
       ecma_value_t element = ecma_op_object_get_by_index (obj_p, k);
 
       if (ECMA_IS_VALUE_ERROR (element)) {
@@ -2903,6 +2906,7 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
         return element;
       }
 
+      // 9.d
       ecma_value_t result = ecma_op_object_put_by_index (a, k, element, true);
 
       if (ECMA_IS_VALUE_ERROR (result)) {

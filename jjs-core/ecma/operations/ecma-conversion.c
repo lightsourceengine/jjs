@@ -944,6 +944,7 @@ ecma_op_to_integer_or_infinity (ecma_value_t value, ecma_number_t *number_p)
   ecma_value_t result = ecma_op_to_number (value, &number);
 
   if (ECMA_IS_VALUE_ERROR (result)) {
+    *number_p = ECMA_NUMBER_ZERO;
     return result;
   }
 
