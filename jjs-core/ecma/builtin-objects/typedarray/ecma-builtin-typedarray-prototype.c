@@ -64,6 +64,8 @@ enum
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FILTER,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FIND,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FIND_INDEX,
+  ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FIND_LAST,
+  ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FIND_LAST_INDEX,
 
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_INDEX_OF,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_AT,
@@ -1393,6 +1395,81 @@ ecma_builtin_typedarray_prototype_find_helper (ecma_value_t this_arg, /**< this 
 } /* ecma_builtin_typedarray_prototype_find_helper */
 
 /**
+ * The %TypedArray%.prototype object's 'findLast' and 'findLastIndex' routine helper
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_typedarray_prototype_find_last_helper (ecma_value_t this_arg, /**< this argument */
+                                                    ecma_typedarray_info_t *info_p, /**< object info */
+                                                    ecma_value_t predicate, /**< callback function */
+                                                    ecma_value_t predicate_this_arg, /**< this argument for
+                                                                                      *   invoke predicate */
+                                                    bool is_find_last) /**< true - findLast routine
+                                                                        *   false - findLastIndex routine */
+{
+  if (!ecma_op_is_callable (predicate))
+  {
+    return ecma_raise_type_error (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE);
+  }
+
+  if (ecma_arraybuffer_is_detached (info_p->array_buffer_p))
+  {
+    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+  }
+
+  if (info_p->length == 0)
+  {
+    return is_find_last ? ECMA_VALUE_UNDEFINED : ecma_make_integer_value (-1);
+  }
+
+  JJS_ASSERT (ecma_is_value_object (predicate));
+  ecma_object_t *func_object_p = ecma_get_object_from_value (predicate);
+  uint8_t *buffer_p = ecma_arraybuffer_get_buffer (info_p->array_buffer_p) + info_p->offset;
+  ecma_typedarray_getter_fn_t typedarray_getter_cb = ecma_get_typedarray_getter_fn (info_p->id);
+
+  for (uint32_t buffer_index = info_p->length; buffer_index-- > 0;)
+  {
+    ecma_value_t element_value = typedarray_getter_cb (buffer_p + (buffer_index * info_p->element_size));
+
+    ecma_value_t call_args[] = { element_value, ecma_make_uint32_value (buffer_index), this_arg };
+    ecma_value_t call_value = ecma_op_function_call (func_object_p, predicate_this_arg, call_args, 3);
+
+    if (ECMA_IS_VALUE_ERROR (call_value))
+    {
+      ecma_free_value (element_value);
+      return call_value;
+    }
+
+    if (ecma_arraybuffer_is_detached (info_p->array_buffer_p))
+    {
+      ecma_free_value (element_value);
+      ecma_free_value (call_value);
+      return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    }
+
+    bool call_result = ecma_op_to_boolean (call_value);
+    ecma_free_value (call_value);
+
+    if (call_result)
+    {
+      if (is_find_last)
+      {
+        return element_value;
+      }
+
+      ecma_free_value (element_value);
+      return ecma_make_uint32_value (buffer_index);
+    }
+
+    ecma_free_value (element_value);
+  }
+
+  return is_find_last ? ECMA_VALUE_UNDEFINED : ecma_make_integer_value (-1);
+} /* ecma_builtin_typedarray_prototype_find_helper */
+
+/**
  * The %TypedArray%.prototype object's 'at' routine
  *
  * See also:
@@ -2015,6 +2092,16 @@ ecma_builtin_typedarray_prototype_dispatch_routine (uint8_t builtin_routine_id, 
                                                             arguments_list_p[0],
                                                             arguments_list_p[1],
                                                             is_find);
+    }
+    case ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FIND_LAST:
+    case ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FIND_LAST_INDEX:
+    {
+      bool is_find_last = builtin_routine_id == ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_FIND_LAST;
+      return ecma_builtin_typedarray_prototype_find_last_helper (this_arg,
+                                                                 &info,
+                                                                 arguments_list_p[0],
+                                                                 arguments_list_p[1],
+                                                                 is_find_last);
     }
     case ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_AT:
     {

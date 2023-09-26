@@ -152,6 +152,7 @@ def main(args):
     # XXX: This is a hack to load includes. test262-harness.py should be fixed to load includes.
     command += ' ' + os.path.join(args.test_dir, 'harness', 'assert.js')
     command += ' ' + os.path.join(args.test_dir, 'harness', 'sta.js')
+    command += ' ' + os.path.join(args.test_dir, 'harness', 'compareArray.js')
 
     kwargs = {}
     if sys.version_info.major >= 3:
