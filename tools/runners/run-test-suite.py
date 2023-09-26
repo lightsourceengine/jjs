@@ -70,17 +70,19 @@ def get_tests(test_dir, test_list, skip_list):
         for skipped in skip_list:
             if skipped in test:
                 return False
+        if os.path.dirname(test).endswith('lib'):
+            return False
         return True
 
     return [test for test in tests if filter_tests(test)]
 
 
-def execute_test_command(test_cmd):
+def execute_test_command(test_cmd, cwd):
     kwargs = {}
     if sys.version_info.major >= 3:
         kwargs['encoding'] = 'unicode_escape'
     process = subprocess.Popen(test_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                               universal_newlines=True, **kwargs)
+                               universal_newlines=True, cwd=cwd, **kwargs)
     stdout = process.communicate()[0]
     return (process.returncode, stdout)
 
@@ -137,7 +139,7 @@ def run_normal_tests(args, tests):
         if test.endswith('.mjs'):
             test_argument.extend(['-m'])
 
-        (returncode, stdout) = execute_test_command(test_cmd + test_argument + [test])
+        (returncode, stdout) = execute_test_command(test_cmd + test_argument + [test], args.test_dir)
 
         if (returncode == 0 and not is_expected_to_fail) or (returncode == 1 and is_expected_to_fail):
             passed += 1
@@ -176,7 +178,7 @@ def run_snapshot_tests(args, tests):
         tested += 1
         test_path = os.path.relpath(test)
         is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
-        (returncode, stdout) = execute_test_command(generate_snapshot_cmd + [test])
+        (returncode, stdout) = execute_test_command(generate_snapshot_cmd + [test], args.test_dir)
 
         if (returncode == 0) or (returncode == 1 and is_expected_to_fail):
             if not args.quiet:
@@ -193,7 +195,7 @@ def run_snapshot_tests(args, tests):
                 passed += 1
             continue
 
-        (returncode, stdout) = execute_test_command(execute_snapshot_cmd)
+        (returncode, stdout) = execute_test_command(execute_snapshot_cmd, args.test_dir)
         os.remove('js.snapshot')
 
         if (returncode == 0 and not is_expected_to_fail) or (returncode == 1 and is_expected_to_fail):

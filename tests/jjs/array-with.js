@@ -13,21 +13,7 @@
  * limitations under the License.
  */
 
-function arrayEquals(actual, expected) {
-  assert(actual.length === expected.length, `expected length: ${expected.length}, actual length: ${actual.length}`);
-  for (let i = 0; i < actual.length; i++) {
-    assert(actual[i] === expected[i], `expected ${expected[i]} at index ${i}, actual ${actual[i]}`);
-  }
-}
-
-function assertThrows(type, fn) {
-  try {
-    fn();
-    assert(false, `expected ${type} to be thrown`);
-  } catch (e) {
-    assert(e instanceof type, `expected ${type} to be thrown, got ${e}`);
-  }
-}
+const { arrayEquals, assertThrows } = include('./lib/assert.js');
 
 let source;
 let dest;

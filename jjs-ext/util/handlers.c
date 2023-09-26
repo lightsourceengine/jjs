@@ -21,6 +21,8 @@
 
 #include "jjs-ext/print.h"
 
+#include <string.h>
+
 /**
  * Provide a 'print' implementation for scripts.
  *
@@ -167,6 +169,120 @@ jjsx_handler_create_realm (const jjs_call_info_t *call_info_p, /**< call informa
   (void) args_cnt; /* unused */
   return jjs_realm ();
 } /* jjsx_handler_create_realm */
+
+/**
+ * Special include() function for tests to load common code.
+ *
+ * include() loads CJS-like modules given a specifier. The specifier is a
+ * filename that can be absolute or relative to the current working directory.
+ * The function returns the loaded module.
+ *
+ * Modules have "module" and "exports" objects exposed to their global namespace.
+ * include() will return the "module.exports" object.
+ *
+ * Limitations:
+ * - no caching
+ * - search paths cannot be configured (limited to CWD)
+ * - no __dirname, __filename or require() in global namespace
+ * - module object just contains the "exports" property
+ * - specifier path separator must be '/'
+ *
+ * @return the loaded module; otherwise an exception
+ */
+jjs_value_t
+jjsx_handler_include (const jjs_call_info_t *call_info_p, /**< call information */
+                      const jjs_value_t args_p[], /**< function arguments */
+                      const jjs_length_t args_cnt) /**< number of function arguments */
+{
+  (void)call_info_p;
+
+  char specifier[256];
+
+  if (args_cnt != 1 || !jjs_value_is_string(args_p[0]))
+  {
+    return jjs_throw_sz(JJS_ERROR_TYPE, "include() expects 1 string argument");
+  }
+
+  jjs_size_t specifier_size = jjs_string_size(args_p[0], JJS_ENCODING_UTF8);
+
+  if (specifier_size > sizeof(specifier) - 1)
+  {
+    return jjs_throw_sz(JJS_ERROR_TYPE, "include() specifier string too long");
+  }
+
+  jjs_size_t written = jjs_string_to_buffer (args_p[0], JJS_ENCODING_UTF8, (jjs_char_t*)specifier, sizeof(specifier) - 1);
+  specifier[written] = '\0';
+
+  if (written != specifier_size)
+  {
+    return jjs_throw_sz(JJS_ERROR_TYPE, "include() could not read specifier string");
+  }
+
+#ifdef _WIN32
+  for (jjs_size_t i = 0; i < written; i++)
+  {
+    if (specifier[i] == '/')
+    {
+      specifier[i] = '\\';
+    }
+  }
+#endif
+
+  jjs_size_t source_size;
+  jjs_char_t * source = jjs_port_source_read (specifier, &source_size);
+
+  if (source == NULL)
+  {
+    return jjs_throw_sz(JJS_ERROR_TYPE, "include() could not read source file");
+  }
+
+  jjs_parse_options_t parse_options = {
+    .options = JJS_PARSE_HAS_ARGUMENT_LIST,
+    .argument_list = jjs_string_sz("module,exports"),
+  };
+  jjs_value_t compiled_source = jjs_parse (source, source_size, &parse_options);
+  jjs_value_t module = jjs_object();
+  jjs_value_t exports = jjs_object();
+  jjs_value_t args [] = { module, exports };
+  jjs_value_t call_result = jjs_undefined();
+  jjs_value_t result;
+
+  jjs_value_free(jjs_object_set_sz (module, "exports", exports));
+
+  if (jjs_value_is_exception (compiled_source))
+  {
+    jjsx_print_unhandled_exception (jjs_value_copy(compiled_source));
+    result = compiled_source;
+    goto cleanup;
+  }
+
+  call_result = jjs_call(compiled_source, jjs_undefined(), args, sizeof (args) / sizeof (args[0]));
+
+  if (jjs_value_is_exception (call_result))
+  {
+    jjsx_print_unhandled_exception (jjs_value_copy (call_result));
+    result = call_result;
+    goto cleanup;
+  }
+
+  result = jjs_object_get_sz(module, "exports");
+
+  if (jjs_value_is_exception (result))
+  {
+    jjsx_print_unhandled_exception (jjs_value_copy (result));
+    goto cleanup;
+  }
+
+cleanup:
+  jjs_value_free(parse_options.argument_list);
+  jjs_value_free (compiled_source);
+  jjs_value_free (module);
+  jjs_value_free (exports);
+  jjs_value_free (call_result);
+  jjs_port_source_free (source);
+
+  return result;
+} /* jjsx_handler_include */
 
 /**
  * Handler for unhandled promise rejection events.

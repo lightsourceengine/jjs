@@ -85,6 +85,7 @@ enum
   ECMA_ARRAY_PROTOTYPE_FIND_LAST,
   ECMA_ARRAY_PROTOTYPE_FIND_LAST_INDEX,
   ECMA_ARRAY_PROTOTYPE_WITH,
+  ECMA_ARRAY_PROTOTYPE_TO_REVERSED,
 };
 
 #define BUILTIN_INC_HEADER_NAME "ecma-builtin-array-prototype.inc.h"
@@ -2928,6 +2929,52 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
 } /* ecma_builtin_array_prototype_object_with */
 
 /**
+ * The Array.prototype object's 'toReversed' routine
+ *
+ * See also:
+ *          ECMA-262 v14, 23.1.3.33
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_array_prototype_object_to_reversed (ecma_object_t *obj_p, /**< array object */
+                                                 ecma_length_t len)    /**< array object's length */
+{
+  if (len > UINT32_MAX) {
+    return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
+  }
+
+  ecma_object_t* a = ecma_op_new_array_object ((uint32_t)len);
+
+  ecma_length_t k = 0;
+
+  while (k < len) {
+    ecma_value_t from_value = ecma_op_object_get_by_index (obj_p, len - k - 1);
+
+    if (ECMA_IS_VALUE_ERROR (from_value)) {
+      ecma_deref_object (a);
+      return from_value;
+    }
+
+    ecma_value_t result = ecma_op_object_put_by_index (a, k, from_value, true);
+
+    if (ECMA_IS_VALUE_ERROR (result)) {
+      ecma_deref_object (a);
+      ecma_free_value (from_value);
+      return result;
+    }
+
+    ecma_free_value (from_value);
+    ecma_free_value (result);
+
+    k++;
+  }
+
+  return ecma_make_object_value (a);
+} /* ecma_builtin_array_prototype_object_to_reversed */
+
+/**
  * Dispatcher of the built-in's routines
  *
  * @return ecma value
@@ -3137,6 +3184,11 @@ ecma_builtin_array_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< 
     case ECMA_ARRAY_PROTOTYPE_WITH:
     {
       ret_value = ecma_builtin_array_prototype_object_with (arguments_list_p, arguments_number, obj_p, length);
+      break;
+    }
+    case ECMA_ARRAY_PROTOTYPE_TO_REVERSED:
+    {
+      ret_value = ecma_builtin_array_prototype_object_to_reversed (obj_p, length);
       break;
     }
     default:

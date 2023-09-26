@@ -34,6 +34,9 @@ jjs_value_t jjsx_handler_source_name (const jjs_call_info_t *call_info_p,
 jjs_value_t jjsx_handler_create_realm (const jjs_call_info_t *call_info_p,
                                            const jjs_value_t args_p[],
                                            const jjs_length_t args_cnt);
+jjs_value_t
+jjsx_handler_include (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const jjs_length_t args_cnt);
+
 void jjsx_handler_promise_reject (jjs_promise_event_type_t event_type,
                                     const jjs_value_t object,
                                     const jjs_value_t value,
