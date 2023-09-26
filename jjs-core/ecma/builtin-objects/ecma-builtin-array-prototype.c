@@ -2845,7 +2845,7 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
                                           ecma_object_t *obj_p, /**< array object */
                                           ecma_length_t len) /**< array object's length */
 {
-  ecma_number_t relative_index;
+  ecma_number_t relative_index = ECMA_NUMBER_ZERO;
 
   // JJS limits an array size of 2^32 - 1, but the spec allows up to 2^53 - 1 and objects can have
   // up to 2^32 - 1 properties. obj_p can be a plain object with a length property, which exceeds the
