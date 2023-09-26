@@ -922,6 +922,49 @@ ecma_op_to_integer (ecma_value_t value, /**< ecma value */
 } /* ecma_op_to_integer */
 
 /**
+ * ToIntegerOrInfinity operation.
+ *
+ * See also:
+ *          ECMA-262 v14, 7.1.5
+ *
+ * @param value ecma value
+ * @param number_p number result if return value is not an error
+ * @return ECMA_VALUE_EMPTY if successful, otherwise an error. value must be freed by the caller
+ */
+ecma_value_t
+ecma_op_to_integer_or_infinity (ecma_value_t value, ecma_number_t *number_p)
+{
+  ecma_number_t number;
+
+  // FIXME: ecma_op_to_number is supposed to check this, but it converts true to 1.0 and false to 0.0
+  if (ecma_is_value_boolean (value)) {
+    return ecma_raise_type_error (ECMA_ERR_CONVERT_BOOLEAN_TO_NUMBER);
+  }
+
+  ecma_value_t result = ecma_op_to_number (value, &number);
+
+  if (ECMA_IS_VALUE_ERROR (result)) {
+    return result;
+  }
+
+  if (ecma_number_is_nan(number))
+  {
+    *number_p = ECMA_NUMBER_ZERO;
+    return ECMA_VALUE_EMPTY;
+  }
+
+  if (ecma_number_is_infinity (number)) {
+    *number_p = number;
+    return ECMA_VALUE_EMPTY;
+  }
+
+  ecma_number_t floor_fabs = (ecma_number_t) floor (fabs (number));
+  *number_p = ecma_number_is_negative (number) ? -floor_fabs : floor_fabs;
+
+  return ECMA_VALUE_EMPTY;
+} /* ecma_op_to_integer_or_infinity */
+
+/**
  * ToLength operation.
  *
  * See also:

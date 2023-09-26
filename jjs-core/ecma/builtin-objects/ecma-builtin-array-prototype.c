@@ -84,6 +84,7 @@ enum
   ECMA_ARRAY_PROTOTYPE_FLATMAP,
   ECMA_ARRAY_PROTOTYPE_FIND_LAST,
   ECMA_ARRAY_PROTOTYPE_FIND_LAST_INDEX,
+  ECMA_ARRAY_PROTOTYPE_WITH,
 };
 
 #define BUILTIN_INC_HEADER_NAME "ecma-builtin-array-prototype.inc.h"
@@ -2830,6 +2831,99 @@ ecma_builtin_array_prototype_object_flat_map (ecma_value_t callback, /**< callba
 } /* ecma_builtin_array_prototype_object_flat_map */
 
 /**
+ * The Array.prototype object's 'with' routine
+ *
+ * See also:
+ *          ECMA-262 v14, 23.1.3.39
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< arguments list */
+                                          uint32_t args_number, /**< argument count */
+                                          ecma_object_t *obj_p, /**< array object */
+                                          ecma_length_t len) /**< array object's length */
+{
+  ecma_number_t relative_index;
+
+  // JJS limits an array size of 2^32 - 1, but the spec allows up to 2^53 - 1 and objects can have
+  // up to 2^32 - 1 properties. obj_p can be a plain object with a length property, which exceeds the
+  // array limit. Therefore, we need to check the length here.
+  if (len > UINT32_MAX) {
+    return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
+  }
+
+  // 3
+  ecma_value_t tioi_result = ecma_op_to_integer_or_infinity (args_number > 0 ? args[0] : ECMA_VALUE_UNDEFINED,
+                                                              &relative_index);
+
+  if(ECMA_IS_VALUE_ERROR (tioi_result)) {
+    return tioi_result;
+  }
+
+  ecma_free_value (tioi_result);
+
+  // 4, 5
+  ecma_length_t actual_index = (relative_index >= 0) ? (ecma_length_t)relative_index
+                                                     : len + (ecma_length_t)relative_index;
+
+  // 6
+  if (actual_index >= len || actual_index < 0)
+  {
+    return ecma_raise_range_error (ECMA_ERR_INVALID_RANGE_OF_INDEX);
+  }
+
+  // 7
+  ecma_object_t* a = ecma_op_new_array_object ((uint32_t)len);
+
+  // 8
+  ecma_length_t k = 0;
+  ecma_value_t value = args_number > 1 ? args[1] : ECMA_VALUE_UNDEFINED;
+
+  // 9
+  while (k < len) {
+    if (k == actual_index)
+    {
+      ecma_value_t result = ecma_op_object_put_by_index (a, k, value, true);
+
+      if (ECMA_IS_VALUE_ERROR (result)) {
+        ecma_deref_object (a);
+        return result;
+      }
+
+      ecma_free_value (result);
+    }
+    else
+    {
+      ecma_value_t element = ecma_op_object_get_by_index (obj_p, k);
+
+      if (ECMA_IS_VALUE_ERROR (element)) {
+        ecma_deref_object (a);
+        return element;
+      }
+
+      ecma_value_t result = ecma_op_object_put_by_index (a, k, element, true);
+
+      if (ECMA_IS_VALUE_ERROR (result)) {
+        ecma_deref_object (a);
+        ecma_free_value (element);
+        return result;
+      }
+
+      ecma_free_value (result);
+      ecma_free_value (element);
+    }
+
+    // 9.e
+    k++;
+  }
+
+  // 10
+  return ecma_make_object_value (a);
+} /* ecma_builtin_array_prototype_object_with */
+
+/**
  * Dispatcher of the built-in's routines
  *
  * @return ecma value
@@ -3034,6 +3128,11 @@ ecma_builtin_array_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< 
                                                                  builtin_routine_id == ECMA_ARRAY_PROTOTYPE_FIND_LAST,
                                                                  obj_p,
                                                                  length);
+      break;
+    }
+    case ECMA_ARRAY_PROTOTYPE_WITH:
+    {
+      ret_value = ecma_builtin_array_prototype_object_with (arguments_list_p, arguments_number, obj_p, length);
       break;
     }
     default:
