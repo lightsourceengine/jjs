@@ -22,8 +22,6 @@ JJS_C_API_BEGIN
 
 void jjsx_test262_register (void);
 
-void jjsx_test262_register_assert(void);
-
 JJS_C_API_END
 
 #endif /* !JJSX_TEST262_H */

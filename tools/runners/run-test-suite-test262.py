@@ -149,6 +149,10 @@ def main(args):
     if args.test262_object:
         command += ' --test262-object'
 
+    # XXX: This is a hack to load includes. test262-harness.py should be fixed to load includes.
+    command += ' ' + os.path.join(args.test_dir, 'harness', 'assert.js')
+    command += ' ' + os.path.join(args.test_dir, 'harness', 'sta.js')
+
     kwargs = {}
     if sys.version_info.major >= 3:
         kwargs['errors'] = 'ignore'

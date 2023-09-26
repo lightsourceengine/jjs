@@ -4059,38 +4059,8 @@
   <!-- ESNext: Array/TypedArray prototype findLast and findLastIndex
        https://github.com/tc39/proposal-array-find-from-last
   -->
-  <test id="built-ins/Array/prototype/findLast/array-altered-during-loop.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/call-with-boolean.js"><reason></reason></test>
   <test id="built-ins/Array/prototype/findLast/callbackfn-resize-arraybuffer.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/length.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/name.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/predicate-call-parameters.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/predicate-call-this-non-strict.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/predicate-call-this-strict.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/predicate-called-for-each-array-property.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/predicate-not-called-on-empty-array.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/prop-desc.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/return-abrupt-from-predicate-call.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/return-abrupt-from-property.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/return-abrupt-from-this-length.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/return-found-value-predicate-result-is-true.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLast/return-undefined-if-predicate-returns-false-value.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/array-altered-during-loop.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/call-with-boolean.js"><reason></reason></test>
   <test id="built-ins/Array/prototype/findLastIndex/callbackfn-resize-arraybuffer.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/length.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/name.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/predicate-call-parameters.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/predicate-call-this-non-strict.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/predicate-call-this-strict.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/predicate-called-for-each-array-property.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/predicate-not-called-on-empty-array.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/prop-desc.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/return-abrupt-from-predicate-call.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/return-abrupt-from-property.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/return-abrupt-from-this-length.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/return-index-predicate-result-is-true.js"><reason></reason></test>
-  <test id="built-ins/Array/prototype/findLastIndex/return-negative-one-if-predicate-returns-false-value.js"><reason></reason></test>
   <test id="built-ins/TypedArray/prototype/findLast/BigInt/get-length-ignores-length-prop.js"><reason></reason></test>
   <test id="built-ins/TypedArray/prototype/findLast/BigInt/predicate-call-changes-value.js"><reason></reason></test>
   <test id="built-ins/TypedArray/prototype/findLast/BigInt/predicate-call-parameters.js"><reason></reason></test>

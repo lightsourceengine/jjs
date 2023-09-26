@@ -82,6 +82,8 @@ enum
   ECMA_ARRAY_PROTOTYPE_INCLUDES,
   ECMA_ARRAY_PROTOTYPE_FLAT,
   ECMA_ARRAY_PROTOTYPE_FLATMAP,
+  ECMA_ARRAY_PROTOTYPE_FIND_LAST,
+  ECMA_ARRAY_PROTOTYPE_FIND_LAST_INDEX,
 };
 
 #define BUILTIN_INC_HEADER_NAME "ecma-builtin-array-prototype.inc.h"
@@ -2296,6 +2298,85 @@ ecma_builtin_array_prototype_object_find (ecma_value_t predicate, /**< callback 
   return is_find ? ECMA_VALUE_UNDEFINED : ecma_make_integer_value (-1);
 } /* ecma_builtin_array_prototype_object_find */
 
+
+/**
+ * The Array.prototype object's 'findLast' and 'findLastIndex' routine
+ *
+ * See also:
+ *          ECMA-262, 23.1.3.11
+ *          ECMA-262, 23.1.3.12
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_array_prototype_object_find_last (ecma_value_t predicate, /**< callback function */
+                                          ecma_value_t predicate_this_arg, /**< this argument for
+                                                                            *   invoke predicate */
+                                          bool is_find_last, /**< true - find_last routine
+                                                              *   false - findLastIndex routine */
+                                          ecma_object_t *obj_p, /**< object */
+                                          ecma_length_t len) /**< object's length */
+{
+  if (!ecma_op_is_callable (predicate))
+  {
+    return ecma_raise_type_error (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE);
+  }
+
+  if (len == 0)
+  {
+    return is_find_last ? ECMA_VALUE_UNDEFINED : ecma_make_integer_value (-1);
+  }
+
+  /* We already checked that predicate is callable, so it will always be an object. */
+  JJS_ASSERT (ecma_is_value_object (predicate));
+  ecma_object_t *func_object_p = ecma_get_object_from_value (predicate);
+
+  for (ecma_length_t index = len; index-- > 0;)
+  {
+    ecma_value_t get_value = ecma_op_object_get_by_index (obj_p, index);
+
+    if (ECMA_IS_VALUE_ERROR (get_value))
+    {
+      return get_value;
+    }
+
+    ecma_value_t current_index = ecma_make_length_value (index);
+
+    ecma_value_t call_args[] = { get_value, current_index, ecma_make_object_value (obj_p) };
+
+    ecma_value_t call_value = ecma_op_function_call (func_object_p, predicate_this_arg, call_args, 3);
+
+    if (ECMA_IS_VALUE_ERROR (call_value))
+    {
+      ecma_free_value (get_value);
+      return call_value;
+    }
+
+    bool call_value_to_bool = ecma_op_to_boolean (call_value);
+
+    ecma_free_value (call_value);
+
+    if (call_value_to_bool)
+    {
+      /* 8.f */
+      if (is_find_last)
+      {
+        ecma_free_value (current_index);
+        return get_value;
+      }
+
+      ecma_free_value (get_value);
+      return current_index;
+    }
+
+    ecma_free_value (get_value);
+    ecma_free_value (current_index);
+  }
+
+  return is_find_last ? ECMA_VALUE_UNDEFINED : ecma_make_integer_value (-1);
+} /* ecma_builtin_array_prototype_object_find_last */
+
 /**
  * The Array.prototype object's 'copyWithin' routine
  *
@@ -2943,6 +3024,16 @@ ecma_builtin_array_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< 
     {
       ret_value =
         ecma_builtin_array_prototype_object_flat_map (arguments_list_p[0], arguments_list_p[1], obj_p, length);
+      break;
+    }
+    case ECMA_ARRAY_PROTOTYPE_FIND_LAST:
+    case ECMA_ARRAY_PROTOTYPE_FIND_LAST_INDEX:
+    {
+      ret_value = ecma_builtin_array_prototype_object_find_last (arguments_list_p[0],
+                                                                 arguments_list_p[1],
+                                                                 builtin_routine_id == ECMA_ARRAY_PROTOTYPE_FIND_LAST,
+                                                                 obj_p,
+                                                                 length);
       break;
     }
     default:
