@@ -196,7 +196,7 @@ def run_snapshot_tests(args, tests):
             continue
 
         (returncode, stdout) = execute_test_command(execute_snapshot_cmd, args.test_dir)
-        os.remove('js.snapshot')
+        os.remove(os.path.join(args.test_dir, 'js.snapshot'))
 
         if (returncode == 0 and not is_expected_to_fail) or (returncode == 1 and is_expected_to_fail):
             passed += 1
