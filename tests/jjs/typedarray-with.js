@@ -61,7 +61,8 @@ for (const TypedArray of typedArrayTypes) {
   // test: with() should replace index 0 with 0 when no arguments passed
   if (isBigIntArray(TypedArray)) {
     source = TypedArray.of(1n, 2n, 3n);
-    expected = [0n, 2n, 3n];
+    // FIXME: snapshots appear to be converting 0n to 0, causing the arrayEquals to fail
+    expected = [BigInt(0), 2n, 3n];
   } else {
     source = TypedArray.of(1, 2, 3);
     if (isFloatArray(TypedArray)) {
