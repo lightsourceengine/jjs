@@ -86,6 +86,7 @@ enum
   ECMA_ARRAY_PROTOTYPE_FIND_LAST_INDEX,
   ECMA_ARRAY_PROTOTYPE_WITH,
   ECMA_ARRAY_PROTOTYPE_TO_REVERSED,
+  ECMA_ARRAY_PROTOTYPE_TO_SPLICED,
 };
 
 #define BUILTIN_INC_HEADER_NAME "ecma-builtin-array-prototype.inc.h"
@@ -2344,9 +2345,7 @@ ecma_builtin_array_prototype_object_find_last (ecma_value_t predicate, /**< call
     }
 
     ecma_value_t current_index = ecma_make_length_value (index);
-
     ecma_value_t call_args[] = { get_value, current_index, ecma_make_object_value (obj_p) };
-
     ecma_value_t call_value = ecma_op_function_call (func_object_p, predicate_this_arg, call_args, 3);
 
     if (ECMA_IS_VALUE_ERROR (call_value))
@@ -2851,7 +2850,8 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
   // JJS limits an array size of 2^32 - 1, but the spec allows up to 2^53 - 1 and objects can have
   // up to 2^32 - 1 properties. obj_p can be a plain object with a length property, which exceeds the
   // array limit. Therefore, we need to check the length here.
-  if (len > UINT32_MAX) {
+  if (len > UINT32_MAX)
+  {
     return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
   }
 
@@ -2859,7 +2859,8 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
   ecma_value_t tioi_result = ecma_op_to_integer_or_infinity (args_number > 0 ? args[0] : ECMA_VALUE_UNDEFINED,
                                                               &relative_index);
 
-  if(ECMA_IS_VALUE_ERROR (tioi_result)) {
+  if(ECMA_IS_VALUE_ERROR (tioi_result))
+  {
     return tioi_result;
   }
 
@@ -2890,7 +2891,8 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
       // 9.b, 9.d
       ecma_value_t result = ecma_op_object_put_by_index (a, k, value, true);
 
-      if (ECMA_IS_VALUE_ERROR (result)) {
+      if (ECMA_IS_VALUE_ERROR (result))
+      {
         ecma_deref_object (a);
         return result;
       }
@@ -2902,7 +2904,8 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
       // 9.c
       ecma_value_t element = ecma_op_object_get_by_index (obj_p, k);
 
-      if (ECMA_IS_VALUE_ERROR (element)) {
+      if (ECMA_IS_VALUE_ERROR (element))
+      {
         ecma_deref_object (a);
         return element;
       }
@@ -2910,7 +2913,8 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
       // 9.d
       ecma_value_t result = ecma_op_object_put_by_index (a, k, element, true);
 
-      if (ECMA_IS_VALUE_ERROR (result)) {
+      if (ECMA_IS_VALUE_ERROR (result))
+      {
         ecma_deref_object (a);
         ecma_free_value (element);
         return result;
@@ -2941,25 +2945,34 @@ static ecma_value_t
 ecma_builtin_array_prototype_object_to_reversed (ecma_object_t *obj_p, /**< array object */
                                                  ecma_length_t len)    /**< array object's length */
 {
-  if (len > UINT32_MAX) {
+  // 23.1.3.33.3
+  if (len > UINT32_MAX)
+  {
     return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
   }
 
   ecma_object_t* a = ecma_op_new_array_object ((uint32_t)len);
 
+  // 23.1.3.33.4
   ecma_length_t k = 0;
 
-  while (k < len) {
+  // 23.1.3.33.5
+  while (k < len)
+  {
+    // 23.1.3.33.5.a-c
     ecma_value_t from_value = ecma_op_object_get_by_index (obj_p, len - k - 1);
 
-    if (ECMA_IS_VALUE_ERROR (from_value)) {
+    if (ECMA_IS_VALUE_ERROR (from_value))
+    {
       ecma_deref_object (a);
       return from_value;
     }
 
+    // 23.1.3.33.5.d
     ecma_value_t result = ecma_op_object_put_by_index (a, k, from_value, true);
 
-    if (ECMA_IS_VALUE_ERROR (result)) {
+    if (ECMA_IS_VALUE_ERROR (result))
+    {
       ecma_deref_object (a);
       ecma_free_value (from_value);
       return result;
@@ -2968,11 +2981,215 @@ ecma_builtin_array_prototype_object_to_reversed (ecma_object_t *obj_p, /**< arra
     ecma_free_value (from_value);
     ecma_free_value (result);
 
+    // 23.1.3.33.5.e
     k++;
   }
 
+  // 23.1.3.33.6
   return ecma_make_object_value (a);
 } /* ecma_builtin_array_prototype_object_to_reversed */
+
+/**
+ * The Array.prototype object's 'toSpliced' routine
+ *
+ * See also:
+ *          ECMA-262 v14, 23.1.3.35
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_array_prototype_object_to_spliced (const ecma_value_t args[], /**< arguments list */
+                                                uint32_t args_number, /**< argument count */
+                                                ecma_object_t *obj_p, /**< array object */
+                                                ecma_length_t len) /**< array object's length */
+{
+  ecma_number_t relative_start;
+  ecma_value_t result;
+
+  // 23.1.3.35.3
+  if (args_number > 0)
+  {
+    result = ecma_op_to_integer_or_infinity (args[0], &relative_start);
+
+    if (ECMA_IS_VALUE_ERROR (result))
+    {
+      return result;
+    }
+
+    ecma_free_value (result);
+  }
+  else
+  {
+    relative_start = ECMA_NUMBER_ZERO;
+  }
+
+  // 23.1.3.35.4-6
+  ecma_length_t actual_start;
+
+  if (ecma_number_is_infinity (relative_start))
+  {
+    if (relative_start < 0)
+    {
+      actual_start = 0;
+    }
+    else
+    {
+      actual_start = len;
+    }
+  }
+  else if (relative_start < 0)
+  {
+    actual_start = JJS_MAX (len + (ecma_length_t)relative_start, 0);
+  }
+  else
+  {
+    actual_start = JJS_MIN((ecma_length_t)relative_start, len);
+  }
+
+  // 23.1.3.35.7
+  ecma_length_t insert_count = args_number > 2 ? args_number - 2 : 0;
+
+  // 23.1.3.35.8-10
+  ecma_length_t actual_skip_count;
+
+  if (args_number == 0 || ecma_is_value_undefined (args[0]))
+  {
+    actual_skip_count = 0;
+  }
+  else if (args_number < 2)
+  {
+    actual_skip_count = len - actual_start;
+  }
+  else
+  {
+    ecma_number_t sc;
+
+    if (args_number > 1)
+    {
+      result = ecma_op_to_integer_or_infinity (args[1], &sc);
+
+      if (ECMA_IS_VALUE_ERROR (result)) {
+        return result;
+      }
+
+      ecma_free_value (result);
+    }
+    else
+    {
+      sc = ECMA_NUMBER_ZERO;
+    }
+
+    if (sc < 0)
+    {
+      actual_skip_count = 0;
+    }
+    else if ((ecma_length_t)sc > len - actual_start)
+    {
+      actual_skip_count = len - actual_start;
+    }
+    else
+    {
+      actual_skip_count = (ecma_length_t)sc;
+    }
+  }
+
+  // 23.1.3.35.11
+  ecma_length_t new_len = len + insert_count - actual_skip_count;
+
+  // 23.1.3.35.12
+  if (new_len > UINT32_MAX)
+  {
+    return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
+  }
+
+  // 23.1.3.35.13
+  ecma_object_t* a = ecma_op_new_array_object ((uint32_t)new_len);
+  // 23.1.3.35.14
+  ecma_length_t i = 0;
+  // 23.1.3.35.15
+  ecma_length_t r = actual_start + actual_skip_count;
+
+  // 23.1.3.35.16
+  while (i < actual_start)
+  {
+    // 23.1.3.35.16.a-b
+    ecma_value_t from_value = ecma_op_object_get_by_index (obj_p, i);
+
+    if (ECMA_IS_VALUE_ERROR (from_value))
+    {
+      ecma_deref_object (a);
+      return from_value;
+    }
+
+    // 23.1.3.35.16.c
+    result = ecma_op_object_put_by_index (a, i, from_value, true);
+
+    if (ECMA_IS_VALUE_ERROR (result))
+    {
+      ecma_deref_object (a);
+      ecma_free_value (from_value);
+      return result;
+    }
+
+    ecma_free_value (from_value);
+    ecma_free_value (result);
+
+    // 23.1.3.35.16.d
+    i++;
+  }
+
+  // 23.1.3.35.17
+  for (ecma_length_t index = 2; index < args_number; index++)
+  {
+    // 23.1.3.35.17.a-b
+    result = ecma_op_object_put_by_index (a, i, args[index], true);
+
+    if (ECMA_IS_VALUE_ERROR (result))
+    {
+      ecma_deref_object (a);
+      return result;
+    }
+
+    ecma_free_value (result);
+
+    // 23.1.3.35.17.c
+    i++;
+  }
+
+  // 23.1.3.35.18
+  while (i < new_len)
+  {
+    // 23.1.3.35.18.a-c
+    ecma_value_t from_value = ecma_op_object_get_by_index (obj_p, r);
+
+    if (ECMA_IS_VALUE_ERROR (from_value))
+    {
+      ecma_deref_object (a);
+      return from_value;
+    }
+
+    // 23.1.3.35.18.d
+    result = ecma_op_object_put_by_index (a, i, from_value, true);
+
+    if (ECMA_IS_VALUE_ERROR (result))
+    {
+      ecma_deref_object (a);
+      ecma_free_value (from_value);
+      return result;
+    }
+
+    ecma_free_value (from_value);
+    ecma_free_value (result);
+    // 23.1.3.35.18.e
+    i++;
+    // 23.1.3.35.18.f
+    r++;
+  }
+
+  // 23.1.3.35.19
+  return ecma_make_object_value (a);
+} /* ecma_builtin_array_prototype_object_to_spliced */
 
 /**
  * Dispatcher of the built-in's routines
@@ -3189,6 +3406,11 @@ ecma_builtin_array_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< 
     case ECMA_ARRAY_PROTOTYPE_TO_REVERSED:
     {
       ret_value = ecma_builtin_array_prototype_object_to_reversed (obj_p, length);
+      break;
+    }
+    case ECMA_ARRAY_PROTOTYPE_TO_SPLICED:
+    {
+      ret_value = ecma_builtin_array_prototype_object_to_spliced (arguments_list_p, arguments_number, obj_p, length);
       break;
     }
     default:

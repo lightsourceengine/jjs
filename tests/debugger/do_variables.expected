@@ -8,8 +8,8 @@ name        | type      | value
 f           | Function  |           
 addX        | Function  |           
 z           | undefined | undefined 
-c           | undefined | undefined
-include     | Function  |
+c           | undefined | undefined 
+include     | Function  |           
 createRealm | Function  |           
 sourceName  | Function  |           
 print       | Function  |           
@@ -23,8 +23,8 @@ f           | Function  |
 addX        | Function  |           
 z           | undefined | undefined 
 c           | undefined | undefined 
-include     | Function  |
-createRealm | Function  |
+include     | Function  |           
+createRealm | Function  |           
 sourceName  | Function  |           
 print       | Function  |           
 gc          | Function  |           
@@ -52,8 +52,8 @@ f           | Function |
 addX        | Function |       
 z           | Number   | 5     
 c           | Number   | 4     
-include     | Function |
-createRealm | Function |
+include     | Function |       
+createRealm | Function |       
 sourceName  | Function |       
 print       | Function |       
 gc          | Function |       
@@ -74,9 +74,9 @@ f           | Function |
 addX        | Function |       
 z           | Number   | 5     
 c           | Number   | 4     
-include     | Function |
-createRealm | Function |
-sourceName  | Function |
+include     | Function |       
+createRealm | Function |       
+sourceName  | Function |       
 print       | Function |       
 gc          | Function |       
 assert      | Function |       
