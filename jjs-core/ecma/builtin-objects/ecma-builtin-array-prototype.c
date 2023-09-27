@@ -3040,11 +3040,13 @@ ecma_builtin_array_prototype_object_to_spliced (const ecma_value_t args[], /**< 
   }
   else if (relative_start < 0)
   {
-    actual_start = JJS_MAX (len + (ecma_length_t)relative_start, 0);
+    ecma_number_t n = JJS_MAX ((ecma_number_t)len + relative_start, ECMA_NUMBER_ZERO);
+
+    actual_start = (ecma_length_t)n;
   }
   else
   {
-    actual_start = JJS_MIN((ecma_length_t)relative_start, len);
+    actual_start = JJS_MIN ((ecma_length_t)relative_start, len);
   }
 
   // 23.1.3.35.7
