@@ -79,6 +79,11 @@ typedef struct
   ecma_value_t then; /**< 'then' function */
 } ecma_job_promise_resolve_thenable_t;
 
+typedef struct {
+  ecma_job_queue_item_t header; /**< job queue item header */
+  ecma_value_t callback; /**< callback function */
+} ecma_job_microtask_t;
+
 /**
  * Initialize the jobqueue.
  */
@@ -170,6 +175,23 @@ ecma_free_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *job
 
   jmem_heap_free_block (job_p, sizeof (ecma_job_promise_resolve_thenable_t));
 } /* ecma_free_promise_resolve_thenable_job */
+
+#if JJS_QUEUE_MICROTASK
+
+/**
+ * Free the ecma_job_microtask_t job object.
+ */
+static void
+ecma_free_microtask_job (ecma_job_microtask_t *job_p) /**< job pointer */
+{
+  JJS_ASSERT (job_p != NULL);
+
+  ecma_free_value (job_p->callback);
+
+  jmem_heap_free_block (job_p, sizeof (ecma_job_microtask_t));
+} /* ecma_free_microtask_job */
+
+#endif /* JJS_QUEUE_MICROTASK */
 
 /**
  * The processor for PromiseReactionJob.
@@ -441,6 +463,28 @@ ecma_process_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *
   return ret;
 } /* ecma_process_promise_resolve_thenable_job */
 
+#if JJS_QUEUE_MICROTASK
+
+/**
+ * Process a microtask job.
+ *
+ * @return the result of the job's callback function. must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_process_microtask_job (ecma_job_microtask_t *job_p) /**< the job to be operated */
+{
+
+  ecma_object_t* fn = ecma_get_object_from_value (job_p->callback);
+
+  ecma_value_t result = ecma_op_function_call (fn, ECMA_VALUE_UNDEFINED, NULL, 0);
+
+  ecma_free_microtask_job (job_p);
+
+  return result;
+} /* ecma_process_microtask_job */
+
+#endif /* JJS_QUEUE_MICROTASK */
+
 /**
  * Enqueue a Promise job into the jobqueue.
  */
@@ -535,6 +579,27 @@ ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, /**< promise to
   ecma_enqueue_job (&job_p->header);
 } /* ecma_enqueue_promise_resolve_thenable_job */
 
+#if JJS_QUEUE_MICROTASK
+
+/**
+ * Enqueue a Microtask into the job queue.
+ *
+ * @param callback callback function
+ */
+void ecma_enqueue_microtask_job(ecma_value_t callback)
+{
+  JJS_ASSERT(jjs_value_is_function(callback));
+
+  ecma_job_microtask_t *job_p;
+  job_p = (ecma_job_microtask_t *) jmem_heap_alloc_block (sizeof (ecma_job_microtask_t));
+  job_p->header.next_and_type = ECMA_JOB_MICROTASK;
+  job_p->callback = ecma_copy_value (callback);
+
+  ecma_enqueue_job (&job_p->header);
+} /* ecma_enqueue_microtask_job */
+
+#endif /* JJS_QUEUE_MICROTASK */
+
 bool
 ecma_has_enqueued_jobs (void)
 {
@@ -578,6 +643,13 @@ ecma_process_all_enqueued_jobs (void)
         ret = ecma_process_promise_async_generator_job ((ecma_job_promise_async_generator_t *) job_p);
         break;
       }
+#if JJS_QUEUE_MICROTASK
+      case ECMA_JOB_MICROTASK:
+      {
+        ret = ecma_process_microtask_job ((ecma_job_microtask_t *) job_p);
+        break;
+      }
+#endif /* JJS_QUEUE_MICROTASK */
       default:
       {
         JJS_ASSERT (ecma_job_queue_get_type (job_p) == ECMA_JOB_PROMISE_THENABLE);
@@ -626,6 +698,13 @@ ecma_free_all_enqueued_jobs (void)
         ecma_free_promise_async_generator_job ((ecma_job_promise_async_generator_t *) job_p);
         break;
       }
+#if JJS_QUEUE_MICROTASK
+      case ECMA_JOB_MICROTASK:
+      {
+        ecma_free_microtask_job ((ecma_job_microtask_t *) job_p);
+        break;
+      }
+#endif /* JJS_QUEUE_MICROTASK */
       default:
       {
         JJS_ASSERT (ecma_job_queue_get_type (job_p) == ECMA_JOB_PROMISE_THENABLE);

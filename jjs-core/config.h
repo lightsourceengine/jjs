@@ -120,6 +120,10 @@
 #define JJS_MODULE_SYSTEM JJS_BUILTINS
 #endif /* !defined (JJS_MODULE_SYSTEM) */
 
+#ifndef JJS_QUEUE_MICROTASK
+#define JJS_QUEUE_MICROTASK 1
+#endif /* !defined (JJS_QUEUE_MICROTASK) */
+
 /**
  * Engine internal and misc configurations.
  */

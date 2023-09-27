@@ -1150,6 +1150,33 @@ jjs_run_jobs (void)
   return jjs_return (ecma_process_all_enqueued_jobs ());
 } /* jjs_run_jobs */
 
+/**
+ * Add a callback function to the microtask queue.
+ *
+ * The callback function will be called the next time jjs_run_jobs() is called.
+ *
+ * @param callback callback function
+ * @return on success, undefined; if callback is not callable, throws a TypeError exception
+ */
+jjs_value_t jjs_queue_microtask(const jjs_value_t callback)
+{
+  jjs_assert_api_enabled ();
+
+#if JJS_QUEUE_MICROTASK
+  if (!jjs_value_is_function (callback))
+  {
+    return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_CALLBACK_IS_NOT_CALLABLE));
+  }
+
+  ecma_enqueue_microtask_job (callback);
+#else /* !JJS_QUEUE_MICROTASK */
+  JJS_UNUSED (callback);
+  return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_NOT_SUPPORTED));
+#endif /* JJS_QUEUE_MICROTASK */
+
+  return ECMA_VALUE_UNDEFINED;
+} /* jjs_queue_microtask */
+
 bool
 jjs_has_pending_jobs (void) {
   jjs_assert_api_enabled ();
@@ -1848,6 +1875,9 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
 #if JJS_FUNCTION_TO_STRING
           || feature == JJS_FEATURE_FUNCTION_TO_STRING
 #endif /* JJS_FUNCTION_TO_STRING */
+#if JJS_QUEUE_MICROTASK
+          || feature == JJS_FEATURE_QUEUE_MICROTASK
+#endif /* JJS_QUEUE_MICROTASK */
   );
 } /* jjs_feature_enabled */
 

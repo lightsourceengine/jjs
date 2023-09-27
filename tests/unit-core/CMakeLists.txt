@@ -76,6 +76,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-realm.c
   test-regexp-dotall-unicode.c
   test-error-callback.c
+  test-queuemicrotask.c
   test-regexp.c
   test-regression-3588.c
   test-source-name.c

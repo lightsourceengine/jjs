@@ -136,6 +136,7 @@ typedef enum
   JJS_FEATURE_MODULE, /**< Module support */
   JJS_FEATURE_WEAKREF, /**< WeakRef support */
   JJS_FEATURE_FUNCTION_TO_STRING, /**< function toString support */
+  JJS_FEATURE_QUEUE_MICROTASK, /**< queueMicrotask support */
   JJS_FEATURE__COUNT /**< number of features. NOTE: must be at the end of the list */
 } jjs_feature_t;
 

@@ -106,6 +106,7 @@ jjs_value_t jjs_parse_value (const jjs_value_t source, const jjs_parse_options_t
 jjs_value_t jjs_eval (const jjs_char_t *source_p, size_t source_size, uint32_t flags);
 jjs_value_t jjs_run (const jjs_value_t script);
 jjs_value_t jjs_run_jobs (void);
+jjs_value_t jjs_queue_microtask(const jjs_value_t callback);
 bool jjs_has_pending_jobs (void);
 /**
  * jjs-api-code-exec @}
