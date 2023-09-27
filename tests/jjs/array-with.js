@@ -64,3 +64,6 @@ assertThrows(TypeError, () => { [1, 2, 3].with(false, 100); });
 // test: with() should be callable on non-array objects with length property
 dest = Array.prototype.with.call({ length: 1, 0: 3 }, 0, 4);
 arrayEquals([4], dest);
+
+// test: with() on empty array should throw RangeError
+assertThrows(RangeError, () => [].with());

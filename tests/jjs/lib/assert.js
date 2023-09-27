@@ -16,7 +16,11 @@
 function arrayEquals(actual, expected) {
   assert(actual.length === expected.length, `expected length: ${expected.length}, actual length: ${actual.length}`);
   for (let i = 0; i < actual.length; i++) {
-    assert(actual[i] === expected[i], `expected ${expected[i]} at index ${i}, actual ${actual[i]}`);
+    if (Number.isNaN(expected[i])) {
+      assert(Number.isNaN(actual[i]), `expected NaN at index ${i}, actual ${actual[i]}`);
+    } else {
+      assert(actual[i] === expected[i], `expected ${expected[i]} at index ${i}, actual ${actual[i]}`);
+    }
   }
 }
 

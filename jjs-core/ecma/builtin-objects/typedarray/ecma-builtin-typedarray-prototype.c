@@ -81,6 +81,8 @@ enum
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_JOIN,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_KEYS,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_ENTRIES,
+  ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_TO_REVERSED,
+  ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_WITH,
 
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_BUFFER_GETTER,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_BYTELENGTH_GETTER,
@@ -1924,9 +1926,9 @@ ecma_builtin_typedarray_prototype_includes (ecma_typedarray_info_t *info_p, /**<
 {
 #if JJS_BUILTIN_BIGINT
   bool is_bigint = ECMA_TYPEDARRAY_IS_BIGINT_TYPE (info_p->id);
-#else /* !JERRRY_BUILTIN_BIGINT */
+#else /* !JJS_BUILTIN_BIGINT */
   bool is_bigint = false;
-#endif /* JERRRY_BUILTIN_BIGINT */
+#endif /* JJS_BUILTIN_BIGINT */
 
   if (ecma_arraybuffer_is_detached (info_p->array_buffer_p))
   {
@@ -1971,6 +1973,196 @@ ecma_builtin_typedarray_prototype_includes (ecma_typedarray_info_t *info_p, /**<
 
   return ECMA_VALUE_FALSE;
 } /* ecma_builtin_typedarray_prototype_includes */
+
+/**
+ * The %TypedArray%.prototype object's 'with' routine
+ *
+ * See also:
+ *          ECMA-262 v14, 23.2.3.36.
+ */
+static ecma_value_t
+ecma_builtin_typedarray_prototype_with (ecma_value_t this_arg, /**< this argument */
+                                        const ecma_value_t args[], /**< arguments list */
+                                        uint32_t args_number, /**< argument count */
+                                        ecma_typedarray_info_t *info_p) /**< object info */
+{
+  if (ecma_arraybuffer_is_detached (info_p->array_buffer_p))
+  {
+    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+  }
+
+  ecma_value_t len = ecma_make_number_value (info_p->length);
+  ecma_value_t new_typedarray = ecma_typedarray_species_create (this_arg, &len, 1);
+  ecma_free_value (len);
+
+  ecma_object_t *new_typedarray_p = ecma_get_object_from_value (new_typedarray);
+  ecma_typedarray_info_t new_typedarray_info = ecma_typedarray_get_info (new_typedarray_p);
+
+  JJS_ASSERT (info_p->length == new_typedarray_info.length);
+
+  ecma_typedarray_getter_fn_t src_typedarray_getter_cb = ecma_get_typedarray_getter_fn (info_p->id);
+  ecma_typedarray_setter_fn_t new_typedarray_setter_cb = ecma_get_typedarray_setter_fn (new_typedarray_info.id);
+  uint8_t *src_buffer_p = ecma_typedarray_get_buffer (info_p);
+  uint8_t *dst_buffer_p = ecma_typedarray_get_buffer (&new_typedarray_info);
+
+  ecma_number_t relative_index = ECMA_NUMBER_ZERO;
+
+  ecma_value_t tioi_result = ecma_op_to_integer_or_infinity (args_number > 0 ? args[0] : ECMA_VALUE_UNDEFINED,
+                                                             &relative_index);
+
+  if(ECMA_IS_VALUE_ERROR (tioi_result))
+  {
+    return tioi_result;
+  }
+
+  ecma_free_value (tioi_result);
+
+  ecma_number_t len_n = (ecma_number_t)info_p->length;
+  ecma_number_t actual_index_n = (relative_index >= 0) ? relative_index : len_n + relative_index;
+
+  if (actual_index_n >= len_n || actual_index_n < 0)
+  {
+    ecma_free_value (new_typedarray);
+    return ecma_raise_range_error (ECMA_ERR_INVALID_RANGE_OF_INDEX);
+  }
+
+  ecma_value_t value;
+  bool free_value = false;
+
+  if (args_number > 1)
+  {
+#if JJS_BUILTIN_BIGINT
+    if (ecma_is_value_undefined (args[1]))
+    {
+      value = ECMA_BIGINT_ZERO;
+    }
+    else if (ECMA_TYPEDARRAY_IS_BIGINT_TYPE (info_p->id))
+    {
+      value = ecma_bigint_to_bigint (args[1], true);
+
+      if (ECMA_IS_VALUE_ERROR (value))
+      {
+        return value;
+      }
+
+      free_value = true;
+    }
+    else
+#endif /* JJS_BUILTIN_BIGINT */
+    {
+      value = args[1];
+    }
+  }
+  else
+  {
+#if JJS_BUILTIN_BIGINT
+    if (ECMA_TYPEDARRAY_IS_BIGINT_TYPE (info_p->id))
+    {
+      value = ECMA_BIGINT_ZERO;
+    }
+    else
+#endif /* JJS_BUILTIN_BIGINT */
+    {
+      value = ECMA_VALUE_UNDEFINED;
+    }
+  }
+
+  ecma_length_t k = 0;
+  ecma_length_t actual_index = (ecma_length_t)actual_index_n;
+  uint8_t element_size = info_p->element_size;
+  ecma_value_t set_element;
+
+  while (k < info_p->length)
+  {
+    if (k == actual_index)
+    {
+      set_element = new_typedarray_setter_cb (dst_buffer_p, value);
+    }
+    else
+    {
+      ecma_value_t element = src_typedarray_getter_cb (src_buffer_p);
+      set_element = new_typedarray_setter_cb (dst_buffer_p, element);
+      ecma_free_value (element);
+    }
+
+    if (ECMA_IS_VALUE_ERROR (set_element))
+    {
+      if (free_value)
+      {
+        ecma_free_value (value);
+      }
+
+      ecma_free_value (new_typedarray);
+      return set_element;
+    }
+
+    ecma_free_value (set_element);
+    src_buffer_p += element_size;
+    dst_buffer_p += element_size;
+    k++;
+  }
+
+  if (free_value)
+  {
+    ecma_free_value (value);
+  }
+
+  return new_typedarray;
+} /* ecma_builtin_typedarray_prototype_with */
+
+/**
+ * The %TypedArray%.prototype object's 'toReversed' routine
+ *
+ * See also:
+ *          ECMA-262 v14, 23.2.3.32.
+ */
+static ecma_value_t
+ecma_builtin_typedarray_prototype_to_reversed (ecma_value_t this_arg, /**< this argument */
+                                               ecma_typedarray_info_t *info_p) /**< object info */
+{
+  if (ecma_arraybuffer_is_detached (info_p->array_buffer_p))
+  {
+    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+  }
+
+  ecma_value_t len = ecma_make_number_value (info_p->length);
+  ecma_value_t new_typedarray = ecma_typedarray_species_create (this_arg, &len, 1);
+  ecma_free_value (len);
+
+  if (ECMA_IS_VALUE_ERROR (new_typedarray) || info_p->length == 0)
+  {
+    return new_typedarray;
+  }
+
+  ecma_object_t *new_typedarray_p = ecma_get_object_from_value (new_typedarray);
+  ecma_typedarray_info_t new_typedarray_info = ecma_typedarray_get_info (new_typedarray_p);
+
+  JJS_ASSERT (info_p->length == new_typedarray_info.length);
+
+  ecma_typedarray_getter_fn_t src_typedarray_getter_cb = ecma_get_typedarray_getter_fn (info_p->id);
+  ecma_typedarray_setter_fn_t new_typedarray_setter_cb = ecma_get_typedarray_setter_fn (new_typedarray_info.id);
+  uint8_t *src_buffer_p = ecma_typedarray_get_buffer (info_p) + ((info_p->length - 1) * info_p->element_size);
+  uint8_t *dst_buffer_p = ecma_typedarray_get_buffer (&new_typedarray_info);
+
+  for (uint32_t k = 0; k < info_p->length; k++)
+  {
+    ecma_value_t element = src_typedarray_getter_cb (src_buffer_p);
+    ecma_value_t set_element = new_typedarray_setter_cb (dst_buffer_p, element);
+    ecma_free_value (element);
+
+    if (ECMA_IS_VALUE_ERROR (set_element))
+    {
+      ecma_free_value (new_typedarray);
+      return set_element;
+    }
+
+    ecma_free_value (set_element);
+    src_buffer_p -= info_p->element_size;
+    dst_buffer_p += new_typedarray_info.element_size;
+  }
+
+  return new_typedarray;
+} /* ecma_builtin_typedarray_prototype_to_reversed */
 
 /**
  *
@@ -2174,6 +2366,14 @@ ecma_builtin_typedarray_prototype_dispatch_routine (uint8_t builtin_routine_id, 
     {
       ecma_extended_object_t *object_p = (ecma_extended_object_t *) typedarray_p;
       return ecma_make_magic_string_value (ecma_get_typedarray_magic_string_id (object_p->u.cls.u1.typedarray_type));
+    }
+    case ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_WITH:
+    {
+      return ecma_builtin_typedarray_prototype_with (this_arg, arguments_list_p, arguments_number, &info);
+    }
+    case ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_TO_REVERSED:
+    {
+      return ecma_builtin_typedarray_prototype_to_reversed (this_arg, &info);
     }
     default:
     {
