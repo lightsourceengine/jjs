@@ -8,7 +8,8 @@ name        | type      | value
 f           | Function  |           
 addX        | Function  |           
 z           | undefined | undefined 
-c           | undefined | undefined 
+c           | undefined | undefined
+include     | Function  |
 createRealm | Function  |           
 sourceName  | Function  |           
 print       | Function  |           
