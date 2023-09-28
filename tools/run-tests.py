@@ -176,6 +176,8 @@ def get_arguments():
                         nargs='?', choices=['default', 'all', 'update'],
                         help='Run test262 - default: all tests except excludelist, ' +
                         'all: all tests, update: all tests and update excludelist')
+    parser.add_argument('--test262-job-count', metavar='COUNT', type=int, default=0,
+                        help='Set the number of jobs to run test262 tests')
     parser.add_argument('--test262-test-list', metavar='LIST',
                         help='Add a comma separated list of tests or directories to run in test262 test suite')
     parser.add_argument('--unittests', action='store_true',
@@ -390,7 +392,8 @@ def run_test262_test_suite(options):
             '--engine', get_binary_path(build_dir_path),
             '--test262-object',
             '--test-dir', settings.TEST262_TEST_SUITE_DIR,
-            '--mode', options.test262
+            '--mode', options.test262,
+            '--job-count', str(options.test262_job_count),
         ]
 
         if job.test_args:

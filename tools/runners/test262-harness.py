@@ -559,6 +559,11 @@ class TestCase(object):
             return self.test_record['includes']
         return []
 
+    def get_features_list(self):
+        if self.test_record.get('features'):
+            return self.test_record['features']
+        return []
+
     def get_additional_includes(self):
         return '\n'.join([self.suite.get_include(include) for include in self.get_include_list()])
 
@@ -725,11 +730,29 @@ class TestSuite(object):
         self.module_flag = options.module_flag
         self.logf = None
 
-    def _load_excludes(self):
+    def _load_exclude_list_xml_document(self):
         if self.exclude_list_path and os.path.exists(self.exclude_list_path):
-            xml_document = xml.dom.minidom.parse(self.exclude_list_path)
+            return xml.dom.minidom.parse(self.exclude_list_path)
+        return None
+
+    def _load_excludes(self, xml_document):
+        if xml_document:
             xml_tests = xml_document.getElementsByTagName("test")
             return {x.getAttribute("id") for x in xml_tests}
+
+        return set()
+
+    def _load_excluded_features(self, xml_document):
+        if xml_document:
+            xml_features = xml_document.getElementsByTagName("feature")
+            return {x.getAttribute("id") for x in xml_features}
+
+        return set()
+
+    def _load_excludes_by_dir(self, xml_document):
+        if xml_document:
+            xml_excludes = xml_document.getElementsByTagName("exclude")
+            return {x.getAttribute("dir") for x in xml_excludes}
 
         return set()
 
@@ -769,7 +792,16 @@ class TestSuite(object):
         return self.include_cache[name]
 
     def enumerate_tests(self, tests, command_template):
-        exclude_list = self._load_excludes()
+        xml_document = self._load_exclude_list_xml_document()
+        exclude_list = self._load_excludes(xml_document)
+        excluded_feature_list = self._load_excluded_features(xml_document)
+        exclude_by_dir = self._load_excludes_by_dir(xml_document)
+
+        def should_exclude_by_dir(test):
+            for excluded_dir in exclude_by_dir:
+                if test.startswith(excluded_dir):
+                    return True
+            return False
 
         logging.info("Listing tests in %s", self.test_root)
         cases = []
@@ -787,17 +819,28 @@ class TestSuite(object):
                 if self.should_run(rel_path, tests):
                     basename = path.basename(full_path)[:-3]
                     name = rel_path.split(path.sep)[:-1] + [basename]
-                    if rel_path in exclude_list:
+                    if rel_path in exclude_list or should_exclude_by_dir(rel_path):
                         print('Excluded: ' + rel_path)
                     else:
+                        excluded = False
                         if not self.non_strict_only:
                             strict_case = TestCase(self, name, full_path, True, command_template, self.module_flag)
-                            if not strict_case.is_no_strict():
+                            for feature in strict_case.get_features_list():
+                                if feature in excluded_feature_list:
+                                    print('Excluded: ' + rel_path)
+                                    excluded = True
+                                    continue
+                            if not excluded and not strict_case.is_no_strict():
                                 if strict_case.is_only_strict() or self.unmarked_default in ['both', 'strict']:
                                     cases.append(strict_case)
                         if not self.strict_only:
                             non_strict_case = TestCase(self, name, full_path, False, command_template, self.module_flag)
-                            if not non_strict_case.is_only_strict():
+                            for feature in non_strict_case.get_features_list():
+                                if feature in excluded_feature_list:
+                                    print('Excluded: ' + rel_path)
+                                    excluded = True
+                                    continue
+                            if not excluded and not non_strict_case.is_only_strict():
                                 if non_strict_case.is_no_strict() or self.unmarked_default in ['both', 'non_strict']:
                                     cases.append(non_strict_case)
         logging.info("Done listing tests")

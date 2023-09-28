@@ -63,8 +63,8 @@ assert(source !== dest);
 assert(dest instanceof Array);
 arrayEquals(dest, [1, 2, 3]);
 
-// test: toSpliced() should throw TypeError when array length is too big
-assertThrows(TypeError, () => { Array.prototype.toSpliced.call({length: Number.MAX_SAFE_INTEGER}); });
+// test: toSpliced() should throw RangeError when array length is too big
+assertThrows(RangeError, () => { Array.prototype.toSpliced.call({length: Number.MAX_SAFE_INTEGER}); });
 
 // test: toSpliced() should throw TypeError when start is not a number
 assertThrows(TypeError, () => { [1, 2, 3].toSpliced(1n, 0); });

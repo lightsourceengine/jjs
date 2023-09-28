@@ -1171,7 +1171,7 @@ jjs_value_t jjs_queue_microtask(const jjs_value_t callback)
   ecma_enqueue_microtask_job (callback);
 #else /* !JJS_QUEUE_MICROTASK */
   JJS_UNUSED (callback);
-  return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_NOT_SUPPORTED));
+  return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_QUEUE_MICROTASK_NOT_SUPPORTED));
 #endif /* JJS_QUEUE_MICROTASK */
 
   return ECMA_VALUE_UNDEFINED;

@@ -43,5 +43,5 @@ assert(source !== dest);
 assert(dest instanceof Array);
 arrayEquals(dest, [3, 2, 1]);
 
-// test: toReversed() should throw TypeError when array length is too big
-assertThrows(TypeError, () => { Array.prototype.toReversed.call({length: Number.MAX_SAFE_INTEGER}); });
+// test: toReversed() should throw RangeError when array length is too big
+assertThrows(RangeError, () => { Array.prototype.toReversed.call({length: Number.MAX_SAFE_INTEGER}); });

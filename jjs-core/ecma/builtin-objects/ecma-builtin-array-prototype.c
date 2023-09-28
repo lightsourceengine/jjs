@@ -2852,7 +2852,8 @@ ecma_builtin_array_prototype_object_with (const ecma_value_t args[], /**< argume
   // array limit. Therefore, we need to check the length here.
   if (len > UINT32_MAX)
   {
-    return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
+    jjs_error_t e = len > (ecma_length_t)ECMA_NUMBER_MAX_SAFE_INTEGER ? JJS_ERROR_TYPE : JJS_ERROR_RANGE;
+    return ecma_raise_standard_error(e, ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
   }
 
   // 3
@@ -2948,7 +2949,8 @@ ecma_builtin_array_prototype_object_to_reversed (ecma_object_t *obj_p, /**< arra
   // 23.1.3.33.3
   if (len > UINT32_MAX)
   {
-    return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
+    jjs_error_t e = len > (ecma_length_t)ECMA_NUMBER_MAX_SAFE_INTEGER ? JJS_ERROR_TYPE : JJS_ERROR_RANGE;
+    return ecma_raise_standard_error(e, ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
   }
 
   ecma_object_t* a = ecma_op_new_array_object ((uint32_t)len);
@@ -3102,7 +3104,8 @@ ecma_builtin_array_prototype_object_to_spliced (const ecma_value_t args[], /**< 
   // 23.1.3.35.12
   if (new_len > UINT32_MAX)
   {
-    return ecma_raise_type_error (ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
+    jjs_error_t e = new_len > (ecma_length_t)ECMA_NUMBER_MAX_SAFE_INTEGER ? JJS_ERROR_TYPE : JJS_ERROR_RANGE;
+    return ecma_raise_standard_error(e, ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
   }
 
   // 23.1.3.35.13

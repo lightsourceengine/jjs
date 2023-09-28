@@ -216,39 +216,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Run Tests
-        run: python $RUNNER --test262 update
+        run: python $RUNNER --test262
       - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
-          name: Test262-ESNext-results
+          name: Test262-report-release
           path: |
-            build/tests/test262_tests_esnext/local/bin/test262.report
+            build/tests/test262/local/bin/test262.report
 
-  ecma_test262_subsetA_debug:
+  ecma_test262_debug:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
       - name: Run Tests
-        run: $RUNNER --test262 update --build-debug --test262-test-list=built-ins,annexB,harness,intl402
+        run: python $RUNNER --test262 --build-debug
       - uses: actions/upload-artifact@v3.1.2
         if: success() || failure()
         with:
-          name: Test262-ESNext-Debug-A-results
+          name: Test262-report-debug
           path: |
-            build/tests/test262_tests_esnext-debug/local/bin/test262.report
-
-  ecma_test262_subsetB_debug:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run Tests
-        run: $RUNNER --test262 update --build-debug --test262-test-list=language
-      - uses: actions/upload-artifact@v3.1.2
-        if: success() || failure()
-        with:
-          name: Test262-ESNext-Debug-B-results
-          path: |
-            build/tests/test262_tests_esnext-debug/local/bin/test262.report
+            build/tests/test262-debug/local/bin/test262.report
 
   UBSAN_Tests:
     runs-on: ubuntu-20.04

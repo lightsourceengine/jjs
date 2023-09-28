@@ -40,6 +40,7 @@ def get_arguments():
                         help='JJS engine create test262 object')
     parser.add_argument('--test-dir', metavar='DIR', required=True,
                         help='Directory contains test262 test suite')
+    parser.add_argument('--job-count', metavar='COUNT', type=int, default=0, help='Number of parallel jobs')
     group = parser.add_mutually_exclusive_group(required=True)
     parser.add_argument('--test262-test-list', metavar='LIST',
                         help='Add a comma separated list of tests or directories to run in test262 test suite')
@@ -52,7 +53,7 @@ def get_arguments():
 
     args.test_dir = os.path.join(args.test_dir, 'esnext')
     args.test262_harness_dir = os.path.abspath(os.path.dirname(__file__))
-    args.test262_git_hash = '00f682e7467bd5cb0e5b1f02a7d26420f450aee0'
+    args.test262_git_hash = '6789b50cce139af4ca819feb8ce3a9c77ba4098a'
     args.excludelist_path = os.path.join('tests', 'test262-excludelist.xml')
 
     return args
@@ -149,11 +150,6 @@ def main(args):
     if args.test262_object:
         command += ' --test262-object'
 
-    # XXX: This is a hack to load includes. test262-harness.py should be fixed to load includes.
-    command += ' ' + os.path.join(args.test_dir, 'harness', 'assert.js')
-    command += ' ' + os.path.join(args.test_dir, 'harness', 'sta.js')
-    command += ' ' + os.path.join(args.test_dir, 'harness', 'compareArray.js')
-
     kwargs = {}
     if sys.version_info.major >= 3:
         kwargs['errors'] = 'ignore'
@@ -164,7 +160,8 @@ def main(args):
                       [test262_harness_path,
                        '--command', command,
                        '--tests', args.test_dir,
-                       '--summary']
+                       '--summary',
+                       '--job-count', str(args.job_count)]
 
     if 'excludelist_path' in args and args.mode == 'default':
         test262_command.extend(['--exclude-list', args.excludelist_path])
