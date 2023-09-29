@@ -79,6 +79,7 @@ ecma_value_t ecma_typedarray_create_object_with_object (ecma_value_t items_val,
 ecma_value_t
 ecma_typedarray_create (ecma_object_t *constructor_p, ecma_value_t *arguments_list_p, uint32_t arguments_list_len);
 ecma_value_t ecma_typedarray_species_create (ecma_value_t this_arg, ecma_value_t *length, uint32_t arguments_list_len);
+ecma_value_t ecma_op_typedarray_create_same_type(ecma_value_t exemplar, ecma_value_t *arguments_list_p, uint32_t arguments_list_len);
 
 /**
  * @}

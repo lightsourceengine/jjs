@@ -30,6 +30,12 @@ dest = source.toSpliced(0, 0);
 assert(source !== dest);
 arrayEquals(dest, [1, 2, 3]);
 
+// test: toSpliced() should return an empty array when start is undefined and skipCount is not present
+source = [1, 2, 3];
+dest = source.toSpliced(undefined);
+assert(source !== dest);
+arrayEquals(dest, []);
+
 // test: toSpliced() should splice at the beginning of the array
 source = [3, 4, 5];
 dest = source.toSpliced(0, 0, 1, 2);

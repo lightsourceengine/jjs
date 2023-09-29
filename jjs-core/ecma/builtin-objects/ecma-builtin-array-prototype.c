@@ -3057,7 +3057,7 @@ ecma_builtin_array_prototype_object_to_spliced (const ecma_value_t args[], /**< 
   // 23.1.3.35.8-10
   ecma_length_t actual_skip_count;
 
-  if (args_number == 0 || ecma_is_value_undefined (args[0]))
+  if (args_number == 0)
   {
     actual_skip_count = 0;
   }

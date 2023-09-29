@@ -2073,6 +2073,46 @@ ecma_typedarray_species_create (ecma_value_t this_arg, /**< this argument */
 } /* ecma_typedarray_species_create */
 
 /**
+ * Abstract Operation: TypedArrayCreateSameType ( exemplar, argumentList )
+ *
+ * See also:
+ *   ECMA-262 v14, 23.2.4.3
+ *
+ * @param exemplar It is used to specify the creation of a new TypedArray using a
+ *   constructor function that is derived from exemplar.
+ * @param arguments_list_p arguments passed to new TypedArray constructor
+ * @param arguments_list_len number of arguments in arguments_list_p
+ * @return value of new TypedArray object or error object on failure. caller must free the value.
+ */
+ecma_value_t ecma_op_typedarray_create_same_type(ecma_value_t exemplar,
+                                                 ecma_value_t *arguments_list_p,
+                                                 uint32_t arguments_list_len) {
+  ecma_object_t *exemplar_p = ecma_get_object_from_value(exemplar);
+  ecma_typedarray_info_t info = ecma_typedarray_get_info(exemplar_p);
+  ecma_builtin_id_t c_id = ecma_typedarray_helper_get_constructor_id (info.id);
+
+  ecma_object_t *ctor_p = ecma_builtin_get (c_id);
+
+  ecma_value_t result = ecma_typedarray_create (ctor_p, arguments_list_p, arguments_list_len);
+
+#if JJS_BUILTIN_BIGINT
+  ecma_object_t *result_p = ecma_get_object_from_value (result);
+  ecma_typedarray_info_t result_info = ecma_typedarray_get_info (result_p);
+  /*
+   * Check result_info.id to to be either bigint type if info.id is one
+   * or be neither of them is info.id is none of them as well.
+   */
+  if (ECMA_TYPEDARRAY_IS_BIGINT_TYPE (info.id) ^ ECMA_TYPEDARRAY_IS_BIGINT_TYPE (result_info.id))
+  {
+    ecma_free_value (result);
+    return ecma_raise_type_error (ECMA_ERR_CONTENTTYPE_RETURNED_TYPEDARRAY_NOT_MATCH_SOURCE);
+  }
+#endif /* JJS_BUILTIN_BIGINT */
+
+  return result;
+} /* ecma_op_typedarray_create_same_type */
+
+/**
  * Create a typedarray object based on the "type" and arraylength
  * The "type" is same with arg1
  *

@@ -1992,7 +1992,7 @@ ecma_builtin_typedarray_prototype_with (ecma_value_t this_arg, /**< this argumen
   }
 
   ecma_value_t len = ecma_make_number_value (info_p->length);
-  ecma_value_t new_typedarray = ecma_typedarray_species_create (this_arg, &len, 1);
+  ecma_value_t new_typedarray = ecma_op_typedarray_create_same_type (this_arg, &len, 1);
   ecma_free_value (len);
 
   ecma_object_t *new_typedarray_p = ecma_get_object_from_value (new_typedarray);
@@ -2126,7 +2126,7 @@ ecma_builtin_typedarray_prototype_to_reversed (ecma_value_t this_arg, /**< this 
   }
 
   ecma_value_t len = ecma_make_number_value (info_p->length);
-  ecma_value_t new_typedarray = ecma_typedarray_species_create (this_arg, &len, 1);
+  ecma_value_t new_typedarray = ecma_op_typedarray_create_same_type (this_arg, &len, 1);
   ecma_free_value (len);
 
   if (ECMA_IS_VALUE_ERROR (new_typedarray) || info_p->length == 0)
