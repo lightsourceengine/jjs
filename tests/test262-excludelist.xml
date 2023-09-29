@@ -2267,6 +2267,16 @@
   <test id="language/expressions/dynamic-import/usage/top-level-import-then-returns-thenable.js"><reason></reason></test>  <test id=".js"><reason></reason></test>
   <test id="language/expressions/dynamic-import/usage/top-level-import-then-specifier-tostring.js"><reason></reason></test>  <test id=".js"><reason></reason></test>
   <test id="language/module-code/verify-dfs.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/assignment-expression/lhs-eq-assign-expr-nostrict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/assignment-expression/yield-identifier.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/await-ns-delete-exported-init-no-strict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/await-ns-delete-non-exported-no-strict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/await-ns-set-no-strict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/await-ns-set-same-values-no-strict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/promise-then-ns-delete-exported-init-no-strict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/promise-then-ns-delete-non-exported-no-strict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/promise-then-ns-set-no-strict.js"><reason></reason></test>
+  <test id="language/expressions/dynamic-import/namespace/promise-then-ns-set-same-values-no-strict.js"><reason></reason></test>
   <!-- END - ES2020: Dynamic Import -->
 
   <!-- ES2018: Asynchronous Iteration
