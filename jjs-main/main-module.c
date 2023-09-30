@@ -332,7 +332,7 @@ on_import (const jjs_value_t specifier, const jjs_value_t user_value, void *user
 {
   (void)user_p;
 
-  jjs_value_t module = on_resolve (specifier, user_value, NULL);
+  jjs_value_t module = on_resolve (specifier, user_value, &default_on_resolve_options);
 
   if (jjs_value_is_exception (module))
   {
@@ -343,7 +343,7 @@ on_import (const jjs_value_t specifier, const jjs_value_t user_value, void *user
   {
     case JJS_MODULE_STATE_UNLINKED:
     {
-      jjs_value_t link = jjs_module_link (module, on_resolve, NULL);
+      jjs_value_t link = jjs_module_link (module, on_resolve, &default_on_resolve_options);
 
       if (jjs_value_is_exception (link))
       {
@@ -544,7 +544,7 @@ static char*
 platform_dirname(char* path_p)
 {
   if (path_p == NULL || *path_p == '\0') {
-    p = ".";
+    char* p = ".";
     return strcpy (malloc(strlen(p) + 1), p);
   }
 
