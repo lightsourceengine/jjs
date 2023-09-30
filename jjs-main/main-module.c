@@ -3,7 +3,6 @@
 #include "jjs-port.h"
 #include <stdlib.h>
 #include <string.h>
-#include <libgen.h>
 #include <ctype.h>
 
 #ifdef _WIN32
@@ -16,6 +15,8 @@ platform_is_absolute_path(const char* path_p, size_t path_len);
 
 #define platform_realpath(path_p) _fullpath(NULL, path_p, 0)
 #else
+#include <libgen.h>
+
 #define PATH_SEPARATOR '/'
 #define PATH_SEPARATOR_STR "/"
 #define platform_realpath(path_p) realpath(path_p, NULL)
@@ -287,7 +288,7 @@ resolve_path(jjs_value_t referrer, jjs_value_t specifier, on_resolve_options_t* 
 
   if (!options_p->allow_regular_file_name_specifier)
   {
-    if (specifier_path_len < 0 || specifier_path[0] != '.')
+    if (strstr (specifier_path, "./") == NULL && strstr (specifier_path, "../") == NULL)
     {
       free (specifier_path);
 
@@ -543,7 +544,8 @@ static char*
 platform_dirname(char* path_p)
 {
   if (path_p == NULL || *path_p == '\0') {
-    return strdup(".");
+    p = ".";
+    return strcpy (malloc(strlen(p) + 1), p);
   }
 
   char drive[_MAX_DRIVE];
@@ -588,11 +590,15 @@ platform_is_absolute_path(const char* path_p, size_t path_len)
 
 static char*
 platform_dirname(char* path_p) {
+  char* p;
+
   if (path_p == NULL || *path_p == '\0') {
-    return strdup(".");
+    p = ".";
+  } else {
+    p = dirname (path_p);
   }
 
-  return strdup (dirname (path_p));
+  return strcpy (malloc(strlen(p) + 1), p);
 } /* platform_dirname */
 
 static bool
