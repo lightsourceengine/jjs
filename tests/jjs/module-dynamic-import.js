@@ -23,6 +23,6 @@ function check_syntax_error(code)
   }
 }
 
-check_syntax_error("import('a.mjs',4)");
-check_syntax_error("(import('a.mjs',4))");
-check_syntax_error("(import 'a.mjs')");
+check_syntax_error("import('./a.mjs',4)");
+check_syntax_error("(import('./a.mjs',4))");
+check_syntax_error("(import './a.mjs')");

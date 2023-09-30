@@ -35,4 +35,4 @@ export function early() {
 
 early = "Loaded"
 
-import * as o from "module-circular-04.mjs"
+import * as o from "./module-circular-04.mjs"

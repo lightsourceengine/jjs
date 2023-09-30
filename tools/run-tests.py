@@ -392,6 +392,7 @@ def run_test262_test_suite(options):
             '--engine', get_binary_path(build_dir_path),
             '--test262-object',
             '--test-dir', settings.TEST262_TEST_SUITE_DIR,
+            '--harness-patch-dir', settings.TEST262_HARNESS_PATCH_DIR,
             '--mode', options.test262,
             '--job-count', str(options.test262_job_count),
         ]

@@ -21,6 +21,7 @@ PROJECT_DIR = path.normpath(path.join(TOOLS_DIR, '..'))
 DEBUGGER_TESTS_DIR = path.join(PROJECT_DIR, 'tests/debugger')
 JJS_TESTS_DIR = path.join(PROJECT_DIR, 'tests/jjs')
 TEST262_TEST_SUITE_DIR = path.join(PROJECT_DIR, 'tests/test262')
+TEST262_HARNESS_PATCH_DIR = path.join(PROJECT_DIR, 'tools/test262-harness-patch')
 SNAPSHOT_TESTS_SKIPLIST = path.join(PROJECT_DIR, 'tests/snapshot-tests-skiplist.txt')
 
 BUILD_SCRIPT = path.join(TOOLS_DIR, 'build.py')

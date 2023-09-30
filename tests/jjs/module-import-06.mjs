@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import * as namespace from "module-export-09.mjs"
+import * as namespace from "./module-export-09.mjs"
 
 assert(JSON.stringify(namespace) === '{"a":1,"bb":2,"bc":3,"c":4,"dd":5,"ddd":6,"dddd":7}')
 

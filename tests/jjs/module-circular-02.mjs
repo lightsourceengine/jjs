@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as o from "module-circular-01.mjs"
+import * as o from "./module-circular-01.mjs"
 
 if (o.early != "Loaded")
 {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { getName, getNamePromise } from "./module-source-name-export.mjs"
+import { getName, getNamePromise } from "./module-source-name-export.mjs";
 
 assert(getName().endsWith("module-source-name-export.mjs"));
 

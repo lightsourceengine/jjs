@@ -23,4 +23,4 @@ export default class {
   }
 }
 
-export * from "module-export-02.mjs"
+export * from "./module-export-02.mjs"

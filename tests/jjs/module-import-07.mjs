@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-import {ns1 as obj, ns2} from "module-export-10.mjs"
-import {ns3} from "module-export-10.mjs"
+import {ns1 as obj, ns2} from "./module-export-10.mjs"
+import {ns3} from "./module-export-10.mjs"
 
 assert(typeof obj === "object")
 assert(obj === ns2)

@@ -29,6 +29,7 @@
 #include "jjs-ext/repl.h"
 #include "jjs-ext/sources.h"
 #include "jjs-ext/test262.h"
+#include "main-module.h"
 
 /**
  * Initialize random seed
@@ -85,6 +86,7 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
 {
   jjs_init (arguments_p->init_flags);
 
+  main_module_init();
   jjs_promise_on_event (JJS_PROMISE_EVENT_FILTER_ERROR, jjsx_handler_promise_reject, NULL);
 
   if (arguments_p->option_flags & OPT_FLAG_DEBUG_SERVER)
@@ -136,7 +138,7 @@ restart:
     {
       case SOURCE_MODULE:
       {
-        result = jjsx_source_exec_module (file_path_p);
+        result = main_module_run_esm (file_path_p);
         break;
       }
       case SOURCE_SNAPSHOT:
@@ -154,7 +156,7 @@ restart:
         }
         else
         {
-          result = jjsx_source_exec_script (file_path_p);
+          result = main_module_run (file_path_p);
         }
 
         break;
@@ -165,6 +167,7 @@ restart:
     {
       if (jjsx_debugger_is_reset (result))
       {
+        main_module_cleanup();
         jjs_cleanup ();
 
         goto restart;
@@ -201,6 +204,7 @@ restart:
 
       if (receive_status == JJS_DEBUGGER_CONTEXT_RESET_RECEIVED || jjsx_debugger_is_reset (result))
       {
+        main_module_cleanup();
         jjs_cleanup ();
         goto restart;
       }
@@ -262,6 +266,7 @@ restart:
   return_code = JJS_STANDALONE_EXIT_CODE_OK;
 
 exit:
+  main_module_cleanup();
   jjs_cleanup ();
 
   return return_code;

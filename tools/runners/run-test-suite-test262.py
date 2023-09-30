@@ -18,6 +18,7 @@ from __future__ import print_function
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -40,6 +41,8 @@ def get_arguments():
                         help='JJS engine create test262 object')
     parser.add_argument('--test-dir', metavar='DIR', required=True,
                         help='Directory contains test262 test suite')
+    parser.add_argument('--harness-patch-dir', metavar='DIR', default=None,
+                        help='Directory contains test262 harness/ patches')
     parser.add_argument('--job-count', metavar='COUNT', type=int, default=0, help='Number of parallel jobs')
     group = parser.add_mutually_exclusive_group(required=True)
     parser.add_argument('--test262-test-list', metavar='LIST',
@@ -71,6 +74,14 @@ def prepare_test262_test_suite(args):
 
     return_code = subprocess.call(['git', 'checkout', args.test262_git_hash], cwd=args.test_dir)
     assert not return_code, 'Cloning test262 repository failed - invalid git revision.'
+
+    if args.harness_patch_dir:
+        # setTimeout() polyfill does not run in a module context
+        shutil.copy(os.path.join(args.harness_patch_dir, 'timer.js'),
+                    os.path.join(args.test_dir, 'harness/timer.js'))
+        # propertyHelper.js is busted at this revision.
+        shutil.copy(os.path.join(args.harness_patch_dir, 'propertyHelper.js'),
+                    os.path.join(args.test_dir, 'harness/propertyHelper.js'))
 
     return 0
 

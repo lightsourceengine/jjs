@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {a as aa, b as bb, early} from "module-circular-03.mjs"
+import {a as aa, b as bb, early} from "./module-circular-03.mjs"
 
 export var a = 5
 

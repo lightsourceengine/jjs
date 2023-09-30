@@ -63,7 +63,7 @@ endif()
 
 # JJS standalones
 if(JJS_CMDLINE)
-  jjs_create_executable("jjs" "main-desktop.c" "arguments/options.c" "arguments/cli.c")
+  jjs_create_executable("jjs" "main-desktop.c" "arguments/options.c" "arguments/cli.c" "main-module.c")
   target_link_libraries("jjs" jjs-ext jjs-port)
 endif()
 

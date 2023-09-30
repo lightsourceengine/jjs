@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-import def, * as mod from "module-export-02.mjs";
-import {b_, c_,} from "module-export-02.mjs";
+import def, * as mod from "./module-export-02.mjs";
+import {b_, c_,} from "./module-export-02.mjs";
 
 assert (def() === "default")
 assert (mod.aa === "a")

@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-export {} from "module-export-01.mjs";
-export {aa,} from "module-export-01.mjs";
-export {bb as b_, cc as c_} from "module-export-01.mjs";
-export * from "module-export-01.mjs";
+export {} from "./module-export-01.mjs";
+export {aa,} from "./module-export-01.mjs";
+export {bb as b_, cc as c_} from "./module-export-01.mjs";
+export * from "./module-export-01.mjs";
 export default function () {return "default"};

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import incrementer, {aa, c_, x,} from "module-export-03.mjs"
+import incrementer, {aa, c_, x,} from "./module-export-03.mjs"
 var i = new incrementer(3);
 assert(i.incr() === 4);
 assert(i.incr() === 5);

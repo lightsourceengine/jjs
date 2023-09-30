@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import "module-import-01.mjs";
-import "module-export-05.mjs";
-import "module-export-06.mjs";
-import "module-export-07.mjs";
+import "./module-import-01.mjs";
+import "./module-export-05.mjs";
+import "./module-export-06.mjs";
+import "./module-export-07.mjs";

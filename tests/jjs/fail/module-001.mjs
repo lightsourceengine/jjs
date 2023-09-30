@@ -14,4 +14,4 @@
  */
 
 // File does not exist.
-import b from "module-exports.mjs"
+import b from "./module-exports.mjs"

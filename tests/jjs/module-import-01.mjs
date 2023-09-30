@@ -14,12 +14,12 @@
  */
 
 import "./module-export-01.mjs";
-import def from "module-export-01.mjs";
-import {} from "module-export-01.mjs";
-import {aa as a,} from "module-export-01.mjs";
-import {bb as b, cc as c} from "module-export-01.mjs";
-import {x} from "module-export-01.mjs";
-import * as mod from "module-export-01.mjs";
+import def from "./module-export-01.mjs";
+import {} from "./module-export-01.mjs";
+import {aa as a,} from "./module-export-01.mjs";
+import {bb as b, cc as c} from "./module-export-01.mjs";
+import {x} from "./module-export-01.mjs";
+import * as mod from "./module-export-01.mjs";
 
 assert (def === "default");
 assert (a === "a");
