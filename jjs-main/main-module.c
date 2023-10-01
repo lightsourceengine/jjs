@@ -25,8 +25,6 @@ platform_dirname(char* path_p);
 static bool
 platform_is_absolute_path(const char* path_p, size_t path_len);
 #endif
-static char *
-strnzcat(char *dst, const char *src, size_t size);
 
 static void
 cache_data_init (void *data)
@@ -270,51 +268,53 @@ get_referrer_dirname(jjs_value_t referrer)
 static char*
 resolve_path(jjs_value_t referrer, jjs_value_t specifier, on_resolve_options_t* options_p)
 {
-  char* specifier_path = read_string (specifier);
+  char* specifier_path_p = read_string (specifier);
 
-  if (specifier_path == NULL)
+  if (specifier_path_p == NULL)
   {
     return NULL;
   }
 
-  size_t specifier_path_len = strlen(specifier_path);
+  size_t specifier_path_len = strlen(specifier_path_p);
 
-  if (platform_is_absolute_path (specifier_path, specifier_path_len))
+  if (platform_is_absolute_path (specifier_path_p, specifier_path_len))
   {
-    char* result = platform_realpath(specifier_path);
+    char* result = platform_realpath(specifier_path_p);
 
-    free(specifier_path);
+    free(specifier_path_p);
 
     return result;
   }
 
   if (!options_p->allow_regular_file_name_specifier)
   {
-    if (strstr (specifier_path, "./") == NULL && strstr (specifier_path, "../") == NULL)
+    if (strstr (specifier_path_p, "./") == NULL && strstr (specifier_path_p, "../") == NULL)
     {
-      free (specifier_path);
+      free (specifier_path_p);
 
       return NULL;
     }
   }
 
-  char* referrer_dirname = get_referrer_dirname(referrer);
-  size_t referer_dirname_len = strlen(referrer_dirname);
+  char* referrer_dirname_p = get_referrer_dirname(referrer);
+  size_t referer_dirname_len = strlen(referrer_dirname_p);
   size_t path_separator_len = strlen(PATH_SEPARATOR_STR);
   size_t len = referer_dirname_len + specifier_path_len + path_separator_len + 1;
-  char* buffer = malloc(len);
+  char* buffer_p = malloc(len);
+  char* p = buffer_p;
 
-  buffer [0] = '\0';
+  memcpy (p, referrer_dirname_p, referer_dirname_len);
+  p += referer_dirname_len;
+  memcpy (p, PATH_SEPARATOR_STR, path_separator_len);
+  p += path_separator_len;
+  memcpy (p, specifier_path_p, specifier_path_len);
+  p [specifier_path_len] = '\0';
 
-  strnzcat(buffer, referrer_dirname, referer_dirname_len);
-  strnzcat(buffer, PATH_SEPARATOR_STR, path_separator_len);
-  strnzcat(buffer, specifier_path, specifier_path_len);
+  char* result = platform_realpath(p);
 
-  char* result = platform_realpath(buffer);
-
-  free(buffer);
-  free(specifier_path);
-  free(referrer_dirname);
+  free(buffer_p);
+  free(specifier_path_p);
+  free(referrer_dirname_p);
 
   return result;
 } /* resolve_path */
@@ -539,36 +539,6 @@ free_source (raw_source_t* source)
   jjs_port_source_free (source->buffer_p);
   jjs_value_free (source->status);
 } /* free_source */
-
-static char *
-strnzcat(char *dst, const char *src, size_t size)
-{
-  char *dptr;
-
-  if (size < 1)
-  {
-    return dst;
-  }
-  dptr = dst;
-
-  while (size && *dptr)
-  {
-    size--; dptr++;
-  }
-  if (size)
-  {
-    while (--size)
-    {
-      if (!(*dptr++ = *src++))
-      {
-        break;
-      }
-    }
-  }
-  *dptr = 0;
-
-  return dst;
-}
 
 #ifdef _WIN32
 

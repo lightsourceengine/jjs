@@ -266,7 +266,6 @@ jobs:
       - run: $RUNNER -q --jjs-tests --buildoptions=--compile-flag=-m32,--cpointer-32bit=on --build-debug
 
   zig_example:
-    if: false # disable until each platform can be tested
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]

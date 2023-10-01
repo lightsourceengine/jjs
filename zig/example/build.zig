@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) void {
     //   will be implemented in zig.
     // - Depending on how jjs-config.h is setup, you can also pass compile time settings via
     //   compile definitions: -DJJS_HEAP_SIZE=8192
-    exe.addCSourceFiles(&.{ "../../build/amalgam/jjs.c", "../../build/amalgam/jjs-port.c" }, &.{"-std=c99"});
+    exe.addCSourceFiles(&.{ "../../build/amalgam/jjs.c", "../../build/amalgam/jjs-port.c" }, &.{"-std=gnu99"});
 
     exe.linkLibC();
     b.installArtifact(exe);
