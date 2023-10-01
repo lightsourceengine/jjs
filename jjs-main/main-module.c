@@ -25,6 +25,8 @@ platform_dirname(char* path_p);
 static bool
 platform_is_absolute_path(const char* path_p, size_t path_len);
 #endif
+static char *
+strnzcat(char *dst, const char *src, size_t size);
 
 static void
 cache_data_init (void *data)
@@ -304,9 +306,9 @@ resolve_path(jjs_value_t referrer, jjs_value_t specifier, on_resolve_options_t* 
 
   buffer [0] = '\0';
 
-  strncat(buffer, referrer_dirname, referer_dirname_len);
-  strncat(buffer, PATH_SEPARATOR_STR, path_separator_len);
-  strncat(buffer, specifier_path, specifier_path_len);
+  strnzcat(buffer, referrer_dirname, referer_dirname_len);
+  strnzcat(buffer, PATH_SEPARATOR_STR, path_separator_len);
+  strnzcat(buffer, specifier_path, specifier_path_len);
 
   char* result = platform_realpath(buffer);
 
@@ -537,6 +539,36 @@ free_source (raw_source_t* source)
   jjs_port_source_free (source->buffer_p);
   jjs_value_free (source->status);
 } /* free_source */
+
+static char *
+strnzcat(char *dst, const char *src, size_t size)
+{
+  char *dptr;
+
+  if (size < 1)
+  {
+    return dst;
+  }
+  dptr = dst;
+
+  while (size && *dptr)
+  {
+    size--; dptr++;
+  }
+  if (size)
+  {
+    while (--size)
+    {
+      if (!(*dptr++ = *src++))
+      {
+        break;
+      }
+    }
+  }
+  *dptr = 0;
+
+  return dst;
+}
 
 #ifdef _WIN32
 
