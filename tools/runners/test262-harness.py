@@ -227,7 +227,7 @@ _BLANK_LINES = r"([ \t]*[\r\n]{1,2})*"
 
 # Matches the YAML frontmatter block.
 # It must be non-greedy because test262-es2015/built-ins/Object/assign/Override.js contains a comment like yaml pattern
-_YAML_PATTERN = re.compile(r"/\*---(.*?)---\*/" + _BLANK_LINES, re.DOTALL)
+_YAML_PATTERN = re.compile(r"/\*---(.*?)---\*/", re.DOTALL)
 
 # Matches all known variants for the license block.
 # https://github.com/tc39/test262/blob/705d78299cf786c84fa4df473eff98374de7135a/tools/lint/lib/checks/license.py
@@ -273,9 +273,9 @@ def find_license(src):
 def find_attrs(src):
     match = _YAML_PATTERN.search(src)
     if not match:
-        return (None, None)
+        return None
 
-    return (match.group(0), match.group(1).strip())
+    return match.group(1)
 
 
 def parse_test_record(src, name, onerror=print):
@@ -283,7 +283,7 @@ def parse_test_record(src, name, onerror=print):
     header = find_license(src)
 
     # Find the YAML frontmatter.
-    (frontmatter, attrs) = find_attrs(src)
+    frontmatter = find_attrs(src)
 
     # YAML frontmatter is required for all tests.
     if frontmatter is None:
@@ -314,8 +314,11 @@ def parse_test_record(src, name, onerror=print):
     test_record['header'] = header.strip() if header else ''
     test_record['test'] = test
 
-    if attrs:
-        yaml_attr_parser(test_record, attrs, name, onerror)
+    if re.search(r"(_FIXTURE\.js)", test):
+        test_record['fixture'] = True
+
+    if frontmatter:
+        yaml_attr_parser(test_record, frontmatter, name, onerror)
 
     # Report if the license block is missing in non-generated tests.
     if header is None and "generated" not in test_record and "hashbang" not in name:
@@ -386,20 +389,25 @@ def is_windows():
 
 class TempFile(object):
 
-    def __init__(self, suffix="", prefix="tmp", text=False):
+    def __init__(self, full_path=None, suffix="", prefix="tmp", text=False):
         self.suffix = suffix
         self.prefix = prefix
         self.text = text
         self.file_desc = None
         self.name = None
         self.is_closed = False
+        self.full_path = full_path
         self.open_file()
 
     def open_file(self):
-        (self.file_desc, self.name) = tempfile.mkstemp(
-            suffix=self.suffix,
-            prefix=self.prefix,
-            text=self.text)
+        if self.full_path:
+            self.file_desc = os.open(self.full_path, os.O_RDWR | os.O_CREAT | os.O_EXCL)
+            self.name = self.full_path
+        else:
+            (self.file_desc, self.name) = tempfile.mkstemp(
+                suffix=self.suffix,
+                prefix=self.prefix,
+                text=self.text)
 
     def write(self, string):
         os.write(self.file_desc, string.encode('utf8'))
@@ -554,6 +562,9 @@ class TestCase(object):
     def is_module(self):
         return 'module' in self.test_record
 
+    def has_fixture(self):
+        return 'fixture' in self.test_record or self.is_module()
+
     def get_include_list(self):
         if self.test_record.get('includes'):
             return self.test_record['includes']
@@ -648,11 +659,28 @@ class TestCase(object):
         return TestResult(code, out, err, self)
 
     def run(self):
-        tmp = TempFile(suffix=".js", prefix="test262-")
-        try:
-            result = self.run_test_in(tmp)
-        finally:
-            tmp.dispose()
+        if self.has_fixture():
+            backup = os.path.join(os.path.dirname(self.full_path), os.path.basename(self.full_path) + '.bak')
+            os.rename(self.full_path, backup)
+            tmp = TempFile(full_path=self.full_path)
+            if not os.path.exists(self.full_path):
+                raise Exception("Failed to create temporary file: " + self.full_path)
+            if not os.path.exists(backup):
+                raise Exception("Failed to create backup file: " + backup)
+
+            try:
+                result = self.run_test_in(tmp)
+            finally:
+                tmp.dispose()
+                os.rename(backup, self.full_path)
+        else:
+            tmp = TempFile(suffix=".js", prefix="test262-")
+
+            try:
+                result = self.run_test_in(tmp)
+            finally:
+                tmp.dispose()
+
         return result
 
     def print_source(self):
@@ -906,7 +934,39 @@ class TestSuite(object):
 
             pool = multiprocessing.Pool(processes=job_count, initializer=pool_init)
             try:
-                for result in pool.imap(test_case_run_process, cases):
+                # XXX: Side effect of how modules tests are run.
+                #      Normal test source are read into memory, cat'ed with necessary
+                #      harness/* includes (global helper code). Then, the result is written
+                #      to a temporary file in the os temp directory and then, run.
+                #
+                #      For module tests, the test can import/export it's own file and/or
+                #      FIXTURE files in the same directory. The specifier is always relative.
+                #      The modules cannot run like normal tests. Instead, the original source
+                #      file is backed up. The global + test source is written to the original
+                #      source file. The test is run. Then, the original source file is restored.
+                #
+                #      Tests can run in strict mode only, non-strict mode only, or both. When
+                #      running in both modes with pooling on, the fs modification clash and
+                #      havoc ensues. To support parallel running, the cases are split into
+                #      strict and non-strict cases and run separately.
+                #
+                #      Ideally, this whole temporary file creation should not be a thing. The
+                #      harness/* includes should just be preloaded in the global scope;
+                #      however, the includes have problems when loaded into JJS independently.
+                #      At the very least. the JJS cmdline tool needs to be updated. Preloading
+                #      should be revisited in the future. Copying appears to work for now.
+                def is_strict(c):
+                    return c.strict_mode
+
+                for result in pool.imap(test_case_run_process, list(filter(is_strict, cases))):
+                    if logname:
+                        self.write_log(result)
+                    progress.has_run(result)
+
+                def is_non_strict(c):
+                    return not c.strict_mode
+
+                for result in pool.imap(test_case_run_process, list(filter(is_non_strict, cases))):
                     if logname:
                         self.write_log(result)
                     progress.has_run(result)

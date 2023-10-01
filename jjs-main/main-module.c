@@ -310,7 +310,7 @@ resolve_path(jjs_value_t referrer, jjs_value_t specifier, on_resolve_options_t* 
   memcpy (p, specifier_path_p, specifier_path_len);
   p [specifier_path_len] = '\0';
 
-  char* result = platform_realpath(p);
+  char* result = platform_realpath(buffer_p);
 
   free(buffer_p);
   free(specifier_path_p);

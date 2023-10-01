@@ -247,7 +247,7 @@ parser_module_parse_export_clause (parser_context_t *context_p) /**< parser cont
        * honor as default, JJS should as well.
        */
       if (context_p->token.type == LEXER_KEYW_DEFAULT) {
-        // XXX: it would be better to replce the keyword token with a literal token
+        // XXX: it would be better to replace the keyword token with a literal token
         lexer_construct_literal_object (context_p, &lexer_export_as_default_literal, lexer_export_as_default_literal.type);
       }
       else if (context_p->token.type != LEXER_LITERAL || context_p->token.lit_location.type != LEXER_IDENT_LITERAL)

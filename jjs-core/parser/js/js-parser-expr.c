@@ -2353,6 +2353,11 @@ parser_parse_unary_expression (parser_context_t *context_p, /**< context */
       lexer_next_token (context_p);
       parser_parse_expression (context_p, PARSE_EXPR_NO_COMMA);
 
+      if (context_p->token.type == LEXER_COMMA)
+      {
+        lexer_next_token (context_p);
+      }
+
       if (context_p->token.type != LEXER_RIGHT_PAREN)
       {
         parser_raise_error (context_p, PARSER_ERR_RIGHT_PAREN_EXPECTED);
