@@ -875,7 +875,6 @@ class TestSuite(object):
                                 if non_strict_case.is_no_strict() or self.unmarked_default in ['both', 'non_strict']:
                                     cases.append(non_strict_case)
         logging.info("Done listing tests")
-        exit(0)
         return cases
 
     def print_summary(self, progress, logfile):
