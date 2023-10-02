@@ -169,6 +169,9 @@ def run_snapshot_tests(args, tests):
     generate_snapshot_cmd.append(engine[0] + '-snapshot' + engine[1])
     generate_snapshot_cmd.append('generate')
 
+    # modules (mjs files in tests) are not supported by JJS snapshots
+    tests = list(filter(lambda t: t.endswith('.js'), tests))
+
     total = len(tests)
     tested = 0
     passed = 0

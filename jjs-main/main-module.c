@@ -431,6 +431,7 @@ on_resolve (const jjs_value_t specifier, const jjs_value_t referrer, void *user_
   if (jjs_value_is_exception (source.status))
   {
     module = source.status;
+    source.status = jjs_undefined();
     goto cleanup;
   }
 
