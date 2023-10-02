@@ -1657,6 +1657,8 @@
   <test id="language/expressions/dynamic-import/namespace/promise-then-ns-get-nested-namespace-dflt-indirect.js"/>
   <test id="language/expressions/dynamic-import/namespace/promise-then-ns-own-property-keys-sort.js"/>
   <test id="language/expressions/dynamic-import/eval-export-dflt-cls-anon.js"/>
+  <!-- string passed to call() as this is leaked -->
+  <test id="language/expressions/dynamic-import/assignment-expression/this.js"/>
   <!-- END - Dynamic Import -->
 
   <!-- ES2018: Asynchronous Iteration

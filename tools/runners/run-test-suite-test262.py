@@ -161,9 +161,7 @@ def main(args):
     if args.test262_object:
         command += ' --test262-object'
 
-    kwargs = {}
-    if sys.version_info.major >= 3:
-        kwargs['errors'] = 'ignore'
+    kwargs = {'errors': 'ignore', 'encoding': 'utf-8', 'text': True}
 
     test262_harness_path = os.path.join(args.test262_harness_dir, 'test262-harness.py')
 

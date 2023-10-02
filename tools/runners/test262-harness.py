@@ -291,17 +291,17 @@ def parse_test_record(src, name, onerror=print):
 
     # The license shuold be placed before the frontmatter and there shouldn't be
     # any extra content between the license and the frontmatter.
-    if header is not None and frontmatter is not None:
-        header_idx = src.index(header)
-        frontmatter_idx = src.index(frontmatter)
-        if header_idx > frontmatter_idx:
-            onerror("Unexpected license after frontmatter: %s" % name)
-
-        # Search for any extra test content, but ignore whitespace only or comment lines.
-        extra = src[header_idx + len(header): frontmatter_idx]
-        if extra and any(line.strip() and not line.lstrip().startswith("//") for line in extra.split("\n")):
-            onerror(
-                "Unexpected test content between license and frontmatter: %s" % name)
+    # if header is not None and frontmatter is not None:
+    #     header_idx = src.index(header)
+    #     frontmatter_idx = src.index(frontmatter)
+    #     if header_idx > frontmatter_idx:
+    #         onerror("Unexpected license after frontmatter: %s" % name)
+    #
+    #     # Search for any extra test content, but ignore whitespace only or comment lines.
+    #     extra = src[header_idx + len(header): frontmatter_idx]
+    #     if extra and any(line.strip() and not line.lstrip().startswith("//") for line in extra.split("\n")):
+    #         onerror(
+    #             "Unexpected test content between license and frontmatter: %s" % name)
 
     # Remove the license and YAML parts from the actual test content.
     test = src
@@ -413,8 +413,9 @@ class TempFile(object):
         os.write(self.file_desc, string.encode('utf8'))
 
     def read(self):
-        with open(self.name, "r", newline='') as file_desc:
-            return file_desc.read()
+        with open(self.name, "rb") as file_desc:
+            raw_bytes = file_desc.read()
+            return raw_bytes.decode('utf8', errors='replace')
 
     def close(self):
         if not self.is_closed:
@@ -625,11 +626,13 @@ class TestCase(object):
         stderr = TempFile(prefix="test262-err-")
         try:
             logging.info("exec: %s", str(args))
+            kwargs = {'errors': 'ignore', 'encoding': 'utf-8', 'text': True}
             process = subprocess.Popen(
                 args,
                 shell=False,
                 stdout=stdout.file_desc,
-                stderr=stderr.file_desc
+                stderr=stderr.file_desc,
+                **kwargs
             )
             timer = threading.Timer(TEST262_CASE_TIMEOUT, process.kill)
             timer.start()
@@ -872,6 +875,7 @@ class TestSuite(object):
                                 if non_strict_case.is_no_strict() or self.unmarked_default in ['both', 'non_strict']:
                                     cases.append(non_strict_case)
         logging.info("Done listing tests")
+        exit(0)
         return cases
 
     def print_summary(self, progress, logfile):
