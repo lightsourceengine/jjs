@@ -308,8 +308,7 @@ def run_check(runnable, env=None):
         full_env = dict(os.environ)
         full_env.update(env)
         env = full_env
-
-    kwargs = {'errors': 'ignore', 'encoding': 'utf-8'}
+    kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
     proc = subprocess.Popen(runnable, env=env, **kwargs)
     proc.wait()
     return proc.returncode

@@ -78,10 +78,7 @@ def get_tests(test_dir, test_list, skip_list):
 
 
 def execute_test_command(test_cmd, cwd):
-    kwargs = {}
-    # debugger tests are still in python2. remove after they are converted to python3.
-    if sys.version_info.major >= 3:
-        kwargs = {'encoding': 'utf-8', 'errors': 'replace'}
+    kwargs = {'encoding': 'utf-8', 'errors': 'replace'}
     process = subprocess.Popen(test_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                universal_newlines=True, cwd=cwd, **kwargs)
     stdout = process.communicate()[0]
