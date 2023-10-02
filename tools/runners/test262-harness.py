@@ -626,7 +626,7 @@ class TestCase(object):
         stderr = TempFile(prefix="test262-err-")
         try:
             logging.info("exec: %s", str(args))
-            kwargs = {'errors': 'ignore', 'encoding': 'utf-8', 'text': True}
+            kwargs = {'errors': 'ignore', 'encoding': 'utf-8'}
             process = subprocess.Popen(
                 args,
                 shell=False,
