@@ -86,6 +86,7 @@ enum
   ECMA_ARRAY_PROTOTYPE_FIND_LAST_INDEX,
   ECMA_ARRAY_PROTOTYPE_WITH,
   ECMA_ARRAY_PROTOTYPE_TO_REVERSED,
+  ECMA_ARRAY_PROTOTYPE_TO_SORTED,
   ECMA_ARRAY_PROTOTYPE_TO_SPLICED,
 };
 
@@ -2992,6 +2993,158 @@ ecma_builtin_array_prototype_object_to_reversed (ecma_object_t *obj_p, /**< arra
 } /* ecma_builtin_array_prototype_object_to_reversed */
 
 /**
+ * The Array.prototype object's 'toSorted' routine.
+ *
+ * See also:
+ *          ECMA-262 v14, 23.1.3.34 Array.prototype.toSorted
+ *
+ * @return ecma value
+ *         Returned value must be freed with ecma_free_value.
+ */
+static ecma_value_t
+ecma_builtin_array_prototype_object_to_sorted (ecma_value_t compare_fn, /**< sort compare function or undefined */
+                                               ecma_object_t *obj_p, /**< array object */
+                                               ecma_length_t len)    /**< array object's length */
+{
+  if (len > UINT32_MAX)
+  {
+    jjs_error_t e = len > (ecma_length_t)ECMA_NUMBER_MAX_SAFE_INTEGER ? JJS_ERROR_TYPE : JJS_ERROR_RANGE;
+    return ecma_raise_standard_error(e, ECMA_ERR_ARRAY_CONSTRUCTOR_SIZE_EXCEEDED);
+  }
+
+  ecma_object_t* a = ecma_op_new_array_object ((uint32_t)len);
+  ecma_collection_t *array_index_props_p = ecma_new_collection ();
+
+  for (uint32_t i = 0; i < len; i++)
+  {
+    ecma_string_t *prop_name_p = ecma_new_ecma_string_from_uint32 (i);
+    ecma_property_descriptor_t prop_desc;
+    ecma_value_t get_desc = ecma_op_object_get_own_property_descriptor (obj_p, prop_name_p, &prop_desc);
+
+    if (ECMA_IS_VALUE_ERROR (get_desc))
+    {
+      ecma_deref_object (a);
+      ecma_collection_free (array_index_props_p);
+      ecma_deref_ecma_string (prop_name_p);
+      return get_desc;
+    }
+
+    if (ecma_is_value_true (get_desc))
+    {
+      ecma_ref_ecma_string (prop_name_p);
+      ecma_collection_push_back (array_index_props_p, ecma_make_string_value (prop_name_p));
+      ecma_free_property_descriptor (&prop_desc);
+      continue;
+    }
+  }
+
+  uint32_t defined_prop_count = array_index_props_p->item_count;
+
+  ecma_value_t ret_value = ECMA_VALUE_ERROR;
+  uint32_t copied_num = 0;
+  JMEM_DEFINE_LOCAL_ARRAY (values_buffer, defined_prop_count, ecma_value_t);
+
+  ecma_value_t *buffer_p = array_index_props_p->buffer_p;
+
+  /* Copy unsorted array into a native c array. */
+  for (uint32_t i = 0; i < array_index_props_p->item_count; i++)
+  {
+    ecma_string_t *property_name_p = ecma_get_string_from_value (buffer_p[i]);
+
+    uint32_t index = ecma_string_get_array_index (property_name_p);
+    JJS_ASSERT (index != ECMA_STRING_NOT_ARRAY_INDEX);
+
+    if (index >= len)
+    {
+      break;
+    }
+
+    ecma_value_t index_value = ecma_op_object_get (obj_p, property_name_p);
+
+    if (ECMA_IS_VALUE_ERROR (index_value))
+    {
+      goto clean_up;
+    }
+
+    values_buffer[copied_num++] = index_value;
+  }
+
+  JJS_ASSERT (copied_num == defined_prop_count);
+
+  /* Sorting. */
+  if (copied_num > 1)
+  {
+    const ecma_builtin_helper_sort_compare_fn_t sort_cb = &ecma_builtin_array_prototype_object_sort_compare_helper;
+    ecma_value_t sort_value =
+      ecma_builtin_helper_array_merge_sort_helper (values_buffer, (uint32_t) (copied_num), compare_fn, sort_cb, NULL);
+    if (ECMA_IS_VALUE_ERROR (sort_value))
+    {
+      goto clean_up;
+    }
+
+    ecma_free_value (sort_value);
+  }
+
+  /* Put sorted values to the front of the array. */
+  for (uint32_t index = 0; index < copied_num; index++)
+  {
+    ecma_value_t put_value = ecma_op_object_put_by_index (a, index, values_buffer[index], true);
+
+    if (ECMA_IS_VALUE_ERROR (put_value))
+    {
+      goto clean_up;
+    }
+  }
+
+  ret_value = ECMA_VALUE_EMPTY;
+
+clean_up:
+  /* Free values that were copied to the local array. */
+  for (uint32_t index = 0; index < copied_num; index++)
+  {
+    ecma_free_value (values_buffer[index]);
+  }
+
+  JMEM_FINALIZE_LOCAL_ARRAY (values_buffer);
+
+  if (ECMA_IS_VALUE_ERROR (ret_value))
+  {
+    ecma_deref_object (a);
+    ecma_collection_free (array_index_props_p);
+    return ret_value;
+  }
+
+  JJS_ASSERT (ecma_is_value_empty (ret_value));
+
+  /* Undefined properties should be in the back of the array. */
+  ecma_value_t *buffer_p = array_index_props_p->buffer_p;
+
+  for (uint32_t i = 0; i < array_index_props_p->item_count; i++)
+  {
+    ecma_string_t *property_name_p = ecma_get_string_from_value (buffer_p[i]);
+
+    uint32_t index = ecma_string_get_array_index (property_name_p);
+    JJS_ASSERT (index != ECMA_STRING_NOT_ARRAY_INDEX);
+
+    if (index >= copied_num && index < len)
+    {
+      ecma_value_t del_value = ecma_op_object_delete (a, property_name_p, true);
+
+      if (ECMA_IS_VALUE_ERROR (del_value))
+      {
+        ecma_deref_object(a);
+        ecma_collection_free (array_index_props_p);
+        return del_value;
+      }
+    }
+  }
+
+  ecma_collection_free (array_index_props_p);
+
+  return ecma_make_object_value (a);
+} /* ecma_builtin_array_prototype_object_to_reversed */
+
+/**
  * The Array.prototype object's 'toSpliced' routine
  *
  * See also:
@@ -3254,6 +3407,23 @@ ecma_builtin_array_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< 
     return ret_value;
   }
 
+  // the spec calls for the compare function to be checked before the length
+  ecma_value_t compare_fn = ECMA_VALUE_UNDEFINED;
+
+  if (ECMA_ARRAY_PROTOTYPE_TO_SORTED == builtin_routine_id)
+  {
+    if (arguments_number > 0)
+    {
+      compare_fn = arguments_list_p[0];
+
+      if (!ecma_is_value_undefined (compare_fn) && !ecma_op_is_callable (compare_fn))
+      {
+        ecma_deref_object (obj_p);
+        return ecma_raise_type_error (ECMA_ERR_COMPARE_FUNC_NOT_CALLABLE);
+      }
+    }
+  }
+
   ecma_length_t length;
   ecma_value_t len_value = ecma_op_object_get_length (obj_p, &length);
 
@@ -3411,6 +3581,11 @@ ecma_builtin_array_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< 
     case ECMA_ARRAY_PROTOTYPE_TO_REVERSED:
     {
       ret_value = ecma_builtin_array_prototype_object_to_reversed (obj_p, length);
+      break;
+    }
+    case ECMA_ARRAY_PROTOTYPE_TO_SORTED:
+    {
+      ret_value = ecma_builtin_array_prototype_object_to_sorted (compare_fn, obj_p, length);
       break;
     }
     case ECMA_ARRAY_PROTOTYPE_TO_SPLICED:

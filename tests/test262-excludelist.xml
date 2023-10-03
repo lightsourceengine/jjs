@@ -1786,31 +1786,9 @@
   <!-- END - Array/TypedArray prototype findLast and findLastIndex -->
 
   <!-- change-array-by-copy -->
-  <!-- toSorted not implemented + JJS bugs/issues -->
-  <test id="built-ins/Array/prototype/toSorted/comparefn-called-after-get-elements.js"/>
-  <test id="built-ins/Array/prototype/toSorted/comparefn-stop-after-error.js"/>
-  <test id="built-ins/Array/prototype/toSorted/frozen-this-value.js"/>
+  <!-- JJS Bug: this is a weird corner case -->
   <test id="built-ins/Array/prototype/toSorted/holes-not-preserved.js"/>
-  <test id="built-ins/Array/prototype/toSorted/ignores-species.js"/>
-  <test id="built-ins/Array/prototype/toSorted/immutable.js"/>
-  <test id="built-ins/Array/prototype/toSorted/length-casted-to-zero.js"/>
-  <test id="built-ins/Array/prototype/toSorted/length-decreased-while-iterating.js"/>
-  <test id="built-ins/Array/prototype/toSorted/length-exceeding-array-length-limit.js"/>
-  <test id="built-ins/Array/prototype/toSorted/length-increased-while-iterating.js"/>
-  <test id="built-ins/Array/prototype/toSorted/length-tolength.js"/>
-  <test id="built-ins/Array/prototype/toSorted/metadata/length.js"/>
-  <test id="built-ins/Array/prototype/toSorted/metadata/name.js"/>
-  <test id="built-ins/Array/prototype/toSorted/metadata/property-descriptor.js"/>
-  <test id="built-ins/Array/prototype/toSorted/not-a-constructor.js"/>
-  <test id="built-ins/Array/prototype/toSorted/this-value-boolean.js"/>
-  <test id="built-ins/Array/prototype/toSorted/zero-or-one-element.js"/>
-  <test id="built-ins/TypedArray/prototype/toSorted/ignores-species.js"/>
-  <test id="built-ins/TypedArray/prototype/toSorted/immutable.js"/>
-  <test id="built-ins/TypedArray/prototype/toSorted/length-property-ignored.js"/>
-  <test id="built-ins/TypedArray/prototype/toSorted/metadata/length.js"/>
-  <test id="built-ins/TypedArray/prototype/toSorted/metadata/name.js"/>
-  <test id="built-ins/TypedArray/prototype/toSorted/metadata/property-descriptor.js"/>
-  <test id="built-ins/TypedArray/prototype/toSorted/not-a-constructor.js"/>
+  <!-- JJS Bug: ToNumber on value happens on the TA setter fn, which is too late for this test. -->
   <test id="built-ins/TypedArray/prototype/with/early-type-coercion.js"/>
   <!-- END - change-array-by-copy -->
 

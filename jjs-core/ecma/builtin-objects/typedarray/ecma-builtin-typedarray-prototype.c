@@ -82,6 +82,7 @@ enum
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_KEYS,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_ENTRIES,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_TO_REVERSED,
+  ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_TO_SORTED,
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_WITH,
 
   ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_BUFFER_GETTER,
@@ -2164,6 +2165,121 @@ ecma_builtin_typedarray_prototype_to_reversed (ecma_value_t this_arg, /**< this 
   return new_typedarray;
 } /* ecma_builtin_typedarray_prototype_to_reversed */
 
+static ecma_value_t
+ecma_builtin_typedarray_prototype_to_sorted (ecma_value_t this_arg, /**< this argument */
+                                             const ecma_value_t args[], /**< arguments list */
+                                             uint32_t args_number, /**< argument count */
+                                             ecma_typedarray_info_t *info_p) /**< object info */
+{
+  JJS_ASSERT (ecma_is_typedarray (this_arg));
+
+  ecma_value_t compare_fn = args_number > 0 ? args[0] : ECMA_VALUE_UNDEFINED;
+
+  if (!ecma_is_value_undefined (compare_fn) && !ecma_op_is_callable (compare_fn))
+  {
+    return ecma_raise_type_error (ECMA_ERR_COMPARE_FUNC_NOT_CALLABLE);
+  }
+
+  if (ecma_arraybuffer_is_detached (info_p->array_buffer_p))
+  {
+    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+  }
+
+  ecma_value_t len = ecma_make_number_value (info_p->length);
+  ecma_value_t new_typedarray = ecma_op_typedarray_create_same_type (this_arg, &len, 1);
+  ecma_free_value (len);
+
+  if (ECMA_IS_VALUE_ERROR (new_typedarray) || info_p->length == 0)
+  {
+    return new_typedarray;
+  }
+
+  ecma_value_t ret_value = ECMA_VALUE_EMPTY;
+  JMEM_DEFINE_LOCAL_ARRAY (values_buffer, info_p->length, ecma_value_t);
+
+  uint32_t buffer_index = 0;
+  ecma_typedarray_getter_fn_t typedarray_getter_cb = ecma_get_typedarray_getter_fn (info_p->id);
+  uint8_t *buffer_p = ecma_arraybuffer_get_buffer (info_p->array_buffer_p) + info_p->offset;
+  uint8_t *limit_p = buffer_p + (info_p->length << info_p->shift);
+
+  /* Copy unsorted array into a native c array. */
+  while (buffer_p < limit_p)
+  {
+    JJS_ASSERT (buffer_index < info_p->length);
+    ecma_value_t element_value = typedarray_getter_cb (buffer_p);
+    values_buffer[buffer_index++] = element_value;
+    buffer_p += info_p->element_size;
+  }
+
+  JJS_ASSERT (buffer_index == info_p->length);
+
+  const ecma_builtin_helper_sort_compare_fn_t sort_cb = &ecma_builtin_typedarray_prototype_sort_compare_helper;
+
+  ecma_value_t sort_value = ecma_builtin_helper_array_merge_sort_helper (values_buffer,
+                                                                         (uint32_t) (info_p->length),
+                                                                         compare_fn,
+                                                                         sort_cb,
+                                                                         info_p->array_buffer_p);
+
+  if (ECMA_IS_VALUE_ERROR (sort_value))
+  {
+    ret_value = sort_value;
+    goto free_values;
+  }
+
+  JJS_ASSERT (sort_value == ECMA_VALUE_EMPTY);
+
+  if (ecma_arraybuffer_is_detached (info_p->array_buffer_p))
+  {
+    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+  }
+
+  ecma_object_t *new_typedarray_p = ecma_get_object_from_value (new_typedarray);
+  ecma_typedarray_info_t new_typedarray_info = ecma_typedarray_get_info (new_typedarray_p);
+  ecma_typedarray_setter_fn_t new_typedarray_setter_cb = ecma_get_typedarray_setter_fn (new_typedarray_info.id);
+
+  buffer_p = ecma_arraybuffer_get_buffer (new_typedarray_info.array_buffer_p) + new_typedarray_info.offset;
+  limit_p = buffer_p + (new_typedarray_info.length << new_typedarray_info.shift);
+  buffer_index = 0;
+
+  /* Put sorted values from the native array back into the typedarray buffer. */
+  while (buffer_p < limit_p)
+  {
+    JJS_ASSERT (buffer_index < new_typedarray_info.length);
+    ecma_value_t element_value = values_buffer[buffer_index++];
+    ecma_value_t set_element = new_typedarray_setter_cb (buffer_p, element_value);
+
+    if (ECMA_IS_VALUE_ERROR (set_element))
+    {
+      ret_value = set_element;
+      goto free_values;
+    }
+
+    buffer_p += new_typedarray_info.element_size;
+  }
+
+  JJS_ASSERT (buffer_index == new_typedarray_info.length);
+
+free_values:
+  /* Free values that were copied to the local array. */
+  for (uint32_t index = 0; index < info_p->length; index++)
+  {
+    ecma_free_value (values_buffer[index]);
+  }
+
+  JMEM_FINALIZE_LOCAL_ARRAY (values_buffer);
+
+  if (ECMA_IS_VALUE_ERROR(ret_value))
+  {
+    ecma_free_value (new_typedarray);
+    return ret_value;
+  }
+
+  JJS_ASSERT(ret_value == ECMA_VALUE_EMPTY);
+
+  return new_typedarray;
+} /* ecma_builtin_typedarray_prototype_to_sorted */
+
 /**
  *
  * @return ecma value
@@ -2374,6 +2490,10 @@ ecma_builtin_typedarray_prototype_dispatch_routine (uint8_t builtin_routine_id, 
     case ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_TO_REVERSED:
     {
       return ecma_builtin_typedarray_prototype_to_reversed (this_arg, &info);
+    }
+    case ECMA_TYPEDARRAY_PROTOTYPE_ROUTINE_TO_SORTED:
+    {
+      return ecma_builtin_typedarray_prototype_to_sorted (this_arg, arguments_list_p, arguments_number, &info);
     }
     default:
     {

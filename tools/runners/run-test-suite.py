@@ -87,6 +87,11 @@ def execute_test_command(test_cmd, cwd):
 
 def main(args):
     tests = get_tests(args.test_dir, args.test_list, args.skip_list)
+
+    if args.snapshot:
+        # modules (mjs files in tests) are not supported by JJS snapshots
+        tests = list(filter(lambda t: t.endswith('.js'), tests))
+
     total = len(tests)
     if total == 0:
         print("No test to execute.")
@@ -168,9 +173,6 @@ def run_snapshot_tests(args, tests):
     engine = os.path.splitext(args.engine)
     generate_snapshot_cmd.append(engine[0] + '-snapshot' + engine[1])
     generate_snapshot_cmd.append('generate')
-
-    # modules (mjs files in tests) are not supported by JJS snapshots
-    tests = list(filter(lambda t: t.endswith('.js'), tests))
 
     total = len(tests)
     tested = 0

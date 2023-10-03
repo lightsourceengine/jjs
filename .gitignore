@@ -8,6 +8,7 @@ nbproject
 *.sublime-project
 *.sublime-workspace
 .idea
+.vscode/
 
 # Random Trash
 *.swp
