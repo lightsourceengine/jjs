@@ -606,7 +606,7 @@ typedef enum
 /**
  * Callback which is called by jjs_module_link to get the referenced module.
  */
-typedef jjs_value_t (*jjs_module_resolve_cb_t) (const jjs_value_t specifier,
+typedef jjs_value_t (*jjs_module_link_cb_t) (const jjs_value_t specifier,
                                                     const jjs_value_t referrer,
                                                     void *user_p);
 
@@ -636,6 +636,35 @@ typedef void (*jjs_module_import_meta_cb_t) (const jjs_value_t module,
  * Callback which is called by jjs_module_evaluate to evaluate the native module.
  */
 typedef jjs_value_t (*jjs_native_module_evaluate_cb_t) (const jjs_value_t native_module);
+
+typedef enum
+{
+  JJS_MODULE_TYPE_NONE,
+  JJS_MODULE_TYPE_COMMONJS,
+  JJS_MODULE_TYPE_MODULE,
+} jjs_module_type_t;
+
+typedef struct
+{
+  jjs_module_type_t type;
+  jjs_value_t referrer_path;
+} jjs_module_resolve_context_t;
+
+typedef struct
+{
+  jjs_module_type_t type;
+  jjs_value_t format;
+} jjs_module_load_context_t;
+
+/**
+ *
+ */
+typedef jjs_value_t (*jjs_module_resolve_cb_t) (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p);
+
+/**
+ *
+ */
+typedef jjs_value_t (*jjs_module_load_cb_t) (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p);
 
 /**
  * Proxy related types.

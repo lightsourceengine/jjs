@@ -107,7 +107,6 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
   jjsx_register_global ("print", jjsx_handler_print);
   jjsx_register_global ("sourceName", jjsx_handler_source_name);
   jjsx_register_global ("createRealm", jjsx_handler_create_realm);
-  jjsx_register_global ("include", jjsx_handler_include);
 } /* main_init_engine */
 
 int

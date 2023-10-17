@@ -169,6 +169,17 @@ struct jjs_context_t
   void *module_import_callback_user_p; /**< user pointer for module_import_callback_p */
 #endif /* JJS_MODULE_SYSTEM */
 
+#if JJS_COMMONJS || JJS_MODULE_SYSTEM
+  jjs_module_load_cb_t module_on_load_cb; /**< callback for CommonJS module loading */
+  void *module_on_load_user_p; /**< user pointer for commonjs_load_callback_p */
+  jjs_module_resolve_cb_t module_on_resolve_cb; /**< callback for CommonJS module resolving */
+  void *module_on_resolve_user_p; /**< user pointer for commonjs_resolve_callback_p */
+#endif /* JJS_COMMONJS || JJS_MODULE_SYSTEM */
+
+#if JJS_COMMONJS
+  ecma_value_t commonjs_args; /**< arguments of the CommonJS module */
+#endif /* JJS_COMMONJS */
+
   vm_frame_ctx_t *vm_top_context_p; /**< top (current) interpreter context */
   jjs_context_data_header_t *context_data_p; /**< linked list of user-provided context-specific pointers */
   jjs_external_string_free_cb_t external_string_free_callback_p; /**< free callback for external strings */
@@ -259,6 +270,11 @@ struct jjs_context_t
   /** hash table for caching the last access of properties */
   ecma_lcache_hash_entry_t lcache[ECMA_LCACHE_HASH_ROWS_COUNT][ECMA_LCACHE_HASH_ROW_LENGTH];
 #endif /* JJS_LCACHE */
+
+#if JJS_PMAP
+  ecma_value_t pmap; /**< global package map */
+  ecma_value_t pmap_root; /**< base directory for resolving relative pmap paths */
+#endif /* JJS_PMAP */
 
   /**
    * Allowed values and it's meaning:

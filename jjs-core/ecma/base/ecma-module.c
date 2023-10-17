@@ -1105,7 +1105,7 @@ typedef struct ecma_module_stack_item_t
  */
 ecma_value_t
 ecma_module_link (ecma_module_t *module_p, /**< root module */
-                  jjs_module_resolve_cb_t callback, /**< resolve module callback */
+                  jjs_module_link_cb_t callback, /**< resolve module callback */
                   void *user_p) /**< pointer passed to the resolve callback */
 {
   if (module_p->header.u.cls.u1.module_state != JJS_MODULE_STATE_UNLINKED)

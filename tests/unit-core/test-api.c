@@ -680,7 +680,7 @@ main (void)
   res = jjs_object_keys (global_obj_val);
   TEST_ASSERT (!jjs_value_is_exception (res));
   TEST_ASSERT (jjs_value_is_array (res));
-  TEST_ASSERT (jjs_array_length (res) == 15);
+  TEST_ASSERT (jjs_array_length (res) == 17);
   jjs_value_free (res);
 
   /* Test: jjs_value_to_primitive */

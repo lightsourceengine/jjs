@@ -51,4 +51,4 @@ try {
 /* Check properties of a */
 assert(Object.keys(a) == "one,two");
 /* Check properties of global object */
-assert(Object.keys(this) == "assert,gc,print,sourceName,createRealm,include,a,fail,fail_two");
+assert(Object.keys(this) == "queueMicrotask,require,assert,gc,print,sourceName,createRealm,a,fail,fail_two");

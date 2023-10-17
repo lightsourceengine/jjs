@@ -228,6 +228,14 @@ void jjs_port_line_free (jjs_char_t *buffer_p);
 jjs_char_t *jjs_port_path_normalize (const jjs_char_t *path_p, jjs_size_t path_size);
 
 /**
+ *
+ * @param path_p
+ * @param dirname_size_p
+ * @return
+ */
+jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p);
+
+/**
  * Free a path buffer returned by jjs_port_path_normalize.
  *
  * @param path_p: the path buffer to free

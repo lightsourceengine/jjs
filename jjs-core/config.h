@@ -124,6 +124,14 @@
 #define JJS_QUEUE_MICROTASK 1
 #endif /* !defined (JJS_QUEUE_MICROTASK) */
 
+#ifndef JJS_COMMONJS
+#define JJS_COMMONJS 1
+#endif /* !defined (JJS_COMMONJS) */
+
+#ifndef JJS_PMAP
+#define JJS_PMAP 1
+#endif /* !defined (JJS_PMAP) */
+
 /**
  * Engine internal and misc configurations.
  */

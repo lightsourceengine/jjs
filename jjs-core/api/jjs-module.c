@@ -18,8 +18,11 @@
 
 #include "jjs-core.h"
 #include "jjs-port.h"
+#include "jjs-annex.h"
+#include "jcontext.h"
 
 #include "ecma-errors.h"
+#include "annex.h"
 
 #if JJS_MODULE_SYSTEM
 
@@ -245,3 +248,168 @@ jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, re
   JJS_UNUSED (realm);
 #endif /* JJS_MODULE_SYSTEM */
 } /* jjs_module_cleanup */
+
+/**
+ * Load hook for CommonJS and ES modules.
+ *
+ * This hook is responsible for loading a module given a resolved path.
+ *
+ * @param path resolved path
+ * @param context_p load context
+ * @param user_p user pointer
+ * @return object containing 'source' and 'format'; otherwise, an exception. return value must be freed.
+ */
+jjs_value_t
+jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p)
+{
+  jjs_assert_api_enabled ();
+
+#if JJS_MODULE_SYSTEM || JJS_COMMONJS
+  JJS_UNUSED (user_p);
+
+  ecma_cstr_t path_cstr = ecma_string_to_cstr (path);
+  jjs_size_t source_size;
+  jjs_char_t *source_raw = jjs_port_source_read (path_cstr.str_p, &source_size);
+
+  ecma_free_cstr (&path_cstr);
+
+  if (!source_raw)
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to read source file");
+  }
+
+  ecma_value_t source;
+  ecma_string_t* format_p = ecma_get_string_from_value (context_p->format);
+
+  if (ecma_compare_ecma_string_to_magic_id(format_p, LIT_MAGIC_STRING_SNAPSHOT))
+  {
+    source = jjs_arraybuffer(source_size);
+
+    if (jjs_value_is_exception(source))
+    {
+      source = ECMA_VALUE_EMPTY;
+    }
+    else
+    {
+      uint8_t* buffer_p = jjs_arraybuffer_data (source);
+      JJS_ASSERT(buffer_p != NULL);
+      memcpy (buffer_p, source_raw, source_size);
+    }
+  }
+  else if (!ecma_compare_ecma_string_to_magic_id(format_p, LIT_MAGIC_STRING_NONE))
+  {
+    source = jjs_string ((const jjs_char_t*) source_raw, source_size, JJS_ENCODING_UTF8);
+  }
+  else
+  {
+    source = ECMA_VALUE_EMPTY;
+  }
+
+  jjs_port_source_free (source_raw);
+
+  if (source == ECMA_VALUE_EMPTY)
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to create source");
+  }
+
+  ecma_value_t result = ecma_create_object_with_null_proto ();
+
+  ecma_set_m (result, LIT_MAGIC_STRING_SOURCE, source);
+  ecma_free_value (source);
+
+  ecma_set_m (result, LIT_MAGIC_STRING_FORMAT, context_p->format);
+
+  return result;
+#else /* !(JJS_MODULE_SYSTEM || JJS_COMMONJS) */
+  JJS_UNUSED (path);
+  JJS_UNUSED (context_p);
+  JJS_UNUSED (user_p);
+
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif /* JJS_MODULE_SYSTEM || JJS_COMMONJS */
+} /* jjs_module_default_load */
+
+/**
+ * Resolve hook for CommonJS and ES modules.
+ *
+ * This hook resolves a specifier to an absolute path to a module file to load and determines
+ * the format of the module.
+ *
+ * The return object will be passed to on_load hook, which will do the work
+ * of reading (maybe transpiling, etc) the module file.
+ *
+ * The formats supported by the default on_load are 'js', 'commonjs', 'module' and 'snapshot'.
+ * If you have a custom on_load hook, you can have custom formats.
+ *
+ * TODO: information about overloading
+ *
+ * @param specifier CommonJS request or ESM specifier
+ * @param context_p context of the resolve operation
+ * @param user_p user pointer passed to jjs_module_on_resolve
+ * @return on success, an object containing 'path' to a module and 'format' of the module
+ */
+jjs_value_t
+jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p)
+{
+  jjs_assert_api_enabled ();
+
+#if JJS_MODULE_SYSTEM || JJS_COMMONJS
+  JJS_UNUSED (user_p);
+
+  ecma_value_t path;
+
+  switch (annex_path_specifier_type (specifier))
+  {
+    case ANNEX_SPECIFIER_TYPE_RELATIVE:
+    {
+      path = annex_path_join (context_p->referrer_path, specifier, true);
+      break;
+    }
+    case ANNEX_SPECIFIER_TYPE_ABSOLUTE:
+    {
+      path = annex_path_normalize (specifier);
+      break;
+    }
+#if JJS_PMAP
+    case ANNEX_SPECIFIER_TYPE_PACKAGE:
+    {
+      path = jjs_annex_pmap_resolve (specifier, context_p->type);
+      break;
+    }
+#endif /* JJS_PMAP */
+    default:
+    {
+      path = ECMA_VALUE_EMPTY;
+      break;
+    }
+  }
+
+  if (jjs_value_is_exception(path))
+  {
+    return path;
+  }
+
+  if (!ecma_is_value_string (path))
+  {
+    ecma_free_value (path);
+    return jjs_throw_sz (JJS_ERROR_COMMON, "failed to resolve path");
+  }
+
+  ecma_value_t format = annex_path_format (path);
+  ecma_value_t result = ecma_create_object_with_null_proto ();
+
+  ecma_set_m (result, LIT_MAGIC_STRING_PATH, path);
+  ecma_free_value (path);
+
+  ecma_set_m (result, LIT_MAGIC_STRING_FORMAT, format);
+  ecma_free_value (format);
+
+  return result;
+#else /* !(JJS_MODULE_SYSTEM || JJS_COMMONJS) */
+  JJS_UNUSED (specifier);
+  JJS_UNUSED (context_p);
+  JJS_UNUSED (user_p);
+
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif /* JJS_MODULE_SYSTEM || JJS_COMMONJS */
+} /* jjs_module_default_resolve */

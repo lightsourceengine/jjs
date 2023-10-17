@@ -108,6 +108,7 @@ message(STATUS "JJS_GC_MARK_LIMIT            " ${JJS_GC_MARK_LIMIT})
 set(INCLUDE_CORE_PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(INCLUDE_CORE_PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/annex"
     "${CMAKE_CURRENT_SOURCE_DIR}/api"
     "${CMAKE_CURRENT_SOURCE_DIR}/debugger"
     "${CMAKE_CURRENT_SOURCE_DIR}/ecma/base"
@@ -128,6 +129,12 @@ set(INCLUDE_CORE_PRIVATE ${INCLUDE_CORE_PRIVATE} PARENT_SCOPE) # for tests/unit-
 # Sources
 # JJS core
 set(SOURCE_CORE_FILES
+  annex/annex-path.c
+  annex/annex-util.c
+  api/jjs-annex.c
+  api/jjs-annex-commonjs.c
+  api/jjs-annex-pmap.c
+  api/jjs-annex-task.c
   api/jjs-debugger-transport.c
   api/jjs-debugger.c
   api/jjs-module.c
@@ -339,7 +346,9 @@ if(ENABLE_AMALGAM)
 
   # Create single C/H file
   set(HEADER_CORE_FILES
-      api/jjs-api-snapshot.h
+    annex/annex.h
+    api/jjs-annex.h
+    api/jjs-api-snapshot.h
     debugger/debugger.h
     ecma/base/ecma-alloc.h
     ecma/base/ecma-error-messages.inc.h

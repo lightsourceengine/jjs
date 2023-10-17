@@ -574,28 +574,6 @@ ecma_builtin_global_object_unescape (lit_utf8_byte_t *input_start_p, /**< routin
 
 #endif /* JJS_BUILTIN_ANNEXB */
 
-#if JJS_QUEUE_MICROTASK
-
-/**
- * The Global object's 'queueMicrotask' routine.
- *
- * @return undefined on succes; if function is not callable, return TypeError
- */
-static ecma_value_t
-ecma_builtin_global_object_queue_microtask(ecma_value_t callback) /**< callback function */
-{
-  if (!ecma_op_is_callable (callback))
-  {
-    return ecma_raise_type_error (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE);
-  }
-
-  ecma_enqueue_microtask_job (callback);
-
-  return ECMA_VALUE_UNDEFINED;
-} /* ecma_builtin_global_object_queue_microtask */
-
-#endif /* JJS_QUEUE_MICROTASK */
-
 /**
  * Dispatcher of the built-in's routines
  *
@@ -698,14 +676,6 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
       ret_value = ecma_builtin_global_object_decode_uri_helper (input_start_p, input_size, uri_set);
       break;
     }
-#if JJS_QUEUE_MICROTASK
-    case ECMA_GLOBAL_QUEUE_MICROTASK:
-    {
-      ret_value = ecma_builtin_global_object_queue_microtask (
-        arguments_number > 0 ? arguments_list_p[0] : ECMA_VALUE_UNDEFINED);
-      break;
-    }
-#endif /* JJS_QUEUE_MICROTASK */
     default:
     {
       JJS_ASSERT (builtin_routine_id == ECMA_GLOBAL_ENCODE_URI

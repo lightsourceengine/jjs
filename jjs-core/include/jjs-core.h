@@ -1139,7 +1139,7 @@ jjs_value_t jjs_module_namespace (const jjs_value_t module);
  */
 jjs_value_t jjs_module_resolve (const jjs_value_t specifier, const jjs_value_t referrer, void *user_p);
 
-jjs_value_t jjs_module_link (const jjs_value_t module, jjs_module_resolve_cb_t callback, void *user_p);
+jjs_value_t jjs_module_link (const jjs_value_t module, jjs_module_link_cb_t callback, void *user_p);
 jjs_value_t jjs_module_evaluate (const jjs_value_t module);
 
 /**
@@ -1176,12 +1176,40 @@ jjs_native_module_set (jjs_value_t native_module, const jjs_value_t export_name,
 void jjs_module_on_state_changed (jjs_module_state_changed_cb_t callback, void *user_p);
 void jjs_module_on_import_meta (jjs_module_import_meta_cb_t callback, void *user_p);
 void jjs_module_on_import (jjs_module_import_cb_t callback, void *user_p);
+void jjs_module_on_load (jjs_module_load_cb_t callback_p, void *user_p);
+void jjs_module_on_resolve (jjs_module_resolve_cb_t callback_p, void *user_p);
+
+jjs_value_t jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p);
+jjs_value_t jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p);
 /**
  * jjs-api-module-cb @}
  */
 
 /**
  * jjs-api-module @}
+ */
+
+/**
+ * @defgroup jjs-pmap Property Map
+ * @{
+ */
+
+/**
+ * @defgroup jjs-pmap-ops Operations
+ * @{
+ */
+
+jjs_value_t jjs_pmap_root(void);
+jjs_value_t jjs_pmap_set_root(jjs_value_t path);
+
+jjs_value_t jjs_pmap_from_json(jjs_value_t json_string);
+
+/**
+ * jjs-pmap-ops @}
+ */
+
+/**
+ * jjs-pmap @}
  */
 
 /**

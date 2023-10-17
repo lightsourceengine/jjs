@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "jjs-annex.h"
 #include "jjs-debugger-transport.h"
 
 #include "ecma-alloc.h"
@@ -100,29 +101,6 @@ JJS_STATIC_ASSERT (((NUMBER_ARITHMETIC_SUBTRACTION + ECMA_NUMBER_ARITHMETIC_OP_A
 /** \addtogroup jjs JJS engine interface
  * @{
  */
-
-/**
- * Assert that it is correct to call API in current state.
- *
- * Note:
- *         By convention, there are some states when API could not be invoked.
- *
- *         The API can be and only be invoked when the ECMA_STATUS_API_ENABLED
- *         flag is set.
- *
- *         This procedure checks whether the API is available, and terminates
- *         the engine if it is unavailable. Otherwise it is a no-op.
- *
- * Note:
- *         The API could not be invoked in the following cases:
- *           - before jjs_init and after jjs_cleanup
- *           - between enter to and return from a native free callback
- */
-static inline void JJS_ATTR_ALWAYS_INLINE
-jjs_assert_api_enabled (void)
-{
-  JJS_ASSERT (JJS_CONTEXT (status_flags) & ECMA_STATUS_API_ENABLED);
-} /* jjs_assert_api_enabled */
 
 /**
  * Turn on API availability
@@ -254,6 +232,11 @@ jjs_init_ex (jjs_init_flag_t flags, /**< combination of JJS flags */
 
   jmem_init ();
   ecma_init ();
+  jjs_annex_init ();
+  jjs_annex_init_realm (JJS_CONTEXT (global_object_p));
+
+  jjs_module_on_load(jjs_module_default_load, NULL);
+  jjs_module_on_resolve(jjs_module_default_resolve, NULL);
 } /* jjs_init_ex */
 
 /**
@@ -292,6 +275,7 @@ jjs_cleanup (void)
   }
 
   ecma_free_all_enqueued_jobs ();
+  jjs_annex_finalize ();
   ecma_finalize ();
   jjs_api_disable ();
 
@@ -659,7 +643,7 @@ jjs_eval (const jjs_char_t *source_p, /**< source code */
  */
 jjs_value_t
 jjs_module_link (const jjs_value_t module, /**< root module */
-                   jjs_module_resolve_cb_t callback, /**< resolve module callback, uses
+                 jjs_module_link_cb_t callback, /**< resolve module callback, uses
                                                         *   jjs_module_resolve when NULL is passed */
                    void *user_p) /**< pointer passed to the resolve callback */
 {
@@ -1134,6 +1118,34 @@ jjs_native_module_set (jjs_value_t native_module, /**< a native module object */
 #endif /* JJS_MODULE_SYSTEM */
 } /* jjs_native_module_set */
 
+void
+jjs_module_on_load (jjs_module_load_cb_t callback_p, void *user_p)
+{
+  jjs_assert_api_enabled ();
+
+#if JJS_COMMONJS || JJS_MODULE_SYSTEM
+  JJS_CONTEXT (module_on_load_cb) = callback_p;
+  JJS_CONTEXT (module_on_load_user_p) = user_p;
+#else /* !(JJS_COMMONJS || JJS_MODULE_SYSTEM) */
+  JJS_UNUSED (callback_p);
+  JJS_UNUSED (user_p);
+#endif /* (JJS_COMMONJS || JJS_MODULE_SYSTEM) */
+} /* jjs_module_on_load */
+
+void
+jjs_module_on_resolve (jjs_module_resolve_cb_t callback_p, void *user_p)
+{
+  jjs_assert_api_enabled ();
+
+#if JJS_COMMONJS || JJS_MODULE_SYSTEM
+  JJS_CONTEXT (module_on_resolve_cb) = callback_p;
+  JJS_CONTEXT (module_on_resolve_user_p) = user_p;
+#else /* !(JJS_COMMONJS || JJS_MODULE_SYSTEM) */
+  JJS_UNUSED (callback_p);
+  JJS_UNUSED (user_p);
+#endif /* (JJS_COMMONJS || JJS_MODULE_SYSTEM) */
+} /* jjs_module_on_resolve */
+
 /**
  * Run enqueued microtasks created by Promise or AsyncFunction objects.
  * Tasks are executed until an exception is thrown or all tasks are executed.
@@ -1149,33 +1161,6 @@ jjs_run_jobs (void)
 
   return jjs_return (ecma_process_all_enqueued_jobs ());
 } /* jjs_run_jobs */
-
-/**
- * Add a callback function to the microtask queue.
- *
- * The callback function will be called the next time jjs_run_jobs() is called.
- *
- * @param callback callback function
- * @return on success, undefined; if callback is not callable, throws a TypeError exception
- */
-jjs_value_t jjs_queue_microtask(const jjs_value_t callback)
-{
-  jjs_assert_api_enabled ();
-
-#if JJS_QUEUE_MICROTASK
-  if (!jjs_value_is_function (callback))
-  {
-    return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_CALLBACK_IS_NOT_CALLABLE));
-  }
-
-  ecma_enqueue_microtask_job (callback);
-#else /* !JJS_QUEUE_MICROTASK */
-  JJS_UNUSED (callback);
-  return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_QUEUE_MICROTASK_NOT_SUPPORTED));
-#endif /* JJS_QUEUE_MICROTASK */
-
-  return ECMA_VALUE_UNDEFINED;
-} /* jjs_queue_microtask */
 
 bool
 jjs_has_pending_jobs (void) {
@@ -1878,6 +1863,9 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
 #if JJS_QUEUE_MICROTASK
           || feature == JJS_FEATURE_QUEUE_MICROTASK
 #endif /* JJS_QUEUE_MICROTASK */
+#if JJS_COMMONJS
+          || feature == JJS_COMMONJS
+#endif /* JJS_COMMONJS */
   );
 } /* jjs_feature_enabled */
 
@@ -3005,6 +2993,9 @@ jjs_realm (void)
 
 #if JJS_BUILTIN_REALMS
   ecma_global_object_t *global_object_p = ecma_builtin_create_global_object ();
+
+  jjs_annex_init_realm(global_object_p);
+
   return ecma_make_object_value ((ecma_object_t *) global_object_p);
 #else /* !JJS_BUILTIN_REALMS */
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_REALMS_ARE_DISABLED));

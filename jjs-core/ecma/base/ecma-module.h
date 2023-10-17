@@ -117,7 +117,7 @@ typedef struct ecma_module_resolve_stack
 ecma_value_t ecma_module_initialize (ecma_module_t *module_p);
 ecma_module_t *ecma_module_get_resolved_module (ecma_value_t module_val);
 
-ecma_value_t ecma_module_link (ecma_module_t *module_p, jjs_module_resolve_cb_t callback_p, void *user_p);
+ecma_value_t ecma_module_link (ecma_module_t *module_p, jjs_module_link_cb_t callback_p, void *user_p);
 ecma_value_t ecma_module_evaluate (ecma_module_t *module_p);
 ecma_value_t ecma_module_import (ecma_value_t specifier, ecma_value_t user_value);
 

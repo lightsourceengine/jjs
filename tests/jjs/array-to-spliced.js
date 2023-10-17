@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const { arrayEquals, assertThrows } = include('./lib/assert.js');
+const { arrayEquals, assertThrows } = require('./lib/assert.js');
 
 let source;
 let dest;

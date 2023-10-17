@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>
 
 /**
  * Normalize a file path using realpath.
@@ -37,6 +38,26 @@ jjs_port_path_normalize (const jjs_char_t *path_p, /**< input path */
 
   return (jjs_char_t *) realpath ((char *) path_p, NULL);
 } /* jjs_port_path_normalize */
+
+jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p)
+{
+  char* p;
+
+  if (path_p == NULL || *path_p == '\0') {
+    p = ".";
+  } else {
+    p = dirname (path_p);
+  }
+
+  size_t len = strlen (p);
+
+  if (dirname_size_p)
+  {
+    *dirname_size_p = (jjs_size_t) len;
+  }
+
+  return (jjs_char_t *)strcpy (malloc(len + 1), p);
+} /* jjs_port_path_dirname */
 
 /**
  * Free a path buffer returned by jjs_port_path_normalize.
