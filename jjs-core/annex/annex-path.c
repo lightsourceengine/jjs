@@ -26,6 +26,7 @@
                                                     | JJS_PROP_IS_VALUE_DEFINED)
 
 #ifdef _WIN32
+#include <ctype.h>
 #define is_separator(c) ((c) == '/' || (c) == '\\')
 #define is_absolute(BUFFER) (is_separator (BUFFER[0]) || (isalpha (BUFFER[0]) && BUFFER[1] == ':' && is_separator (BUFFER[2])))
 #else /* !_WIN32 */

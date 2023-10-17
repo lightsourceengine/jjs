@@ -278,7 +278,7 @@ static bool validate_package_info_contents (jjs_value_t package_info,
  */
 static jjs_value_t throw_package_info_error (jjs_value_t key, const char* message)
 {
-  char buffer[256];
+  char buffer[512];
   char key_cstr[256];
   jjs_size_t written = jjs_string_to_buffer (key, JJS_ENCODING_UTF8, (jjs_char_t*) key_cstr, sizeof (key_cstr));
 

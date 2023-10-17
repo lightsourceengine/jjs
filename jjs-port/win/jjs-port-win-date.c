@@ -34,7 +34,7 @@
 static void
 unix_time_to_filetime (double t, LPFILETIME ft_p)
 {
-  LONGLONG ll = (LONGLONG) t * TICKS_PER_MS + UNIX_EPOCH_IN_TICKS;
+  LONGLONG ll = (LONGLONG) t * (LONGLONG) TICKS_PER_MS + (LONGLONG) UNIX_EPOCH_IN_TICKS;
 
   /* FILETIME values before the epoch are invalid. */
   if (ll < 0)
@@ -57,7 +57,7 @@ filetime_to_unix_time (LPFILETIME ft_p)
   ULARGE_INTEGER date;
   date.HighPart = ft_p->dwHighDateTime;
   date.LowPart = ft_p->dwLowDateTime;
-  return (double) (((LONGLONG) date.QuadPart - UNIX_EPOCH_IN_TICKS) / TICKS_PER_MS);
+  return (((double) date.QuadPart - (double) UNIX_EPOCH_IN_TICKS) / (double) TICKS_PER_MS);
 } /* FileTimeToUnixTimeMs */
 
 /**

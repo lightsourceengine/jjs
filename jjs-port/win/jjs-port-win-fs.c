@@ -19,6 +19,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <io.h>
+#define F_OK 0
 
 /**
  * Normalize a file path.
@@ -32,7 +35,14 @@ jjs_port_path_normalize (const jjs_char_t *path_p, /**< input path */
 {
   (void) path_size;
 
-  return (jjs_char_t *) _fullpath (NULL, path_p, _MAX_PATH);
+  jjs_char_t * p = (jjs_char_t *) _fullpath (NULL, (const char*) path_p, _MAX_PATH);
+
+  if (p && _access ((const char*)p, F_OK) == 0)
+  {
+    return p;
+  }
+
+  return NULL;
 } /* jjs_port_path_normalize */
 
 jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p)
@@ -40,7 +50,7 @@ jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p)
   if (path_p == NULL || *path_p == '\0')
   {
     char* p = ".";
-    return strcpy (malloc (strlen (p) + 1), p);
+    return (jjs_char_t *) strcpy (malloc (strlen (p) + 1), p);
   }
 
   char drive[_MAX_DRIVE];
@@ -50,7 +60,9 @@ jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p)
 
   if (e != 0)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "_splitpath_s failed: %d\n", e);
+    char buffer[64];
+    sprintf(buffer, "_splitpath_s failed: %d\n", e);
+    jjs_port_log (buffer);
     jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
   }
 
