@@ -28,8 +28,6 @@ set(SOURCE_UNIT_TEST_EXT_MODULES
   test-ext-handle-scope-root.c
   test-ext-handle-scope.c
   test-ext-method-register.c
-  test-ext-module-canonical.c
-  test-ext-module-empty.c
 )
 
 # Disable test-ext-autorelease.c if compiler is MSVC, because MSVC doesn't support cleanup attribute.
@@ -51,12 +49,4 @@ foreach(SOURCE_UNIT_TEST_EXT ${SOURCE_UNIT_TEST_EXT_MODULES})
   target_link_libraries(${TARGET_NAME} jjs-ext jjs-core jjs-port)
 
   add_dependencies(unittests-ext ${TARGET_NAME})
-endforeach()
-
-set(UNIT_TEST_EXT_DIRS
-  module
-)
-
-foreach(UNIT_TEST_EXT_DIR ${UNIT_TEST_EXT_DIRS})
-  add_subdirectory(${UNIT_TEST_EXT_DIR})
 endforeach()

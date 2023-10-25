@@ -24,6 +24,7 @@ void jjs_annex_init (void);
 void jjs_annex_init_realm (ecma_global_object_t* global_p);
 void jjs_annex_finalize (void);
 
+jjs_value_t jjs_annex_require (jjs_value_t specifier, jjs_value_t referrer_path);
 jjs_value_t jjs_annex_create_require (jjs_value_t referrer);
 jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type);
 

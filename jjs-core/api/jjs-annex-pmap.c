@@ -19,98 +19,112 @@
 
 #include "annex.h"
 #include "jcontext.h"
+#include "ecma-helpers.h"
+#include "ecma-builtin-helpers.h"
 
 static jjs_value_t validate_pmap (jjs_value_t pmap);
-static ecma_value_t get_main (ecma_value_t object, jjs_module_type_t module_type);
+static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type);
+static jjs_value_t set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root);
+static ecma_value_t find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type);
 
 /**
- * Get the current pmap (pacakge map) root directory.
+ * Load a pmap (Package Map) from a file.
  *
- * @return string or undefined
- */
-jjs_value_t jjs_pmap_root(void)
-{
-  jjs_assert_api_enabled ();
-
-#if JJS_PMAP
-  return jjs_value_copy (JJS_CONTEXT (pmap_root));
-#else /* !JJS_PMAP */
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_PMAP */
-} /* jjs_pmap_root */
-
-/**
- * Set the current pmap (package map) root directory.
+ * The file must exist and be a valid JSON file in the pmap format. The pmap root
+ * will be set to the root directory of the pmap file.
  *
- * @param path string or undefined
- * @return true on success, exception on error. return value must be freed by caller.
+ * @param filename JSON pmap file to load
+ * @return on success, true is returned. on failure, an exception is thrown. return
+ * value must be freed with jjs_value_free.
  */
-jjs_value_t jjs_pmap_set_root (jjs_value_t path)
+jjs_value_t
+jjs_pmap (jjs_value_t filename)
 {
-  jjs_assert_api_enabled ();
-
 #if JJS_PMAP
-  if (!ecma_is_value_string (path) && !ecma_is_value_undefined (path))
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_STRING_OR_UNDEFINED));
-  }
-
-  jjs_value_free (JJS_CONTEXT (pmap_root));
-  JJS_CONTEXT (pmap_root) = jjs_value_copy (path);
-
-  return ECMA_VALUE_TRUE;
-#else /* !JJS_PMAP */
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_PMAP */
-} /* jjs_pmap_set_root */
-
-/**
- * Set the current pmap (package map) from a JSON string.
- *
- * @param json_string JSON
- * @return true on success, exception on error. return value must be freed by caller.
- */
-jjs_value_t jjs_pmap_from_json (jjs_value_t json_string)
-{
   jjs_assert_api_enabled ();
+  // get filename and dirname
+  jjs_value_t normalized = annex_path_normalize (filename);
 
-#if JJS_PMAP
-  if (!jjs_value_is_string(json_string))
+  if (!jjs_value_is_string (normalized))
   {
-    if (jjs_value_is_undefined(json_string))
-    {
-      JJS_CONTEXT (pmap) = jjs_undefined ();
-      return ECMA_VALUE_TRUE;
-    }
-
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_STRING_OR_UNDEFINED));
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid filename");
   }
 
-  ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value (json_string), json_string_p, json_string_size);
+  jjs_value_t root_path = annex_path_dirname (normalized);
 
-  jjs_value_t parsed = jjs_json_parse (json_string_p, json_string_size);
-
-  ECMA_FINALIZE_UTF8_STRING (json_string_p, json_string_size);
-
-  if (jjs_value_is_exception (parsed))
+  if (!jjs_value_is_string (root_path))
   {
-    return parsed;
+    jjs_value_free (normalized);
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to get dirname from normalized filename");
   }
 
-  jjs_value_t result = validate_pmap (parsed);
+  ecma_cstr_t filename_cstr = ecma_string_to_cstr (normalized);
 
-  if (jjs_value_is_true(result))
+  jjs_value_free (normalized);
+
+  if (filename_cstr.size == 0)
   {
-    JJS_CONTEXT (pmap) = parsed;
+    jjs_value_free (root_path);
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to parse normalized filename");
   }
-  else
+
+  // read JSON file
+  jjs_size_t filename_size;
+  jjs_char_t* source = jjs_port_source_read (filename_cstr.str_p, &filename_size);
+
+  ecma_free_cstr (&filename_cstr);
+
+  if (!source)
   {
-    jjs_value_free(parsed);
+    jjs_value_free (root_path);
+    jjs_port_source_free (source);
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to read json source file.");
   }
+
+  // set pmap variables from JSON source
+  jjs_value_t result = set_pmap_from_json (source, filename_size, root_path);
+
+  jjs_port_source_free (source);
+  jjs_value_free (root_path);
 
   return result;
 #else /* !JJS_PMAP */
-  (void) json_string;
+  JJS_UNUSED (filename);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
+#endif /* JJS_PMAP */
+} /* jjs_pmap */
+
+/**
+ * Load a pmap (Package Map) from a JSON string.
+ *
+ * The pmap root must be specified by the caller.
+ *
+ * @param json_string JSON pmap string
+ * @param root pmap root directory
+ * @return on success, true is returned. on failure, an exception is thrown. return
+ *         value must be freed with jjs_value_free.
+ */
+jjs_value_t
+jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
+{
+#if JJS_PMAP
+  if (!jjs_value_is_string (json_string))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "json_string must be a string");
+  }
+
+  ecma_string_t* source_p = ecma_get_string_from_value (json_string);
+
+  ECMA_STRING_TO_UTF8_STRING (source_p, json_string_p, json_string_size);
+
+  jjs_value_t result = set_pmap_from_json (json_string_p, json_string_size, root);
+
+  ECMA_FINALIZE_UTF8_STRING (json_string_p, json_string_size);
+
+  return result;
+#else /* !JJS_PMAP */
+  JJS_UNUSED (json_string);
+  JJS_UNUSED (root);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_PMAP */
 } /* jjs_pmap_from_json */
@@ -158,7 +172,7 @@ jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t mod
     return jjs_throw_sz (JJS_ERROR_TYPE, "package not found");
   }
 
-  ecma_value_t file = get_main (package_info, module_type);
+  ecma_value_t file = get_path_type (package_info, LIT_MAGIC_STRING_MAIN, module_type);
   ecma_value_t result = ECMA_VALUE_EMPTY;
 
   if (jjs_value_is_string (file))
@@ -168,7 +182,14 @@ jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t mod
 
   if (ecma_is_value_empty (result))
   {
-    result = jjs_throw_sz (JJS_ERROR_TYPE, "failed to resolve specifier");
+    ecma_free_value(result);
+    result = find_nearest_package_path (packages, pmap_root, specifier, module_type);
+
+    if (!ecma_is_value_string (result))
+    {
+      ecma_free_value(result);
+      result = jjs_throw_sz (JJS_ERROR_TYPE, "failed to resolve specifier");
+    }
   }
 
   ecma_free_value (packages);
@@ -179,9 +200,9 @@ jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t mod
 } /* jjs_annex_pmap_resolve */
 
 /**
- * Resolve main from a pmap object.
+ * Resolve main or path from a pmap object.
  */
-static ecma_value_t get_main (ecma_value_t object, jjs_module_type_t module_type)
+static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type)
 {
   if (ecma_is_value_string (object))
   {
@@ -193,7 +214,7 @@ static ecma_value_t get_main (ecma_value_t object, jjs_module_type_t module_type
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_value_t m = ecma_find_own_m (object, LIT_MAGIC_STRING_MAIN);
+  ecma_value_t m = ecma_find_own_m (object, type);
 
   if (ecma_is_value_string (m))
   {
@@ -217,12 +238,12 @@ static ecma_value_t get_main (ecma_value_t object, jjs_module_type_t module_type
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_value_t result = get_main (module, JJS_MODULE_TYPE_NONE);
+  ecma_value_t result = get_path_type (module, type, JJS_MODULE_TYPE_NONE);
 
   ecma_free_value (module);
 
   return result;
-} /* get_main */
+} /* get_path_type */
 
 /**
  * Resolve package_info from a pmap (package map) object
@@ -299,8 +320,8 @@ static jjs_value_t validate_package_info (jjs_value_t package_info, jjs_value_t 
   }
   else if (jjs_value_is_object (package_info))
   {
-    // TODO: validate_package_info_contents(package_info, LIT_MAGIC_STRING_PATH, true)
-    if (validate_package_info_contents (package_info, LIT_MAGIC_STRING_MAIN, true))
+    if (validate_package_info_contents (package_info, LIT_MAGIC_STRING_MAIN, true)
+        || validate_package_info_contents(package_info, LIT_MAGIC_STRING_PATH, true))
     {
       return ECMA_VALUE_TRUE;
     }
@@ -372,5 +393,142 @@ static jjs_value_t validate_pmap (jjs_value_t pmap)
 
   return ECMA_VALUE_TRUE;
 } /* validate_pmap */
+
+/**
+ * Set the pmap context variables from a JSON string.
+ */
+static jjs_value_t
+set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root)
+{
+  if (jjs_value_is_string (root))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "pmap root must be a string");
+  }
+
+  // parse JSON
+  jjs_value_t pmap = jjs_json_parse (json_string_p, json_string_size);
+
+  if (jjs_value_is_exception (pmap))
+  {
+    return pmap;
+  }
+
+  // validate pmap
+  jjs_value_t result = validate_pmap (pmap);
+
+  if (jjs_value_is_exception (result))
+  {
+    ecma_free_value (pmap);
+    return result;
+  }
+
+  // set the context pmap variables
+  jjs_value_free (JJS_CONTEXT (pmap));
+  JJS_CONTEXT (pmap) = pmap;
+  jjs_value_free (JJS_CONTEXT (pmap_root));
+  JJS_CONTEXT (pmap_root) = jjs_value_copy (root);
+
+  return ECMA_VALUE_TRUE;
+}
+
+/**
+ * Call string.lastIndexOf() with the given arguments.
+ */
+static lit_utf8_size_t
+last_index_of (ecma_value_t str, ecma_value_t search, lit_utf8_size_t position)
+{
+  ecma_string_t* path_string_p = ecma_get_string_from_value (str);
+  ecma_value_t position_value = ecma_make_uint32_value (position);
+  ecma_value_t value = ecma_builtin_helper_string_prototype_object_index_of (
+    path_string_p, search, position_value, ECMA_STRING_LAST_INDEX_OF);
+
+  int32_t result = ecma_is_value_integer_number (value) ? ecma_get_integer_from_value (value) : -1;
+
+  ecma_free_value (value);
+  ecma_free_value (position_value);
+
+  return result < 0 ? UINT32_MAX : (lit_utf8_size_t) result;
+} /* last_index_of */
+
+/**
+ * Call string.substr() with the given arguments.
+ */
+static ecma_value_t
+substr (ecma_value_t str, lit_utf8_size_t start, lit_utf8_size_t len)
+{
+  return ecma_make_string_value (ecma_string_substr (ecma_get_string_from_value (str), start, len));
+} /* substr */
+
+/**
+ * Find the nearest package path for the given specifier.
+ *
+ * The algorithm splits the specifier on the last slash. The first part is
+ * the package name, the second part is the trailing basename. If the
+ * package name exists in the pmap, the algorithm joins pmap_root, package
+ * path and the trailing basename. If the package name does not exist, the
+ * algorithm splits on the next slash and tries again until the specifier
+ * has no more slashes.
+ */
+static ecma_value_t
+find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type)
+{
+  ecma_string_t* specifier_p = ecma_get_string_from_value (specifier);
+  lit_utf8_size_t last_slash_index = ecma_string_get_length (specifier_p);
+  ecma_value_t slash = ecma_make_magic_string_value (LIT_MAGIC_STRING_SLASH_CHAR);
+  ecma_value_t result = ECMA_VALUE_NOT_FOUND;
+
+  while (result == ECMA_VALUE_NOT_FOUND || (last_slash_index = last_index_of (specifier, slash, last_slash_index)) != UINT32_MAX)
+  {
+    ecma_value_t package = substr (specifier, 0, last_slash_index);
+    ecma_value_t package_info = ecma_find_own_v (packages, package);
+
+    if (package_info != ECMA_VALUE_NOT_FOUND)
+    {
+      ecma_value_t path = get_path_type (package_info, LIT_MAGIC_STRING_PATH, module_type);
+
+      if (ecma_is_value_string (path))
+      {
+        ecma_value_t temp = annex_path_join (root, path, false);
+
+        if (ecma_is_value_string(temp))
+        {
+          ecma_value_t trailing = substr (specifier, last_slash_index + 1, UINT32_MAX);
+
+          result = annex_path_join(temp, trailing, true);
+          ecma_free_value(trailing);
+        }
+        else
+        {
+          result = ECMA_VALUE_EMPTY;
+        }
+
+        ecma_free_value(temp);
+      }
+      else
+      {
+        result = ECMA_VALUE_EMPTY;
+      }
+
+      ecma_free_value (path);
+    }
+
+    ecma_fast_free_value (package);
+    ecma_fast_free_value (package_info);
+
+    if (last_slash_index > 0)
+    {
+      last_slash_index--;
+    }
+    else
+    {
+      result = ECMA_VALUE_EMPTY;
+      break;
+    }
+  }
+
+  ecma_fast_free_value (slash);
+
+  return result;
+} /* find_nearest_package_path */
 
 #endif /* JJS_PMAP */

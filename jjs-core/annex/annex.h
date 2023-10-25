@@ -24,6 +24,7 @@ typedef enum annex_specifier_type
   ANNEX_SPECIFIER_TYPE_RELATIVE,
   ANNEX_SPECIFIER_TYPE_ABSOLUTE,
   ANNEX_SPECIFIER_TYPE_PACKAGE,
+  ANNEX_SPECIFIER_TYPE_FILE_URL,
 } annex_specifier_type_t;
 
 typedef struct ecma_cstr_s
@@ -35,8 +36,10 @@ typedef struct ecma_cstr_s
 annex_specifier_type_t annex_path_specifier_type (ecma_value_t specifier);
 ecma_value_t annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize);
 ecma_value_t annex_path_normalize (ecma_value_t path);
+ecma_value_t annex_path_cwd (void);
 ecma_value_t annex_path_format (ecma_value_t path);
 ecma_value_t annex_path_dirname (ecma_value_t path);
+ecma_value_t annex_path_from_file_url (ecma_value_t file_url);
 
 #define ecma_get_global_object() ((ecma_global_object_t*)ecma_builtin_get_global ())
 #define ecma_create_object_with_null_proto() ecma_make_object_value (ecma_create_object (NULL, 0, ECMA_OBJECT_TYPE_GENERAL))

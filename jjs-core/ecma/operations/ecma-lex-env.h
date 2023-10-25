@@ -38,11 +38,6 @@ ecma_object_t *ecma_get_global_scope (ecma_object_t *global_object_p);
 void ecma_create_global_lexical_block (ecma_object_t *global_object_p);
 ecma_value_t ecma_op_raise_set_binding_error (ecma_property_t *property_p, bool is_strict);
 
-#if JJS_MODULE_SYSTEM
-void ecma_module_add_lex_env (ecma_object_t *lex_env_p);
-void ecma_module_finalize_lex_envs (void);
-#endif /* JJS_MODULE_SYSTEM */
-
 /**
  * @}
  */

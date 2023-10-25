@@ -19,9 +19,11 @@
 #include "jjs-core.h"
 #include "jjs-port.h"
 #include "jjs-annex.h"
+#include "jjs-annex-module-util.h"
 #include "jcontext.h"
 
 #include "ecma-errors.h"
+#include "ecma-builtins.h"
 #include "annex.h"
 
 #if JJS_MODULE_SYSTEM
@@ -249,6 +251,16 @@ jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, re
 #endif /* JJS_MODULE_SYSTEM */
 } /* jjs_module_cleanup */
 
+static jjs_value_t esm_read (jjs_value_t specifier, jjs_value_t referrer_path);
+static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path);
+static jjs_value_t path_to_file_url (jjs_value_t path);
+static jjs_value_t user_value_to_path (jjs_value_t user_value);
+static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
+static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
+static jjs_value_t esm_link (jjs_value_t module);
+static jjs_value_t esm_evaluate (jjs_value_t module);
+static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url);
+
 /**
  * Load hook for CommonJS and ES modules.
  *
@@ -262,11 +274,10 @@ jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, re
 jjs_value_t
 jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p)
 {
+  JJS_UNUSED (user_p);
   jjs_assert_api_enabled ();
 
 #if JJS_MODULE_SYSTEM || JJS_COMMONJS
-  JJS_UNUSED (user_p);
-
   ecma_cstr_t path_cstr = ecma_string_to_cstr (path);
   jjs_size_t source_size;
   jjs_char_t *source_raw = jjs_port_source_read (path_cstr.str_p, &source_size);
@@ -323,7 +334,6 @@ jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p,
 #else /* !(JJS_MODULE_SYSTEM || JJS_COMMONJS) */
   JJS_UNUSED (path);
   JJS_UNUSED (context_p);
-  JJS_UNUSED (user_p);
 
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif /* JJS_MODULE_SYSTEM || JJS_COMMONJS */
@@ -351,11 +361,10 @@ jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p,
 jjs_value_t
 jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p)
 {
+  JJS_UNUSED (user_p);
   jjs_assert_api_enabled ();
 
 #if JJS_MODULE_SYSTEM || JJS_COMMONJS
-  JJS_UNUSED (user_p);
-
   ecma_value_t path;
 
   switch (annex_path_specifier_type (specifier))
@@ -408,8 +417,496 @@ jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t*
 #else /* !(JJS_MODULE_SYSTEM || JJS_COMMONJS) */
   JJS_UNUSED (specifier);
   JJS_UNUSED (context_p);
-  JJS_UNUSED (user_p);
 
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif /* JJS_MODULE_SYSTEM || JJS_COMMONJS */
 } /* jjs_module_default_resolve */
+
+jjs_value_t
+jjs_esm_import (jjs_value_t specifier)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_value_t referrer_path = annex_path_cwd ();
+
+  if (!jjs_value_is_string (referrer_path))
+  {
+    return jjs_throw_sz(JJS_ERROR_COMMON, "Failed to get current working directory");
+  }
+
+  jjs_value_t module = esm_import (specifier, referrer_path);
+
+  jjs_value_free (referrer_path);
+
+  if (jjs_value_is_exception (module))
+  {
+    return module;
+  }
+
+  jjs_value_t namespace = jjs_module_namespace (module);
+
+  jjs_value_free (module);
+
+  return namespace;
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (specifier);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_import */
+
+jjs_value_t jjs_esm_import_sz (const char* specifier_p)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_value_t specifier = jjs_string_sz (specifier_p);
+  jjs_value_t result = jjs_esm_import (specifier);
+
+  jjs_value_free (specifier);
+
+  return result;
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (specifier_p);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_import_sz */
+
+jjs_value_t jjs_esm_run (jjs_value_t specifier)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_value_t referrer_path = annex_path_cwd ();
+
+  if (!jjs_value_is_string (referrer_path))
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
+  }
+
+  // parse module
+  jjs_value_t module = esm_read (specifier, referrer_path);
+
+  jjs_value_free (referrer_path);
+
+  if (jjs_value_is_exception (module))
+  {
+    return module;
+  }
+
+  // link
+  jjs_value_t linked = esm_link (module);
+
+  if (jjs_value_is_exception (linked))
+  {
+    jjs_value_free (module);
+    return linked;
+  }
+
+  // evaluate
+  jjs_value_t result = esm_evaluate (module);
+
+  jjs_value_free (module);
+
+  return result;
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (specifier);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_run */
+
+jjs_value_t jjs_esm_run_sz (const char* specifier_p)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_value_t specifier = jjs_string_sz (specifier_p);
+  jjs_value_t result = jjs_esm_run (specifier);
+
+  jjs_value_free (specifier);
+
+  return result;
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (specifier_p);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_run_sz */
+
+jjs_value_t
+jjs_commonjs_require (jjs_value_t specifier)
+{
+  jjs_assert_api_enabled ();
+#if JJS_COMMONJS
+  jjs_value_t referrer_path = annex_path_cwd ();
+  jjs_value_t result = jjs_annex_require (specifier, referrer_path);
+
+  jjs_value_free (referrer_path);
+
+  return result;
+#else /* !JJS_COMMONJS */
+  JJS_UNUSED (specifier);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
+#endif
+} /* jjs_commonjs_require */
+
+jjs_value_t jjs_commonjs_require_sz (const char* specifier_p)
+{
+  jjs_assert_api_enabled ();
+#if JJS_COMMONJS
+  jjs_value_t specifier = jjs_string_sz (specifier_p);
+  jjs_value_t result = jjs_commonjs_require (specifier);
+
+  jjs_value_free (specifier);
+
+  return result;
+#else /* !JJS_COMMONJS */
+  JJS_UNUSED (specifier_p);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
+#endif
+} /* jjs_commonjs_require_sz */
+
+jjs_value_t
+jjs_module_default_import (jjs_value_t specifier, jjs_value_t user_value, void *user_p)
+{
+  JJS_UNUSED (user_p);
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_value_t referrer_path = user_value_to_path (user_value);
+
+  if (jjs_value_is_exception (referrer_path))
+  {
+    return referrer_path;
+  }
+
+  jjs_value_t module = esm_import (specifier, referrer_path);
+
+  jjs_value_free (referrer_path);
+
+  return module;
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (specifier);
+  JJS_UNUSED (user_value);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_module_default_import */
+
+void
+jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object, void *user_p)
+{
+  JJS_UNUSED (user_p);
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  ecma_value_t url = ecma_find_own_m (module, LIT_MAGIC_STRING_URL);
+
+  if (ecma_is_value_string (url))
+  {
+    ecma_set_m (meta_object, LIT_MAGIC_STRING_URL, url);
+  }
+
+  ecma_free_value (url);
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (module);
+  JJS_UNUSED (meta_object);
+#endif
+} /* jjs_module_default_import_meta */
+
+#if JJS_MODULE_SYSTEM
+
+static jjs_value_t
+esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
+{
+  // parse module
+  jjs_value_t module = esm_read (specifier, referrer_path);
+
+  if (jjs_value_is_exception (module))
+  {
+    return module;
+  }
+
+  // link
+  jjs_value_t linked = esm_link (module);
+
+  if (jjs_value_is_exception (linked))
+  {
+    jjs_value_free (module);
+    return linked;
+  }
+
+  // evaluate
+  jjs_value_t evaluated = esm_evaluate (module);
+
+  if (jjs_value_is_exception (evaluated))
+  {
+    jjs_value_free (module);
+    return evaluated;
+  }
+
+  // ensure the imported module is in the evaluated state
+  jjs_module_state_t state = jjs_module_state (module);
+
+  JJS_ASSERT(state == JJS_MODULE_STATE_EVALUATED);
+
+  if (state != JJS_MODULE_STATE_EVALUATED)
+  {
+    jjs_value_free (module);
+    module = jjs_throw_sz (JJS_ERROR_COMMON, "imported module in unknown state");
+  }
+
+  return module;
+} /* esm_import */
+
+static jjs_value_t
+esm_link (jjs_value_t module)
+{
+  jjs_module_state_t state = jjs_module_state (module);
+
+  if (state == JJS_MODULE_STATE_UNLINKED)
+  {
+    jjs_value_t link_result = jjs_module_link (module, esm_link_cb, NULL);
+
+    if (jjs_value_is_exception (link_result))
+    {
+      return link_result;
+    }
+
+    bool linked = jjs_value_is_true (link_result);
+
+    jjs_value_free (link_result);
+
+    if (!linked)
+    {
+      return jjs_throw_sz (JJS_ERROR_COMMON, "failed to link module");
+    }
+  }
+
+  return ECMA_VALUE_UNDEFINED;
+} /* esm_link */
+
+static jjs_value_t
+esm_evaluate (jjs_value_t module)
+{
+  jjs_module_state_t state = jjs_module_state (module);
+
+  if (state == JJS_MODULE_STATE_LINKED || state == JJS_MODULE_STATE_UNLINKED)
+  {
+    return jjs_module_evaluate (module);
+  }
+
+  return ECMA_VALUE_UNDEFINED;
+} /* esm_evaluate */
+
+static jjs_value_t
+esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
+{
+  // resolve specifier
+  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_MODULE);
+
+  if (jjs_value_is_exception (resolved.result))
+  {
+    return resolved.result;
+  }
+
+  ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
+  ecma_value_t cached_module = ecma_find_own_v (esm_cache, resolved.path);
+
+  if (cached_module != ECMA_VALUE_NOT_FOUND)
+  {
+    jjs_annex_module_resolve_free (&resolved);
+    return cached_module;
+  }
+
+  ecma_free_value (cached_module);
+
+  // load source
+  jjs_annex_module_load_t loaded = jjs_annex_module_load (resolved.path, resolved.format, JJS_MODULE_TYPE_MODULE);
+
+  if (jjs_value_is_exception (loaded.result))
+  {
+    jjs_annex_module_resolve_free (&resolved);
+    return loaded.result;
+  }
+
+  ecma_string_t* format_p = ecma_get_string_from_value (loaded.format);
+  jjs_value_t module;
+
+  if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_JS)
+      || ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_MODULE))
+  {
+    jjs_value_t file_url = path_to_file_url (resolved.path);
+    jjs_parse_options_t opts = {
+      .options = JJS_PARSE_MODULE | JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME,
+      .user_value = file_url,
+      .source_name = resolved.path,
+    };
+
+    if (!jjs_value_is_exception (file_url))
+    {
+      module = jjs_parse_value (loaded.source, &opts);
+      set_module_properties (module, resolved.path, file_url);
+    }
+    else
+    {
+      module = jjs_throw_sz (JJS_ERROR_COMMON, "failed to convert path to file url");
+    }
+
+    jjs_value_free (file_url);
+  }
+#if JJS_COMMONJS
+  else if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_COMMONJS))
+  {
+    jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
+    jjs_value_t file_url = path_to_file_url (resolved.path);
+
+    // TODO: get export names from pmap?
+
+    if (!jjs_value_is_exception (file_url))
+    {
+      module = jjs_native_module (commonjs_module_evaluate_cb, &default_name, 1);
+      set_module_properties (module, resolved.path, file_url);
+    }
+    else
+    {
+      module = jjs_throw_sz (JJS_ERROR_COMMON, "failed to convert path to file url");
+    }
+
+    jjs_value_free (default_name);
+    jjs_value_free (file_url);
+  }
+#endif /* JJS_COMMONJS */
+  else
+  {
+    module = jjs_throw_sz (JJS_ERROR_TYPE, "Invalid format");
+  }
+
+  if (!jjs_value_is_exception (module))
+  {
+    ecma_set_v (esm_cache, resolved.path, module);
+  }
+
+  jjs_annex_module_resolve_free (&resolved);
+  jjs_annex_module_load_free (&loaded);
+
+  return module;
+} /* esm_read */
+
+static jjs_value_t
+path_to_file_url (jjs_value_t path)
+{
+  jjs_value_t result;
+  jjs_value_t prefix = ecma_make_magic_string_value (LIT_MAGIC_STRING_FILE_URL_PREFIX);
+  jjs_value_t encoded = ecma_builtin_global_encode_uri (path);
+
+  if (jjs_value_is_exception (encoded))
+  {
+    result = encoded;
+    encoded = ECMA_VALUE_UNDEFINED;
+  }
+  else
+  {
+    result = jjs_binary_op (JJS_BIN_OP_ADD, prefix, encoded);
+  }
+
+  jjs_value_free (prefix);
+  jjs_value_free (encoded);
+
+  return result;
+} /* path_to_file_url */
+
+static jjs_value_t
+esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p)
+{
+  JJS_UNUSED (user_p);
+
+  jjs_value_t path = ecma_find_own_m (referrer, LIT_MAGIC_STRING_PATH);
+  jjs_value_t module = esm_read (specifier, path);
+
+  jjs_value_free (path);
+
+  return module;
+} /* esm_link_cb */
+
+#if JJS_COMMONJS
+
+static jjs_value_t
+commonjs_module_evaluate_cb (jjs_value_t native_module)
+{
+  jjs_value_t filename = ecma_find_own_m (native_module, LIT_MAGIC_STRING_FILENAME);
+  JJS_ASSERT (jjs_value_is_string (filename));
+  jjs_value_t path = ecma_find_own_m (native_module, LIT_MAGIC_STRING_PATH);
+  JJS_ASSERT (jjs_value_is_string (path));
+  jjs_value_t exports = jjs_annex_require(filename, path);
+
+  jjs_value_free (filename);
+  jjs_value_free (path);
+
+  if (jjs_value_is_exception (exports))
+  {
+    return exports;
+  }
+
+  jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
+  jjs_value_t result = jjs_native_module_set (native_module, default_name, exports);
+
+  jjs_value_free (default_name);
+  jjs_value_free (exports);
+
+  if (jjs_value_is_exception (result))
+  {
+    return result;
+  }
+
+  jjs_value_free (result);
+
+  return ECMA_VALUE_UNDEFINED;
+} /* commonjs_module_evaluate_cb */
+
+#endif /* JJS_COMMONJS */
+
+static jjs_value_t
+user_value_to_path (jjs_value_t user_value)
+{
+  annex_specifier_type_t path_type = annex_path_specifier_type (user_value);
+  jjs_value_t filename;
+
+  if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
+  {
+    filename = annex_path_normalize (user_value);
+  }
+  else if (path_type == ANNEX_SPECIFIER_TYPE_FILE_URL)
+  {
+    filename = annex_path_from_file_url (user_value);
+  }
+  else
+  {
+    filename = ECMA_VALUE_EMPTY;
+  }
+
+  jjs_value_t result = annex_path_dirname (filename);
+
+  jjs_value_free (filename);
+
+  if (!jjs_value_is_string(result))
+  {
+    jjs_value_free (result);
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid module/source user value.");
+  }
+
+  return result;
+} /* user_value_to_path */
+
+static void
+set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url)
+{
+  if (jjs_value_is_exception (module))
+  {
+    return;
+  }
+
+  jjs_value_t path = annex_path_dirname (filename);
+
+  JJS_ASSERT(jjs_value_is_string (path));
+
+  ecma_set_m (module, LIT_MAGIC_STRING_PATH, path);
+  ecma_set_m (module, LIT_MAGIC_STRING_URL, url);
+  ecma_set_m (module, LIT_MAGIC_STRING_FILENAME, filename);
+
+  jjs_value_free (path);
+} /* set_module_properties */
+
+#endif /* JJS_MODULE_SYSTEM */

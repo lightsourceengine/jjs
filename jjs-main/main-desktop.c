@@ -86,7 +86,6 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
 {
   jjs_init (arguments_p->init_flags);
 
-  main_module_init();
   jjs_promise_on_event (JJS_PROMISE_EVENT_FILTER_ERROR, jjsx_handler_promise_reject, NULL);
 
   if (arguments_p->option_flags & OPT_FLAG_DEBUG_SERVER)
@@ -166,7 +165,6 @@ restart:
     {
       if (jjsx_debugger_is_reset (result))
       {
-        main_module_cleanup();
         jjs_cleanup ();
 
         goto restart;
@@ -203,7 +201,6 @@ restart:
 
       if (receive_status == JJS_DEBUGGER_CONTEXT_RESET_RECEIVED || jjsx_debugger_is_reset (result))
       {
-        main_module_cleanup();
         jjs_cleanup ();
         goto restart;
       }
@@ -265,7 +262,6 @@ restart:
   return_code = JJS_STANDALONE_EXIT_CODE_OK;
 
 exit:
-  main_module_cleanup();
   jjs_cleanup ();
 
   return return_code;

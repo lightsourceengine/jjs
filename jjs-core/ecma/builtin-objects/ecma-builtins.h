@@ -139,4 +139,7 @@ bool ecma_builtin_function_is_routine (ecma_object_t *func_obj_p);
 ecma_object_t *ecma_builtin_get_from_realm (ecma_global_object_t *global_object_p, ecma_builtin_id_t builtin_id);
 #endif /* JJS_BUILTIN_REALMS */
 
+ecma_value_t ecma_builtin_global_encode_uri (ecma_value_t uri);
+ecma_value_t ecma_builtin_global_decode_uri (ecma_value_t uri);
+
 #endif /* !ECMA_BUILTINS_H */

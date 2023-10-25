@@ -1181,6 +1181,8 @@ void jjs_module_on_resolve (jjs_module_resolve_cb_t callback_p, void *user_p);
 
 jjs_value_t jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p);
 jjs_value_t jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p);
+jjs_value_t jjs_module_default_import (jjs_value_t specifier, jjs_value_t user_value, void *user_p);
+void jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object, void *user_p);
 /**
  * jjs-api-module-cb @}
  */
@@ -1199,10 +1201,8 @@ jjs_value_t jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolv
  * @{
  */
 
-jjs_value_t jjs_pmap_root(void);
-jjs_value_t jjs_pmap_set_root(jjs_value_t path);
-
-jjs_value_t jjs_pmap_from_json(jjs_value_t json_string);
+jjs_value_t jjs_pmap (jjs_value_t filename);
+jjs_value_t jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root);
 
 /**
  * jjs-pmap-ops @}
@@ -1210,6 +1210,50 @@ jjs_value_t jjs_pmap_from_json(jjs_value_t json_string);
 
 /**
  * jjs-pmap @}
+ */
+
+/**
+ * @defgroup jjs-commonjs CommonJS
+ * @{
+ */
+
+/**
+ * @defgroup jjs-commonjs-ops Operations
+ * @{
+ */
+
+jjs_value_t jjs_commonjs_require (jjs_value_t specifier);
+jjs_value_t jjs_commonjs_require_sz (const char* specifier_p);
+
+/**
+ * jjs-commonjs-ops @}
+ */
+
+/**
+ * jjs-commonjs @}
+ */
+
+/**
+ * @defgroup jjs-esm ES Modules
+ * @{
+ */
+
+/**
+ * @defgroup jjs-esm-ops Operations
+ * @{
+ */
+
+jjs_value_t jjs_esm_import (jjs_value_t specifier);
+jjs_value_t jjs_esm_import_sz (const char* specifier_p);
+jjs_value_t jjs_esm_run (jjs_value_t specifier);
+jjs_value_t jjs_esm_run_sz (const char* specifier_p);
+
+/**
+ * jjs-esm-ops @}
+ */
+
+/**
+ * jjs-esm @}
  */
 
 /**

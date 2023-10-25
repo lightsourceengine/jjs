@@ -158,6 +158,8 @@ struct jjs_context_t
 
 #if JJS_MODULE_SYSTEM
   ecma_module_t *module_current_p; /**< current module context */
+  ecma_module_on_init_scope_cb module_on_init_scope_p; /**< callback which is called on initialization
+                                                          * of module scope */
   jjs_module_state_changed_cb_t module_state_changed_callback_p; /**< callback which is called after the
                                                                     *   state of a module is changed */
   void *module_state_changed_callback_user_p; /**< user pointer for module_state_changed_callback_p */

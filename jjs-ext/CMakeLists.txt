@@ -38,7 +38,6 @@ set(SOURCE_EXT
   arg/arg.c
   handle-scope/handle-scope-allocator.c
   handle-scope/handle-scope.c
-  module/module.c
   util/handlers.c
   util/print.c
   util/properties.c

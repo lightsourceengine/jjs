@@ -121,10 +121,39 @@ jjsx_source_exec_snapshot (const char *path_p, size_t function_index)
     return jjs_throw_sz (JJS_ERROR_SYNTAX, "Snapshot file not found");
   }
 
-  jjs_value_t result =
-    jjs_exec_snapshot ((uint32_t *) source_p, source_size, function_index, JJS_SNAPSHOT_EXEC_COPY_DATA, NULL);
+  // set user_value and source_name to a canonical file path so import and require work
+  jjs_char_t* normalized_p = jjs_port_path_normalize((jjs_char_t *) path_p, (jjs_size_t) strlen (path_p));
+  jjs_value_t path;
+
+  if (normalized_p)
+  {
+    path = jjs_string (normalized_p, (jjs_size_t) strlen ((const char*)normalized_p), JJS_ENCODING_UTF8);
+    jjs_port_path_free (normalized_p);
+  }
+  else
+  {
+    // fallback to original path
+    path = jjs_string_sz (path_p);
+  }
+
+  jjs_exec_snapshot_option_values_t opts = {
+    .user_value = path,
+    .source_name = path,
+  };
+
+  uint32_t snapshot_flags = JJS_SNAPSHOT_EXEC_COPY_DATA
+                            | JJS_SNAPSHOT_EXEC_HAS_USER_VALUE
+                            | JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME;
+
+  jjs_value_t result = jjs_exec_snapshot ((uint32_t *) source_p,
+                                          source_size,
+                                          function_index,
+                                          snapshot_flags,
+                                          &opts);
 
   jjs_port_source_free (source_p);
+  jjs_value_free (path);
+
   return result;
 } /* jjsx_source_exec_snapshot */
 

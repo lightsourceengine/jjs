@@ -235,8 +235,16 @@ jjs_init_ex (jjs_init_flag_t flags, /**< combination of JJS flags */
   jjs_annex_init ();
   jjs_annex_init_realm (JJS_CONTEXT (global_object_p));
 
+#if JJS_COMMONJS || JJS_MODULE_SYSTEM
   jjs_module_on_load(jjs_module_default_load, NULL);
   jjs_module_on_resolve(jjs_module_default_resolve, NULL);
+#endif /* JJS_COMMONJS || JJS_MODULE_SYSTEM */
+
+#if JJS_MODULE_SYSTEM
+  jjs_module_on_import_meta(jjs_module_default_import_meta, NULL);
+  jjs_module_on_import(jjs_module_default_import, NULL);
+#endif /* JJS_MODULE_SYSTEM */
+
 } /* jjs_init_ex */
 
 /**

@@ -16,6 +16,7 @@
 #include "jjs-core.h"
 #include "jjs-port.h"
 #include "jjs-annex.h"
+#include "jjs-annex-module-util.h"
 
 #include "jjs-snapshot.h"
 
@@ -26,21 +27,14 @@
 
 #if JJS_COMMONJS
 
-typedef struct
-{
-  jjs_value_t path;
-  jjs_value_t format;
-  jjs_value_t result;
-} resolve_result_t;
-
 static jjs_value_t create_require_from_directory (jjs_value_t referrer_path);
 static void referrer_path_free (void *native_p, struct jjs_object_native_info_t *info_p);
-static void resolve_result_free (resolve_result_t* resolve_result_p);
 static ecma_value_t create_module (ecma_value_t filename);
 static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecma_value_t format);
 static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_value_t source);
 static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma_value_t source);
 static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_value_t fn);
+static ecma_value_t require_impl (ecma_value_t specifier, ecma_value_t referrer_path);
 static JJS_HANDLER(require_handler);
 static JJS_HANDLER(resolve_handler);
 
@@ -64,13 +58,21 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
 
   if (jjs_value_is_undefined (referrer))
   {
-    ecma_value_t dot = ecma_string_ascii_sz (".");
-    path = annex_path_normalize (dot);
-    ecma_free_value (dot);
+    path = annex_path_cwd ();
   }
   else if (jjs_value_is_string (referrer))
   {
-    path = annex_path_dirname (referrer);
+    if (annex_path_specifier_type (referrer) == ANNEX_SPECIFIER_TYPE_FILE_URL)
+    {
+      ecma_value_t filename = annex_path_from_file_url (referrer);
+
+      path = annex_path_dirname (filename);
+      ecma_free_value (filename);
+    }
+    else
+    {
+      path = annex_path_dirname (referrer);
+    }
   }
   else
   {
@@ -91,6 +93,19 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
   }
 
 } /* jjs_annex_create_require */
+
+/**
+ * Require a module from a specifier relative to a directory.
+ *
+ * @param specifier package name or file path string
+ * @param referrer_path directory string to resolve relative file paths against
+ * @return on success, module exports are returned. on error, exception is returned.
+ */
+jjs_value_t
+jjs_annex_require (jjs_value_t specifier, jjs_value_t referrer_path)
+{
+  return require_impl (specifier, referrer_path);
+} /* jjs_annex_require */
 
 /**
  * Create a require function from a directory path.
@@ -160,64 +175,6 @@ static ecma_value_t get_referrer_path (ecma_value_t target)
 } /* get_referrer_path */
 
 /**
- * Call the module_on_resolve callback.
- *
- * @param request require request
- * @param referrer_path directory path of the referrer
- * @return resolve_result. must be freed by resolve_result_free.
- */
-static resolve_result_t resolve_impl (ecma_value_t request, ecma_value_t referrer_path)
-{
-  jjs_module_resolve_context_t context = {
-    .type = JJS_MODULE_TYPE_COMMONJS,
-    .referrer_path = referrer_path,
-  };
-
-  jjs_module_resolve_cb_t module_on_resolve_cb = JJS_CONTEXT (module_on_resolve_cb);
-
-  JJS_ASSERT (module_on_resolve_cb != NULL);
-
-  ecma_value_t resolve_result;
-
-  if (module_on_resolve_cb != NULL)
-  {
-    resolve_result = module_on_resolve_cb (request, &context, JJS_CONTEXT (module_on_resolve_user_p));
-  }
-  else
-  {
-    resolve_result = jjs_throw_sz(JJS_ERROR_COMMON, "module_on_resolve callback is not set");
-  }
-
-  if (jjs_value_is_exception(resolve_result))
-  {
-    return (resolve_result_t) {
-      .path = ECMA_VALUE_UNDEFINED,
-      .format = ECMA_VALUE_UNDEFINED,
-      .result = resolve_result,
-    };
-  }
-  // TODO: validate object returned from resolve callback
-
-  return (resolve_result_t) {
-    .path = ecma_find_own_m (resolve_result, LIT_MAGIC_STRING_PATH),
-    .format = ecma_find_own_m (resolve_result, LIT_MAGIC_STRING_FORMAT),
-    .result = resolve_result,
-  };
-} /* resolve_impl */
-
-/**
- * Free the resolve_result.
- *
- * @param result_p pointer to a resolve result
- */
-static void resolve_result_free (resolve_result_t* result_p)
-{
-  ecma_free_value (result_p->path);
-  ecma_free_value (result_p->format);
-  ecma_free_value (result_p->result);
-} /* resolve_result_free */
-
-/**
  * Binding for the javascript resolve() function.
  */
 static JJS_HANDLER(resolve_handler)
@@ -236,7 +193,7 @@ static JJS_HANDLER(resolve_handler)
     return referrer_path;
   }
 
-  resolve_result_t result = resolve_impl (request, referrer_path);
+  jjs_annex_module_resolve_t result = jjs_annex_module_resolve (request, referrer_path, JJS_MODULE_TYPE_COMMONJS);
 
   ecma_free_value (referrer_path);
 
@@ -248,7 +205,7 @@ static JJS_HANDLER(resolve_handler)
   ecma_value_t path = result.path;
 
   result.path = ECMA_VALUE_UNDEFINED;
-  resolve_result_free (&result);
+  jjs_annex_module_resolve_free (&result);
 
   return path;
 } /* resolve_handler */
@@ -258,15 +215,7 @@ static JJS_HANDLER(resolve_handler)
  */
 static JJS_HANDLER (require_handler)
 {
-  /* validate request */
-  ecma_value_t request = args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED;
-
-  if (!ecma_is_value_string (request))
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid argument");
-  }
-
-  /* get referrer path */
+  ecma_value_t specifier = args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED;
   ecma_value_t referrer_path = get_referrer_path (call_info_p->function);
 
   if (ecma_is_value_exception (referrer_path))
@@ -274,8 +223,27 @@ static JJS_HANDLER (require_handler)
     return referrer_path;
   }
 
+  return require_impl (specifier, referrer_path);
+} /* require_handler */
+
+/**
+ * Shared require implementation.
+ */
+static ecma_value_t
+require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
+{
+  if (!ecma_is_value_string (specifier))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require specifier");
+  }
+
+  if (!ecma_is_value_string (referrer_path))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require referrer");
+  }
+
   /* resolve the request to an absolute path */
-  resolve_result_t resolved = resolve_impl (request, referrer_path);
+  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_COMMONJS);
 
   ecma_free_value (referrer_path);
 
@@ -295,7 +263,7 @@ static JJS_HANDLER (require_handler)
     bool is_loaded = ecma_is_value_true (loaded);
 
     ecma_free_value (loaded);
-    resolve_result_free (&resolved);
+    jjs_annex_module_resolve_free (&resolved);
 
     if (!is_loaded)
     {
@@ -325,7 +293,7 @@ static JJS_HANDLER (require_handler)
 
   ecma_value_t load_module_result = load_module (module, resolved.path, resolved.format);
 
-  resolve_result_free (&resolved);
+  jjs_annex_module_resolve_free (&resolved);
 
   if (jjs_value_is_exception (load_module_result))
   {
@@ -344,7 +312,7 @@ static JJS_HANDLER (require_handler)
   ecma_free_value (module);
 
   return exports;
-} /* require_handler */
+} /* require_impl */
 
 /**
  * Create a CommonJS module object.
@@ -373,50 +341,31 @@ static ecma_value_t create_module (ecma_value_t filename)
  */
 static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecma_value_t format)
 {
-  jjs_module_load_context_t context = {
-    .type = JJS_MODULE_TYPE_COMMONJS,
-    .format = format,
-  };
+  jjs_annex_module_load_t loaded = jjs_annex_module_load (filename, format, JJS_MODULE_TYPE_COMMONJS);
 
-  // TODO: handle null on_load_cb
-  ecma_value_t load_result = JJS_CONTEXT (module_on_load_cb) (filename,
-                                                              &context,
-                                                              JJS_CONTEXT (module_on_load_user_p));
-
-  if (jjs_value_is_exception (load_result))
+  if (jjs_value_is_exception (loaded.result))
   {
-    return load_result;
-  }
-
-  format = ecma_find_own_m (load_result, LIT_MAGIC_STRING_FORMAT);
-
-  if (format == ECMA_VALUE_NOT_FOUND)
-  {
-    ecma_free_value (load_result);
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid format");
+    return loaded.result;
   }
 
   ecma_string_t* format_p = ecma_get_string_from_value (format);
-  ecma_value_t source = ecma_find_own_m (load_result, LIT_MAGIC_STRING_SOURCE);
   ecma_value_t exports;
 
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_JS)
       || ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_COMMONJS))
   {
-    exports = load_module_exports_from_source (module, source);
+    exports = load_module_exports_from_source (module, loaded.source);
   }
   else if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_SNAPSHOT))
   {
-    exports = load_module_exports_from_snapshot (module, source);
+    exports = load_module_exports_from_snapshot (module, loaded.source);
   }
   else
   {
     exports = jjs_throw_sz (JJS_ERROR_TYPE, "Invalid format");
   }
 
-  ecma_free_value (source);
-  ecma_free_value (format);
-  ecma_free_value (load_result);
+  jjs_annex_module_load_free (&loaded);
 
   return exports;
 } /* load_module_exports */
@@ -472,20 +421,28 @@ static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma
     return jjs_throw_sz (JJS_ERROR_TYPE, "Empty ArrayBuffer for snapshot");
   }
 
+  ecma_value_t filename = ecma_find_own_m (module, LIT_MAGIC_STRING_FILENAME);
+  JJS_ASSERT (ecma_is_value_string (filename));
+
+  jjs_exec_snapshot_option_values_t opts = {
+    .source_name = filename,
+    .user_value = filename,
+  };
+
   jjs_value_t fn = jjs_exec_snapshot(
     (const uint32_t*) buffer,
     size,
     0,
-    JJS_SNAPSHOT_EXEC_ALLOW_STATIC | JJS_SNAPSHOT_EXEC_COPY_DATA | JJS_SNAPSHOT_EXEC_LOAD_AS_FUNCTION,
-    NULL);
+    JJS_SNAPSHOT_EXEC_ALLOW_STATIC | JJS_SNAPSHOT_EXEC_COPY_DATA | JJS_SNAPSHOT_EXEC_LOAD_AS_FUNCTION
+     | JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME | JJS_SNAPSHOT_EXEC_HAS_USER_VALUE,
+    &opts);
 
   if (jjs_value_is_exception (fn))
   {
+    ecma_free_value (filename);
     return fn;
   }
 
-  ecma_value_t filename = ecma_find_own_m (module, LIT_MAGIC_STRING_FILENAME);
-  JJS_ASSERT (ecma_is_value_string (filename));
   ecma_value_t exports = run_module (module, filename, fn);
 
   ecma_free_value(filename);

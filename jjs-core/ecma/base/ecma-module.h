@@ -114,6 +114,12 @@ typedef struct ecma_module_resolve_stack
   bool resolving; /**< flag storing wether the current frame started resolving */
 } ecma_module_resolve_stack_t;
 
+/**
+ * Callback registered with context to be called with a module's lexical
+ * scope is created.
+ */
+typedef void (*ecma_module_on_init_scope_cb) (ecma_module_t* module_p);
+
 ecma_value_t ecma_module_initialize (ecma_module_t *module_p);
 ecma_module_t *ecma_module_get_resolved_module (ecma_value_t module_val);
 

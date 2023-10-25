@@ -34,6 +34,9 @@
 #define is_absolute(BUFFER) is_separator (BUFFER[0])
 #endif /* _WIN32 */
 
+#define FILE_URL_PREFIX "file://"
+#define FILE_URL_PREFIX_LEN 7
+
 /**
  * Get the type (fs path or package) of a CommonJS request or ESM specifier.
  *
@@ -43,7 +46,7 @@
 annex_specifier_type_t
 annex_path_specifier_type (ecma_value_t specifier)
 {
-  lit_utf8_byte_t path[] = { 0, 0, 0 };
+  lit_utf8_byte_t path[FILE_URL_PREFIX_LEN] = { 0 };
   lit_utf8_size_t written = 0;
 
   if (ecma_is_value_string (specifier))
@@ -67,6 +70,11 @@ annex_path_specifier_type (ecma_value_t specifier)
   if (is_absolute (path))
   {
     return ANNEX_SPECIFIER_TYPE_ABSOLUTE;
+  }
+
+  if (memcmp (path, FILE_URL_PREFIX, FILE_URL_PREFIX_LEN) == 0)
+  {
+    return ANNEX_SPECIFIER_TYPE_FILE_URL;
   }
 
   return ANNEX_SPECIFIER_TYPE_PACKAGE;
@@ -143,6 +151,20 @@ annex_path_normalize (ecma_value_t path)
 
   return ecma_make_string_value (result);
 } /* annex_path_normalize */
+
+/**
+ * Get the current working directory.
+ */
+ecma_value_t
+annex_path_cwd (void)
+{
+  ecma_value_t dot = ecma_string_ascii_sz (".");
+  ecma_value_t result = annex_path_normalize (dot);
+
+  ecma_free_value(dot);
+
+  return result;
+} /* annex_path_cwd */
 
 /**
  * Get the directory name of a path.
@@ -228,3 +250,36 @@ annex_path_format (ecma_value_t path)
 
   return ecma_make_magic_string_value (id);
 } /* annex_path_format */
+
+/**
+ * Get the file system path (filename) from a file url.
+ */
+ecma_value_t
+annex_path_from_file_url (ecma_value_t file_url)
+{
+  if (!ecma_is_value_string (file_url))
+  {
+    return ECMA_VALUE_EMPTY;
+  }
+
+  ecma_string_t* file_url_p = ecma_get_string_from_value (file_url);
+  lit_utf8_size_t len = ecma_string_get_length (file_url_p);
+
+  if (len < FILE_URL_PREFIX_LEN)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
+
+  ecma_string_t* encoded_path = ecma_string_substr (file_url_p, FILE_URL_PREFIX_LEN, len - FILE_URL_PREFIX_LEN);
+  ecma_value_t path = ecma_builtin_global_decode_uri (ecma_make_string_value (encoded_path));
+
+  if (ecma_is_value_exception (path))
+  {
+    ecma_deref_exception (ecma_get_extended_primitive_from_value (path));
+    path = ECMA_VALUE_EMPTY;
+  }
+
+  ecma_deref_ecma_string (encoded_path);
+
+  return path;
+} /* annex_path_from_file_url */

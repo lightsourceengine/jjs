@@ -58,7 +58,6 @@ enum
   ECMA_GLOBAL_ENCODE_URI_COMPONENT,
   ECMA_GLOBAL_ESCAPE,
   ECMA_GLOBAL_UNESCAPE,
-  ECMA_GLOBAL_QUEUE_MICROTASK,
 };
 
 #define BUILTIN_INC_HEADER_NAME "ecma-builtin-global.inc.h"
@@ -694,6 +693,28 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
   ecma_deref_ecma_string (str_p);
   return ret_value;
 } /* ecma_builtin_global_dispatch_routine */
+
+/**
+ * Call encodeURI() function.
+ */
+ecma_value_t ecma_builtin_global_encode_uri (ecma_value_t uri)
+{
+  return ecma_builtin_global_dispatch_routine (ECMA_GLOBAL_ENCODE_URI,
+                                               ECMA_VALUE_UNDEFINED,
+                                               &uri,
+                                               1);
+} /* ecma_builtin_global_encode_uri */
+
+/**
+ * Call decodeURI() function.
+ */
+ecma_value_t ecma_builtin_global_decode_uri (ecma_value_t uri)
+{
+  return ecma_builtin_global_dispatch_routine (ECMA_GLOBAL_DECODE_URI,
+                                               ECMA_VALUE_UNDEFINED,
+                                               &uri,
+                                               1);
+} /* ecma_builtin_global_decode_uri */
 
 /**
  * @}

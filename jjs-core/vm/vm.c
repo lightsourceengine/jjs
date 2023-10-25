@@ -4998,6 +4998,14 @@ vm_init_module_scope (ecma_module_t *module_p) /**< module without scope */
   ((ecma_lexical_environment_class_t *) scope_p)->type = ECMA_LEX_ENV_CLASS_TYPE_MODULE;
 
   module_p->scope_p = scope_p;
+
+  ecma_module_on_init_scope_cb on_init_scope_p = JJS_CONTEXT (module_on_init_scope_p);
+
+  if (on_init_scope_p)
+  {
+    on_init_scope_p (module_p);
+  }
+
   ecma_deref_object (scope_p);
 
   if (compiled_code_p->status_flags & CBC_CODE_FLAGS_UINT16_ARGUMENTS)
