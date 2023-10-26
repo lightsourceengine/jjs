@@ -4,6 +4,10 @@ on: [push, pull_request]
 
 env:
   RUNNER: tools/run-tests.py
+  ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
+  JJS_ASAN_BUILD_OPTS_32: --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold,--compile-flag=-m32
+  JJS_ASAN_BUILD_OPTS_64: --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
+  JJS_ASAN_SKIP_LIST: --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
 
 jobs:
   Checks:
@@ -55,31 +59,34 @@ jobs:
       - run: sudo apt install gcc-multilib
       - run: $RUNNER --buildoption-test
 
-  linux_x86-64_release_asan:
+  linux_x86_release_asan:
     runs-on: ubuntu-20.04
-    env:
-      ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
-      - run: >-
-          $RUNNER -q --jjs-tests
-          --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-m32,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
-          --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
+      - run: $RUNNER -q --jjs-tests $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
+
+  linux_x86_debug_asan:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt update
+      - run: sudo apt install gcc-multilib
+      - run: $RUNNER -q --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
+
+  linux_x86-64_release_asan:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: $RUNNER -q --jjs-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86-64_debug_asan:
     runs-on: ubuntu-20.04
-    env:
-      ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt update
-      - run: sudo apt install gcc-multilib
-      - run: >-
-          $RUNNER -q --jjs-tests --build-debug
-          --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-m32,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
-          --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
+      - run: $RUNNER -q --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_armv6l_release:
     if: false # needs raspberry pi cross compiler to be set up
@@ -188,8 +195,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: JS Tests
-        # invoking snapshot via test python scripts is broken on windows
-        run: python .\tools\run-tests.py -q --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        run: python .\tools\run-tests.py -q --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
       - name: C Unit Tests
         run: python .\tools\run-tests.py -q --unittests
@@ -197,13 +203,11 @@ jobs:
 
   # Note: Date().getDay() is broken on windows, disable associated tests
   windows_x64_debug:
-    if: false # JS tests hang on windows debug builds
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
       - name: JS Tests
-        # invoking snapshot via test python scripts is broken on windows
-        run: python .\tools\run-tests.py -q --build-debug --jjs-tests --no-snapshot-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        run: python .\tools\run-tests.py -q --build-debug --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
       - name: C Unit Tests
         run: python .\tools\run-tests.py -q --build-debug --unittests

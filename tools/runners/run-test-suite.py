@@ -88,10 +88,6 @@ def execute_test_command(test_cmd, cwd):
 def main(args):
     tests = get_tests(args.test_dir, args.test_list, args.skip_list)
 
-    if args.snapshot:
-        # modules (mjs files in tests) are not supported by JJS snapshots
-        tests = list(filter(lambda t: t.endswith('.js'), tests))
-
     total = len(tests)
     if total == 0:
         print("No test to execute.")
