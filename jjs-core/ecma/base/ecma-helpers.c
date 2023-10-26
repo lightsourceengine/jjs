@@ -1797,7 +1797,7 @@ ecma_get_current_stack_usage (void)
 bool JJS_ATTR_NOINLINE
 ecma_is_stack_limit_exceeded (void)
 {
-  return ecma_get_current_stack_usage () > CONFIG_MEM_STACK_LIMIT;
+  return ecma_get_current_stack_usage () > (uintptr_t) CONFIG_MEM_STACK_LIMIT;
 } /* ecma_is_stack_limit_exceeded */
 
 /**

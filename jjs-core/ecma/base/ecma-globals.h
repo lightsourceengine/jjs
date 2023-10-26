@@ -2047,7 +2047,8 @@ typedef enum
 #define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)                          \
   do                                                                         \
   {                                                                          \
-    if (JJS_CONTEXT(cfg_stack_limit) != 0 && ecma_is_stack_limit_exceeded()) \
+    volatile uint32_t cfg_stack_limit = JJS_CONTEXT(cfg_stack_limit);        \
+    if (cfg_stack_limit != 0 && ecma_is_stack_limit_exceeded())              \
     {                                                                        \
       ecma_raise_maximum_callstack_error ();                                 \
       return RETURN_VALUE;                                                   \

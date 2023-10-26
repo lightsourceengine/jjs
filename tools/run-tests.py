@@ -194,6 +194,8 @@ def get_arguments():
                         help='Run all tests')
     parser.add_argument('--no-snapshot-tests', action='store_true', default=False,
                         help='Disable snapshot tests for jjs-tests runs')
+    parser.add_argument('--no-external-context-tests', action='store_true', default=False,
+                        help='Disable external context tests for jjs-tests runs')
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -283,6 +285,8 @@ def iterate_test_runner_jobs(jobs, options):
     tested_hashes = {}
 
     for job in jobs:
+        if job.name == 'jjs_tests-external_context' and options.no_external_context_tests:
+            continue
         ret_build, build_dir_path = create_binary(job, options)
         if ret_build:
             yield job, ret_build, None
@@ -368,6 +372,9 @@ def run_jjs_tests(options):
                 with open(settings.SNAPSHOT_TESTS_SKIPLIST, 'r') as snapshot_skip_list:
                     for line in snapshot_skip_list:
                         skip_list.append(line.rstrip())
+
+        if job.name == 'jjs_tests-external_context' and options.no_external_context_tests:
+            continue
 
         if options.skip_list:
             skip_list.append(options.skip_list)
