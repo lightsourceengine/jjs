@@ -19,7 +19,9 @@
 
 #include "jcontext.h"
 
+#if JJS_QUEUE_MICROTASK
 static jjs_value_t queue_microtask_impl (jjs_value_t callback);
+#endif /* JJS_QUEUE_MICROTASK */
 
 /**
  * Add a callback function to the microtask queue.

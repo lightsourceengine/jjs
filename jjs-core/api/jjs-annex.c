@@ -19,7 +19,51 @@
 #include "annex.h"
 #include "jcontext.h"
 
-static void module_on_init_scope (ecma_module_t* module_p);
+#if JJS_MODULE_SYSTEM
+/**
+ * Module scope initialization hook.
+ */
+static void module_on_init_scope (ecma_module_t* module_p)
+{
+#if JJS_COMMONJS
+ // For a non-native ES module, a require function (resolving relative to
+ // the module's user_value or URL) is added to the module scope. If the
+ // module is native, does not have a user_value or the require function
+ // cannot otherwise be created, the require function is not added.
+
+ if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE)
+ {
+   return;
+ }
+
+ ecma_value_t script_value = ((cbc_uint8_arguments_t *) module_p->u.compiled_code_p)->script_value;
+ const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+
+ if (!(script_p->refs_and_type & CBC_SCRIPT_HAS_USER_VALUE))
+ {
+   return;
+ }
+
+ jjs_value_t require = jjs_annex_create_require (CBC_SCRIPT_GET_USER_VALUE (script_p));
+
+ if (!jjs_value_is_exception (require))
+ {
+   ecma_property_value_t *value_p =
+     ecma_create_named_data_property (module_p->scope_p,
+                                      ecma_get_magic_string (LIT_MAGIC_STRING_REQUIRE),
+                                      ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
+                                      NULL);
+
+   value_p->value = require;
+ }
+
+ jjs_value_free (require);
+#else /* !JJS_COMMONJS */
+ JJS_UNUSED (module_p);
+#endif /* JJS_COMMONJS */
+} /* module_on_init_scope */
+
+#endif /* JJS_MODULE_SYSTEM */
 
 /**
  * Initialize context for annex apis.
@@ -84,46 +128,3 @@ void jjs_annex_finalize (void)
   jjs_value_free (JJS_CONTEXT (commonjs_args));
 #endif /* JJS_COMMONJS */
 } /* jjs_annex_finalize */
-
-/**
- * Module scope initialization hook.
- */
-void module_on_init_scope (ecma_module_t* module_p)
-{
-#if JJS_MODULE_SYSTEM && JJS_COMMONJS
-  // For a non-native ES module, a require function (resolving relative to
-  // the module's user_value or URL) is added to the module scope. If the
-  // module is native, does not have a user_value or the require function
-  // cannot otherwise be created, the require function is not added.
-
-  if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE)
-  {
-    return;
-  }
-
-  ecma_value_t script_value = ((cbc_uint8_arguments_t *) module_p->u.compiled_code_p)->script_value;
-  const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
-
-  if (!(script_p->refs_and_type & CBC_SCRIPT_HAS_USER_VALUE))
-  {
-    return;
-  }
-
-  jjs_value_t require = jjs_annex_create_require (CBC_SCRIPT_GET_USER_VALUE (script_p));
-
-  if (!jjs_value_is_exception (require))
-  {
-    ecma_property_value_t *value_p =
-      ecma_create_named_data_property (module_p->scope_p,
-                                       ecma_get_magic_string (LIT_MAGIC_STRING_REQUIRE),
-                                       ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
-                                       NULL);
-
-    value_p->value = require;
-  }
-
-  jjs_value_free (require);
-#else /* !(JJS_MODULE_SYSTEM && JJS_COMMONJS) */
-  JJS_UNUSED (module_p);
-#endif /* JJS_MODULE_SYSTEM && JJS_COMMONJS */
-} /* module_on_init_scope */

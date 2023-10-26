@@ -22,10 +22,12 @@
 #include "ecma-helpers.h"
 #include "ecma-builtin-helpers.h"
 
+#if JJS_PMAP
 static jjs_value_t validate_pmap (jjs_value_t pmap);
 static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type);
 static jjs_value_t set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root);
 static ecma_value_t find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type);
+#endif /* JJS_PMAP */
 
 /**
  * Load a pmap (Package Map) from a file.

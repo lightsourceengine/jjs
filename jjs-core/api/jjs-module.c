@@ -251,15 +251,21 @@ jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, re
 #endif /* JJS_MODULE_SYSTEM */
 } /* jjs_module_cleanup */
 
+#if JJS_MODULE_SYSTEM
+
 static jjs_value_t esm_read (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t path_to_file_url (jjs_value_t path);
 static jjs_value_t user_value_to_path (jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
-static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
 static jjs_value_t esm_link (jjs_value_t module);
 static jjs_value_t esm_evaluate (jjs_value_t module);
 static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url);
+#if JJS_COMMONJS
+static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
+#endif /* JJS_COMMONJS */
+
+#endif /* JJS_MODULE_SYSTEM */
 
 /**
  * Load hook for CommonJS and ES modules.
@@ -569,9 +575,10 @@ jjs_module_default_import (jjs_value_t specifier, jjs_value_t user_value, void *
 #if JJS_MODULE_SYSTEM
   jjs_value_t referrer_path = user_value_to_path (user_value);
 
-  if (jjs_value_is_exception (referrer_path))
+  if (!jjs_value_is_string (referrer_path))
   {
-    return referrer_path;
+    jjs_value_free (referrer_path);
+    return jjs_throw_sz(JJS_ERROR_COMMON, "Failed to get referrer path from user_value");
   }
 
   jjs_value_t module = esm_import (specifier, referrer_path);
@@ -636,6 +643,8 @@ esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
     jjs_value_free (module);
     return evaluated;
   }
+
+  jjs_value_free (evaluated);
 
   // ensure the imported module is in the evaluated state
   jjs_module_state_t state = jjs_module_state (module);
