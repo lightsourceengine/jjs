@@ -243,7 +243,7 @@ struct jjs_context_t
   jjs_throw_cb_t vm_throw_callback_p; /**< callback for capturing throws */
 #endif /* JJS_VM_THROW */
 
-  uintptr_t stack_base; /**< stack base marker */
+  volatile uintptr_t stack_base; /**< stack base marker */
 
 #if JJS_DEBUGGER
   uint8_t debugger_send_buffer[JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE]; /**< buffer for sending messages */

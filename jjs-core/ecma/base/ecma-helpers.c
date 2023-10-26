@@ -1791,6 +1791,16 @@ ecma_get_current_stack_usage (void)
 } /* ecma_get_current_stack_usage */
 
 /**
+ * Check whether the stack usage is over the configured limit.
+ * @return true - if the stack usage is over the limit
+ */
+bool JJS_ATTR_NOINLINE
+ecma_is_stack_limit_exceeded (void)
+{
+  return ecma_get_current_stack_usage () > CONFIG_MEM_STACK_LIMIT;
+} /* ecma_is_stack_limit_exceeded */
+
+/**
  * @}
  * @}
  */

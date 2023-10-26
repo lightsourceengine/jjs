@@ -2039,19 +2039,19 @@ typedef enum
  */
 #define ECMA_SYMBOL_FLAGS_MASK ((1 << ECMA_SYMBOL_FLAGS_SHIFT) - 1)
 
+#if JJS_EXTERNAL_CONTEXT || JJS_STACK_LIMIT > 0
 /**
  * Check the current stack usage. If the limit is reached a RangeError is raised.
  * The macro argument specifies the return value which is usally ECMA_VALUE_ERROR or NULL.
  */
-#define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)                        \
-  do                                                                       \
-  {                                                                        \
-    uintptr_t stack_limit = CONFIG_MEM_STACK_LIMIT;                        \
-    if (stack_limit != 0 && ecma_get_current_stack_usage () > stack_limit) \
-    {                                                                      \
-      ecma_raise_maximum_callstack_error ();                               \
-      return RETURN_VALUE;                                                 \
-    }                                                                      \
+#define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)                          \
+  do                                                                         \
+  {                                                                          \
+    if (JJS_CONTEXT(cfg_stack_limit) != 0 && ecma_is_stack_limit_exceeded()) \
+    {                                                                        \
+      ecma_raise_maximum_callstack_error ();                                 \
+      return RETURN_VALUE;                                                   \
+    }                                                                        \
   } while (0)
 
 /**
@@ -2059,6 +2059,19 @@ typedef enum
  * This version should be used in most cases.
  */
 #define ECMA_CHECK_STACK_USAGE() ECMA_CHECK_STACK_USAGE_RETURN (ECMA_VALUE_ERROR)
+#else /* !(JJS_EXTERNAL_CONTEXT || JJS_STACK_LIMIT > 0) */
+/**
+ * Check the current stack usage. If the limit is reached a RangeError is raised.
+ * The macro argument specifies the return value which is usally ECMA_VALUE_ERROR or NULL.
+ */
+#define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)
+
+/**
+ * Specialized version of ECMA_CHECK_STACK_USAGE_RETURN which returns ECMA_VALUE_ERROR.
+ * This version should be used in most cases.
+ */
+#define ECMA_CHECK_STACK_USAGE()
+#endif /* JJS_EXTERNAL_CONTEXT || JJS_STACK_LIMIT > 0 */
 
 /**
  * Invalid object pointer which represents abrupt completion

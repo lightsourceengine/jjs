@@ -492,6 +492,7 @@ uint8_t *ecma_compiled_code_get_line_info (const ecma_compiled_code_t *bytecode_
 ecma_value_t ecma_get_source_name (const ecma_compiled_code_t *bytecode_p);
 
 uintptr_t ecma_get_current_stack_usage (void);
+bool ecma_is_stack_limit_exceeded (void);
 
 /* ecma-helpers-external-pointers.c */
 bool ecma_create_native_pointer_property (ecma_object_t *obj_p,
