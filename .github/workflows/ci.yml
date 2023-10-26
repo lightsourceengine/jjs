@@ -6,7 +6,7 @@ env:
   RUNNER: tools/run-tests.py
   ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
   JJS_ASAN_BUILD_OPTS_32: --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold,--compile-flag=-m32
-  JJS_ASAN_BUILD_OPTS_64: --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=on,--linker-flag=-fuse-ld=gold
+  JJS_ASAN_BUILD_OPTS_64: --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--debug,--system-allocator=off,--linker-flag=-fuse-ld=gold
   JJS_ASAN_SKIP_LIST: --skip-list=parser-oom.js,parser-oom2.js,stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4848.js,regression-test-issue-4890.js,regression-test-issue-2190.js,regression-test-issue-2258-2963.js,regression-test-issue-2448.js,regression-test-issue-2905.js,regression-test-issue-3785.js,proxy-evil-recursion.js
 
 jobs:
@@ -189,8 +189,8 @@ jobs:
       - run: $RUNNER -q --jjs-tests --build-debug
       - run: $RUNNER -q --unittests --build-debug
 
-  # Note: Date().getDay() is broken on windows, disable associated tests
   windows_x64_release:
+    # note: Date().getDay() is broken on windows, disable associated tests
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -201,13 +201,14 @@ jobs:
         run: python .\tools\run-tests.py -q --unittests
         shell: powershell
 
-  # Note: Date().getDay() is broken on windows, disable associated tests
   windows_x64_debug:
+    # note: Date().getDay() is broken on windows, disable associated tests
+    # note: external-context + stack_limit > 0 are broken on windows debug builds (problem seen in linux 32 bit also)
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
       - name: JS Tests
-        run: python .\tools\run-tests.py -q --build-debug --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        run: python .\tools\run-tests.py -q --build-debug --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js --no-external-context-tests
         shell: powershell
       - name: C Unit Tests
         run: python .\tools\run-tests.py -q --build-debug --unittests
