@@ -1214,8 +1214,10 @@ ecma_regexp_run (ecma_regexp_ctx_t *re_ctx_p, /**< RegExp matcher context */
           continue;
         }
 
-        /* Capture end pointers might get clobbered and need to be restored after a tail match fail. */
-        JJS_VLA (const lit_utf8_byte_t *, saved_captures_p, capture_count);
+        /* Capture end pointers might get clobbered and need to be restored after a tail match fail.
+         * capture_count may be 0, but VLA length must be > 0. force length to be at least 1 to
+         * avoid undefined behavior. */
+        JJS_VLA (const lit_utf8_byte_t *, saved_captures_p, JJS_MAX (capture_count, 1));
         for (uint32_t i = 0; i < capture_count; ++i)
         {
           ecma_regexp_capture_t *const capture_p = re_ctx_p->captures_p + capture_start + i;
