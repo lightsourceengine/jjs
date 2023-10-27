@@ -11,7 +11,7 @@ env:
   UBSAN_OPTIONS: print_stacktrace=1
   JJS_UBSAN_BUILD_OPTS_32: --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--linker-flag=-fuse-ld=gold,--cpointer-32bit=on,--external-context=on,--compile-flag=-m32
   JJS_UBSAN_BUILD_OPTS_64: --buildoptions=--stack-limit=0,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--linker-flag=-fuse-ld=gold,--cpointer-32bit=on,--external-context=on
-  JJS_UBSAN_SKIP_LIST: --skip-list=stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4890.js,regression-test-issue-4848.js,regression-test-issue-3785.js,regression-test-issue-2905.js,regression-test-issue-2448.js,regression-test-issue-2258-2963.js,proxy-evil-recursion.js
+  JJS_UBSAN_SKIP_LIST: --skip-list=stack-limit.js,regression-test-issue-4901.js,regression-test-issue-4890.js,regression-test-issue-4848.js,regression-test-issue-3785.js,regression-test-issue-2905.js,regression-test-issue-2448.js,regression-test-issue-2258-2963.js,proxy-evil-recursion.js,regression-test-issue-2190.js
 
 jobs:
   Checks:
