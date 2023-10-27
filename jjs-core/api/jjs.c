@@ -1850,6 +1850,9 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
       return IS_FEATURE_ENABLED (JJS_COMMONJS);
     case JJS_FEATURE_PMAP:
       return IS_FEATURE_ENABLED (JJS_PMAP);
+    case JJS_FEATURE_PROMISE:
+    case JJS_FEATURE_SYMBOL:
+      return true;
     default:
       JJS_ASSERT (false);
       return false;
