@@ -26,7 +26,7 @@
  *  1: Enable the given built-in.
  */
 /*
- * By default all built-ins are enabled if they are not defined.
+ * By default, all built-ins are enabled if they are not defined.
  */
 #ifndef JJS_BUILTINS
 #define JJS_BUILTINS 1
@@ -120,16 +120,23 @@
 #define JJS_MODULE_SYSTEM JJS_BUILTINS
 #endif /* !defined (JJS_MODULE_SYSTEM) */
 
+/*
+ * By default, all annex built-ins are enabled if they are not defined.
+ */
+#ifndef JJS_ANNEX
+#define JJS_ANNEX 1
+#endif /* !defined (JJS_ANNEX) */
+
 #ifndef JJS_QUEUE_MICROTASK
-#define JJS_QUEUE_MICROTASK 1
+#define JJS_QUEUE_MICROTASK JJS_ANNEX
 #endif /* !defined (JJS_QUEUE_MICROTASK) */
 
 #ifndef JJS_COMMONJS
-#define JJS_COMMONJS 1
+#define JJS_COMMONJS JJS_ANNEX
 #endif /* !defined (JJS_COMMONJS) */
 
 #ifndef JJS_PMAP
-#define JJS_PMAP 1
+#define JJS_PMAP JJS_ANNEX
 #endif /* !defined (JJS_PMAP) */
 
 /**
@@ -579,6 +586,15 @@
 #if (JJS_MODULE_SYSTEM != 0) && (JJS_MODULE_SYSTEM != 1)
 #error "Invalid value for JJS_MODULE_SYSTEM macro."
 #endif /* (JJS_MODULE_SYSTEM != 0) && (JJS_MODULE_SYSTEM != 1) */
+#if (JJS_QUEUE_MICROTASK != 0) && (JJS_QUEUE_MICROTASK != 1)
+#error "Invalid value for JJS_QUEUE_MICROTASK macro."
+#endif /* (JJS_QUEUE_MICROTASK != 0) && (JJS_QUEUE_MICROTASK != 1) */
+#if (JJS_COMMONJS != 0) && (JJS_COMMONJS != 1)
+#error "Invalid value for JJS_COMMONJS macro."
+#endif /* (JJS_COMMONJS != 0) && (JJS_COMMONJS != 1) */
+#if (JJS_PMAP != 0) && (JJS_PMAP != 1)
+#error "Invalid value for JJS_PMAP macro."
+#endif /* (JJS_PMAP != 0) && (JJS_PMAP != 1) */
 #if (JJS_BUILTIN_TYPEDARRAY == 0) && (JJS_BUILTIN_SHAREDARRAYBUFFER == 1)
 #error "JJS_BUILTIN_TYPEDARRAY should be enabled too to enable JJS_BUILTIN_SHAREDARRAYBUFFER macro."
 #endif /* (JJS_BUILTIN_TYPEDARRAY == 0) && (JJS_BUILTIN_SHAREDARRAYBUFFER == 1) */

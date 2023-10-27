@@ -116,13 +116,11 @@ typedef enum
   JJS_FEATURE_VM_EXEC_STOP, /**< stopping ECMAScript execution */
   JJS_FEATURE_VM_THROW, /**< capturing ECMAScript throws */
   JJS_FEATURE_JSON, /**< JSON support */
-  JJS_FEATURE_PROMISE, /**< promise support */
   JJS_FEATURE_TYPEDARRAY, /**< Typedarray support */
   JJS_FEATURE_DATE, /**< Date support */
   JJS_FEATURE_REGEXP, /**< Regexp support */
   JJS_FEATURE_LINE_INFO, /**< line info available */
   JJS_FEATURE_LOGGING, /**< logging */
-  JJS_FEATURE_SYMBOL, /**< symbol support */
   JJS_FEATURE_DATAVIEW, /**< DataView support */
   JJS_FEATURE_PROXY, /**< Proxy support */
   JJS_FEATURE_MAP, /**< Map support */
@@ -137,6 +135,8 @@ typedef enum
   JJS_FEATURE_WEAKREF, /**< WeakRef support */
   JJS_FEATURE_FUNCTION_TO_STRING, /**< function toString support */
   JJS_FEATURE_QUEUE_MICROTASK, /**< queueMicrotask support */
+  JJS_FEATURE_COMMONJS, /**< CommonJS module support */
+  JJS_FEATURE_PMAP, /**< Package Map support */
   JJS_FEATURE__COUNT /**< number of features. NOTE: must be at the end of the list */
 } jjs_feature_t;
 

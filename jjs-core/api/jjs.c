@@ -1783,98 +1783,78 @@ jjs_iterator_type (const jjs_value_t value) /**< input value to check */
 bool
 jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
 {
-  JJS_ASSERT (feature < JJS_FEATURE__COUNT);
-
-  return (false
-#if JJS_CPOINTER_32_BIT
-          || feature == JJS_FEATURE_CPOINTER_32_BIT
-#endif /* JJS_CPOINTER_32_BIT */
-#if JJS_ERROR_MESSAGES
-          || feature == JJS_FEATURE_ERROR_MESSAGES
-#endif /* JJS_ERROR_MESSAGES */
-#if JJS_PARSER
-          || feature == JJS_FEATURE_JS_PARSER
-#endif /* JJS_PARSER */
-#if JJS_MEM_STATS
-          || feature == JJS_FEATURE_HEAP_STATS
-#endif /* JJS_MEM_STATS */
-#if JJS_PARSER_DUMP_BYTE_CODE
-          || feature == JJS_FEATURE_PARSER_DUMP
-#endif /* JJS_PARSER_DUMP_BYTE_CODE */
-#if JJS_REGEXP_DUMP_BYTE_CODE
-          || feature == JJS_FEATURE_REGEXP_DUMP
-#endif /* JJS_REGEXP_DUMP_BYTE_CODE */
-#if JJS_SNAPSHOT_SAVE
-          || feature == JJS_FEATURE_SNAPSHOT_SAVE
-#endif /* JJS_SNAPSHOT_SAVE */
-#if JJS_SNAPSHOT_EXEC
-          || feature == JJS_FEATURE_SNAPSHOT_EXEC
-#endif /* JJS_SNAPSHOT_EXEC */
-#if JJS_DEBUGGER
-          || feature == JJS_FEATURE_DEBUGGER
-#endif /* JJS_DEBUGGER */
-#if JJS_VM_HALT
-          || feature == JJS_FEATURE_VM_EXEC_STOP
-#endif /* JJS_VM_HALT */
-#if JJS_VM_THROW
-          || feature == JJS_FEATURE_VM_THROW
-#endif /* JJS_VM_THROW */
-#if JJS_BUILTIN_JSON
-          || feature == JJS_FEATURE_JSON
-#endif /* JJS_BUILTIN_JSON */
-#if JJS_BUILTIN_TYPEDARRAY
-          || feature == JJS_FEATURE_TYPEDARRAY
-#endif /* JJS_BUILTIN_TYPEDARRAY */
-#if JJS_BUILTIN_DATAVIEW
-          || feature == JJS_FEATURE_DATAVIEW
-#endif /* JJS_BUILTIN_DATAVIEW */
-#if JJS_BUILTIN_PROXY
-          || feature == JJS_FEATURE_PROXY
-#endif /* JJS_BUILTIN_PROXY */
-#if JJS_BUILTIN_DATE
-          || feature == JJS_FEATURE_DATE
-#endif /* JJS_BUILTIN_DATE */
-#if JJS_BUILTIN_REGEXP
-          || feature == JJS_FEATURE_REGEXP
-#endif /* JJS_BUILTIN_REGEXP */
-#if JJS_LINE_INFO
-          || feature == JJS_FEATURE_LINE_INFO
-#endif /* JJS_LINE_INFO */
-#if JJS_LOGGING
-          || feature == JJS_FEATURE_LOGGING
-#endif /* JJS_LOGGING */
-#if JJS_BUILTIN_GLOBAL_THIS
-          || feature == JJS_FEATURE_GLOBAL_THIS
-#endif /* JJS_BUILTIN_GLOBAL_THIS */
-#if JJS_BUILTIN_CONTAINER
-          || feature == JJS_FEATURE_MAP || feature == JJS_FEATURE_SET || feature == JJS_FEATURE_WEAKMAP
-          || feature == JJS_FEATURE_WEAKSET
-#endif /* JJS_BUILTIN_CONTAINER */
-#if JJS_BUILTIN_WEAKREF
-          || feature == JJS_FEATURE_WEAKREF
-#endif /* JJS_BUILTIN_WEAKREF */
-#if JJS_BUILTIN_BIGINT
-          || feature == JJS_FEATURE_BIGINT
-#endif /* JJS_BUILTIN_BIGINT */
-#if JJS_BUILTIN_REALMS
-          || feature == JJS_FEATURE_REALM
-#endif /* JJS_BUILTIN_REALMS */
-#if JJS_PROMISE_CALLBACK
-          || feature == JJS_FEATURE_PROMISE_CALLBACK
-#endif /* JJS_PROMISE_CALLBACK */
-#if JJS_MODULE_SYSTEM
-          || feature == JJS_FEATURE_MODULE
-#endif /* JJS_MODULE_SYSTEM */
-#if JJS_FUNCTION_TO_STRING
-          || feature == JJS_FEATURE_FUNCTION_TO_STRING
-#endif /* JJS_FUNCTION_TO_STRING */
-#if JJS_QUEUE_MICROTASK
-          || feature == JJS_FEATURE_QUEUE_MICROTASK
-#endif /* JJS_QUEUE_MICROTASK */
-#if JJS_COMMONJS
-          || feature == JJS_COMMONJS
-#endif /* JJS_COMMONJS */
-  );
+  // note: each feature define is statically checked to be 0 or 1 in jjs-config.h
+#define IS_FEATURE_ENABLED(F) ((F) != 0)
+  switch (feature)
+  {
+    case JJS_FEATURE_CPOINTER_32_BIT:
+      return IS_FEATURE_ENABLED (JJS_CPOINTER_32_BIT);
+    case JJS_FEATURE_ERROR_MESSAGES:
+      return IS_FEATURE_ENABLED (JJS_ERROR_MESSAGES);
+    case JJS_FEATURE_JS_PARSER:
+      return IS_FEATURE_ENABLED (JJS_PARSER);
+    case JJS_FEATURE_HEAP_STATS:
+      return IS_FEATURE_ENABLED (JJS_MEM_STATS);
+    case JJS_FEATURE_PARSER_DUMP:
+      return IS_FEATURE_ENABLED (JJS_PARSER_DUMP_BYTE_CODE);
+    case JJS_FEATURE_REGEXP_DUMP:
+      return IS_FEATURE_ENABLED (JJS_REGEXP_DUMP_BYTE_CODE);
+    case JJS_FEATURE_SNAPSHOT_SAVE:
+      return IS_FEATURE_ENABLED (JJS_SNAPSHOT_SAVE);
+    case JJS_FEATURE_SNAPSHOT_EXEC:
+      return IS_FEATURE_ENABLED (JJS_SNAPSHOT_EXEC);
+    case JJS_FEATURE_DEBUGGER:
+      return IS_FEATURE_ENABLED (JJS_DEBUGGER);
+    case JJS_FEATURE_VM_EXEC_STOP:
+      return IS_FEATURE_ENABLED (JJS_VM_HALT);
+    case JJS_FEATURE_VM_THROW:
+      return IS_FEATURE_ENABLED (JJS_VM_THROW);
+    case JJS_FEATURE_JSON:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_JSON);
+    case JJS_FEATURE_TYPEDARRAY:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_TYPEDARRAY);
+    case JJS_FEATURE_DATAVIEW:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_DATAVIEW);
+    case JJS_FEATURE_PROXY:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_PROXY);
+    case JJS_FEATURE_DATE:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_DATE);
+    case JJS_FEATURE_REGEXP:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_REGEXP);
+    case JJS_FEATURE_LINE_INFO:
+      return IS_FEATURE_ENABLED (JJS_LINE_INFO);
+    case JJS_FEATURE_LOGGING:
+      return IS_FEATURE_ENABLED (JJS_LOGGING);
+    case JJS_FEATURE_GLOBAL_THIS:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_GLOBAL_THIS);
+    case JJS_FEATURE_MAP:
+    case JJS_FEATURE_SET:
+    case JJS_FEATURE_WEAKMAP:
+    case JJS_FEATURE_WEAKSET:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_CONTAINER);
+    case JJS_FEATURE_WEAKREF:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_WEAKREF);
+    case JJS_FEATURE_BIGINT:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_BIGINT);
+    case JJS_FEATURE_REALM:
+      return IS_FEATURE_ENABLED (JJS_BUILTIN_REALMS);
+    case JJS_FEATURE_PROMISE_CALLBACK:
+      return IS_FEATURE_ENABLED (JJS_PROMISE_CALLBACK);
+    case JJS_FEATURE_MODULE:
+      return IS_FEATURE_ENABLED (JJS_MODULE_SYSTEM);
+    case JJS_FEATURE_FUNCTION_TO_STRING:
+      return IS_FEATURE_ENABLED (JJS_FUNCTION_TO_STRING);
+    case JJS_FEATURE_QUEUE_MICROTASK:
+      return IS_FEATURE_ENABLED (JJS_QUEUE_MICROTASK);
+    case JJS_FEATURE_COMMONJS:
+      return IS_FEATURE_ENABLED (JJS_COMMONJS);
+    case JJS_FEATURE_PMAP:
+      return IS_FEATURE_ENABLED (JJS_PMAP);
+    default:
+      JJS_ASSERT (false);
+      return false;
+  }
+#undef IS_FEATURE_ENABLED
 } /* jjs_feature_enabled */
 
 /**
