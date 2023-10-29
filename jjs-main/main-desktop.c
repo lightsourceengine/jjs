@@ -29,7 +29,7 @@
 #include "jjs-ext/repl.h"
 #include "jjs-ext/sources.h"
 #include "jjs-ext/test262.h"
-#include "main-module.h"
+#include "main-desktop-lib.h"
 
 /**
  * Initialize random seed

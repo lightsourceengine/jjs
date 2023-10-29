@@ -13,12 +13,13 @@
  * limitations under the License.
  */
 
-#include "main-module.h"
+#include "main-desktop-lib.h"
 
-#include "jjs-port.h"
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+
+#include "jjs-port.h"
 
 #ifdef _WIN32
 #define platform_is_path_separator(c) ((c) == '/' || (c) == '\\')
@@ -341,6 +342,7 @@ main_register_jjs_test_object (void)
 {
   jjs_value_t global = jjs_current_realm ();
   jjs_value_t jjs = jjs_object ();
+  jjs_value_t jjs_key = jjs_string_utf8_sz ("$jjs");
   jjs_property_descriptor_t desc = {
     .flags = JJS_PROP_IS_CONFIGURABLE
              | JJS_PROP_IS_WRITABLE
@@ -350,25 +352,15 @@ main_register_jjs_test_object (void)
     .value = jjs,
   };
 
-  jjs_value_t jjs_key = jjs_string_utf8_sz ("$jjs");
-
   jjs_value_free (jjs_object_define_own_prop (global, jjs_key, &desc));
   jjs_value_free (jjs_key);
 
-  jjs_value_t pmap = jjs_object ();
+  object_set_handler_sz (jjs, "jjs_pmap_from_file", pmap_from_file_handler);
+  object_set_handler_sz (jjs, "jjs_pmap_from_json", pmap_from_json_handler);
+  object_set_handler_sz (jjs, "jjs_pmap_resolve", pmap_resolve_handler);
+  object_set_handler_sz (jjs, "jjs_esm_evaluate", esm_evaluate_handler);
+  object_set_handler_sz (jjs, "jjs_esm_import", esm_import_handler);
 
-  object_set_handler_sz (pmap, "fromFile", pmap_from_file_handler);
-  object_set_handler_sz (pmap, "fromJSON", pmap_from_json_handler);
-  object_set_handler_sz (pmap, "resolve", pmap_resolve_handler);
-  object_set_sz (jjs, "pmap", pmap);
-
-  jjs_value_t esm = jjs_object ();
-  object_set_handler_sz (esm, "evaluate", esm_evaluate_handler);
-  object_set_handler_sz (esm, "import", esm_import_handler);
-  object_set_sz (jjs, "esm", esm);
-
-  jjs_value_free (pmap);
-  jjs_value_free (esm);
   jjs_value_free (global);
   jjs_value_free (jjs);
 } /* main_register_jjs_test_object */

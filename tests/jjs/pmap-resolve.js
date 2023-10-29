@@ -15,7 +15,9 @@
 
 const { assertThrows } = require('./lib/assert.js');
 const { test, runAllTests } = require('./lib/test.cjs');
-const { fromJSON, resolve } = $jjs.pmap;
+
+const fromJSON = $jjs.jjs_pmap_from_json;
+const resolve = $jjs.jjs_pmap_resolve;
 
 test('should resolve "pkg" with package main shorthand', () => {
   pmap({

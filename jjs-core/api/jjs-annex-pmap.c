@@ -120,24 +120,17 @@ jjs_pmap_from_file_sz (const char* filename_sz)
 {
   jjs_assert_api_enabled ();
 #if JJS_PMAP
-  if (filename_sz == NULL)
-  {
-    filename_sz = "";
-  }
+  jjs_value_t filename = annex_util_create_string_utf8_sz (filename_sz);
 
-  jjs_value_t filename = jjs_string((const jjs_char_t*)filename_sz,
-                                     (jjs_size_t)strlen(filename_sz),
-                                     JJS_ENCODING_UTF8);
-
-  if (jjs_value_is_exception(filename))
+  if (jjs_value_is_exception (filename))
   {
-    jjs_value_free(filename);
+    jjs_value_free (filename);
     filename = ECMA_VALUE_UNDEFINED;
   }
 
-  jjs_value_t result = jjs_pmap_from_file(filename);
+  jjs_value_t result = jjs_pmap_from_file (filename);
 
-  jjs_value_free(filename);
+  jjs_value_free (filename);
 
   return result;
 #else /* !JJS_PMAP */
@@ -233,14 +226,7 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t mod
 {
   jjs_assert_api_enabled ();
 #if JJS_PMAP
-  if (specifier_sz == NULL)
-  {
-    specifier_sz = "";
-  }
-
-  jjs_value_t specifier = jjs_string ((const jjs_char_t*) specifier_sz,
-                                      (jjs_size_t) strlen (specifier_sz),
-                                      JJS_ENCODING_UTF8);
+  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_sz);
 
   if (jjs_value_is_exception (specifier))
   {

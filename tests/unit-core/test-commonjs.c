@@ -18,13 +18,61 @@
 #include "config.h"
 #include "test-common.h"
 
+#define TRY_JJS_COMMONJS_REQUIRE(VALUE)                \
+  do                                                   \
+  {                                                    \
+    jjs_value_t value = VALUE;                         \
+    jjs_value_t result = jjs_commonjs_require (value); \
+    TEST_ASSERT (jjs_value_is_exception (result));     \
+    jjs_value_free (result);                           \
+    jjs_value_free (value);                            \
+  } while (0)
+
+static void
+test_invalid_jjs_commonjs_require_arg (void)
+{
+  TRY_JJS_COMMONJS_REQUIRE (jjs_null ());
+  TRY_JJS_COMMONJS_REQUIRE (jjs_undefined ());
+  TRY_JJS_COMMONJS_REQUIRE (jjs_number (0));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_boolean (true));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_object ());
+  TRY_JJS_COMMONJS_REQUIRE (jjs_array (0));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+}
+
+#define TRY_JJS_COMMONJS_REQUIRE_SZ(VALUE)                \
+  do                                                      \
+  {                                                       \
+    jjs_value_t result = jjs_commonjs_require_sz (VALUE); \
+    TEST_ASSERT (jjs_value_is_exception (result));        \
+    jjs_value_free (result);                              \
+  } while (0)
+
+static void
+test_invalid_jjs_commonjs_require_sz_arg (void)
+{
+  TRY_JJS_COMMONJS_REQUIRE_SZ (NULL);
+  TRY_JJS_COMMONJS_REQUIRE_SZ ("");
+  TRY_JJS_COMMONJS_REQUIRE_SZ ("unknown");
+  TRY_JJS_COMMONJS_REQUIRE_SZ ("./unknown");
+  TRY_JJS_COMMONJS_REQUIRE_SZ ("../unknown");
+  TRY_JJS_COMMONJS_REQUIRE_SZ ("/unknown");
+}
+
 int
 main (void)
 {
- TEST_INIT ();
+  TEST_INIT ();
 
- jjs_init (JJS_INIT_EMPTY);
+  jjs_init (JJS_INIT_EMPTY);
 
- jjs_cleanup ();
- return 0;
+  // note: it is slightly difficult to test filesystem operations
+  //       from these unit tests. mostly negative tests are done here.
+  //       positive tests are done in js tests.
+
+  test_invalid_jjs_commonjs_require_arg ();
+  test_invalid_jjs_commonjs_require_sz_arg ();
+
+  jjs_cleanup ();
+  return 0;
 } /* main */

@@ -140,6 +140,12 @@ ecma_string_to_cstr (ecma_value_t value)
   {
     ecma_string_t* string_p = ecma_get_string_from_value (value);
     lit_utf8_size_t size = ecma_string_get_size (string_p);
+
+    if (size == 0)
+    {
+      return cstr;
+    }
+
     lit_utf8_byte_t* buffer_p = (lit_utf8_byte_t*)jmem_heap_alloc_block_null_on_error (size + 1);
 
     if (buffer_p == NULL)
@@ -238,3 +244,21 @@ ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key)
   return ecma_is_value_found (value);
 } /* ecma_has_own_m */
 
+/**
+ * Create a JS string from a UTF-8 encoded, null-terminated string.
+ *
+ * @param str_p cstring value. if NULL or empty, an empty string will be returned.
+ * @return JS string. caller must free with ecma_free_value.
+ */
+jjs_value_t
+annex_util_create_string_utf8_sz (const char* str_p)
+{
+  if (str_p == NULL || *str_p == '\0')
+  {
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
+  }
+
+  return jjs_string( (const jjs_char_t*) str_p,
+                     (jjs_size_t) strlen (str_p),
+                     JJS_ENCODING_UTF8);
+} /* annex_util_create_string_utf8_sz */

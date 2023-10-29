@@ -59,5 +59,6 @@ void annex_util_define_function (ecma_object_t* global_p,
 void annex_util_define_value (ecma_object_t* global_p,
                               lit_magic_string_id_t name_id,
                               ecma_value_t value);
+jjs_value_t annex_util_create_string_utf8_sz (const char* str_p);
 
 #endif /* !ANNEX_H */

@@ -63,7 +63,7 @@ endif()
 
 # JJS standalones
 if(JJS_CMDLINE)
-  jjs_create_executable("jjs" "main-desktop.c" "arguments/options.c" "arguments/cli.c" "main-module.c")
+  jjs_create_executable("jjs" "main-desktop.c" "arguments/options.c" "arguments/cli.c" "main-desktop-lib.c")
   if(USING_GCC)
     # patch to make module stuff work in the commandline tool
     target_compile_options("jjs" PUBLIC "--std=gnu99")

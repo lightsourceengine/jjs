@@ -428,6 +428,20 @@ jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t*
 #endif /* JJS_MODULE_SYSTEM || JJS_COMMONJS */
 } /* jjs_module_default_resolve */
 
+/**
+ * Import an ES module.
+ *
+ * The specifier can be a package name, relative path (qualified with
+ * ./ or ../) or absolute path. Package names are resolved by the currently
+ * set pmap.
+ *
+ * Note: This import call is synchronous, which is not to the ECMA spec. In the
+ *       future, this method may be changed to be asynchronous or deprecated.
+ *
+ * @param specifier string value of the specifier
+ * @return the namespace object of the module. on error, an exception is
+ * returned. return value must be freed with jjs_value_free.
+ */
 jjs_value_t
 jjs_esm_import (jjs_value_t specifier)
 {
@@ -460,11 +474,20 @@ jjs_esm_import (jjs_value_t specifier)
 #endif
 } /* jjs_esm_import */
 
+/**
+ * Import an ES module.
+ *
+ * @see jjs_esm_import
+ *
+ * @param specifier_sz string value of the specifier. if NULL, an empty string is used.
+ * @return the namespace object of the module. on error, an exception is returned. return
+ * value must be freed with jjs_value_free.
+ */
 jjs_value_t jjs_esm_import_sz (const char* specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_value_t specifier = jjs_string_sz (specifier_p);
+  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_p);
   jjs_value_t result = jjs_esm_import (specifier);
 
   jjs_value_free (specifier);
@@ -476,6 +499,27 @@ jjs_value_t jjs_esm_import_sz (const char* specifier_p)
 #endif
 } /* jjs_esm_import_sz */
 
+/**
+ * Evaluate an ES module.
+ *
+ * Imports a module, but instead of returning the namespace object, it returns
+ * the evaluation result of the module itself. This should not be generally
+ * used. It exists to support the cmd line program use case.
+ *
+ * The specifier can be a package name, relative path (qualified with
+ * ./ or ../) or absolute path. Package names are resolved by the currently
+ * set pmap.
+ *
+ * Note: This import call is synchronous, which is not to the ECMA spec. In the
+ *       future, this method may be changed to be asynchronous or deprecated.
+ *
+ * Note: This method will not work with cached modules. A module can only be
+ *       evaluated once!
+ *
+ * @param specifier string value of the specifier
+ * @return the evaluation result of the module. on error, an exception is
+ * returned. return value must be freed with jjs_value_free.
+ */
 jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
 {
   jjs_assert_api_enabled ();
@@ -518,11 +562,20 @@ jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
 #endif
 } /* jjs_esm_evaluate */
 
+/**
+ * Evaluate an ES module.
+ *
+ * @see jjs_esm_evaluate
+ *
+ * @param specifier string value of the specifier. if NULL, an empty string is used.
+ * @return the evaluation result of the module. on error, an exception is returned. return
+ * value must be freed with jjs_value_free.
+ */
 jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_value_t specifier = jjs_string_sz (specifier_p);
+  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_p);
   jjs_value_t result = jjs_esm_evaluate (specifier);
 
   jjs_value_free (specifier);
@@ -534,6 +587,17 @@ jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p)
 #endif
 } /* jjs_esm_evaluate_sz */
 
+/**
+ * Import a CommonJS module.
+ *
+ * The specifier can be a package name, relative path (qualified with
+ * ./ or ../) or absolute path. Package names are resolved by the currently
+ * set pmap.
+ *
+ * @param specifier string value of the specifier
+ * @return module export object. on error, an exception is returned. return
+ * value must be freed with jjs_value_free.
+ */
 jjs_value_t
 jjs_commonjs_require (jjs_value_t specifier)
 {
@@ -551,11 +615,20 @@ jjs_commonjs_require (jjs_value_t specifier)
 #endif
 } /* jjs_commonjs_require */
 
+/**
+ * Import a CommonJS module.
+ *
+ * @see jjs_commonjs_require
+ *
+ * @param specifier string value of the specifier
+ * @return module export object. on error, an exception is returned. return
+ * value must be freed with jjs_value_free.
+ */
 jjs_value_t jjs_commonjs_require_sz (const char* specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_COMMONJS
-  jjs_value_t specifier = jjs_string_sz (specifier_p);
+  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_p);
   jjs_value_t result = jjs_commonjs_require (specifier);
 
   jjs_value_free (specifier);
@@ -578,7 +651,7 @@ jjs_module_default_import (jjs_value_t specifier, jjs_value_t user_value, void *
   if (!jjs_value_is_string (referrer_path))
   {
     jjs_value_free (referrer_path);
-    return jjs_throw_sz(JJS_ERROR_COMMON, "Failed to get referrer path from user_value");
+    return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get referrer path from user_value");
   }
 
   jjs_value_t module = esm_import (specifier, referrer_path);

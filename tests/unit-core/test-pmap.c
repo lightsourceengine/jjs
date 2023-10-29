@@ -186,6 +186,104 @@ test_invalid_root_arg (void)
   TRY_INVALID_ROOT_ARG (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
 }
 
+#define TRY_JJS_PMAP_FROM_FILE_SZ(VALUE)                \
+  do                                                    \
+  {                                                     \
+    jjs_value_t result = jjs_pmap_from_file_sz (VALUE); \
+    TEST_ASSERT (jjs_value_is_exception (result));      \
+    jjs_value_free (result);                            \
+  } while (0)
+
+static void
+test_invalid_pmap_from_file_sz_arg (void)
+{
+  TRY_JJS_PMAP_FROM_FILE_SZ (NULL);
+  TRY_JJS_PMAP_FROM_FILE_SZ ("");
+  TRY_JJS_PMAP_FROM_FILE_SZ ("unknown");
+  TRY_JJS_PMAP_FROM_FILE_SZ ("./unknown");
+  TRY_JJS_PMAP_FROM_FILE_SZ ("../unknown");
+  TRY_JJS_PMAP_FROM_FILE_SZ ("/unknown");
+}
+
+#define TRY_JJS_PMAP_FROM_FILE(VALUE)                   \
+  do                                                    \
+  {                                                     \
+    jjs_value_t value = VALUE;                          \
+    jjs_value_t result = jjs_pmap_from_file (value);    \
+    TEST_ASSERT (jjs_value_is_exception (result));      \
+    jjs_value_free (result);                            \
+    jjs_value_free (value);                             \
+  } while (0)
+
+static void
+test_invalid_pmap_from_file_arg (void)
+{
+  TRY_JJS_PMAP_FROM_FILE (jjs_null ());
+  TRY_JJS_PMAP_FROM_FILE (jjs_undefined ());
+  TRY_JJS_PMAP_FROM_FILE (jjs_number (0));
+  TRY_JJS_PMAP_FROM_FILE (jjs_boolean (true));
+  TRY_JJS_PMAP_FROM_FILE (jjs_object ());
+  TRY_JJS_PMAP_FROM_FILE (jjs_array (0));
+  TRY_JJS_PMAP_FROM_FILE (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+}
+
+#define TRY_JJS_PMAP_RESOLVE(VALUE)                                 \
+  do                                                                \
+  {                                                                 \
+    jjs_value_t value = VALUE;                                      \
+    jjs_module_type_t types[] = {                                   \
+      JJS_MODULE_TYPE_NONE,                                         \
+      JJS_MODULE_TYPE_MODULE,                                       \
+      JJS_MODULE_TYPE_COMMONJS,                                     \
+    };                                                              \
+    for (size_t i = 0; i < sizeof (types) / sizeof (types[0]); i++) \
+    {                                                               \
+      jjs_value_t result = jjs_pmap_resolve (value, types[i]);      \
+      TEST_ASSERT (jjs_value_is_exception (result));                \
+      jjs_value_free (result);                                      \
+    }                                                               \
+    jjs_value_free (value);                                         \
+  } while (0)
+
+static void
+test_invalid_jjs_pmap_resolve_arg (void)
+{
+  TRY_JJS_PMAP_RESOLVE (jjs_null ());
+  TRY_JJS_PMAP_RESOLVE (jjs_undefined ());
+  TRY_JJS_PMAP_RESOLVE (jjs_number (0));
+  TRY_JJS_PMAP_RESOLVE (jjs_boolean (true));
+  TRY_JJS_PMAP_RESOLVE (jjs_object ());
+  TRY_JJS_PMAP_RESOLVE (jjs_array (0));
+  TRY_JJS_PMAP_RESOLVE (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+}
+
+#define TRY_JJS_PMAP_RESOLVE_SZ(VALUE)                              \
+  do                                                                \
+  {                                                                 \
+    jjs_module_type_t types[] = {                                   \
+      JJS_MODULE_TYPE_NONE,                                         \
+      JJS_MODULE_TYPE_MODULE,                                       \
+      JJS_MODULE_TYPE_COMMONJS,                                     \
+    };                                                              \
+    for (size_t i = 0; i < sizeof (types) / sizeof (types[0]); i++) \
+    {                                                               \
+      jjs_value_t result = jjs_pmap_resolve_sz (VALUE, types[i]);   \
+      TEST_ASSERT (jjs_value_is_exception (result));                \
+      jjs_value_free (result);                                      \
+    }                                                               \
+  } while (0)
+
+static void
+test_invalid_jjs_pmap_resolve_sz_arg (void)
+{
+  TRY_JJS_PMAP_RESOLVE_SZ(NULL);
+  TRY_JJS_PMAP_RESOLVE_SZ("");
+  TRY_JJS_PMAP_RESOLVE_SZ("unknown");
+  TRY_JJS_PMAP_RESOLVE_SZ("./unknown");
+  TRY_JJS_PMAP_RESOLVE_SZ("../unknown");
+  TRY_JJS_PMAP_RESOLVE_SZ("/unknown");
+}
+
 int
 main (void)
 {
@@ -193,10 +291,18 @@ main (void)
 
  jjs_init (JJS_INIT_EMPTY);
 
+ // note: it is slightly difficult to test filesystem operations
+ //       from these unit tests. mostly negative tests are done here.
+ //       positive tests are done in js tests.
+
  test_valid_pmap ();
  test_invalid_pmap ();
  test_invalid_json_arg ();
  test_invalid_root_arg ();
+ test_invalid_pmap_from_file_arg ();
+ test_invalid_pmap_from_file_sz_arg ();
+ test_invalid_jjs_pmap_resolve_arg ();
+ test_invalid_jjs_pmap_resolve_sz_arg ();
 
  jjs_cleanup ();
  return 0;
