@@ -1201,8 +1201,12 @@ void jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object
  * @{
  */
 
-jjs_value_t jjs_pmap (jjs_value_t filename);
+jjs_value_t jjs_pmap_from_file (jjs_value_t filename);
+jjs_value_t jjs_pmap_from_file_sz (const char* filename_sz);
 jjs_value_t jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root);
+
+jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type);
+jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t module_type);
 
 /**
  * jjs-pmap-ops @}

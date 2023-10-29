@@ -45,12 +45,14 @@ jjs_port_path_normalize (const jjs_char_t *path_p, /**< input path */
   return NULL;
 } /* jjs_port_path_normalize */
 
-jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p)
+/**
+ * dirname
+ */
+jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_p)
 {
   if (path_p == NULL || *path_p == '\0')
   {
-    char* p = ".";
-    return (jjs_char_t *) strcpy (malloc (strlen (p) + 1), p);
+    return (jjs_char_t *) _strdup(".");
   }
 
   char drive[_MAX_DRIVE];

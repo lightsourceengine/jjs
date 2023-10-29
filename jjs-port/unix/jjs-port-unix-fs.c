@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libgen.h>
+#include <stdio.h>
+#include <sys/syslimits.h>
 
 /**
  * Normalize a file path using realpath.
@@ -39,24 +41,46 @@ jjs_port_path_normalize (const jjs_char_t *path_p, /**< input path */
   return (jjs_char_t *) realpath ((char *) path_p, NULL);
 } /* jjs_port_path_normalize */
 
-jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p)
+static char* string_copy (const char* str, size_t count)
 {
-  char* p;
+  char* dest = memcpy(malloc(count + 1), str, count);
 
-  if (path_p == NULL || *path_p == '\0') {
-    p = ".";
-  } else {
-    p = dirname (path_p);
+  dest[count] = '\0';
+
+  return dest;
+} /* string_copy */
+
+/**
+ * dirname
+ */
+jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_p)
+{
+  if (path_p == NULL || *path_p == '\0')
+  {
+    return (jjs_char_t *) string_copy(".", 1);
   }
 
-  size_t len = strlen (p);
+  // copy the buffer to satisfy dirname's requirement for a non-const path.
+  char* p;
+  char buffer[PATH_MAX + 1];
+  int len = snprintf(buffer, sizeof(buffer), "%s", path_p);
+
+  if (len <= 0)
+  {
+    return (jjs_char_t *) string_copy(".", 1);
+  }
+
+  // get the dirname
+  p = dirname (buffer);
+  size_t p_len = strlen (p);
 
   if (dirname_size_p)
   {
-    *dirname_size_p = (jjs_size_t) len;
+    *dirname_size_p = (jjs_size_t) p_len;
   }
 
-  return (jjs_char_t *)strcpy (malloc(len + 1), p);
+  // copy dirname result to the heap (for api and cross-platform consistency)
+  return (jjs_char_t *) string_copy (p, p_len);
 } /* jjs_port_path_dirname */
 
 /**

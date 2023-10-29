@@ -16,6 +16,12 @@
 // test: require function exists
 assert(typeof require === 'function');
 
+// test: require has a resolve function
+assert(typeof require.resolve === 'function');
+
+// test cache exists
+assert('cache' in require);
+
 // test: require function is unique for this module
 assert(require !== globalThis.require);
 

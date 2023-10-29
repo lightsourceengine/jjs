@@ -27,28 +27,38 @@ static jjs_value_t validate_pmap (jjs_value_t pmap);
 static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type);
 static jjs_value_t set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root);
 static ecma_value_t find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type);
+static bool is_object (ecma_value_t value);
+static bool starts_with_dot_slash (ecma_value_t value);
+static jjs_value_t expect_path_like_string (ecma_value_t value);
 #endif /* JJS_PMAP */
 
 /**
  * Load a pmap (Package Map) from a file.
  *
- * The file must exist and be a valid JSON file in the pmap format. The pmap root
- * will be set to the root directory of the pmap file.
+ * The file must exist and be a valid pmap.json file format.
+ *
+ * The dirname of the file will be used as the pmap root. The pmap root
+ * is used when resolving package specifiers with a pmap.
+ *
+ * If a pmap has already been set in the current context, it will be replaced
+ * and cleaned up if and only if the filename can be loaded and the pmap validated.
+ * Otherwise, on error, the current pmap will remain unchanged.
  *
  * @param filename JSON pmap file to load
  * @return on success, true is returned. on failure, an exception is thrown. return
  * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_pmap (jjs_value_t filename)
+jjs_pmap_from_file (jjs_value_t filename)
 {
-#if JJS_PMAP
   jjs_assert_api_enabled ();
+#if JJS_PMAP
   // get filename and dirname
   jjs_value_t normalized = annex_path_normalize (filename);
 
   if (!jjs_value_is_string (normalized))
   {
+    jjs_value_free (normalized);
     return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid filename");
   }
 
@@ -94,7 +104,47 @@ jjs_pmap (jjs_value_t filename)
   JJS_UNUSED (filename);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_PMAP */
-} /* jjs_pmap */
+} /* jjs_pmap_from_file */
+
+/**
+ * Load a pmap (Package Map) from a file.
+ *
+ * @see jjs_pmap_from_file
+ *
+ * @param filename_sz filename as a null-terminated cstring
+ * @return on success, true is returned. on failure, an exception is thrown. return
+ * value must be freed with jjs_value_free.
+ */
+jjs_value_t
+jjs_pmap_from_file_sz (const char* filename_sz)
+{
+  jjs_assert_api_enabled ();
+#if JJS_PMAP
+  if (filename_sz == NULL)
+  {
+    filename_sz = "";
+  }
+
+  jjs_value_t filename = jjs_string((const jjs_char_t*)filename_sz,
+                                     (jjs_size_t)strlen(filename_sz),
+                                     JJS_ENCODING_UTF8);
+
+  if (jjs_value_is_exception(filename))
+  {
+    jjs_value_free(filename);
+    filename = ECMA_VALUE_UNDEFINED;
+  }
+
+  jjs_value_t result = jjs_pmap_from_file(filename);
+
+  jjs_value_free(filename);
+
+  return result;
+#else /* !JJS_PMAP */
+  JJS_UNUSED (filename_sz);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
+#endif /* JJS_PMAP */
+} /* jjs_pmap_from_file_sz */
 
 /**
  * Load a pmap (Package Map) from a JSON string.
@@ -109,6 +159,7 @@ jjs_pmap (jjs_value_t filename)
 jjs_value_t
 jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
 {
+  jjs_assert_api_enabled ();
 #if JJS_PMAP
   if (!jjs_value_is_string (json_string))
   {
@@ -130,6 +181,84 @@ jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_PMAP */
 } /* jjs_pmap_from_json */
+
+/**
+ * Resolve the absolute filename of a package specifier against the
+ * currently set pmap and a module system.
+ *
+ * The specifier must be for a package. Filename specifiers (relative or
+ * absolute) will throw an exception.
+ *
+ * The resolved file must exist on the filesystem. If it does not, an
+ * exception will be thrown.
+ *
+ * If the package is not matched in the pmap, an exception will be thrown.
+ *
+ * If the pmap or pmap_root is not set, an exception will be thrown.
+ *
+ * If module_type is JJS_MODULE_TYPE_NONE, resolution via commonjs or
+ * module systems will be excluded. Resolution will only happen if the
+ * package is a string or the package object contains main or path. For
+ * the nominal use case, a module system should be specified.
+ *
+ * @param specifier package name to resolve
+ * @param module_type the module system to resolve against
+ * @return absolute file path to the module. on error, an exception will be
+ * thrown. return value must be freed with jjs_value_free().
+ */
+jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type)
+{
+  jjs_assert_api_enabled ();
+#if JJS_PMAP
+  return jjs_annex_pmap_resolve (specifier, module_type);
+#else /* !JJS_PMAP */
+  JJS_UNUSED (specifier);
+  JJS_UNUSED (module_type);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
+#endif /* JJS_PMAP */
+} /* jjs_pmap_resolve */
+
+/**
+ * Resolve the absolute filename of a package specifier against the
+ * currently set pmap and a module system.
+ *
+ * @see jjs_pmap_resolve
+ *
+ * @param specifier package name to resolve
+ * @param module_type the module system to resolve against
+ * @return absolute file path to the module. on error, an exception will be
+ * thrown. return value must be freed with jjs_value_free().
+ */
+jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t module_type)
+{
+  jjs_assert_api_enabled ();
+#if JJS_PMAP
+  if (specifier_sz == NULL)
+  {
+    specifier_sz = "";
+  }
+
+  jjs_value_t specifier = jjs_string ((const jjs_char_t*) specifier_sz,
+                                      (jjs_size_t) strlen (specifier_sz),
+                                      JJS_ENCODING_UTF8);
+
+  if (jjs_value_is_exception (specifier))
+  {
+    jjs_value_free (specifier);
+    specifier = ECMA_VALUE_UNDEFINED;
+  }
+
+  jjs_value_t result = jjs_pmap_resolve (specifier, module_type);
+
+  jjs_value_free (specifier);
+
+  return result;
+#else /* !JJS_PMAP */
+  JJS_UNUSED (specifier_sz);
+  JJS_UNUSED (module_type);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
+#endif /* JJS_PMAP */
+} /* jjs_pmap_resolve_sz */
 
 #if JJS_PMAP
 
@@ -248,102 +377,167 @@ static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t ty
 } /* get_path_type */
 
 /**
- * Resolve package_info from a pmap (package map) object
+ * Checks that package_info is a string or an object a main or path property.
  */
-static bool validate_package_info_contents (jjs_value_t package_info,
-                                            lit_magic_string_id_t key,
-                                            bool check_module_type)
+static jjs_value_t validate_path_or_main (ecma_value_t package_info, jjs_value_t key, jjs_module_type_t module_type)
 {
+  JJS_UNUSED(key);
+  JJS_UNUSED(module_type);
   if (ecma_is_value_string (package_info))
   {
-    ecma_free_value (package_info);
-    return true;
-  }
-  else if (!ecma_is_value_object (package_info))
-  {
-    return false;
+    return expect_path_like_string (package_info);
   }
 
-  ecma_value_t value = ecma_find_own_m (package_info, key);
+  jjs_value_t result;
+  ecma_value_t main_value = ecma_find_own_m (package_info, LIT_MAGIC_STRING_MAIN);
+  ecma_value_t path_value = ecma_find_own_m (package_info, LIT_MAGIC_STRING_PATH);
 
-  if (ecma_is_value_string (value))
+  if (main_value == ECMA_VALUE_NOT_FOUND && path_value == ECMA_VALUE_NOT_FOUND)
   {
-    ecma_free_value (value);
-    return true;
+    result = jjs_throw_sz (JJS_ERROR_TYPE, "pmap package_info must have either a main or path property");
+    goto done;
   }
 
-  ecma_free_value (value);
-
-  if (check_module_type)
+  if (main_value != ECMA_VALUE_NOT_FOUND)
   {
-    ecma_value_t module_type = ecma_find_own_m (package_info, LIT_MAGIC_STRING_MODULE);
-    bool result = validate_package_info_contents (module_type, key, false);
-
-    ecma_free_value (module_type);
-
-    if (result)
+    if (!ecma_is_value_string (main_value))
     {
-      return true;
+      result = jjs_throw_sz (JJS_ERROR_TYPE, "pmap package_info main property must be a string");
+      goto done;
     }
 
-    module_type = ecma_find_own_m (package_info, LIT_MAGIC_STRING_COMMONJS);
+    result = expect_path_like_string (main_value);
 
-    ecma_free_value (module_type);
+    if (jjs_value_is_exception (result))
+    {
+      goto done;
+    }
 
-    return validate_package_info_contents (module_type, key, false);
+    jjs_value_free (result);
+    result = ECMA_VALUE_TRUE;
   }
 
-  return false;
-} /* validate_package_info_contents */
+  if (path_value != ECMA_VALUE_NOT_FOUND)
+  {
+    if (!ecma_is_value_string (path_value))
+    {
+      result = jjs_throw_sz (JJS_ERROR_TYPE, "pmap package_info path property must be a string");
+      goto done;
+    }
+
+    result = expect_path_like_string (path_value);
+
+    if (jjs_value_is_exception (result))
+    {
+      goto done;
+    }
+
+    jjs_value_free (result);
+    result = ECMA_VALUE_TRUE;
+  }
+
+done:
+  ecma_free_value (main_value);
+  ecma_free_value (path_value);
+  return result;
+} /* validate_path_or_main */
 
 /**
- * Throw a packages errors.
+ * Validate a module specific package info object.
  */
-static jjs_value_t throw_package_info_error (jjs_value_t key, const char* message)
+static jjs_value_t validate_module_type (ecma_value_t package_info, jjs_value_t key, jjs_module_type_t module_type)
 {
-  char buffer[512];
-  char key_cstr[256];
-  jjs_size_t written = jjs_string_to_buffer (key, JJS_ENCODING_UTF8, (jjs_char_t*) key_cstr, sizeof (key_cstr));
+  // Convert module type to magic string key.
+  lit_magic_string_id_t module_type_key;
 
-  key_cstr[written] = '\0';
-  snprintf (buffer, sizeof (buffer), "pmap packages['%s'] %s", key_cstr, message);
+  switch (module_type)
+  {
+    case JJS_MODULE_TYPE_MODULE:
+    {
+      module_type_key = LIT_MAGIC_STRING_MODULE;
+      break;
+    }
+    case JJS_MODULE_TYPE_COMMONJS:
+    {
+      module_type_key = LIT_MAGIC_STRING_COMMONJS;
+      break;
+    }
+    default:
+    {
+      JJS_ASSERT (false && module_type_key == JJS_MODULE_TYPE_NONE);
+      return ECMA_VALUE_NOT_FOUND;
+    }
+  }
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, buffer);
-} /* throw_package_info_error */
+  // Get module value.
+  ecma_value_t module_type_value = ecma_find_own_m (package_info, module_type_key);
+
+  if (module_type_value == ECMA_VALUE_NOT_FOUND)
+  {
+    return ECMA_VALUE_NOT_FOUND;
+  }
+
+  // Validate module value is a string or an object containing path and/or main.
+  jjs_value_t result = validate_path_or_main (module_type_value, key, module_type);
+
+  ecma_free_value (module_type_value);
+
+  return result;
+} /* validate_module_type */
 
 /**
  * Validate a pacakge info object from a pmap (package map) object.
  */
-static jjs_value_t validate_package_info (jjs_value_t package_info, jjs_value_t key)
+static jjs_value_t validate_package_info (ecma_value_t package_info, jjs_value_t key)
 {
-  if (jjs_value_is_string (package_info))
+  // Validate pkg.commonjs if it exists.
+  jjs_value_t result = validate_module_type (package_info, key, JJS_MODULE_TYPE_COMMONJS);
+
+  if (jjs_value_is_exception(result))
   {
-    return ECMA_VALUE_TRUE;
+    return result;
   }
-  else if (jjs_value_is_object (package_info))
+
+  bool commonjs_found = jjs_value_is_true (result);
+
+  jjs_value_free (result);
+  result = validate_module_type (package_info, key, JJS_MODULE_TYPE_MODULE);
+
+  if (jjs_value_is_exception(result))
   {
-    if (validate_package_info_contents (package_info, LIT_MAGIC_STRING_MAIN, true)
-        || validate_package_info_contents(package_info, LIT_MAGIC_STRING_PATH, true))
+    return result;
+  }
+
+  // Validate pkg.module if it exists.
+  bool module_found = jjs_value_is_true (result);
+
+  jjs_value_free (result);
+
+  if (commonjs_found || module_found)
+  {
+    // If a module type is present, ensure the package_info does not contain path or main.
+    if (ecma_has_own_m (package_info, LIT_MAGIC_STRING_PATH) || ecma_has_own_m (package_info, LIT_MAGIC_STRING_MAIN))
     {
-      return ECMA_VALUE_TRUE;
+      return jjs_throw_sz (JJS_ERROR_TYPE, "pmap package_info cannot have a path or main property if it has a module or commonjs property");
     }
 
-    return throw_package_info_error (key, "value must be a string or contain a 'main' property");
+    return ECMA_VALUE_TRUE;
   }
   else
   {
-    return throw_package_info_error (key, "value must be a string or an object");
+    // Validate package_info can be a string (shorthand for pkg.main) or an object containing main or path.
+    return validate_path_or_main(package_info, key, JJS_MODULE_TYPE_NONE);
   }
-}
+} /* validate_package_info */
 
 /**
  * Validate a pmap.
  */
 static jjs_value_t validate_pmap (jjs_value_t pmap)
 {
-  if (!ecma_is_value_object (pmap))
+  if (!is_object (pmap))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_AN_OBJECT));
+    return jjs_throw_sz (JJS_ERROR_TYPE, "pmap must be an object");
   }
 
   ecma_value_t packages = ecma_find_own_m (pmap, LIT_MAGIC_STRING_PACKAGES);
@@ -351,6 +545,12 @@ static jjs_value_t validate_pmap (jjs_value_t pmap)
   if (packages == ECMA_VALUE_NOT_FOUND)
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, "pmap contains no 'packages' property");
+  }
+
+  if (!is_object (packages))
+  {
+    ecma_free_value (packages);
+    return jjs_throw_sz (JJS_ERROR_TYPE, "pmap 'packages' property must be an object");
   }
 
   jjs_value_t keys = jjs_object_keys (packages);
@@ -402,7 +602,7 @@ static jjs_value_t validate_pmap (jjs_value_t pmap)
 static jjs_value_t
 set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root)
 {
-  if (jjs_value_is_string (root))
+  if (!jjs_value_is_string (root))
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, "pmap root must be a string");
   }
@@ -431,7 +631,7 @@ set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size
   JJS_CONTEXT (pmap_root) = jjs_value_copy (root);
 
   return ECMA_VALUE_TRUE;
-}
+} /* set_pmap_from_json */
 
 /**
  * Call string.lastIndexOf() with the given arguments.
@@ -532,5 +732,54 @@ find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_
 
   return result;
 } /* find_nearest_package_path */
+
+/**
+ * Checks if the value is an object, assuming it came from an object from JSON.parse().
+ *
+ * In the context of validating and reading pmaps, this is faster than ecma_is_value_array().
+ */
+static bool
+is_object (ecma_value_t value)
+{
+  return (ecma_is_value_object (value)
+          && ecma_get_object_base_type (ecma_get_object_from_value (value)) != ECMA_OBJECT_BASE_TYPE_ARRAY);
+} /* is_object */
+
+/**
+ * Checks if a value is a string that starts with "./".
+ */
+static bool
+starts_with_dot_slash (ecma_value_t value)
+{
+  if (!ecma_is_value_string(value))
+  {
+    return false;
+  }
+
+  lit_utf8_byte_t path[2];
+  lit_utf8_byte_t len = sizeof (path) / sizeof (lit_utf8_byte_t);
+  lit_utf8_size_t written = ecma_string_copy_to_buffer (
+    ecma_get_string_from_value (value), path, len, JJS_ENCODING_CESU8);
+
+  if (written != len) {
+    return false;
+  }
+
+  return path[0] == '.' && path[1] == '/';
+} /* starts_with_dot_slash */
+
+/**
+ * Checks if a value is a string that starts with "./". If not, throws an error.
+ */
+static jjs_value_t
+expect_path_like_string (ecma_value_t value)
+{
+  if (!starts_with_dot_slash (value))
+  {
+    return jjs_throw_sz(JJS_ERROR_TYPE, "pmap: fs path values must start with './'");
+  }
+
+  return ECMA_VALUE_TRUE;
+} /* expect_path_like_string */
 
 #endif /* JJS_PMAP */

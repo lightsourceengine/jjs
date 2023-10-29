@@ -228,13 +228,15 @@ void jjs_port_line_free (jjs_char_t *buffer_p);
 jjs_char_t *jjs_port_path_normalize (const jjs_char_t *path_p, jjs_size_t path_size);
 
 /**
- * TODO: document
+ * Gets the dirname of the given path.
  *
- * @param path_p
- * @param dirname_size_p
- * @return
+ * @param path_p the path. if null of empty string, "." is returned.
+ * @param dirname_size_p out value for the size of the returned string. if NULL, the
+ * size is ignored.
+ * @return dirname of the given path. on error, "." is returned. return value must be
+ * freed with jjs_port_path_free.
  */
-jjs_char_t *jjs_port_path_dirname (char* path_p, jjs_size_t* dirname_size_p);
+jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_p);
 
 /**
  * Free a path buffer returned by jjs_port_path_normalize.

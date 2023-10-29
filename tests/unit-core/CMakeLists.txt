@@ -42,11 +42,13 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-arraybuffer.c
   test-backtrace.c
   test-bigint.c
+  test-commonjs.c
   test-container.c
   test-container-operation.c
   test-context-data.c
   test-dataview.c
   test-date-helpers.c
+  test-esm.c
   test-external-string.c
   test-from-property-descriptor.c
   test-get-own-property.c
@@ -69,6 +71,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-number-to-int32.c
   test-number-to-string.c
   test-objects-foreach.c
+  test-pmap.c
   test-poolman.c
   test-promise-callback.c
   test-promise.c

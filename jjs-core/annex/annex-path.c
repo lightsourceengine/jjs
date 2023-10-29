@@ -46,16 +46,16 @@
 annex_specifier_type_t
 annex_path_specifier_type (ecma_value_t specifier)
 {
-  lit_utf8_byte_t path[FILE_URL_PREFIX_LEN] = { 0 };
-  lit_utf8_size_t written = 0;
-
-  if (ecma_is_value_string (specifier))
+  if (!ecma_is_value_string (specifier))
   {
-    written = ecma_string_copy_to_buffer (ecma_get_string_from_value (specifier),
-                                          path,
-                                          sizeof (path) / sizeof (lit_utf8_byte_t),
-                                          JJS_ENCODING_CESU8);
+    return ANNEX_SPECIFIER_TYPE_NONE;
   }
+
+  lit_utf8_byte_t path[FILE_URL_PREFIX_LEN] = { 0 };
+  lit_utf8_size_t written =  ecma_string_copy_to_buffer (ecma_get_string_from_value (specifier),
+                                                         path,
+                                                         FILE_URL_PREFIX_LEN,
+                                                         JJS_ENCODING_CESU8);
 
   if (written == 0)
   {

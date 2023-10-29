@@ -30,15 +30,15 @@
 #define TEST_ASSERT(x)                                           \
   do                                                             \
   {                                                              \
-    if (JJS_UNLIKELY (!(x)))                                   \
+    if (JJS_UNLIKELY (!(x)))                                     \
     {                                                            \
-      jjs_log (JJS_LOG_LEVEL_ERROR,                          \
-                 "TEST: Assertion '%s' failed at %s(%s):%lu.\n", \
+      jjs_log (JJS_LOG_LEVEL_ERROR,                              \
+                 "TEST: Assertion '%s' failed at %s(%s):%u.\n",  \
                  #x,                                             \
                  __FILE__,                                       \
                  __func__,                                       \
-                 (unsigned long) __LINE__);                      \
-      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);           \
+                 (uint32_t) __LINE__);                           \
+      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);               \
     }                                                            \
   } while (0)
 
@@ -49,15 +49,15 @@
     const char* __result = (const char*) (RESULT);                 \
     if (strcmp (__expected, __result) != 0)                        \
     {                                                              \
-      jjs_log (JJS_LOG_LEVEL_ERROR,                            \
-                 "TEST: String comparison failed at %s(%s):%lu.\n" \
+      jjs_log (JJS_LOG_LEVEL_ERROR,                                \
+                 "TEST: String comparison failed at %s(%s):%u.\n"  \
                  " Expected: '%s'\n Got: '%s'\n",                  \
                  __FILE__,                                         \
                  __func__,                                         \
-                 (unsigned long) __LINE__,                         \
+                 (uint32_t) __LINE__,                              \
                  __expected,                                       \
                  __result);                                        \
-      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);             \
+      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);                 \
     }                                                              \
   } while (0)
 
@@ -72,7 +72,7 @@
     {                                            \
       double d;                                  \
       unsigned u;                                \
-    } now = { .d = jjs_port_current_time () }; \
+    } now = { .d = jjs_port_current_time () };   \
     srand (now.u);                               \
   } while (0)
 
@@ -84,4 +84,37 @@
  */
 #define TEST_STRING_LITERAL(x) x
 
+/**
+ * If value is an exception, prints a toString() of the exception's value (usually an Error object).
+ */
+void print_if_exception (jjs_value_t value);
+
 #endif /* !TEST_COMMON_H */
+
+#ifdef TEST_COMMON_IMPLEMENTATION
+
+void print_if_exception (jjs_value_t value)
+{
+  if (!jjs_value_is_exception (value))
+  {
+    return;
+  }
+
+  jjs_value_t err = jjs_exception_value (value, false);
+  jjs_value_t message = jjs_value_to_string (err);
+  char message_p[512];
+  jjs_size_t written = jjs_string_to_buffer (message,
+                                             JJS_ENCODING_UTF8,
+                                             (jjs_char_t*) message_p,
+                                             sizeof (message_p));
+
+  message_p[written] = '\0';
+  printf ("%s\n", message_p);
+
+  jjs_value_free (message);
+  jjs_value_free (err);
+}
+
+#undef TEST_COMMON_IMPLEMENTATION
+
+#endif /* TEST_COMMON_IMPLEMENTATION */

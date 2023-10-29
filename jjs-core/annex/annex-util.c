@@ -221,3 +221,20 @@ ecma_find_own_v (ecma_value_t object, ecma_value_t key)
                                   ecma_get_string_from_value (key));
 } /* ecma_find_own_v */
 
+/**
+ * Checks if object has own property.
+ *
+ * @param object target object
+ * @param key magic string id of the property name
+ * @return true if key exists, false otherwise
+ */
+bool
+ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key)
+{
+  ecma_value_t value = ecma_find_own_m (object, key);
+
+  ecma_free_value (value);
+
+  return ecma_is_value_found (value);
+} /* ecma_has_own_m */
+
