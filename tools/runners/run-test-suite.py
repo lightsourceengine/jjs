@@ -70,7 +70,8 @@ def get_tests(test_dir, test_list, skip_list):
         for skipped in skip_list:
             if skipped in test:
                 return False
-        if os.path.dirname(test).endswith('lib'):
+        container = os.path.dirname(test)
+        if container.endswith('lib') or os.path.normpath('tests/jjs/fixtures') in container:
             return False
         return True
 
@@ -134,7 +135,7 @@ def run_normal_tests(args, tests):
         test_path = os.path.relpath(test)
         is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
 
-        test_argument = []
+        test_argument = ['--jjs-test-object']
         if test.endswith('.mjs'):
             test_argument.extend(['-m'])
 
@@ -164,6 +165,7 @@ def run_snapshot_tests(args, tests):
 
     execute_snapshot_cmd.extend([args.engine, '--exec-snapshot', 'js.snapshot'])
     execute_snapshot_cmd.extend(['--call-on-exit', '__checkAsync'])
+    execute_snapshot_cmd.extend(['--jjs-test-object'])
 
     # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
     engine = os.path.splitext(args.engine)

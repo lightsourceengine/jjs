@@ -1249,8 +1249,8 @@ jjs_value_t jjs_commonjs_require_sz (const char* specifier_p);
 
 jjs_value_t jjs_esm_import (jjs_value_t specifier);
 jjs_value_t jjs_esm_import_sz (const char* specifier_p);
-jjs_value_t jjs_esm_run (jjs_value_t specifier);
-jjs_value_t jjs_esm_run_sz (const char* specifier_p);
+jjs_value_t jjs_esm_evaluate (jjs_value_t specifier);
+jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p);
 
 /**
  * jjs-esm-ops @}

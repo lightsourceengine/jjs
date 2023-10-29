@@ -476,7 +476,7 @@ jjs_value_t jjs_esm_import_sz (const char* specifier_p)
 #endif
 } /* jjs_esm_import_sz */
 
-jjs_value_t jjs_esm_run (jjs_value_t specifier)
+jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
@@ -516,14 +516,14 @@ jjs_value_t jjs_esm_run (jjs_value_t specifier)
   JJS_UNUSED (specifier);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
-} /* jjs_esm_run */
+} /* jjs_esm_evaluate */
 
-jjs_value_t jjs_esm_run_sz (const char* specifier_p)
+jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
   jjs_value_t specifier = jjs_string_sz (specifier_p);
-  jjs_value_t result = jjs_esm_run (specifier);
+  jjs_value_t result = jjs_esm_evaluate (specifier);
 
   jjs_value_free (specifier);
 
@@ -532,7 +532,7 @@ jjs_value_t jjs_esm_run_sz (const char* specifier_p)
   JJS_UNUSED (specifier_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
-} /* jjs_esm_run_sz */
+} /* jjs_esm_evaluate_sz */
 
 jjs_value_t
 jjs_commonjs_require (jjs_value_t specifier)

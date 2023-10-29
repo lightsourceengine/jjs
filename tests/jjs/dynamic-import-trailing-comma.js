@@ -15,7 +15,7 @@
 
 let one;
 
-import('./lib/one-export.mjs',)
+import('./fixtures/one-export.mjs',)
   .then(ns => {
     one = ns.one;
   })

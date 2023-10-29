@@ -33,6 +33,7 @@ typedef enum
   OPT_HELP,
   OPT_VERSION,
   OPT_MEM_STATS,
+  OPT_JJS_TEST_OBJECT,
   OPT_TEST262_OBJECT,
   OPT_PARSE_ONLY,
   OPT_SHOW_OP,
@@ -59,6 +60,7 @@ static const cli_opt_t main_opts[] = {
   CLI_OPT_DEF (.id = OPT_HELP, .opt = "h", .longopt = "help", .help = "print this help and exit"),
   CLI_OPT_DEF (.id = OPT_VERSION, .opt = "v", .longopt = "version", .help = "print tool and library version and exit"),
   CLI_OPT_DEF (.id = OPT_MEM_STATS, .longopt = "mem-stats", .help = "dump memory statistics"),
+  CLI_OPT_DEF (.id = OPT_JJS_TEST_OBJECT, .longopt = "jjs-test-object", .help = "create a $jjs object for JJS tests"),
   CLI_OPT_DEF (.id = OPT_TEST262_OBJECT, .longopt = "test262-object", .help = "create test262 object"),
   CLI_OPT_DEF (.id = OPT_PARSE_ONLY, .longopt = "parse-only", .help = "don't execute JS input"),
   CLI_OPT_DEF (.id = OPT_SHOW_OP, .longopt = "show-opcodes", .help = "dump parser byte-code"),
@@ -197,6 +199,11 @@ main_parse_args (int argc, /**< argc */
           jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
           arguments_p->init_flags |= JJS_INIT_MEM_STATS;
         }
+        break;
+      }
+      case OPT_JJS_TEST_OBJECT:
+      {
+        arguments_p->option_flags |= OPT_FLAG_JJS_TEST_OBJECT;
         break;
       }
       case OPT_TEST262_OBJECT:

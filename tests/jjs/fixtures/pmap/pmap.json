@@ -1,0 +1,11 @@
+{
+  "packages": {
+    "pkg": {
+      "commonjs": "./pkg.cjs",
+      "module": "./pkg.mjs"
+    },
+    "@test/pkg1": {
+      "path": "./@test/pkg1"
+    }
+  }
+}

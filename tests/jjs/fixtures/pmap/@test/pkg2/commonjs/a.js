@@ -13,4 +13,4 @@
  * limitations under the License.
  */
 
-require('./fixtures/test-require-scope.js');
+exports = "commonjs.a";

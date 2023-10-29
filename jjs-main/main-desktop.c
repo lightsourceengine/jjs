@@ -96,6 +96,11 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
     }
   }
 
+  if (arguments_p->option_flags & OPT_FLAG_JJS_TEST_OBJECT)
+  {
+    main_register_jjs_test_object ();
+  }
+
   if (arguments_p->option_flags & OPT_FLAG_TEST262_OBJECT)
   {
     jjsx_test262_register ();

@@ -297,8 +297,17 @@ jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t mod
 
   if (package_info == ECMA_VALUE_NOT_FOUND)
   {
+    ecma_value_t path = find_nearest_package_path (packages, pmap_root, specifier, module_type);
+
     ecma_free_value (packages);
     ecma_free_value (package_info);
+
+    if (ecma_is_value_string (path))
+    {
+      return path;
+    }
+
+    ecma_free_value(path);
 
     return jjs_throw_sz (JJS_ERROR_TYPE, "package not found");
   }
@@ -314,13 +323,7 @@ jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t mod
   if (ecma_is_value_empty (result))
   {
     ecma_free_value(result);
-    result = find_nearest_package_path (packages, pmap_root, specifier, module_type);
-
-    if (!ecma_is_value_string (result))
-    {
-      ecma_free_value(result);
-      result = jjs_throw_sz (JJS_ERROR_TYPE, "failed to resolve specifier");
-    }
+    result = jjs_throw_sz (JJS_ERROR_TYPE, "failed to resolve specifier");
   }
 
   ecma_free_value (packages);
@@ -675,11 +678,12 @@ static ecma_value_t
 find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type)
 {
   ecma_string_t* specifier_p = ecma_get_string_from_value (specifier);
-  lit_utf8_size_t last_slash_index = ecma_string_get_length (specifier_p);
+  lit_utf8_size_t specifier_length = ecma_string_get_length (specifier_p);
+  lit_utf8_size_t last_slash_index = specifier_length;
   ecma_value_t slash = ecma_make_magic_string_value (LIT_MAGIC_STRING_SLASH_CHAR);
   ecma_value_t result = ECMA_VALUE_NOT_FOUND;
 
-  while (result == ECMA_VALUE_NOT_FOUND || (last_slash_index = last_index_of (specifier, slash, last_slash_index)) != UINT32_MAX)
+  while ((last_slash_index = last_index_of (specifier, slash, last_slash_index)) != UINT32_MAX)
   {
     ecma_value_t package = substr (specifier, 0, last_slash_index);
     ecma_value_t package_info = ecma_find_own_v (packages, package);
@@ -694,7 +698,7 @@ find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_
 
         if (ecma_is_value_string(temp))
         {
-          ecma_value_t trailing = substr (specifier, last_slash_index + 1, UINT32_MAX);
+          ecma_value_t trailing = substr (specifier, last_slash_index + 1, specifier_length);
 
           result = annex_path_join(temp, trailing, true);
           ecma_free_value(trailing);
@@ -716,6 +720,11 @@ find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_
 
     ecma_fast_free_value (package);
     ecma_fast_free_value (package_info);
+
+    if (result != ECMA_VALUE_NOT_FOUND)
+    {
+      break;
+    }
 
     if (last_slash_index > 0)
     {

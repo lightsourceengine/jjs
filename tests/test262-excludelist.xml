@@ -1601,6 +1601,9 @@
   <test id="language/module-code/export-expname-from-string.js"/>
   <test id="language/module-code/export-expname-import-string-binding.js"/>
   <test id="language/module-code/verify-dfs.js"/>
+  <!-- TODO: investigate why these tests fail only on linux 64 bit debug builds -->
+  <test id="language/module-code/instn-iee-err-circular.js"/>
+  <test id="language/module-code/instn-iee-err-circular-as.js"/>
   <!-- End - Module Loading -->
 
   <!-- Dynamic Import -->

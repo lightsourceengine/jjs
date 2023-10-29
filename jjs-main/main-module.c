@@ -43,6 +43,8 @@ static jjs_value_t jjs_string_utf8_sz (const char* str);
 static raw_source_t read_source (const char* path_p);
 static void free_source (raw_source_t* source);
 static jjs_value_t resolve_specifier (const char* path_p);
+static void object_set_handler_sz (jjs_value_t object, const char* key_sz, jjs_external_handler_t fn);
+static void object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value);
 
 /**
  * Run a module from a file.
@@ -54,7 +56,7 @@ jjs_value_t
 main_module_run_esm (const char* path_p)
 {
   jjs_value_t specifier = resolve_specifier (path_p);
-  jjs_value_t result = jjs_esm_run (specifier);
+  jjs_value_t result = jjs_esm_evaluate (specifier);
 
   jjs_value_free (specifier);
 
@@ -219,10 +221,154 @@ platform_is_absolute_path(const char* path_p, size_t path_len)
 #else
 
 static bool
-platform_is_absolute_path(const char* path_p, size_t path_len)
+platform_is_absolute_path (const char* path_p, size_t path_len)
 {
   (void) path_len;
   return platform_is_path_separator (path_p[0]);
 } /* platform_is_absolute_path */
 
 #endif
+
+/**
+ * Set an object property to a value.
+ */
+static void
+object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value)
+{
+  jjs_value_t key = jjs_string_utf8_sz (key_sz);
+  jjs_value_free (jjs_object_set (object, key, value));
+  jjs_value_free (key);
+} /* object_set_sz */
+
+/**
+ * Set an object property to an external function handler.
+ */
+static void
+object_set_handler_sz (jjs_value_t object, const char* key_sz, jjs_external_handler_t fn)
+{
+  jjs_value_t value = jjs_function_external (fn);
+  object_set_sz (object, key_sz, value);
+  jjs_value_free (value);
+} /* object_set_handler_sz */
+
+/**
+ * Performs a strict equals comparison on a JJS value and an UTF8 encoded C-string.
+ */
+static bool
+string_strict_equals_sz (jjs_value_t value, const char* string_p)
+{
+  jjs_value_t string = jjs_string_utf8_sz (string_p);
+  jjs_value_t equal_result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, value, string);
+  bool result = jjs_value_is_true (equal_result);
+
+  jjs_value_free (string);
+  jjs_value_free (equal_result);
+
+  return result;
+} /* string_strict_equals_sz */
+
+/**
+ * jjs_pmap_from_file_handler() binding
+ */
+static JJS_HANDLER (pmap_from_file_handler)
+{
+  (void) call_info_p; /* unused */
+  return jjs_pmap_from_file (args_cnt > 0 ? args_p[0] : jjs_undefined ());
+} /* pmap_from_file_handler */
+
+/**
+ * jjs_pmap_from_json_handler() binding
+ */
+static JJS_HANDLER (pmap_from_json_handler)
+{
+  (void) call_info_p; /* unused */
+  return jjs_pmap_from_json (args_cnt > 0 ? args_p[0] : jjs_undefined (),
+                             args_cnt > 1 ? args_p[1] : jjs_undefined ());
+} /* pmap_from_json_handler */
+
+/**
+ * jjs_pmap_resolve_handler() binding
+ */
+static JJS_HANDLER (pmap_resolve_handler)
+{
+  (void) call_info_p; /* unused */
+
+  jjs_value_t value = args_cnt > 1 ? args_p[1] : jjs_undefined ();
+  jjs_module_type_t module_type;
+
+  if (string_strict_equals_sz (value, "commonjs"))
+  {
+    module_type = JJS_MODULE_TYPE_COMMONJS;
+  }
+  else if (string_strict_equals_sz (value, "module"))
+  {
+    module_type = JJS_MODULE_TYPE_MODULE;
+  }
+  else
+  {
+    module_type = JJS_MODULE_TYPE_NONE;
+  }
+
+  return jjs_pmap_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined (), module_type);
+} /* pmap_resolve_handler */
+
+/**
+ * jjs_esm_import_handler() binding
+ */
+static JJS_HANDLER (esm_import_handler)
+{
+  (void) call_info_p; /* unused */
+  return jjs_esm_import (args_cnt > 0 ? args_p[0] : jjs_undefined ());
+} /* esm_import_handler */
+
+/**
+ * jjs_esm_evaluate() binding
+ */
+static JJS_HANDLER (esm_evaluate_handler)
+{
+  (void) call_info_p; /* unused */
+  return jjs_esm_evaluate (args_cnt > 0 ? args_p[0] : jjs_undefined ());
+} /* esm_evaluate_handler */
+
+/**
+ * Register the $jjs object.
+ *
+ * This object contains native bindings for the JJS API. It is intended to
+ * be used for testing purposes only.
+ */
+void
+main_register_jjs_test_object (void)
+{
+  jjs_value_t global = jjs_current_realm ();
+  jjs_value_t jjs = jjs_object ();
+  jjs_property_descriptor_t desc = {
+    .flags = JJS_PROP_IS_CONFIGURABLE
+             | JJS_PROP_IS_WRITABLE
+             | JJS_PROP_IS_CONFIGURABLE_DEFINED
+             | JJS_PROP_IS_WRITABLE_DEFINED
+             | JJS_PROP_IS_VALUE_DEFINED,
+    .value = jjs,
+  };
+
+  jjs_value_t jjs_key = jjs_string_utf8_sz ("$jjs");
+
+  jjs_value_free (jjs_object_define_own_prop (global, jjs_key, &desc));
+  jjs_value_free (jjs_key);
+
+  jjs_value_t pmap = jjs_object ();
+
+  object_set_handler_sz (pmap, "fromFile", pmap_from_file_handler);
+  object_set_handler_sz (pmap, "fromJSON", pmap_from_json_handler);
+  object_set_handler_sz (pmap, "resolve", pmap_resolve_handler);
+  object_set_sz (jjs, "pmap", pmap);
+
+  jjs_value_t esm = jjs_object ();
+  object_set_handler_sz (esm, "evaluate", esm_evaluate_handler);
+  object_set_handler_sz (esm, "import", esm_import_handler);
+  object_set_sz (jjs, "esm", esm);
+
+  jjs_value_free (pmap);
+  jjs_value_free (esm);
+  jjs_value_free (global);
+  jjs_value_free (jjs);
+} /* main_register_jjs_test_object */
