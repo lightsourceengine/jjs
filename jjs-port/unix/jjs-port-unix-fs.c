@@ -21,7 +21,14 @@
 #include <string.h>
 #include <libgen.h>
 #include <stdio.h>
+
+#if defined(__APPLE__)
 #include <sys/syslimits.h>
+#endif /* defined(__APPLE__) */
+
+#if defined(__unix__)
+#include <linux/limits.h>
+#endif /* defined(__unix__) */
 
 /**
  * Normalize a file path using realpath.

@@ -464,7 +464,7 @@ static jjs_value_t validate_module_type (ecma_value_t package_info, jjs_value_t 
     }
     default:
     {
-      JJS_ASSERT (false && module_type_key == JJS_MODULE_TYPE_NONE);
+      JJS_ASSERT (false && module_type == JJS_MODULE_TYPE_NONE);
       return ECMA_VALUE_NOT_FOUND;
     }
   }
