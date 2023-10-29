@@ -13,13 +13,24 @@
  * limitations under the License.
  */
 
-const { require:globalRequire } = globalThis;
+// ensure this file is working with the global require
+assert(require === globalThis.require, 'require !== globalThis.require');
 
-assert(Object.keys(globalRequire.cache).length === 0);
+// ensure the cache is empty
+assert(Object.keys(require.cache).length === 0);
 
-globalRequire('./lib/assert.js');
+// populate the cache with the assert module
+require('./lib/assert.js');
 
-const cacheKeys = Object.keys(globalRequire.cache);
+// ensure the assert module is in the cache
+const cacheKeys = Object.keys(require.cache);
 
 assert(cacheKeys.length === 1);
 assert(cacheKeys[0].endsWith('assert.js'));
+
+// override the cached exports of the assert module
+require.cache[cacheKeys[0]].exports = 'overridden';
+
+// require should return the overridden exports from the cache
+const exports = require('./lib/assert.js');
+assert(exports === 'overridden', `${exports} !== overridden`);

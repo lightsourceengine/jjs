@@ -13,4 +13,4 @@
  * limitations under the License.
  */
 
-module.exports = "commonjs.a";
+exports.x = 5;

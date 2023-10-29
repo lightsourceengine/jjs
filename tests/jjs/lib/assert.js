@@ -27,9 +27,9 @@ function arrayEquals(actual, expected) {
 function assertThrows(type, fn) {
   try {
     fn();
-    assert(false, `expected ${type} to be thrown`);
+    assert(false, `expected ${type?.name ?? type} to be thrown`);
   } catch (e) {
-    assert(e instanceof type, `expected ${type} to be thrown, got ${e}`);
+    assert(e instanceof type, `expected ${type?.name ?? type} to be thrown, got ${e?.name ?? e}`);
   }
 }
 

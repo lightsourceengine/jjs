@@ -223,7 +223,11 @@ static JJS_HANDLER (require_handler)
     return referrer_path;
   }
 
-  return require_impl (specifier, referrer_path);
+  jjs_value_t result = require_impl (specifier, referrer_path);
+
+  jjs_value_free (referrer_path);
+
+  return result;
 } /* require_handler */
 
 /**
@@ -244,8 +248,6 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
 
   /* resolve the request to an absolute path */
   jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_COMMONJS);
-
-  ecma_free_value (referrer_path);
 
   if (jjs_value_is_exception (resolved.result))
   {
@@ -307,6 +309,8 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
   }
 
   ecma_value_t exports = ecma_find_own_m (module, LIT_MAGIC_STRING_EXPORTS);
+
+  ecma_set_m (module, LIT_MAGIC_STRING_LOADED, ECMA_VALUE_TRUE);
 
   ecma_free_value (load_module_result);
   ecma_free_value (module);

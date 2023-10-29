@@ -13,4 +13,9 @@
  * limitations under the License.
  */
 
-module.exports = "commonjs.a";
+require('./circular.cjs');
+
+module.exports = {
+  x: 10,
+  y: 'test',
+}

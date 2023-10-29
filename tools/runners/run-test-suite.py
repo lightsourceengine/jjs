@@ -56,7 +56,7 @@ def get_tests(test_dir, test_list, skip_list):
         for root, _, files in os.walk(test_dir):
             for test_file in files:
                 if test_file.endswith('.js') or test_file.endswith('.mjs'):
-                    tests.extend([os.path.join(root, test_file)])
+                    tests.extend([os.path.normpath(os.path.join(root, test_file))])
 
     if test_list:
         dirname = os.path.dirname(test_list)

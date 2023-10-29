@@ -13,4 +13,54 @@
  * limitations under the License.
  */
 
-require('./fixtures/test-require-scope.js');
+assert(require === globalThis.require, 'require !== globalThis.require');
+
+const { test, runAllTests } = require('./lib/test.cjs');
+const { assertThrows } = require('./lib/assert.js');
+
+$jjs.pmap.fromFile('./fixtures/pmap/pmap.json');
+
+test('require() should load require, module, exports, __filename and __dirname into a module scope', () => {
+  // note: this file is not a module. scope checks will happen in the required module
+  require('./fixtures/test-require-scope.js');
+});
+
+test('require() should load a module from a relative path', () => {
+  const exports = require('./fixtures/pkg.cjs');
+
+  assert(typeof exports === 'object');
+  assert(exports.x === 5);
+});
+
+test('require() should load a module from a package name', () => {
+  const exports = require('pkg');
+
+  assert(typeof exports === 'object');
+  assert(exports.x === 5);
+});
+
+test('require() should resolve file from module system path defined in pmap', () => {
+  const exports = require('@test/pkg2/a.js');
+
+  assert(exports === 'commonjs.a', `${exports} !== commonjs.a`);
+});
+
+test('require() should throw Error when a package name does not exist in the pmap', () => {
+  assertThrows(Error, () => { require('unknown'); });
+});
+
+test('require() should throw Error when a relative filename does not exist', () => {
+  assertThrows(Error, () => { require('./unknown'); });
+});
+
+test('require() should throw Error when module has circular dependencies', () => {
+  assertThrows(Error, () => { require('./fixtures/circular.cjs'); });
+});
+
+test('require() should throw Error for non-string specifier', () => {
+  const inputs = [23, {}, [], null, undefined, Symbol(), NaN];
+
+  inputs.forEach(input => assertThrows(TypeError, () => { require(input); }));
+});
+
+runAllTests();
