@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "jjs-annex-vmod.h"
 
 #include "jjs-annex.h"
 #include "jjs-core.h"
@@ -110,7 +111,7 @@ jjs_vmod_native (jjs_value_t name, jjs_vmod_create_cb_t create_cb, void* user_p)
 
   jjs_value_t fn = jjs_function_external (vmod_create_handler);
 
-  jjs_object_set_native_ptr (fn, &vmod_create_id, (void*) create_cb);
+  jjs_object_set_native_ptr (fn, &vmod_create_id, *((void**) &create_cb));
 
   if (user_p)
   {
@@ -235,8 +236,9 @@ vmod_create_handler (const jjs_call_info_t* call_info_p, const jjs_value_t args_
   JJS_ASSERT (args_count > 0);
   JJS_ASSERT (jjs_value_is_string (args_p[0]));
 
-  jjs_vmod_create_cb_t create =
-    (jjs_vmod_create_cb_t) jjs_object_get_native_ptr (call_info_p->function, &vmod_create_id);
+  jjs_vmod_create_cb_t create;
+
+  *(void **) (&create) = jjs_object_get_native_ptr (call_info_p->function, &vmod_create_id);
 
   JJS_ASSERT (create != NULL);
 
