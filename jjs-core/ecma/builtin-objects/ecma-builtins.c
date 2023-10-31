@@ -498,6 +498,18 @@ ecma_builtin_create_global_object (void)
 
   ecma_global_object_t *global_object_p = (ecma_global_object_t *) object_p;
 
+#if JJS_COMMONJS
+  global_object_p->commonjs_cache = ECMA_VALUE_EMPTY;
+#endif /* JJS_COMMONJS */
+
+#if JJS_MODULE_SYSTEM
+  global_object_p->esm_cache = ECMA_VALUE_EMPTY;
+#endif /* JJS_MODULE_SYSTEM */
+
+#if JJS_VMOD
+  global_object_p->vmod_cache = ECMA_VALUE_EMPTY;
+#endif /* JJS_VMOD */
+
   global_object_p->extended_object.u.built_in.id = (uint8_t) ECMA_BUILTIN_ID_GLOBAL;
   global_object_p->extended_object.u.built_in.routine_id = 0;
   /* Bitset size is ignored by the gc. */
