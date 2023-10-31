@@ -139,6 +139,7 @@ typedef enum
   JJS_FEATURE_QUEUE_MICROTASK, /**< queueMicrotask support */
   JJS_FEATURE_COMMONJS, /**< CommonJS module support */
   JJS_FEATURE_PMAP, /**< Package Map support */
+  JJS_FEATURE_VMOD, /**< Virtual Module support */
   JJS_FEATURE__COUNT /**< number of features. NOTE: must be at the end of the list */
 } jjs_feature_t;
 
@@ -917,6 +918,23 @@ typedef void (*jjs_arraybuffer_free_cb_t) (jjs_arraybuffer_type_t buffer_type,
                                              uint32_t buffer_size,
                                              void *arraybuffer_user_p,
                                              void *user_p);
+
+/**
+ * Callback to create exports for a Virtual Module.
+ *
+ * The return value must be an object containing a key 'exports'. When the module
+ * is required, the exports value will be returned. When the module is imported,
+ * the exports.default value will be returned. If default does not exist, then
+ * exports will be returned as the ES module default.
+ *
+ * If an error occurs, the return value should be an exception.
+ *
+ * The caller is responsible for calling jjs_value_free() on the returned value.
+ *
+ * @param name the name of the virtual module being created
+ * @param user_p user_p value passed to the jjs_vmod_native* function. can be NULL.
+ */
+typedef jjs_value_t (*jjs_vmod_create_cb_t) (jjs_value_t name, void* user_p);
 
 /**
  * @}

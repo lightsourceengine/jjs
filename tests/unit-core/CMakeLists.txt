@@ -98,6 +98,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-unicode.c
   test-vm-exec-stop.c
   test-vm-throw.c
+  test-vmod.c
 )
 
 # jjs_heap_stats_t.size == 0 if system allocator is used.

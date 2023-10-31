@@ -139,6 +139,8 @@ JJS_BUILDOPTIONS = [
             ['--compile-flag=-DJJS_COMMONJS=0', '--lto=off']),
     Options('buildoption_test-commonjs-off',
             ['--compile-flag=-DJJS_PMAP=0', '--lto=off']),
+    Options('buildoption_test-vmod-off',
+            ['--compile-flag=-DJJS_VMOD=0', '--lto=off']),
     Options('buildoption_test-queuemicrotask-off',
             ['--compile-flag=-DJJS_QUEUE_MICROTASK=0', '--lto=off']),
     Options('buildoption_test-builtin-proxy-off',

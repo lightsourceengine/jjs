@@ -19,6 +19,7 @@
 #include "jjs-annex-module-util.h"
 
 #include "jjs-snapshot.h"
+#include "jjs-annex-vmod.h"
 
 #include "annex.h"
 #include "jcontext.h"
@@ -186,6 +187,13 @@ static JJS_HANDLER(resolve_handler)
     return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid argument");
   }
 
+#if JJS_VMOD
+  if (jjs_annex_vmod_is_registered(request))
+  {
+    return ecma_copy_value (request);
+  }
+#endif
+
   ecma_value_t referrer_path = get_referrer_path (call_info_p->function);
 
   if (ecma_is_value_exception (referrer_path))
@@ -245,6 +253,13 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require referrer");
   }
+
+#if JJS_VMOD
+  if (jjs_annex_vmod_is_registered (specifier))
+  {
+    return jjs_annex_vmod_exports (specifier);
+  }
+#endif /* JJS_VMOD */
 
   /* resolve the request to an absolute path */
   jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_COMMONJS);

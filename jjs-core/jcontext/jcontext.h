@@ -182,6 +182,10 @@ struct jjs_context_t
   ecma_value_t commonjs_args; /**< arguments of the CommonJS module */
 #endif /* JJS_COMMONJS */
 
+#if JJS_VMOD
+  ecma_value_t vmods; /**< Virtual Module factory methods */
+#endif /* JJS_VMOD */
+
   vm_frame_ctx_t *vm_top_context_p; /**< top (current) interpreter context */
   jjs_context_data_header_t *context_data_p; /**< linked list of user-provided context-specific pointers */
   jjs_external_string_free_cb_t external_string_free_callback_p; /**< free callback for external strings */

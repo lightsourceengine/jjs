@@ -104,6 +104,9 @@ typedef struct
 #if JJS_MODULE_SYSTEM
   ecma_value_t esm_cache; /**< Module cache: fully resolved path -> Module */
 #endif /* JJS_MODULE_SYSTEM */
+#if JJS_VMOD
+  ecma_value_t vmod_cache; /**< VMOD cache: name -> exports */
+#endif /* JJS_VMOD */
 } ecma_global_object_t;
 
 /* ecma-builtins.c */

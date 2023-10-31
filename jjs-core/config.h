@@ -139,6 +139,10 @@
 #define JJS_PMAP JJS_ANNEX
 #endif /* !defined (JJS_PMAP) */
 
+#ifndef JJS_VMOD
+#define JJS_VMOD JJS_ANNEX
+#endif /* !defined (JJS_VMOD) */
+
 /**
  * Engine internal and misc configurations.
  */
@@ -595,6 +599,9 @@
 #if (JJS_PMAP != 0) && (JJS_PMAP != 1)
 #error "Invalid value for JJS_PMAP macro."
 #endif /* (JJS_PMAP != 0) && (JJS_PMAP != 1) */
+#if (JJS_VMOD != 0) && (JJS_VMOD != 1)
+#error "Invalid value for JJS_VMOD macro."
+#endif /* (JJS_VMOD != 0) && (JJS_VMOD != 1) */
 #if (JJS_BUILTIN_TYPEDARRAY == 0) && (JJS_BUILTIN_SHAREDARRAYBUFFER == 1)
 #error "JJS_BUILTIN_TYPEDARRAY should be enabled too to enable JJS_BUILTIN_SHAREDARRAYBUFFER macro."
 #endif /* (JJS_BUILTIN_TYPEDARRAY == 0) && (JJS_BUILTIN_SHAREDARRAYBUFFER == 1) */

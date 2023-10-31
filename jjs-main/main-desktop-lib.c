@@ -331,6 +331,12 @@ static JJS_HANDLER (esm_evaluate_handler)
   return jjs_esm_evaluate (args_cnt > 0 ? args_p[0] : jjs_undefined ());
 } /* esm_evaluate_handler */
 
+static JJS_HANDLER(vmod_function_handler)
+{
+  (void) call_info_p; /* unused */
+  return jjs_vmod (args_cnt > 0 ? args_p[0] : jjs_undefined (), args_cnt > 1 ? args_p[1] : jjs_undefined ());
+} /* vmod_function_handler */
+
 /**
  * Register the $jjs object.
  *
@@ -360,6 +366,7 @@ main_register_jjs_test_object (void)
   object_set_handler_sz (jjs, "jjs_pmap_resolve", pmap_resolve_handler);
   object_set_handler_sz (jjs, "jjs_esm_evaluate", esm_evaluate_handler);
   object_set_handler_sz (jjs, "jjs_esm_import", esm_import_handler);
+  object_set_handler_sz (jjs, "jjs_vmod", vmod_function_handler);
 
   jjs_value_free (global);
   jjs_value_free (jjs);

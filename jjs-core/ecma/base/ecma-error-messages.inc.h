@@ -97,6 +97,9 @@ ECMA_ERROR_DEF (ECMA_ERR_TARGET_NOT_EXTENSIBLE, "Target not extensible")
 #if !(JJS_PMAP)
 ECMA_ERROR_DEF (ECMA_ERR_PMAP_NOT_SUPPORTED, "pmap is not supported")
 #endif /* !(JJS_PMAP) */
+#if !(JJS_VMOD)
+ECMA_ERROR_DEF (ECMA_ERR_VMOD_NOT_SUPPORTED, "vmod is not supported")
+#endif /* !(JJS_VMOD) */
 #if JJS_BUILTIN_ANNEXB
 ECMA_ERROR_DEF (ECMA_ERR_GETTER_IS_NOT_CALLABLE, "Getter is not callable")
 #endif /* JJS_BUILTIN_ANNEXB */

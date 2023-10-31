@@ -245,6 +245,23 @@ ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key)
 } /* ecma_has_own_m */
 
 /**
+ * Checks if object has own property.
+ *
+ * @param object target object
+ * @param key property name
+ * @return true if key exists, false otherwise
+ */
+bool
+ecma_has_own_v (ecma_value_t object, ecma_value_t key)
+{
+  ecma_value_t value = ecma_find_own_v (object, key);
+
+  ecma_free_value (value);
+
+  return ecma_is_value_found (value);
+} /* ecma_has_own_v */
+
+/**
  * Create a JS string from a UTF-8 encoded, null-terminated string.
  *
  * @param str_p cstring value. if NULL or empty, an empty string will be returned.

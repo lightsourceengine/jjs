@@ -136,6 +136,7 @@ set(SOURCE_CORE_FILES
   api/jjs-annex-module-util.c
   api/jjs-annex-pmap.c
   api/jjs-annex-task.c
+  api/jjs-annex-vmod.c
   api/jjs-debugger-transport.c
   api/jjs-debugger.c
   api/jjs-module.c
@@ -350,6 +351,7 @@ if(ENABLE_AMALGAM)
     annex/annex.h
     api/jjs-annex.h
     api/jjs-annex-module-util.h
+    api/jjs-annex-vmod.h
     api/jjs-api-snapshot.h
     debugger/debugger.h
     ecma/base/ecma-alloc.h

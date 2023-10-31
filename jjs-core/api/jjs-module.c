@@ -19,8 +19,9 @@
 #include "jjs-core.h"
 #include "jjs-port.h"
 #include "jjs-annex.h"
-#include "jjs-annex-module-util.h"
 #include "jcontext.h"
+#include "jjs-annex-module-util.h"
+#include "jjs-annex-vmod.h"
 
 #include "ecma-errors.h"
 #include "ecma-builtins.h"
@@ -264,6 +265,9 @@ static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs
 #if JJS_COMMONJS
 static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
 #endif /* JJS_COMMONJS */
+#if JJS_VMOD
+static jjs_value_t vmod_module_evaluate_cb (jjs_value_t native_module);
+#endif /* JJS_VMOD */
 
 #endif /* JJS_MODULE_SYSTEM */
 
@@ -776,6 +780,33 @@ esm_evaluate (jjs_value_t module)
 static jjs_value_t
 esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
 {
+  ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
+
+#if JJS_VMOD
+  if (jjs_annex_vmod_is_registered (specifier))
+  {
+    ecma_value_t cached = ecma_find_own_v (esm_cache, specifier);
+
+    if (ecma_is_value_found (cached))
+    {
+      return cached;
+    }
+
+    jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
+    jjs_value_t native_module = jjs_native_module (vmod_module_evaluate_cb, &default_name, 1);
+
+    if (!jjs_value_is_exception (native_module))
+    {
+      ecma_set_m (native_module, LIT_MAGIC_STRING_ID, specifier);
+      ecma_set_v (esm_cache, specifier, native_module);
+    }
+
+    ecma_fast_free_value (default_name);
+
+    return native_module;
+  }
+#endif /* JJS_VMOD */
+
   // resolve specifier
   jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_MODULE);
 
@@ -784,7 +815,6 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
     return resolved.result;
   }
 
-  ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
   ecma_value_t cached_module = ecma_find_own_v (esm_cache, resolved.path);
 
   if (cached_module != ECMA_VALUE_NOT_FOUND)
@@ -903,6 +933,35 @@ esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p)
   return module;
 } /* esm_link_cb */
 
+#if JJS_COMMONJS || JJS_VMOD
+
+/**
+ * Sets the default export of a synthetic/native ES module.
+ *
+ * If exports contains a 'default' key, exports.default will be used as
+ * default. Otherwise, exports will be used as default.
+ *
+ * @param native_module synthetic/native ES module
+ * @param exports CommonJS or Virtual Module exports object
+ * @return true if successful, exception otherwise. the return value must be
+ * freed with jjs_value_free.
+ */
+static jjs_value_t
+module_native_set_default(jjs_value_t native_module, jjs_value_t exports)
+{
+  jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
+  ecma_value_t default_value = ecma_find_own_v (exports, default_name);
+  jjs_value_t result = jjs_native_module_set (
+    native_module, default_name, ecma_is_value_found (default_value) ? default_value : exports);
+
+  jjs_value_free (default_name);
+  ecma_free_value (default_value);
+
+  return result;
+} /* module_native_set_default */
+
+#endif /* JJS_COMMONJS || JJS_VMOD */
+
 #if JJS_COMMONJS
 
 static jjs_value_t
@@ -912,7 +971,7 @@ commonjs_module_evaluate_cb (jjs_value_t native_module)
   JJS_ASSERT (jjs_value_is_string (filename));
   jjs_value_t path = ecma_find_own_m (native_module, LIT_MAGIC_STRING_PATH);
   JJS_ASSERT (jjs_value_is_string (path));
-  jjs_value_t exports = jjs_annex_require(filename, path);
+  jjs_value_t exports = jjs_annex_require (filename, path);
 
   jjs_value_free (filename);
   jjs_value_free (path);
@@ -922,23 +981,38 @@ commonjs_module_evaluate_cb (jjs_value_t native_module)
     return exports;
   }
 
-  jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
-  jjs_value_t result = jjs_native_module_set (native_module, default_name, exports);
+  jjs_value_t result = module_native_set_default (native_module, exports);
 
-  jjs_value_free (default_name);
   jjs_value_free (exports);
 
-  if (jjs_value_is_exception (result))
-  {
-    return result;
-  }
-
-  jjs_value_free (result);
-
-  return ECMA_VALUE_UNDEFINED;
+  return result;
 } /* commonjs_module_evaluate_cb */
 
 #endif /* JJS_COMMONJS */
+
+#if JJS_VMOD
+
+static jjs_value_t
+vmod_module_evaluate_cb (jjs_value_t native_module)
+{
+  ecma_value_t id = ecma_find_own_m (native_module, LIT_MAGIC_STRING_ID);
+  jjs_value_t exports = jjs_annex_vmod_exports (id);
+
+  ecma_free_value (id);
+
+  if (jjs_value_is_exception (exports))
+  {
+    return exports;
+  }
+
+  jjs_value_t result = module_native_set_default (native_module, exports);
+
+  jjs_value_free (exports);
+
+  return result;
+}
+
+#endif /* JJS_VMOD */
 
 static jjs_value_t
 user_value_to_path (jjs_value_t user_value)
@@ -963,7 +1037,7 @@ user_value_to_path (jjs_value_t user_value)
 
   jjs_value_free (filename);
 
-  if (!jjs_value_is_string(result))
+  if (!jjs_value_is_string (result))
   {
     jjs_value_free (result);
     return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid module/source user value.");
@@ -982,7 +1056,7 @@ set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url
 
   jjs_value_t path = annex_path_dirname (filename);
 
-  JJS_ASSERT(jjs_value_is_string (path));
+  JJS_ASSERT (jjs_value_is_string (path));
 
   ecma_set_m (module, LIT_MAGIC_STRING_PATH, path);
   ecma_set_m (module, LIT_MAGIC_STRING_URL, url);

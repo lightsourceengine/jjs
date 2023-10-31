@@ -1853,6 +1853,8 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
     case JJS_FEATURE_PROMISE:
     case JJS_FEATURE_SYMBOL:
       return true;
+    case JJS_FEATURE_VMOD:
+      return IS_FEATURE_ENABLED (JJS_VMOD);
     default:
       JJS_ASSERT (false);
       return false;
