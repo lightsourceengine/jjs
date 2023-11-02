@@ -671,6 +671,9 @@ set(DEFINES_JJS ${DEFINES_JJS} JJS_STACK_LIMIT=${JJS_STACK_LIMIT})
 # Maximum depth of recursion during GC mark phase
 set(DEFINES_JJS ${DEFINES_JJS} JJS_GC_MARK_LIMIT=${JJS_GC_MARK_LIMIT})
 
+# Export defines to parent scope (for other modules, like jjs-pack)
+set(DEFINES_JJS_CORE ${DEFINES_JJS} PARENT_SCOPE)
+
 ## This function is to read "config.h" for default values
 function(read_set_defines FILE PREFIX OUTPUTVAR)
   file(READ "${CMAKE_CURRENT_SOURCE_DIR}/${FILE}" INPUT_FILE_CONTENTS)

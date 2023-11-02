@@ -1273,6 +1273,8 @@ jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p);
 jjs_value_t jjs_vmod (jjs_value_t name, jjs_value_t create_function);
 jjs_value_t jjs_vmod_native (jjs_value_t name, jjs_vmod_create_cb_t create_cb, void* user_p);
 jjs_value_t jjs_vmod_native_sz (const char* name_p, jjs_vmod_create_cb_t create_cb, void* user_p);
+bool jjs_vmod_exists (jjs_value_t name);
+bool jjs_vmod_exists_sz (const char* name_p);
 
 /**
  * jjs-vmod-ops @}

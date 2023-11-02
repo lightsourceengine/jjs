@@ -162,6 +162,51 @@ jjs_vmod_native_sz (const char* name_p, jjs_vmod_create_cb_t create_cb, void* us
 #endif /* JJS_VMOD */
 } /* jjs_vmod_native_sz */
 
+/**
+ * Check if a virtual module is registered.
+ *
+ * @param name virtual module name. non-string values will return false.
+ * @return true if the virtual module is registered. false otherwise.
+ */
+bool
+jjs_vmod_exists (jjs_value_t name)
+{
+  jjs_assert_api_enabled ();
+#if JJS_VMOD
+  return ecma_is_value_string (name) ? jjs_annex_vmod_is_registered (name) : false;
+#else /* !JJS_VMOD */
+  JJS_UNUSED (name_p);
+  JJS_UNUSED (create_cb);
+  JJS_UNUSED (user_p);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
+#endif /* JJS_VMOD */
+} /* jjs_vmod_exists */
+
+/**
+ * Check if a virtual module is registered.
+ *
+ * @param name_p virtual module name. NULL or empty string values will return false.
+ * @return true if the virtual module is registered. false otherwise.
+ */
+bool
+jjs_vmod_exists_sz (const char* name_p)
+{
+  jjs_assert_api_enabled ();
+#if JJS_VMOD
+  jjs_value_t name = annex_util_create_string_utf8_sz (name_p);
+  bool result = jjs_vmod_exists (name);
+
+  jjs_value_free (name);
+
+  return result;
+#else /* !JJS_VMOD */
+  JJS_UNUSED (name_p);
+  JJS_UNUSED (create_cb);
+  JJS_UNUSED (user_p);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
+#endif /* JJS_VMOD */
+} /* jjs_vmod_exists_sz */
+
 #if JJS_VMOD
 
 /**

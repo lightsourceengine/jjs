@@ -72,6 +72,17 @@ void JJS_ATTR_NORETURN jjs_port_fatal (jjs_fatal_code_t code);
 void jjs_port_sleep (uint32_t sleep_time);
 
 /**
+ * Returns the current high-resolution timestamp. This is expressed in
+ * nanoseconds. It is relative to an arbitrary time in the past. It is
+ * not related to the time of day and therefore not subject to clock
+ * drift. The primary use is for measuring performance between
+ * intervals.
+ *
+ * @return the current high-resolution timestamp in nanoseconds.
+ */
+uint64_t jjs_port_hrtime (void);
+
+/**
  * jjs-port-process @}
  */
 

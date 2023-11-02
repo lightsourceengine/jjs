@@ -57,6 +57,7 @@ set(JJS_LIBFUZZER             OFF CACHE BOOL "Build JJS with libfuzzer support?"
 set(JJS_PORT                  ON  CACHE BOOL "Build default JJS port implementation?")
 set(JJS_EXT                   ON  CACHE BOOL "Build jjs-ext?")
 set(JJS_EXT_DEBUGGER          ON  CACHE BOOL "Build jjs-ext debugger support?")
+set(JJS_PACK                  OFF CACHE BOOL "Build jjs-pack?")
 set(UNITTESTS                 OFF CACHE BOOL "Build unit tests?")
 set(DOCTESTS                  OFF CACHE BOOL "Build doc tests?")
 
@@ -141,6 +142,7 @@ message(STATUS "JJS_LIBFUZZER                  " ${JJS_LIBFUZZER} ${JJS_LIBFUZZE
 message(STATUS "JJS_PORT                       " ${JJS_PORT} ${JJS_PORT_MESSAGE})
 message(STATUS "JJS_EXT                        " ${JJS_EXT} ${JJS_EXT_MESSAGE})
 message(STATUS "JJS_MATH                       " ${JJS_MATH} ${JJS_MATH_MESSAGE})
+message(STATUS "JJS_PACK                       " ${JJS_PACK} ${JJS_PACK_MESSAGE})
 message(STATUS "UNITTESTS                      " ${UNITTESTS})
 message(STATUS "DOCTESTS                       " ${DOCTESTS})
 
@@ -275,6 +277,12 @@ endif()
 # JJS's default port implementation
 if(JJS_PORT)
   add_subdirectory(jjs-port)
+endif()
+
+# JJS's pack(age) implementation, containing Web API and other JS API that
+# sit at a layer above ECMA and the VM.
+if(JJS_PACK)
+  add_subdirectory(jjs-pack)
 endif()
 
 # JJS command line tool

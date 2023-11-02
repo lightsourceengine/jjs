@@ -237,6 +237,41 @@ test_bad_create_function (void)
   jjs_cleanup ();
 }
 
+static void
+test_jjs_vmod_exists (void)
+{
+  jjs_init (JJS_INIT_EMPTY);
+
+  jjs_value_t name = jjs_string_sz ("test");
+
+  TEST_ASSERT (jjs_vmod_exists (name) == false);
+
+  jjs_value_t result = jjs_vmod_native (name, &vmod_create_test, NULL);
+  TEST_ASSERT (!jjs_value_is_exception (result));
+
+  TEST_ASSERT (jjs_vmod_exists (name));
+
+  jjs_value_free (name);
+
+  jjs_cleanup ();
+}
+
+static void
+test_jjs_vmod_exists_sz (void)
+{
+  jjs_init (JJS_INIT_EMPTY);
+
+  TEST_ASSERT (jjs_vmod_exists_sz ("test") == false);
+
+  jjs_value_t result = jjs_vmod_native_sz ("test", &vmod_create_test, NULL);
+  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_value_free (result);
+
+  TEST_ASSERT (jjs_vmod_exists_sz ("test"));
+
+  jjs_cleanup ();
+}
+
 int
 main (void)
 {
@@ -246,6 +281,8 @@ main (void)
   test_jjs_vmod_native ();
   test_jjs_vmod_native_sz ();
   test_bad_create_function ();
+  test_jjs_vmod_exists ();
+  test_jjs_vmod_exists_sz ();
 
   return 0;
 } /* main */

@@ -17,6 +17,47 @@
 #if defined(_WIN32)
 
 #include <windows.h>
+#include <stdio.h>
+#include <assert.h>
+
+/**
+ * Windows implementation of jjs_port_hrtime.
+ */
+uint64_t jjs_port_hrtime (void)
+{
+  // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/win/util.c
+
+  static double scaled_frequency = 0;
+
+  if (frequency == 0)
+  {
+    LARGE_INTEGER frequency;
+
+    if (QueryPerformanceFrequency (&frequency))
+    {
+      scaled_frequency = ((double) frequency.QuadPath) / 1e9;
+    }
+    else
+    {
+      fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
+      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+    }
+  }
+
+  LARGE_INTEGER counter;
+
+  assert (scaled_frequency != 0);
+
+  if (!QueryPerformanceCounter(&counter))
+  {
+    fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
+    jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+  }
+
+  assert (counter.QuadPart != 0)
+
+  return (uint64_t) ((double) counter.QuadPart / scaled_frequency);
+} /* jjs_port_hrtime */
 
 /**
  * Default implementation of jjs_port_sleep, uses 'Sleep'.

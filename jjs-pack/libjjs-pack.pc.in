@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libjjs-pack
+Description: JJS: lightweight JavaScript engine (default package library)
+URL: https://github.com/LightSourceEngine/jjs
+Version: @JJS_VERSION@
+Libs: -L${libdir} -ljjs-pack
+Cflags: -I${includedir}
