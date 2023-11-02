@@ -29,13 +29,13 @@ uint64_t jjs_port_hrtime (void)
 
   static double scaled_frequency = 0;
 
-  if (frequency == 0)
+  if (scaled_frequency == 0)
   {
     LARGE_INTEGER frequency;
 
     if (QueryPerformanceFrequency (&frequency))
     {
-      scaled_frequency = ((double) frequency.QuadPath) / 1e9;
+      scaled_frequency = ((double) frequency.QuadPart) / 1e9;
     }
     else
     {
@@ -54,7 +54,7 @@ uint64_t jjs_port_hrtime (void)
     jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
   }
 
-  assert (counter.QuadPart != 0)
+  assert (counter.QuadPart != 0);
 
   return (uint64_t) ((double) counter.QuadPart / scaled_frequency);
 } /* jjs_port_hrtime */

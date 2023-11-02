@@ -25,7 +25,8 @@ uint64_t jjs_port_hrtime (void)
 {
   // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/unix/linux.c
 
-  static clock_t clock_id = -1
+  static clock_t clock_id = -1;
+  struct timespec t;
 
   if (clock_id == -1)
   {
@@ -47,7 +48,7 @@ uint64_t jjs_port_hrtime (void)
     return 0;
   }
 
-  return t.tv_sec * (uint64_t) 1e9 + t.tv_nsec;
+  return (uint64_t) t.tv_sec * (uint64_t) 1e9 + (uint64_t) t.tv_nsec;
 } /* jjs_port_hrtime */
 
 #endif /* defined(__unix__) */
