@@ -14,11 +14,11 @@
  */
 
 const { require:globalRequire } = globalThis;
-const { assertThrows } = require('./lib/assert.js');
-const { test, runAllTests } = require('./lib/test.cjs');
+const { assertThrows } = require('../lib/assert.js');
+const { test, runAllTests } = require('../lib/test.cjs');
 
 test('resolve() should resolve relative path request', () => {
-  const path = globalRequire.resolve('./lib/assert.js');
+  const path = globalRequire.resolve('../lib/assert.js');
 
   assert(path.endsWith('assert.js'));
 });

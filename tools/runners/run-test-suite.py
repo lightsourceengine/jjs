@@ -39,6 +39,7 @@ def get_arguments():
                         help='Directory contains tests to run')
     parser.add_argument('--snapshot', action='store_true',
                         help='Snapshot test')
+    parser.add_argument('--pack-all', action='store_true', help='Enable all pack(age)s')
 
     script_args = parser.parse_args()
     if script_args.skip_list:
@@ -125,7 +126,11 @@ def run_normal_tests(args, tests):
     test_cmd = util.get_platform_cmd_prefix()
     if args.runtime:
         test_cmd.append(args.runtime)
+
     test_cmd.extend([args.engine, '--call-on-exit', '__checkAsync'])
+
+    if args.pack_all:
+        test_cmd.extend(['--pack', 'all'])
 
     total = len(tests)
     tested = 0

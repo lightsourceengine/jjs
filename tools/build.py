@@ -106,6 +106,8 @@ def get_arguments():
                          help='build jjs-ext debugger support (%(choices)s)')
     compgrp.add_argument('--jjs-port', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build default JJS port implementation (%(choices)s)')
+    compgrp.add_argument('--jjs-pack', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='build jjs-pack(age) (%(choices)s)')
     compgrp.add_argument('--unittests', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('build unittests (%(choices)s)'))
 
@@ -202,6 +204,7 @@ def generate_build_options(arguments):
     build_options_append('JJS_EXT', arguments.jjs_ext)
     build_options_append('JJS_EXT_DEBUGGER', arguments.jjs_ext_debugger)
     build_options_append('JJS_PORT', arguments.jjs_port)
+    build_options_append('JJS_PACK', arguments.jjs_pack)
     build_options_append('UNITTESTS', arguments.unittests)
 
     # jjs-core options

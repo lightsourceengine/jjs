@@ -35,6 +35,7 @@ typedef enum
   OPT_MEM_STATS,
   OPT_JJS_TEST_OBJECT,
   OPT_TEST262_OBJECT,
+  OPT_PACK,
   OPT_PARSE_ONLY,
   OPT_SHOW_OP,
   OPT_SHOW_RE_OP,
@@ -95,6 +96,10 @@ static const cli_opt_t main_opts[] = {
                .longopt = "exec-snapshot-func",
                .meta = "FILE NUM",
                .help = "execute specific function from input snapshot file(s)"),
+  CLI_OPT_DEF (.id = OPT_PACK,
+               .longopt = "pack",
+               .meta = "STRING",
+               .help = "include a pack(age): all, console, domexception, path, performance, url"),
   CLI_OPT_DEF (.id = OPT_MODULE, .opt = "m", .longopt = "module", .meta = "FILE", .help = "execute module file"),
   CLI_OPT_DEF (.id = OPT_LOG_LEVEL, .longopt = "log-level", .meta = "NUM", .help = "set log level (0-3)"),
   CLI_OPT_DEF (.id = OPT_NO_PROMPT, .longopt = "no-prompt", .help = "don't print prompt in REPL mode"),
@@ -166,6 +171,7 @@ main_parse_args (int argc, /**< argc */
   arguments_p->exit_cb_name_p = NULL;
   arguments_p->init_flags = JJS_INIT_EMPTY;
   arguments_p->option_flags = OPT_FLAG_EMPTY;
+  arguments_p->packs = 0;
 
   arguments_p->parse_result = JJS_STANDALONE_EXIT_CODE_FAIL;
 
@@ -376,6 +382,40 @@ main_parse_args (int argc, /**< argc */
       case OPT_USE_STDIN:
       {
         arguments_p->option_flags |= OPT_FLAG_USE_STDIN;
+        break;
+      }
+      case OPT_PACK:
+      {
+        const char* value = cli_consume_string(&cli_state);
+
+        if (strcmp ("all", value) == 0)
+        {
+          arguments_p->packs = IMPORT_PACK_ALL;
+        }
+        else if (strcmp ("console", value) == 0)
+        {
+          arguments_p->packs |= IMPORT_PACK_CONSOLE;
+        }
+        else if (strcmp ("domexception", value) == 0)
+        {
+          arguments_p->packs |= IMPORT_PACK_DOMEXCEPTION;
+        }
+        else if (strcmp ("path", value) == 0)
+        {
+          arguments_p->packs |= IMPORT_PACK_PATH;
+        }
+        else if (strcmp ("performance", value) == 0)
+        {
+          arguments_p->packs |= IMPORT_PACK_PERFORMANCE;
+        }
+        else if (strcmp ("url", value) == 0)
+        {
+          arguments_p->packs |= IMPORT_PACK_URL;
+        }
+        else
+        {
+          cli_state.error = "Invalid value for --pack";
+        }
         break;
       }
       case CLI_OPT_DEFAULT:

@@ -41,7 +41,8 @@ jjs_pack_performance_bindings (void)
   jjs_value_free (now);
 
   jjs_value_t time_origin_value = jjs_number (time_origin);
-  jjs_value_free(jjs_object_set_sz (bindings, "timeOrigin", time_origin_value));
+  jjs_value_free (jjs_object_set_sz (bindings, "timeOrigin", time_origin_value));
+  jjs_value_free (time_origin_value);
 
   return bindings;
 } /* jjs_pack_performance_bindings */

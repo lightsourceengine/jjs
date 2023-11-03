@@ -46,3 +46,7 @@ tests/test262/
 # zig
 zig-cache/
 zig-out/
+
+# node
+node_modules/
+

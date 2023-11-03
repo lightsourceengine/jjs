@@ -68,7 +68,12 @@ if(JJS_CMDLINE)
     # patch to make module stuff work in the commandline tool
     target_compile_options("jjs" PUBLIC "--std=gnu99")
   endif()
+  target_include_directories("jjs" PRIVATE "../jjs-pack/include")
   target_link_libraries("jjs" jjs-ext jjs-port)
+  if (JJS_PACK)
+    target_compile_definitions("jjs" PRIVATE -DJJS_PACK=1)
+    target_link_libraries("jjs" jjs-pack)
+  endif()
 endif()
 
 if(JJS_CMDLINE_TEST)

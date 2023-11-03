@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('./lib/test.cjs');
-const { assertThrows } = require('./lib/assert.js');
+const { test, runAllTests } = require('../lib/test.cjs');
+const { assertThrows } = require('../lib/assert.js');
 
 $jjs.jjs_pmap_from_file('./fixtures/pmap/pmap.json');
 

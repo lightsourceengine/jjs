@@ -27,14 +27,12 @@ set(PACK_SOURCES
   performance/jjs-pack-performance.c
   performance/jjs-pack-performance-js.c
   url/jjs-pack-url.c
-  url/jjs-pack-url-js.c
-  url/jjs-pack-url-search-params-js.c
+  url/jjs-pack-url-api-js.c
 )
 
 # Default jjs-pack implementation library
 add_library(${JJS_PACK_NAME} ${PACK_SOURCES})
 target_include_directories(${JJS_PACK_NAME} PRIVATE ${INCLUDE_CORE_PUBLIC} include lib)
-target_compile_definitions(${JJS_PACK_NAME} PUBLIC ${DEFINES_JJS_CORE})
 
 # Installation
 configure_file(libjjs-pack.pc.in libjjs-pack.pc @ONLY)

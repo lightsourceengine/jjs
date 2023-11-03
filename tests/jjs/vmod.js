@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('./lib/test.cjs');
+const { test, runAllTests } = require('../lib/test.cjs');
 
 let called = false;
 

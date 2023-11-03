@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const { assertThrows } = require('./lib/assert.js');
+const { assertThrows } = require('../lib/assert.js');
 
 const nonFunctionValues = [
   undefined,

@@ -79,6 +79,13 @@ JJS_TESTS_OPTIONS = [
             + ['--external-context=on']),
 ]
 
+# Test options for jjs-pack-tests
+JJS_PACK_TESTS_OPTIONS = [
+    Options('jjs_pack_tests',
+            OPTIONS_COMMON + OPTIONS_GC_MARK_LIMIT
+            + ['--jjs-pack=on', '--cpointer-32bit=on', '--mem-heap=1024', '--stack-limit=0', '--external-context=on']),
+]
+
 # Test options for test262
 TEST262_TEST_SUITE_OPTIONS = [
     Options('test262',
@@ -180,6 +187,8 @@ def get_arguments():
                         help='Run jjs-debugger tests')
     parser.add_argument('--jjs-tests', action='store_true',
                         help='Run jjs-tests')
+    parser.add_argument('--jjs-pack-tests', action='store_true',
+                        help='Run jjs-pack-tests')
     parser.add_argument('--test262', default=False, const='default',
                         nargs='?', choices=['default', 'all', 'update'],
                         help='Run test262 - default: all tests except excludelist, ' +
@@ -391,6 +400,37 @@ def run_jjs_tests(options):
 
     return ret_build | ret_test
 
+
+def run_jjs_pack_tests(options):
+    ret_build = ret_test = 0
+    for job, ret_build, test_cmd in iterate_test_runner_jobs(JJS_PACK_TESTS_OPTIONS, options):
+        if ret_build:
+            break
+
+        test_cmd.append('--test-dir')
+        test_cmd.append(settings.JJS_PACK_TESTS_DIR)
+
+        if options.quiet:
+            test_cmd.append("-q")
+
+        skip_list = []
+
+        if options.skip_list:
+            skip_list.append(options.skip_list)
+
+        if skip_list:
+            test_cmd.append("--skip-list=" + ",".join(skip_list))
+
+        if job.test_args:
+            test_cmd.extend(job.test_args)
+
+        test_cmd.append("--pack-all")
+
+        ret_test |= run_check(test_cmd, env=dict(TZ='UTC'))
+
+    return ret_build | ret_test
+
+
 def run_test262_test_suite(options):
     ret_build = ret_test = 0
 
@@ -479,6 +519,7 @@ def main(options):
         Check(options.check_strings, run_check, [settings.STRINGS_SCRIPT]),
         Check(options.jjs_debugger, run_jjs_debugger_tests, options),
         Check(options.jjs_tests, run_jjs_tests, options),
+        Check(options.jjs_pack_tests, run_jjs_pack_tests, options),
         Check(options.test262, run_test262_test_suite, options),
         Check(options.unittests, run_unittests, options),
         Check(options.buildoption_test, run_buildoption_test, options),

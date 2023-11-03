@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "core-js-pure": "3.33.2"
+  },
+  "scripts": {
+    "bundle": "esbuild --bundle \"url-api-raw.js\" --format=cjs --outfile=\"url-api.js\""
+  }
+}

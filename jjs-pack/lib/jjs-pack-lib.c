@@ -29,7 +29,6 @@
   } while (0)
 
 static jjs_value_t jjs_pack_lib_run_module (jjs_value_t fn, jjs_pack_bindings_cb_t bindings);
-static void jjs_pack_lib_global_set_sz (const char* id_p, jjs_value_t value);
 
 jjs_value_t
 jjs_pack_init (void)
@@ -43,60 +42,8 @@ jjs_pack_init (void)
   return jjs_undefined ();
 } /* jjs_pack_init */
 
-#if JJS_SNAPSHOT_EXEC
-
 jjs_value_t
-jjs_pack_lib_load_from_source (const uint8_t* source, jjs_size_t source_size, jjs_pack_bindings_cb_t bindings)
-{
-  jjs_parse_options_t opts = {
-    .options = JJS_PARSE_HAS_ARGUMENT_LIST,
-    .argument_list = jjs_string_sz ("module, exports"),
-  };
-
-  jjs_value_t fn = jjs_parse (source, source_size, &opts);
-
-  jjs_value_free (opts.argument_list);
-
-  if (jjs_value_is_exception (fn))
-  {
-    return fn;
-  }
-
-  jjs_value_t result = jjs_pack_lib_run_module (fn, bindings);
-
-  jjs_value_free (fn);
-
-  return result;
-} /* jjs_pack_lib_load_from_source */
-
-jjs_value_t
-jjs_pack_lib_global_set_from_source (const char* id_p,
-                                     const uint8_t* source_p,
-                                     jjs_size_t source_size,
-                                     jjs_pack_bindings_cb_t bindings)
-{
-  if (jjs_pack_lib_global_has (id_p))
-  {
-    return jjs_undefined ();
-  }
-
-  jjs_value_t value = jjs_pack_lib_load_from_source (source_p, source_size, bindings);
-
-  if (jjs_value_is_exception (value))
-  {
-    return value;
-  }
-
-  jjs_pack_lib_global_set_sz (id_p, value);
-  jjs_value_free (value);
-
-  return jjs_undefined ();
-} /* jjs_pack_lib_global_set_from_source */
-
-#else /* !JJS_SNAPSHOT_EXEC */
-
-jjs_value_t
-jjs_pack_lib_load_from_snapshot (uint8_t* source, jjs_size_t source_size, jjs_pack_bindings_cb_t bindings)
+jjs_pack_lib_load_from_snapshot (uint8_t* source, jjs_size_t source_size, jjs_pack_bindings_cb_t bindings, bool vmod_wrap)
 {
   jjs_value_t fn =
     jjs_exec_snapshot ((const uint32_t*) source, source_size, 0, JJS_SNAPSHOT_EXEC_LOAD_AS_FUNCTION, NULL);
@@ -110,6 +57,15 @@ jjs_pack_lib_load_from_snapshot (uint8_t* source, jjs_size_t source_size, jjs_pa
 
   jjs_value_free (fn);
 
+  if (vmod_wrap && !jjs_value_is_exception (result))
+  {
+    jjs_value_t wrap = jjs_object();
+
+    jjs_value_free(jjs_object_set_sz(wrap, "exports", result));
+    jjs_value_free(result);
+    result = wrap;
+  }
+
   return result;
 } /* jjs_pack_lib_load_from_snapshot */
 
@@ -119,12 +75,12 @@ jjs_pack_lib_global_set_from_snapshot (const char* id_p,
                                        jjs_size_t source_size,
                                        jjs_pack_bindings_cb_t bindings)
 {
-  if (jjs_pack_lib_global_has (id_p))
+  if (jjs_pack_lib_global_has_sz (id_p))
   {
     return jjs_undefined ();
   }
 
-  jjs_value_t value = jjs_pack_lib_load_from_snapshot (source_p, source_size, bindings);
+  jjs_value_t value = jjs_pack_lib_load_from_snapshot (source_p, source_size, bindings, false);
 
   if (jjs_value_is_exception (value))
   {
@@ -137,8 +93,6 @@ jjs_pack_lib_global_set_from_snapshot (const char* id_p,
   return jjs_undefined ();
 } /* jjs_pack_lib_global_set_from_snapshot */
 
-#endif /* !JJS_SNAPSHOT_EXEC */
-
 jjs_value_t
 jjs_pack_lib_vmod_sz (const char* name_p, jjs_vmod_create_cb_t create_cb)
 {
@@ -146,7 +100,7 @@ jjs_pack_lib_vmod_sz (const char* name_p, jjs_vmod_create_cb_t create_cb)
 } /* jjs_pack_lib_vmod_sz */
 
 jjs_value_t
-jjs_pack_lib_global_has (const char* id_p)
+jjs_pack_lib_global_has_sz (const char* id_p)
 {
   jjs_value_t realm = jjs_current_realm ();
   jjs_value_t result = jjs_object_has_sz (realm, id_p);
@@ -155,7 +109,7 @@ jjs_pack_lib_global_has (const char* id_p)
   jjs_value_free (result);
 
   return jjs_value_is_true (result);
-} /* jjs_pack_lib_global_has */
+} /* jjs_pack_lib_global_has_sz */
 
 static jjs_value_t
 jjs_pack_lib_run_module (jjs_value_t fn, jjs_pack_bindings_cb_t bindings)
@@ -208,7 +162,7 @@ jjs_pack_lib_run_module (jjs_value_t fn, jjs_pack_bindings_cb_t bindings)
   return result;
 } /* jjs_pack_lib_run_module */
 
-static void
+void
 jjs_pack_lib_global_set_sz (const char* id_p, jjs_value_t value)
 {
   jjs_value_t realm = jjs_current_realm ();

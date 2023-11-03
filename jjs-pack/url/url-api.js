@@ -298,14 +298,14 @@ var require_path = __commonJS({
 var require_get_built_in = __commonJS({
   "node_modules/core-js-pure/internals/get-built-in.js"(exports2, module2) {
     "use strict";
-    var path2 = require_path();
+    var path = require_path();
     var global2 = require_global();
     var isCallable = require_is_callable();
     var aFunction = function(variable) {
       return isCallable(variable) ? variable : void 0;
     };
     module2.exports = function(namespace, method) {
-      return arguments.length < 2 ? aFunction(path2[namespace]) || aFunction(global2[namespace]) : path2[namespace] && path2[namespace][method] || global2[namespace] && global2[namespace][method];
+      return arguments.length < 2 ? aFunction(path[namespace]) || aFunction(global2[namespace]) : path[namespace] && path[namespace][method] || global2[namespace] && global2[namespace][method];
     };
   }
 });
@@ -917,7 +917,7 @@ var require_export = __commonJS({
     var isCallable = require_is_callable();
     var getOwnPropertyDescriptor = require_object_get_own_property_descriptor().f;
     var isForced = require_is_forced();
-    var path2 = require_path();
+    var path = require_path();
     var bind = require_function_bind_context();
     var createNonEnumerableProperty = require_create_non_enumerable_property();
     var hasOwn = require_has_own_property();
@@ -945,7 +945,7 @@ var require_export = __commonJS({
       var STATIC = options.stat;
       var PROTO = options.proto;
       var nativeSource = GLOBAL ? global2 : STATIC ? global2[TARGET] : (global2[TARGET] || {}).prototype;
-      var target = GLOBAL ? path2 : path2[TARGET] || createNonEnumerableProperty(path2, TARGET, {})[TARGET];
+      var target = GLOBAL ? path : path[TARGET] || createNonEnumerableProperty(path, TARGET, {})[TARGET];
       var targetPrototype = target.prototype;
       var FORCED, USE_NATIVE, VIRTUAL_PROTOTYPE;
       var key, sourceProperty, targetProperty, nativeProperty, resultProperty, descriptor;
@@ -976,10 +976,10 @@ var require_export = __commonJS({
         createNonEnumerableProperty(target, key, resultProperty);
         if (PROTO) {
           VIRTUAL_PROTOTYPE = TARGET + "Prototype";
-          if (!hasOwn(path2, VIRTUAL_PROTOTYPE)) {
-            createNonEnumerableProperty(path2, VIRTUAL_PROTOTYPE, {});
+          if (!hasOwn(path, VIRTUAL_PROTOTYPE)) {
+            createNonEnumerableProperty(path, VIRTUAL_PROTOTYPE, {});
           }
-          createNonEnumerableProperty(path2[VIRTUAL_PROTOTYPE], key, sourceProperty);
+          createNonEnumerableProperty(path[VIRTUAL_PROTOTYPE], key, sourceProperty);
           if (options.real && targetPrototype && (FORCED || !targetPrototype[key])) {
             createNonEnumerableProperty(targetPrototype, key, sourceProperty);
           }
@@ -2112,7 +2112,7 @@ var require_web_url_search_params_constructor = __commonJS({
           this.url.update();
       }
     };
-    var URLSearchParamsConstructor = function URLSearchParams2() {
+    var URLSearchParamsConstructor = function URLSearchParams3() {
       anInstance(this, URLSearchParamsPrototype);
       var init = arguments.length > 0 ? arguments[0] : void 0;
       var state = setInternalState(this, new URLSearchParamsState(init));
@@ -2358,8 +2358,8 @@ var require_url_search_params = __commonJS({
     require_web_url_search_params_delete();
     require_web_url_search_params_has();
     require_web_url_search_params_size();
-    var path2 = require_path();
-    module2.exports = path2.URLSearchParams;
+    var path = require_path();
+    module2.exports = path.URLSearchParams;
   }
 });
 
@@ -2838,7 +2838,7 @@ var require_web_url_constructor = __commonJS({
     var InternalStateModule = require_internal_state();
     var setInternalState = InternalStateModule.set;
     var getInternalURLState = InternalStateModule.getterFor("URL");
-    var URLSearchParams2 = URLSearchParamsModule.URLSearchParams;
+    var URLSearchParams3 = URLSearchParamsModule.URLSearchParams;
     var getInternalSearchParamsState = URLSearchParamsModule.getState;
     var NativeURL = global2.URL;
     var TypeError2 = global2.TypeError;
@@ -3150,7 +3150,7 @@ var require_web_url_constructor = __commonJS({
         failure = this.parse(urlString, null, baseState);
         if (failure)
           throw new TypeError2(failure);
-        searchParams = getInternalSearchParamsState(new URLSearchParams2());
+        searchParams = getInternalSearchParamsState(new URLSearchParams3());
         searchParams.bindURL(this);
         this.searchParams = searchParams;
       }
@@ -3613,10 +3613,10 @@ var require_web_url_constructor = __commonJS({
       },
       // https://url.spec.whatwg.org/#shorten-a-urls-path
       shortenPath: function() {
-        var path2 = this.path;
-        var pathSize = path2.length;
-        if (pathSize && (this.scheme !== "file" || pathSize !== 1 || !isWindowsDriveLetter(path2[0], true))) {
-          path2.length--;
+        var path = this.path;
+        var pathSize = path.length;
+        if (pathSize && (this.scheme !== "file" || pathSize !== 1 || !isWindowsDriveLetter(path[0], true))) {
+          path.length--;
         }
       },
       // https://url.spec.whatwg.org/#concept-url-serializer
@@ -3627,7 +3627,7 @@ var require_web_url_constructor = __commonJS({
         var password = url.password;
         var host = url.host;
         var port = url.port;
-        var path2 = url.path;
+        var path = url.path;
         var query = url.query;
         var fragment = url.fragment;
         var output = scheme + ":";
@@ -3641,7 +3641,7 @@ var require_web_url_constructor = __commonJS({
             output += ":" + port;
         } else if (scheme === "file")
           output += "//";
-        output += url.cannotBeABaseURL ? path2[0] : path2.length ? "/" + join(path2, "/") : "";
+        output += url.cannotBeABaseURL ? path[0] : path.length ? "/" + join(path, "/") : "";
         if (query !== null)
           output += "?" + query;
         if (fragment !== null)
@@ -3739,8 +3739,8 @@ var require_web_url_constructor = __commonJS({
       },
       // https://url.spec.whatwg.org/#dom-url-pathname
       getPathname: function() {
-        var path2 = this.path;
-        return this.cannotBeABaseURL ? path2[0] : path2.length ? "/" + join(path2, "/") : "";
+        var path = this.path;
+        return this.cannotBeABaseURL ? path[0] : path.length ? "/" + join(path, "/") : "";
       },
       setPathname: function(pathname) {
         if (this.cannotBeABaseURL)
@@ -3789,7 +3789,7 @@ var require_web_url_constructor = __commonJS({
         this.query = this.searchParams.serialize() || null;
       }
     };
-    var URLConstructor = function URL2(url) {
+    var URLConstructor = function URL3(url) {
       var that = anInstance(this, URLPrototype);
       var base = validateArgumentsLength(arguments.length, 1) > 1 ? arguments[1] : void 0;
       var state = setInternalState(that, new URLState(url, false, base));
@@ -3876,9 +3876,9 @@ var require_web_url_can_parse = __commonJS({
     var validateArgumentsLength = require_validate_arguments_length();
     var toString = require_to_string();
     var USE_NATIVE_URL = require_url_constructor_detection();
-    var URL2 = getBuiltIn("URL");
+    var URL3 = getBuiltIn("URL");
     var THROWS_WITHOUT_ARGUMENTS = USE_NATIVE_URL && fails(function() {
-      URL2.canParse();
+      URL3.canParse();
     });
     $({ target: "URL", stat: true, forced: !THROWS_WITHOUT_ARGUMENTS }, {
       canParse: function canParse(url) {
@@ -3886,7 +3886,7 @@ var require_web_url_can_parse = __commonJS({
         var urlString = toString(url);
         var base = length < 2 || arguments[1] === void 0 ? void 0 : toString(arguments[1]);
         try {
-          return !!new URL2(urlString, base);
+          return !!new URL3(urlString, base);
         } catch (error) {
           return false;
         }
@@ -3901,10 +3901,10 @@ var require_web_url_to_json = __commonJS({
   }
 });
 
-// node_modules/core-js-pure/web/url.js
+// url-api-raw.js
 require_url_search_params();
 require_web_url();
 require_web_url_can_parse();
 require_web_url_to_json();
-var path = require_path();
-module.exports = path.URL;
+var { URL: URL2, URLSearchParams: URLSearchParams2 } = require_path();
+module.exports = { URL: URL2, URLSearchParams: URLSearchParams2 };

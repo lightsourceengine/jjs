@@ -20,7 +20,7 @@ assert(require === globalThis.require, 'require !== globalThis.require');
 assert(Object.keys(require.cache).length === 0);
 
 // populate the cache with the assert module
-require('./lib/assert.js');
+require('../lib/assert.js');
 
 // ensure the assert module is in the cache
 const cacheKeys = Object.keys(require.cache);
@@ -32,5 +32,5 @@ assert(cacheKeys[0].endsWith('assert.js'));
 require.cache[cacheKeys[0]].exports = 'overridden';
 
 // require should return the overridden exports from the cache
-const exports = require('./lib/assert.js');
+const exports = require('../lib/assert.js');
 assert(exports === 'overridden', `${exports} !== overridden`);

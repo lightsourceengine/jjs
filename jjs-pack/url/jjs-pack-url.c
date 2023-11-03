@@ -16,8 +16,7 @@
 #include "jjs-pack-lib.h"
 #include "jjs-pack.h"
 
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_url)
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_url_search_params)
+JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_url_api)
 
 static const char* URL_ID = "URL";
 static const char* URL_SEARCH_PARAMS_ID = "URLSearchParams";
@@ -25,51 +24,36 @@ static const char* URL_SEARCH_PARAMS_ID = "URLSearchParams";
 jjs_value_t
 jjs_pack_url_init (void)
 {
-  jjs_value_t url;
-  bool url_set;
-
-  if (jjs_pack_lib_global_has (URL_ID))
+  if (jjs_pack_lib_global_has_sz (URL_ID))
   {
-    url = jjs_undefined ();
-    url_set = false;
+    return jjs_undefined ();
+  }
+
+  jjs_value_t api = jjs_pack_lib_load_from_snapshot (jjs_pack_url_api_snapshot, jjs_pack_url_api_snapshot_len, NULL, false);
+
+  if (jjs_value_is_exception (api))
+  {
+    return api;
+  }
+
+  jjs_value_t url = jjs_object_get_sz (api, URL_ID);
+  jjs_value_t usp = jjs_object_get_sz (api, URL_SEARCH_PARAMS_ID);
+  jjs_value_t result;
+
+  if (jjs_value_is_exception (url) || jjs_value_is_exception (usp))
+  {
+    result = jjs_throw_sz (JJS_ERROR_COMMON, "Invalid url-api.js");
   }
   else
   {
-    url = JJS_PACK_LIB_GLOBAL_SET (URL_ID, jjs_pack_url, NULL);
-    url_set = true;
-  }
-
-  if (jjs_value_is_exception (url))
-  {
-    return url;
-  }
-
-  jjs_value_t usp;
-
-  if (jjs_pack_lib_global_has (URL_SEARCH_PARAMS_ID))
-  {
-    usp = jjs_undefined ();
-  }
-  else
-  {
-    usp = JJS_PACK_LIB_GLOBAL_SET (URL_SEARCH_PARAMS_ID, jjs_pack_url_search_params, NULL);
-  }
-
-  if (jjs_value_is_exception (usp))
-  {
-    if (url_set)
-    {
-      jjs_value_t realm = jjs_current_realm ();
-      jjs_value_free (jjs_object_delete_sz (realm, URL_ID));
-      jjs_value_free (realm);
-      jjs_value_free (url);
-    }
-
-    return usp;
+    jjs_pack_lib_global_set_sz (URL_ID, url);
+    jjs_pack_lib_global_set_sz (URL_SEARCH_PARAMS_ID, usp);
+    result = jjs_undefined ();
   }
 
   jjs_value_free (url);
   jjs_value_free (usp);
+  jjs_value_free (api);
 
-  return jjs_undefined ();
+  return result;
 } /* jjs_pack_url_init */

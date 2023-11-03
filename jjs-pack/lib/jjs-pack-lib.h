@@ -20,19 +20,28 @@
 
 typedef jjs_value_t (*jjs_pack_bindings_cb_t) (void);
 
-#if JJS_SNAPSHOT_EXEC
 jjs_value_t jjs_pack_lib_load_from_snapshot (uint8_t* source,
                                              jjs_size_t source_size,
-                                             jjs_pack_bindings_cb_t bindings);
+                                             jjs_pack_bindings_cb_t bindings,
+                                             bool vmod_wrap);
 
 jjs_value_t jjs_pack_lib_global_set_from_snapshot (const char* id_p,
                                                    uint8_t* source_p,
                                                    jjs_size_t source_size,
                                                    jjs_pack_bindings_cb_t bindings);
 
+jjs_value_t jjs_pack_lib_vmod_sz (const char* name_p, jjs_vmod_create_cb_t create_cb);
+
+jjs_value_t jjs_pack_lib_global_has_sz (const char* id_p);
+void jjs_pack_lib_global_set_sz (const char* id_p, jjs_value_t value);
+
+#define JJS_UNUSED(x) (void)(x)
+#define JJS_HANDLER(NAME) \
+  jjs_value_t NAME (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], jjs_length_t args_cnt)
+
 #define JJS_PACK_DEFINE_EXTERN_SOURCE(NS) \
   extern uint8_t NS##_snapshot[]; \
-  extern unsigned int NS##_snapshot_len;
+  extern const uint32_t NS##_snapshot_len;
 
 #define JJS_PACK_LIB_GLOBAL_SET(ID, NS, BINDINGS) \
   jjs_pack_lib_global_set_from_snapshot (ID, NS ## _snapshot, NS ## _snapshot_len, BINDINGS)
@@ -42,41 +51,7 @@ jjs_value_t jjs_pack_lib_global_set_from_snapshot (const char* id_p,
   { \
     JJS_UNUSED (name); \
     JJS_UNUSED (user_p); \
-    return jjs_pack_lib_load_from_snapshot (NS ## _snapshot, NS ## _snapshot_len, BINDINGS); \
+    return jjs_pack_lib_load_from_snapshot (NS ## _snapshot, NS ## _snapshot_len, BINDINGS, true); \
   }
-
-#else /* !JJS_SNAPSHOT_EXEC */
-jjs_value_t jjs_pack_lib_load_from_source (const uint8_t* source,
-                                           jjs_size_t source_size,
-                                           jjs_pack_bindings_cb_t bindings);
-
-jjs_value_t jjs_pack_lib_global_set_from_source (const char* id_p,
-                                                 const uint8_t* source_p,
-                                                 jjs_size_t source_size,
-                                                 jjs_pack_bindings_cb_t bindings);
-
-#define JJS_PACK_DEFINE_EXTERN_SOURCE(NS) \
-  extern uint8_t NS##_min_js[]; \
-  extern unsigned int NS##_min_js_len;
-
-#define JJS_PACK_LIB_GLOBAL_SET(ID, NS, BINDINGS) \
-  jjs_pack_lib_global_set_from_source (ID, NS ## _min_js, NS##_min_js_len, BINDINGS)
-
-#define JJS_PACK_LIB_VMOD_SETUP(NS, BINDINGS) \
-  static jjs_value_t NS ## _vmod_setup (jjs_value_t name, void* user_p) \
-  { \
-    JJS_UNUSED (name); \
-    JJS_UNUSED (user_p); \
-    return jjs_pack_lib_load_from_source (NS ## _min_js, NS ## _min_js_len, BINDINGS); \
-  }
-
-#endif /* !JJS_SNAPSHOT_EXEC */
-
-jjs_value_t jjs_pack_lib_vmod_sz (const char* name_p, jjs_vmod_create_cb_t create_cb);
-
-jjs_value_t jjs_pack_lib_global_has (const char* id_p);
-
-#define JJS_UNUSED(x) (void)(x)
-#define JJS_HANDLER(NAME) jjs_value_t NAME (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], jjs_length_t args_cnt)
 
 #endif /* !JJS_PACK_LIB_H */

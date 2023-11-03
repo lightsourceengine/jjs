@@ -20,6 +20,7 @@
 
 #include "jjs-port.h"
 #include "jjs.h"
+#include "jjs-pack.h"
 
 #include "arguments/options.h"
 #include "jjs-ext/debugger.h"
@@ -45,6 +46,52 @@ main_init_random_seed (void)
 
   srand (now.u);
 } /* main_init_random_seed */
+
+static void
+main_init_import_packs (main_args_t *arguments_p)
+{
+#if JJS_PACK
+  uint32_t packs = arguments_p->packs;
+
+  if (packs == 0)
+  {
+    return;
+  }
+
+  if (packs == IMPORT_PACK_ALL)
+  {
+    jjs_pack_init ();
+    return;
+  }
+
+  if (packs & IMPORT_PACK_CONSOLE)
+  {
+    jjs_pack_console_init ();
+  }
+
+  if (packs & IMPORT_PACK_DOMEXCEPTION)
+  {
+    jjs_pack_domexception_init ();
+  }
+
+  if (packs & IMPORT_PACK_PATH)
+  {
+    jjs_pack_path_init ();
+  }
+
+  if (packs & IMPORT_PACK_PERFORMANCE)
+  {
+    jjs_pack_performance_init ();
+  }
+
+  if (packs & IMPORT_PACK_URL)
+  {
+    jjs_pack_url_init ();
+  }
+#else
+  (void) arguments_p;
+#endif /* JJS_PACK */
+} /* main_init_import_packs */
 
 /**
  * Initialize debugger
@@ -105,6 +152,8 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
   {
     jjsx_test262_register ();
   }
+
+  main_init_import_packs (arguments_p);
 
   jjsx_register_global ("assert", jjsx_handler_assert);
   jjsx_register_global ("gc", jjsx_handler_gc);
