@@ -24,6 +24,12 @@ function arrayEquals(actual, expected) {
   }
 }
 
+function assertEquals(actual, expected, message = undefined) {
+  if (!(actual === expected)) {
+    throw Error(`Assertion failed: ${message ?? `${actual} !== ${expected}`}`);
+  }
+}
+
 function assertThrows(type, fn) {
   try {
     fn();
@@ -35,5 +41,6 @@ function assertThrows(type, fn) {
 
 module.exports = {
   arrayEquals,
+  assertEquals,
   assertThrows,
 }

@@ -26,6 +26,8 @@ set(PACK_SOURCES
   path/jjs-pack-path-js.c
   performance/jjs-pack-performance.c
   performance/jjs-pack-performance-js.c
+  text/jjs-pack-text.c
+  text/jjs-pack-text-api-js.c
   url/jjs-pack-url.c
   url/jjs-pack-url-api-js.c
 )

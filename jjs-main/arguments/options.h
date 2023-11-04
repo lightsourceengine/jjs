@@ -86,12 +86,14 @@ typedef struct
 #define IMPORT_PACK_DOMEXCEPTION (1u << 1)
 #define IMPORT_PACK_PATH (1u << 2)
 #define IMPORT_PACK_PERFORMANCE (1u << 3)
-#define IMPORT_PACK_URL (1u << 4)
+#define IMPORT_PACK_TEXT (1u << 4)
+#define IMPORT_PACK_URL (1u << 5)
 
 #define IMPORT_PACK_ALL (IMPORT_PACK_CONSOLE | \
                          IMPORT_PACK_DOMEXCEPTION | \
                          IMPORT_PACK_PATH | \
                          IMPORT_PACK_PERFORMANCE | \
+                         IMPORT_PACK_TEXT | \
                          IMPORT_PACK_URL)
 
 bool main_parse_args (int argc, char **argv, main_args_t *arguments_p);

@@ -84,6 +84,11 @@ main_init_import_packs (main_args_t *arguments_p)
     jjs_pack_performance_init ();
   }
 
+  if (packs & IMPORT_PACK_TEXT)
+  {
+    jjs_pack_text_init ();
+  }
+
   if (packs & IMPORT_PACK_URL)
   {
     jjs_pack_url_init ();

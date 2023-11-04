@@ -37,6 +37,7 @@ jjs_pack_init (void)
   PACK_INIT (jjs_pack_domexception_init);
   PACK_INIT (jjs_pack_path_init);
   PACK_INIT (jjs_pack_performance_init);
+  PACK_INIT (jjs_pack_text_init);
   PACK_INIT (jjs_pack_url_init);
 
   return jjs_undefined ();

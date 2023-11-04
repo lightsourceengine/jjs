@@ -61,4 +61,5 @@ gen console console
 gen domexception domexception
 gen path path
 gen performance performance
+gen text text-api
 gen url url-api

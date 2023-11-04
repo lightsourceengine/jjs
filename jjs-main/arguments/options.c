@@ -99,7 +99,7 @@ static const cli_opt_t main_opts[] = {
   CLI_OPT_DEF (.id = OPT_PACK,
                .longopt = "pack",
                .meta = "STRING",
-               .help = "include a pack(age): all, console, domexception, path, performance, url"),
+               .help = "include a pack(age): all, console, domexception, path, performance, text, url"),
   CLI_OPT_DEF (.id = OPT_MODULE, .opt = "m", .longopt = "module", .meta = "FILE", .help = "execute module file"),
   CLI_OPT_DEF (.id = OPT_LOG_LEVEL, .longopt = "log-level", .meta = "NUM", .help = "set log level (0-3)"),
   CLI_OPT_DEF (.id = OPT_NO_PROMPT, .longopt = "no-prompt", .help = "don't print prompt in REPL mode"),
@@ -407,6 +407,10 @@ main_parse_args (int argc, /**< argc */
         else if (strcmp ("performance", value) == 0)
         {
           arguments_p->packs |= IMPORT_PACK_PERFORMANCE;
+        }
+        else if (strcmp ("text", value) == 0)
+        {
+          arguments_p->packs |= IMPORT_PACK_TEXT;
         }
         else if (strcmp ("url", value) == 0)
         {

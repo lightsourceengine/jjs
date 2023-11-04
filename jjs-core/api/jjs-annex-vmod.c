@@ -175,9 +175,7 @@ jjs_vmod_exists (jjs_value_t name)
 #if JJS_VMOD
   return ecma_is_value_string (name) ? jjs_annex_vmod_is_registered (name) : false;
 #else /* !JJS_VMOD */
-  JJS_UNUSED (name_p);
-  JJS_UNUSED (create_cb);
-  JJS_UNUSED (user_p);
+  JJS_UNUSED (name);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_VMOD */
 } /* jjs_vmod_exists */
@@ -201,8 +199,6 @@ jjs_vmod_exists_sz (const char* name_p)
   return result;
 #else /* !JJS_VMOD */
   JJS_UNUSED (name_p);
-  JJS_UNUSED (create_cb);
-  JJS_UNUSED (user_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_VMOD */
 } /* jjs_vmod_exists_sz */
