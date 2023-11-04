@@ -34,6 +34,7 @@ jjs_value_t jjs_pack_lib_vmod_sz (const char* name_p, jjs_vmod_create_cb_t creat
 
 jjs_value_t jjs_pack_lib_global_has_sz (const char* id_p);
 void jjs_pack_lib_global_set_sz (const char* id_p, jjs_value_t value);
+void jjs_pack_lib_add_is_windows (jjs_value_t object);
 
 #define JJS_UNUSED(x) (void)(x)
 #define JJS_HANDLER(NAME) \

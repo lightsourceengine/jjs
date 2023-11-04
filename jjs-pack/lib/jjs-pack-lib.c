@@ -36,6 +36,7 @@ jjs_pack_init (void)
   PACK_INIT (jjs_pack_console_init);
   PACK_INIT (jjs_pack_domexception_init);
   PACK_INIT (jjs_pack_path_init);
+  PACK_INIT (jjs_pack_path_url_init);
   PACK_INIT (jjs_pack_performance_init);
   PACK_INIT (jjs_pack_text_init);
   PACK_INIT (jjs_pack_url_init);
@@ -171,3 +172,16 @@ jjs_pack_lib_global_set_sz (const char* id_p, jjs_value_t value)
   jjs_value_free (jjs_object_set_sz (realm, id_p, value));
   jjs_value_free (realm);
 } /* jjs_pack_lib_global_set_sz */
+
+void
+jjs_pack_lib_add_is_windows (jjs_value_t object)
+{
+#if defined(_WIN32)
+  jjs_value_t is_windows = jjs_boolean (true);
+#else /* !_WIN32 */
+  jjs_value_t is_windows = jjs_boolean (false);
+#endif /* !_WIN32 */
+
+  jjs_value_free (jjs_object_set_sz (object, "isWindows", is_windows));
+  jjs_value_free (is_windows);
+} /* jjs_pack_lib_add_is_windows */

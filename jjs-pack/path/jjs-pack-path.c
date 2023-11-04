@@ -14,9 +14,9 @@
  */
 
 #include "jjs-pack.h"
-
 #include "jjs-port.h"
 #include "jjs-pack-lib.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -71,14 +71,8 @@ static jjs_value_t
 jjs_pack_path_bindings (void)
 {
   jjs_value_t bindings = jjs_object ();
-#if defined(_WIN32)
-  jjs_value_t is_windows = jjs_boolean (true);
-#else /* !_WIN32 */
-  jjs_value_t is_windows = jjs_boolean (false);
-#endif /* !_WIN32 */
 
-  jjs_value_free (jjs_object_set_sz (bindings, "isWindows", is_windows));
-  jjs_value_free (is_windows);
+  jjs_pack_lib_add_is_windows (bindings);
 
   jjs_value_t env = jjs_function_external (&jjs_pack_path_env);
   jjs_value_free (jjs_object_set_sz (bindings, "env", env));

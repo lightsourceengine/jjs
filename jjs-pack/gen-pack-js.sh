@@ -63,3 +63,4 @@ gen path path
 gen performance performance
 gen text text-api
 gen url url-api
+gen path-url path-url
