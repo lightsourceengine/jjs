@@ -79,7 +79,7 @@ static JJS_HANDLER (jjs_pack_console_now)
   return jjs_number ((double)(jjs_port_hrtime() - now_time_origin) / 1e6);
 } /* jjs_pack_console_now */
 
-jjs_value_t
+static jjs_value_t
 jjs_pack_console_bindings (void)
 {
   jjs_value_t bindings = jjs_object ();

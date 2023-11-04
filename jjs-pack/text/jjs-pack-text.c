@@ -157,7 +157,7 @@ static JJS_HANDLER (jjs_pack_text_decode_utf8)
   return result;
 } /* jjs_pack_text_decode_utf8 */
 
-jjs_value_t
+static jjs_value_t
 jjs_pack_text_bindings (void)
 {
   jjs_value_t bindings = jjs_object ();
@@ -391,7 +391,7 @@ utf8_decode (uint32_t* state, uint32_t* codep, uint32_t byte)
 {
   uint32_t type = utf8d[byte];
 
-  *codep = (*state > UTF8_REJECT) ? (byte & 0x3fu) | (*codep << 6) : (0xff >> type) & (byte);
+  *codep = (*state > UTF8_REJECT) ? (byte & 0x3fu) | (*codep << 6u) : (0xffu >> type) & (byte);
 
   *state = utf8d[256 + *state * 16 + type];
 

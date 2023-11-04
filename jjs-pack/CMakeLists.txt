@@ -37,6 +37,7 @@ set(PACK_SOURCES
 # Default jjs-pack implementation library
 add_library(${JJS_PACK_NAME} ${PACK_SOURCES})
 target_include_directories(${JJS_PACK_NAME} PRIVATE ${INCLUDE_CORE_PUBLIC} include lib)
+target_link_libraries(${JJS_PACK_NAME} jjs-core jjs-port)
 
 # Installation
 configure_file(libjjs-pack.pc.in libjjs-pack.pc @ONLY)

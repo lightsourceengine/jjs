@@ -39,7 +39,7 @@ test('fileURLToPath() should handle file host on windows', () => {
 });
 
 test('fileURLToPath() should throw TypeError when passed a file host on non-windows platforms', () => {
-  if (~isWindows) {
+  if (!isWindows) {
     assertThrows(TypeError, () => fileURLToPath(new URL('file://host/a')));
   }
 });
