@@ -20,7 +20,9 @@
 
 #include "jjs-port.h"
 #include "jjs.h"
+#if JJS_PACK
 #include "jjs-pack.h"
+#endif
 
 #include "arguments/options.h"
 #include "jjs-ext/debugger.h"

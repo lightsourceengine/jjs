@@ -16,6 +16,8 @@
 #include "jjs-pack-lib.h"
 #include "jjs-pack.h"
 
+#if JJS_PACK_PATH_URL
+
 JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_path_url)
 
 static JJS_HANDLER (jjs_pack_path_url_path)
@@ -51,8 +53,14 @@ jjs_pack_path_url_bindings (void)
 
 JJS_PACK_LIB_VMOD_SETUP (jjs_pack_path_url, &jjs_pack_path_url_bindings)
 
+#endif /* JJS_PACK_PATH_URL */
+
 jjs_value_t
 jjs_pack_path_url_init (void)
 {
+#if JJS_PACK_PATH_URL
   return jjs_pack_lib_vmod_sz ("jjs:path-url", &jjs_pack_path_url_vmod_setup);
+#else /* !JJS_PACK_PATH_URL */
+  return jjs_throw_sz (JJS_ERROR_COMMON, "path url pack is not enabled");
+#endif /* JJS_PACK_PATH_URL */
 } /* jjs_pack_path_url_init */

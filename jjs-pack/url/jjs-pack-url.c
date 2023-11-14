@@ -16,14 +16,19 @@
 #include "jjs-pack-lib.h"
 #include "jjs-pack.h"
 
+#if JJS_PACK_URL
+
 JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_url_api)
 
 static const char* URL_ID = "URL";
 static const char* URL_SEARCH_PARAMS_ID = "URLSearchParams";
 
+#endif /* JJS_PACK_URL */
+
 jjs_value_t
 jjs_pack_url_init (void)
 {
+#if JJS_PACK_URL
   if (jjs_pack_lib_global_has_sz (URL_ID))
   {
     return jjs_undefined ();
@@ -56,4 +61,7 @@ jjs_pack_url_init (void)
   jjs_value_free (api);
 
   return result;
+#else /* !JJS_PACK_URL */
+  return jjs_throw_sz (JJS_ERROR_COMMON, "url pack is not enabled");
+#endif /* JJS_PACK_URL */
 } /* jjs_pack_url_init */

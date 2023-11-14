@@ -28,6 +28,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JJS_CORE = os.path.join(ROOT_DIR, 'jjs-core')
 JJS_PORT = os.path.join(ROOT_DIR, 'jjs-port')
 JJS_MATH = os.path.join(ROOT_DIR, 'jjs-math')
+JJS_PACK = os.path.join(ROOT_DIR, 'jjs-pack')
 
 
 class Amalgamator(object):
@@ -300,6 +301,27 @@ def amalgamate_jjs_port(output_dir):
     )
 
 
+def amalgamate_jjs_pack(output_dir):
+    amalgamate(
+        base_dir=JJS_PACK,
+        output_file=os.path.join(output_dir, 'jjs-pack.c'),
+        append_c_files=True,
+        remove_includes=[
+            'jjs.h',
+            'jjs-port.h',
+            'jjs-pack-config.h',
+        ],
+        extra_includes=[
+            'jjs-pack.h',
+        ],
+    )
+
+    shutil.copyfile(os.path.join(JJS_PACK, 'include', 'jjs-pack.h'),
+                    os.path.join(output_dir, 'jjs-pack.h'))
+    shutil.copyfile(os.path.join(JJS_PACK, 'include', 'jjs-pack-config.h'),
+                    os.path.join(output_dir, 'jjs-pack-config.h'))
+
+
 def amalgamate_jjs_math(output_dir):
     amalgamate(
         base_dir=JJS_MATH,
@@ -318,6 +340,8 @@ def main():
                         help='amalgamate jjs-port files')
     parser.add_argument('--jjs-math', action='store_true',
                         help='amalgamate jjs-math files')
+    parser.add_argument('--jjs-pack', action='store_true',
+                        help='amalgamate jjs-pack files')
     parser.add_argument('--output-dir', metavar='DIR', default='amalgam',
                         help='output dir (default: %(default)s)')
     parser.add_argument('--verbose', '-v', action='store_true',
@@ -341,6 +365,9 @@ def main():
 
     if args.jjs_math:
         amalgamate_jjs_math(args.output_dir)
+
+    if args.jjs_pack:
+        amalgamate_jjs_pack(args.output_dir)
 
 
 if __name__ == '__main__':

@@ -203,7 +203,6 @@ endif()
 
 # Compiler / Linker flags
 if("${PLATFORM}" STREQUAL "DARWIN")
-  jjs_add_link_flags(-lSystem)
   set(CMAKE_C_ARCHIVE_CREATE "<CMAKE_AR> Sqc <TARGET> <LINK_FLAGS> <OBJECTS>")
   set(CMAKE_C_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
   set(CMAKE_SHARED_LINKER_FLAGS  "-undefined dynamic_lookup")

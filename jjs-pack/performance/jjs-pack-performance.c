@@ -14,13 +14,14 @@
  */
 
 #include "jjs-pack.h"
-
 #include "jjs-pack-lib.h"
 #include "jjs-port.h"
 
+#if JJS_PACK_PERFORMANCE
+
 JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_performance)
 static double time_origin = 0;
-static uint64_t now_time_origin = 0;
+static uint64_t performance_now_time_origin = 0;
 
 static JJS_HANDLER (jjs_pack_performance_now)
 {
@@ -28,7 +29,7 @@ static JJS_HANDLER (jjs_pack_performance_now)
   JJS_UNUSED (args_cnt);
   JJS_UNUSED (args_p);
 
-  return jjs_number ((double)(jjs_port_hrtime() - now_time_origin) / 1e6);
+  return jjs_number ((double)(jjs_port_hrtime() - performance_now_time_origin) / 1e6);
 } /* jjs_pack_performance_now */
 
 static jjs_value_t
@@ -47,15 +48,21 @@ jjs_pack_performance_bindings (void)
   return bindings;
 } /* jjs_pack_performance_bindings */
 
+#endif /* JJS_PACK_PERFORMANCE */
+
 jjs_value_t
 jjs_pack_performance_init (void)
 {
-  if (now_time_origin == 0)
+#if JJS_PACK_PERFORMANCE
+  if (performance_now_time_origin == 0)
   {
     jjs_port_hrtime ();
     time_origin = jjs_port_current_time ();
-    now_time_origin = jjs_port_hrtime ();
+    performance_now_time_origin = jjs_port_hrtime ();
   }
 
   return JJS_PACK_LIB_GLOBAL_SET ("performance", jjs_pack_performance, &jjs_pack_performance_bindings);
+#else /* !JJS_PACK_PERFORMANCE */
+  return jjs_throw_sz (JJS_ERROR_COMMON, "performance pack is not enabled");
+#endif /* JJS_PACK_PERFORMANCE */
 } /* jjs_pack_performance_init */

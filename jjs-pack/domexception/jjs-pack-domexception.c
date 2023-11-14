@@ -17,10 +17,16 @@
 
 #include "jjs-pack-lib.h"
 
+#if JJS_PACK_DOMEXCEPTION
 JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_domexception)
+#endif /* JJS_PACK_DOMEXCEPTION */
 
 jjs_value_t
 jjs_pack_domexception_init (void)
 {
+#if JJS_PACK_DOMEXCEPTION
   return JJS_PACK_LIB_GLOBAL_SET ("DOMException", jjs_pack_domexception, NULL);
+#else /* !JJS_PACK_DOMEXCEPTION */
+  return jjs_throw_sz (JJS_ERROR_COMMON, "domexception pack is not enabled");
+#endif /* JJS_PACK_DOMEXCEPTION */
 } /* jjs_pack_domexception_init */

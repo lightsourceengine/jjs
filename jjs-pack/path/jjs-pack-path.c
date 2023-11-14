@@ -14,11 +14,13 @@
  */
 
 #include "jjs-pack.h"
-#include "jjs-port.h"
 #include "jjs-pack-lib.h"
+#include "jjs-port.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+#if JJS_PACK_PATH
 
 JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_path)
 
@@ -87,8 +89,14 @@ jjs_pack_path_bindings (void)
 
 JJS_PACK_LIB_VMOD_SETUP (jjs_pack_path, &jjs_pack_path_bindings)
 
+#endif /* JJS_PACK_PATH */
+
 jjs_value_t
 jjs_pack_path_init (void)
 {
+#if JJS_PACK_PATH
   return jjs_pack_lib_vmod_sz ("jjs:path", &jjs_pack_path_vmod_setup);
+#else /* !JJS_PACK_PATH */
+  return jjs_throw_sz (JJS_ERROR_COMMON, "path pack is not enabled");
+#endif /* JJS_PACK_PATH */
 } /* jjs_pack_path_init */

@@ -32,12 +32,48 @@
 #define JJS_PACK_PATH JJS_PACK
 #endif /* !defined (JJS_PACK_PATH) */
 
+#ifndef JJS_PACK_PATH_URL
+#define JJS_PACK_PATH_URL JJS_PACK
+#endif /* !defined (JJS_PACK_PATH_URL) */
+
 #ifndef JJS_PACK_PERFORMANCE
 #define JJS_PACK_PERFORMANCE JJS_PACK
 #endif /* !defined (JJS_PACK_PERFORMANCE) */
 
+#ifndef JJS_PACK_TEXT
+#define JJS_PACK_TEXT JJS_PACK
+#endif /* !defined (JJS_PACK_TEXT) */
+
 #ifndef JJS_PACK_URL
 #define JJS_PACK_URL JJS_PACK
 #endif /* !defined (JJS_PACK_URL) */
+
+#if (JJS_PACK_CONSOLE != 0) && (JJS_PACK_CONSOLE != 1)
+#error "Invalid value for 'JJS_PACK_CONSOLE' macro."
+#endif /* (JJS_PACK_CONSOLE != 0) && (JJS_PACK_CONSOLE != 1) */
+
+#if (JJS_PACK_DOMEXCEPTION != 0) && (JJS_PACK_DOMEXCEPTION != 1)
+#error "Invalid value for 'JJS_PACK_DOMEXCEPTION' macro."
+#endif /* (JJS_PACK_DOMEXCEPTION != 0) && (JJS_PACK_DOMEXCEPTION != 1) */
+
+#if (JJS_PACK_PATH != 0) && (JJS_PACK_PATH != 1)
+#error "Invalid value for 'JJS_PACK_PATH' macro."
+#endif /* (JJS_PACK_PATH != 0) && (JJS_PACK_PATH != 1) */
+
+#if (JJS_PACK_PATH_URL != 0) && (JJS_PACK_PATH_URL != 1)
+#error "Invalid value for 'JJS_PACK_PATH_URL' macro."
+#endif /* (JJS_PACK_PATH_URL != 0) && (JJS_PACK_PATH_URL != 1) */
+
+#if (JJS_PACK_PERFORMANCE != 0) && (JJS_PACK_PERFORMANCE != 1)
+#error "Invalid value for 'JJS_PACK_PERFORMANCE' macro."
+#endif /* (JJS_PACK_PERFORMANCE != 0) && (JJS_PACK_PERFORMANCE != 1) */
+
+#if (JJS_PACK_TEXT != 0) && (JJS_PACK_TEXT != 1)
+#error "Invalid value for 'JJS_PACK_TEXT' macro."
+#endif /* (JJS_PACK_TEXT != 0) && (JJS_PACK_TEXT != 1) */
+
+#if (JJS_PACK_URL != 0) && (JJS_PACK_URL != 1)
+#error "Invalid value for 'JJS_PACK_URL' macro."
+#endif /* (JJS_PACK_URL != 0) && (JJS_PACK_URL != 1) */
 
 #endif /* !JJS_PACK_CONFIG_H */
