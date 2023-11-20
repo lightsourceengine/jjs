@@ -24,10 +24,19 @@
 
 const tests = []
 
-function test (description, fn, options = undefined) {
+function test(description, testFunctionOrOptions, testFunction) {
+  let options;
+
+  if (typeof testFunctionOrOptions === 'function') {
+    testFunction = testFunctionOrOptions
+    options = undefined
+  } else {
+    options = testFunctionOrOptions
+  }
+
   tests.push({
     description,
-    fn,
+    testFunction,
     options,
   })
 }

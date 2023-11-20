@@ -31,6 +31,12 @@
 #define platform_stat stat
 #endif
 
+#if sizeof(off_t) == 4
+#define JJS_PACK_FS_MAX_FILE_SIZE (INT32_MAX)
+#else
+#define JJS_PACK_FS_MAX_FILE_SIZE (UINT32_MAX)
+#endif
+
 #if !defined(EFTYPE)
 #define EFTYPE (4028)
 #endif
@@ -121,9 +127,9 @@ int fs_get_size (const char* path, uint32_t* size_p)
 
   if (result == 0)
   {
-    if (st.st_size <= UINT32_MAX)
+    if (st.st_size <= JJS_PACK_FS_MAX_FILE_SIZE)
     {
-      *size_p = (uint32_t) st.st_size;
+      *size_p = st.st_size < 0 ? 0 : (uint32_t) st.st_size;
     }
     else
     {
