@@ -31,6 +31,22 @@
 #define platform_stat stat
 #endif
 
+#if !defined(EFTYPE)
+#define EFTYPE (4028)
+#endif
+
+#if !defined(ESOCKTNOSUPPORT)
+#define ESOCKTNOSUPPORT (4025)
+#endif
+
+#if !defined(EHOSTDOWN)
+#define EHOSTDOWN (4031)
+#endif
+
+#if !defined(ESHUTDOWN)
+#define ESHUTDOWN (4042)
+#endif
+
 #define FS_ERRNO_MAP(XX)                                                      \
   XX(E2BIG, "argument list too long")                                         \
   XX(EACCES, "permission denied")                                             \
@@ -151,7 +167,7 @@ int fs_read(const char* path, uint8_t** buffer_p, uint32_t* buffer_size)
     }
 
     target_p = temp_p;
-    file_size += fread(target_p + file_size, 1, target_size - file_size, file_p);
+    file_size += (uint32_t) fread(target_p + file_size, 1, target_size - file_size, file_p);
 
     if (file_size == 0)
     {
