@@ -25,6 +25,9 @@ set(PACK_SOURCES
   console/jjs-pack-console-js.c
   domexception/jjs-pack-domexception.c
   domexception/jjs-pack-domexception-js.c
+  fs/fs.c
+  fs/jjs-pack-fs.c
+  fs/jjs-pack-fs-js.c
   lib/jjs-pack-lib.c
   path/jjs-pack-path.c
   path/jjs-pack-path-js.c

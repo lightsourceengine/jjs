@@ -13,25 +13,21 @@
  * limitations under the License.
  */
 
-#ifndef JJS_PACK_H
-#define JJS_PACK_H
+#ifndef FS_H
+#define FS_H
 
-#include "jjs.h"
-#include "jjs-pack-config.h"
+#include <stdint.h>
 
-JJS_C_API_BEGIN
+int fs_get_size (const char* path, uint32_t* size_p);
 
-jjs_value_t jjs_pack_init(void);
+int fs_read(const char* path, uint8_t** buffer_p, uint32_t* buffer_size);
+void fs_read_free(uint8_t* buffer_p);
 
-jjs_value_t jjs_pack_console_init(void);
-jjs_value_t jjs_pack_domexception_init(void);
-jjs_value_t jjs_pack_fs_init(void);
-jjs_value_t jjs_pack_path_init(void);
-jjs_value_t jjs_pack_path_url_init (void);
-jjs_value_t jjs_pack_performance_init(void);
-jjs_value_t jjs_pack_text_init(void);
-jjs_value_t jjs_pack_url_init(void);
+int fs_write (const char* path_p, uint8_t* buffer_p, uint32_t buffer_size, uint32_t* written_p);
+int fs_copy (const char* path_p, const char* source_p, uint32_t* written_p);
+int fs_remove (const char* path);
 
-JJS_C_API_END
+const char* fs_errno_to_string(int errno_value);
+const char* fs_errno_message(int errno_value);
 
-#endif /* !JJS_PACK_H */
+#endif /* !defined (FS_H) */

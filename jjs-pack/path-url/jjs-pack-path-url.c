@@ -43,10 +43,7 @@ jjs_pack_path_url_bindings (void)
   jjs_value_t bindings = jjs_object ();
 
   jjs_pack_lib_add_is_windows (bindings);
-
-  jjs_value_t path = jjs_function_external (&jjs_pack_path_url_path);
-  jjs_value_free (jjs_object_set_sz(bindings, "path", path));
-  jjs_value_free (path);
+  jjs_pack_lib_set_function_sz (bindings, "path", &jjs_pack_path_url_path);
 
   return bindings;
 } /* jjs_pack_path_url_bindings */

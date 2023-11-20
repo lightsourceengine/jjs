@@ -36,10 +36,8 @@ static jjs_value_t
 jjs_pack_performance_bindings (void)
 {
   jjs_value_t bindings = jjs_object ();
-  jjs_value_t now = jjs_function_external (jjs_pack_performance_now);
 
-  jjs_value_free (jjs_object_set_sz (bindings, "now", now));
-  jjs_value_free (now);
+  jjs_pack_lib_set_function_sz (bindings, "now", &jjs_pack_performance_now);
 
   jjs_value_t time_origin_value = jjs_number (time_origin);
   jjs_value_free (jjs_object_set_sz (bindings, "timeOrigin", time_origin_value));

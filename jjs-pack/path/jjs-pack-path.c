@@ -75,14 +75,8 @@ jjs_pack_path_bindings (void)
   jjs_value_t bindings = jjs_object ();
 
   jjs_pack_lib_add_is_windows (bindings);
-
-  jjs_value_t env = jjs_function_external (&jjs_pack_path_env);
-  jjs_value_free (jjs_object_set_sz (bindings, "env", env));
-  jjs_value_free (env);
-
-  jjs_value_t cwd = jjs_function_external (&jjs_pack_path_cwd);
-  jjs_value_free (jjs_object_set_sz (bindings, "cwd", cwd));
-  jjs_value_free (cwd);
+  jjs_pack_lib_set_function_sz (bindings, "env", &jjs_pack_path_env);
+  jjs_pack_lib_set_function_sz (bindings, "cwd", &jjs_pack_path_cwd);
 
   return bindings;
 } /* jjs_pack_path_bindings */

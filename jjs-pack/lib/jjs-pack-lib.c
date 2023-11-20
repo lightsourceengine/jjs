@@ -35,6 +35,7 @@ jjs_pack_init (void)
 {
   PACK_INIT (jjs_pack_console_init);
   PACK_INIT (jjs_pack_domexception_init);
+  PACK_INIT (jjs_pack_fs_init);
   PACK_INIT (jjs_pack_path_init);
   PACK_INIT (jjs_pack_path_url_init);
   PACK_INIT (jjs_pack_performance_init);
@@ -185,3 +186,10 @@ jjs_pack_lib_add_is_windows (jjs_value_t object)
   jjs_value_free (jjs_object_set_sz (object, "isWindows", is_windows));
   jjs_value_free (is_windows);
 } /* jjs_pack_lib_add_is_windows */
+
+void jjs_pack_lib_set_function_sz (jjs_value_t bindings, const char* name, jjs_external_handler_t handler)
+{
+  jjs_value_t function = jjs_function_external (handler);
+  jjs_value_free (jjs_object_set_sz (bindings, name, function));
+  jjs_value_free (function);
+}

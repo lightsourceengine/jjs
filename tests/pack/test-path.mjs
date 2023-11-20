@@ -16,7 +16,7 @@
 // check that path is importable
 import path from 'jjs:path';
 
-// heck that path is requirable
+// check that path is requirable
 const { basename } = require('jjs:path');
 
 const { test, runAllTests } = require('../lib/test.cjs');

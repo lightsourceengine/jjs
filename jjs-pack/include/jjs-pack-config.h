@@ -28,6 +28,10 @@
 #define JJS_PACK_DOMEXCEPTION JJS_PACK
 #endif /* !defined (JJS_PACK_DOMEXCEPTION) */
 
+#ifndef JJS_PACK_FS
+#define JJS_PACK_FS JJS_PACK
+#endif /* !defined (JJS_PACK_FS) */
+
 #ifndef JJS_PACK_PATH
 #define JJS_PACK_PATH JJS_PACK
 #endif /* !defined (JJS_PACK_PATH) */
@@ -55,6 +59,10 @@
 #if (JJS_PACK_DOMEXCEPTION != 0) && (JJS_PACK_DOMEXCEPTION != 1)
 #error "Invalid value for 'JJS_PACK_DOMEXCEPTION' macro."
 #endif /* (JJS_PACK_DOMEXCEPTION != 0) && (JJS_PACK_DOMEXCEPTION != 1) */
+
+#if (JJS_PACK_FS != 0) && (JJS_PACK_FS != 1)
+#error "Invalid value for 'JJS_PACK_FS' macro."
+#endif /* (JJS_PACK_FS != 0) && (JJS_PACK_FS != 1) */
 
 #if (JJS_PACK_PATH != 0) && (JJS_PACK_PATH != 1)
 #error "Invalid value for 'JJS_PACK_PATH' macro."

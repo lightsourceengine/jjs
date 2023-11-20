@@ -61,6 +61,7 @@ function gen {
 
 gen console console
 gen domexception domexception
+gen fs fs
 gen path path
 gen performance performance
 gen text text-api

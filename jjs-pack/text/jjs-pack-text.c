@@ -163,18 +163,10 @@ static jjs_value_t
 jjs_pack_text_bindings (void)
 {
   jjs_value_t bindings = jjs_object ();
-  jjs_value_t encode = jjs_function_external (jjs_pack_text_encode);
 
-  jjs_value_free (jjs_object_set_sz (bindings, "encode", encode));
-  jjs_value_free (encode);
-
-  jjs_value_t encode_into = jjs_function_external (jjs_pack_text_encode_into);
-  jjs_value_free (jjs_object_set_sz (bindings, "encodeInto", encode_into));
-  jjs_value_free (encode_into);
-
-  jjs_value_t decode_utf8 = jjs_function_external (jjs_pack_text_decode_utf8);
-  jjs_value_free (jjs_object_set_sz (bindings, "decodeUTF8", decode_utf8));
-  jjs_value_free (decode_utf8);
+  jjs_pack_lib_set_function_sz(bindings, "encode", jjs_pack_text_encode);
+  jjs_pack_lib_set_function_sz (bindings, "encodeInto", jjs_pack_text_encode_into);
+  jjs_pack_lib_set_function_sz (bindings, "decodeUTF8", jjs_pack_text_decode_utf8);
 
   return bindings;
 } /* jjs_pack_text_bindings */
