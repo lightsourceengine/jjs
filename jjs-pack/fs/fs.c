@@ -31,9 +31,11 @@
 #define platform_stat stat
 #endif
 
-#if sizeof(off_t) == 4
+#if UINTPTR_MAX == 0xffffffff
+// 32-bit
 #define JJS_PACK_FS_MAX_FILE_SIZE (INT32_MAX)
 #else
+// 64-bit
 #define JJS_PACK_FS_MAX_FILE_SIZE (UINT32_MAX)
 #endif
 

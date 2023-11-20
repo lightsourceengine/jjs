@@ -48,7 +48,7 @@ function runAllTests() {
     }
 
     try {
-      obj.fn()
+      obj.testFunction()
     } catch (e) {
       print(`Unhandled exception in test: "${obj.description}"`);
       print(`${e}`);

@@ -122,6 +122,22 @@ test('write() should write a buffer to file', () => {
   data.forEach((value, index) => assertEquals(contents[index], value));
 });
 
+test('write() should throw if destination path is not a string', () => {
+  for (const f of [null, undefined, {}, [], true, Symbol('test'), 123, NaN]) {
+    assertThrows(Error, () => write(null, 'test'));
+  }
+});
+
+test('write() should throw if destination path is an empty string', () => {
+  assertThrows(Error, () => write('', 'test'));
+});
+
+test('write() should throw if data is not a string or buffer', () => {
+  for (const f of [null, undefined, {}, [], true, Symbol('test'), 123, NaN]) {
+    assertThrows(Error, () => write('test', f));
+  }
+});
+
 function deleteFile(path) {
   try {
     file(path).remove();
