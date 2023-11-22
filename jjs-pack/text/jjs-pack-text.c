@@ -176,8 +176,8 @@ jjs_pack_text_arraybuffer (jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size
 {
   if (jjs_value_is_typedarray (buffer_like))
   {
-    jjs_length_t offset;
-    jjs_length_t length;
+    jjs_length_t offset = 0;
+    jjs_length_t length = 0;
 
     jjs_value_t array_buffer = jjs_typedarray_buffer (buffer_like, &offset, &length);
 
@@ -198,8 +198,8 @@ jjs_pack_text_arraybuffer (jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size
   }
   else if (jjs_value_is_dataview (buffer_like))
   {
-    jjs_length_t offset;
-    jjs_length_t length;
+    jjs_length_t offset = 0;
+    jjs_length_t length = 0;
 
     jjs_value_t array_buffer = jjs_dataview_buffer (buffer_like, &offset, &length);
 

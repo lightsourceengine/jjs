@@ -165,7 +165,7 @@ static JJS_HANDLER (jjs_pack_fs_size)
 
   JJS_ARG (path_value, 0, jjs_value_is_string);
 
-  uint32_t size;
+  uint32_t size = 0;
   int result;
 
   JJS_READ_STRING (path, path_value, 256);
