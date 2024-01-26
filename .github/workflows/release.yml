@@ -1,7 +1,6 @@
 name: jjs-release
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 env:
   JJS_TAG_PREFIX: jjs-4.3.0
@@ -91,7 +90,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - run: ./tools/build.py --amalgam ON
+      - run: ./tools/build.py --amalgam ON --jjs-pack ON
       - run: cd build && tar -czf amalgam.tgz amalgam && zip -r amalgam.zip amalgam
       - uses: actions/upload-artifact@v3.1.2
         if: success()
