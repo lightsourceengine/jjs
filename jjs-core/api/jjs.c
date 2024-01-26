@@ -2396,6 +2396,50 @@ jjs_value_as_uint32 (const jjs_value_t value) /**< input value */
 } /* jjs_value_as_uint32 */
 
 /**
+ * Get number from the specified value as a float.
+ *
+ * @return stored number as float
+ */
+float
+jjs_value_as_float (const jjs_value_t value)  /**< api value */
+{
+  jjs_assert_api_enabled ();
+
+  if (!ecma_is_value_number (value))
+  {
+    return 0;
+  }
+
+#if JJS_NUMBER_TYPE_FLOAT64
+  return (float) ecma_get_number_from_value (value);
+#else
+  return ecma_get_number_from_value (value);
+#endif
+} /* jjs_value_as_float */
+
+/**
+ * Get number from the specified value as a double.
+ *
+ * @return stored number as double
+ */
+double
+jjs_value_as_double (const jjs_value_t value)  /**< api value */
+{
+  jjs_assert_api_enabled ();
+
+  if (!ecma_is_value_number (value))
+  {
+    return 0;
+  }
+
+#if JJS_NUMBER_TYPE_FLOAT64
+  return ecma_get_number_from_value (value);
+#else
+  return (double) ecma_get_number_from_value (value);
+#endif
+} /* jjs_value_as_double */
+
+/**
  * Take additional ownership over the argument value.
  * The value will be copied by reference when possible, changes made to the new value will be reflected
  * in the original.
@@ -2652,6 +2696,74 @@ jjs_nan (void)
 
   return ecma_make_nan_value ();
 } /* jjs_nan */
+
+/**
+ * Creates a jjs_value_t representing a number value.
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *
+ * @return jjs_value_t created from the given float argument.
+ */
+jjs_value_t jjs_number_from_float (float value) /**< float value from which a jjs_value_t will be created */
+{
+  jjs_assert_api_enabled ();
+
+#if JJS_NUMBER_TYPE_FLOAT64
+  return ecma_make_number_value ((ecma_number_t) value);
+#else
+  return ecma_make_number_value (value);
+#endif
+} /* jjs_number_from_float */
+
+/**
+ * Creates a jjs_value_t representing a number value.
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *
+ * @return jjs_value_t created from the given double argument.
+ */
+jjs_value_t jjs_number_from_double (double value) /**< double value from which a jjs_value_t will be created */
+{
+  jjs_assert_api_enabled ();
+
+#if JJS_NUMBER_TYPE_FLOAT64
+  return ecma_make_number_value (value);
+#else
+  return ecma_make_number_value ((ecma_number_t) value);
+#endif
+} /* jjs_number_from_double */
+
+/**
+ * Creates a jjs_value_t representing a number value.
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *
+ * @return jjs_value_t created from the given integer argument.
+ */
+jjs_value_t jjs_number_from_int32 (int32_t value) /**< int value from which a jjs_value_t will be created */
+{
+  jjs_assert_api_enabled ();
+
+  return ecma_make_int32_value (value);
+} /* jjs_number_from_int32 */
+
+/**
+ * Creates a jjs_value_t representing a number value.
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *
+ * @return jjs_value_t created from the given unsigned argument.
+ */
+jjs_value_t jjs_number_from_uint32 (uint32_t value) /**< unsigned value from which a jjs_value_t will be created */
+{
+  jjs_assert_api_enabled ();
+
+  return ecma_make_uint32_value (value);
+} /* jjs_number_from_uint32 */
 
 /**
  * Creates a jjs_value_t representing an undefined value.

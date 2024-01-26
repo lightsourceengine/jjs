@@ -231,6 +231,9 @@ double jjs_value_as_number (const jjs_value_t value);
 double jjs_value_as_integer (const jjs_value_t value);
 int32_t jjs_value_as_int32 (const jjs_value_t value);
 uint32_t jjs_value_as_uint32 (const jjs_value_t value);
+float jjs_value_as_float (const jjs_value_t value);
+double jjs_value_as_double (const jjs_value_t value);
+
 /**
  * jjs-api-value-coerce @}
  */
@@ -376,6 +379,11 @@ jjs_value_t JJS_ATTR_CONST jjs_boolean (bool value);
 jjs_value_t jjs_number (double value);
 jjs_value_t jjs_infinity (bool sign);
 jjs_value_t jjs_nan (void);
+
+jjs_value_t jjs_number_from_float (float value);
+jjs_value_t jjs_number_from_double (double value);
+jjs_value_t jjs_number_from_int32 (int32_t value);
+jjs_value_t jjs_number_from_uint32 (uint32_t value);
 
 /**
  * jjs-api-number-ctor @}

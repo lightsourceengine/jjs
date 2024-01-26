@@ -39,13 +39,13 @@ test_to_int32 (double input, int32_t test_number)
 
 // basic toInteger tester method
 static void
-test_to_interger (double input, double test_number)
+test_to_integer (double input, double test_number)
 {
   jjs_value_t number_val = jjs_number (input);
   double double_number = jjs_value_as_integer (number_val);
   TEST_ASSERT (double_number == test_number);
   jjs_value_free (number_val);
-} /* test_to_interger */
+} /* test_to_integer */
 
 int
 main (void)
@@ -97,22 +97,22 @@ main (void)
   test_to_int32 (2147483649, -2147483647);
 
   // few toInteger test-cases
-  test_to_interger (1.0, 1.0);
-  test_to_interger (0.0, 0.0);
-  test_to_interger (NAN, 0);
-  test_to_interger (-NAN, 0);
-  test_to_interger (INFINITY, INFINITY);
-  test_to_interger (-INFINITY, -INFINITY);
-  test_to_interger (0.1, 0);
-  test_to_interger (-0.1, -0);
-  test_to_interger (1.1, 1);
-  test_to_interger (-1.1, -1);
-  test_to_interger (4294967295, 4294967295);
-  test_to_interger (-4294967295, -4294967295);
-  test_to_interger (4294967295, 4294967295);
-  test_to_interger (-4294967296, -4294967296);
-  test_to_interger (4294967297, 4294967297);
-  test_to_interger (-4294967297, -4294967297);
+  test_to_integer (1.0, 1.0);
+  test_to_integer (0.0, 0.0);
+  test_to_integer (NAN, 0);
+  test_to_integer (-NAN, 0);
+  test_to_integer (INFINITY, INFINITY);
+  test_to_integer (-INFINITY, -INFINITY);
+  test_to_integer (0.1, 0);
+  test_to_integer (-0.1, -0);
+  test_to_integer (1.1, 1);
+  test_to_integer (-1.1, -1);
+  test_to_integer (4294967295, 4294967295);
+  test_to_integer (-4294967295, -4294967295);
+  test_to_integer (4294967295, 4294967295);
+  test_to_integer (-4294967296, -4294967296);
+  test_to_integer (4294967297, 4294967297);
+  test_to_integer (-4294967297, -4294967297);
 
   // few test-cases which return with error
   jjs_value_t error_val = jjs_throw_sz (JJS_ERROR_TYPE, "error");
