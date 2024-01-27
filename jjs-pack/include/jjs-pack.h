@@ -21,16 +21,17 @@
 
 JJS_C_API_BEGIN
 
-jjs_value_t jjs_pack_init(void);
+jjs_value_t jjs_pack_init (void);
+void jjs_pack_init_unsafe (void);
 
-jjs_value_t jjs_pack_console_init(void);
-jjs_value_t jjs_pack_domexception_init(void);
-jjs_value_t jjs_pack_fs_init(void);
-jjs_value_t jjs_pack_path_init(void);
+jjs_value_t jjs_pack_console_init (void);
+jjs_value_t jjs_pack_domexception_init (void);
+jjs_value_t jjs_pack_fs_init (void);
+jjs_value_t jjs_pack_path_init (void);
 jjs_value_t jjs_pack_path_url_init (void);
-jjs_value_t jjs_pack_performance_init(void);
-jjs_value_t jjs_pack_text_init(void);
-jjs_value_t jjs_pack_url_init(void);
+jjs_value_t jjs_pack_performance_init (void);
+jjs_value_t jjs_pack_text_init (void);
+jjs_value_t jjs_pack_url_init (void);
 
 JJS_C_API_END
 

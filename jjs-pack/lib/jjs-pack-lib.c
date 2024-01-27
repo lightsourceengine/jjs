@@ -45,6 +45,12 @@ jjs_pack_init (void)
   return jjs_undefined ();
 } /* jjs_pack_init */
 
+void
+jjs_pack_init_unsafe (void)
+{
+  jjs_value_free (jjs_pack_init ());
+} /* jjs_pack_init_unsafe */
+
 jjs_value_t
 jjs_pack_lib_load_from_snapshot (uint8_t* source, jjs_size_t source_size, jjs_pack_bindings_cb_t bindings, bool vmod_wrap)
 {

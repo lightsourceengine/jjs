@@ -62,43 +62,43 @@ main_init_import_packs (main_args_t *arguments_p)
 
   if (packs == IMPORT_PACK_ALL)
   {
-    jjs_pack_init ();
+    jjs_pack_init_unsafe ();
     return;
   }
 
   if (packs & IMPORT_PACK_CONSOLE)
   {
-    jjs_pack_console_init ();
+    jjs_value_free (jjs_pack_console_init ());
   }
 
   if (packs & IMPORT_PACK_DOMEXCEPTION)
   {
-    jjs_pack_domexception_init ();
+    jjs_value_free (jjs_pack_domexception_init ());
   }
 
   if (packs & IMPORT_PACK_PATH)
   {
-    jjs_pack_path_init ();
+    jjs_value_free (jjs_pack_path_init ());
   }
 
   if (packs & IMPORT_PACK_PATH_URL)
   {
-    jjs_pack_path_url_init ();
+    jjs_value_free (jjs_pack_path_url_init ());
   }
 
   if (packs & IMPORT_PACK_PERFORMANCE)
   {
-    jjs_pack_performance_init ();
+    jjs_value_free (jjs_pack_performance_init ());
   }
 
   if (packs & IMPORT_PACK_TEXT)
   {
-    jjs_pack_text_init ();
+    jjs_value_free (jjs_pack_text_init ());
   }
 
   if (packs & IMPORT_PACK_URL)
   {
-    jjs_pack_url_init ();
+    jjs_value_free (jjs_pack_url_init ());
   }
 #else
   (void) arguments_p;
