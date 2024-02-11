@@ -21,6 +21,9 @@
 
 #include "jjs-port.h"
 #include "jjs.h"
+#if JJS_PACK
+#include "jjs-pack.h"
+#endif
 
 #include "cli.h"
 #include "jjs-ext/print.h"
@@ -386,44 +389,52 @@ main_parse_args (int argc, /**< argc */
       }
       case OPT_PACK:
       {
+        #if JJS_PACK
         const char* value = cli_consume_string(&cli_state);
 
         if (strcmp ("all", value) == 0)
         {
-          arguments_p->packs = IMPORT_PACK_ALL;
+          arguments_p->packs = JJS_PACK_INIT_ALL;
         }
         else if (strcmp ("console", value) == 0)
         {
-          arguments_p->packs |= IMPORT_PACK_CONSOLE;
+          arguments_p->packs |= JJS_PACK_INIT_CONSOLE;
         }
         else if (strcmp ("domexception", value) == 0)
         {
-          arguments_p->packs |= IMPORT_PACK_DOMEXCEPTION;
+          arguments_p->packs |= JJS_PACK_INIT_DOMEXCEPTION;
+        }
+        else if (strcmp ("fs", value) == 0)
+        {
+          arguments_p->packs |= JJS_PACK_INIT_FS;
         }
         else if (strcmp ("path", value) == 0)
         {
-          arguments_p->packs |= IMPORT_PACK_PATH;
+          arguments_p->packs |= JJS_PACK_INIT_PATH;
         }
         else if (strcmp ("path-url", value) == 0)
         {
-          arguments_p->packs |= IMPORT_PACK_PATH_URL;
+          arguments_p->packs |= JJS_PACK_INIT_PATH_URL;
         }
         else if (strcmp ("performance", value) == 0)
         {
-          arguments_p->packs |= IMPORT_PACK_PERFORMANCE;
+          arguments_p->packs |= JJS_PACK_INIT_PERFORMANCE;
         }
         else if (strcmp ("text", value) == 0)
         {
-          arguments_p->packs |= IMPORT_PACK_TEXT;
+          arguments_p->packs |= JJS_PACK_INIT_TEXT;
         }
         else if (strcmp ("url", value) == 0)
         {
-          arguments_p->packs |= IMPORT_PACK_URL;
+          arguments_p->packs |= JJS_PACK_INIT_URL;
         }
         else
         {
           cli_state.error = "Invalid value for --pack";
         }
+        #else
+        cli_state.error = "--pack feature has been disabled in this build";
+        #endif
         break;
       }
       case CLI_OPT_DEFAULT:

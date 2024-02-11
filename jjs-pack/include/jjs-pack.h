@@ -21,17 +21,19 @@
 
 JJS_C_API_BEGIN
 
-jjs_value_t jjs_pack_init (void);
-void jjs_pack_init_unsafe (void);
+#define JJS_PACK_INIT_ALL           (0xFFFFFFFF)
+#define JJS_PACK_INIT_CONSOLE       (1u)
+#define JJS_PACK_INIT_DOMEXCEPTION  (1u << 1)
+#define JJS_PACK_INIT_FS            (1u << 2)
+#define JJS_PACK_INIT_PATH          (1u << 3)
+#define JJS_PACK_INIT_PATH_URL      (1u << 4)
+#define JJS_PACK_INIT_PERFORMANCE   (1u << 5)
+#define JJS_PACK_INIT_TEXT          (1u << 6)
+#define JJS_PACK_INIT_URL           (1u << 7)
 
-jjs_value_t jjs_pack_console_init (void);
-jjs_value_t jjs_pack_domexception_init (void);
-jjs_value_t jjs_pack_fs_init (void);
-jjs_value_t jjs_pack_path_init (void);
-jjs_value_t jjs_pack_path_url_init (void);
-jjs_value_t jjs_pack_performance_init (void);
-jjs_value_t jjs_pack_text_init (void);
-jjs_value_t jjs_pack_url_init (void);
+void jjs_pack_init (uint32_t init_flags);
+jjs_value_t jjs_pack_init_with_result (uint32_t init_flags);
+bool jjs_pack_is_initialized (uint32_t init_flags);
 
 JJS_C_API_END
 

@@ -17,42 +17,70 @@
 
 #include "jjs-pack.h"
 
-#define PACK_INIT(INIT)                  \
-  do                                     \
-  {                                      \
-    jjs_value_t result = INIT ();        \
-    if (jjs_value_is_exception (result)) \
-    {                                    \
-      return result;                     \
-    }                                    \
-    jjs_value_free (result);             \
+#define PACK_INIT_BLOCK(FLAGS, NAME, INIT_FN)                                                   \
+  do                                                                                            \
+  {                                                                                             \
+    if ((FLAGS) &JJS_PACK_INIT_##NAME)                                                          \
+    {                                                                                           \
+      if ((g_pack_inits & JJS_PACK_INIT_##NAME) != 0)                                           \
+      {                                                                                         \
+        return jjs_throw_sz (JJS_ERROR_TYPE, #NAME " pack(age) has already been initialized."); \
+      }                                                                                         \
+      jjs_value_t result = INIT_FN ();                                                          \
+      if (jjs_value_is_exception (result))                                                      \
+      {                                                                                         \
+        return result;                                                                          \
+      }                                                                                         \
+      jjs_value_free (result);                                                                  \
+      g_pack_inits |= JJS_PACK_INIT_##NAME;                                                     \
+    }                                                                                           \
   } while (0)
+
+jjs_value_t jjs_pack_console_init (void);
+jjs_value_t jjs_pack_domexception_init (void);
+jjs_value_t jjs_pack_fs_init (void);
+jjs_value_t jjs_pack_path_init (void);
+jjs_value_t jjs_pack_path_url_init (void);
+jjs_value_t jjs_pack_performance_init (void);
+jjs_value_t jjs_pack_text_init (void);
+jjs_value_t jjs_pack_url_init (void);
 
 static jjs_value_t jjs_pack_lib_run_module (jjs_value_t fn, jjs_pack_bindings_cb_t bindings);
 
-jjs_value_t
-jjs_pack_init (void)
-{
-  PACK_INIT (jjs_pack_console_init);
-  PACK_INIT (jjs_pack_domexception_init);
-  PACK_INIT (jjs_pack_fs_init);
-  PACK_INIT (jjs_pack_path_init);
-  PACK_INIT (jjs_pack_path_url_init);
-  PACK_INIT (jjs_pack_performance_init);
-  PACK_INIT (jjs_pack_text_init);
-  PACK_INIT (jjs_pack_url_init);
-
-  return jjs_undefined ();
-} /* jjs_pack_init */
+static uint32_t g_pack_inits = 0;
 
 void
-jjs_pack_init_unsafe (void)
+jjs_pack_init (uint32_t init_flags)
 {
-  jjs_value_free (jjs_pack_init ());
-} /* jjs_pack_init_unsafe */
+  jjs_value_free (jjs_pack_init_with_result (init_flags));
+} /* jjs_pack_init */
 
 jjs_value_t
-jjs_pack_lib_load_from_snapshot (uint8_t* source, jjs_size_t source_size, jjs_pack_bindings_cb_t bindings, bool vmod_wrap)
+jjs_pack_init_with_result (uint32_t init_flags)
+{
+  PACK_INIT_BLOCK (init_flags, CONSOLE, jjs_pack_console_init);
+  PACK_INIT_BLOCK (init_flags, DOMEXCEPTION, jjs_pack_domexception_init);
+  PACK_INIT_BLOCK (init_flags, FS, jjs_pack_fs_init);
+  PACK_INIT_BLOCK (init_flags, PATH, jjs_pack_path_init);
+  PACK_INIT_BLOCK (init_flags, PATH_URL, jjs_pack_path_url_init);
+  PACK_INIT_BLOCK (init_flags, PERFORMANCE, jjs_pack_performance_init);
+  PACK_INIT_BLOCK (init_flags, TEXT, jjs_pack_text_init);
+  PACK_INIT_BLOCK (init_flags, URL, jjs_pack_url_init);
+
+  return jjs_boolean (true);
+} /* jjs_pack_init_with_result */
+
+bool
+jjs_pack_is_initialized (uint32_t init_flags)
+{
+  return (g_pack_inits & init_flags) != 0;
+} /* jjs_pack_is_initialized */
+
+jjs_value_t
+jjs_pack_lib_load_from_snapshot (uint8_t* source,
+                                 jjs_size_t source_size,
+                                 jjs_pack_bindings_cb_t bindings,
+                                 bool vmod_wrap)
 {
   jjs_value_t fn =
     jjs_exec_snapshot ((const uint32_t*) source, source_size, 0, JJS_SNAPSHOT_EXEC_LOAD_AS_FUNCTION, NULL);
@@ -68,10 +96,10 @@ jjs_pack_lib_load_from_snapshot (uint8_t* source, jjs_size_t source_size, jjs_pa
 
   if (vmod_wrap && !jjs_value_is_exception (result))
   {
-    jjs_value_t wrap = jjs_object();
+    jjs_value_t wrap = jjs_object ();
 
-    jjs_value_free(jjs_object_set_sz(wrap, "exports", result));
-    jjs_value_free(result);
+    jjs_value_free (jjs_object_set_sz (wrap, "exports", result));
+    jjs_value_free (result);
     result = wrap;
   }
 
@@ -193,7 +221,8 @@ jjs_pack_lib_add_is_windows (jjs_value_t object)
   jjs_value_free (is_windows);
 } /* jjs_pack_lib_add_is_windows */
 
-void jjs_pack_lib_set_function_sz (jjs_value_t bindings, const char* name, jjs_external_handler_t handler)
+void
+jjs_pack_lib_set_function_sz (jjs_value_t bindings, const char* name, jjs_external_handler_t handler)
 {
   jjs_value_t function = jjs_function_external (handler);
   jjs_value_free (jjs_object_set_sz (bindings, name, function));

@@ -53,53 +53,7 @@ static void
 main_init_import_packs (main_args_t *arguments_p)
 {
 #if JJS_PACK
-  uint32_t packs = arguments_p->packs;
-
-  if (packs == 0)
-  {
-    return;
-  }
-
-  if (packs == IMPORT_PACK_ALL)
-  {
-    jjs_pack_init_unsafe ();
-    return;
-  }
-
-  if (packs & IMPORT_PACK_CONSOLE)
-  {
-    jjs_value_free (jjs_pack_console_init ());
-  }
-
-  if (packs & IMPORT_PACK_DOMEXCEPTION)
-  {
-    jjs_value_free (jjs_pack_domexception_init ());
-  }
-
-  if (packs & IMPORT_PACK_PATH)
-  {
-    jjs_value_free (jjs_pack_path_init ());
-  }
-
-  if (packs & IMPORT_PACK_PATH_URL)
-  {
-    jjs_value_free (jjs_pack_path_url_init ());
-  }
-
-  if (packs & IMPORT_PACK_PERFORMANCE)
-  {
-    jjs_value_free (jjs_pack_performance_init ());
-  }
-
-  if (packs & IMPORT_PACK_TEXT)
-  {
-    jjs_value_free (jjs_pack_text_init ());
-  }
-
-  if (packs & IMPORT_PACK_URL)
-  {
-    jjs_value_free (jjs_pack_url_init ());
-  }
+  jjs_pack_init (arguments_p->packs);
 #else
   (void) arguments_p;
 #endif /* JJS_PACK */
