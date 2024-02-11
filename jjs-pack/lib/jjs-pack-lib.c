@@ -36,15 +36,6 @@
     }                                                                                           \
   } while (0)
 
-jjs_value_t jjs_pack_console_init (void);
-jjs_value_t jjs_pack_domexception_init (void);
-jjs_value_t jjs_pack_fs_init (void);
-jjs_value_t jjs_pack_path_init (void);
-jjs_value_t jjs_pack_path_url_init (void);
-jjs_value_t jjs_pack_performance_init (void);
-jjs_value_t jjs_pack_text_init (void);
-jjs_value_t jjs_pack_url_init (void);
-
 static jjs_value_t jjs_pack_lib_run_module (jjs_value_t fn, jjs_pack_bindings_cb_t bindings);
 
 static uint32_t g_pack_inits = 0;
