@@ -304,7 +304,7 @@ typedef ecma_value_t (*ecma_native_handler_t) (const struct jjs_call_info_t *cal
 typedef struct
 {
   void *native_p; /**< points to the data of the object */
-  jjs_object_native_info_t *native_info_p; /**< native info */
+  const jjs_object_native_info_t *native_info_p; /**< native info */
 } ecma_native_pointer_t;
 
 /**

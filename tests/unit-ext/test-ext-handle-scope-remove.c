@@ -26,7 +26,7 @@ static int native_free_cb_call_count;
 
 static void
 native_free_cb (void *native_p, /**< native pointer */
-                jjs_object_native_info_t *info_p) /**< native info */
+                const jjs_object_native_info_t *info_p) /**< native info */
 {
   (void) native_p;
   (void) info_p;

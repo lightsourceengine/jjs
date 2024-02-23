@@ -29,7 +29,7 @@
 #if JJS_COMMONJS
 
 static jjs_value_t create_require_from_directory (jjs_value_t referrer_path);
-static void referrer_path_free (void *native_p, struct jjs_object_native_info_t *info_p);
+static void referrer_path_free (void *native_p, const jjs_object_native_info_t *info_p);
 static ecma_value_t create_module (ecma_value_t filename);
 static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecma_value_t format);
 static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_value_t source);
@@ -148,7 +148,7 @@ static jjs_value_t create_require_from_directory (jjs_value_t referrer_path)
 /**
  * Free the native pointer stored in the require or resolve function object.
  */
-static void referrer_path_free (void *native_p, struct jjs_object_native_info_t *info_p)
+static void referrer_path_free (void *native_p, const jjs_object_native_info_t *info_p)
 {
   (void) info_p;
   ecma_free_value ((ecma_value_t)(uintptr_t)native_p);

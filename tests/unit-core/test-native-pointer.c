@@ -23,7 +23,7 @@ static int global_counter = 0;
 
 static void
 native_free_callback (void *native_p, /**< native pointer */
-                      jjs_object_native_info_t *info_p) /**< native info */
+                      const jjs_object_native_info_t *info_p) /**< native info */
 {
   (void) native_p;
   TEST_ASSERT (info_p->free_cb == native_free_callback);
@@ -65,7 +65,7 @@ static int call_count = 0;
 
 static void
 native_references_free_callback (void *native_p, /**< native pointer */
-                                 jjs_object_native_info_t *info_p) /**< native info */
+                                 const jjs_object_native_info_t *info_p) /**< native info */
 {
   test_references_t *refs_p = (test_references_t *) native_p;
 

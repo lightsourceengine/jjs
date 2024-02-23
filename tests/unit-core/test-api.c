@@ -104,7 +104,7 @@ handler_throw_test (const jjs_call_info_t *call_info_p, /**< call information */
 
 static void
 handler_construct_1_freecb (void *native_p, /**< native pointer */
-                            jjs_object_native_info_t *info_p) /**< native info */
+                            const jjs_object_native_info_t *info_p) /**< native info */
 {
   TEST_ASSERT ((uintptr_t) native_p == (uintptr_t) 0x0000000000000000ull);
   TEST_ASSERT (info_p->free_cb == handler_construct_1_freecb);
@@ -115,7 +115,7 @@ handler_construct_1_freecb (void *native_p, /**< native pointer */
 
 static void
 handler_construct_2_freecb (void *native_p, /**< native pointer */
-                            jjs_object_native_info_t *info_p) /**< native info */
+                            const jjs_object_native_info_t *info_p) /**< native info */
 {
   TEST_ASSERT ((uintptr_t) native_p == (uintptr_t) 0x0012345678abcdefull);
   TEST_ASSERT (info_p->free_cb == handler_construct_2_freecb);

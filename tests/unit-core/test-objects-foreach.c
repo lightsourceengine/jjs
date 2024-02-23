@@ -135,7 +135,7 @@ static int test_data = 1;
 
 static void
 free_test_data (void *native_p, /**< native pointer */
-                jjs_object_native_info_t *info_p) /**< native info */
+                const jjs_object_native_info_t *info_p) /**< native info */
 {
   TEST_ASSERT ((int *) native_p == &test_data);
   TEST_ASSERT (info_p->free_cb == free_test_data);

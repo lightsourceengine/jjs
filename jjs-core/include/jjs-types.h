@@ -327,7 +327,7 @@ struct jjs_object_native_info_t;
 /**
  * Native free callback of an object.
  */
-typedef void (*jjs_object_native_free_cb_t) (void *native_p, struct jjs_object_native_info_t *info_p);
+typedef void (*jjs_object_native_free_cb_t) (void *native_p, const struct jjs_object_native_info_t *info_p);
 
 /**
  * Free callback for external strings.

@@ -142,7 +142,7 @@ ecma_create_native_pointer_property (ecma_object_t *obj_p, /**< object to create
   }
 
   native_pointer_p->native_p = native_p;
-  native_pointer_p->native_info_p = (jjs_object_native_info_t *) native_info_p;
+  native_pointer_p->native_info_p = native_info_p;
 
   return is_new;
 } /* ecma_create_native_pointer_property */

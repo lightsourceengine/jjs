@@ -151,7 +151,7 @@ struct test_data
 
 static void
 proxy_native_freecb (void *native_p, /**< native pointer */
-                     jjs_object_native_info_t *info_p) /**< native info */
+                     const jjs_object_native_info_t *info_p) /**< native info */
 {
   TEST_ASSERT (native_p != NULL);
   TEST_ASSERT (info_p->free_cb == proxy_native_freecb);

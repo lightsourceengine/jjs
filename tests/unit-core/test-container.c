@@ -21,7 +21,7 @@ static int global_counter;
 
 static void
 native_free_callback (void *native_p, /**< native pointer */
-                      jjs_object_native_info_t *info_p) /**< native info */
+                      const jjs_object_native_info_t *info_p) /**< native info */
 {
   TEST_ASSERT (native_p == (void *) &global_counter);
   TEST_ASSERT (info_p->free_cb == native_free_callback);

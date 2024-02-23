@@ -425,7 +425,7 @@ ecma_gc_mark_properties (ecma_object_t *object_p, /**< object */
 
           do
           {
-            jjs_object_native_info_t *native_info_p = item_p->native_info_p;
+            const jjs_object_native_info_t *native_info_p = item_p->native_info_p;
 
             JJS_ASSERT (native_info_p != NULL && native_info_p->number_of_references > 0);
 
