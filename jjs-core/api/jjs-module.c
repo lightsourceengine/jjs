@@ -1018,24 +1018,25 @@ static jjs_value_t
 user_value_to_path (jjs_value_t user_value)
 {
   annex_specifier_type_t path_type = annex_path_specifier_type (user_value);
-  jjs_value_t filename;
+  jjs_value_t result;
 
   if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
   {
-    filename = annex_path_normalize (user_value);
+    result = annex_path_dirname (user_value);
   }
   else if (path_type == ANNEX_SPECIFIER_TYPE_FILE_URL)
   {
-    filename = annex_path_from_file_url (user_value);
+    result = annex_path_dirname(annex_path_from_file_url (user_value));
   }
   else
   {
-    filename = ECMA_VALUE_EMPTY;
+    // if no absolute path, ignore user_value contents and use the cwd.
+    //
+    // when using jjs_parse, the caller may forget to set user_value, they need to contrive a fake absolute
+    // path (for parsing an in mem string) or the absolute path needs to be built. if user_value is not set,
+    // cwd is a reasonable default value for most use cases.
+    result = annex_path_cwd ();
   }
-
-  jjs_value_t result = annex_path_dirname (filename);
-
-  jjs_value_free (filename);
 
   if (!jjs_value_is_string (result))
   {

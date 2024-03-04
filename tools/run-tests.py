@@ -322,15 +322,16 @@ def iterate_test_runner_jobs(jobs, options):
 
         yield job, ret_build, test_cmd
 
-def run_check(runnable, env=None):
+def run_check(runnable, env=None, cwd=None):
     report_command('Test command:', runnable, env=env)
 
     if env is not None:
         full_env = dict(os.environ)
         full_env.update(env)
         env = full_env
+
     kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
-    proc = subprocess.Popen(runnable, env=env, **kwargs)
+    proc = subprocess.Popen(runnable, cwd=cwd, env=env, **kwargs)
     proc.wait()
     return proc.returncode
 
@@ -487,7 +488,8 @@ def run_unittests(options):
             [settings.UNITTEST_RUNNER_SCRIPT] +
             (["--skip-list=" + options.skip_list] if options.skip_list else []) +
             [os.path.join(build_dir_path, 'tests', build_config)] +
-            (["-q"] if options.quiet else [])
+            (["-q"] if options.quiet else []),
+            cwd=settings.TESTS_DIR
         )
 
     return ret_build | ret_test

@@ -19,6 +19,7 @@ from os import path
 TOOLS_DIR = path.dirname(path.abspath(__file__))
 PROJECT_DIR = path.normpath(path.join(TOOLS_DIR, '..'))
 DEBUGGER_TESTS_DIR = path.join(PROJECT_DIR, 'tests/debugger')
+TESTS_DIR = path.join(PROJECT_DIR, 'tests')
 JJS_TESTS_DIR = path.join(PROJECT_DIR, 'tests/jjs')
 JJS_PACK_TESTS_DIR = path.join(PROJECT_DIR, 'tests/pack')
 TEST262_TEST_SUITE_DIR = path.join(PROJECT_DIR, 'tests/test262')
