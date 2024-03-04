@@ -55,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: $RUNNER -q --jjs-tests --build-debug
-      - run: $RUNNER -q --jjs-pack-tests
+      - run: $RUNNER -q --jjs-pack-tests --build-debug
       - run: $RUNNER -q --unittests --build-debug
 
   linux_x86-64_buildopts:
