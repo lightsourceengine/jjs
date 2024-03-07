@@ -19,7 +19,7 @@ if(NOT DEFINED PYTHON)
   set(PYTHON "python")
 endif()
 # Determining version
-execute_process(COMMAND ${PYTHON} ${CMAKE_SOURCE_DIR}/tools/version.py
+execute_process(COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/tools/version.py
                 OUTPUT_VARIABLE JJS_VERSION
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
