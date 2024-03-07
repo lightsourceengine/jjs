@@ -22,32 +22,25 @@
   {                                                                                             \
     if ((FLAGS) &JJS_PACK_INIT_##NAME)                                                          \
     {                                                                                           \
-      if ((g_pack_inits & JJS_PACK_INIT_##NAME) != 0)                                           \
-      {                                                                                         \
-        return jjs_throw_sz (JJS_ERROR_TYPE, #NAME " pack(age) has already been initialized."); \
-      }                                                                                         \
       jjs_value_t result = INIT_FN ();                                                          \
       if (jjs_value_is_exception (result))                                                      \
       {                                                                                         \
         return result;                                                                          \
       }                                                                                         \
       jjs_value_free (result);                                                                  \
-      g_pack_inits |= JJS_PACK_INIT_##NAME;                                                     \
     }                                                                                           \
   } while (0)
 
 static jjs_value_t jjs_pack_lib_run_module (jjs_value_t fn, jjs_pack_bindings_cb_t bindings);
 
-static uint32_t g_pack_inits = 0;
-
 void
 jjs_pack_init (uint32_t init_flags)
 {
-  jjs_value_free (jjs_pack_init_with_result (init_flags));
+  jjs_value_free (jjs_pack_init_v (init_flags));
 } /* jjs_pack_init */
 
 jjs_value_t
-jjs_pack_init_with_result (uint32_t init_flags)
+jjs_pack_init_v (uint32_t init_flags)
 {
   PACK_INIT_BLOCK (init_flags, CONSOLE, jjs_pack_console_init);
   PACK_INIT_BLOCK (init_flags, DOMEXCEPTION, jjs_pack_domexception_init);
@@ -59,13 +52,13 @@ jjs_pack_init_with_result (uint32_t init_flags)
   PACK_INIT_BLOCK (init_flags, URL, jjs_pack_url_init);
 
   return jjs_boolean (true);
-} /* jjs_pack_init_with_result */
+} /* jjs_pack_init_v */
 
-bool
-jjs_pack_is_initialized (uint32_t init_flags)
+void
+jjs_pack_cleanup (void)
 {
-  return (g_pack_inits & init_flags) != 0;
-} /* jjs_pack_is_initialized */
+  // nothing to do for current packs, but a cleanup will be needed for future packs
+} /* jjs_pack_cleanup */
 
 jjs_value_t
 jjs_pack_lib_load_from_snapshot (uint8_t* source,

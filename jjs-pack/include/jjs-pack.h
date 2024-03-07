@@ -32,8 +32,9 @@ JJS_C_API_BEGIN
 #define JJS_PACK_INIT_URL           (1u << 7)
 
 void jjs_pack_init (uint32_t init_flags);
-jjs_value_t jjs_pack_init_with_result (uint32_t init_flags);
-bool jjs_pack_is_initialized (uint32_t init_flags);
+jjs_value_t jjs_pack_init_v (uint32_t init_flags);
+
+void jjs_pack_cleanup (void);
 
 JJS_C_API_END
 

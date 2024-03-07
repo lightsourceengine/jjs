@@ -59,6 +59,15 @@ main_init_import_packs (main_args_t *arguments_p)
 #endif /* JJS_PACK */
 } /* main_init_import_packs */
 
+static void
+main_vm_cleanup (void)
+{
+#if JJS_PACK
+  jjs_pack_cleanup ();
+#endif /* JJS_PACK */
+  jjs_cleanup();
+}
+
 /**
  * Initialize debugger
  */
@@ -185,7 +194,7 @@ restart:
     {
       if (jjsx_debugger_is_reset (result))
       {
-        jjs_cleanup ();
+        main_vm_cleanup ();
 
         goto restart;
       }
@@ -221,7 +230,7 @@ restart:
 
       if (receive_status == JJS_DEBUGGER_CONTEXT_RESET_RECEIVED || jjsx_debugger_is_reset (result))
       {
-        jjs_cleanup ();
+        main_vm_cleanup ();
         goto restart;
       }
 
@@ -282,7 +291,7 @@ restart:
   return_code = JJS_STANDALONE_EXIT_CODE_OK;
 
 exit:
-  jjs_cleanup ();
+  main_vm_cleanup ();
 
   return return_code;
 } /* main */
