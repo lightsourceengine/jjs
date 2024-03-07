@@ -322,7 +322,7 @@ annex_path_to_file_url (ecma_value_t path)
   }
 #else // !_WIN32
   prefix = is_separator (start[0]) ? ecma_string_ascii_sz ("file://") : ECMA_VALUE_EMPTY;
-  unencoded = ecma_is_value_string(prefix) ? jjs_binary_op (JJS_BIN_OP_ADD, prefix, t) : ECMA_VALUE_EMPTY;
+  unencoded = ecma_is_value_string(prefix) ? jjs_binary_op (JJS_BIN_OP_ADD, prefix, path) : ECMA_VALUE_EMPTY;
 #endif // _WIN32
 
   jjs_value_free (prefix);

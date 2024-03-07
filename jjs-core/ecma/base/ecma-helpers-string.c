@@ -2493,12 +2493,15 @@ ecma_stringbuilder_create_from_array (ecma_string_t** strings_p, /**< array of e
   jmem_stats_allocate_string_bytes (initial_size);
 #endif /* JJS_MEM_STATS */
 
-  lit_utf8_byte_t * ptr = ECMA_STRINGBUILDER_STRING_PTR (header_p);
-
-  for (i = 0; i < strings_count; i++)
+  if (strings_count > 0)
   {
-    ecma_string_to_cesu8_bytes (strings_p[i], ptr, sizes_p[i]);
-    ptr += sizes_p[i];
+    lit_utf8_byte_t *ptr = ECMA_STRINGBUILDER_STRING_PTR (header_p);
+
+    for (i = 0; i < strings_count; i++)
+    {
+      ecma_string_to_cesu8_bytes (strings_p[i], ptr, sizes_p[i]);
+      ptr += sizes_p[i];
+    }
   }
 
   ecma_stringbuilder_t ret = { .header_p = header_p };

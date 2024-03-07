@@ -235,6 +235,61 @@ main (void)
     ecma_deref_ecma_string (str_p);
   }
 
+  {
+    // should build a string from a single item array
+    ecma_string_t *str_p = ecma_get_magic_string (LIT_MAGIC_STRING_STRING);
+    lit_utf8_size_t str_size = ecma_string_get_size (str_p);
+    ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (&str_p, &str_size, 1);
+    ecma_string_t *result_p = ecma_stringbuilder_finalize (&builder);
+
+    TEST_ASSERT (ecma_compare_ecma_strings (str_p, result_p));
+
+    ecma_deref_ecma_string (result_p);
+    ecma_deref_ecma_string (str_p);
+  }
+
+  {
+    // should build a string from a multi-item array
+    static const lit_utf8_size_t STRING_COUNT = 3;
+    static const char* EXPECTED = "string,exports";
+
+    ecma_string_t* strings_p [STRING_COUNT] = {
+      ecma_get_magic_string(LIT_MAGIC_STRING_STRING),
+      ecma_new_ecma_string_from_utf8((const lit_utf8_byte_t*)",", 1),
+      ecma_get_magic_string(LIT_MAGIC_STRING_EXPORTS),
+    };
+
+    lit_utf8_size_t string_sizes_p [STRING_COUNT] = {
+      ecma_string_get_size(strings_p[0]),
+      ecma_string_get_size(strings_p[1]),
+      ecma_string_get_size(strings_p[2]),
+    };
+
+    ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (strings_p, string_sizes_p, STRING_COUNT);
+    ecma_string_t *result_p = ecma_stringbuilder_finalize (&builder);
+    ecma_string_t *expected_p = ecma_new_ecma_string_from_utf8((const lit_utf8_byte_t*)EXPECTED, (lit_utf8_size_t)strlen(EXPECTED));
+
+    TEST_ASSERT (ecma_compare_ecma_strings (result_p, expected_p));
+
+    ecma_deref_ecma_string (result_p);
+    ecma_deref_ecma_string (expected_p);
+
+    for (lit_utf8_size_t i = 0; i < STRING_COUNT; i++)
+    {
+      ecma_deref_ecma_string(strings_p[i]);
+    }
+  }
+
+  {
+    // should build an empty string from an empty array
+    ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (NULL, NULL, 0);
+    ecma_string_t *result_p = ecma_stringbuilder_finalize (&builder);
+
+    TEST_ASSERT (ecma_string_is_empty (result_p));
+
+    ecma_deref_ecma_string (result_p);
+  }
+
   ecma_finalize ();
   jmem_finalize ();
 
