@@ -43,6 +43,7 @@ module-import-04.mjs
 module-import-05.mjs
 module-import-06.mjs
 module-import-07.mjs
+module-import-meta.mjs
 module-namespace-01.mjs
 module-namespace-02.mjs
 module-namespace-03.mjs

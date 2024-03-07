@@ -39,7 +39,7 @@ ecma_value_t annex_path_normalize (ecma_value_t path);
 ecma_value_t annex_path_cwd (void);
 ecma_value_t annex_path_format (ecma_value_t path);
 ecma_value_t annex_path_dirname (ecma_value_t path);
-ecma_value_t annex_path_from_file_url (ecma_value_t file_url);
+ecma_value_t annex_path_to_file_url (ecma_value_t path);
 
 #define ecma_get_global_object() ((ecma_global_object_t*)ecma_builtin_get_global ())
 #define ecma_create_object_with_null_proto() ecma_make_object_value (ecma_create_object (NULL, 0, ECMA_OBJECT_TYPE_GENERAL))

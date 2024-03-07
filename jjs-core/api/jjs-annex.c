@@ -128,6 +128,17 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
  */
 void jjs_annex_finalize (void)
 {
+#if JJS_MODULE_SYSTEM
+  // the esm modules lifetime of the vm. in some cases, that I don't fully understand,
+  // the module gc does not occur during the final memory cleanup and debug builds
+  // assert. the problem has only been observed on windows for an import capi call
+  // with relative paths (??). clearing the cache to a non-object, so ecma-gc does not
+  // mark esm_cache, fixes the issue.
+  //
+  // in the future, jjs_esm_cleanup(realm) should be exposed for realm users.
+  ecma_get_global_object ()->esm_cache = ECMA_VALUE_UNDEFINED;
+#endif /* JJS_MODULE_SYSTEM */
+
 #if JJS_PMAP
   jjs_value_free (JJS_CONTEXT (pmap));
   jjs_value_free (JJS_CONTEXT (pmap_root));

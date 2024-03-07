@@ -353,6 +353,7 @@ ecma_string_pad (ecma_value_t original_string_p, ecma_value_t max_length, ecma_v
 
 ecma_stringbuilder_t ecma_stringbuilder_create (void);
 ecma_stringbuilder_t ecma_stringbuilder_create_from (ecma_string_t *string_p);
+ecma_stringbuilder_t ecma_stringbuilder_create_from_array(ecma_string_t** strings_p, const lit_utf8_size_t* sizes_p, lit_utf8_size_t strings_count);
 ecma_stringbuilder_t ecma_stringbuilder_create_raw (const lit_utf8_byte_t *data_p, const lit_utf8_size_t data_size);
 lit_utf8_size_t ecma_stringbuilder_get_size (ecma_stringbuilder_t *builder_p);
 lit_utf8_byte_t *ecma_stringbuilder_get_data (ecma_stringbuilder_t *builder_p);

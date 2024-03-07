@@ -29,13 +29,24 @@
 #include <ctype.h>
 #define is_separator(c) ((c) == '/' || (c) == '\\')
 #define is_absolute(BUFFER) (is_separator (BUFFER[0]) || (isalpha (BUFFER[0]) && BUFFER[1] == ':' && is_separator (BUFFER[2])))
+static ecma_value_t annex_replace_backslashes (ecma_string_t* path_p);
 #else /* !_WIN32 */
 #define is_separator(c) ((c) == '/')
 #define is_absolute(BUFFER) is_separator (BUFFER[0])
 #endif /* _WIN32 */
 
-#define FILE_URL_PREFIX "file://"
-#define FILE_URL_PREFIX_LEN 7
+#define FILE_URL_PREFIX "file:"
+#define FILE_URL_PREFIX_LEN 5
+
+static lit_utf8_size_t annex_path_read_n (ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size)
+{
+  if (!ecma_is_value_string (str))
+  {
+    return 0;
+  }
+
+  return ecma_string_copy_to_buffer (ecma_get_string_from_value (str), buffer, buffer_size, JJS_ENCODING_CESU8);
+} /* annex_path_read_n */
 
 /**
  * Get the type (fs path or package) of a CommonJS request or ESM specifier.
@@ -46,18 +57,9 @@
 annex_specifier_type_t
 annex_path_specifier_type (ecma_value_t specifier)
 {
-  if (!ecma_is_value_string (specifier))
-  {
-    return ANNEX_SPECIFIER_TYPE_NONE;
-  }
-
   lit_utf8_byte_t path[FILE_URL_PREFIX_LEN] = { 0 };
-  lit_utf8_size_t written =  ecma_string_copy_to_buffer (ecma_get_string_from_value (specifier),
-                                                         path,
-                                                         FILE_URL_PREFIX_LEN,
-                                                         JJS_ENCODING_CESU8);
 
-  if (written == 0)
+  if (annex_path_read_n (specifier, path, FILE_URL_PREFIX_LEN) == 0)
   {
     return ANNEX_SPECIFIER_TYPE_NONE;
   }
@@ -97,12 +99,19 @@ annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize)
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_string_t* path_components [] = {
+    ecma_get_string_from_value (referrer),
+    ecma_get_magic_string (LIT_MAGIC_STRING_SLASH_CHAR),
+    ecma_get_string_from_value (specifier),
+  };
 
-  ecma_stringbuilder_append (&builder, ecma_get_string_from_value (referrer));
-  ecma_stringbuilder_append_char (&builder, '/');
-  ecma_stringbuilder_append (&builder, ecma_get_string_from_value (specifier));
+  lit_utf8_size_t path_component_sizes [] = {
+    ecma_string_get_size (path_components[0]),
+    1,
+    ecma_string_get_size (path_components[2]),
+  };
 
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (path_components, path_component_sizes, sizeof (path_components) / sizeof (path_components[0]));
   ecma_value_t result = ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
 
   if (normalize)
@@ -120,6 +129,31 @@ annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize)
 } /* annex_path_join */
 
 /**
+ * Normalize a path using a cstring and it's length.
+ *
+ * @param str path to normalize (must be null terminated)
+ * @param str_len length of str (passed in for performance reasons)
+ * @return a normalized path or an empty value if the path is invalid or normalization fails
+ */
+static ecma_value_t
+annex_path_normalize_from_string (const char* str, jjs_size_t str_len)
+{
+  lit_utf8_byte_t* normalized_path_p = jjs_port_path_normalize ((const jjs_char_t *) str, str_len);
+
+  if (normalized_path_p == NULL)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
+
+  lit_utf8_size_t buffer_size = (lit_utf8_size_t)strlen ((const char*) normalized_path_p);
+  ecma_string_t* result = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (normalized_path_p, buffer_size);
+
+  jjs_port_path_free (normalized_path_p);
+
+  return ecma_make_string_value (result);
+} /* annex_path_normalize_from_string */
+
+/**
  * Normalize a path.
  *
  * @param path the string path
@@ -135,21 +169,11 @@ annex_path_normalize (ecma_value_t path)
     return ECMA_VALUE_EMPTY;
   }
 
-  lit_utf8_byte_t* normalized_path_p = jjs_port_path_normalize ((const jjs_char_t *)path_cstr.str_p, path_cstr.size);
+  ecma_value_t result = annex_path_normalize_from_string (path_cstr.str_p, path_cstr.size);
 
   ecma_free_cstr(&path_cstr);
 
-  if (normalized_path_p == NULL)
-  {
-    return ECMA_VALUE_EMPTY;
-  }
-
-  lit_utf8_size_t buffer_size = (lit_utf8_size_t)strlen ((const char*) normalized_path_p);
-  ecma_string_t* result = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (normalized_path_p, buffer_size);
-
-  jjs_port_path_free (normalized_path_p);
-
-  return ecma_make_string_value (result);
+  return result;
 } /* annex_path_normalize */
 
 /**
@@ -158,12 +182,7 @@ annex_path_normalize (ecma_value_t path)
 ecma_value_t
 annex_path_cwd (void)
 {
-  ecma_value_t dot = ecma_string_ascii_sz (".");
-  ecma_value_t result = annex_path_normalize (dot);
-
-  ecma_free_value(dot);
-
-  return result;
+  return annex_path_normalize_from_string (".", 1);
 } /* annex_path_cwd */
 
 /**
@@ -252,34 +271,101 @@ annex_path_format (ecma_value_t path)
 } /* annex_path_format */
 
 /**
- * Get the file system path (filename) from a file url.
+ * Converts an absolute file path to a valid file url.
+ *
+ * @param path path string to an absolute filename
+ * @return string file url or empty value on error
  */
 ecma_value_t
-annex_path_from_file_url (ecma_value_t file_url)
+annex_path_to_file_url (ecma_value_t path)
 {
-  if (!ecma_is_value_string (file_url))
+  lit_utf8_byte_t start[3] = {0};
+
+  if (annex_path_read_n (path, start, 3) == 0)
   {
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_string_t* file_url_p = ecma_get_string_from_value (file_url);
-  lit_utf8_size_t len = ecma_string_get_length (file_url_p);
+  ecma_value_t unencoded;
+  ecma_value_t prefix;
 
-  if (len < FILE_URL_PREFIX_LEN)
+#ifdef _WIN32
+  if (start[0] == '\\' && start[1] == '\\')
   {
+    // TODO: check for valid unc path \\host\..
+    prefix = ecma_string_ascii_sz ("file:");
+  }
+  else if (isalpha(start[0]) && start[1] == ':' && is_separator (start[2]))
+  {
+    prefix = ecma_string_ascii_sz ("file:///");
+  }
+  else if (is_separator (start[0]))
+  {
+    prefix = ecma_string_ascii_sz ("file:///C:");
+  }
+  else
+  {
+    prefix = ECMA_VALUE_EMPTY;
+  }
+
+  if (ecma_is_value_string(prefix))
+  {
+    jjs_value_t t = annex_replace_backslashes (ecma_get_string_from_value (path));
+
+    unencoded = ecma_is_value_string (t) ? jjs_binary_op (JJS_BIN_OP_ADD, prefix, t) : ECMA_VALUE_EMPTY;
+
+    jjs_value_free (t);
+  }
+  else
+  {
+    unencoded = ECMA_VALUE_EMPTY;
+  }
+#else // !_WIN32
+  prefix = is_separator (start[0]) ? ecma_string_ascii_sz ("file://") : ECMA_VALUE_EMPTY;
+  unencoded = ecma_is_value_string(prefix) ? jjs_binary_op (JJS_BIN_OP_ADD, prefix, t) : ECMA_VALUE_EMPTY;
+#endif // _WIN32
+
+  jjs_value_free (prefix);
+
+  if (!ecma_is_value_string(unencoded))
+  {
+    jjs_value_free (unencoded);
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_string_t* encoded_path = ecma_string_substr (file_url_p, FILE_URL_PREFIX_LEN, len - FILE_URL_PREFIX_LEN);
-  ecma_value_t path = ecma_builtin_global_decode_uri (ecma_make_string_value (encoded_path));
+  // TODO: ? and # are not getting encoded
+  jjs_value_t encoded = ecma_builtin_global_encode_uri (unencoded);
 
-  if (ecma_is_value_exception (path))
+  jjs_value_free (unencoded);
+
+  return encoded;
+} /* annex_path_to_file_url */
+
+#ifdef _WIN32
+static ecma_value_t
+annex_replace_backslashes (ecma_string_t* path_p)
+{
+  ecma_value_t result ;
+  ECMA_STRING_TO_UTF8_STRING(path_p, path_bytes_p, path_bytes_size);
+  lit_utf8_byte_t* copy_p = jmem_heap_alloc_block_null_on_error (path_bytes_size);
+
+  if (copy_p)
   {
-    ecma_deref_exception (ecma_get_extended_primitive_from_value (path));
-    path = ECMA_VALUE_EMPTY;
+    for (lit_utf8_size_t i = 0; i < path_bytes_size; i++)
+    {
+      copy_p[i] = path_bytes_p[i] == '\\' ? '/' : path_bytes_p[i];
+    }
+
+    result = ecma_make_string_value (ecma_new_ecma_string_from_utf8 (copy_p, path_bytes_size));
+    jmem_heap_free_block (copy_p, path_bytes_size);
+  }
+  else
+  {
+    result = ECMA_VALUE_EMPTY;
   }
 
-  ecma_deref_ecma_string (encoded_path);
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_size);
 
-  return path;
-} /* annex_path_from_file_url */
+  return result;
+} /* annex_replace_backslashes */
+#endif // _WIN32

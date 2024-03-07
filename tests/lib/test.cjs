@@ -22,23 +22,23 @@
 //
 // To run tests, the test file must call runAllTests() at the end of the file.
 
-const tests = []
+const tests = [];
 
 function test(description, testFunctionOrOptions, testFunction) {
   let options;
 
   if (typeof testFunctionOrOptions === 'function') {
-    testFunction = testFunctionOrOptions
-    options = undefined
+    testFunction = testFunctionOrOptions;
+    options = undefined;
   } else {
-    options = testFunctionOrOptions
+    options = testFunctionOrOptions;
   }
 
   tests.push({
     description,
     testFunction,
     options,
-  })
+  });
 }
 
 function runAllTests() {
@@ -48,7 +48,7 @@ function runAllTests() {
     }
 
     try {
-      obj.testFunction()
+      obj.testFunction();
     } catch (e) {
       print(`Unhandled exception in test: "${obj.description}"`);
       print(`${e}`);
@@ -57,4 +57,4 @@ function runAllTests() {
   }
 }
 
-module.exports = { test, runAllTests }
+module.exports = { test, runAllTests };

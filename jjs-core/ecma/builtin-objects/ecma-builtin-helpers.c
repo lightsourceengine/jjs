@@ -181,11 +181,19 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
     ecma_deref_object (obj_p);
   }
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_string_t* strings_p[] = {
+    ecma_get_magic_string (LIT_MAGIC_STRING_OBJECT_TO_STRING_UL),
+    ecma_get_magic_string (builtin_tag),
+    ecma_get_magic_string (LIT_MAGIC_STRING_RIGHT_SQUARE_CHAR),
+  };
 
-  ecma_stringbuilder_append_magic (&builder, LIT_MAGIC_STRING_OBJECT_TO_STRING_UL);
-  ecma_stringbuilder_append_magic (&builder, builtin_tag);
-  ecma_stringbuilder_append_byte (&builder, LIT_CHAR_RIGHT_SQUARE);
+  lit_utf8_size_t string_sizes_p[] = {
+    lit_get_magic_string_size (LIT_MAGIC_STRING_OBJECT_TO_STRING_UL),
+    lit_get_magic_string_size (builtin_tag),
+    1, // lit_get_magic_string_size (LIT_MAGIC_STRING_RIGHT_SQUARE_CHAR)
+  };
+
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (strings_p, string_sizes_p, sizeof (strings_p) / sizeof (strings_p[0]));
 
   return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_helper_object_to_string */

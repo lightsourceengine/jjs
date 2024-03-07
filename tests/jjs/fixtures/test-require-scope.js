@@ -14,33 +14,33 @@
  */
 
 // test: require function exists
-assert(typeof require === 'function');
+assert(typeof require === 'function', 'expected require in scope');
 
 // test: require has a resolve function
-assert(typeof require.resolve === 'function');
+assert(typeof require.resolve === 'function', 'expected require.resolve() to be a function');
 
 // test cache exists
-assert('cache' in require);
+assert('cache' in require, 'expected cache to be a property of require');
 
 // test: require function is unique for this module
-assert(require !== globalThis.require);
+assert(require !== globalThis.require, 'expected a unique require() function for this module');
 
 // test: module exists
-assert(typeof module === 'object');
-assert('id' in module);
-assert('filename' in module);
-assert('loaded' in module);
-assert('exports' in module);
-assert('path' in module);
+assert(typeof module === 'object', 'expected module to be in scope');
+assert('id' in module, 'expected id property on module');
+assert('filename' in module, 'expected filename property on module');
+assert('loaded' in module, 'expected loaded property on module');
+assert('exports' in module, 'expected exports property on module');
+assert('path' in module, 'expected path property on module');
 assert(module.loaded === false);
 
 // test: exports exists
-assert(typeof exports === 'object');
-assert(module.exports === exports);
+assert(typeof exports === 'object', 'expected exports object to be in scope');
+assert(module.exports === exports, 'expected module.exports to equal exports');
 
 // test: __filename exists
-assert(typeof __filename === 'string');
+assert(typeof __filename === 'string', 'expected __filename to be in scope');
 
 // test: __dirname exists
-assert(typeof __dirname === 'string');
-assert(__filename.startsWith(__dirname));
+assert(typeof __dirname === 'string', 'expected __dirname to be in scope');
+assert(__filename.startsWith(__dirname), 'expected __filename to start with __dirname');

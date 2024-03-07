@@ -42,6 +42,8 @@ jjs_port_path_normalize (const jjs_char_t *path_p, /**< input path */
     return p;
   }
 
+  jjs_port_path_free (p);
+
   return NULL;
 } /* jjs_port_path_normalize */
 

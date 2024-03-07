@@ -63,17 +63,16 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
   }
   else if (jjs_value_is_string (referrer))
   {
-    if (annex_path_specifier_type (referrer) == ANNEX_SPECIFIER_TYPE_FILE_URL)
-    {
-      ecma_value_t filename = annex_path_from_file_url (referrer);
+    annex_specifier_type_t type = annex_path_specifier_type (referrer);
 
-      path = annex_path_dirname (filename);
-      ecma_free_value (filename);
+    // this function is only called internally with an absolute filename
+    JJS_ASSERT (type == ANNEX_SPECIFIER_TYPE_ABSOLUTE);
+
+    if (type != ANNEX_SPECIFIER_TYPE_ABSOLUTE) {
+      return jjs_throw_sz (JJS_ERROR_COMMON, "create_require expects an absolute filename");
     }
-    else
-    {
-      path = annex_path_dirname (referrer);
-    }
+
+    path = annex_path_dirname (referrer);
   }
   else
   {
@@ -88,11 +87,10 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
 
     return fn;
   }
-  else
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_STRING_OR_UNDEFINED));
-  }
 
+  ecma_free_value(path);
+
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_STRING_OR_UNDEFINED));
 } /* jjs_annex_create_require */
 
 /**
@@ -484,12 +482,12 @@ static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_
     return require;
   }
 
-  ecma_value_t module_dirname = annex_path_dirname (filename);
+  ecma_value_t module_dirname = ecma_find_own_m (module, LIT_MAGIC_STRING_PATH);
 
-  if (!ecma_is_value_string (module_dirname))
+  if (!ecma_is_value_found (module_dirname))
   {
     ecma_free_value (require);
-    return module_dirname;
+    return jjs_throw_sz (JJS_ERROR_COMMON, "CommonJS module missing path");
   }
 
   ecma_value_t exports = jjs_object ();

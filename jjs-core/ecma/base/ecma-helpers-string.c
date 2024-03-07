@@ -2458,20 +2458,53 @@ ecma_stringbuilder_create (void)
 ecma_stringbuilder_t
 ecma_stringbuilder_create_from (ecma_string_t *string_p) /**< ecma string */
 {
-  const lit_utf8_size_t string_size = ecma_string_get_size (string_p);
-  const lit_utf8_size_t initial_size = string_size + ECMA_ASCII_STRING_HEADER_SIZE;
+  const lit_utf8_size_t size = ecma_string_get_size (string_p);
+
+  return ecma_stringbuilder_create_from_array (&string_p, &size, 1);
+} /* ecma_stringbuilder_create_from */
+
+/**
+ * Create a string builder from an array of ecma strings.
+ *
+ * Getting the string size is not a trivial get and the builder needs to get the string size
+ * in multiple places. To reduce the calls to get string size, the caller must pass in the
+ * sizes. It's a cumbersome api, but it is like this for performance.
+ *
+ * @return new string builder with the array of strings concatenated together. If strings_count is 0, an
+ * empty builder is returned.
+ */
+ecma_stringbuilder_t
+ecma_stringbuilder_create_from_array (ecma_string_t** strings_p, /**< array of ecma strings. must be the strings_count in length */
+                                      const lit_utf8_size_t* sizes_p, /**< array of ecma strings sizes. must be the strings_count in length */
+                                      lit_utf8_size_t strings_count) /**< number of strings passed in */
+{
+  lit_utf8_size_t initial_size = ECMA_ASCII_STRING_HEADER_SIZE;
+  lit_utf8_size_t i;
+
+  for (i = 0; i < strings_count; i++)
+  {
+    initial_size += sizes_p[i];
+  }
 
   ecma_stringbuilder_header_t *header_p = (ecma_stringbuilder_header_t *) jmem_heap_alloc_block (initial_size);
   header_p->current_size = initial_size;
+
 #if JJS_MEM_STATS
   jmem_stats_allocate_string_bytes (initial_size);
 #endif /* JJS_MEM_STATS */
 
-  ecma_string_to_cesu8_bytes (string_p, ECMA_STRINGBUILDER_STRING_PTR (header_p), string_size);
+  lit_utf8_byte_t * ptr = ECMA_STRINGBUILDER_STRING_PTR (header_p);
+
+  for (i = 0; i < strings_count; i++)
+  {
+    ecma_string_to_cesu8_bytes (strings_p[i], ptr, sizes_p[i]);
+    ptr += sizes_p[i];
+  }
 
   ecma_stringbuilder_t ret = { .header_p = header_p };
   return ret;
-} /* ecma_stringbuilder_create_from */
+} /* ecma_stringbuilder_create_from_array */
+
 
 /**
  * Create a string builder from a raw string

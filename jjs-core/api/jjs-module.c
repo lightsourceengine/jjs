@@ -256,7 +256,6 @@ jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, re
 
 static jjs_value_t esm_read (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path);
-static jjs_value_t path_to_file_url (jjs_value_t path);
 static jjs_value_t user_value_to_path (jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
 static jjs_value_t esm_link (jjs_value_t module);
@@ -670,20 +669,28 @@ jjs_module_default_import (jjs_value_t specifier, jjs_value_t user_value, void *
 #endif
 } /* jjs_module_default_import */
 
+static void
+jjs_module_copy_string_property (jjs_value_t target, jjs_value_t source, lit_magic_string_id_t key)
+{
+  ecma_value_t value = ecma_find_own_m (source, key);
+
+  if (ecma_is_value_string (value))
+  {
+    ecma_set_m (target, key, value);
+  }
+
+  ecma_free_value (value);
+} /* jjs_module_copy_property */
+
 void
 jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object, void *user_p)
 {
   JJS_UNUSED (user_p);
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  ecma_value_t url = ecma_find_own_m (module, LIT_MAGIC_STRING_URL);
-
-  if (ecma_is_value_string (url))
-  {
-    ecma_set_m (meta_object, LIT_MAGIC_STRING_URL, url);
-  }
-
-  ecma_free_value (url);
+  jjs_module_copy_string_property(meta_object, module, LIT_MAGIC_STRING_URL);
+  jjs_module_copy_string_property(meta_object, module, LIT_MAGIC_STRING_FILENAME);
+  jjs_module_copy_string_property(meta_object, module, LIT_MAGIC_STRING_DIRNAME);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (module);
   JJS_UNUSED (meta_object);
@@ -840,34 +847,40 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_JS)
       || ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_MODULE))
   {
-    jjs_value_t file_url = path_to_file_url (resolved.path);
     jjs_parse_options_t opts = {
       .options = JJS_PARSE_MODULE | JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME,
-      .user_value = file_url,
+      .user_value = resolved.path,
       .source_name = resolved.path,
     };
 
-    if (!jjs_value_is_exception (file_url))
-    {
-      module = jjs_parse_value (loaded.source, &opts);
-      set_module_properties (module, resolved.path, file_url);
-    }
-    else
-    {
-      module = jjs_throw_sz (JJS_ERROR_COMMON, "failed to convert path to file url");
-    }
+    module = jjs_parse_value (loaded.source, &opts);
 
-    jjs_value_free (file_url);
+    if (!jjs_value_is_exception (module))
+    {
+      jjs_value_t file_url = annex_path_to_file_url (resolved.path);
+
+      if (jjs_value_is_string (file_url))
+      {
+        set_module_properties (module, resolved.path, file_url);
+      }
+      else
+      {
+        jjs_value_free (module);
+        module = jjs_throw_sz (JJS_ERROR_COMMON, "failed to convert path to file url");
+      }
+
+      jjs_value_free (file_url);
+    }
   }
 #if JJS_COMMONJS
   else if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_COMMONJS))
   {
     jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
-    jjs_value_t file_url = path_to_file_url (resolved.path);
+    jjs_value_t file_url = annex_path_to_file_url (resolved.path);
 
     // TODO: get export names from pmap?
 
-    if (!jjs_value_is_exception (file_url))
+    if (jjs_value_is_string(file_url))
     {
       module = jjs_native_module (commonjs_module_evaluate_cb, &default_name, 1);
       set_module_properties (module, resolved.path, file_url);
@@ -898,34 +911,11 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
 } /* esm_read */
 
 static jjs_value_t
-path_to_file_url (jjs_value_t path)
-{
-  jjs_value_t result;
-  jjs_value_t prefix = ecma_make_magic_string_value (LIT_MAGIC_STRING_FILE_URL_PREFIX);
-  jjs_value_t encoded = ecma_builtin_global_encode_uri (path);
-
-  if (jjs_value_is_exception (encoded))
-  {
-    result = encoded;
-    encoded = ECMA_VALUE_UNDEFINED;
-  }
-  else
-  {
-    result = jjs_binary_op (JJS_BIN_OP_ADD, prefix, encoded);
-  }
-
-  jjs_value_free (prefix);
-  jjs_value_free (encoded);
-
-  return result;
-} /* path_to_file_url */
-
-static jjs_value_t
 esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p)
 {
   JJS_UNUSED (user_p);
 
-  jjs_value_t path = ecma_find_own_m (referrer, LIT_MAGIC_STRING_PATH);
+  jjs_value_t path = ecma_find_own_m (referrer, LIT_MAGIC_STRING_DIRNAME);
   jjs_value_t module = esm_read (specifier, path);
 
   jjs_value_free (path);
@@ -969,12 +959,13 @@ commonjs_module_evaluate_cb (jjs_value_t native_module)
 {
   jjs_value_t filename = ecma_find_own_m (native_module, LIT_MAGIC_STRING_FILENAME);
   JJS_ASSERT (jjs_value_is_string (filename));
-  jjs_value_t path = ecma_find_own_m (native_module, LIT_MAGIC_STRING_PATH);
-  JJS_ASSERT (jjs_value_is_string (path));
-  jjs_value_t exports = jjs_annex_require (filename, path);
+  jjs_value_t referrer_path = ecma_find_own_m (native_module, LIT_MAGIC_STRING_DIRNAME);
+  JJS_ASSERT (jjs_value_is_string (referrer_path));
+
+  jjs_value_t exports = jjs_annex_require (filename, referrer_path);
 
   jjs_value_free (filename);
-  jjs_value_free (path);
+  jjs_value_free (referrer_path);
 
   if (jjs_value_is_exception (exports))
   {
@@ -1010,41 +1001,39 @@ vmod_module_evaluate_cb (jjs_value_t native_module)
   jjs_value_free (exports);
 
   return result;
-}
+} /* vmod_module_evaluate_cb */
 
 #endif /* JJS_VMOD */
 
 static jjs_value_t
 user_value_to_path (jjs_value_t user_value)
 {
-  annex_specifier_type_t path_type = annex_path_specifier_type (user_value);
-  jjs_value_t result;
+    annex_specifier_type_t path_type = annex_path_specifier_type (user_value);
+    jjs_value_t result;
 
-  if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
-  {
-    result = annex_path_dirname (user_value);
-  }
-  else if (path_type == ANNEX_SPECIFIER_TYPE_FILE_URL)
-  {
-    result = annex_path_dirname(annex_path_from_file_url (user_value));
-  }
-  else
-  {
-    // if no absolute path, ignore user_value contents and use the cwd.
-    //
-    // when using jjs_parse, the caller may forget to set user_value, they need to contrive a fake absolute
-    // path (for parsing an in mem string) or the absolute path needs to be built. if user_value is not set,
-    // cwd is a reasonable default value for most use cases.
-    result = annex_path_cwd ();
-  }
+    if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
+    {
+     jjs_value_t module = ecma_find_own_v (ecma_get_global_object ()->esm_cache, user_value);
 
-  if (!jjs_value_is_string (result))
-  {
-    jjs_value_free (result);
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid module/source user value.");
-  }
+     result = ecma_is_value_found (module) ? ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME) : annex_path_dirname (user_value);
 
-  return result;
+     jjs_value_free (module);
+    }
+    else if (path_type == ANNEX_SPECIFIER_TYPE_FILE_URL)
+    {
+      result = jjs_throw_sz (JJS_ERROR_COMMON, "user_value cannot be a file url");
+    }
+    else
+    {
+      // if no absolute path, ignore user_value contents and use the cwd.
+      //
+      // when using jjs_parse, the caller may forget to set user_value, they need to contrive a fake absolute
+      // path (for parsing an in mem string) or the absolute path needs to be built. if user_value is not set,
+      // cwd is a reasonable default value for most use cases.
+      result = annex_path_cwd ();
+    }
+
+    return result;
 } /* user_value_to_path */
 
 static void
@@ -1055,15 +1044,15 @@ set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url
     return;
   }
 
-  jjs_value_t path = annex_path_dirname (filename);
+  jjs_value_t path_dirname = annex_path_dirname (filename);
 
-  JJS_ASSERT (jjs_value_is_string (path));
+  JJS_ASSERT (jjs_value_is_string (path_dirname));
 
-  ecma_set_m (module, LIT_MAGIC_STRING_PATH, path);
+  ecma_set_m (module, LIT_MAGIC_STRING_DIRNAME, path_dirname);
   ecma_set_m (module, LIT_MAGIC_STRING_URL, url);
   ecma_set_m (module, LIT_MAGIC_STRING_FILENAME, filename);
 
-  jjs_value_free (path);
+  jjs_value_free (path_dirname);
 } /* set_module_properties */
 
 #endif /* JJS_MODULE_SYSTEM */
