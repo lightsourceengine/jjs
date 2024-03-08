@@ -129,6 +129,19 @@ static const jjs_context_data_manager_t jjs_module_manager JJS_ATTR_CONST_DATA =
   .bytes_needed = sizeof (jjs_module_manager_t)
 };
 
+static void
+jjs_module_copy_string_property (jjs_value_t target, jjs_value_t source, lit_magic_string_id_t key)
+{
+  ecma_value_t value = ecma_find_own_m (source, key);
+
+  if (ecma_is_value_string (value))
+  {
+    ecma_set_m (target, key, value);
+  }
+
+  ecma_free_value (value);
+} /* jjs_module_copy_property */
+
 #endif /* JJS_MODULE_SYSTEM */
 
 /**
@@ -668,19 +681,6 @@ jjs_module_default_import (jjs_value_t specifier, jjs_value_t user_value, void *
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_module_default_import */
-
-static void
-jjs_module_copy_string_property (jjs_value_t target, jjs_value_t source, lit_magic_string_id_t key)
-{
-  ecma_value_t value = ecma_find_own_m (source, key);
-
-  if (ecma_is_value_string (value))
-  {
-    ecma_set_m (target, key, value);
-  }
-
-  ecma_free_value (value);
-} /* jjs_module_copy_property */
 
 void
 jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object, void *user_p)
