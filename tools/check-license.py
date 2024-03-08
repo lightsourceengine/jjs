@@ -45,13 +45,11 @@ INCLUDE_DIRS = [
     'jjs-math',
     'jjs-main',
     'jjs-port',
-    'targets',
     'tests',
     'tools',
 ]
 
 EXCLUDE_DIRS = [
-    'targets/esp8266',
     os.path.relpath(settings.TEST262_TEST_SUITE_DIR, settings.PROJECT_DIR),
 ]
 
