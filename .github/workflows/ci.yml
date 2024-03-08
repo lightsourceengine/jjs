@@ -19,12 +19,12 @@ jobs:
     if: false # XXX: checks only work on 18.04, but github has deprecated the runner
     runs-on: ubuntu-18.04 # needed for checker version stability
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.11'
       - run: sudo apt update
       - run: sudo apt install doxygen clang-format-10 cppcheck pylint python3-serial
       - run: $RUNNER --check-signed-off=gh-actions
@@ -45,7 +45,7 @@ jobs:
   linux_x86-64_release:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --jjs-pack-tests
       - run: $RUNNER -q --unittests
@@ -53,7 +53,7 @@ jobs:
   linux_x86-64_debug:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER -q --jjs-tests --build-debug
       - run: $RUNNER -q --jjs-pack-tests --build-debug
       - run: $RUNNER -q --unittests --build-debug
@@ -61,7 +61,7 @@ jobs:
   linux_x86-64_buildopts:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
       - run: $RUNNER --buildoption-test
@@ -69,7 +69,7 @@ jobs:
   linux_x86_release_asan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
       - run: $RUNNER -q --jjs-tests $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
@@ -78,7 +78,7 @@ jobs:
   linux_x86_debug_asan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
@@ -87,21 +87,21 @@ jobs:
   linux_x86-64_release_asan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER -q --jjs-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86-64_debug_asan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86_release_ubsan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
       - run: $RUNNER -q --jjs-tests $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
@@ -110,7 +110,7 @@ jobs:
   linux_x86_debug_ubsan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
@@ -119,14 +119,14 @@ jobs:
   linux_x86-64_release_ubsan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER -q --jjs-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
   linux_x86-64_debug_ubsan:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
@@ -138,7 +138,7 @@ jobs:
       TIMEOUT: 300
       JJS_BUILD_OPTS: -q --buildoptions=--toolchain=cmake/toolchain_linux_armv6l.cmake,--linker-flag=-static
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
@@ -152,7 +152,7 @@ jobs:
       TIMEOUT: 300
       JJS_BUILD_OPTS: -q --build-debug --buildoptions=--toolchain=cmake/toolchain_linux_armv6l.cmake,--linker-flag=-static
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
@@ -165,7 +165,7 @@ jobs:
       TIMEOUT: 300
       JJS_BUILD_OPTS: -q --buildoptions=--toolchain=cmake/toolchain_linux_armv7l.cmake,--linker-flag=-static
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
@@ -180,7 +180,7 @@ jobs:
       TIMEOUT: 300
       JJS_BUILD_OPTS: -q --build-debug --buildoptions=--toolchain=cmake/toolchain_linux_armv7l.cmake,--linker-flag=-static
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests --no-external-context-tests
@@ -194,7 +194,7 @@ jobs:
       TIMEOUT: 300
       JJS_BUILD_OPTS: -q --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
@@ -208,7 +208,7 @@ jobs:
       TIMEOUT: 300
       JJS_BUILD_OPTS: -q --buildoptions=--toolchain=cmake/toolchain_linux_aarch64.cmake,--linker-flag=-static --build-debug
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
@@ -218,30 +218,30 @@ jobs:
   macos_x86-64_release:
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
-      - run: $RUNNER -q --jjs-tests
-      - run: $RUNNER -q --jjs-pack-tests
-      - run: $RUNNER -q --unittests
+          python-version: '3.11'
+      - run: python $RUNNER -q --jjs-tests
+      - run: python $RUNNER -q --jjs-pack-tests
+      - run: python $RUNNER -q --unittests
 
   macos_x86-64_debug:
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
-      - run: $RUNNER -q --jjs-tests --build-debug
-      - run: $RUNNER -q --jjs-pack-tests --build-debug
-      - run: $RUNNER -q --unittests --build-debug
+          python-version: '3.11'
+      - run: python $RUNNER -q --jjs-tests --build-debug
+      - run: python $RUNNER -q --jjs-pack-tests --build-debug
+      - run: python $RUNNER -q --unittests --build-debug
 
   windows_x64_release:
     # note: Date().getDay() is broken on windows, disable associated tests
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: JS Tests
         run: python .\tools\run-tests.py -q --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
@@ -257,7 +257,7 @@ jobs:
     # note: external-context + stack_limit > 0 are broken on windows debug builds (problem seen in linux 32 bit also)
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: JS Tests
         run: python .\tools\run-tests.py -q --build-debug --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js --no-external-context-tests
         shell: powershell
@@ -271,10 +271,10 @@ jobs:
   ecma_test262_release:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: python $RUNNER --test262
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
           name: Test262-report-release
@@ -284,10 +284,10 @@ jobs:
   ecma_test262_debug:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: python $RUNNER --test262 --build-debug
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
           name: Test262-report-debug
@@ -300,7 +300,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{matrix.os}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: goto-bus-stop/setup-zig@v2.1.1
         with:
           version: 0.11.0

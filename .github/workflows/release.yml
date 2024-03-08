@@ -11,91 +11,91 @@ jobs:
   linux-x64:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER --linker-flag=-static
       - run: $BUNDLER $JJS_TAG_PREFIX-linux-x64 tgz
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: jjs-release-artifacts
+          name: jjs-linux-x64
           path: |
             build/jjs-*.tgz
   linux-armv7l:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-arm-linux-gnueabihf
       - run: $RUNNER --toolchain=cmake/toolchain_linux_armv7l.cmake --linker-flag=-static
       - run: $BUNDLER $JJS_TAG_PREFIX-linux-armv7l tgz
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: jjs-release-artifacts
+          name: jjs-linux-armv7l
           path: |
             build/jjs-*.tgz
   linux-aarch64:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo apt update
       - run: sudo apt install gcc-aarch64-linux-gnu
       - run: $RUNNER --toolchain=cmake/toolchain_linux_aarch64.cmake --linker-flag=-static
       - run: $BUNDLER $JJS_TAG_PREFIX-linux-aarch64 tgz
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: jjs-release-artifacts
+          name: jjs-linux-aarch64
           path: |
             build/jjs-*.tgz
   macos-x64:
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER
       - run: $BUNDLER $JJS_TAG_PREFIX-macos-x64 tgz
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: jjs-release-artifacts
+          name: jjs-macos-x64
           path: |
             build/jjs-*.tgz
   macos-arm64:
     runs-on: macos-11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER "--compile-flag=-arch arm64"
       - run: $BUNDLER $JJS_TAG_PREFIX-macos-arm64 tgz
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: jjs-release-artifacts
+          name: jjs-macos-arm64
           path: |
             build/jjs-*.tgz
   windows-x64:
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: $RUNNER
         shell: bash
       - run: $BUNDLER $JJS_TAG_PREFIX-windows-x64 zip
         shell: bash
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: jjs-release-artifacts
+          name: jjs-windows-x64
           path: |
             build/jjs-*.zip
   amalgam:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: ./tools/build.py --amalgam ON --jjs-pack ON
       - run: cd build && tar -czf amalgam.tgz amalgam && zip -r amalgam.zip amalgam
-      - uses: actions/upload-artifact@v3.1.2
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: jjs-release-artifacts
+          name: jjs-amalgam
           path: |
             build/amalgam.tgz
             build/amalgam.zip
