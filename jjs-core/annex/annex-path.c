@@ -13,40 +13,40 @@
  * limitations under the License.
  */
 
-#include "annex.h"
-
 #include "ecma-builtin-helpers.h"
 
-#define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE (JJS_PROP_IS_CONFIGURABLE_DEFINED \
-                                                    | JJS_PROP_IS_ENUMERABLE_DEFINED \
-                                                    | JJS_PROP_IS_WRITABLE_DEFINED \
-                                                    | JJS_PROP_IS_CONFIGURABLE \
-                                                    | JJS_PROP_IS_ENUMERABLE \
-                                                    | JJS_PROP_IS_WRITABLE \
-                                                    | JJS_PROP_IS_VALUE_DEFINED)
+#include "annex.h"
+
+#define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE                                                  \
+  (JJS_PROP_IS_CONFIGURABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED \
+   | JJS_PROP_IS_CONFIGURABLE | JJS_PROP_IS_ENUMERABLE | JJS_PROP_IS_WRITABLE | JJS_PROP_IS_VALUE_DEFINED)
+
+#define FILE_URL_PREFIX     "file:"
+#define FILE_URL_PREFIX_LEN 5
 
 #ifdef _WIN32
 #include <ctype.h>
-#define is_separator(c) ((c) == '/' || (c) == '\\')
-#define is_absolute(BUFFER) (is_separator (BUFFER[0]) || (isalpha (BUFFER[0]) && BUFFER[1] == ':' && is_separator (BUFFER[2])))
-static ecma_value_t annex_replace_backslashes (ecma_string_t* path_p);
+#define is_separator(c)                         ((c) == '/' || (c) == '\\')
+#define is_drive_path(BUFFER)                   (isalpha (BUFFER[0]) && BUFFER[1] == ':' && is_separator (BUFFER[2]))
+#define is_absolute(BUFFER)                     (is_separator (BUFFER[0]) || is_drive_path (BUFFER))
+#define FILE_URL_ENCODE_PREFIX_WIN              "file:///"
+#define FILE_URL_ENCODE_PREFIX_WIN_LEN          8
+#define FILE_URL_ENCODE_PREFIX_UNC              FILE_URL_PREFIX
+#define FILE_URL_ENCODE_PREFIX_UNC_LEN          FILE_URL_PREFIX_LEN
+#define FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE     "file:///C:"
+#define FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE_LEN 10
 #else /* !_WIN32 */
-#define is_separator(c) ((c) == '/')
-#define is_absolute(BUFFER) is_separator (BUFFER[0])
+#define is_separator(c)                ((c) == '/')
+#define is_absolute(BUFFER)            is_separator (BUFFER[0])
+#define FILE_URL_ENCODE_PREFIX_NIX     "file://"
+#define FILE_URL_ENCODE_PREFIX_NIX_LEN 7
 #endif /* _WIN32 */
 
-#define FILE_URL_PREFIX "file:"
-#define FILE_URL_PREFIX_LEN 5
-
-static lit_utf8_size_t annex_path_read_n (ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size)
-{
-  if (!ecma_is_value_string (str))
-  {
-    return 0;
-  }
-
-  return ecma_string_copy_to_buffer (ecma_get_string_from_value (str), buffer, buffer_size, JJS_ENCODING_CESU8);
-} /* annex_path_read_n */
+static ecma_value_t annex_encode_path (const lit_utf8_byte_t* path_p,
+                                       lit_utf8_size_t path_len,
+                                       const lit_utf8_byte_t* prefix,
+                                       lit_utf8_size_t prefix_len);
+static lit_utf8_size_t annex_path_read_n (ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size);
 
 /**
  * Get the type (fs path or package) of a CommonJS request or ESM specifier.
@@ -279,93 +279,219 @@ annex_path_format (ecma_value_t path)
 ecma_value_t
 annex_path_to_file_url (ecma_value_t path)
 {
-  lit_utf8_byte_t start[3] = {0};
-
-  if (annex_path_read_n (path, start, 3) == 0)
+  if (!ecma_is_value_string (path))
   {
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_value_t unencoded;
-  ecma_value_t prefix;
+  ecma_string_t* path_p = ecma_get_string_from_value (path);
+
+  if (ecma_string_is_empty (path_p))
+  {
+    return ECMA_VALUE_EMPTY;
+  }
+
+  // note: path_bytes_p is a CESU8 encoded, despite the macro indicating otherwise
+  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+
+  const char* prefix;
+  lit_utf8_size_t prefix_len;
 
 #ifdef _WIN32
-  if (start[0] == '\\' && start[1] == '\\')
+  if (path_bytes_len > 2 && path_bytes_p[0] == '\\' && path_bytes_p[1] == '\\')
   {
-    // TODO: check for valid unc path \\host\..
-    prefix = ecma_string_ascii_sz ("file:");
+    // we could further perform unc path validation, but not sure if its necessary
+    prefix = FILE_URL_ENCODE_PREFIX_UNC;
+    prefix_len = FILE_URL_ENCODE_PREFIX_UNC_LEN;
   }
-  else if (isalpha(start[0]) && start[1] == ':' && is_separator (start[2]))
+  else if (path_bytes_len > 2 && isalpha (path_bytes_p[0]) && path_bytes_p[1] == ':' && is_separator (path_bytes_p[2]))
   {
-    prefix = ecma_string_ascii_sz ("file:///");
+    prefix = FILE_URL_ENCODE_PREFIX_WIN;
+    prefix_len = FILE_URL_ENCODE_PREFIX_WIN_LEN;
   }
-  else if (is_separator (start[0]))
+  else if (path_bytes_len > 0 && is_separator (path_bytes_p[0]))
   {
-    prefix = ecma_string_ascii_sz ("file:///C:");
-  }
-  else
-  {
-    prefix = ECMA_VALUE_EMPTY;
-  }
-
-  if (ecma_is_value_string(prefix))
-  {
-    jjs_value_t t = annex_replace_backslashes (ecma_get_string_from_value (path));
-
-    unencoded = ecma_is_value_string (t) ? jjs_binary_op (JJS_BIN_OP_ADD, prefix, t) : ECMA_VALUE_EMPTY;
-
-    jjs_value_free (t);
-  }
-  else
-  {
-    unencoded = ECMA_VALUE_EMPTY;
+    // if the path is just a slash, C: is picked. not sure if this is correct
+    prefix = FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE;
+    prefix_len = FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE_LEN;
   }
 #else // !_WIN32
-  prefix = is_separator (start[0]) ? ecma_string_ascii_sz ("file://") : ECMA_VALUE_EMPTY;
-  unencoded = ecma_is_value_string(prefix) ? jjs_binary_op (JJS_BIN_OP_ADD, prefix, path) : ECMA_VALUE_EMPTY;
-#endif // _WIN32
-
-  jjs_value_free (prefix);
-
-  if (!ecma_is_value_string(unencoded))
+  if (path_bytes_len > 0 && is_separator (path_bytes_p[0]))
   {
-    jjs_value_free (unencoded);
-    return ECMA_VALUE_EMPTY;
+    prefix = FILE_URL_ENCODE_PREFIX_NIX;
+    prefix_len = FILE_URL_ENCODE_PREFIX_NIX_LEN;
+  }
+#endif // _WIN32
+  else
+  {
+    // relative paths and anything else are not handled by this function
+    prefix = NULL;
+    prefix_len = 0;
   }
 
-  // TODO: ? and # are not getting encoded
-  jjs_value_t encoded = ecma_builtin_global_encode_uri (unencoded);
+  ecma_value_t result;
 
-  jjs_value_free (unencoded);
-
-  return encoded;
-} /* annex_path_to_file_url */
-
-#ifdef _WIN32
-static ecma_value_t
-annex_replace_backslashes (ecma_string_t* path_p)
-{
-  ecma_value_t result ;
-  ECMA_STRING_TO_UTF8_STRING(path_p, path_bytes_p, path_bytes_size);
-  lit_utf8_byte_t* copy_p = jmem_heap_alloc_block_null_on_error (path_bytes_size);
-
-  if (copy_p)
+  if (prefix_len > 0)
   {
-    for (lit_utf8_size_t i = 0; i < path_bytes_size; i++)
-    {
-      copy_p[i] = path_bytes_p[i] == '\\' ? '/' : path_bytes_p[i];
-    }
-
-    result = ecma_make_string_value (ecma_new_ecma_string_from_utf8 (copy_p, path_bytes_size));
-    jmem_heap_free_block (copy_p, path_bytes_size);
+    result = annex_encode_path (path_bytes_p, path_bytes_len, (const lit_utf8_byte_t*) prefix, prefix_len);
   }
   else
   {
     result = ECMA_VALUE_EMPTY;
   }
 
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_size);
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
 
   return result;
-} /* annex_replace_backslashes */
+} /* annex_path_to_file_url */
+
+static lit_utf8_byte_t s_annex_to_hex_char[] = {
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+};
+
+static lit_utf8_size_t
+annex_encode_char (lit_utf8_byte_t c, lit_utf8_byte_t* buffer)
+{
+  // TODO: bounds checking
+
+  if (isalnum (c))
+  {
+    *buffer = c;
+    return 1;
+  }
+  else
+  {
+    switch (c)
+    {
+#ifdef _WIN32
+      case '\\':
+        *buffer = '/';
+        return 1;
 #endif // _WIN32
+      case '-':
+      case '.':
+      case '_':
+      case '~':
+      case ':':
+      case '&':
+      case '=':
+      case ';':
+        *buffer = c;
+        return 1;
+      default:
+        // TODO: no bounds checking!
+        buffer[0] = '%';
+        buffer[1] = s_annex_to_hex_char[(c >> 4) & 0x0f];
+        buffer[2] = s_annex_to_hex_char[c & 0x0f];
+        return 3;
+    }
+  }
+}
+
+static ecma_value_t
+annex_encode_path (const lit_utf8_byte_t* path_p,
+                   lit_utf8_size_t path_len,
+                   const lit_utf8_byte_t* prefix,
+                   lit_utf8_size_t prefix_len)
+{
+  // maximum size if every character in path gets encoded to %XX format
+  const lit_utf8_size_t encoded_capacity = prefix_len + (path_len * 3);
+  lit_utf8_byte_t* encoded_p = jmem_heap_alloc_block_null_on_error (encoded_capacity);
+
+  if (encoded_p == NULL)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
+
+  memcpy (encoded_p, prefix, prefix_len);
+
+  const lit_utf8_byte_t* path_cursor_p = path_p;
+  const lit_utf8_byte_t* path_end_p = path_p + path_len;
+  ecma_char_t code_unit;
+  lit_code_point_t cp;
+  ecma_char_t next_ch;
+  lit_utf8_size_t read_size;
+  lit_utf8_byte_t octets[LIT_UTF8_MAX_BYTES_IN_CODE_POINT];
+  lit_utf8_size_t encoded_len = prefix_len;
+  bool has_error = false;
+
+  while (path_cursor_p < path_end_p)
+  {
+    // TODO: no bounds checking!
+    path_cursor_p += lit_read_code_unit_from_cesu8 (path_cursor_p, &code_unit);
+
+    if (lit_is_code_point_utf16_low_surrogate (code_unit))
+    {
+      has_error = true;
+      break;
+    }
+
+    cp = code_unit;
+
+    if (lit_is_code_point_utf16_high_surrogate (code_unit))
+    {
+      if (path_cursor_p >= path_end_p)
+      {
+        has_error = true;
+        break;
+      }
+
+      // TODO: no bounds checking!
+      read_size = lit_read_code_unit_from_cesu8 (path_cursor_p, &next_ch);
+
+      if (lit_is_code_point_utf16_low_surrogate (next_ch))
+      {
+        cp = lit_convert_surrogate_pair_to_code_point (code_unit, next_ch);
+        path_cursor_p += read_size;
+      }
+      else
+      {
+        has_error = true;
+        break;
+      }
+    }
+
+    read_size = lit_code_point_to_utf8 (cp, octets);
+
+    if (read_size == 1)
+    {
+      encoded_len += annex_encode_char (octets[0], &encoded_p[encoded_len]);
+    }
+    else
+    {
+      for (lit_utf8_size_t i = 0; i < read_size; i++)
+      {
+        // TODO: no bounds checking!
+        encoded_p[encoded_len++] = '%';
+        encoded_p[encoded_len++] = s_annex_to_hex_char[(octets[i] >> 4) & 0x0f];
+        encoded_p[encoded_len++] = s_annex_to_hex_char[octets[i] & 0x0f];
+      }
+    }
+  }
+
+  ecma_value_t result;
+
+  if (!has_error)
+  {
+    result = ecma_make_string_value (ecma_new_ecma_string_from_ascii (encoded_p, encoded_len));
+  }
+  else
+  {
+    result = ECMA_VALUE_EMPTY;
+  }
+
+  jmem_heap_free_block (encoded_p, encoded_capacity);
+
+  return result;
+} /* annex_encode_path */
+
+static lit_utf8_size_t
+annex_path_read_n (ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size)
+{
+  if (!ecma_is_value_string (str))
+  {
+    return 0;
+  }
+
+  return ecma_string_copy_to_buffer (ecma_get_string_from_value (str), buffer, buffer_size, JJS_ENCODING_CESU8);
+} /* annex_path_read_n */

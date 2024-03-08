@@ -250,7 +250,7 @@ main (void)
 
   {
     // should build a string from a multi-item array
-    static const lit_utf8_size_t STRING_COUNT = 3;
+    #define STRING_COUNT 3
     static const char* EXPECTED = "string,exports";
 
     ecma_string_t* strings_p [STRING_COUNT] = {
@@ -278,6 +278,8 @@ main (void)
     {
       ecma_deref_ecma_string(strings_p[i]);
     }
+
+    #undef STRING_COUNT
   }
 
   {

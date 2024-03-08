@@ -41,29 +41,32 @@ strict_equals_cstr (jjs_value_t a, const char* b)
   return result;
 }
 
-void
+static void
 try_annex_path_to_file_url (const char* input, const char* expected_output)
 {
-  jjs_value_t input_value = annex_util_create_string_utf8_sz(input);
-  jjs_value_t output_value = annex_path_to_file_url (input_value);
+  ecma_value_t input_value = annex_util_create_string_utf8_sz(input);
+  ecma_value_t output_value = annex_path_to_file_url (input_value);
 
-  TEST_ASSERT (jjs_value_is_string (output_value));
+  TEST_ASSERT (ecma_is_value_string(output_value));
 
   bool result = strict_equals_cstr (output_value, expected_output);
 
-  jjs_value_free (input_value);
-  jjs_value_free (output_value);
+  ecma_free_value (input_value);
+  ecma_free_value (output_value);
 
   TEST_ASSERT (result);
 }
 
-int
-main (void)
+static void
+try_annex_path_to_file_url_bad_input (ecma_value_t input)
 {
-  TEST_INIT ();
+  TEST_ASSERT (ecma_is_value_empty(annex_path_to_file_url (input)));
+  ecma_free_value (input);
+}
 
-  jjs_init (JJS_INIT_EMPTY);
-
+void
+test_annex_path_to_file_url(void)
+{
 #ifdef _WIN32
   // Lowercase ascii alpha
   try_annex_path_to_file_url ("C:\\foo", "file:///C:/foo");
@@ -78,9 +81,9 @@ main (void)
   // space
   try_annex_path_to_file_url ("C:\\foo bar", "file:///C:/foo%20bar");
   // question mark
-//  try_annex_path_to_file_url ("C:\\foo?bar", "file:///C:/foo%3Fbar");
+  try_annex_path_to_file_url ("C:\\foo?bar", "file:///C:/foo%3Fbar");
   // number sign
-//  try_annex_path_to_file_url ("C:\\foo#bar", "file:///C:/foo%23bar");
+  try_annex_path_to_file_url ("C:\\foo#bar", "file:///C:/foo%23bar");
   // ampersand
   try_annex_path_to_file_url ("C:\\foo&bar", "file:///C:/foo&bar");
   // equals
@@ -123,9 +126,9 @@ main (void)
   // space
   try_annex_path_to_file_url ("/foo bar", "file:///foo%20bar");
   // question mark
-//  try_annex_path_to_file_url ("/foo?bar", "file:///foo%3Fbar");
+  try_annex_path_to_file_url ("/foo?bar", "file:///foo%3Fbar");
   // number sign
-//  try_annex_path_to_file_url ("/foo#bar", "file:///foo%23bar");
+  try_annex_path_to_file_url ("/foo#bar", "file:///foo%23bar");
   // ampersand
   try_annex_path_to_file_url ("/foo&bar", "file:///foo&bar");
   // equals
@@ -153,6 +156,31 @@ main (void)
   // Rocket emoji (non-BMP code point)
   try_annex_path_to_file_url ("/🚀", "file:///%F0%9F%9A%80");
 #endif
+}
+
+void
+test_annex_path_to_file_url_bad_input (void)
+{
+  try_annex_path_to_file_url_bad_input (ecma_make_boolean_value (true));
+  try_annex_path_to_file_url_bad_input (ecma_make_int32_value(123));
+  try_annex_path_to_file_url_bad_input (jjs_object());
+  try_annex_path_to_file_url_bad_input (jjs_array(1));
+  try_annex_path_to_file_url_bad_input (jjs_symbol (JJS_SYMBOL_MATCH));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (""));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz ("./relative-path"));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz ("../relative-path"));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz ("relative-path"));
+}
+
+int
+main (void)
+{
+  TEST_INIT ();
+
+  jjs_init (JJS_INIT_EMPTY);
+
+  test_annex_path_to_file_url ();
+  test_annex_path_to_file_url_bad_input ();
   
   jjs_cleanup ();
   return 0;
