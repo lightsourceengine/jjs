@@ -64,7 +64,7 @@ try_annex_path_to_file_url_bad_input (ecma_value_t input)
   ecma_free_value (input);
 }
 
-void
+static void
 test_annex_path_to_file_url(void)
 {
 #ifdef _WIN32
@@ -158,7 +158,7 @@ test_annex_path_to_file_url(void)
 #endif
 }
 
-void
+static void
 test_annex_path_to_file_url_bad_input (void)
 {
   try_annex_path_to_file_url_bad_input (ecma_make_boolean_value (true));
