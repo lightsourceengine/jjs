@@ -13,7 +13,6 @@
 # limitations under the License.
 
 set(JJS_PACK_NAME jjs-pack)
-project (${JJS_PACK_NAME} C)
 
 set(INCLUDE_PACK_PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(INCLUDE_PACK_PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib")
@@ -53,12 +52,12 @@ if(ENABLE_AMALGAM)
   set(AMALGAM_PACK_CONFIG_H "${CMAKE_BINARY_DIR}/amalgam/jjs-pack-config.h")
 
   add_custom_command(OUTPUT ${AMALGAM_PACK_C} ${AMALGAM_PACK_H}
-      COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/tools/amalgam.py
+      COMMAND ${PYTHON} ${PROJECT_SOURCE_DIR}/tools/amalgam.py
       --jjs-pack
       --output-dir ${CMAKE_BINARY_DIR}/amalgam
       DEPENDS ${PACK_SOURCES}
       ${PACK_HEADERS}
-      ${CMAKE_CURRENT_SOURCE_DIR}/tools/amalgam.py
+      ${PROJECT_SOURCE_DIR}/tools/amalgam.py
   )
 
   add_custom_target(amalgam-jjs-pack DEPENDS ${AMALGAM_PACK_C})

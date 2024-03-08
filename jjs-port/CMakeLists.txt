@@ -13,7 +13,6 @@
 # limitations under the License.
 
 set(JJS_PORT_NAME jjs-port)
-project (${JJS_PORT_NAME} C)
 
 # Source directories
 set(PORT_SOURCES
@@ -45,11 +44,11 @@ if(ENABLE_AMALGAM)
   set(AMALGAM_PORT_C "${CMAKE_BINARY_DIR}/amalgam/jjs-port.c")
 
   add_custom_command(OUTPUT ${AMALGAM_PORT_C}
-                     COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/tools/amalgam.py
+                     COMMAND ${PYTHON} ${PROJECT_SOURCE_DIR}/tools/amalgam.py
                              --jjs-port
                              --output-dir ${CMAKE_BINARY_DIR}/amalgam
                      DEPENDS ${PORT_SOURCES}
-                             ${CMAKE_CURRENT_SOURCE_DIR}/tools/amalgam.py
+                             ${PROJECT_SOURCE_DIR}/tools/amalgam.py
   )
   add_custom_target(amalgam-port DEPENDS ${AMALGAM_PORT_C})
   add_dependencies(amalgam amalgam-port)

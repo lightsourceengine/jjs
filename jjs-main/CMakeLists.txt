@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project (jjs-main C)
-
 # Optional build settings
 set(ENABLE_LINK_MAP           OFF CACHE BOOL "Enable generating a link map file?")
 set(JJS_TEST_STACK_MEASURE    OFF CACHE BOOL "Enable stack measurement for the jjs-test binary?")

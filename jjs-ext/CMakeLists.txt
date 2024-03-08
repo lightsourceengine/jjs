@@ -13,7 +13,6 @@
 # limitations under the License.
 
 set(JJS_EXT_NAME jjs-ext)
-project (${JJS_EXT_NAME} C)
 
 # Optional features
 set(FEATURE_INIT_FINI OFF CACHE BOOL "Enable library constructor/destructor support?")

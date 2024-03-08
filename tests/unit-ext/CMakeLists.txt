@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project (unit-ext C)
-
 set(INCLUDE_UNIT_EXT ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Unit tests main modules

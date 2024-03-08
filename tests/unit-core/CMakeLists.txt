@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project (unit-core C)
-
 if (NOT IS_ABSOLUTE ${FEATURE_PROFILE})
   set(FEATURE_PROFILE "${CMAKE_SOURCE_DIR}/jjs-core/profiles/${FEATURE_PROFILE}.profile")
 endif()
