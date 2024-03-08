@@ -453,7 +453,7 @@ lit_read_code_unit_from_cesu8_safe (const lit_utf8_byte_t *buf_p, /**< buffer wi
     ret = ((lit_code_point_t) (c & LIT_UTF8_LAST_4_BITS_MASK));
   }
 
-  bool is_malformed_cesu8 = (buf_p + bytes_count) >= end_p;
+  bool is_malformed_cesu8 = (buf_p + bytes_count) > end_p;
 
   JJS_ASSERT (!is_malformed_cesu8);
 
