@@ -134,6 +134,8 @@ lit_utf8_size_t
 lit_read_code_point_from_utf8 (const lit_utf8_byte_t *buf_p, lit_utf8_size_t buf_size, lit_code_point_t *code_point);
 
 lit_utf8_size_t lit_read_code_unit_from_cesu8 (const lit_utf8_byte_t *buf_p, ecma_char_t *code_unit);
+lit_utf8_size_t
+lit_read_code_unit_from_cesu8_safe (const lit_utf8_byte_t *buf_p, const lit_utf8_byte_t *end_p, ecma_char_t *code_unit);
 lit_utf8_size_t lit_read_code_point_from_cesu8 (const lit_utf8_byte_t *buf_p,
                                                 const lit_utf8_byte_t *buf_end_p,
                                                 lit_code_point_t *code_point);

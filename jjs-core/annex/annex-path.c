@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#include <ctype.h>
+
 #include "ecma-builtin-helpers.h"
 
 #include "annex.h"
@@ -27,8 +29,8 @@
 #ifdef _WIN32
 #include <ctype.h>
 #define is_separator(c)                         ((c) == '/' || (c) == '\\')
-#define is_drive_path(BUFFER)                   (isalpha (BUFFER[0]) && BUFFER[1] == ':' && is_separator (BUFFER[2]))
-#define is_absolute(BUFFER)                     (is_separator (BUFFER[0]) || is_drive_path (BUFFER))
+#define is_drive_path(BUFFER)                   (isalpha ((BUFFER)[0]) && (BUFFER)[1] == ':' && is_separator ((BUFFER)[2]))
+#define is_absolute(BUFFER)                     (is_separator ((BUFFER)[0]) || is_drive_path (BUFFER))
 #define FILE_URL_ENCODE_PREFIX_WIN              "file:///"
 #define FILE_URL_ENCODE_PREFIX_WIN_LEN          8
 #define FILE_URL_ENCODE_PREFIX_UNC              FILE_URL_PREFIX
@@ -37,7 +39,7 @@
 #define FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE_LEN 10
 #else /* !_WIN32 */
 #define is_separator(c)                ((c) == '/')
-#define is_absolute(BUFFER)            is_separator (BUFFER[0])
+#define is_absolute(BUFFER)            is_separator ((BUFFER)[0])
 #define FILE_URL_ENCODE_PREFIX_NIX     "file://"
 #define FILE_URL_ENCODE_PREFIX_NIX_LEN 7
 #endif /* _WIN32 */
@@ -47,6 +49,10 @@ static ecma_value_t annex_encode_path (const lit_utf8_byte_t* path_p,
                                        const lit_utf8_byte_t* prefix,
                                        lit_utf8_size_t prefix_len);
 static lit_utf8_size_t annex_path_read_n (ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size);
+
+static lit_utf8_byte_t s_annex_to_hex_char[] = {
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+};
 
 /**
  * Get the type (fs path or package) of a CommonJS request or ESM specifier.
@@ -345,10 +351,6 @@ annex_path_to_file_url (ecma_value_t path)
   return result;
 } /* annex_path_to_file_url */
 
-static lit_utf8_byte_t s_annex_to_hex_char[] = {
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
-};
-
 static lit_utf8_size_t
 annex_encode_char (lit_utf8_byte_t c, lit_utf8_byte_t* buffer)
 {
@@ -376,6 +378,7 @@ annex_encode_char (lit_utf8_byte_t c, lit_utf8_byte_t* buffer)
       case '&':
       case '=':
       case ';':
+      case '/':
         *buffer = c;
         return 1;
       default:
@@ -386,7 +389,7 @@ annex_encode_char (lit_utf8_byte_t c, lit_utf8_byte_t* buffer)
         return 3;
     }
   }
-}
+} /* annex_encode_char */
 
 static ecma_value_t
 annex_encode_path (const lit_utf8_byte_t* path_p,
@@ -407,9 +410,9 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
 
   const lit_utf8_byte_t* path_cursor_p = path_p;
   const lit_utf8_byte_t* path_end_p = path_p + path_len;
-  ecma_char_t code_unit;
-  lit_code_point_t cp;
+  ecma_char_t ch;
   ecma_char_t next_ch;
+  lit_code_point_t code_point;
   lit_utf8_size_t read_size;
   lit_utf8_byte_t octets[LIT_UTF8_MAX_BYTES_IN_CODE_POINT];
   lit_utf8_size_t encoded_len = prefix_len;
@@ -417,18 +420,25 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
 
   while (path_cursor_p < path_end_p)
   {
-    // TODO: no bounds checking!
-    path_cursor_p += lit_read_code_unit_from_cesu8 (path_cursor_p, &code_unit);
+    read_size = lit_read_code_unit_from_cesu8_safe (path_cursor_p, path_end_p, &ch);
 
-    if (lit_is_code_point_utf16_low_surrogate (code_unit))
+    if (read_size == 0)
     {
       has_error = true;
       break;
     }
 
-    cp = code_unit;
+    path_cursor_p += read_size;
 
-    if (lit_is_code_point_utf16_high_surrogate (code_unit))
+    if (lit_is_code_point_utf16_low_surrogate (ch))
+    {
+      has_error = true;
+      break;
+    }
+
+    code_point = ch;
+
+    if (lit_is_code_point_utf16_high_surrogate (ch))
     {
       if (path_cursor_p >= path_end_p)
       {
@@ -436,12 +446,17 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
         break;
       }
 
-      // TODO: no bounds checking!
-      read_size = lit_read_code_unit_from_cesu8 (path_cursor_p, &next_ch);
+      read_size = lit_read_code_unit_from_cesu8_safe (path_cursor_p, path_end_p, &next_ch);
+
+      if (read_size == 0)
+      {
+        has_error = true;
+        break;
+      }
 
       if (lit_is_code_point_utf16_low_surrogate (next_ch))
       {
-        cp = lit_convert_surrogate_pair_to_code_point (code_unit, next_ch);
+        code_point = lit_convert_surrogate_pair_to_code_point (ch, next_ch);
         path_cursor_p += read_size;
       }
       else
@@ -451,7 +466,9 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
       }
     }
 
-    read_size = lit_code_point_to_utf8 (cp, octets);
+    read_size = lit_code_point_to_utf8 (code_point, octets);
+
+    JJS_ASSERT (encoded_len + read_size < encoded_capacity);
 
     if (read_size == 1)
     {
@@ -461,7 +478,6 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
     {
       for (lit_utf8_size_t i = 0; i < read_size; i++)
       {
-        // TODO: no bounds checking!
         encoded_p[encoded_len++] = '%';
         encoded_p[encoded_len++] = s_annex_to_hex_char[(octets[i] >> 4) & 0x0f];
         encoded_p[encoded_len++] = s_annex_to_hex_char[octets[i] & 0x0f];

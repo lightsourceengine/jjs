@@ -411,7 +411,25 @@ lit_utf8_size_t
 lit_read_code_unit_from_cesu8 (const lit_utf8_byte_t *buf_p, /**< buffer with characters */
                                ecma_char_t *code_unit) /**< [out] code unit */
 {
+  // assume caller has done bounds checking on buf_p.
+  return lit_read_code_unit_from_cesu8_safe (buf_p, buf_p + 3, code_unit);
+} /* lit_read_code_unit_from_cesu8 */
+
+/**
+ * Reads a code unit, up to 3 bytes, from non-empty CESU8-encoded buffer.
+ *
+ * The method will check bounds before accessing multi-byte code units on
+ * buf_p.
+ *
+ * @return number of bytes occupied by code point in the string
+ */
+lit_utf8_size_t
+lit_read_code_unit_from_cesu8_safe (const lit_utf8_byte_t *buf_p, /**< buffer with characters */
+                                    const lit_utf8_byte_t *end_p, /**< buffer limit */
+                                    ecma_char_t *code_unit) /**< [out] code unit */
+{
   JJS_ASSERT (buf_p);
+  JJS_ASSERT (end_p);
 
   lit_utf8_byte_t c = buf_p[0];
   if ((c & LIT_UTF8_1_BYTE_MASK) == LIT_UTF8_1_BYTE_MARKER)
@@ -420,7 +438,7 @@ lit_read_code_unit_from_cesu8 (const lit_utf8_byte_t *buf_p, /**< buffer with ch
     return 1;
   }
 
-  lit_code_point_t ret = LIT_UNICODE_CODE_POINT_NULL;
+  lit_code_point_t ret;
   lit_utf8_size_t bytes_count;
 
   if ((c & LIT_UTF8_2_BYTE_MASK) == LIT_UTF8_2_BYTE_MARKER)
@@ -435,6 +453,15 @@ lit_read_code_unit_from_cesu8 (const lit_utf8_byte_t *buf_p, /**< buffer with ch
     ret = ((lit_code_point_t) (c & LIT_UTF8_LAST_4_BITS_MASK));
   }
 
+  bool is_malformed_cesu8 = (buf_p + bytes_count) >= end_p;
+
+  JJS_ASSERT (!is_malformed_cesu8);
+
+  if (is_malformed_cesu8)
+  {
+    return 0;
+  }
+
   for (uint32_t i = 1; i < bytes_count; ++i)
   {
     ret <<= LIT_UTF8_BITS_IN_EXTRA_BYTES;
@@ -444,7 +471,7 @@ lit_read_code_unit_from_cesu8 (const lit_utf8_byte_t *buf_p, /**< buffer with ch
   JJS_ASSERT (ret <= LIT_UTF16_CODE_UNIT_MAX);
   *code_unit = (ecma_char_t) ret;
   return bytes_count;
-} /* lit_read_code_unit_from_cesu8 */
+} /* lit_read_code_unit_from_cesu8_safe */
 
 /**
  * Decodes a unicode code point from non-empty cesu-8-encoded buffer
