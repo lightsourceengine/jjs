@@ -40,7 +40,7 @@ set(PORT_DEFINES
 #  The process will create the following files:
 #   * jjs-port.c
 #   * jjs-port.h
-if(ENABLE_AMALGAM)
+if(JJS_AMALGAM)
   set(AMALGAM_PORT_C "${CMAKE_BINARY_DIR}/amalgam/jjs-port.c")
 
   add_custom_command(OUTPUT ${AMALGAM_PORT_C}

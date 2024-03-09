@@ -58,15 +58,15 @@ set(JJS_PORT                  ON  CACHE BOOL "Build default JJS port implementat
 set(JJS_EXT                   ON  CACHE BOOL "Build jjs-ext?")
 set(JJS_EXT_DEBUGGER          ON  CACHE BOOL "Build jjs-ext debugger support?")
 set(JJS_PACK                  OFF CACHE BOOL "Build jjs-pack?")
-set(UNITTESTS                 OFF CACHE BOOL "Build unit tests?")
-set(DOCTESTS                  OFF CACHE BOOL "Build doc tests?")
+set(JJS_UNITTESTS             OFF CACHE BOOL "Build unit tests?")
+set(JJS_DOCTESTS              OFF CACHE BOOL "Build doc tests?")
 
 # Optional build settings
-set(BUILD_SHARED_LIBS         OFF CACHE BOOL "Build shared libraries?")
-set(ENABLE_AMALGAM            OFF CACHE BOOL "Enable amalgamated build?")
-set(ENABLE_LTO                ON  CACHE BOOL "Enable LTO build?")
-set(ENABLE_STRIP              ON  CACHE BOOL "Enable stripping all symbols from release binary?")
-set(ENABLE_COMPILE_COMMANDS   ON  CACHE BOOL "Enable generating compile_commands.json?")
+set(JJS_BUILD_SHARED_LIBS     OFF CACHE BOOL "Build shared libraries?")
+set(JJS_AMALGAM               OFF CACHE BOOL "Enable amalgamated build?")
+set(JJS_LTO                   ON  CACHE BOOL "Enable LTO build?")
+set(JJS_STRIP                 ON  CACHE BOOL "Enable stripping all symbols from release binary?")
+set(JJS_COMPILE_COMMANDS      ON  CACHE BOOL "Enable generating compile_commands.json?")
 
 # Option overrides
 if(NOT USING_CLANG)
@@ -75,65 +75,65 @@ if(NOT USING_CLANG)
   set(JJS_LIBFUZZER_MESSAGE " (FORCED BY COMPILER)")
 endif()
 
-if(JJS_CMDLINE OR JJS_CMDLINE_TEST OR JJS_CMDLINE_SNAPSHOT OR JJS_LIBFUZZER OR UNITTESTS OR DOCTESTS)
+if(JJS_CMDLINE OR JJS_CMDLINE_TEST OR JJS_CMDLINE_SNAPSHOT OR JJS_LIBFUZZER OR JJS_UNITTESTS OR JJS_DOCTESTS)
   set(JJS_PORT ON)
 
   set(JJS_PORT_MESSAGE " (FORCED BY CMDLINE OR LIBFUZZER OR TESTS)")
 endif()
 
-if(JJS_CMDLINE OR DOCTESTS)
+if(JJS_CMDLINE OR JJS_DOCTESTS)
   set(JJS_EXT ON)
 
   set(JJS_EXT_MESSAGE " (FORCED BY CMDLINE OR TESTS)")
 endif()
 
 if("${PLATFORM}" STREQUAL "DARWIN")
-  set(ENABLE_LTO         OFF)
-  set(ENABLE_STRIP       OFF)
+  set(JJS_LTO            OFF)
+  set(JJS_STRIP          OFF)
 
-  set(ENABLE_LTO_MESSAGE         " (FORCED BY PLATFORM)")
-  set(ENABLE_STRIP_MESSAGE       " (FORCED BY PLATFORM)")
+  set(JJS_LTO_MESSAGE            " (FORCED BY PLATFORM)")
+  set(JJS_STRIP_MESSAGE          " (FORCED BY PLATFORM)")
 endif()
 
 if("${PLATFORM}" STREQUAL "ESP-IDF")
-  set(ENABLE_LTO         OFF)
-  set(ENABLE_STRIP       OFF)
+  set(JJS_LTO            OFF)
+  set(JJS_STRIP          OFF)
 
-  set(ENABLE_LTO_MESSAGE         " (FORCED BY PLATFORM)")
-  set(ENABLE_STRIP_MESSAGE       " (FORCED BY PLATFORM)")
+  set(JJS_LTO_MESSAGE            " (FORCED BY PLATFORM)")
+  set(JJS_STRIP_MESSAGE          " (FORCED BY PLATFORM)")
 endif()
 
 if(USING_TI)
-  set(ENABLE_STRIP       OFF)
+  set(JJS_STRIP          OFF)
 
-  set(ENABLE_STRIP_MESSAGE       " (FORCED BY COMPILER)")
+  set(JJS_STRIP_MESSAGE       " (FORCED BY COMPILER)")
 endif()
 
 if(USING_MSVC)
-  set(ENABLE_STRIP       OFF)
+  set(JJS_STRIP          OFF)
 
-  set(ENABLE_STRIP_MESSAGE       " (FORCED BY COMPILER)")
+  set(JJS_STRIP_MESSAGE       " (FORCED BY COMPILER)")
 endif()
 
 if(CYGWIN OR MINGW OR MSYS)
-  set(ENABLE_LTO         OFF)
+  set(JJS_LTO            OFF)
 
-  set(ENABLE_LTO_MESSAGE         " (FORCED BY PLATFORM)")
+  set(JJS_LTO_MESSAGE            " (FORCED BY PLATFORM)")
 endif()
 
 # Generate compile_commands.json
-set(CMAKE_EXPORT_COMPILE_COMMANDS ${ENABLE_COMPILE_COMMANDS})
+set(CMAKE_EXPORT_COMPILE_COMMANDS ${JJS_COMPILE_COMMANDS})
 
 # Status messages
 message(STATUS "CMAKE_BUILD_TYPE               " ${CMAKE_BUILD_TYPE})
 message(STATUS "CMAKE_C_COMPILER_ID            " ${CMAKE_C_COMPILER_ID})
 message(STATUS "CMAKE_SYSTEM_NAME              " ${CMAKE_SYSTEM_NAME})
 message(STATUS "CMAKE_SYSTEM_PROCESSOR         " ${CMAKE_SYSTEM_PROCESSOR})
-message(STATUS "BUILD_SHARED_LIBS              " ${BUILD_SHARED_LIBS})
-message(STATUS "ENABLE_AMALGAM                 " ${ENABLE_AMALGAM} ${ENABLE_AMALGAM_MESSAGE})
-message(STATUS "ENABLE_LTO                     " ${ENABLE_LTO} ${ENABLE_LTO_MESSAGE})
-message(STATUS "ENABLE_STRIP                   " ${ENABLE_STRIP} ${ENABLE_STRIP_MESSAGE})
-message(STATUS "ENABLE_COMPILE_COMMANDS        " ${ENABLE_COMPILE_COMMANDS})
+message(STATUS "JJS_BUILD_SHARED_LIBS          " ${JJS_BUILD_SHARED_LIBS})
+message(STATUS "JJS_AMALGAM                    " ${JJS_AMALGAM} ${JJS_AMALGAM_MESSAGE})
+message(STATUS "JJS_LTO                        " ${JJS_LTO} ${JJS_LTO_MESSAGE})
+message(STATUS "JJS_STRIP                      " ${JJS_STRIP} ${JJS_STRIP_MESSAGE})
+message(STATUS "JJS_COMPILE_COMMANDS           " ${JJS_COMPILE_COMMANDS})
 message(STATUS "JJS_VERSION                    " ${JJS_VERSION})
 message(STATUS "JJS_CMDLINE                    " ${JJS_CMDLINE} ${JJS_CMDLINE_MESSAGE})
 message(STATUS "JJS_CMDLINE_TEST               " ${JJS_CMDLINE_TEST} ${JJS_CMDLINE_TEST_MESSAGE})
@@ -143,8 +143,11 @@ message(STATUS "JJS_PORT                       " ${JJS_PORT} ${JJS_PORT_MESSAGE}
 message(STATUS "JJS_EXT                        " ${JJS_EXT} ${JJS_EXT_MESSAGE})
 message(STATUS "JJS_MATH                       " ${JJS_MATH} ${JJS_MATH_MESSAGE})
 message(STATUS "JJS_PACK                       " ${JJS_PACK} ${JJS_PACK_MESSAGE})
-message(STATUS "UNITTESTS                      " ${UNITTESTS})
-message(STATUS "DOCTESTS                       " ${DOCTESTS})
+message(STATUS "JJS_UNITTESTS                  " ${JJS_UNITTESTS})
+message(STATUS "JJS_DOCTESTS                   " ${JJS_DOCTESTS})
+message(STATUS "JJS_EXTERNAL_LINKER_FLAGS      " ${JJS_EXTERNAL_LINKER_FLAGS})
+message(STATUS "JJS_EXTERNAL_LINK_LIBS         " ${JJS_EXTERNAL_LINK_LIBS})
+message(STATUS "JJS_EXTERNAL_COMPILE_FLAGS     " ${JJS_EXTERNAL_COMPILE_FLAGS})
 
 # Setup directories
 # Note: This mimics a conventional file system layout in the build directory for
@@ -185,7 +188,7 @@ jjs_add_compile_flags(${FLAGS_COMMON_ARCH})
 jjs_add_flags(CMAKE_EXE_LINKER_FLAGS ${FLAGS_COMMON_ARCH})
 
 # LTO
-if(ENABLE_LTO)
+if(JJS_LTO)
   if(USING_GCC OR USING_CLANG)
     jjs_add_compile_flags(-flto)
     jjs_add_link_flags(-flto)
@@ -249,17 +252,17 @@ if(JJS_LIBFUZZER)
 endif()
 
 # Strip binary
-if(ENABLE_STRIP AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(JJS_STRIP AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   jjs_add_link_flags(-s)
 endif()
 
 # External compiler & linker flags
-if(DEFINED EXTERNAL_COMPILE_FLAGS)
-  jjs_add_compile_flags(${EXTERNAL_COMPILE_FLAGS})
+if(DEFINED JJS_EXTERNAL_COMPILE_FLAGS)
+  jjs_add_compile_flags(${JJS_EXTERNAL_COMPILE_FLAGS})
 endif()
 
-if(DEFINED EXTERNAL_LINKER_FLAGS)
-  jjs_add_link_flags(${EXTERNAL_LINKER_FLAGS})
+if(DEFINED JJS_EXTERNAL_LINKER_FLAGS)
+  jjs_add_link_flags(${JJS_EXTERNAL_LINKER_FLAGS})
 endif()
 
 # Used as placeholder to attach amalgamated build targets to
@@ -290,7 +293,7 @@ if(JJS_CMDLINE OR JJS_CMDLINE_TEST OR JJS_CMDLINE_SNAPSHOT OR JJS_LIBFUZZER)
 endif()
 
 # Unittests
-if(UNITTESTS)
+if(JJS_UNITTESTS)
   add_subdirectory(tests/unit-core)
   if(JJS_EXT)
     add_subdirectory(tests/unit-ext)
@@ -298,6 +301,6 @@ if(UNITTESTS)
 endif()
 
 # Doctests
-if(DOCTESTS)
+if(JJS_DOCTESTS)
   add_subdirectory(tests/unit-doc)
 endif()

@@ -348,7 +348,7 @@ set(SOURCE_CORE_FILES
 #   * jjs.c
 #   * jjs.h
 #   * jjs-config.h
-if(ENABLE_AMALGAM)
+if(JJS_AMALGAM)
 
   # Create single C/H file
   set(HEADER_CORE_FILES
@@ -771,7 +771,7 @@ set(JJS_CORE_PKGCONFIG_REQUIRES)
 set(JJS_CORE_PKGCONFIG_LIBS)
 set(JJS_CORE_PKGCONFIG_CFLAGS)
 
-if(ENABLE_LTO)
+if(JJS_LTO)
   set(JJS_CORE_PKGCONFIG_CFLAGS "${JJS_CORE_PKGCONFIG_CFLAGS} -flto")
 endif()
 
@@ -789,8 +789,8 @@ else()
   endif()
 endif()
 
-separate_arguments(EXTERNAL_LINK_LIBS)
-foreach(EXT_LIB ${EXTERNAL_LINK_LIBS})
+separate_arguments(JJS_EXTERNAL_LINK_LIBS)
+foreach(EXT_LIB ${JJS_EXTERNAL_LINK_LIBS})
   target_link_libraries(${JJS_CORE_NAME} ${EXT_LIB})
   set(JJS_CORE_PKGCONFIG_LIBS "${JJS_CORE_PKGCONFIG_LIBS} -l${EXT_LIB}")
 endforeach()

@@ -61,7 +61,7 @@ JJS_UNITTESTS_OPTIONS = [
             OPTIONS_COMMON + OPTIONS_UNITTESTS),
     Options('unittests-init-fini',
             OPTIONS_COMMON + OPTIONS_UNITTESTS
-            + ['--cmake-param=-DFEATURE_INIT_FINI=ON']),
+            + ['--cmake-param=-DJJS_FEATURE_INIT_FINI=ON']),
 ]
 
 # Test options for jjs-tests

@@ -13,15 +13,15 @@
 # limitations under the License.
 
 # Optional build settings
-set(ENABLE_LINK_MAP           OFF CACHE BOOL "Enable generating a link map file?")
+set(JJS_CMDLINE_LINK_MAP      OFF CACHE BOOL "Enable generating a link map file?")
 set(JJS_TEST_STACK_MEASURE    OFF CACHE BOOL "Enable stack measurement for the jjs-test binary?")
 
 # Status messages
-message(STATUS "ENABLE_LINK_MAP                " ${ENABLE_LINK_MAP})
+message(STATUS "JJS_CMDLINE_LINK_MAP           " ${JJS_CMDLINE_LINK_MAP})
 message(STATUS "JJS_TEST_STACK_MEASURE         " ${JJS_TEST_STACK_MEASURE})
 
 # Generate map file
-if(ENABLE_LINK_MAP)
+if(JJS_CMDLINE_LINK_MAP)
   if("${PLATFORM}" STREQUAL "DARWIN")
     set(LINKER_FLAGS_COMMON "${LINKER_FLAGS_COMMON} -Xlinker -map -Xlinker jjs.map")
   else()

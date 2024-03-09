@@ -15,10 +15,10 @@
 set(JJS_EXT_NAME jjs-ext)
 
 # Optional features
-set(FEATURE_INIT_FINI OFF CACHE BOOL "Enable library constructor/destructor support?")
+set(JJS_FEATURE_INIT_FINI OFF CACHE BOOL "Enable library constructor/destructor support?")
 
 # Status messages
-message(STATUS "FEATURE_INIT_FINI              " ${FEATURE_INIT_FINI})
+message(STATUS "JJS_FEATURE_INIT_FINI           " ${JJS_FEATURE_INIT_FINI})
 
 # Include directories
 set(INCLUDE_EXT_PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -26,8 +26,8 @@ set(INCLUDE_EXT_PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/common")
 
 set(INCLUDE_EXT_PUBLIC ${INCLUDE_EXT_PUBLIC} PARENT_SCOPE) # for jjs-port
 
-if(FEATURE_INIT_FINI)
-  set(DEFINES_EXT ${DEFINES_EXT} ENABLE_INIT_FINI)
+if(JJS_FEATURE_INIT_FINI)
+  set(DEFINES_EXT ${DEFINES_EXT} JJS_FEATURE_INIT_FINI)
 endif()
 
 # Source directories

@@ -40,7 +40,7 @@ set(PACK_SOURCES
   url/jjs-pack-url-api-js.c
 )
 
-if(ENABLE_AMALGAM)
+if(JJS_AMALGAM)
   set(PACK_HEADERS
     lib/jjs-pack-lib.h
     include/jjs-pack.h

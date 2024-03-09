@@ -185,18 +185,18 @@ def generate_build_options(arguments):
 
     # general build options
     build_options_append('CMAKE_BUILD_TYPE', arguments.build_type)
-    build_options_append('EXTERNAL_COMPILE_FLAGS', ' '.join(arguments.compile_flag))
-    build_options_append('EXTERNAL_LINK_LIBS', ' '.join(arguments.link_lib))
-    build_options_append('EXTERNAL_LINKER_FLAGS', ' '.join(arguments.linker_flag))
-    build_options_append('ENABLE_AMALGAM', arguments.amalgam)
-    build_options_append('ENABLE_LTO', arguments.lto)
-    build_options_append('BUILD_SHARED_LIBS', arguments.shared_libs)
-    build_options_append('ENABLE_STRIP', arguments.strip)
+    build_options_append('JJS_EXTERNAL_COMPILE_FLAGS', ' '.join(arguments.compile_flag))
+    build_options_append('JJS_EXTERNAL_LINK_LIBS', ' '.join(arguments.link_lib))
+    build_options_append('JJS_EXTERNAL_LINKER_FLAGS', ' '.join(arguments.linker_flag))
+    build_options_append('JJS_AMALGAM', arguments.amalgam)
+    build_options_append('JJS_LTO', arguments.lto)
+    build_options_append('JJS_BUILD_SHARED_LIBS', arguments.shared_libs)
+    build_options_append('JJS_STRIP', arguments.strip)
     build_options_append('CMAKE_TOOLCHAIN_FILE', arguments.toolchain)
     build_options_append('CMAKE_VERBOSE_MAKEFILE', arguments.verbose)
 
     # optional components
-    build_options_append('DOCTESTS', arguments.doctests)
+    build_options_append('JJS_DOCTESTS', arguments.doctests)
     build_options_append('JJS_CMDLINE', arguments.jjs_cmdline)
     build_options_append('JJS_CMDLINE_SNAPSHOT', arguments.jjs_cmdline_snapshot)
     build_options_append('JJS_CMDLINE_TEST', arguments.jjs_cmdline_test)
@@ -205,7 +205,7 @@ def generate_build_options(arguments):
     build_options_append('JJS_EXT_DEBUGGER', arguments.jjs_ext_debugger)
     build_options_append('JJS_PORT', arguments.jjs_port)
     build_options_append('JJS_PACK', arguments.jjs_pack)
-    build_options_append('UNITTESTS', arguments.unittests)
+    build_options_append('JJS_UNITTESTS', arguments.unittests)
 
     # jjs-core options
     build_options_append('JJS_CPOINTER_32_BIT', arguments.cpointer_32bit)
@@ -237,8 +237,8 @@ def generate_build_options(arguments):
         build_options.append('-D%s=%s' % ('JJS_GC_MARK_LIMIT', arguments.gc_mark_limit))
 
     # jjs-main options
-    build_options_append('ENABLE_LINK_MAP', arguments.link_map)
-    build_options_append('ENABLE_COMPILE_COMMANDS', arguments.compile_commands)
+    build_options_append('JJS_CMDLINE_LINK_MAP', arguments.link_map)
+    build_options_append('JJS_COMPILE_COMMANDS', arguments.compile_commands)
 
     # general build options (final step)
     if arguments.cmake_param:
