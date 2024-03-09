@@ -158,8 +158,8 @@ function pathToFileURL(filepath) {
       RegExpPrototypeSymbolReplace(backslashRegEx, filepath.slice(hostnameEndIndex), '/'));
   } else {
     if (!resolve) {
-      // lazy load so user can use fileURLToPath() without loading jjs:path
-      resolve = module.bindings.path().resolve;
+      // lazy load because jjs:path may not exist (so other code paths work) and we cannot control load order of packs.
+      resolve = lazyLoadResolve();
     }
     let resolved = resolve(filepath);
     // path.resolve strips trailing slashes so we must add them back
@@ -171,6 +171,14 @@ function pathToFileURL(filepath) {
     outURL.pathname = encodePathChars(resolved);
   }
   return outURL;
+}
+
+function lazyLoadResolve() {
+  try {
+    return require('jjs:path').resolve;
+  } catch (e) {
+    throw Error('pathToFileURL(): jjs:path pack not installed');
+  }
 }
 
 class ERR_INVALID_ARG_TYPE extends TypeError {

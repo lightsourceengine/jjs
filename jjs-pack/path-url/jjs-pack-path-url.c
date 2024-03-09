@@ -20,30 +20,12 @@
 
 JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_path_url)
 
-static JJS_HANDLER (jjs_pack_path_url_path)
-{
-  JJS_UNUSED (call_info_p);
-  JJS_UNUSED (args_p);
-  JJS_UNUSED (args_cnt);
-
-  jjs_value_t lib = jjs_commonjs_require_sz ("jjs:path");
-
-  if (jjs_value_is_exception (lib))
-  {
-    jjs_value_free (lib);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "jjs:path-url requires jjs:path to be installed");
-  }
-
-  return lib;
-} /* jjs_pack_path_url_path */
-
 static jjs_value_t
 jjs_pack_path_url_bindings (void)
 {
   jjs_value_t bindings = jjs_object ();
 
   jjs_pack_lib_add_is_windows (bindings);
-  jjs_pack_lib_set_function_sz (bindings, "path", &jjs_pack_path_url_path);
 
   return bindings;
 } /* jjs_pack_path_url_bindings */
