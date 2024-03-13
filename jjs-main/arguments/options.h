@@ -78,8 +78,6 @@ typedef struct
   uint16_t option_flags;
   uint16_t init_flags;
   uint8_t parse_result;
-
-  uint32_t packs;
 } main_args_t;
 
 bool main_parse_args (int argc, char **argv, main_args_t *arguments_p);

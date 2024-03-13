@@ -425,8 +425,6 @@ def run_jjs_pack_tests(options):
         if job.test_args:
             test_cmd.extend(job.test_args)
 
-        test_cmd.append("--pack-all")
-
         ret_test |= run_check(test_cmd, env=dict(TZ='UTC'))
 
     return ret_build | ret_test

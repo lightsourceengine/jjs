@@ -50,16 +50,6 @@ main_init_random_seed (void)
 } /* main_init_random_seed */
 
 static void
-main_init_import_packs (main_args_t *arguments_p)
-{
-#if JJS_PACK
-  jjs_pack_init (arguments_p->packs);
-#else
-  (void) arguments_p;
-#endif /* JJS_PACK */
-} /* main_init_import_packs */
-
-static void
 main_vm_cleanup (void)
 {
 #if JJS_PACK
@@ -74,7 +64,7 @@ main_vm_cleanup (void)
 static bool
 main_init_debugger (main_args_t *arguments_p) /**< main arguments */
 {
-  bool result = false;
+  bool result;
 
   if (!strcmp (arguments_p->debug_protocol, "tcp"))
   {
@@ -128,7 +118,9 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
     jjsx_test262_register ();
   }
 
-  main_init_import_packs (arguments_p);
+#if JJS_PACK
+  jjs_pack_init (JJS_PACK_INIT_ALL);
+#endif /* JJS_PACK */
 
   jjsx_register_global ("assert", jjsx_handler_assert);
   jjsx_register_global ("gc", jjsx_handler_gc);
