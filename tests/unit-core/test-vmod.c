@@ -55,7 +55,7 @@ assert_package (const char* package_name, const char* expected_export)
   jjs_value_free (exports);
 }
 
-void
+static void
 test_jjs_vmod_with_callback (void)
 {
   jjs_init (JJS_INIT_EMPTY);
