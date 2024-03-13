@@ -23,6 +23,7 @@ endif()
 # Unit tests main modules
 set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-abort.c
+  test-annex.c
   test-annex-path-to-file-url.c
   test-api-binary-operations-arithmetics.c
   test-api-binary-operations-comparisons.c

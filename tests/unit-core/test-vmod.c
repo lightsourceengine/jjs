@@ -72,7 +72,7 @@ test_jjs_vmod_with_callback (void)
   jjs_cleanup ();
 }
 
-void
+static void
 test_jjs_vmod_with_config (void)
 {
   jjs_init (JJS_INIT_EMPTY);
@@ -89,7 +89,7 @@ test_jjs_vmod_with_config (void)
   jjs_cleanup ();
 }
 
-void
+static void
 test_jjs_vmod_remove (void)
 {
   jjs_init (JJS_INIT_EMPTY);

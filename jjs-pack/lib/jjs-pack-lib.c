@@ -46,7 +46,6 @@ jjs_pack_init_v (uint32_t init_flags)
   PACK_INIT_BLOCK (init_flags, DOMEXCEPTION, jjs_pack_domexception_init);
   PACK_INIT_BLOCK (init_flags, FS, jjs_pack_fs_init);
   PACK_INIT_BLOCK (init_flags, PATH, jjs_pack_path_init);
-  PACK_INIT_BLOCK (init_flags, PATH_URL, jjs_pack_path_url_init);
   PACK_INIT_BLOCK (init_flags, PERFORMANCE, jjs_pack_performance_init);
   PACK_INIT_BLOCK (init_flags, TEXT, jjs_pack_text_init);
   PACK_INIT_BLOCK (init_flags, URL, jjs_pack_url_init);
@@ -137,25 +136,6 @@ jjs_pack_lib_read_exports (uint8_t* source,
 
   return exports;
 } /* jjs_pack_lib_read_exports */
-
-void
-jjs_bindings_platform (jjs_value_t bindings)
-{
-  jjs_value_t platform;
-
-#if defined(_WIN32)
-  platform = jjs_string_sz ("win32");
-#elif defined(__linux__)
-  platform = jjs_string_sz ("linux");
-#elif defined(__APPLE__)
-  platform = jjs_string_sz ("darwin");
-#else /* !_WIN32 */
-  platform = jjs_string_sz ("unknown");
-#endif /* !_WIN32 */
-
-  jjs_value_free (jjs_object_set_sz (bindings, "platform", platform));
-  jjs_value_free (platform);
-} /* jjs_bindings_platform */
 
 void
 jjs_bindings_function (jjs_value_t bindings, const char* name, jjs_external_handler_t function_p)

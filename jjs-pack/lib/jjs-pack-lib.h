@@ -28,7 +28,6 @@ jjs_value_t jjs_pack_console_init (void);
 jjs_value_t jjs_pack_domexception_init (void);
 jjs_value_t jjs_pack_fs_init (void);
 jjs_value_t jjs_pack_path_init (void);
-jjs_value_t jjs_pack_path_url_init (void);
 jjs_value_t jjs_pack_performance_init (void);
 jjs_value_t jjs_pack_text_init (void);
 jjs_value_t jjs_pack_url_init (void);
@@ -44,7 +43,6 @@ jjs_value_t jjs_pack_lib_read_exports (uint8_t* source,
                                        jjs_pack_lib_exports_format_t exports_format);
 
 #define jjs_bindings() jjs_object ()
-void jjs_bindings_platform (jjs_value_t bindings);
 void jjs_bindings_function (jjs_value_t bindings, const char* name, jjs_external_handler_t function_p);
 void jjs_bindings_number (jjs_value_t bindings, const char* name, double number);
 

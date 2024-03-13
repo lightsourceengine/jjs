@@ -15,12 +15,10 @@
 
 // tests adapted from https://github.com/nodejs/node/test/parallel/test-url-pathtofileurl.js
 
-const { resolve } = require('jjs:path');
-const { pathToFileURL } = require('jjs:path-url');
+const { pathToFileURL } = require('jjs:url');
 const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
-// TODO: jjs needs an api to detect platform
-const isWindows = !resolve(".").startsWith('/')
+const isWindows = globalThis['@platform'] === 'win32';
 
 test('pathToFileURL() should create a file url from relative path', () => {
   const fileURL = pathToFileURL('test/').href;

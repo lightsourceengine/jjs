@@ -367,3 +367,25 @@ done:
   ECMA_FINALIZE_UTF8_STRING (name_bytes_p, name_bytes_len);
   return result;
 } /* annex_util_is_valid_package_name */
+
+/**
+ * Defines a read only, non-enumerable, non-configurable value property on the passed
+ * in object.
+ *
+ * @param object target object
+ * @param key property key
+ * @param value property value
+ */
+void
+annex_util_define_ro_value_sz (ecma_value_t object, const char* key, ecma_value_t value)
+{
+  jjs_property_descriptor_t prop = {
+    .flags = JJS_PROP_IS_VALUE_DEFINED,
+    .value = value,
+  };
+  ecma_value_t name = ecma_string_ascii_sz (key);
+  jjs_value_t result = jjs_object_define_own_prop (object, name, &prop);
+  JJS_ASSERT (jjs_value_is_true (result));
+  jjs_value_free (result);
+  ecma_free_value (name);
+} /* annex_util_define_ro_value_sz */

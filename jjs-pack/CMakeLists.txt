@@ -30,8 +30,6 @@ set(PACK_SOURCES
   lib/jjs-pack-lib.c
   path/jjs-pack-path.c
   path/jjs-pack-path-js.c
-  path-url/jjs-pack-path-url.c
-  path-url/jjs-pack-path-url-js.c
   performance/jjs-pack-performance.c
   performance/jjs-pack-performance-js.c
   text/jjs-pack-text.c

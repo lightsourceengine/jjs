@@ -71,7 +71,6 @@ static JJS_HANDLER (jjs_pack_lib_path_vmod_callback)
   JJS_HANDLER_HEADER ();
   jjs_value_t bindings = jjs_bindings ();
 
-  jjs_bindings_platform (bindings);
   jjs_bindings_function (bindings, "env", &jjs_pack_path_env);
   jjs_bindings_function (bindings, "cwd", &jjs_pack_path_cwd);
 

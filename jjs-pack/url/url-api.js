@@ -1,4 +1,3 @@
-"use strict";
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
@@ -6,7 +5,7 @@ var __commonJS = (cb, mod) => function __require() {
 
 // node_modules/core-js-pure/internals/fails.js
 var require_fails = __commonJS({
-  "node_modules/core-js-pure/internals/fails.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/fails.js"(exports2, module2) {
     "use strict";
     module2.exports = function(exec) {
       try {
@@ -20,7 +19,7 @@ var require_fails = __commonJS({
 
 // node_modules/core-js-pure/internals/function-bind-native.js
 var require_function_bind_native = __commonJS({
-  "node_modules/core-js-pure/internals/function-bind-native.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-bind-native.js"(exports2, module2) {
     "use strict";
     var fails = require_fails();
     module2.exports = !fails(function() {
@@ -33,7 +32,7 @@ var require_function_bind_native = __commonJS({
 
 // node_modules/core-js-pure/internals/function-uncurry-this.js
 var require_function_uncurry_this = __commonJS({
-  "node_modules/core-js-pure/internals/function-uncurry-this.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-uncurry-this.js"(exports2, module2) {
     "use strict";
     var NATIVE_BIND = require_function_bind_native();
     var FunctionPrototype = Function.prototype;
@@ -49,7 +48,7 @@ var require_function_uncurry_this = __commonJS({
 
 // node_modules/core-js-pure/internals/classof-raw.js
 var require_classof_raw = __commonJS({
-  "node_modules/core-js-pure/internals/classof-raw.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/classof-raw.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var toString = uncurryThis({}.toString);
@@ -62,7 +61,7 @@ var require_classof_raw = __commonJS({
 
 // node_modules/core-js-pure/internals/indexed-object.js
 var require_indexed_object = __commonJS({
-  "node_modules/core-js-pure/internals/indexed-object.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/indexed-object.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var fails = require_fails();
@@ -79,7 +78,7 @@ var require_indexed_object = __commonJS({
 
 // node_modules/core-js-pure/internals/is-null-or-undefined.js
 var require_is_null_or_undefined = __commonJS({
-  "node_modules/core-js-pure/internals/is-null-or-undefined.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-null-or-undefined.js"(exports2, module2) {
     "use strict";
     module2.exports = function(it) {
       return it === null || it === void 0;
@@ -89,7 +88,7 @@ var require_is_null_or_undefined = __commonJS({
 
 // node_modules/core-js-pure/internals/require-object-coercible.js
 var require_require_object_coercible = __commonJS({
-  "node_modules/core-js-pure/internals/require-object-coercible.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/require-object-coercible.js"(exports2, module2) {
     "use strict";
     var isNullOrUndefined = require_is_null_or_undefined();
     var $TypeError = TypeError;
@@ -103,7 +102,7 @@ var require_require_object_coercible = __commonJS({
 
 // node_modules/core-js-pure/internals/to-indexed-object.js
 var require_to_indexed_object = __commonJS({
-  "node_modules/core-js-pure/internals/to-indexed-object.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-indexed-object.js"(exports2, module2) {
     "use strict";
     var IndexedObject = require_indexed_object();
     var requireObjectCoercible = require_require_object_coercible();
@@ -115,7 +114,7 @@ var require_to_indexed_object = __commonJS({
 
 // node_modules/core-js-pure/internals/add-to-unscopables.js
 var require_add_to_unscopables = __commonJS({
-  "node_modules/core-js-pure/internals/add-to-unscopables.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/add-to-unscopables.js"(exports2, module2) {
     "use strict";
     module2.exports = function() {
     };
@@ -124,7 +123,7 @@ var require_add_to_unscopables = __commonJS({
 
 // node_modules/core-js-pure/internals/iterators.js
 var require_iterators = __commonJS({
-  "node_modules/core-js-pure/internals/iterators.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/iterators.js"(exports2, module2) {
     "use strict";
     module2.exports = {};
   }
@@ -132,7 +131,7 @@ var require_iterators = __commonJS({
 
 // node_modules/core-js-pure/internals/global.js
 var require_global = __commonJS({
-  "node_modules/core-js-pure/internals/global.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/global.js"(exports2, module2) {
     "use strict";
     var check = function(it) {
       return it && it.Math === Math && it;
@@ -142,13 +141,13 @@ var require_global = __commonJS({
     check(typeof self == "object" && self) || check(typeof global == "object" && global) || // eslint-disable-next-line no-new-func -- fallback
     function() {
       return this;
-    }() || exports || Function("return this")();
+    }() || exports2 || Function("return this")();
   }
 });
 
 // node_modules/core-js-pure/internals/document-all.js
 var require_document_all = __commonJS({
-  "node_modules/core-js-pure/internals/document-all.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/document-all.js"(exports2, module2) {
     "use strict";
     var documentAll = typeof document == "object" && document.all;
     var IS_HTMLDDA = typeof documentAll == "undefined" && documentAll !== void 0;
@@ -161,7 +160,7 @@ var require_document_all = __commonJS({
 
 // node_modules/core-js-pure/internals/is-callable.js
 var require_is_callable = __commonJS({
-  "node_modules/core-js-pure/internals/is-callable.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-callable.js"(exports2, module2) {
     "use strict";
     var $documentAll = require_document_all();
     var documentAll = $documentAll.all;
@@ -175,7 +174,7 @@ var require_is_callable = __commonJS({
 
 // node_modules/core-js-pure/internals/weak-map-basic-detection.js
 var require_weak_map_basic_detection = __commonJS({
-  "node_modules/core-js-pure/internals/weak-map-basic-detection.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/weak-map-basic-detection.js"(exports2, module2) {
     "use strict";
     var global2 = require_global();
     var isCallable = require_is_callable();
@@ -186,7 +185,7 @@ var require_weak_map_basic_detection = __commonJS({
 
 // node_modules/core-js-pure/internals/is-object.js
 var require_is_object = __commonJS({
-  "node_modules/core-js-pure/internals/is-object.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-object.js"(exports2, module2) {
     "use strict";
     var isCallable = require_is_callable();
     var $documentAll = require_document_all();
@@ -201,7 +200,7 @@ var require_is_object = __commonJS({
 
 // node_modules/core-js-pure/internals/descriptors.js
 var require_descriptors = __commonJS({
-  "node_modules/core-js-pure/internals/descriptors.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/descriptors.js"(exports2, module2) {
     "use strict";
     var fails = require_fails();
     module2.exports = !fails(function() {
@@ -214,7 +213,7 @@ var require_descriptors = __commonJS({
 
 // node_modules/core-js-pure/internals/document-create-element.js
 var require_document_create_element = __commonJS({
-  "node_modules/core-js-pure/internals/document-create-element.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/document-create-element.js"(exports2, module2) {
     "use strict";
     var global2 = require_global();
     var isObject = require_is_object();
@@ -228,7 +227,7 @@ var require_document_create_element = __commonJS({
 
 // node_modules/core-js-pure/internals/ie8-dom-define.js
 var require_ie8_dom_define = __commonJS({
-  "node_modules/core-js-pure/internals/ie8-dom-define.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/ie8-dom-define.js"(exports2, module2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var fails = require_fails();
@@ -245,7 +244,7 @@ var require_ie8_dom_define = __commonJS({
 
 // node_modules/core-js-pure/internals/v8-prototype-define-bug.js
 var require_v8_prototype_define_bug = __commonJS({
-  "node_modules/core-js-pure/internals/v8-prototype-define-bug.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/v8-prototype-define-bug.js"(exports2, module2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var fails = require_fails();
@@ -261,7 +260,7 @@ var require_v8_prototype_define_bug = __commonJS({
 
 // node_modules/core-js-pure/internals/an-object.js
 var require_an_object = __commonJS({
-  "node_modules/core-js-pure/internals/an-object.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/an-object.js"(exports2, module2) {
     "use strict";
     var isObject = require_is_object();
     var $String = String;
@@ -276,7 +275,7 @@ var require_an_object = __commonJS({
 
 // node_modules/core-js-pure/internals/function-call.js
 var require_function_call = __commonJS({
-  "node_modules/core-js-pure/internals/function-call.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-call.js"(exports2, module2) {
     "use strict";
     var NATIVE_BIND = require_function_bind_native();
     var call = Function.prototype.call;
@@ -288,7 +287,7 @@ var require_function_call = __commonJS({
 
 // node_modules/core-js-pure/internals/path.js
 var require_path = __commonJS({
-  "node_modules/core-js-pure/internals/path.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/path.js"(exports2, module2) {
     "use strict";
     module2.exports = {};
   }
@@ -296,7 +295,7 @@ var require_path = __commonJS({
 
 // node_modules/core-js-pure/internals/get-built-in.js
 var require_get_built_in = __commonJS({
-  "node_modules/core-js-pure/internals/get-built-in.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/get-built-in.js"(exports2, module2) {
     "use strict";
     var path = require_path();
     var global2 = require_global();
@@ -312,7 +311,7 @@ var require_get_built_in = __commonJS({
 
 // node_modules/core-js-pure/internals/object-is-prototype-of.js
 var require_object_is_prototype_of = __commonJS({
-  "node_modules/core-js-pure/internals/object-is-prototype-of.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-is-prototype-of.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     module2.exports = uncurryThis({}.isPrototypeOf);
@@ -321,7 +320,7 @@ var require_object_is_prototype_of = __commonJS({
 
 // node_modules/core-js-pure/internals/engine-user-agent.js
 var require_engine_user_agent = __commonJS({
-  "node_modules/core-js-pure/internals/engine-user-agent.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/engine-user-agent.js"(exports2, module2) {
     "use strict";
     module2.exports = typeof navigator != "undefined" && String(navigator.userAgent) || "";
   }
@@ -329,7 +328,7 @@ var require_engine_user_agent = __commonJS({
 
 // node_modules/core-js-pure/internals/engine-v8-version.js
 var require_engine_v8_version = __commonJS({
-  "node_modules/core-js-pure/internals/engine-v8-version.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/engine-v8-version.js"(exports2, module2) {
     "use strict";
     var global2 = require_global();
     var userAgent = require_engine_user_agent();
@@ -357,7 +356,7 @@ var require_engine_v8_version = __commonJS({
 
 // node_modules/core-js-pure/internals/symbol-constructor-detection.js
 var require_symbol_constructor_detection = __commonJS({
-  "node_modules/core-js-pure/internals/symbol-constructor-detection.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/symbol-constructor-detection.js"(exports2, module2) {
     "use strict";
     var V8_VERSION = require_engine_v8_version();
     var fails = require_fails();
@@ -373,7 +372,7 @@ var require_symbol_constructor_detection = __commonJS({
 
 // node_modules/core-js-pure/internals/use-symbol-as-uid.js
 var require_use_symbol_as_uid = __commonJS({
-  "node_modules/core-js-pure/internals/use-symbol-as-uid.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/use-symbol-as-uid.js"(exports2, module2) {
     "use strict";
     var NATIVE_SYMBOL = require_symbol_constructor_detection();
     module2.exports = NATIVE_SYMBOL && !Symbol.sham && typeof Symbol.iterator == "symbol";
@@ -382,7 +381,7 @@ var require_use_symbol_as_uid = __commonJS({
 
 // node_modules/core-js-pure/internals/is-symbol.js
 var require_is_symbol = __commonJS({
-  "node_modules/core-js-pure/internals/is-symbol.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-symbol.js"(exports2, module2) {
     "use strict";
     var getBuiltIn = require_get_built_in();
     var isCallable = require_is_callable();
@@ -400,7 +399,7 @@ var require_is_symbol = __commonJS({
 
 // node_modules/core-js-pure/internals/try-to-string.js
 var require_try_to_string = __commonJS({
-  "node_modules/core-js-pure/internals/try-to-string.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/try-to-string.js"(exports2, module2) {
     "use strict";
     var $String = String;
     module2.exports = function(argument) {
@@ -415,7 +414,7 @@ var require_try_to_string = __commonJS({
 
 // node_modules/core-js-pure/internals/a-callable.js
 var require_a_callable = __commonJS({
-  "node_modules/core-js-pure/internals/a-callable.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/a-callable.js"(exports2, module2) {
     "use strict";
     var isCallable = require_is_callable();
     var tryToString = require_try_to_string();
@@ -430,7 +429,7 @@ var require_a_callable = __commonJS({
 
 // node_modules/core-js-pure/internals/get-method.js
 var require_get_method = __commonJS({
-  "node_modules/core-js-pure/internals/get-method.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/get-method.js"(exports2, module2) {
     "use strict";
     var aCallable = require_a_callable();
     var isNullOrUndefined = require_is_null_or_undefined();
@@ -443,7 +442,7 @@ var require_get_method = __commonJS({
 
 // node_modules/core-js-pure/internals/ordinary-to-primitive.js
 var require_ordinary_to_primitive = __commonJS({
-  "node_modules/core-js-pure/internals/ordinary-to-primitive.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/ordinary-to-primitive.js"(exports2, module2) {
     "use strict";
     var call = require_function_call();
     var isCallable = require_is_callable();
@@ -464,7 +463,7 @@ var require_ordinary_to_primitive = __commonJS({
 
 // node_modules/core-js-pure/internals/is-pure.js
 var require_is_pure = __commonJS({
-  "node_modules/core-js-pure/internals/is-pure.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-pure.js"(exports2, module2) {
     "use strict";
     module2.exports = true;
   }
@@ -472,7 +471,7 @@ var require_is_pure = __commonJS({
 
 // node_modules/core-js-pure/internals/define-global-property.js
 var require_define_global_property = __commonJS({
-  "node_modules/core-js-pure/internals/define-global-property.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/define-global-property.js"(exports2, module2) {
     "use strict";
     var global2 = require_global();
     var defineProperty = Object.defineProperty;
@@ -489,7 +488,7 @@ var require_define_global_property = __commonJS({
 
 // node_modules/core-js-pure/internals/shared-store.js
 var require_shared_store = __commonJS({
-  "node_modules/core-js-pure/internals/shared-store.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/shared-store.js"(exports2, module2) {
     "use strict";
     var global2 = require_global();
     var defineGlobalProperty = require_define_global_property();
@@ -501,7 +500,7 @@ var require_shared_store = __commonJS({
 
 // node_modules/core-js-pure/internals/shared.js
 var require_shared = __commonJS({
-  "node_modules/core-js-pure/internals/shared.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/shared.js"(exports2, module2) {
     "use strict";
     var IS_PURE = require_is_pure();
     var store = require_shared_store();
@@ -519,7 +518,7 @@ var require_shared = __commonJS({
 
 // node_modules/core-js-pure/internals/to-object.js
 var require_to_object = __commonJS({
-  "node_modules/core-js-pure/internals/to-object.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-object.js"(exports2, module2) {
     "use strict";
     var requireObjectCoercible = require_require_object_coercible();
     var $Object = Object;
@@ -531,7 +530,7 @@ var require_to_object = __commonJS({
 
 // node_modules/core-js-pure/internals/has-own-property.js
 var require_has_own_property = __commonJS({
-  "node_modules/core-js-pure/internals/has-own-property.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/has-own-property.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var toObject = require_to_object();
@@ -544,7 +543,7 @@ var require_has_own_property = __commonJS({
 
 // node_modules/core-js-pure/internals/uid.js
 var require_uid = __commonJS({
-  "node_modules/core-js-pure/internals/uid.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/uid.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var id = 0;
@@ -558,7 +557,7 @@ var require_uid = __commonJS({
 
 // node_modules/core-js-pure/internals/well-known-symbol.js
 var require_well_known_symbol = __commonJS({
-  "node_modules/core-js-pure/internals/well-known-symbol.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/well-known-symbol.js"(exports2, module2) {
     "use strict";
     var global2 = require_global();
     var shared = require_shared();
@@ -580,7 +579,7 @@ var require_well_known_symbol = __commonJS({
 
 // node_modules/core-js-pure/internals/to-primitive.js
 var require_to_primitive = __commonJS({
-  "node_modules/core-js-pure/internals/to-primitive.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-primitive.js"(exports2, module2) {
     "use strict";
     var call = require_function_call();
     var isObject = require_is_object();
@@ -612,7 +611,7 @@ var require_to_primitive = __commonJS({
 
 // node_modules/core-js-pure/internals/to-property-key.js
 var require_to_property_key = __commonJS({
-  "node_modules/core-js-pure/internals/to-property-key.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-property-key.js"(exports2, module2) {
     "use strict";
     var toPrimitive = require_to_primitive();
     var isSymbol = require_is_symbol();
@@ -625,7 +624,7 @@ var require_to_property_key = __commonJS({
 
 // node_modules/core-js-pure/internals/object-define-property.js
 var require_object_define_property = __commonJS({
-  "node_modules/core-js-pure/internals/object-define-property.js"(exports) {
+  "node_modules/core-js-pure/internals/object-define-property.js"(exports2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var IE8_DOM_DEFINE = require_ie8_dom_define();
@@ -638,7 +637,7 @@ var require_object_define_property = __commonJS({
     var ENUMERABLE = "enumerable";
     var CONFIGURABLE = "configurable";
     var WRITABLE = "writable";
-    exports.f = DESCRIPTORS ? V8_PROTOTYPE_DEFINE_BUG ? function defineProperty(O, P, Attributes) {
+    exports2.f = DESCRIPTORS ? V8_PROTOTYPE_DEFINE_BUG ? function defineProperty(O, P, Attributes) {
       anObject(O);
       P = toPropertyKey(P);
       anObject(Attributes);
@@ -674,7 +673,7 @@ var require_object_define_property = __commonJS({
 
 // node_modules/core-js-pure/internals/create-property-descriptor.js
 var require_create_property_descriptor = __commonJS({
-  "node_modules/core-js-pure/internals/create-property-descriptor.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/create-property-descriptor.js"(exports2, module2) {
     "use strict";
     module2.exports = function(bitmap, value) {
       return {
@@ -689,7 +688,7 @@ var require_create_property_descriptor = __commonJS({
 
 // node_modules/core-js-pure/internals/create-non-enumerable-property.js
 var require_create_non_enumerable_property = __commonJS({
-  "node_modules/core-js-pure/internals/create-non-enumerable-property.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/create-non-enumerable-property.js"(exports2, module2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var definePropertyModule = require_object_define_property();
@@ -705,7 +704,7 @@ var require_create_non_enumerable_property = __commonJS({
 
 // node_modules/core-js-pure/internals/shared-key.js
 var require_shared_key = __commonJS({
-  "node_modules/core-js-pure/internals/shared-key.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/shared-key.js"(exports2, module2) {
     "use strict";
     var shared = require_shared();
     var uid = require_uid();
@@ -718,7 +717,7 @@ var require_shared_key = __commonJS({
 
 // node_modules/core-js-pure/internals/hidden-keys.js
 var require_hidden_keys = __commonJS({
-  "node_modules/core-js-pure/internals/hidden-keys.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/hidden-keys.js"(exports2, module2) {
     "use strict";
     module2.exports = {};
   }
@@ -726,7 +725,7 @@ var require_hidden_keys = __commonJS({
 
 // node_modules/core-js-pure/internals/internal-state.js
 var require_internal_state = __commonJS({
-  "node_modules/core-js-pure/internals/internal-state.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/internal-state.js"(exports2, module2) {
     "use strict";
     var NATIVE_WEAK_MAP = require_weak_map_basic_detection();
     var global2 = require_global();
@@ -803,7 +802,7 @@ var require_internal_state = __commonJS({
 
 // node_modules/core-js-pure/internals/function-apply.js
 var require_function_apply = __commonJS({
-  "node_modules/core-js-pure/internals/function-apply.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-apply.js"(exports2, module2) {
     "use strict";
     var NATIVE_BIND = require_function_bind_native();
     var FunctionPrototype = Function.prototype;
@@ -817,7 +816,7 @@ var require_function_apply = __commonJS({
 
 // node_modules/core-js-pure/internals/function-uncurry-this-clause.js
 var require_function_uncurry_this_clause = __commonJS({
-  "node_modules/core-js-pure/internals/function-uncurry-this-clause.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-uncurry-this-clause.js"(exports2, module2) {
     "use strict";
     var classofRaw = require_classof_raw();
     var uncurryThis = require_function_uncurry_this();
@@ -830,12 +829,12 @@ var require_function_uncurry_this_clause = __commonJS({
 
 // node_modules/core-js-pure/internals/object-property-is-enumerable.js
 var require_object_property_is_enumerable = __commonJS({
-  "node_modules/core-js-pure/internals/object-property-is-enumerable.js"(exports) {
+  "node_modules/core-js-pure/internals/object-property-is-enumerable.js"(exports2) {
     "use strict";
     var $propertyIsEnumerable = {}.propertyIsEnumerable;
     var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
     var NASHORN_BUG = getOwnPropertyDescriptor && !$propertyIsEnumerable.call({ 1: 2 }, 1);
-    exports.f = NASHORN_BUG ? function propertyIsEnumerable(V) {
+    exports2.f = NASHORN_BUG ? function propertyIsEnumerable(V) {
       var descriptor = getOwnPropertyDescriptor(this, V);
       return !!descriptor && descriptor.enumerable;
     } : $propertyIsEnumerable;
@@ -844,7 +843,7 @@ var require_object_property_is_enumerable = __commonJS({
 
 // node_modules/core-js-pure/internals/object-get-own-property-descriptor.js
 var require_object_get_own_property_descriptor = __commonJS({
-  "node_modules/core-js-pure/internals/object-get-own-property-descriptor.js"(exports) {
+  "node_modules/core-js-pure/internals/object-get-own-property-descriptor.js"(exports2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var call = require_function_call();
@@ -855,7 +854,7 @@ var require_object_get_own_property_descriptor = __commonJS({
     var hasOwn = require_has_own_property();
     var IE8_DOM_DEFINE = require_ie8_dom_define();
     var $getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-    exports.f = DESCRIPTORS ? $getOwnPropertyDescriptor : function getOwnPropertyDescriptor(O, P) {
+    exports2.f = DESCRIPTORS ? $getOwnPropertyDescriptor : function getOwnPropertyDescriptor(O, P) {
       O = toIndexedObject(O);
       P = toPropertyKey(P);
       if (IE8_DOM_DEFINE)
@@ -871,7 +870,7 @@ var require_object_get_own_property_descriptor = __commonJS({
 
 // node_modules/core-js-pure/internals/is-forced.js
 var require_is_forced = __commonJS({
-  "node_modules/core-js-pure/internals/is-forced.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-forced.js"(exports2, module2) {
     "use strict";
     var fails = require_fails();
     var isCallable = require_is_callable();
@@ -892,7 +891,7 @@ var require_is_forced = __commonJS({
 
 // node_modules/core-js-pure/internals/function-bind-context.js
 var require_function_bind_context = __commonJS({
-  "node_modules/core-js-pure/internals/function-bind-context.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-bind-context.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this_clause();
     var aCallable = require_a_callable();
@@ -909,7 +908,7 @@ var require_function_bind_context = __commonJS({
 
 // node_modules/core-js-pure/internals/export.js
 var require_export = __commonJS({
-  "node_modules/core-js-pure/internals/export.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/export.js"(exports2, module2) {
     "use strict";
     var global2 = require_global();
     var apply = require_function_apply();
@@ -991,7 +990,7 @@ var require_export = __commonJS({
 
 // node_modules/core-js-pure/internals/function-name.js
 var require_function_name = __commonJS({
-  "node_modules/core-js-pure/internals/function-name.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-name.js"(exports2, module2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var hasOwn = require_has_own_property();
@@ -1011,7 +1010,7 @@ var require_function_name = __commonJS({
 
 // node_modules/core-js-pure/internals/math-trunc.js
 var require_math_trunc = __commonJS({
-  "node_modules/core-js-pure/internals/math-trunc.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/math-trunc.js"(exports2, module2) {
     "use strict";
     var ceil = Math.ceil;
     var floor = Math.floor;
@@ -1024,7 +1023,7 @@ var require_math_trunc = __commonJS({
 
 // node_modules/core-js-pure/internals/to-integer-or-infinity.js
 var require_to_integer_or_infinity = __commonJS({
-  "node_modules/core-js-pure/internals/to-integer-or-infinity.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-integer-or-infinity.js"(exports2, module2) {
     "use strict";
     var trunc = require_math_trunc();
     module2.exports = function(argument) {
@@ -1036,7 +1035,7 @@ var require_to_integer_or_infinity = __commonJS({
 
 // node_modules/core-js-pure/internals/to-absolute-index.js
 var require_to_absolute_index = __commonJS({
-  "node_modules/core-js-pure/internals/to-absolute-index.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-absolute-index.js"(exports2, module2) {
     "use strict";
     var toIntegerOrInfinity = require_to_integer_or_infinity();
     var max = Math.max;
@@ -1050,7 +1049,7 @@ var require_to_absolute_index = __commonJS({
 
 // node_modules/core-js-pure/internals/to-length.js
 var require_to_length = __commonJS({
-  "node_modules/core-js-pure/internals/to-length.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-length.js"(exports2, module2) {
     "use strict";
     var toIntegerOrInfinity = require_to_integer_or_infinity();
     var min = Math.min;
@@ -1062,7 +1061,7 @@ var require_to_length = __commonJS({
 
 // node_modules/core-js-pure/internals/length-of-array-like.js
 var require_length_of_array_like = __commonJS({
-  "node_modules/core-js-pure/internals/length-of-array-like.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/length-of-array-like.js"(exports2, module2) {
     "use strict";
     var toLength = require_to_length();
     module2.exports = function(obj) {
@@ -1073,7 +1072,7 @@ var require_length_of_array_like = __commonJS({
 
 // node_modules/core-js-pure/internals/array-includes.js
 var require_array_includes = __commonJS({
-  "node_modules/core-js-pure/internals/array-includes.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/array-includes.js"(exports2, module2) {
     "use strict";
     var toIndexedObject = require_to_indexed_object();
     var toAbsoluteIndex = require_to_absolute_index();
@@ -1111,7 +1110,7 @@ var require_array_includes = __commonJS({
 
 // node_modules/core-js-pure/internals/object-keys-internal.js
 var require_object_keys_internal = __commonJS({
-  "node_modules/core-js-pure/internals/object-keys-internal.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-keys-internal.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var hasOwn = require_has_own_property();
@@ -1137,7 +1136,7 @@ var require_object_keys_internal = __commonJS({
 
 // node_modules/core-js-pure/internals/enum-bug-keys.js
 var require_enum_bug_keys = __commonJS({
-  "node_modules/core-js-pure/internals/enum-bug-keys.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/enum-bug-keys.js"(exports2, module2) {
     "use strict";
     module2.exports = [
       "constructor",
@@ -1153,7 +1152,7 @@ var require_enum_bug_keys = __commonJS({
 
 // node_modules/core-js-pure/internals/object-keys.js
 var require_object_keys = __commonJS({
-  "node_modules/core-js-pure/internals/object-keys.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-keys.js"(exports2, module2) {
     "use strict";
     var internalObjectKeys = require_object_keys_internal();
     var enumBugKeys = require_enum_bug_keys();
@@ -1165,7 +1164,7 @@ var require_object_keys = __commonJS({
 
 // node_modules/core-js-pure/internals/object-define-properties.js
 var require_object_define_properties = __commonJS({
-  "node_modules/core-js-pure/internals/object-define-properties.js"(exports) {
+  "node_modules/core-js-pure/internals/object-define-properties.js"(exports2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var V8_PROTOTYPE_DEFINE_BUG = require_v8_prototype_define_bug();
@@ -1173,7 +1172,7 @@ var require_object_define_properties = __commonJS({
     var anObject = require_an_object();
     var toIndexedObject = require_to_indexed_object();
     var objectKeys = require_object_keys();
-    exports.f = DESCRIPTORS && !V8_PROTOTYPE_DEFINE_BUG ? Object.defineProperties : function defineProperties(O, Properties) {
+    exports2.f = DESCRIPTORS && !V8_PROTOTYPE_DEFINE_BUG ? Object.defineProperties : function defineProperties(O, Properties) {
       anObject(O);
       var props = toIndexedObject(Properties);
       var keys = objectKeys(Properties);
@@ -1189,7 +1188,7 @@ var require_object_define_properties = __commonJS({
 
 // node_modules/core-js-pure/internals/html.js
 var require_html = __commonJS({
-  "node_modules/core-js-pure/internals/html.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/html.js"(exports2, module2) {
     "use strict";
     var getBuiltIn = require_get_built_in();
     module2.exports = getBuiltIn("document", "documentElement");
@@ -1198,7 +1197,7 @@ var require_html = __commonJS({
 
 // node_modules/core-js-pure/internals/object-create.js
 var require_object_create = __commonJS({
-  "node_modules/core-js-pure/internals/object-create.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-create.js"(exports2, module2) {
     "use strict";
     var anObject = require_an_object();
     var definePropertiesModule = require_object_define_properties();
@@ -1266,7 +1265,7 @@ var require_object_create = __commonJS({
 
 // node_modules/core-js-pure/internals/correct-prototype-getter.js
 var require_correct_prototype_getter = __commonJS({
-  "node_modules/core-js-pure/internals/correct-prototype-getter.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/correct-prototype-getter.js"(exports2, module2) {
     "use strict";
     var fails = require_fails();
     module2.exports = !fails(function() {
@@ -1280,7 +1279,7 @@ var require_correct_prototype_getter = __commonJS({
 
 // node_modules/core-js-pure/internals/object-get-prototype-of.js
 var require_object_get_prototype_of = __commonJS({
-  "node_modules/core-js-pure/internals/object-get-prototype-of.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-get-prototype-of.js"(exports2, module2) {
     "use strict";
     var hasOwn = require_has_own_property();
     var isCallable = require_is_callable();
@@ -1305,7 +1304,7 @@ var require_object_get_prototype_of = __commonJS({
 
 // node_modules/core-js-pure/internals/define-built-in.js
 var require_define_built_in = __commonJS({
-  "node_modules/core-js-pure/internals/define-built-in.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/define-built-in.js"(exports2, module2) {
     "use strict";
     var createNonEnumerableProperty = require_create_non_enumerable_property();
     module2.exports = function(target, key, value, options) {
@@ -1320,7 +1319,7 @@ var require_define_built_in = __commonJS({
 
 // node_modules/core-js-pure/internals/iterators-core.js
 var require_iterators_core = __commonJS({
-  "node_modules/core-js-pure/internals/iterators-core.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/iterators-core.js"(exports2, module2) {
     "use strict";
     var fails = require_fails();
     var isCallable = require_is_callable();
@@ -1367,7 +1366,7 @@ var require_iterators_core = __commonJS({
 
 // node_modules/core-js-pure/internals/to-string-tag-support.js
 var require_to_string_tag_support = __commonJS({
-  "node_modules/core-js-pure/internals/to-string-tag-support.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-string-tag-support.js"(exports2, module2) {
     "use strict";
     var wellKnownSymbol = require_well_known_symbol();
     var TO_STRING_TAG = wellKnownSymbol("toStringTag");
@@ -1379,7 +1378,7 @@ var require_to_string_tag_support = __commonJS({
 
 // node_modules/core-js-pure/internals/classof.js
 var require_classof = __commonJS({
-  "node_modules/core-js-pure/internals/classof.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/classof.js"(exports2, module2) {
     "use strict";
     var TO_STRING_TAG_SUPPORT = require_to_string_tag_support();
     var isCallable = require_is_callable();
@@ -1405,7 +1404,7 @@ var require_classof = __commonJS({
 
 // node_modules/core-js-pure/internals/object-to-string.js
 var require_object_to_string = __commonJS({
-  "node_modules/core-js-pure/internals/object-to-string.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-to-string.js"(exports2, module2) {
     "use strict";
     var TO_STRING_TAG_SUPPORT = require_to_string_tag_support();
     var classof = require_classof();
@@ -1417,7 +1416,7 @@ var require_object_to_string = __commonJS({
 
 // node_modules/core-js-pure/internals/set-to-string-tag.js
 var require_set_to_string_tag = __commonJS({
-  "node_modules/core-js-pure/internals/set-to-string-tag.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/set-to-string-tag.js"(exports2, module2) {
     "use strict";
     var TO_STRING_TAG_SUPPORT = require_to_string_tag_support();
     var defineProperty = require_object_define_property().f;
@@ -1442,7 +1441,7 @@ var require_set_to_string_tag = __commonJS({
 
 // node_modules/core-js-pure/internals/iterator-create-constructor.js
 var require_iterator_create_constructor = __commonJS({
-  "node_modules/core-js-pure/internals/iterator-create-constructor.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/iterator-create-constructor.js"(exports2, module2) {
     "use strict";
     var IteratorPrototype = require_iterators_core().IteratorPrototype;
     var create = require_object_create();
@@ -1464,7 +1463,7 @@ var require_iterator_create_constructor = __commonJS({
 
 // node_modules/core-js-pure/internals/function-uncurry-this-accessor.js
 var require_function_uncurry_this_accessor = __commonJS({
-  "node_modules/core-js-pure/internals/function-uncurry-this-accessor.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/function-uncurry-this-accessor.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var aCallable = require_a_callable();
@@ -1479,7 +1478,7 @@ var require_function_uncurry_this_accessor = __commonJS({
 
 // node_modules/core-js-pure/internals/a-possible-prototype.js
 var require_a_possible_prototype = __commonJS({
-  "node_modules/core-js-pure/internals/a-possible-prototype.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/a-possible-prototype.js"(exports2, module2) {
     "use strict";
     var isCallable = require_is_callable();
     var $String = String;
@@ -1494,7 +1493,7 @@ var require_a_possible_prototype = __commonJS({
 
 // node_modules/core-js-pure/internals/object-set-prototype-of.js
 var require_object_set_prototype_of = __commonJS({
-  "node_modules/core-js-pure/internals/object-set-prototype-of.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-set-prototype-of.js"(exports2, module2) {
     "use strict";
     var uncurryThisAccessor = require_function_uncurry_this_accessor();
     var anObject = require_an_object();
@@ -1524,7 +1523,7 @@ var require_object_set_prototype_of = __commonJS({
 
 // node_modules/core-js-pure/internals/iterator-define.js
 var require_iterator_define = __commonJS({
-  "node_modules/core-js-pure/internals/iterator-define.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/iterator-define.js"(exports2, module2) {
     "use strict";
     var $ = require_export();
     var call = require_function_call();
@@ -1634,7 +1633,7 @@ var require_iterator_define = __commonJS({
 
 // node_modules/core-js-pure/internals/create-iter-result-object.js
 var require_create_iter_result_object = __commonJS({
-  "node_modules/core-js-pure/internals/create-iter-result-object.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/create-iter-result-object.js"(exports2, module2) {
     "use strict";
     module2.exports = function(value, done) {
       return { value, done };
@@ -1644,7 +1643,7 @@ var require_create_iter_result_object = __commonJS({
 
 // node_modules/core-js-pure/modules/es.array.iterator.js
 var require_es_array_iterator = __commonJS({
-  "node_modules/core-js-pure/modules/es.array.iterator.js"(exports, module2) {
+  "node_modules/core-js-pure/modules/es.array.iterator.js"(exports2, module2) {
     "use strict";
     var toIndexedObject = require_to_indexed_object();
     var addToUnscopables = require_add_to_unscopables();
@@ -1698,7 +1697,7 @@ var require_es_array_iterator = __commonJS({
 
 // node_modules/core-js-pure/internals/url-constructor-detection.js
 var require_url_constructor_detection = __commonJS({
-  "node_modules/core-js-pure/internals/url-constructor-detection.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/url-constructor-detection.js"(exports2, module2) {
     "use strict";
     var fails = require_fails();
     var wellKnownSymbol = require_well_known_symbol();
@@ -1724,7 +1723,7 @@ var require_url_constructor_detection = __commonJS({
 
 // node_modules/core-js-pure/internals/define-built-in-accessor.js
 var require_define_built_in_accessor = __commonJS({
-  "node_modules/core-js-pure/internals/define-built-in-accessor.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/define-built-in-accessor.js"(exports2, module2) {
     "use strict";
     var defineProperty = require_object_define_property();
     module2.exports = function(target, name, descriptor) {
@@ -1735,7 +1734,7 @@ var require_define_built_in_accessor = __commonJS({
 
 // node_modules/core-js-pure/internals/define-built-ins.js
 var require_define_built_ins = __commonJS({
-  "node_modules/core-js-pure/internals/define-built-ins.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/define-built-ins.js"(exports2, module2) {
     "use strict";
     var defineBuiltIn = require_define_built_in();
     module2.exports = function(target, src, options) {
@@ -1752,7 +1751,7 @@ var require_define_built_ins = __commonJS({
 
 // node_modules/core-js-pure/internals/an-instance.js
 var require_an_instance = __commonJS({
-  "node_modules/core-js-pure/internals/an-instance.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/an-instance.js"(exports2, module2) {
     "use strict";
     var isPrototypeOf = require_object_is_prototype_of();
     var $TypeError = TypeError;
@@ -1766,7 +1765,7 @@ var require_an_instance = __commonJS({
 
 // node_modules/core-js-pure/internals/to-string.js
 var require_to_string = __commonJS({
-  "node_modules/core-js-pure/internals/to-string.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/to-string.js"(exports2, module2) {
     "use strict";
     var classof = require_classof();
     var $String = String;
@@ -1780,7 +1779,7 @@ var require_to_string = __commonJS({
 
 // node_modules/core-js-pure/internals/get-iterator-method.js
 var require_get_iterator_method = __commonJS({
-  "node_modules/core-js-pure/internals/get-iterator-method.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/get-iterator-method.js"(exports2, module2) {
     "use strict";
     var classof = require_classof();
     var getMethod = require_get_method();
@@ -1797,7 +1796,7 @@ var require_get_iterator_method = __commonJS({
 
 // node_modules/core-js-pure/internals/get-iterator.js
 var require_get_iterator = __commonJS({
-  "node_modules/core-js-pure/internals/get-iterator.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/get-iterator.js"(exports2, module2) {
     "use strict";
     var call = require_function_call();
     var aCallable = require_a_callable();
@@ -1816,7 +1815,7 @@ var require_get_iterator = __commonJS({
 
 // node_modules/core-js-pure/internals/validate-arguments-length.js
 var require_validate_arguments_length = __commonJS({
-  "node_modules/core-js-pure/internals/validate-arguments-length.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/validate-arguments-length.js"(exports2, module2) {
     "use strict";
     var $TypeError = TypeError;
     module2.exports = function(passed, required) {
@@ -1829,7 +1828,7 @@ var require_validate_arguments_length = __commonJS({
 
 // node_modules/core-js-pure/internals/create-property.js
 var require_create_property = __commonJS({
-  "node_modules/core-js-pure/internals/create-property.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/create-property.js"(exports2, module2) {
     "use strict";
     var toPropertyKey = require_to_property_key();
     var definePropertyModule = require_object_define_property();
@@ -1846,7 +1845,7 @@ var require_create_property = __commonJS({
 
 // node_modules/core-js-pure/internals/array-slice-simple.js
 var require_array_slice_simple = __commonJS({
-  "node_modules/core-js-pure/internals/array-slice-simple.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/array-slice-simple.js"(exports2, module2) {
     "use strict";
     var toAbsoluteIndex = require_to_absolute_index();
     var lengthOfArrayLike = require_length_of_array_like();
@@ -1869,7 +1868,7 @@ var require_array_slice_simple = __commonJS({
 
 // node_modules/core-js-pure/internals/array-sort.js
 var require_array_sort = __commonJS({
-  "node_modules/core-js-pure/internals/array-sort.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/array-sort.js"(exports2, module2) {
     "use strict";
     var arraySlice = require_array_slice_simple();
     var floor = Math.floor;
@@ -1914,7 +1913,7 @@ var require_array_sort = __commonJS({
 
 // node_modules/core-js-pure/modules/web.url-search-params.constructor.js
 var require_web_url_search_params_constructor = __commonJS({
-  "node_modules/core-js-pure/modules/web.url-search-params.constructor.js"(exports, module2) {
+  "node_modules/core-js-pure/modules/web.url-search-params.constructor.js"(exports2, module2) {
     "use strict";
     require_es_array_iterator();
     var $ = require_export();
@@ -1963,14 +1962,14 @@ var require_web_url_search_params_constructor = __commonJS({
     var Headers = safeGetBuiltIn("Headers");
     var RequestPrototype = NativeRequest && NativeRequest.prototype;
     var HeadersPrototype = Headers && Headers.prototype;
-    var RegExp = global2.RegExp;
+    var RegExp2 = global2.RegExp;
     var TypeError2 = global2.TypeError;
-    var decodeURIComponent = global2.decodeURIComponent;
+    var decodeURIComponent2 = global2.decodeURIComponent;
     var encodeURIComponent2 = global2.encodeURIComponent;
     var charAt = uncurryThis("".charAt);
     var join = uncurryThis([].join);
     var push = uncurryThis([].push);
-    var replace = uncurryThis("".replace);
+    var replace2 = uncurryThis("".replace);
     var shift = uncurryThis([].shift);
     var splice = uncurryThis([].splice);
     var split = uncurryThis("".split);
@@ -1978,23 +1977,23 @@ var require_web_url_search_params_constructor = __commonJS({
     var plus = /\+/g;
     var sequences = Array(4);
     var percentSequence = function(bytes) {
-      return sequences[bytes - 1] || (sequences[bytes - 1] = RegExp("((?:%[\\da-f]{2}){" + bytes + "})", "gi"));
+      return sequences[bytes - 1] || (sequences[bytes - 1] = RegExp2("((?:%[\\da-f]{2}){" + bytes + "})", "gi"));
     };
     var percentDecode = function(sequence) {
       try {
-        return decodeURIComponent(sequence);
+        return decodeURIComponent2(sequence);
       } catch (error) {
         return sequence;
       }
     };
     var deserialize = function(it) {
-      var result = replace(it, plus, " ");
+      var result = replace2(it, plus, " ");
       var bytes = 4;
       try {
-        return decodeURIComponent(result);
+        return decodeURIComponent2(result);
       } catch (error) {
         while (bytes) {
-          result = replace(result, percentSequence(bytes--), percentDecode);
+          result = replace2(result, percentSequence(bytes--), percentDecode);
         }
         return result;
       }
@@ -2012,7 +2011,7 @@ var require_web_url_search_params_constructor = __commonJS({
       return replacements[match];
     };
     var serialize = function(it) {
-      return replace(encodeURIComponent2(it), find, replacer);
+      return replace2(encodeURIComponent2(it), find, replacer);
     };
     var URLSearchParamsIterator = createIteratorConstructor(function Iterator(params, kind) {
       setInternalState(this, {
@@ -2352,7 +2351,7 @@ var require_web_url_search_params_size = __commonJS({
 
 // node_modules/core-js-pure/web/url-search-params.js
 var require_url_search_params = __commonJS({
-  "node_modules/core-js-pure/web/url-search-params.js"(exports, module2) {
+  "node_modules/core-js-pure/web/url-search-params.js"(exports2, module2) {
     "use strict";
     require_web_url_search_params();
     require_web_url_search_params_delete();
@@ -2365,7 +2364,7 @@ var require_url_search_params = __commonJS({
 
 // node_modules/core-js-pure/internals/string-multibyte.js
 var require_string_multibyte = __commonJS({
-  "node_modules/core-js-pure/internals/string-multibyte.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/string-multibyte.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var toIntegerOrInfinity = require_to_integer_or_infinity();
@@ -2431,15 +2430,15 @@ var require_es_string_iterator = __commonJS({
 
 // node_modules/core-js-pure/internals/object-get-own-property-symbols.js
 var require_object_get_own_property_symbols = __commonJS({
-  "node_modules/core-js-pure/internals/object-get-own-property-symbols.js"(exports) {
+  "node_modules/core-js-pure/internals/object-get-own-property-symbols.js"(exports2) {
     "use strict";
-    exports.f = Object.getOwnPropertySymbols;
+    exports2.f = Object.getOwnPropertySymbols;
   }
 });
 
 // node_modules/core-js-pure/internals/object-assign.js
 var require_object_assign = __commonJS({
-  "node_modules/core-js-pure/internals/object-assign.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/object-assign.js"(exports2, module2) {
     "use strict";
     var DESCRIPTORS = require_descriptors();
     var uncurryThis = require_function_uncurry_this();
@@ -2498,7 +2497,7 @@ var require_object_assign = __commonJS({
 
 // node_modules/core-js-pure/internals/iterator-close.js
 var require_iterator_close = __commonJS({
-  "node_modules/core-js-pure/internals/iterator-close.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/iterator-close.js"(exports2, module2) {
     "use strict";
     var call = require_function_call();
     var anObject = require_an_object();
@@ -2530,7 +2529,7 @@ var require_iterator_close = __commonJS({
 
 // node_modules/core-js-pure/internals/call-with-safe-iteration-closing.js
 var require_call_with_safe_iteration_closing = __commonJS({
-  "node_modules/core-js-pure/internals/call-with-safe-iteration-closing.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/call-with-safe-iteration-closing.js"(exports2, module2) {
     "use strict";
     var anObject = require_an_object();
     var iteratorClose = require_iterator_close();
@@ -2546,7 +2545,7 @@ var require_call_with_safe_iteration_closing = __commonJS({
 
 // node_modules/core-js-pure/internals/is-array-iterator-method.js
 var require_is_array_iterator_method = __commonJS({
-  "node_modules/core-js-pure/internals/is-array-iterator-method.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-array-iterator-method.js"(exports2, module2) {
     "use strict";
     var wellKnownSymbol = require_well_known_symbol();
     var Iterators = require_iterators();
@@ -2560,7 +2559,7 @@ var require_is_array_iterator_method = __commonJS({
 
 // node_modules/core-js-pure/internals/inspect-source.js
 var require_inspect_source = __commonJS({
-  "node_modules/core-js-pure/internals/inspect-source.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/inspect-source.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var isCallable = require_is_callable();
@@ -2577,7 +2576,7 @@ var require_inspect_source = __commonJS({
 
 // node_modules/core-js-pure/internals/is-constructor.js
 var require_is_constructor = __commonJS({
-  "node_modules/core-js-pure/internals/is-constructor.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/is-constructor.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var fails = require_fails();
@@ -2629,7 +2628,7 @@ var require_is_constructor = __commonJS({
 
 // node_modules/core-js-pure/internals/array-from.js
 var require_array_from = __commonJS({
-  "node_modules/core-js-pure/internals/array-from.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/array-from.js"(exports2, module2) {
     "use strict";
     var bind = require_function_bind_context();
     var call = require_function_call();
@@ -2677,7 +2676,7 @@ var require_array_from = __commonJS({
 
 // node_modules/core-js-pure/internals/string-punycode-to-ascii.js
 var require_string_punycode_to_ascii = __commonJS({
-  "node_modules/core-js-pure/internals/string-punycode-to-ascii.js"(exports, module2) {
+  "node_modules/core-js-pure/internals/string-punycode-to-ascii.js"(exports2, module2) {
     "use strict";
     var uncurryThis = require_function_uncurry_this();
     var maxInt = 2147483647;
@@ -2700,7 +2699,7 @@ var require_string_punycode_to_ascii = __commonJS({
     var charCodeAt = uncurryThis("".charCodeAt);
     var join = uncurryThis([].join);
     var push = uncurryThis([].push);
-    var replace = uncurryThis("".replace);
+    var replace2 = uncurryThis("".replace);
     var split = uncurryThis("".split);
     var toLowerCase = uncurryThis("".toLowerCase);
     var ucs2decode = function(string) {
@@ -2800,7 +2799,7 @@ var require_string_punycode_to_ascii = __commonJS({
     };
     module2.exports = function(input) {
       var encoded = [];
-      var labels = split(replace(toLowerCase(input), regexSeparators, "."), ".");
+      var labels = split(replace2(toLowerCase(input), regexSeparators, "."), ".");
       var i, label;
       for (i = 0; i < labels.length; i++) {
         label = labels[i];
@@ -2851,7 +2850,7 @@ var require_web_url_constructor = __commonJS({
     var numberToString = uncurryThis(1 .toString);
     var pop = uncurryThis([].pop);
     var push = uncurryThis([].push);
-    var replace = uncurryThis("".replace);
+    var replace2 = uncurryThis("".replace);
     var shift = uncurryThis([].shift);
     var split = uncurryThis("".split);
     var stringSlice = uncurryThis("".slice);
@@ -3179,10 +3178,10 @@ var require_web_url_constructor = __commonJS({
           url.query = null;
           url.fragment = null;
           url.cannotBeABaseURL = false;
-          input = replace(input, LEADING_C0_CONTROL_OR_SPACE, "");
-          input = replace(input, TRAILING_C0_CONTROL_OR_SPACE, "$1");
+          input = replace2(input, LEADING_C0_CONTROL_OR_SPACE, "");
+          input = replace2(input, TRAILING_C0_CONTROL_OR_SPACE, "$1");
         }
-        input = replace(input, TAB_AND_NEW_LINE, "");
+        input = replace2(input, TAB_AND_NEW_LINE, "");
         codePoints = arrayFrom(input);
         while (pointer <= codePoints.length) {
           chr = codePoints[pointer];
@@ -3902,6 +3901,165 @@ var require_web_url_to_json = __commonJS({
 });
 
 // url-api-raw.js
+var CHAR_LOWERCASE_A = 97;
+var CHAR_LOWERCASE_Z = 122;
+var CHAR_FORWARD_SLASH = 47;
+var CHAR_BACKWARD_SLASH = 92;
+var { replace } = Symbol;
+var SymbolReplace = RegExp.prototype[replace];
+var RegExpPrototypeSymbolReplace = (self2, ...args) => SymbolReplace.call(self2, ...args);
+var FORWARD_SLASH = /\//g;
+var isWindows = globalThis["@platform"] === "win32";
+var resolve;
+var sep = isWindows ? "\\" : "/";
+function domainToASCII(domain) {
+  return domain;
+}
+function domainToUnicode(domain) {
+  return domain;
+}
+function getPathFromURLWin32(url) {
+  let { hostname, pathname } = url;
+  const { length } = pathname;
+  for (let n = 0; n < length; n++) {
+    if (pathname[n] === "%") {
+      const third = pathname.codePointAt(n + 2) | 32;
+      if (pathname[n + 1] === "2" && third === 102 || // 2f 2F /
+      pathname[n + 1] === "5" && third === 99) {
+        throw new ERR_INVALID_FILE_URL_PATH(
+          "must not include encoded \\ or / characters"
+        );
+      }
+    }
+  }
+  pathname = RegExpPrototypeSymbolReplace(FORWARD_SLASH, pathname, "\\");
+  pathname = decodeURIComponent(pathname);
+  if (hostname !== "") {
+    return `\\\\${domainToUnicode(hostname)}${pathname}`;
+  }
+  const letter = pathname.codePointAt(1) | 32;
+  const sep2 = pathname.charAt(2);
+  if (letter < CHAR_LOWERCASE_A || letter > CHAR_LOWERCASE_Z || // a..z A..Z
+  sep2 !== ":") {
+    throw new ERR_INVALID_FILE_URL_PATH("must be absolute");
+  }
+  return pathname.slice(1);
+}
+function getPathFromURLPosix(url) {
+  if (url.hostname !== "") {
+    throw new ERR_INVALID_FILE_URL_HOST();
+  }
+  const { pathname } = url;
+  const { length } = pathname;
+  for (let n = 0; n < length; n++) {
+    if (pathname[n] === "%") {
+      const third = pathname.codePointAt(n + 2) | 32;
+      if (pathname[n + 1] === "2" && third === 102) {
+        throw new ERR_INVALID_FILE_URL_PATH("must not include encoded / characters");
+      }
+    }
+  }
+  return decodeURIComponent(pathname);
+}
+var percentRegEx = /%/g;
+var backslashRegEx = /\\/g;
+var newlineRegEx = /\n/g;
+var carriageReturnRegEx = /\r/g;
+var tabRegEx = /\t/g;
+function encodePathChars(filepath) {
+  if (filepath.includes("%"))
+    filepath = RegExpPrototypeSymbolReplace(percentRegEx, filepath, "%25");
+  if (!isWindows && filepath.includes("\\"))
+    filepath = RegExpPrototypeSymbolReplace(backslashRegEx, filepath, "%5C");
+  if (filepath.includes("\n"))
+    filepath = RegExpPrototypeSymbolReplace(newlineRegEx, filepath, "%0A");
+  if (filepath.includes("\r"))
+    filepath = RegExpPrototypeSymbolReplace(carriageReturnRegEx, filepath, "%0D");
+  if (filepath.includes("	"))
+    filepath = RegExpPrototypeSymbolReplace(tabRegEx, filepath, "%09");
+  return filepath;
+}
+function fileURLToPath(path) {
+  if (typeof path === "string")
+    path = new URL2(path);
+  else if (!(path instanceof URL2))
+    throw new ERR_INVALID_ARG_TYPE("path", ["string", "URL"], path);
+  if (path.protocol !== "file:")
+    throw new ERR_INVALID_URL_SCHEME();
+  return isWindows ? getPathFromURLWin32(path) : getPathFromURLPosix(path);
+}
+function pathToFileURL(filepath) {
+  const outURL = new URL2("file://");
+  if (isWindows && filepath.startsWith("\\\\")) {
+    const hostnameEndIndex = filepath.indexOf("\\", 2);
+    if (hostnameEndIndex === -1) {
+      throw new ERR_INVALID_ARG_VALUE(
+        "filepath",
+        filepath,
+        "Missing UNC resource path"
+      );
+    }
+    if (hostnameEndIndex === 2) {
+      throw new ERR_INVALID_ARG_VALUE(
+        "filepath",
+        filepath,
+        "Empty UNC servername"
+      );
+    }
+    const hostname = filepath.slice(2, hostnameEndIndex);
+    outURL.hostname = domainToASCII(hostname);
+    outURL.pathname = encodePathChars(
+      RegExpPrototypeSymbolReplace(backslashRegEx, filepath.slice(hostnameEndIndex), "/")
+    );
+  } else {
+    if (!resolve) {
+      resolve = lazyLoadResolve();
+    }
+    let resolved = resolve(filepath);
+    const filePathLast = filepath.charCodeAt(filepath.length - 1);
+    if ((filePathLast === CHAR_FORWARD_SLASH || isWindows && filePathLast === CHAR_BACKWARD_SLASH) && resolved[resolved.length - 1] !== sep)
+      resolved += "/";
+    outURL.pathname = encodePathChars(resolved);
+  }
+  return outURL;
+}
+function lazyLoadResolve() {
+  try {
+    return require("jjs:path").resolve;
+  } catch (e) {
+    throw Error("pathToFileURL(): jjs:path pack not installed");
+  }
+}
+var ERR_INVALID_ARG_TYPE = class extends TypeError {
+  constructor(name, expected, actual) {
+    super(`The "${name}" argument must be of type ${expected}. Received ${typeof actual}`);
+    this.code = "ERR_INVALID_ARG_TYPE";
+  }
+};
+var ERR_INVALID_ARG_VALUE = class extends TypeError {
+  constructor(name, value, reason = "is value") {
+    super(`The ${name.includes(".") ? "property" : "argument"} '${name}' ${reason}. Received ${typeof value}`);
+    this.code = "ERR_INVALID_ARG_VALUE";
+  }
+};
+var ERR_INVALID_URL_SCHEME = class extends TypeError {
+  constructor() {
+    super("The URL must be of scheme 'file:'.");
+    this.code = "ERR_INVALID_URL_SCHEME";
+  }
+};
+var ERR_INVALID_FILE_URL_PATH = class extends TypeError {
+  constructor(arg) {
+    super(`File URL path ${arg}`);
+    this.code = "ERR_INVALID_FILE_URL_PATH";
+  }
+};
+var ERR_INVALID_FILE_URL_HOST = class extends TypeError {
+  constructor() {
+    super(`File URL host must be "localhost" or empty on this platform`);
+    this.code = "ERR_INVALID_FILE_URL_HOST";
+  }
+};
 require_url_search_params();
 require_web_url();
 require_web_url_can_parse();
@@ -3911,3 +4069,9 @@ Object.assign(globalThis, {
   URL: URL2,
   URLSearchParams: URLSearchParams2
 });
+module.exports = {
+  URL: URL2,
+  URLSearchParams: URLSearchParams2,
+  pathToFileURL,
+  fileURLToPath
+};

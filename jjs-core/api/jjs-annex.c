@@ -68,6 +68,56 @@ static void module_on_init_scope (ecma_module_t* module_p)
 #endif /* JJS_MODULE_SYSTEM */
 
 /**
+ * Add system information properties to the realm / global object.
+ *
+ * System info properties are "hidden" in the global object and prefixed with \@.
+ *
+ * @param global_p target realm
+ */
+static void
+install_system_info_props (ecma_object_t* global_p)
+{
+  ecma_value_t global = ecma_make_object_value (global_p);
+  const char* platform_p;
+  const char* arch_p;
+
+#if defined (_WIN32) || defined (_WIN64) || defined (__WIN32__) || defined (__TOS_WIN__) || defined (__WINDOWS__)
+  platform_p = "win32";
+#elif defined (_AIX) || defined (__TOS_AIX__)
+  platform_p = "aix";
+#elif defined (linux) || defined (__linux) || defined (__linux__) || defined (__gnu_linux__)
+  platform_p = "linux";
+#elif defined (macintosh) || defined (Macintosh) || (defined (__APPLE__) && defined (__MACH__))
+  platform_p = "darwin";
+#else
+  platform_p = "unknown";
+#endif
+
+#if defined(i386) || defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__) \
+  || defined(__i386) || defined(_M_IX86) || defined(_X86_) || defined(__THW_INTEL__) || defined(__I86__) \
+  || defined(__INTEL__)
+  arch_p = "ia32";
+#elif defined(__ARM_ARCH) || defined(__TARGET_ARCH_ARM) || defined(__TARGET_ARCH_THUMB) \
+  || defined(_M_ARM) || defined(__arm__) || defined(__thumb__)
+  arch_p = "arm";
+#elif defined(__arm64) || defined(_M_ARM64) || defined(__aarch64__) || defined(__AARCH64EL__)
+  arch_p = "arm64";
+#elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(__amd64) || defined(_M_X64)
+  arch_p = "x64";
+#else
+  arch_p = "unknown";
+#endif
+
+  ecma_value_t platform = ecma_string_ascii_sz (platform_p);
+  annex_util_define_ro_value_sz (global, "@platform", platform);
+  ecma_free_value (platform);
+
+  ecma_value_t arch = ecma_string_ascii_sz (arch_p);
+  annex_util_define_ro_value_sz (global, "@arch", arch);
+  ecma_free_value (arch);
+} /* load_system_info */
+
+/**
  * Initialize context for annex apis.
  */
 void jjs_annex_init (void)
@@ -93,6 +143,9 @@ void jjs_annex_init (void)
  */
 void jjs_annex_init_realm (ecma_global_object_t* global_p)
 {
+  // note: system info has no home, they are being put into the realm for now so packs can get this info.
+  install_system_info_props ((ecma_object_t*) global_p);
+
 #if JJS_QUEUE_MICROTASK
   annex_util_define_function ((ecma_object_t*)global_p,
                               LIT_MAGIC_STRING_QUEUE_MICROTASK,
