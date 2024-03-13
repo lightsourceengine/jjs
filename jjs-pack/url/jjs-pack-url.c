@@ -18,10 +18,8 @@
 
 #if JJS_PACK_URL
 
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_url_api)
-
-static const char* URL_ID = "URL";
-static const char* URL_SEARCH_PARAMS_ID = "URLSearchParams";
+extern uint8_t jjs_pack_url_api_snapshot[];
+extern const uint32_t jjs_pack_url_api_snapshot_len;
 
 #endif /* JJS_PACK_URL */
 
@@ -29,38 +27,7 @@ jjs_value_t
 jjs_pack_url_init (void)
 {
 #if JJS_PACK_URL
-  if (jjs_pack_lib_global_has_sz (URL_ID))
-  {
-    return jjs_undefined ();
-  }
-
-  jjs_value_t api = jjs_pack_lib_load_from_snapshot (jjs_pack_url_api_snapshot, jjs_pack_url_api_snapshot_len, NULL, false);
-
-  if (jjs_value_is_exception (api))
-  {
-    return api;
-  }
-
-  jjs_value_t url = jjs_object_get_sz (api, URL_ID);
-  jjs_value_t usp = jjs_object_get_sz (api, URL_SEARCH_PARAMS_ID);
-  jjs_value_t result;
-
-  if (jjs_value_is_exception (url) || jjs_value_is_exception (usp))
-  {
-    result = jjs_throw_sz (JJS_ERROR_COMMON, "Invalid url-api.js");
-  }
-  else
-  {
-    jjs_pack_lib_global_set_sz (URL_ID, url);
-    jjs_pack_lib_global_set_sz (URL_SEARCH_PARAMS_ID, usp);
-    result = jjs_undefined ();
-  }
-
-  jjs_value_free (url);
-  jjs_value_free (usp);
-  jjs_value_free (api);
-
-  return result;
+  return jjs_pack_lib_main (jjs_pack_url_api_snapshot, jjs_pack_url_api_snapshot_len, jjs_undefined (), false);
 #else /* !JJS_PACK_URL */
   return jjs_throw_sz (JJS_ERROR_COMMON, "url pack is not enabled");
 #endif /* JJS_PACK_URL */

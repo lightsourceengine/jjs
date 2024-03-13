@@ -25,4 +25,7 @@ require('./node_modules/core-js-pure/modules/web.url.to-json');
 
 const { URL, URLSearchParams } = require('./node_modules/core-js-pure/internals/path');
 
-module.exports = { URL, URLSearchParams };
+Object.assign(globalThis, {
+  URL,
+  URLSearchParams,
+});

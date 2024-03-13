@@ -88,7 +88,7 @@ function stringify(str) {
   return typeof str === 'string' ? str : `${str}`;
 }
 
-module.exports = {
+Object.assign(globalThis, {
   TextEncoder,
   TextDecoder,
-}
+});

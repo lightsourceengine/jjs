@@ -13,21 +13,21 @@
  * limitations under the License.
  */
 
-#include "jjs-pack.h"
-#include "jjs-pack-lib.h"
-#include "jjs-port.h"
-
 #include <stdlib.h>
 #include <string.h>
 
+#include "jjs-pack-lib.h"
+#include "jjs-pack.h"
+#include "jjs-port.h"
+
 #if JJS_PACK_PATH
 
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_path)
+extern uint8_t jjs_pack_path_snapshot[];
+extern const uint32_t jjs_pack_path_snapshot_len;
 
 static JJS_HANDLER (jjs_pack_path_env)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   if (args_cnt == 0)
   {
     return jjs_undefined ();
@@ -37,7 +37,7 @@ static JJS_HANDLER (jjs_pack_path_env)
   jjs_size_t written = jjs_string_to_buffer (args_p[0],
                                              JJS_ENCODING_UTF8,
                                              &buffer[0],
-                                             (jjs_size_t)(sizeof (buffer) / sizeof (buffer[0])) - 1);
+                                             (jjs_size_t) (sizeof (buffer) / sizeof (buffer[0])) - 1);
   buffer[written] = '\0';
 
   char* value = getenv ((const char*) buffer);
@@ -52,10 +52,7 @@ static JJS_HANDLER (jjs_pack_path_env)
 
 static JJS_HANDLER (jjs_pack_path_cwd)
 {
-  JJS_UNUSED (call_info_p);
-  JJS_UNUSED (args_p);
-  JJS_UNUSED (args_cnt);
-
+  JJS_HANDLER_HEADER ();
   jjs_char_t* cwd = jjs_port_path_normalize ((const jjs_char_t*) ".", 1);
 
   if (cwd == NULL)
@@ -69,19 +66,21 @@ static JJS_HANDLER (jjs_pack_path_cwd)
   return cwd_value;
 } /* jjs_pack_path_cwd */
 
-static jjs_value_t
-jjs_pack_path_bindings (void)
+static JJS_HANDLER (jjs_pack_lib_path_vmod_callback)
 {
-  jjs_value_t bindings = jjs_object ();
+  JJS_HANDLER_HEADER ();
+  jjs_value_t bindings = jjs_bindings ();
 
-  jjs_pack_lib_add_is_windows (bindings);
-  jjs_pack_lib_set_function_sz (bindings, "env", &jjs_pack_path_env);
-  jjs_pack_lib_set_function_sz (bindings, "cwd", &jjs_pack_path_cwd);
+  jjs_bindings_platform (bindings);
+  jjs_bindings_function (bindings, "env", &jjs_pack_path_env);
+  jjs_bindings_function (bindings, "cwd", &jjs_pack_path_cwd);
 
-  return bindings;
-} /* jjs_pack_path_bindings */
-
-JJS_PACK_LIB_VMOD_SETUP (jjs_pack_path, &jjs_pack_path_bindings)
+  return jjs_pack_lib_read_exports (jjs_pack_path_snapshot,
+                                    jjs_pack_path_snapshot_len,
+                                    bindings,
+                                    true,
+                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
+} /* jjs_pack_lib_vmod_path */
 
 #endif /* JJS_PACK_PATH */
 
@@ -89,7 +88,7 @@ jjs_value_t
 jjs_pack_path_init (void)
 {
 #if JJS_PACK_PATH
-  return jjs_pack_lib_vmod_sz ("jjs:path", &jjs_pack_path_vmod_setup);
+  return jjs_pack_lib_main_vmod ("jjs:path", jjs_pack_lib_path_vmod_callback);
 #else /* !JJS_PACK_PATH */
   return jjs_throw_sz (JJS_ERROR_COMMON, "path pack is not enabled");
 #endif /* JJS_PACK_PATH */

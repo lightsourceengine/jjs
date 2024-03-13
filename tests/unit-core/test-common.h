@@ -89,6 +89,16 @@
  */
 void print_if_exception (jjs_value_t value);
 
+/**
+ * Compare a JJS string value to a c string.
+ */
+bool strict_equals_cstr (jjs_value_t a, const char* b);
+
+/**
+ * Compare two JJS values with ===.
+ */
+bool strict_equals (jjs_value_t a, jjs_value_t b);
+
 #endif /* !TEST_COMMON_H */
 
 #ifdef TEST_COMMON_IMPLEMENTATION
@@ -113,6 +123,28 @@ void print_if_exception (jjs_value_t value)
 
   jjs_value_free (message);
   jjs_value_free (err);
+}
+
+bool
+strict_equals (jjs_value_t a, jjs_value_t b)
+{
+  jjs_value_t op_result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, a, b);
+  bool result = jjs_value_is_true (op_result);
+
+  jjs_value_free (op_result);
+
+  return result;
+}
+
+bool
+strict_equals_cstr (jjs_value_t a, const char* b)
+{
+  jjs_value_t b_value = jjs_string_sz (b);
+  bool result = strict_equals (a, b_value);
+
+  jjs_value_free (b_value);
+
+  return result;
 }
 
 #undef TEST_COMMON_IMPLEMENTATION

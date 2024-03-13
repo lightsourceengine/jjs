@@ -24,9 +24,8 @@
 #define UTF8_ACCEPT 0
 #define UTF8_REJECT 1
 
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_text_api)
-static const char* TEXT_ENCODER_ID = "TextEncoder";
-static const char* TEXT_DECODER_ID = "TextDecoder";
+extern uint8_t jjs_pack_text_api_snapshot[];
+extern const uint32_t jjs_pack_text_api_snapshot_len;
 
 static bool jjs_pack_text_arraybuffer (jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size_t* buffer_size_p);
 static bool utf8_has_bom (const uint8_t* buffer, uint32_t length);
@@ -37,7 +36,7 @@ static void utf8_copy_with_replacements (const uint8_t* data, uint32_t data_size
 
 static JJS_HANDLER (jjs_pack_text_encode)
 {
-  JJS_UNUSED (call_info_p);
+  JJS_HANDLER_HEADER ();
   jjs_value_t value = args_cnt > 0 ? args_p[0] : jjs_undefined ();
   jjs_size_t size = jjs_string_size (value, JJS_ENCODING_UTF8);
   jjs_value_t result = jjs_typedarray (JJS_TYPEDARRAY_UINT8, size);
@@ -66,7 +65,7 @@ static JJS_HANDLER (jjs_pack_text_encode)
 
 static JJS_HANDLER (jjs_pack_text_encode_into)
 {
-  JJS_UNUSED (call_info_p);
+  JJS_HANDLER_HEADER ();
   jjs_value_t value = args_cnt > 0 ? args_p[0] : jjs_undefined ();
   jjs_value_t target = args_cnt > 1 ? args_p[1] : jjs_undefined ();
   jjs_size_t size = jjs_string_size (value, JJS_ENCODING_UTF8);
@@ -106,7 +105,7 @@ static JJS_HANDLER (jjs_pack_text_encode_into)
 
 static JJS_HANDLER (jjs_pack_text_decode_utf8)
 {
-  JJS_UNUSED (call_info_p);
+  JJS_HANDLER_HEADER ();
   jjs_value_t buffer = args_cnt > 0 ? args_p[0] : jjs_undefined ();
   bool ignore_bom = args_cnt > 1 ? jjs_value_is_true (args_p[1]) : jjs_undefined ();
   bool fatal = args_cnt > 2 ? jjs_value_is_true (args_p[2]) : jjs_undefined ();
@@ -158,18 +157,6 @@ static JJS_HANDLER (jjs_pack_text_decode_utf8)
 
   return result;
 } /* jjs_pack_text_decode_utf8 */
-
-static jjs_value_t
-jjs_pack_text_bindings (void)
-{
-  jjs_value_t bindings = jjs_object ();
-
-  jjs_pack_lib_set_function_sz(bindings, "encode", jjs_pack_text_encode);
-  jjs_pack_lib_set_function_sz (bindings, "encodeInto", jjs_pack_text_encode_into);
-  jjs_pack_lib_set_function_sz (bindings, "decodeUTF8", jjs_pack_text_decode_utf8);
-
-  return bindings;
-} /* jjs_pack_text_bindings */
 
 static bool
 jjs_pack_text_arraybuffer (jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size_t* buffer_size_p)
@@ -347,52 +334,13 @@ jjs_value_t
 jjs_pack_text_init (void)
 {
 #if JJS_PACK_TEXT
-  bool has_text_encoder = jjs_pack_lib_global_has_sz (TEXT_ENCODER_ID);
-  bool has_text_decoder = jjs_pack_lib_global_has_sz (TEXT_DECODER_ID);
+  jjs_value_t bindings = jjs_bindings ();
 
-  if (has_text_encoder && has_text_decoder)
-  {
-    return jjs_undefined ();
-  }
+  jjs_bindings_function (bindings, "encode", jjs_pack_text_encode);
+  jjs_bindings_function (bindings, "encodeInto", jjs_pack_text_encode_into);
+  jjs_bindings_function (bindings, "decodeUTF8", jjs_pack_text_decode_utf8);
 
-  jjs_value_t api = jjs_pack_lib_load_from_snapshot (jjs_pack_text_api_snapshot,
-                                                     jjs_pack_text_api_snapshot_len,
-                                                     &jjs_pack_text_bindings,
-                                                     false);
-
-  if (jjs_value_is_exception (api))
-  {
-    return api;
-  }
-
-  jjs_value_t text_encoder = jjs_object_get_sz (api, TEXT_ENCODER_ID);
-  jjs_value_t text_decoder = jjs_object_get_sz (api, TEXT_DECODER_ID);
-  jjs_value_t result;
-
-  if (jjs_value_is_exception (text_encoder) || jjs_value_is_exception (text_decoder))
-  {
-    result = jjs_throw_sz (JJS_ERROR_COMMON, "Invalid text-api.js");
-  }
-  else
-  {
-    if (!has_text_encoder)
-    {
-      jjs_pack_lib_global_set_sz (TEXT_ENCODER_ID, text_encoder);
-    }
-
-    if (!has_text_decoder)
-    {
-      jjs_pack_lib_global_set_sz (TEXT_DECODER_ID, text_decoder);
-    }
-
-    result = jjs_undefined ();
-  }
-
-  jjs_value_free (api);
-  jjs_value_free (text_encoder);
-  jjs_value_free (text_decoder);
-
-  return result;
+  return jjs_pack_lib_main (jjs_pack_text_api_snapshot, jjs_pack_text_api_snapshot_len, bindings, true);
 #else /* !JJS_PACK_TEXT */
   return jjs_throw_sz (JJS_ERROR_COMMON, "text pack is not enabled");
 #endif /* JJS_PACK_TEXT */

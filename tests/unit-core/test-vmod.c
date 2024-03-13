@@ -16,258 +16,95 @@
 #include "jjs.h"
 
 #include "config.h"
+#define TEST_COMMON_IMPLEMENTATION
 #include "test-common.h"
 
-static int32_t i = 1;
+const char* TEST_PACKAGE = "test";
+const char* TEST_EXPORT = "test export";
 
-static bool
-string_eq (jjs_value_t lhs, const char* rhs_p)
+static jjs_value_t
+create_config (void)
 {
-  jjs_value_t rhs = jjs_string_sz (rhs_p);
-  jjs_value_t result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, lhs, rhs);
+  jjs_value_t config = jjs_object ();
+  jjs_value_t exports = jjs_string_sz (TEST_EXPORT);
 
-  jjs_value_free (rhs);
-  jjs_value_free (result);
+  jjs_value_free (jjs_object_set_sz (config, "exports", exports));
+  jjs_value_free (exports);
 
-  return jjs_value_is_true (result);
+  return config;
 }
 
 static jjs_value_t
-vmod_create_test (jjs_value_t name, void* user_p)
-{
-  TEST_ASSERT (string_eq (name, "test"));
-  TEST_ASSERT (user_p == NULL);
-
-  jjs_value_t obj = jjs_object ();
-  jjs_value_t export = jjs_string_sz ("test_export");
-
-  jjs_value_free (jjs_object_set_sz (obj, "exports", export));
-  jjs_value_free (export);
-
-  return obj;
-}
-
-static jjs_value_t
-vmod_create_test_context (jjs_value_t name, void* user_p)
-{
-  TEST_ASSERT (string_eq (name, "test"));
-  TEST_ASSERT (user_p == &i);
-
-  jjs_value_t obj = jjs_object ();
-  jjs_value_t export = jjs_string_sz ("test_export");
-
-  jjs_value_free (jjs_object_set_sz (obj, "exports", export));
-  jjs_value_free (export);
-
-  return obj;
-}
-
-static jjs_value_t
-vmod_create_throws (jjs_value_t name, void* user_p)
-{
-  JJS_UNUSED (name);
-  JJS_UNUSED (user_p);
-  return jjs_throw_sz (JJS_ERROR_TYPE, "just an exception");
-}
-
-static jjs_value_t
-vmod_create_no_exports (jjs_value_t name, void* user_p)
-{
-  JJS_UNUSED (name);
-  JJS_UNUSED (user_p);
-  return jjs_object ();
-}
-
-static jjs_value_t
-test_create_handler (const jjs_call_info_t* call_info_p, const jjs_value_t args_p[], jjs_length_t args_count)
+vmod_callback (const jjs_call_info_t* call_info_p, const jjs_value_t args_p[], jjs_length_t args_count)
 {
   JJS_UNUSED (call_info_p);
+  JJS_UNUSED (args_p);
+  JJS_UNUSED (args_count);
 
-  TEST_ASSERT (args_count == 1);
-  TEST_ASSERT (jjs_value_is_string (args_p[0]));
-  TEST_ASSERT (string_eq (args_p[0], "test"));
-
-  jjs_value_t obj = jjs_object ();
-  jjs_value_t export = jjs_string_sz ("test_export");
-
-  jjs_value_free (jjs_object_set_sz (obj, "exports", export));
-  jjs_value_free (export);
-
-  return obj;
+  return create_config ();
 }
 
-static void
-test_jjs_vmod (void)
+void
+assert_package (const char* package_name, const char* expected_export)
 {
-  jjs_value_t result;
+  TEST_ASSERT (jjs_vmod_exists_sz (package_name));
 
-  jjs_init (JJS_INIT_EMPTY);
+  jjs_value_t exports = jjs_vmod_resolve_sz (package_name);
 
-  jjs_value_t name = jjs_string_sz ("test");
-  jjs_value_t fn = jjs_function_external (test_create_handler);
-
-  result = jjs_vmod (jjs_undefined (), jjs_undefined ());
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_vmod (name, jjs_undefined ());
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_vmod (name, fn);
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  jjs_value_t exports = jjs_commonjs_require_sz ("test");
-
-  TEST_ASSERT (string_eq (exports, "test_export"));
+  TEST_ASSERT (strict_equals_cstr (exports, expected_export));
   jjs_value_free (exports);
+}
 
-  jjs_value_free (fn);
-  jjs_value_free (name);
+void
+test_jjs_vmod_with_callback (void)
+{
+  jjs_init (JJS_INIT_EMPTY);
+
+  jjs_value_t callback = jjs_function_external (vmod_callback);
+  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, callback);
+
+  TEST_ASSERT (strict_equals (result, jjs_undefined ()));
+  assert_package (TEST_PACKAGE, TEST_EXPORT);
+
+  jjs_value_free (result);
+  jjs_value_free (callback);
 
   jjs_cleanup ();
 }
 
-static void
-test_jjs_vmod_native (void)
+void
+test_jjs_vmod_with_config (void)
 {
-  jjs_value_t result;
-  jjs_value_t name;
-
   jjs_init (JJS_INIT_EMPTY);
 
-  name = jjs_string_sz ("");
-  result = jjs_vmod_native (name, &vmod_create_test_context, &i);
-  TEST_ASSERT (jjs_value_is_exception (result));
+  jjs_value_t config = create_config ();
+  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, config);
+
+  TEST_ASSERT (jjs_vmod_exists_sz (TEST_PACKAGE));
+  assert_package (TEST_PACKAGE, TEST_EXPORT);
+
   jjs_value_free (result);
-  jjs_value_free (name);
-
-  result = jjs_vmod_native (jjs_undefined (), &vmod_create_test_context, &i);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_vmod_native (jjs_null (), &vmod_create_test_context, &i);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  name = jjs_number (0);
-  result = jjs_vmod_native (name, &vmod_create_test_context, &i);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (name);
-
-  name = jjs_string_sz ("test");
-  result = jjs_vmod_native (name, NULL, &i);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (name);
-
-  name = jjs_string_sz ("test");
-  result = jjs_vmod_native (name, &vmod_create_test_context, &i);
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (name);
-
-  jjs_value_t exports = jjs_commonjs_require_sz ("test");
-
-  TEST_ASSERT (string_eq (exports, "test_export"));
-  jjs_value_free (exports);
+  jjs_value_free (config);
 
   jjs_cleanup ();
 }
 
-static void
-test_jjs_vmod_native_sz (void)
-{
-  jjs_value_t result;
-
-  jjs_init (JJS_INIT_EMPTY);
-
-  result = jjs_vmod_native_sz (NULL, &vmod_create_test, NULL);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_vmod_native_sz ("", &vmod_create_test, NULL);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_vmod_native_sz ("test", NULL, NULL);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_vmod_native_sz ("test", &vmod_create_test, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  jjs_value_t exports = jjs_commonjs_require_sz ("test");
-
-  TEST_ASSERT (string_eq (exports, "test_export"));
-  jjs_value_free (exports);
-
-  jjs_cleanup ();
-}
-
-static void
-test_bad_create_function (void)
-{
-  jjs_value_t result;
-
-  jjs_init (JJS_INIT_EMPTY);
-
-  result = jjs_vmod_native_sz ("test", &vmod_create_throws, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_commonjs_require_sz ("test");
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  jjs_cleanup ();
-  jjs_init (JJS_INIT_EMPTY);
-
-  result = jjs_vmod_native_sz ("test", &vmod_create_no_exports, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  result = jjs_commonjs_require_sz ("test");
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  jjs_cleanup ();
-}
-
-static void
-test_jjs_vmod_exists (void)
+void
+test_jjs_vmod_remove (void)
 {
   jjs_init (JJS_INIT_EMPTY);
 
-  jjs_value_t name = jjs_string_sz ("test");
+  jjs_value_t config = create_config ();
+  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, config);
 
-  TEST_ASSERT (jjs_vmod_exists (name) == false);
+  TEST_ASSERT (jjs_vmod_exists_sz (TEST_PACKAGE));
 
-  jjs_value_t result = jjs_vmod_native (name, &vmod_create_test, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_vmod_remove_sz (TEST_PACKAGE);
 
-  TEST_ASSERT (jjs_vmod_exists (name));
+  TEST_ASSERT (!jjs_vmod_exists_sz (TEST_PACKAGE));
 
-  jjs_value_free (name);
-
-  jjs_cleanup ();
-}
-
-static void
-test_jjs_vmod_exists_sz (void)
-{
-  jjs_init (JJS_INIT_EMPTY);
-
-  TEST_ASSERT (jjs_vmod_exists_sz ("test") == false);
-
-  jjs_value_t result = jjs_vmod_native_sz ("test", &vmod_create_test, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (result));
   jjs_value_free (result);
-
-  TEST_ASSERT (jjs_vmod_exists_sz ("test"));
+  jjs_value_free (config);
 
   jjs_cleanup ();
 }
@@ -277,12 +114,10 @@ main (void)
 {
   TEST_INIT ();
 
-  test_jjs_vmod ();
-  test_jjs_vmod_native ();
-  test_jjs_vmod_native_sz ();
-  test_bad_create_function ();
-  test_jjs_vmod_exists ();
-  test_jjs_vmod_exists_sz ();
+  // note: api is more thoroughly tested in js
+  test_jjs_vmod_with_callback ();
+  test_jjs_vmod_with_config ();
+  test_jjs_vmod_remove ();
 
   return 0;
 } /* main */

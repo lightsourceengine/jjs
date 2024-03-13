@@ -189,4 +189,4 @@ function toString(value) {
   return (typeof value === 'string') ? value :`${value}`;
 }
 
-module.exports = new Console();
+globalThis.console = new Console();

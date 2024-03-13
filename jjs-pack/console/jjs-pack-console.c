@@ -13,13 +13,14 @@
  * limitations under the License.
  */
 
-#include "jjs-pack.h"
 #include "jjs-pack-lib.h"
+#include "jjs-pack.h"
 #include "jjs-port.h"
 
 #if JJS_PACK_CONSOLE
 
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_console)
+extern uint8_t jjs_pack_console_snapshot[];
+extern const uint32_t jjs_pack_console_snapshot_len;
 static uint64_t console_now_time_origin = 0;
 
 static void
@@ -62,7 +63,7 @@ println (jjs_value_t value)
 
 static JJS_HANDLER (jjs_pack_console_println)
 {
-  JJS_UNUSED (call_info_p);
+  JJS_HANDLER_HEADER ();
 
   if (args_cnt > 0)
   {
@@ -74,23 +75,9 @@ static JJS_HANDLER (jjs_pack_console_println)
 
 static JJS_HANDLER (jjs_pack_console_now)
 {
-  JJS_UNUSED (call_info_p);
-  JJS_UNUSED (args_cnt);
-  JJS_UNUSED (args_p);
-
-  return jjs_number ((double)(jjs_port_hrtime() - console_now_time_origin) / 1e6);
+  JJS_HANDLER_HEADER ();
+  return jjs_number ((double) (jjs_port_hrtime () - console_now_time_origin) / 1e6);
 } /* jjs_pack_console_now */
-
-static jjs_value_t
-jjs_pack_console_bindings (void)
-{
-  jjs_value_t bindings = jjs_object ();
-
-  jjs_pack_lib_set_function_sz (bindings, "println", jjs_pack_console_println);
-  jjs_pack_lib_set_function_sz(bindings, "now", jjs_pack_console_now);
-
-  return bindings;
-} /* jjs_pack_console_bindings */
 
 #endif /* JJS_PACK_CONSOLE */
 
@@ -103,7 +90,12 @@ jjs_pack_console_init (void)
     console_now_time_origin = jjs_port_hrtime ();
   }
 
-  return JJS_PACK_LIB_GLOBAL_SET ("console", jjs_pack_console, &jjs_pack_console_bindings);
+  jjs_value_t bindings = jjs_bindings ();
+
+  jjs_bindings_function (bindings, "println", &jjs_pack_console_println);
+  jjs_bindings_function (bindings, "now", jjs_pack_console_now);
+
+  return jjs_pack_lib_main (jjs_pack_console_snapshot, jjs_pack_console_snapshot_len, bindings, true);
 #else /* !JJS_PACK_CONSOLE */
   return jjs_throw_sz (JJS_ERROR_COMMON, "console pack is not enabled");
 #endif /* JJS_PACK_CONSOLE */

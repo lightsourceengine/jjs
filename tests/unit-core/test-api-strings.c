@@ -15,24 +15,8 @@
 
 #include "jjs.h"
 
+#define TEST_COMMON_IMPLEMENTATION
 #include "test-common.h"
-
-static bool
-strict_equals (jjs_value_t a, /**< the first string to compare */
-               jjs_value_t b) /**< the second string to compare */
-{
-  const jjs_char_t is_equal_src[] = "var isEqual = function(a, b) { return (a === b); }; isEqual";
-  jjs_value_t is_equal_fn_val = jjs_eval (is_equal_src, sizeof (is_equal_src) - 1, JJS_PARSE_NO_OPTS);
-  TEST_ASSERT (!jjs_value_is_exception (is_equal_fn_val));
-  jjs_value_t args[2] = { a, b };
-  jjs_value_t res = jjs_call (is_equal_fn_val, jjs_undefined (), args, 2);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_boolean (res));
-  bool is_strict_equal = jjs_value_is_true (res);
-  jjs_value_free (res);
-  jjs_value_free (is_equal_fn_val);
-  return is_strict_equal;
-} /* strict_equals */
 
 int
 main (void)

@@ -222,4 +222,4 @@ class PerformanceMeasure extends PerformanceEntry {
   [toStringTag] = 'PerformanceMeasure';
 }
 
-module.exports = new Performance();
+globalThis.performance = new Performance();

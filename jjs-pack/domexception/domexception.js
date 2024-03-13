@@ -53,4 +53,4 @@ for (const [id, code] of Object.values(errorTable)) {
   DOMException[id] = code;
 }
 
-module.exports = DOMException;
+globalThis.DOMException = DOMException;

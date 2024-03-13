@@ -18,19 +18,22 @@
 
 #if JJS_PACK_PATH_URL
 
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_path_url)
+extern uint8_t jjs_pack_path_url_snapshot[];
+extern const uint32_t jjs_pack_path_url_snapshot_len;
 
-static jjs_value_t
-jjs_pack_path_url_bindings (void)
+static JJS_HANDLER (jjs_pack_path_lib_vmod_callback)
 {
-  jjs_value_t bindings = jjs_object ();
+  JJS_HANDLER_HEADER ();
+  jjs_value_t bindings = jjs_bindings ();
 
-  jjs_pack_lib_add_is_windows (bindings);
+  jjs_bindings_platform (bindings);
 
-  return bindings;
-} /* jjs_pack_path_url_bindings */
-
-JJS_PACK_LIB_VMOD_SETUP (jjs_pack_path_url, &jjs_pack_path_url_bindings)
+  return jjs_pack_lib_read_exports (jjs_pack_path_url_snapshot,
+                                    jjs_pack_path_url_snapshot_len,
+                                    bindings,
+                                    true,
+                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
+}
 
 #endif /* JJS_PACK_PATH_URL */
 
@@ -38,7 +41,7 @@ jjs_value_t
 jjs_pack_path_url_init (void)
 {
 #if JJS_PACK_PATH_URL
-  return jjs_pack_lib_vmod_sz ("jjs:path-url", &jjs_pack_path_url_vmod_setup);
+  return jjs_pack_lib_main_vmod ("jjs:path-url", &jjs_pack_path_lib_vmod_callback);
 #else /* !JJS_PACK_PATH_URL */
   return jjs_throw_sz (JJS_ERROR_COMMON, "path url pack is not enabled");
 #endif /* JJS_PACK_PATH_URL */

@@ -14,58 +14,220 @@
  */
 
 const { test, runAllTests } = require('../lib/test.cjs');
+const { assertEquals, assertThrows } = require('../lib/assert.js');
 
-let called = false;
+const vmod = require('jjs:vmod');
 
-$jjs.jjs_vmod ('test-vmod', (name) => {
-  assert(name === 'test-vmod');
+test('jjs:vmod should be available through commonjs require', () => {
+  const exports = require('jjs:vmod');
+
+  assert(exports === vmod);
+  assert(typeof exports === 'function');
+  assert(typeof exports.exists === 'function');
+  assert(typeof exports.remove === 'function');
+  assert(typeof exports.resolve === 'function');
+});
+
+test('jjs:vmod should be available through esm dynamic import()', async () => {
+  const ns = await import('jjs:vmod');
+
+  assert('default' in ns);
+  assert(ns.default === vmod);
+  assert(typeof ns.default === 'function');
+  assert(typeof ns.default.exists === 'function');
+  assert(typeof ns.default.remove === 'function');
+  assert(typeof ns.default.resolve === 'function');
+});
+
+test('vmod.exists() should return true for jjs:vmod package', () => {
+  assert(vmod.exists('jjs:vmod'));
+});
+
+test('vmod.exists() should return false for invalid package names', () => {
+  for (const name of invalidLookupPackageNames) {
+    assert(!vmod.exists(name));
+  }
+});
+
+test('vmod.remove() should remove a registered package', () => {
+  const name = genPackageName();
+
+  vmod(name, { exports: {} });
+  assert(vmod.exists(name));
+  vmod.remove(name);
+  assert(!vmod.exists(name));
+});
+
+test('vmod.remove() should do nothing for invalid package names', () => {
+  for (const name of invalidLookupPackageNames) {
+    vmod.remove(name);
+  }
+});
+
+test('vmod.resolve() should return the same vmod instance exports', () => {
+  assert(vmod.resolve('jjs:vmod') === vmod);
+});
+
+test('vmod.resolve() should throw Error when callback throws Error', () => {
+  const name = genPackageName();
+
+  vmod(name, () => { throw Error() });
+  assertThrows(Error, () => vmod.resolve(name));
+});
+
+test('vmod.resolve() should throw Error for invalid vmod config', () => {
+  const name = genPackageName();
+
+  for (const config of invalidConfigs) {
+    assertThrows(Error, () => vmod(name, config));
+  }
+});
+
+test('vmod.resolve() should throw Error for invalid vmod config from callback', () => {
+  for (const config of invalidConfigs) {
+    const name = genPackageName();
+
+    vmod(name, () => config);
+    assertThrows(Error, () => vmod.resolve(name));
+  }
+});
+
+test('vmod() should register a new package from exports and format = object', () => {
+  const pkg = genPackageName();
+  let called = false;
+
+  vmod(pkg, () => {
+    called = true;
+    return {
+      exports: {
+        x: 5,
+      },
+      format: 'object',
+    };
+  });
+
   assert(!called);
-  called = true;
-  return {
-    exports: {
-      x: 5,
-    }
-  }
-});
-
-$jjs.jjs_vmod ('test-vmod-default', (name) => {
-  assert(name === 'test-vmod-default');
-  return {
-    exports: {
-      default: 'test',
-    }
-  }
-});
-
-test('require() should return vmod exports', () => {
-  const ns = require('test-vmod');
-
-  assert(typeof ns === 'object', `expected object, got ${typeof ns}`);
-  assert(ns.x === 5, `expected 5, got ${ns.x}`);
-});
-
-test('require() should return cached vmod exports', () => {
-  require('test-vmod');
-  require('test-vmod');
+  assert(vmod.exists(pkg));
+  assert(!called);
+  assertEquals(vmod.resolve(pkg).x, 5);
   assert(called);
 });
 
-test('resolve() should return vmod name', () => {
-  const resolved = require.resolve('test-vmod');
-  assert(resolved === 'test-vmod', `expected 'test-vmod', got ${resolved}`);
+test('vmod() should create a new package from exports and format = object', () => {
+  const pkg = genPackageName();
+
+  vmod(pkg, {
+    exports: {
+      x: 5,
+    },
+    format: 'object',
+  });
+
+  assert(vmod.exists(pkg));
+  assertEquals(vmod.resolve(pkg).x, 5);
 });
 
-test('import should return vmod exports', () => {
-  const { default:ns } = $jjs.jjs_esm_import('test-vmod');
+test('vmod() should register a new package from exports and format = not specified', () => {
+  const pkg = genPackageName();
+  let called = false;
 
-  assert(typeof ns === 'object', `expected object, got ${typeof ns}`);
-  assert(ns.x === 5, `expected 5, got ${ns.x}`);
+  vmod(pkg, () => {
+    called = true;
+    return {
+      exports: {
+        x: 5,
+      },
+    };
+  });
+
+  assert(!called);
+  assert(vmod.exists(pkg));
+  assert(!called);
+  assertEquals(vmod.resolve(pkg).x, 5);
+  assert(called);
 });
 
-test('import should return vmod exports', () => {
-  const { default:ns } = $jjs.jjs_esm_import('test-vmod-default');
+test('vmod() should create a new package from exports and format = not specified', () => {
+  const pkg = genPackageName();
 
-  assert(ns === 'test', `expected 'test', got ${ns}`);
+  vmod(pkg, {
+    exports: {
+      x: 5,
+    },
+  });
+
+  assert(vmod.exists(pkg));
+  assertEquals(vmod.resolve(pkg).x, 5);
 });
+
+test('vmod() should register supported package names', () => {
+  const names = [
+    'package',
+    '@test/package',
+    'pack-age',
+    'pack_age',
+    'pack.age',
+    '123package',
+  ];
+
+  for (const name of names) {
+    vmod(name, () => {});
+  }
+});
+
+test('vmod() should throw TypeError for an invalid package name', () => {
+  const names = [
+    '',
+    ''.padEnd(215, 'x'),
+    '.test',
+    '_test',
+    't est',
+    [],
+    {},
+    2,
+    true,
+    Symbol(),
+    null,
+    undefined
+  ];
+
+  for (const name of names) {
+    assertThrows(TypeError, () => vmod(name, () => {}));
+  }
+});
+
+const invalidConfigs = [
+  null,
+  undefined,
+  true,
+  Symbol(),
+  '',
+  123,
+  NaN,
+  4n,
+  [],
+  {},
+  { format: 'dasdasd' },
+  { format: 'object' },
+  { format: 'module' },
+  { format: 'commonjs' },
+];
+
+const invalidLookupPackageNames = [
+  1,
+  4n,
+  true,
+  [],
+  {},
+  Symbol(),
+  '',
+  'yyy123',
+];
+
+let nextPackageId = 1;
+
+function genPackageName() {
+  return `test:pkg${nextPackageId++}`;
+}
 
 runAllTests();

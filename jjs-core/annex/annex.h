@@ -43,9 +43,12 @@ ecma_value_t annex_path_to_file_url (ecma_value_t path);
 
 #define ecma_get_global_object() ((ecma_global_object_t*)ecma_builtin_get_global ())
 #define ecma_create_object_with_null_proto() ecma_make_object_value (ecma_create_object (NULL, 0, ECMA_OBJECT_TYPE_GENERAL))
+#define ecma_arg0(ARGV, ARGC) (0 < (ARGC) ? (ARGV)[0] : ECMA_VALUE_UNDEFINED)
+#define ecma_arg1(ARGV, ARGC) (1 < (ARGC) ? (ARGV)[1] : ECMA_VALUE_UNDEFINED)
 
 void ecma_set_m (ecma_value_t object, lit_magic_string_id_t name_id, ecma_value_t value);
 void ecma_set_v (ecma_value_t object, ecma_value_t key, ecma_value_t value);
+void ecma_set_index_v (ecma_value_t object, ecma_length_t index, ecma_value_t value);
 ecma_value_t ecma_find_own_m (ecma_value_t object, lit_magic_string_id_t key);
 ecma_value_t ecma_find_own_v (ecma_value_t object, ecma_value_t key);
 bool ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key);
@@ -60,6 +63,7 @@ void annex_util_define_function (ecma_object_t* global_p,
 void annex_util_define_value (ecma_object_t* global_p,
                               lit_magic_string_id_t name_id,
                               ecma_value_t value);
+bool annex_util_is_valid_package_name (ecma_value_t name);
 jjs_value_t annex_util_create_string_utf8_sz (const char* str_p);
 
 #endif /* !ANNEX_H */

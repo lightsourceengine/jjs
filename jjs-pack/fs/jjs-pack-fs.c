@@ -13,15 +13,17 @@
  * limitations under the License.
  */
 
+#include <errno.h>
+#include <stdlib.h>
+
+#include "jjs-pack-lib.h"
 #include "jjs-pack.h"
 
 #include "fs.h"
-#include "jjs-pack-lib.h"
-#include <stdlib.h>
-#include <errno.h>
 
 #if JJS_PACK_FS
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_fs)
+extern uint8_t jjs_pack_fs_snapshot[];
+extern const uint32_t jjs_pack_fs_snapshot_len;
 
 #define BOM_SIZE 3
 static bool fs_utf8_has_bom (const uint8_t* buffer, uint32_t length);
@@ -29,8 +31,7 @@ static jjs_value_t throw_file_error (const char* message, const char* path, int 
 
 static JJS_HANDLER (jjs_pack_fs_read)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   JJS_ARG (path_value, 0, jjs_value_is_string);
 
   uint8_t* buffer_p;
@@ -66,8 +67,7 @@ static JJS_HANDLER (jjs_pack_fs_read)
 
 static JJS_HANDLER (jjs_pack_fs_read_utf8)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   JJS_ARG (path_value, 0, jjs_value_is_string);
 
   uint8_t* buffer_p;
@@ -76,7 +76,7 @@ static JJS_HANDLER (jjs_pack_fs_read_utf8)
   jjs_value_t result;
 
   JJS_READ_STRING (path, path_value, 256);
-  read_result = fs_read((const char*) path_p, &buffer_p, &buffer_size);
+  read_result = fs_read ((const char*) path_p, &buffer_p, &buffer_size);
 
   if (read_result != 0)
   {
@@ -117,8 +117,7 @@ static JJS_HANDLER (jjs_pack_fs_read_utf8)
 
 static JJS_HANDLER (jjs_pack_fs_read_json)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   JJS_ARG (path_value, 0, jjs_value_is_string);
 
   uint8_t* buffer_p;
@@ -161,8 +160,7 @@ static JJS_HANDLER (jjs_pack_fs_read_json)
 
 static JJS_HANDLER (jjs_pack_fs_size)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   JJS_ARG (path_value, 0, jjs_value_is_string);
 
   uint32_t size = 0;
@@ -177,7 +175,7 @@ static JJS_HANDLER (jjs_pack_fs_size)
 
 static JJS_HANDLER (jjs_pack_fs_copy)
 {
-  JJS_UNUSED (call_info_p);
+  JJS_HANDLER_HEADER ();
 
   JJS_ARG (destination_value, 0, jjs_value_is_string);
   JJS_ARG (source_value, 1, jjs_value_is_string);
@@ -200,8 +198,7 @@ static JJS_HANDLER (jjs_pack_fs_copy)
 
 static JJS_HANDLER (jjs_pack_fs_write)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   JJS_ARG (destination_value, 0, jjs_value_is_string);
 
   int result;
@@ -263,8 +260,7 @@ done:
 
 static JJS_HANDLER (jjs_pack_fs_write_string)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   JJS_ARG (destination_value, 0, jjs_value_is_string);
   JJS_ARG (string_value, 1, jjs_value_is_string);
 
@@ -294,8 +290,7 @@ static JJS_HANDLER (jjs_pack_fs_write_string)
 
 static JJS_HANDLER (jjs_pack_fs_remove)
 {
-  JJS_UNUSED (call_info_p);
-
+  JJS_HANDLER_HEADER ();
   JJS_ARG (path_value, 0, jjs_value_is_string);
 
   JJS_READ_STRING (path, path_value, 256);
@@ -309,23 +304,6 @@ static JJS_HANDLER (jjs_pack_fs_remove)
 
   return jjs_undefined ();
 } /* jjs_pack_fs_remove */
-
-static jjs_value_t
-jjs_pack_fs_bindings (void)
-{
-  jjs_value_t bindings = jjs_object ();
-
-  jjs_pack_lib_set_function_sz (bindings, "read", &jjs_pack_fs_read);
-  jjs_pack_lib_set_function_sz (bindings, "readUTF8", &jjs_pack_fs_read_utf8);
-  jjs_pack_lib_set_function_sz (bindings, "readJSON", &jjs_pack_fs_read_json);
-  jjs_pack_lib_set_function_sz (bindings, "size", &jjs_pack_fs_size);
-  jjs_pack_lib_set_function_sz (bindings, "copy", &jjs_pack_fs_copy);
-  jjs_pack_lib_set_function_sz (bindings, "writeBuffer", &jjs_pack_fs_write);
-  jjs_pack_lib_set_function_sz (bindings, "writeString", &jjs_pack_fs_write_string);
-  jjs_pack_lib_set_function_sz (bindings, "remove", &jjs_pack_fs_remove);
-
-  return bindings;
-} /* jjs_pack_fs_bindings */
 
 static bool
 fs_utf8_has_bom (const uint8_t* buffer, uint32_t length)
@@ -356,7 +334,26 @@ static jjs_value_t throw_file_error (const char* message, const char* path, int 
   return ex;
 } /* throw_file_error */
 
-JJS_PACK_LIB_VMOD_SETUP (jjs_pack_fs, &jjs_pack_fs_bindings)
+static JJS_HANDLER (jjs_pack_fs_vmod_callback)
+{
+  JJS_HANDLER_HEADER ();
+  jjs_value_t bindings = jjs_bindings ();
+
+  jjs_bindings_function (bindings, "read", &jjs_pack_fs_read);
+  jjs_bindings_function (bindings, "readUTF8", &jjs_pack_fs_read_utf8);
+  jjs_bindings_function (bindings, "readJSON", &jjs_pack_fs_read_json);
+  jjs_bindings_function (bindings, "size", &jjs_pack_fs_size);
+  jjs_bindings_function (bindings, "copy", &jjs_pack_fs_copy);
+  jjs_bindings_function (bindings, "writeBuffer", &jjs_pack_fs_write);
+  jjs_bindings_function (bindings, "writeString", &jjs_pack_fs_write_string);
+  jjs_bindings_function (bindings, "remove", &jjs_pack_fs_remove);
+
+  return jjs_pack_lib_read_exports (jjs_pack_fs_snapshot,
+                                    jjs_pack_fs_snapshot_len,
+                                    bindings,
+                                    true,
+                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
+}
 
 #endif /* JJS_PACK_FS */
 
@@ -364,7 +361,7 @@ jjs_value_t
 jjs_pack_fs_init (void)
 {
 #if JJS_PACK_FS
-  return jjs_pack_lib_vmod_sz ("jjs:fs", &jjs_pack_fs_vmod_setup);
+  return jjs_pack_lib_main_vmod ("jjs:fs", &jjs_pack_fs_vmod_callback);
 #else /* !JJS_PACK_FS */
   return jjs_throw_sz (JJS_ERROR_COMMON, "fs pack is not enabled");
 #endif /* JJS_PACK_FS */

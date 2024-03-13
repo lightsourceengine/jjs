@@ -16,30 +16,9 @@
 #include "jjs.h"
 
 #include "config.h"
-#include "test-common.h"
 #include "annex.h"
-
-static bool
-strict_equals (jjs_value_t a, jjs_value_t b)
-{
-  jjs_value_t op_result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, a, b);
-  bool result = jjs_value_is_true (op_result);
-
-  jjs_value_free (op_result);
-
-  return result;
-}
-
-static bool
-strict_equals_cstr (jjs_value_t a, const char* b)
-{
-  jjs_value_t b_value = jjs_string_sz (b);
-  bool result = strict_equals (a, b_value);
-
-  jjs_value_free (b_value);
-
-  return result;
-}
+#define TEST_COMMON_IMPLEMENTATION
+#include "test-common.h"
 
 static void
 try_annex_path_to_file_url (const char* input, const char* expected_output)

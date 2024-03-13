@@ -13,17 +13,16 @@
  * limitations under the License.
  */
 
-#include "annex.h"
+#include <ctype.h>
 
 #include "ecma-function-object.h"
 
-#define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE (JJS_PROP_IS_CONFIGURABLE_DEFINED \
-                                                    | JJS_PROP_IS_ENUMERABLE_DEFINED \
-                                                    | JJS_PROP_IS_WRITABLE_DEFINED \
-                                                    | JJS_PROP_IS_CONFIGURABLE \
-                                                    | JJS_PROP_IS_ENUMERABLE \
-                                                    | JJS_PROP_IS_WRITABLE \
-                                                    | JJS_PROP_IS_VALUE_DEFINED)
+#include "annex.h"
+
+#define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE                                                  \
+  (JJS_PROP_IS_CONFIGURABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED \
+   | JJS_PROP_IS_CONFIGURABLE | JJS_PROP_IS_ENUMERABLE | JJS_PROP_IS_WRITABLE | JJS_PROP_IS_VALUE_DEFINED)
+#define NPM_PACKAGE_NAME_LENGTH_LIMIT 214
 
 /**
  * Define a function property on an object.
@@ -100,13 +99,25 @@ ecma_set_v (ecma_value_t object, ecma_value_t key, ecma_value_t value)
 
   if (ecma_is_value_string (key))
   {
-    ecma_value_t result = ecma_op_object_put (ecma_get_object_from_value (object),
-                                              ecma_get_prop_name_from_value (key),
-                                              value,
-                                              false);
+    ecma_value_t result =
+      ecma_op_object_put (ecma_get_object_from_value (object), ecma_get_prop_name_from_value (key), value, false);
     ecma_free_value (result);
   }
 } /* ecma_set_v */
+
+/**
+ * Set a property on an object with an index as the key.
+ *
+ * @param object target object
+ * @param index integer index
+ * @param value value to set
+ */
+void
+ecma_set_index_v (ecma_value_t object, ecma_length_t index, ecma_value_t value)
+{
+  // note: index is converted to string and then converted back to index. need a more efficient set index
+  ecma_free_value (ecma_op_object_put_by_index (ecma_get_object_from_value (object), index, value, false));
+}
 
 /**
  * Create an ecma string value from a null-terminated ascii string.
@@ -275,7 +286,84 @@ annex_util_create_string_utf8_sz (const char* str_p)
     return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
   }
 
-  return jjs_string( (const jjs_char_t*) str_p,
-                     (jjs_size_t) strlen (str_p),
-                     JJS_ENCODING_UTF8);
+  return jjs_string ((const jjs_char_t*) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_UTF8);
 } /* annex_util_create_string_utf8_sz */
+
+/**
+ * Checks if a package name specifier is valid.
+ *
+ * The validation goal is for module package names, used by vmod and pmap, to be consistent
+ * with the current JS ecosystem. The validation more or less follows the validation strategy
+ * used by npm (https://github.com/npm/validate-npm-package-name).
+ *
+ * Valid Package Name Rules:
+ * - Length [0,214]
+ * - No leading . or _
+ * - Valid characters: a–z 0–9 - _ . @ /
+ *
+ * @param name string package name
+ * @return true if the package name is valid; otherwise, false
+ */
+bool
+annex_util_is_valid_package_name (ecma_value_t name)
+{
+  if (!jjs_value_is_string (name))
+  {
+    return false;
+  }
+
+  bool result = false;
+  lit_utf8_byte_t c;
+  lit_utf8_size_t i;
+  ecma_string_t* name_p = ecma_get_string_from_value (name);
+
+  ECMA_STRING_TO_UTF8_STRING (name_p, name_bytes_p, name_bytes_len);
+
+  // empty strings are invalid
+  // strings that are too long are invalid
+  if (name_bytes_len == 0 || name_bytes_len > NPM_PACKAGE_NAME_LENGTH_LIMIT)
+  {
+    goto done;
+  }
+
+  // packages cannot begin with . or _
+  if (name_bytes_p[0] == '.' || name_bytes_p[0] == '_')
+  {
+    goto done;
+  }
+
+  // only these characters are valid: a–z 0–9 - _ . @ / :
+  for (i = 0; i < name_bytes_len; i++)
+  {
+    c = name_bytes_p[i];
+
+    if (isalnum (c))
+    {
+      if (c >= 'A' && c <= 'Z')
+      {
+        goto done;
+      }
+
+      continue;
+    }
+
+    switch (c)
+    {
+      case '-':
+      case '_':
+      case '@':
+      case '/':
+      case ':':
+      case '.':
+        continue;
+      default:
+        goto done;
+    }
+  }
+
+  result = true;
+
+done:
+  ECMA_FINALIZE_UTF8_STRING (name_bytes_p, name_bytes_len);
+  return result;
+} /* annex_util_is_valid_package_name */

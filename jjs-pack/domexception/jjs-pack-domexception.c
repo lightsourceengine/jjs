@@ -13,19 +13,22 @@
  * limitations under the License.
  */
 
+#include "jjs-pack-lib.h"
 #include "jjs-pack.h"
 
-#include "jjs-pack-lib.h"
-
 #if JJS_PACK_DOMEXCEPTION
-JJS_PACK_DEFINE_EXTERN_SOURCE (jjs_pack_domexception)
+extern uint8_t jjs_pack_domexception_snapshot[];
+extern const uint32_t jjs_pack_domexception_snapshot_len;
 #endif /* JJS_PACK_DOMEXCEPTION */
 
 jjs_value_t
 jjs_pack_domexception_init (void)
 {
 #if JJS_PACK_DOMEXCEPTION
-  return JJS_PACK_LIB_GLOBAL_SET ("DOMException", jjs_pack_domexception, NULL);
+  return jjs_pack_lib_main (jjs_pack_domexception_snapshot,
+                            jjs_pack_domexception_snapshot_len,
+                            jjs_undefined (),
+                            false);
 #else /* !JJS_PACK_DOMEXCEPTION */
   return jjs_throw_sz (JJS_ERROR_COMMON, "domexception pack is not enabled");
 #endif /* JJS_PACK_DOMEXCEPTION */

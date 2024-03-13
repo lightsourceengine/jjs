@@ -23,7 +23,7 @@ const SymbolReplace = RegExp.prototype[replace];
 const RegExpPrototypeSymbolReplace = (self, ...args) => SymbolReplace.call(self, ...args)
 
 const FORWARD_SLASH = /\//g;
-const { isWindows } = module.bindings;
+const isWindows = module.bindings.platform === 'win32';
 let resolve;
 let sep = isWindows ? '\\' : '/';
 

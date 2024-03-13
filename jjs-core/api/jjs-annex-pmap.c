@@ -557,7 +557,7 @@ static jjs_value_t validate_pmap (jjs_value_t pmap)
   {
     jjs_value_t key = jjs_object_get_index (keys, i);
 
-    if (!jjs_value_is_string (key))
+    if (!annex_util_is_valid_package_name (key))
     {
       jjs_value_free (key);
       continue;

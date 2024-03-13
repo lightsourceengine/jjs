@@ -279,6 +279,7 @@ static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
 #endif /* JJS_COMMONJS */
 #if JJS_VMOD
 static jjs_value_t vmod_module_evaluate_cb (jjs_value_t native_module);
+static jjs_value_t vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache);
 #endif /* JJS_VMOD */
 
 #endif /* JJS_MODULE_SYSTEM */
@@ -790,27 +791,9 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
   ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
 
 #if JJS_VMOD
-  if (jjs_annex_vmod_is_registered (specifier))
+  if (jjs_annex_vmod_exists (specifier))
   {
-    ecma_value_t cached = ecma_find_own_v (esm_cache, specifier);
-
-    if (ecma_is_value_found (cached))
-    {
-      return cached;
-    }
-
-    jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
-    jjs_value_t native_module = jjs_native_module (vmod_module_evaluate_cb, &default_name, 1);
-
-    if (!jjs_value_is_exception (native_module))
-    {
-      ecma_set_m (native_module, LIT_MAGIC_STRING_ID, specifier);
-      ecma_set_v (esm_cache, specifier, native_module);
-    }
-
-    ecma_fast_free_value (default_name);
-
-    return native_module;
+    return vmod_get_or_load_module (specifier, esm_cache);
   }
 #endif /* JJS_VMOD */
 
@@ -986,15 +969,20 @@ commonjs_module_evaluate_cb (jjs_value_t native_module)
 static jjs_value_t
 vmod_module_evaluate_cb (jjs_value_t native_module)
 {
-  ecma_value_t id = ecma_find_own_m (native_module, LIT_MAGIC_STRING_ID);
-  jjs_value_t exports = jjs_annex_vmod_exports (id);
+  ecma_value_t exports = ecma_find_own_m (native_module, LIT_MAGIC_STRING_EXPORTS);
 
-  ecma_free_value (id);
+  JJS_ASSERT (ecma_is_value_found (exports));
 
-  if (jjs_value_is_exception (exports))
+  if (!ecma_is_value_found (exports))
   {
-    return exports;
+    return jjs_throw_sz (JJS_ERROR_COMMON, "vmod esm module missing exports property");
   }
+
+  ecma_value_t delete_result = ecma_op_object_delete (ecma_get_object_from_value (native_module),
+                                                      ecma_get_magic_string (LIT_MAGIC_STRING_EXPORTS),
+                                                      false);
+
+  ecma_free_value (delete_result);
 
   jjs_value_t result = module_native_set_default (native_module, exports);
 
@@ -1003,16 +991,80 @@ vmod_module_evaluate_cb (jjs_value_t native_module)
   return result;
 } /* vmod_module_evaluate_cb */
 
+static jjs_value_t
+vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
+{
+  ecma_value_t cached = ecma_find_own_v (esm_cache, specifier);
+
+  if (ecma_is_value_found (cached))
+  {
+    return cached;
+  }
+
+  ecma_free_value (cached);
+
+  jjs_value_t exports = jjs_annex_vmod_resolve (specifier);
+
+  if (jjs_value_is_exception (exports))
+  {
+    return exports;
+  }
+
+  ecma_collection_t *keys_p;
+
+  // TODO: null?
+  if (ecma_is_value_object (exports))
+  {
+    keys_p = ecma_op_object_get_enumerable_property_names (ecma_get_object_from_value (exports),
+                                                           ECMA_ENUMERABLE_PROPERTY_KEYS);
+
+#if JJS_BUILTIN_PROXY
+    if (JJS_UNLIKELY (keys_p == NULL))
+    {
+      return ecma_create_exception_from_context ();
+    }
+#endif /* JJS_BUILTIN_PROXY */
+  }
+  else
+  {
+    keys_p = ecma_new_collection ();
+  }
+
+  if (keys_p == NULL)
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "");
+  }
+
+  if (keys_p->item_count == 0 || !ecma_has_own_m (exports, LIT_MAGIC_STRING_DEFAULT))
+  {
+    ecma_collection_push_back (keys_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT));
+  }
+
+  jjs_value_t native_module = jjs_native_module (vmod_module_evaluate_cb, keys_p->buffer_p, keys_p->item_count);
+
+  ecma_collection_free (keys_p);
+
+  if (!jjs_value_is_exception (native_module))
+  {
+    ecma_set_m (native_module, LIT_MAGIC_STRING_EXPORTS, exports);
+    ecma_set_v (esm_cache, specifier, native_module);
+  }
+
+  jjs_value_free (exports);
+
+  return native_module;
+} /* vmod_get_or_load_module */
+
 #endif /* JJS_VMOD */
 
 static jjs_value_t
 user_value_to_path (jjs_value_t user_value)
 {
-    annex_specifier_type_t path_type = annex_path_specifier_type (user_value);
-    jjs_value_t result;
+  annex_specifier_type_t path_type = annex_path_specifier_type (user_value);
+  jjs_value_t result;
 
-    if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
-    {
+  if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
+  {
      jjs_value_t module = ecma_find_own_v (ecma_get_global_object ()->esm_cache, user_value);
 
      result = ecma_is_value_found (module) ? ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME) : annex_path_dirname (user_value);

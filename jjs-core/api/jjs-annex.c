@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
-#include "jjs-core.h"
 #include "jjs-annex.h"
+
+#include "jjs-annex-vmod.h"
+#include "jjs-core.h"
 
 #include "annex.h"
 #include "jcontext.h"
@@ -82,10 +84,6 @@ void jjs_annex_init (void)
 #if JJS_MODULE_SYSTEM
   JJS_CONTEXT (module_on_init_scope_p) = module_on_init_scope;
 #endif /* JJS_MODULE_SYSTEM */
-
-#if JJS_VMOD
-  JJS_CONTEXT (vmods) = ecma_create_object_with_null_proto ();
-#endif /* JJS_VMOD */
 } /* jjs_annex_init */
 
 /**
@@ -120,6 +118,8 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
 #if JJS_VMOD
   global_p->vmod_cache = ecma_create_object_with_null_proto ();
   ecma_free_value (global_p->vmod_cache);
+
+  jjs_annex_vmod_init_realm (global_p->vmod_cache);
 #endif /* JJS_VMOD */
 } /* jjs_annex_init_realm */
 
@@ -147,8 +147,4 @@ void jjs_annex_finalize (void)
 #if JJS_COMMONJS
   jjs_value_free (JJS_CONTEXT (commonjs_args));
 #endif /* JJS_COMMONJS */
-
-#if JJS_VMOD
-  jjs_value_free (JJS_CONTEXT (vmods));
-#endif /* JJS_VMOD */
 } /* jjs_annex_finalize */

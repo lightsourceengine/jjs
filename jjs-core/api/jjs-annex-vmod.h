@@ -18,7 +18,16 @@
 
 #include "ecma-globals.h"
 
-bool jjs_annex_vmod_is_registered (ecma_value_t name);
-ecma_value_t jjs_annex_vmod_exports (ecma_value_t name);
+typedef enum jjs_annex_vmod_format_t
+{
+  JJS_ANNEX_VMOD_FORMAT_OBJECT,
+  JJS_ANNEX_VMOD_FORMAT_MODULE,
+  JJS_ANNEX_VMOD_FORMAT_COMMONJS,
+  JJS_ANNEX_VMOD_FORMAT_UNKNOWN,
+} jjs_annex_vmod_format_t;
+
+void jjs_annex_vmod_init_realm (ecma_value_t vmod_cache);
+bool jjs_annex_vmod_exists (ecma_value_t name);
+jjs_value_t jjs_annex_vmod_resolve (jjs_value_t name);
 
 #endif /* !JJS_ANNEX_VMOD_H */

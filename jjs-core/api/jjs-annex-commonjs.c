@@ -186,7 +186,7 @@ static JJS_HANDLER(resolve_handler)
   }
 
 #if JJS_VMOD
-  if (jjs_annex_vmod_is_registered(request))
+  if (jjs_vmod_exists (request))
   {
     return ecma_copy_value (request);
   }
@@ -253,9 +253,9 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
   }
 
 #if JJS_VMOD
-  if (jjs_annex_vmod_is_registered (specifier))
+  if (jjs_annex_vmod_exists (specifier))
   {
-    return jjs_annex_vmod_exports (specifier);
+    return jjs_annex_vmod_resolve (specifier);
   }
 #endif /* JJS_VMOD */
 
