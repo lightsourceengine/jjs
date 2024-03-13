@@ -992,6 +992,52 @@ vmod_module_evaluate_cb (jjs_value_t native_module)
 } /* vmod_module_evaluate_cb */
 
 static jjs_value_t
+vmod_link (jjs_value_t module, jjs_value_t exports, ecma_collection_t *keys_p, bool was_default_appended)
+{
+  uint32_t count = keys_p->item_count - (was_default_appended ? 1 : 0);
+
+  for (uint32_t i = 0; i < count; i++)
+  {
+    ecma_value_t value = ecma_find_own_v (exports, keys_p->buffer_p[i]);
+
+    JJS_ASSERT (value != ECMA_VALUE_NOT_FOUND);
+
+    if (value == ECMA_VALUE_NOT_FOUND)
+    {
+      return jjs_throw_sz (JJS_ERROR_TYPE, "failed to get export value while linking vmod module");
+    }
+
+    jjs_value_t result = jjs_native_module_set (module, keys_p->buffer_p[i], value);
+
+    ecma_free_value (value);
+
+    if (jjs_value_is_exception (result))
+    {
+      return result;
+    }
+
+    jjs_value_free (result);
+  }
+
+  if (was_default_appended)
+  {
+    ecma_value_t default_key = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
+    jjs_value_t result = jjs_native_module_set (module, default_key, exports);
+
+    ecma_free_value (default_key);
+
+    if (jjs_value_is_exception (result))
+    {
+      return result;
+    }
+
+    jjs_value_free (result);
+  }
+
+  return jjs_module_link (module, esm_link_cb, NULL);
+} /* vmod_link */
+
+static jjs_value_t
 vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
 {
   ecma_value_t cached = ecma_find_own_v (esm_cache, specifier);
@@ -1012,7 +1058,6 @@ vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
 
   ecma_collection_t *keys_p;
 
-  // TODO: null?
   if (ecma_is_value_object (exports))
   {
     keys_p = ecma_op_object_get_enumerable_property_names (ecma_get_object_from_value (exports),
@@ -1028,28 +1073,45 @@ vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
   else
   {
     keys_p = ecma_new_collection ();
+
+    if (JJS_UNLIKELY (keys_p == NULL))
+    {
+      return jjs_throw_sz (JJS_ERROR_COMMON, "failed to allocate collection for vmod keys");
+    }
   }
 
-  if (keys_p == NULL)
-  {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "");
-  }
+  bool was_default_appended;
 
   if (keys_p->item_count == 0 || !ecma_has_own_m (exports, LIT_MAGIC_STRING_DEFAULT))
   {
     ecma_collection_push_back (keys_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT));
+    was_default_appended = true;
+  }
+  else
+  {
+    was_default_appended = false;
   }
 
   jjs_value_t native_module = jjs_native_module (vmod_module_evaluate_cb, keys_p->buffer_p, keys_p->item_count);
 
-  ecma_collection_free (keys_p);
-
   if (!jjs_value_is_exception (native_module))
   {
-    ecma_set_m (native_module, LIT_MAGIC_STRING_EXPORTS, exports);
-    ecma_set_v (esm_cache, specifier, native_module);
+    jjs_value_t linked = vmod_link (native_module, exports, keys_p, was_default_appended);
+
+    if (!jjs_value_is_exception (linked))
+    {
+      jjs_value_free (linked);
+      ecma_set_m (native_module, LIT_MAGIC_STRING_EXPORTS, exports);
+      ecma_set_v (esm_cache, specifier, native_module);
+    }
+    else
+    {
+      jjs_value_free (native_module);
+      native_module = linked;
+    }
   }
 
+  ecma_collection_free (keys_p);
   jjs_value_free (exports);
 
   return native_module;

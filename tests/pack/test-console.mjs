@@ -18,6 +18,10 @@ const { assertThrows } = require('../lib/assert.js');
 
 // TODO: use tests from wpt?
 
+test('check global', () => {
+  assert(typeof globalThis.console === 'object');
+});
+
 test('console.log() should print a string', () => {
   console.log('console.log(): test');
 });

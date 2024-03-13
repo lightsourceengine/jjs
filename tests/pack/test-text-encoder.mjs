@@ -16,6 +16,10 @@
 const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
 
+test('check global', () => {
+  assert(typeof globalThis.TextEncoder === 'function');
+});
+
 test('constructor should create a new object with encoding set to utf-8', () => {
   const encoder = new TextEncoder();
   assert(encoder.encoding === 'utf-8');

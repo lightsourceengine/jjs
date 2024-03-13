@@ -1555,8 +1555,4 @@ const posix = {
 posix.win32 = win32.win32 = win32;
 posix.posix = win32.posix = posix;
 
-// Legacy internal API, docs-only deprecated: DEP0080
-// win32._makeLong = win32.toNamespacedPath;
-// posix._makeLong = posix.toNamespacedPath;
-
 module.exports = isWindows ? win32 : posix;

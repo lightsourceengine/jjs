@@ -13,9 +13,23 @@
  * limitations under the License.
  */
 
+const { arrayEquals } = require('../lib/assert.js')
 const { test, runAllTests } = require('../lib/test.cjs');
 
 // TODO: use tests from wpt?
+
+test('check global', () => {
+  assert(typeof globalThis.URL === 'function');
+  assert(typeof globalThis.URLSearchParams === 'function');
+});
+
+test('check require("jjs:url") exports', () => {
+  arrayEquals(Object.keys(require('jjs:url')).toSorted(), cjsExports);
+});
+
+test('check import("jjs:url") exports', async () => {
+  arrayEquals(Object.keys(await import('jjs:url')).toSorted(), esmExports);
+});
 
 test('URL()', () => {
   assert(new URL('file:///usr').href === 'file:///usr');
@@ -29,23 +43,13 @@ test('URL() with base and relative', () => {
   assert(new URL('file', 'file:///usr/').href === 'file:///usr/file');
 });
 
-test ('require jjs:url should export url api', () => {
-  checkPackageExports(require('jjs:url'));
-});
+const cjsExports = [
+  'URL',
+  'URLSearchParams',
+  'fileURLToPath',
+  'pathToFileURL',
+].toSorted();
 
-test ('import jjs:url should export url api', async () => {
-  const ns = await import('jjs:url')
-
-  // TODO: export symbols! checkPackageExports(ns);
-  checkPackageExports(ns.default);
-});
-
-function checkPackageExports(exports) {
-  assert(Object.keys(exports).length === 4);
-  assert(typeof exports.fileURLToPath === 'function');
-  assert(typeof exports.pathToFileURL === 'function');
-  assert(typeof exports.URL === 'function');
-  assert(typeof exports.URLSearchParams === 'function');
-}
+const esmExports = [ ...cjsExports, 'default'].toSorted();
 
 runAllTests();

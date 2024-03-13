@@ -14,17 +14,45 @@
  */
 
 // check that path is importable
-import path from 'jjs:path';
+import {
+  resolve,
+  normalize,
+  isAbsolute,
+  join,
+  relative,
+  toNamespacedPath,
+  dirname,
+  basename,
+  extname,
+  format,
+  parse,
+  sep,
+  delimiter,
+  win32,
+  posix,
+} from 'jjs:path';
 
-// check that path is requirable
-const { basename } = require('jjs:path');
-
+const { arrayEquals } = require('../lib/assert.js');
 const { test, runAllTests } = require('../lib/test.cjs');
 
 // TODO: can we take path tests from node?
 
+test('check require("jjs:path") exports', () => {
+  arrayEquals(Object.keys(require('jjs:path')).toSorted(), cjsExports);
+});
+
+test('check import("jjs:path") exports', async () => {
+  arrayEquals(Object.keys(await import('jjs:path')).toSorted(), esmExports);
+});
+
 test('path.basename', () => {
   assert(basename('usr/bin') === 'bin');
 });
+
+const cjsExports = [
+  'resolve', 'normalize', 'isAbsolute', 'join', 'relative', 'toNamespacedPath', 'dirname', 'basename', 'extname', 'format', 'parse', 'sep', 'delimiter', 'win32', 'posix',
+].toSorted();
+
+const esmExports = [...cjsExports, 'default'].toSorted();
 
 runAllTests();

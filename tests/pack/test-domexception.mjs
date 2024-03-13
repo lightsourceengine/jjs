@@ -18,6 +18,10 @@ const { assertThrows } = require('../lib/assert.js');
 
 // TODO: use tests from wpt?
 
+test('check global', () => {
+  assert(typeof globalThis.DOMException === 'function');
+});
+
 test('DOMException', () => {
   const e = new DOMException('test');
   assert(e.name === 'Error');

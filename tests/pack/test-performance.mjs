@@ -17,6 +17,10 @@ const { test, runAllTests } = require('../lib/test.cjs');
 
 // TODO: use tests from wpt?
 
+test('check global', () => {
+  assert(typeof globalThis.performance === 'object');
+});
+
 test('now() should return a value greater than zero', () => {
   assert(performance.now() > 0);
 });

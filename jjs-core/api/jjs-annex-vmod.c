@@ -331,7 +331,7 @@ annex_vmod_entry_exports (jjs_value_t entry)
 
   ecma_free_value (exports);
 
-  return jjs_throw_sz (JJS_ERROR_COMMON, "");
+  return jjs_throw_sz (JJS_ERROR_COMMON, "failed to get vmod entry exports");
 } /* annex_vmod_entry_exports */
 
 static void

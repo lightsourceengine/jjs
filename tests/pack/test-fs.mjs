@@ -14,13 +14,18 @@
  */
 
 // check that fs is importable
-import path from 'jjs:fs';
+import { file, write } from 'jjs:fs';
 
-// check that fs is requirable
-const { file, write } = require('jjs:fs');
-
-const { assertEquals, assertThrows } = require('../lib/assert.js');
+const { assertEquals, assertThrows, arrayEquals } = require('../lib/assert.js');
 const { test, runAllTests } = require('../lib/test.cjs');
+
+test('check require("jjs:fs") exports', () => {
+  arrayEquals(Object.keys(require('jjs:fs')).toSorted(), cjsExports);
+});
+
+test('check import("jjs:fs") exports', async () => {
+  arrayEquals(Object.keys(await import('jjs:fs')).toSorted(), esmExports);
+});
 
 test('file() should return a JJSFile object', () => {
   const f = file('fixtures/test.bin');
@@ -137,6 +142,13 @@ test('write() should throw if data is not a string or buffer', () => {
     assertThrows(Error, () => write('test', f));
   }
 });
+
+const cjsExports = [
+  'file',
+  'write',
+].toSorted();
+
+const esmExports = [ ...cjsExports, 'default'].toSorted();
 
 function deleteFile(path) {
   try {

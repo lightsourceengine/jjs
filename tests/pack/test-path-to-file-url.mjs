@@ -15,7 +15,8 @@
 
 // tests adapted from https://github.com/nodejs/node/test/parallel/test-url-pathtofileurl.js
 
-const { pathToFileURL } = require('jjs:url');
+import { pathToFileURL } from 'jjs:url';
+
 const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
 const isWindows = globalThis['@platform'] === 'win32';

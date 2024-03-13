@@ -18,6 +18,10 @@ const { assertThrows, assertEquals } = require('../lib/assert.js');
 
 const encodings = ['utf-8', 'utf8', 'unicode-1-1-utf-8'];
 
+test('check global', () => {
+  assert(typeof globalThis.TextDecoder === 'function');
+});
+
 test('constructor should accept no argument', () => {
   const decoder = new TextDecoder();
   assert(decoder.encoding === 'utf-8');
