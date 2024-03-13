@@ -44,7 +44,7 @@ vmod_callback (const jjs_call_info_t* call_info_p, const jjs_value_t args_p[], j
   return create_config ();
 }
 
-void
+static void
 assert_package (const char* package_name, const char* expected_export)
 {
   TEST_ASSERT (jjs_vmod_exists_sz (package_name));
