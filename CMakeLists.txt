@@ -55,8 +55,8 @@ set(JJS_CMDLINE_TEST          OFF CACHE BOOL "Build JJS test command line tool?"
 set(JJS_CMDLINE_SNAPSHOT      OFF CACHE BOOL "Build JJS snapshot command line tool?")
 set(JJS_LIBFUZZER             OFF CACHE BOOL "Build JJS with libfuzzer support?")
 set(JJS_PORT                  ON  CACHE BOOL "Build default JJS port implementation?")
-set(JJS_EXT                   ON  CACHE BOOL "Build jjs-ext?")
-set(JJS_EXT_DEBUGGER          ON  CACHE BOOL "Build jjs-ext debugger support?")
+set(JJS_EXT                   OFF CACHE BOOL "Build jjs-ext?")
+set(JJS_EXT_DEBUGGER          OFF CACHE BOOL "Build jjs-ext debugger support?")
 set(JJS_PACK                  OFF CACHE BOOL "Build jjs-pack?")
 set(JJS_UNITTESTS             OFF CACHE BOOL "Build unit tests?")
 set(JJS_DOCTESTS              OFF CACHE BOOL "Build doc tests?")
@@ -66,7 +66,7 @@ set(JJS_BUILD_SHARED_LIBS     OFF CACHE BOOL "Build shared libraries?")
 set(JJS_AMALGAM               OFF CACHE BOOL "Enable amalgamated build?")
 set(JJS_LTO                   ON  CACHE BOOL "Enable LTO build?")
 set(JJS_STRIP                 ON  CACHE BOOL "Enable stripping all symbols from release binary?")
-set(JJS_COMPILE_COMMANDS      ON  CACHE BOOL "Enable generating compile_commands.json?")
+set(JJS_COMPILE_COMMANDS      OFF CACHE BOOL "Enable generating compile_commands.json?")
 
 # Option overrides
 if(NOT USING_CLANG)
@@ -83,8 +83,10 @@ endif()
 
 if(JJS_CMDLINE OR JJS_DOCTESTS)
   set(JJS_EXT ON)
-
   set(JJS_EXT_MESSAGE " (FORCED BY CMDLINE OR TESTS)")
+
+  set(JJS_EXT_DEBUGGER ON)
+  set(JJS_EXT_DEBUGGER_MESSAGE " (FORCED BY CMDLINE OR TESTS)")
 endif()
 
 if("${PLATFORM}" STREQUAL "DARWIN")
@@ -141,6 +143,7 @@ message(STATUS "JJS_CMDLINE_SNAPSHOT           " ${JJS_CMDLINE_SNAPSHOT} ${JJS_C
 message(STATUS "JJS_LIBFUZZER                  " ${JJS_LIBFUZZER} ${JJS_LIBFUZZER_MESSAGE})
 message(STATUS "JJS_PORT                       " ${JJS_PORT} ${JJS_PORT_MESSAGE})
 message(STATUS "JJS_EXT                        " ${JJS_EXT} ${JJS_EXT_MESSAGE})
+message(STATUS "JJS_EXT_DEBUGGER               " ${JJS_EXT_DEBUGGER} ${JJS_EXT_DEBUGGER_MESSAGE})
 message(STATUS "JJS_MATH                       " ${JJS_MATH} ${JJS_MATH_MESSAGE})
 message(STATUS "JJS_PACK                       " ${JJS_PACK} ${JJS_PACK_MESSAGE})
 message(STATUS "JJS_UNITTESTS                  " ${JJS_UNITTESTS})

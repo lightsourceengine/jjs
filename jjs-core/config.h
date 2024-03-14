@@ -154,11 +154,11 @@
  *  0: use 16 bit representation
  *  1: use 32 bit representation
  *
- * Default value: 0
+ * Default value: 1
  * For more details see: jmem/jmem.h
  */
 #ifndef JJS_CPOINTER_32_BIT
-#define JJS_CPOINTER_32_BIT 0
+#define JJS_CPOINTER_32_BIT 1
 #endif /* !defined (JJS_CPOINTER_32_BIT) */
 
 /**
@@ -179,10 +179,10 @@
  *  0: Disable error messages.
  *  1: Enable error message.
  *
- * Default value: 0
+ * Default value: 1
  */
 #ifndef JJS_ERROR_MESSAGES
-#define JJS_ERROR_MESSAGES 0
+#define JJS_ERROR_MESSAGES 1
 #endif /* !defined (JJS_ERROR_MESSAGES) */
 
 /**
@@ -201,10 +201,10 @@
 /**
  * Maximum size of heap in kilobytes
  *
- * Default value: 512 KiB
+ * Default value: 1024 KiB
  */
 #ifndef JJS_GLOBAL_HEAP_SIZE
-#define JJS_GLOBAL_HEAP_SIZE (512)
+#define JJS_GLOBAL_HEAP_SIZE (1024)
 #endif /* !defined (JJS_GLOBAL_HEAP_SIZE) */
 
 /**
@@ -271,10 +271,10 @@
  *  0: Disable line-info in the engine.
  *  1: Enable line-info management.
  *
- * Default value: 0
+ * Default value: 1
  */
 #ifndef JJS_LINE_INFO
-#define JJS_LINE_INFO 0
+#define JJS_LINE_INFO 1
 #endif /* !defined (JJS_LINE_INFO) */
 
 /**
@@ -414,10 +414,10 @@
  *  0: Disable snapshot execution.
  *  1: Enable snapshot execution.
  *
- * Default value: 0
+ * Default value: 1
  */
 #ifndef JJS_SNAPSHOT_EXEC
-#define JJS_SNAPSHOT_EXEC 0
+#define JJS_SNAPSHOT_EXEC 1
 #endif /* !defined (JJS_SNAPSHOT_EXEC) */
 
 /**

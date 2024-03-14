@@ -61,6 +61,8 @@ def get_arguments():
                           help='clean build')
     buildgrp.add_argument('--cmake-param', metavar='OPT', action='append', default=[],
                           help='add custom argument to CMake')
+    buildgrp.add_argument('--cmake-g', metavar='GENERATOR',
+                          help='set the CMake build file generator (-G option in CMake, see cmake --help for supported names)')
     buildgrp.add_argument('--compile-flag', metavar='OPT', action='append', default=[],
                           help='add custom compile flag')
     buildgrp.add_argument('--build-type', metavar='TYPE', default='MinSizeRel',
@@ -243,6 +245,10 @@ def generate_build_options(arguments):
     # general build options (final step)
     if arguments.cmake_param:
         build_options.extend(arguments.cmake_param)
+
+    # set the cmake generator
+    if arguments.cmake_g:
+        build_options.extend(["-G %s" % arguments.cmake_g])
 
     return build_options
 

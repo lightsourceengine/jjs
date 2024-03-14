@@ -36,10 +36,13 @@ OUTPUT_DIR = os.path.join(settings.PROJECT_DIR, 'build', 'tests')
 Options = collections.namedtuple('Options', ['name', 'build_args', 'test_args', 'skip'])
 Options.__new__.__defaults__ = ([], [], False)
 
+
 def skip_if(condition, desc):
     return desc if condition else False
 
-OPTIONS_COMMON = ['--lto=off', '--function-to-string=on']
+
+OPTIONS_COMMON = ['--lto=off', '--function-to-string=on', '--mem-heap=512', '--cpointer-32bit=off',
+                  '--error-messages=off', '--line-info=off']
 OPTIONS_PROFILE_MIN = ['--profile=minimal']
 OPTIONS_STACK_LIMIT = ['--stack-limit=96']
 OPTIONS_GC_MARK_LIMIT = ['--gc-mark-limit=16']
