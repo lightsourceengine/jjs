@@ -39,12 +39,14 @@ import { basename, dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { access, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
+const moduleDirname = import.meta.dirname ?? dirname(fileURLToPath(import.meta.url));
 const buildDir = tmpdir();
-const template = await readFile(join(import.meta.dirname, 'template.c'), 'utf8');
+const template = await readFile(join(moduleDirname, 'jjs-pack-embed-js.template'), 'utf8');
 
 async function embedPackJS(pack) {
-  const jsFile = join(import.meta.dirname, pack, `${pack}.cjs`);
+  const jsFile = join(moduleDirname, pack, `${pack}.cjs`);
   // esbuild changes the extension to js for some reason
   const minifiedFile = join(buildDir, `${pack}.js`);
 
@@ -71,17 +73,17 @@ async function embedPackJS(pack) {
     .replaceAll('${CDEFINE}', `JJS_PACK_${pack.toUpperCase()}`)
     .replaceAll('${CIDENT_PREFIX}', `jjs_pack_${pack}`)
     .replace('${BYTES}', bytes)
-    .replace('${BYTES_LENGTH}', snapshotBytes.length);
+    .replace('${BYTES_LENGTH}', snapshotBytes.length.toString());
 
   const cFile = `jjs-pack-${pack}-js.c`;
 
-  await writeFile(join(import.meta.dirname, pack, cFile), embeddedSnapshot, 'utf8');
+  await writeFile(join(moduleDirname, pack, cFile), embeddedSnapshot, 'utf8');
 
   console.log(`⚡ ${pack.padEnd(12, ' ')} -> ${cFile}`);
 }
 
 async function findSnapshotCommand() {
-  const binDir = join(import.meta.dirname, '..', 'build', 'bin');
+  const binDir = join(moduleDirname, '..', 'build', 'bin');
   const exe = 'jjs-snapshot';
   const paths = [];
 
