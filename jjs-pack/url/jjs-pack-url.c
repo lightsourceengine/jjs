@@ -18,8 +18,8 @@
 
 #if JJS_PACK_URL
 
-extern uint8_t jjs_pack_url_api_snapshot[];
-extern const uint32_t jjs_pack_url_api_snapshot_len;
+extern uint8_t jjs_pack_url_snapshot[];
+extern const uint32_t jjs_pack_url_snapshot_len;
 
 #endif /* JJS_PACK_URL */
 
@@ -27,8 +27,8 @@ jjs_value_t
 jjs_pack_url_init (void)
 {
 #if JJS_PACK_URL
-  jjs_value_t exports = jjs_pack_lib_read_exports (jjs_pack_url_api_snapshot,
-                                                   jjs_pack_url_api_snapshot_len,
+  jjs_value_t exports = jjs_pack_lib_read_exports (jjs_pack_url_snapshot,
+                                                   jjs_pack_url_snapshot_len,
                                                    jjs_undefined (),
                                                    false,
                                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);

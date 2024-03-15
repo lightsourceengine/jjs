@@ -24,8 +24,8 @@
 #define UTF8_ACCEPT 0
 #define UTF8_REJECT 1
 
-extern uint8_t jjs_pack_text_api_snapshot[];
-extern const uint32_t jjs_pack_text_api_snapshot_len;
+extern uint8_t jjs_pack_text_snapshot[];
+extern const uint32_t jjs_pack_text_snapshot_len;
 
 static bool jjs_pack_text_arraybuffer (jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size_t* buffer_size_p);
 static bool utf8_has_bom (const uint8_t* buffer, uint32_t length);
@@ -340,7 +340,7 @@ jjs_pack_text_init (void)
   jjs_bindings_function (bindings, "encodeInto", jjs_pack_text_encode_into);
   jjs_bindings_function (bindings, "decodeUTF8", jjs_pack_text_decode_utf8);
 
-  return jjs_pack_lib_main (jjs_pack_text_api_snapshot, jjs_pack_text_api_snapshot_len, bindings, true);
+  return jjs_pack_lib_main (jjs_pack_text_snapshot, jjs_pack_text_snapshot_len, bindings, true);
 #else /* !JJS_PACK_TEXT */
   return jjs_throw_sz (JJS_ERROR_COMMON, "text pack is not enabled");
 #endif /* JJS_PACK_TEXT */

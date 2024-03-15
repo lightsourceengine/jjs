@@ -218,12 +218,12 @@ class ERR_INVALID_FILE_URL_HOST extends TypeError {
 // node_modules/core-js-pure/web/url.js only exports URL, but JJS needs URLSearchParams
 // too. This file reworks the original to export both.
 
-require('./node_modules/core-js-pure/web/url-search-params');
-require('./node_modules/core-js-pure/modules/web.url');
-require('./node_modules/core-js-pure/modules/web.url.can-parse');
-require('./node_modules/core-js-pure/modules/web.url.to-json');
+require('core-js-pure/web/url-search-params');
+require('core-js-pure/modules/web.url');
+require('core-js-pure/modules/web.url.can-parse');
+require('core-js-pure/modules/web.url.to-json');
 
-const { URL, URLSearchParams } = require('./node_modules/core-js-pure/internals/path');
+const { URL, URLSearchParams } = require('core-js-pure/internals/path');
 
 Object.assign(globalThis, {
   URL,

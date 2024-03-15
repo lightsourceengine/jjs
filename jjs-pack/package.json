@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "dependencies": {
+    "esbuild": "0.20.2",
+    "core-js-pure": "3.33.2"
+  },
+  "scripts": {
+    "js2c": "node build.js"
+  }
+}

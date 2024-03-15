@@ -36,10 +36,6 @@
 #define JJS_PACK_PATH JJS_PACK
 #endif /* !defined (JJS_PACK_PATH) */
 
-#ifndef JJS_PACK_PATH_URL
-#define JJS_PACK_PATH_URL JJS_PACK
-#endif /* !defined (JJS_PACK_PATH_URL) */
-
 #ifndef JJS_PACK_PERFORMANCE
 #define JJS_PACK_PERFORMANCE JJS_PACK
 #endif /* !defined (JJS_PACK_PERFORMANCE) */
@@ -67,10 +63,6 @@
 #if (JJS_PACK_PATH != 0) && (JJS_PACK_PATH != 1)
 #error "Invalid value for 'JJS_PACK_PATH' macro."
 #endif /* (JJS_PACK_PATH != 0) && (JJS_PACK_PATH != 1) */
-
-#if (JJS_PACK_PATH_URL != 0) && (JJS_PACK_PATH_URL != 1)
-#error "Invalid value for 'JJS_PACK_PATH_URL' macro."
-#endif /* (JJS_PACK_PATH_URL != 0) && (JJS_PACK_PATH_URL != 1) */
 
 #if (JJS_PACK_PERFORMANCE != 0) && (JJS_PACK_PERFORMANCE != 1)
 #error "Invalid value for 'JJS_PACK_PERFORMANCE' macro."
