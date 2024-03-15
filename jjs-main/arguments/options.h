@@ -61,6 +61,16 @@ typedef struct
 } main_source_t;
 
 /**
+ * Method for parsing source from stdin.
+ */
+typedef enum
+{
+  INPUT_TYPE_RAW,
+  INPUT_TYPE_STRICT,
+  INPUT_TYPE_MODULE,
+} main_input_type_t;
+
+/**
  * Arguments struct to store parsed command line arguments.
  */
 typedef struct
@@ -78,6 +88,7 @@ typedef struct
   uint16_t option_flags;
   uint16_t init_flags;
   uint8_t parse_result;
+  main_input_type_t input_type;
 } main_args_t;
 
 bool main_parse_args (int argc, char **argv, main_args_t *arguments_p);

@@ -364,3 +364,69 @@ main_register_jjs_test_object (void)
   jjs_value_free (global);
   jjs_value_free (jjs);
 } /* main_register_jjs_test_object */
+
+jjs_value_t
+main_exec_stdin (main_input_type_t input_type)
+{
+  jjs_char_t *source_p = NULL;
+  jjs_size_t source_size = 0;
+
+  while (true)
+  {
+    jjs_size_t line_size;
+    jjs_char_t *line_p = jjs_port_line_read (&line_size);
+
+    if (line_p == NULL)
+    {
+      break;
+    }
+
+    jjs_size_t new_size = source_size + line_size;
+    source_p = realloc (source_p, new_size);
+
+    memcpy (source_p + source_size, line_p, line_size);
+    jjs_port_line_free (line_p);
+    source_size = new_size;
+  }
+
+  if (!jjs_validate_string (source_p, source_size, JJS_ENCODING_UTF8))
+  {
+    free (source_p);
+    return jjs_throw_sz (JJS_ERROR_SYNTAX, "Input is not a valid UTF-8 encoded string.");
+  }
+
+  if (input_type == INPUT_TYPE_MODULE)
+  {
+    // TODO: add source name
+    jjs_value_t evaluate_result = jjs_esm_evaluate_source (source_p, source_size);
+
+    free (source_p);
+
+    return evaluate_result;
+  }
+
+  jjs_parse_options_t opts = {
+    .options = JJS_PARSE_HAS_SOURCE_NAME,
+    .source_name = jjs_string_sz ("<stdin>"),
+  };
+
+  if (input_type == INPUT_TYPE_STRICT)
+  {
+    opts.options |= JJS_PARSE_STRICT_MODE;
+  }
+
+  jjs_value_t parse_result = jjs_parse (source_p, source_size, &opts);
+  
+  free (source_p);
+  jjs_value_free (opts.source_name);
+
+  if (jjs_value_is_exception (parse_result))
+  {
+    return parse_result;
+  }
+
+  jjs_value_t result = jjs_run (parse_result);
+  jjs_value_free (parse_result);
+
+  return result;
+} /* main_exec_stdin */

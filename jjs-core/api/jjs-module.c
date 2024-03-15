@@ -267,12 +267,18 @@ jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, re
 
 #if JJS_MODULE_SYSTEM
 
+typedef enum {
+  ESM_RUN_RESULT_EVALUATE,
+  ESM_RUN_RESULT_NAMESPACE,
+} esm_run_result_t;
+
 static jjs_value_t esm_read (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t user_value_to_path (jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
 static jjs_value_t esm_link (jjs_value_t module);
 static jjs_value_t esm_evaluate (jjs_value_t module);
+static jjs_value_t esm_run(jjs_value_t module, bool move_module, esm_run_result_t run_result_type);
 static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url);
 #if JJS_COMMONJS
 static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
@@ -517,6 +523,58 @@ jjs_value_t jjs_esm_import_sz (const char* specifier_p)
 } /* jjs_esm_import_sz */
 
 /**
+ * import a module from source.
+ * 
+ * TODO: add source options
+ * 
+ * @param source_p UTF-8 encoded module source
+ * @param source_len size of source_p in bytes (not encoded characters)
+ * @return the namespace of the imported module or an exception on failure to import the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t jjs_esm_import_source (const jjs_char_t* source_p, jjs_size_t source_len)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_parse_options_t opts = {
+    .options = JJS_PARSE_MODULE,
+    // TODO: add source name
+  };
+  
+  return esm_run (jjs_parse (source_p, source_len, &opts), true, ESM_RUN_RESULT_NAMESPACE);
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (source_p);
+  JJS_UNUSED (source_len);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_import_source */
+
+/**
+ * import a module from a string value
+ * 
+ * TODO: add source options
+ * 
+ * @param source_p string value
+ * @return the namespace of the imported module or an exception on failure to import the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t jjs_esm_import_source_value (jjs_value_t source)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_parse_options_t opts = {
+    .options = JJS_PARSE_MODULE,
+    // TODO: add source name
+  };
+  
+  return esm_run (jjs_parse_value (source, &opts), true, ESM_RUN_RESULT_NAMESPACE);
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (source);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_import_source_value */
+
+/**
  * Evaluate an ES module.
  *
  * Imports a module, but instead of returning the namespace object, it returns
@@ -548,31 +606,11 @@ jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
     return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
-  // parse module
   jjs_value_t module = esm_read (specifier, referrer_path);
 
   jjs_value_free (referrer_path);
 
-  if (jjs_value_is_exception (module))
-  {
-    return module;
-  }
-
-  // link
-  jjs_value_t linked = esm_link (module);
-
-  if (jjs_value_is_exception (linked))
-  {
-    jjs_value_free (module);
-    return linked;
-  }
-
-  // evaluate
-  jjs_value_t result = esm_evaluate (module);
-
-  jjs_value_free (module);
-
-  return result;
+  return esm_run (module, true, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (specifier);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
@@ -603,6 +641,59 @@ jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p)
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_evaluate_sz */
+
+/**
+ * Evaluate a module from source.
+ * 
+ * TODO: add source options
+ * 
+ * @param source_p UTF-8 encoded module source
+ * @param source_len size of source_p in bytes (not encoded characters)
+ * @return the evaluation result of the module or an exception on failure to evaluate the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t jjs_esm_evaluate_source (const jjs_char_t* source_p, jjs_size_t source_len)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_parse_options_t opts = {
+    .options = JJS_PARSE_MODULE,
+    // TODO: add source name
+  };
+  
+  return esm_run (jjs_parse (source_p, source_len, &opts), true, ESM_RUN_RESULT_EVALUATE);
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (source_p);
+  JJS_UNUSED (source_len);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_evaluate_source */
+
+/**
+ * Evaluate a module from a string value.
+ * 
+ * TODO: add source options
+ * 
+ * @param source string value
+ * @param source_len size of source_p in bytes (not encoded characters)
+ * @return the evaluation result of the module or an exception on failure to evaluate the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t jjs_esm_evaluate_source_value (jjs_value_t source)
+{
+  jjs_assert_api_enabled ();
+#if JJS_MODULE_SYSTEM
+  jjs_parse_options_t opts = {
+    .options = JJS_PARSE_MODULE,
+    // TODO: add source name
+  };
+  
+  return esm_run (jjs_parse_value (source, &opts), true, ESM_RUN_RESULT_EVALUATE);
+#else /* !JJS_MODULE_SYSTEM */
+  JJS_UNUSED (source);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+#endif
+} /* jjs_esm_evaluate_source_value */
 
 /**
  * Import a CommonJS module.
@@ -784,6 +875,40 @@ esm_evaluate (jjs_value_t module)
 
   return ECMA_VALUE_UNDEFINED;
 } /* esm_evaluate */
+
+static jjs_value_t
+esm_run (jjs_value_t module, bool move_module, esm_run_result_t run_result_type)
+{
+  if (jjs_value_is_exception (module))
+  {
+    return move_module ? module : jjs_value_copy (module);
+  }
+
+  jjs_value_t result;
+  jjs_value_t link_result = esm_link (module);
+
+  if (jjs_value_is_exception (link_result))
+  {
+    result = link_result;
+  }
+  else
+  {
+    result = esm_evaluate (module);
+
+    if (run_result_type == ESM_RUN_RESULT_NAMESPACE && !jjs_value_is_exception (result))
+    {
+      jjs_value_free (result);
+      result = jjs_module_namespace (module);
+    }
+  }
+
+  if (move_module)
+  {
+    jjs_value_free (module);
+  }
+
+  return result;
+} /* esm_run */
 
 static jjs_value_t
 esm_read (jjs_value_t specifier, jjs_value_t referrer_path)

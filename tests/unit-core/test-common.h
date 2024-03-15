@@ -84,6 +84,11 @@
  */
 #define TEST_STRING_LITERAL(x) x
 
+/** Cast null terminated C string (char) to JJS string (uint8_t). */
+#define JJS_STR(CSTRING) (const jjs_char_t*)(CSTRING)
+/** Get a null terminated C string's length and cast to jjs_size_t. */
+#define JJS_STRLEN(CSTRING) (const jjs_size_t)(strlen(CSTRING))
+
 /**
  * If value is an exception, prints a toString() of the exception's value (usually an Error object).
  */
@@ -93,6 +98,11 @@ void print_if_exception (jjs_value_t value);
  * Compare a JJS string value to a c string.
  */
 bool strict_equals_cstr (jjs_value_t a, const char* b);
+
+/**
+ * Compare a JJS value to a c integer.
+ */
+bool strict_equals_int32 (jjs_value_t a, int32_t b);
 
 /**
  * Compare two JJS values with ===.
@@ -140,6 +150,17 @@ bool
 strict_equals_cstr (jjs_value_t a, const char* b)
 {
   jjs_value_t b_value = jjs_string_sz (b);
+  bool result = strict_equals (a, b_value);
+
+  jjs_value_free (b_value);
+
+  return result;
+}
+
+bool
+strict_equals_int32 (jjs_value_t a, int32_t b)
+{
+  jjs_value_t b_value = jjs_number_from_int32 (b);
   bool result = strict_equals (a, b_value);
 
   jjs_value_free (b_value);

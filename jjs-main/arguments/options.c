@@ -51,6 +51,7 @@ typedef enum
   OPT_NO_PROMPT,
   OPT_CALL_ON_EXIT,
   OPT_USE_STDIN,
+  OPT_INPUT_TYPE,
 } main_opt_id_t;
 
 /**
@@ -103,7 +104,11 @@ static const cli_opt_t main_opts[] = {
                .meta = "STRING",
                .help = "invoke the specified function when the process is just about to exit"),
   CLI_OPT_DEF (.id = OPT_USE_STDIN, .opt = "", .help = "read from standard input"),
-  CLI_OPT_DEF (.id = CLI_OPT_DEFAULT, .meta = "FILE", .help = "input JS file(s)")
+  CLI_OPT_DEF (.id = OPT_INPUT_TYPE,
+               .longopt = "input-type",
+               .meta = "STRING",
+               .help = "the method to parse source from stdin. (module, raw, strict) default: module"),
+  CLI_OPT_DEF (.id = CLI_OPT_DEFAULT, .meta = "FILE", .help = "input JS file(s)"),
 };
 
 /**
@@ -168,6 +173,7 @@ main_parse_args (int argc, /**< argc */
   arguments_p->option_flags = OPT_FLAG_EMPTY;
 
   arguments_p->parse_result = JJS_STANDALONE_EXIT_CODE_FAIL;
+  arguments_p->input_type = INPUT_TYPE_MODULE;
 
   cli_state_t cli_state = cli_init (main_opts, argc, argv);
   for (int id = cli_consume_option (&cli_state); id != CLI_OPT_END; id = cli_consume_option (&cli_state))
@@ -376,6 +382,32 @@ main_parse_args (int argc, /**< argc */
       case OPT_USE_STDIN:
       {
         arguments_p->option_flags |= OPT_FLAG_USE_STDIN;
+        break;
+      }
+      case OPT_INPUT_TYPE:
+      {
+        const char* value = cli_consume_string(&cli_state);
+        
+        if (strcmp(value, "raw") == 0)
+        {
+          arguments_p->input_type = INPUT_TYPE_RAW;
+        }
+        else if (strcmp(value, "strict") == 0)
+        {
+          arguments_p->input_type = INPUT_TYPE_STRICT;
+        }
+        else if (strcmp(value, "module") == 0)
+        {
+          arguments_p->input_type = INPUT_TYPE_MODULE;
+        }
+        else
+        {
+          return check_usage (false,
+                              argv[0],
+                              "Error: invalid value for --input-type: ",
+                              value);
+        }
+
         break;
       }
       case CLI_OPT_DEFAULT:

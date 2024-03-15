@@ -232,7 +232,7 @@ restart:
   }
   else if (arguments.option_flags & OPT_FLAG_USE_STDIN)
   {
-    result = jjsx_source_exec_stdin ();
+    result = main_exec_stdin (arguments.input_type);
 
     if (jjs_value_is_exception (result))
     {
