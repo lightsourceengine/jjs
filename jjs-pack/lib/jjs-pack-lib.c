@@ -155,15 +155,26 @@ jjs_bindings_number (jjs_value_t bindings, const char* name, double number)
   jjs_value_free (value);
 } /* jjs_bindings_number */
 
+// note: the packs should never use the commonjs require or esm import(). if they need to depend on another
+// pack package, vmod.resolve() should be used. Since vmod can only be imported through commonjs or esm, send
+// vmod.resolve() to JS as require().
+static JJS_HANDLER(jjs_pack_lib_require)
+{
+  JJS_HANDLER_HEADER ();
+  return jjs_vmod_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined());
+} /* jjs_pack_lib_require */
+
 static jjs_value_t
 jjs_pack_lib_run_module (jjs_value_t fn, jjs_value_t bindings)
 {
   jjs_value_t module = jjs_object ();
   jjs_value_t exports = jjs_object ();
-  jjs_value_t argv[] = { module, exports };
+  jjs_value_t require = jjs_function_external(jjs_pack_lib_require);
+  jjs_value_t argv[] = { module, exports, require };
 
   jjs_value_free (jjs_object_set_sz (module, "exports", exports));
   jjs_value_free (jjs_object_set_sz (module, "bindings", bindings));
+  jjs_value_free (jjs_object_set_sz (module, "require", require));
 
   jjs_value_t result = jjs_call (fn, jjs_undefined (), argv, sizeof (argv) / sizeof (jjs_value_t));
 
@@ -181,6 +192,7 @@ jjs_pack_lib_run_module (jjs_value_t fn, jjs_value_t bindings)
 
   jjs_value_free (module);
   jjs_value_free (exports);
+  jjs_value_free (require);
 
   return result;
 } /* jjs_pack_lib_run_module */

@@ -20,22 +20,22 @@ set(INCLUDE_PACK_PUBLIC ${INCLUDE_PACK_PUBLIC} PARENT_SCOPE) # for jjs-main
 
 # Source directories
 set(PACK_SOURCES
-  console/jjs-pack-console.c
-  console/jjs-pack-console-js.c
-  domexception/jjs-pack-domexception.c
-  domexception/jjs-pack-domexception-js.c
-  fs/fs.c
-  fs/jjs-pack-fs.c
-  fs/jjs-pack-fs-js.c
   lib/jjs-pack-lib.c
-  path/jjs-pack-path.c
-  path/jjs-pack-path-js.c
-  performance/jjs-pack-performance.c
-  performance/jjs-pack-performance-js.c
-  text/jjs-pack-text.c
-  text/jjs-pack-text-js.c
-  url/jjs-pack-url.c
-  url/jjs-pack-url-js.c
+  pack/console/jjs-pack-console.c
+  pack/console/jjs-pack-console-js.c
+  pack/domexception/jjs-pack-domexception.c
+  pack/domexception/jjs-pack-domexception-js.c
+  pack/fs/fs.c
+  pack/fs/jjs-pack-fs.c
+  pack/fs/jjs-pack-fs-js.c
+  pack/path/jjs-pack-path.c
+  pack/path/jjs-pack-path-js.c
+  pack/performance/jjs-pack-performance.c
+  pack/performance/jjs-pack-performance-js.c
+  pack/text/jjs-pack-text.c
+  pack/text/jjs-pack-text-js.c
+  pack/url/jjs-pack-url.c
+  pack/url/jjs-pack-url-js.c
 )
 
 if(JJS_AMALGAM)

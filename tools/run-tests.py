@@ -24,6 +24,7 @@ import platform
 import subprocess
 import sys
 import settings
+import shutil
 
 if sys.version_info.major >= 3:
     import runners.util as util  # pylint: disable=import-error
@@ -153,6 +154,8 @@ JJS_BUILDOPTIONS = [
             ['--compile-flag=-DJJS_VMOD=0', '--lto=off']),
     Options('buildoption_test-queuemicrotask-off',
             ['--compile-flag=-DJJS_QUEUE_MICROTASK=0', '--lto=off']),
+    Options('buildoption_test-pack-esm-off',
+            ['--jjs-pack=on', '--compile-flag=-DJJS_MODULE_SYSTEM=0', '--compile-flag=-DJJS_COMMONJS=0']),
     Options('buildoption_test-builtin-proxy-off',
             ['--compile-flag=-DJJS_BUILTIN_PROXY=0']),
 ]
@@ -261,6 +264,9 @@ def create_binary(job, options):
 
     if options.toolchain:
         build_cmd.append('--toolchain=%s' % options.toolchain)
+
+    if shutil.which('ninja'):
+        build_cmd.append('--cmake-g=Ninja')
 
     report_command('Build command:', build_cmd)
 
