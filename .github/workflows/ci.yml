@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --jjs-pack-tests
       - run: $RUNNER -q --unittests
@@ -54,6 +55,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - run: $RUNNER -q --jjs-tests --build-debug
       - run: $RUNNER -q --jjs-pack-tests --build-debug
       - run: $RUNNER -q --unittests --build-debug
@@ -62,6 +64,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
       - run: $RUNNER --buildoption-test
@@ -71,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-multilib
+      - run: sudo apt install gcc-multilib ninja-build
       - run: $RUNNER -q --jjs-tests $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
 
@@ -80,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-multilib
+      - run: sudo apt install gcc-multilib ninja-build
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
 
@@ -88,6 +91,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - run: $RUNNER -q --jjs-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
@@ -95,6 +99,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
@@ -103,7 +108,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-multilib
+      - run: sudo apt install gcc-multilib ninja-build
       - run: $RUNNER -q --jjs-tests $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
 
@@ -112,7 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-multilib
+      - run: sudo apt install gcc-multilib ninja-build
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
 
@@ -120,6 +125,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - run: $RUNNER -q --jjs-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
@@ -127,6 +133,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - run: $RUNNER -q --jjs-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
@@ -167,7 +174,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
+      - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static ninja-build
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-pack-tests
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
@@ -182,7 +189,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
+      - run: sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static ninja-build
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests --no-external-context-tests
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-pack-tests
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
@@ -196,7 +203,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
+      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static ninja-build
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-pack-tests
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
@@ -210,7 +217,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
-      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static
+      - run: sudo apt install gcc-aarch64-linux-gnu libc6-dev-armhf-cross qemu-user-static ninja-build
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-tests
       - run: $RUNNER $JJS_BUILD_OPTS --jjs-pack-tests
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
@@ -222,6 +229,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+      - run: brew install ninja
       - run: python $RUNNER -q --jjs-tests
       - run: python $RUNNER -q --jjs-pack-tests
       - run: python $RUNNER -q --unittests
@@ -233,6 +241,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+      - run: brew install ninja
       - run: python $RUNNER -q --jjs-tests --build-debug
       - run: python $RUNNER -q --jjs-pack-tests --build-debug
       - run: python $RUNNER -q --unittests --build-debug
@@ -304,5 +313,6 @@ jobs:
       - uses: goto-bus-stop/setup-zig@v2.2.0
         with:
           version: 0.11.0
+      - run: sudo apt-get install ninja-build
       - run: python tools/build.py --amalgam ON
       - run: cd zig/example && zig build run

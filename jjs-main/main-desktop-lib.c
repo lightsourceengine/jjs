@@ -398,8 +398,10 @@ main_exec_stdin (main_input_type_t input_type)
   if (input_type == INPUT_TYPE_MODULE)
   {
     // TODO: add source name
-    jjs_value_t evaluate_result = jjs_esm_evaluate_source (source_p, source_size);
+    jjs_source_options_t options = jjs_source_options_init ();
+    jjs_value_t evaluate_result = jjs_esm_evaluate_source (source_p, source_size, &options);
 
+    jjs_source_options_free (&options);
     free (source_p);
 
     return evaluate_result;
