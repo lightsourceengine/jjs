@@ -278,7 +278,9 @@ static jjs_value_t user_value_to_path (jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
 static jjs_value_t esm_link (jjs_value_t module);
 static jjs_value_t esm_evaluate (jjs_value_t module);
-static jjs_value_t esm_run(jjs_value_t module, bool move_module, esm_run_result_t run_result_type);
+static jjs_value_t
+esm_run (jjs_value_t module, bool move_module, jjs_value_t meta_extension, esm_run_result_t run_result_type);
+static jjs_value_t esm_validate_source_options (jjs_source_options_t *options, jjs_parse_options_t *parse_options);
 static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url);
 #if JJS_COMMONJS
 static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
@@ -524,52 +526,65 @@ jjs_value_t jjs_esm_import_sz (const char* specifier_p)
 
 /**
  * import a module from source.
- * 
+ *
  * TODO: add source options
- * 
+ *
  * @param source_p UTF-8 encoded module source
  * @param source_len size of source_p in bytes (not encoded characters)
  * @return the namespace of the imported module or an exception on failure to import the
  * module. the return value must be release with jjs_value_free
  */
-jjs_value_t jjs_esm_import_source (const jjs_char_t* source_p, jjs_size_t source_len)
+jjs_value_t
+jjs_esm_import_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_source_options_t *options)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t opts = {
-    .options = JJS_PARSE_MODULE,
-    // TODO: add source name
-  };
-  
-  return esm_run (jjs_parse (source_p, source_len, &opts), true, ESM_RUN_RESULT_NAMESPACE);
+  jjs_parse_options_t parse_options;
+  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+
+  if (jjs_value_is_exception (validate_result))
+  {
+    return validate_result;
+  }
+
+  return esm_run (jjs_parse (source_p, source_len, &parse_options),
+                  true,
+                  options->meta_extension,
+                  ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source_p);
   JJS_UNUSED (source_len);
+  JJS_UNUSED (options);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_import_source */
 
 /**
  * import a module from a string value
- * 
+ *
  * TODO: add source options
- * 
+ *
  * @param source_p string value
  * @return the namespace of the imported module or an exception on failure to import the
  * module. the return value must be release with jjs_value_free
  */
-jjs_value_t jjs_esm_import_source_value (jjs_value_t source)
+jjs_value_t
+jjs_esm_import_source_value (jjs_value_t source, jjs_source_options_t *options)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t opts = {
-    .options = JJS_PARSE_MODULE,
-    // TODO: add source name
-  };
-  
-  return esm_run (jjs_parse_value (source, &opts), true, ESM_RUN_RESULT_NAMESPACE);
+  jjs_parse_options_t parse_options;
+  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+
+  if (jjs_value_is_exception (validate_result))
+  {
+    return validate_result;
+  }
+
+  return esm_run (jjs_parse_value (source, &parse_options), true, options->meta_extension, ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source);
+  JJS_UNUSED (options);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_import_source_value */
@@ -610,7 +625,7 @@ jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
 
   jjs_value_free (referrer_path);
 
-  return esm_run (module, true, ESM_RUN_RESULT_EVALUATE);
+  return esm_run (module, true, jjs_undefined (), ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (specifier);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
@@ -644,53 +659,66 @@ jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p)
 
 /**
  * Evaluate a module from source.
- * 
+ *
  * TODO: add source options
- * 
+ *
  * @param source_p UTF-8 encoded module source
  * @param source_len size of source_p in bytes (not encoded characters)
  * @return the evaluation result of the module or an exception on failure to evaluate the
  * module. the return value must be release with jjs_value_free
  */
-jjs_value_t jjs_esm_evaluate_source (const jjs_char_t* source_p, jjs_size_t source_len)
+jjs_value_t
+jjs_esm_evaluate_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_source_options_t *options)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t opts = {
-    .options = JJS_PARSE_MODULE,
-    // TODO: add source name
-  };
-  
-  return esm_run (jjs_parse (source_p, source_len, &opts), true, ESM_RUN_RESULT_EVALUATE);
+  jjs_parse_options_t parse_options;
+  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+
+  if (jjs_value_is_exception (validate_result))
+  {
+    return validate_result;
+  }
+
+  return esm_run (jjs_parse (source_p, source_len, &parse_options),
+                  true,
+                  options->meta_extension,
+                  ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source_p);
   JJS_UNUSED (source_len);
+  JJS_UNUSED (options);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_evaluate_source */
 
 /**
  * Evaluate a module from a string value.
- * 
+ *
  * TODO: add source options
- * 
+ *
  * @param source string value
  * @param source_len size of source_p in bytes (not encoded characters)
  * @return the evaluation result of the module or an exception on failure to evaluate the
  * module. the return value must be release with jjs_value_free
  */
-jjs_value_t jjs_esm_evaluate_source_value (jjs_value_t source)
+jjs_value_t
+jjs_esm_evaluate_source_value (jjs_value_t source, jjs_source_options_t *options)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t opts = {
-    .options = JJS_PARSE_MODULE,
-    // TODO: add source name
-  };
-  
-  return esm_run (jjs_parse_value (source, &opts), true, ESM_RUN_RESULT_EVALUATE);
+  jjs_parse_options_t parse_options;
+  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+
+  if (jjs_value_is_exception (validate_result))
+  {
+    return validate_result;
+  }
+
+  return esm_run (jjs_parse_value (source, &parse_options), true, options->meta_extension, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source);
+  JJS_UNUSED (options);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_evaluate_source_value */
@@ -780,9 +808,17 @@ jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object, voi
   JJS_UNUSED (user_p);
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_module_copy_string_property(meta_object, module, LIT_MAGIC_STRING_URL);
-  jjs_module_copy_string_property(meta_object, module, LIT_MAGIC_STRING_FILENAME);
-  jjs_module_copy_string_property(meta_object, module, LIT_MAGIC_STRING_DIRNAME);
+  jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_URL);
+  jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_FILENAME);
+  jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_DIRNAME);
+
+  ecma_value_t extension = ecma_find_own_m (module, LIT_MAGIC_STRING_EXTENSION);
+
+  if (extension != ECMA_VALUE_NOT_FOUND)
+  {
+    ecma_set_m (meta_object, LIT_MAGIC_STRING_EXTENSION, extension);
+    ecma_free_value (extension);
+  }
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (module);
   JJS_UNUSED (meta_object);
@@ -877,11 +913,16 @@ esm_evaluate (jjs_value_t module)
 } /* esm_evaluate */
 
 static jjs_value_t
-esm_run (jjs_value_t module, bool move_module, esm_run_result_t run_result_type)
+esm_run (jjs_value_t module, bool move_module, jjs_value_t meta_extension, esm_run_result_t run_result_type)
 {
   if (jjs_value_is_exception (module))
   {
     return move_module ? module : jjs_value_copy (module);
+  }
+
+  if (!ecma_is_value_empty (meta_extension))
+  {
+    ecma_set_m (module, LIT_MAGIC_STRING_EXTENSION, meta_extension);
   }
 
   jjs_value_t result;
@@ -909,6 +950,31 @@ esm_run (jjs_value_t module, bool move_module, esm_run_result_t run_result_type)
 
   return result;
 } /* esm_run */
+
+static jjs_value_t
+esm_validate_source_options (jjs_source_options_t *options, jjs_parse_options_t *parse_options)
+{
+  parse_options->options = JJS_PARSE_MODULE;
+
+  if (!ecma_is_value_empty (options->source_name))
+  {
+    if (!jjs_value_is_string (options->source_name))
+    {
+      return jjs_throw_sz (JJS_ERROR_TYPE, "jjs_source_options_t.source_name must be a string");
+    }
+
+    parse_options->options |= JJS_PARSE_HAS_SOURCE_NAME;
+    parse_options->source_name = options->source_name;
+  }
+
+  // TODO: validate dirname
+  // TODO: validate filename
+
+  parse_options->start_line = options->start_line;
+  parse_options->start_column = options->start_column;
+
+  return jjs_undefined ();
+} /* esm_validate_source_options */
 
 static jjs_value_t
 esm_read (jjs_value_t specifier, jjs_value_t referrer_path)

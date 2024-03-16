@@ -220,6 +220,19 @@ typedef struct
 } jjs_parse_options_t;
 
 /**
+ * Source configuration and parsing options for loading a module from an in-memory source.
+ */
+typedef struct
+{
+  jjs_value_t source_name; /**< source name that appears in stack traces for this source. default is not set. */
+  jjs_value_t filename; /**< value for import.meta.filename. if not set, dirname + source_name is used. default is not set. */
+  jjs_value_t dirname; /**< value for import.meta.dirname and referrer path. if not set, CWD is used. default is not set. */
+  jjs_value_t meta_extension; /**< value for import.meta.extension. default is not set. */
+  uint32_t start_line; /**< start line of the source code. default is 0. */
+  uint32_t start_column; /**< start column of the source code. default is 0. */
+} jjs_source_options_t;
+
+/**
  * Description of ECMA property descriptor.
  */
 typedef enum
