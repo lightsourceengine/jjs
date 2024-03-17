@@ -1200,27 +1200,6 @@ void jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object
  */
 
 /**
- * @defgroup jjs-source-options Source Configuration for Modules
- * @{
- */
-
-/**
- * @defgroup jjs-source-options-ops Operations
- * @{
- */
-
-jjs_source_options_t jjs_source_options_init (void);
-void jjs_source_options_free (jjs_source_options_t* options);
-
-/**
- * jjs-source-options-ops @}
- */
-
-/**
- * jjs-source-options @}
- */
-
-/**
  * @defgroup jjs-pmap Property Map
  * @{
  */
@@ -1278,13 +1257,16 @@ jjs_value_t jjs_commonjs_require_sz (const char* specifier_p);
 
 jjs_value_t jjs_esm_import (jjs_value_t specifier);
 jjs_value_t jjs_esm_import_sz (const char* specifier_p);
-jjs_value_t jjs_esm_import_source (const jjs_char_t* source_p, jjs_size_t source_len, jjs_source_options_t* options);
-jjs_value_t jjs_esm_import_source_value (jjs_value_t source, jjs_source_options_t* options);
+jjs_value_t jjs_esm_import_source (const jjs_char_t* source_p, jjs_size_t source_len, jjs_esm_options_t * options);
+jjs_value_t jjs_esm_import_source_value (jjs_value_t source, jjs_esm_options_t * options);
 
 jjs_value_t jjs_esm_evaluate (jjs_value_t specifier);
 jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p);
-jjs_value_t jjs_esm_evaluate_source (const jjs_char_t* source_p, jjs_size_t source_len, jjs_source_options_t* options);
-jjs_value_t jjs_esm_evaluate_source_value (jjs_value_t source, jjs_source_options_t* options);
+jjs_value_t jjs_esm_evaluate_source (const jjs_char_t* source_p, jjs_size_t source_len, jjs_esm_options_t * options);
+jjs_value_t jjs_esm_evaluate_source_value (jjs_value_t source, jjs_esm_options_t * options);
+
+jjs_esm_options_t jjs_esm_options_init (void);
+void jjs_esm_options_free (jjs_esm_options_t * options);
 
 /**
  * jjs-esm-ops @}

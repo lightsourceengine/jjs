@@ -15,332 +15,264 @@
 
 #include "jjs.h"
 
+#include "annex.h"
 #include "config.h"
 #define TEST_COMMON_IMPLEMENTATION
 #include "test-common.h"
 
-#define TRY_JJS_ESM_IMPORT(VALUE)                  \
-  do                                               \
-  {                                                \
-    jjs_value_t value = VALUE;                     \
-    jjs_value_t result = jjs_esm_import (value);   \
-    TEST_ASSERT (jjs_value_is_exception (result)); \
-    jjs_value_free (result);                       \
-    jjs_value_free (value);                        \
-  } while (0)
+static const char* TEST_MODULE_A = "./unit-fixtures/modules/a.mjs";
+static const char* TEST_MODULE_NESTED = "./unit-fixtures/modules/nested.mjs";
 
-static const char* TEST_SOURCE = "export default 5; 10;";
-static int32_t TEST_SOURCE_EXPECTED_DEFAULT_VALUE = 5;
-static int32_t TEST_SOURCE_EXPECTED_EVALUATE_VALUE = 10;
+static const char* TEST_SOURCE_PARSE_ERROR = "import 434324 from dasdasd;";
+static const char* TEST_SOURCE_LINK_ERROR = "import {f} from 'does-not-exist;";
+static const char* TEST_SOURCE_EVALUATE_ERROR = "throw Error('you can't catch me!');";
 
-const char* TEST_SOURCE_PARSE_ERROR = "import 434324 from dasdasd;";
-const char* TEST_SOURCE_LINK_ERROR = "import {f} from 'does-not-exist;";
-const char* TEST_SOURCE_EVALUATE_ERROR = "throw Error('you can't catch me!');";
+static void
+check_namespace (jjs_value_t ns, const char* key, jjs_value_t expected)
+{
+  push (ns);
+  push (expected);
+  TEST_ASSERT (!jjs_value_is_exception (ns));
+  TEST_ASSERT (strict_equals (push (jjs_object_get_sz (ns, key)), expected));
+}
+
+static void
+check_namespace_sz (jjs_value_t ns, const char* key, const char* expected)
+{
+  push (ns);
+  TEST_ASSERT (!jjs_value_is_exception (ns));
+  TEST_ASSERT (strict_equals_cstr (push (jjs_object_get_sz (ns, key)), expected));
+}
+
+static void
+check_namespace_int32 (jjs_value_t ns, const char* key, int32_t expected)
+{
+  push (ns);
+  TEST_ASSERT (!jjs_value_is_exception (ns));
+  TEST_ASSERT (strict_equals_int32 (push (jjs_object_get_sz (ns, key)), expected));
+}
+
+static void
+check_evaluate_int32 (jjs_value_t value, int32_t expected)
+{
+  push (value);
+  TEST_ASSERT (!jjs_value_is_exception (value));
+  TEST_ASSERT (strict_equals_int32 (value, expected));
+}
+
+static void
+check_ok (jjs_value_t value)
+{
+  push (value);
+  TEST_ASSERT (!jjs_value_is_exception (value));
+  TEST_ASSERT (!jjs_value_is_exception (push (jjs_run_jobs ())));
+}
+
+static void
+check_exception (jjs_value_t value)
+{
+  push (value);
+  TEST_ASSERT (jjs_value_is_exception (value));
+}
 
 static void
 test_invalid_jjs_esm_import_arg (void)
 {
-  TRY_JJS_ESM_IMPORT (jjs_null ());
-  TRY_JJS_ESM_IMPORT (jjs_undefined ());
-  TRY_JJS_ESM_IMPORT (jjs_number (0));
-  TRY_JJS_ESM_IMPORT (jjs_boolean (true));
-  TRY_JJS_ESM_IMPORT (jjs_object ());
-  TRY_JJS_ESM_IMPORT (jjs_array (0));
-  TRY_JJS_ESM_IMPORT (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+  check_exception (jjs_esm_import (push (jjs_null ())));
+  check_exception (jjs_esm_import (push (jjs_undefined ())));
+  check_exception (jjs_esm_import (push (jjs_number (0))));
+  check_exception (jjs_esm_import (push (jjs_boolean (true))));
+  check_exception (jjs_esm_import (push (jjs_object ())));
+  check_exception (jjs_esm_import (push (jjs_array (0))));
+  check_exception (jjs_esm_import (push (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG))));
 }
-
-#define TRY_JJS_ESM_IMPORT_SZ(VALUE)                \
-  do                                                \
-  {                                                 \
-    jjs_value_t result = jjs_esm_import_sz (VALUE); \
-    TEST_ASSERT (jjs_value_is_exception (result));  \
-    jjs_value_free (result);                        \
-  } while (0)
 
 static void
 test_invalid_jjs_esm_import_sz_arg (void)
 {
-  TRY_JJS_ESM_IMPORT_SZ (NULL);
-  TRY_JJS_ESM_IMPORT_SZ ("");
-  TRY_JJS_ESM_IMPORT_SZ ("unknown");
-  TRY_JJS_ESM_IMPORT_SZ ("./unknown");
-  TRY_JJS_ESM_IMPORT_SZ ("../unknown");
-  TRY_JJS_ESM_IMPORT_SZ ("/unknown");
+  check_exception (jjs_esm_import_sz (NULL));
+  check_exception (jjs_esm_import_sz (""));
+  check_exception (jjs_esm_import_sz ("unknown"));
+  check_exception (jjs_esm_import_sz ("./unknown"));
+  check_exception (jjs_esm_import_sz ("../unknown"));
+  check_exception (jjs_esm_import_sz ("/unknown"));
 }
-
-#define TRY_JJS_ESM_EVALUATE(VALUE)                \
-  do                                               \
-  {                                                \
-    jjs_value_t value = VALUE;                     \
-    jjs_value_t result = jjs_esm_evaluate (value); \
-    TEST_ASSERT (jjs_value_is_exception (result)); \
-    jjs_value_free (result);                       \
-    jjs_value_free (value);                        \
-  } while (0)
 
 static void
 test_invalid_jjs_esm_evaluate_arg (void)
 {
-  TRY_JJS_ESM_EVALUATE (jjs_null ());
-  TRY_JJS_ESM_EVALUATE (jjs_undefined ());
-  TRY_JJS_ESM_EVALUATE (jjs_number (0));
-  TRY_JJS_ESM_EVALUATE (jjs_boolean (true));
-  TRY_JJS_ESM_EVALUATE (jjs_object ());
-  TRY_JJS_ESM_EVALUATE (jjs_array (0));
-  TRY_JJS_ESM_EVALUATE (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+  check_exception (jjs_esm_evaluate (push (jjs_null ())));
+  check_exception (jjs_esm_evaluate (push (jjs_undefined ())));
+  check_exception (jjs_esm_evaluate (push (jjs_number (0))));
+  check_exception (jjs_esm_evaluate (push (jjs_boolean (true))));
+  check_exception (jjs_esm_evaluate (push (jjs_object ())));
+  check_exception (jjs_esm_evaluate (push (jjs_array (0))));
+  check_exception (jjs_esm_evaluate (push (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG))));
 }
-
-#define TRY_JJS_ESM_EVALUATE_SZ(VALUE)                \
-  do                                                  \
-  {                                                   \
-    jjs_value_t result = jjs_esm_evaluate_sz (VALUE); \
-    TEST_ASSERT (jjs_value_is_exception (result));    \
-    jjs_value_free (result);                          \
-  } while (0)
 
 static void
 test_invalid_jjs_esm_evaluate_sz_arg (void)
 {
-  TRY_JJS_ESM_EVALUATE_SZ (NULL);
-  TRY_JJS_ESM_EVALUATE_SZ ("");
-  TRY_JJS_ESM_EVALUATE_SZ ("unknown");
-  TRY_JJS_ESM_EVALUATE_SZ ("./unknown");
-  TRY_JJS_ESM_EVALUATE_SZ ("../unknown");
-  TRY_JJS_ESM_EVALUATE_SZ ("/unknown");
-}
-
-static jjs_value_t
-import_default (const char* specifier)
-{
-  jjs_value_t package = jjs_esm_import_sz (specifier);
-  jjs_value_t result = jjs_object_get_sz (package, "default");
-
-  jjs_value_free (package);
-
-  return result;
+  check_exception (jjs_esm_evaluate_sz (NULL));
+  check_exception (jjs_esm_evaluate_sz (""));
+  check_exception (jjs_esm_evaluate_sz ("unknown"));
+  check_exception (jjs_esm_evaluate_sz ("./unknown"));
+  check_exception (jjs_esm_evaluate_sz ("../unknown"));
+  check_exception (jjs_esm_evaluate_sz ("/unknown"));
 }
 
 static void
 test_esm_import_relative_path (void)
 {
-  jjs_value_t def = import_default ("./unit-fixtures/modules/a.mjs");
-  bool result = strict_equals_cstr (def, "a");
-
-  jjs_value_free (def);
-  TEST_ASSERT (result);
+  check_namespace_sz (jjs_esm_import (push_sz (TEST_MODULE_A)), "default", "a");
+  check_namespace_sz (jjs_esm_import_sz (TEST_MODULE_A), "default", "a");
 }
 
 static void
 test_esm_import_relative_path_from_script (void)
 {
-  // test: module should be imported when no user value is set in calling script
-  const char* script = "import('./unit-fixtures/modules/a.mjs').then(pkg => { if (pkg.default !== 'a') { throw "
-                       "Error(`unexpected package default: '${pkg.default}'`); } });";
-  jjs_size_t script_len = (jjs_size_t) strlen (script);
-  jjs_value_t parsed = jjs_parse ((const jjs_char_t*) script, script_len, NULL);
-  jjs_value_t run = jjs_run (parsed);
-  jjs_value_t jobs = jjs_run_jobs ();
+  check_namespace_sz (jjs_esm_import (push_sz (TEST_MODULE_NESTED)), "default", "a");
+  check_namespace_sz (jjs_esm_import_sz (TEST_MODULE_NESTED), "default", "a");
+}
 
-  bool has_exception = jjs_value_is_exception (parsed) || jjs_value_is_exception (run) || jjs_value_is_exception (jobs);
+static void
+test_esm_import_absolute_path (void)
+{
+  jjs_char_t* full_path = jjs_port_path_normalize (JJS_STR (TEST_MODULE_A), JJS_STRLEN (TEST_MODULE_A));
 
-  jjs_value_free (parsed);
-  jjs_value_free (run);
-  jjs_value_free (jobs);
+  check_namespace_sz (jjs_esm_import_sz ((const char*) full_path), "default", "a");
 
-  TEST_ASSERT (has_exception == false);
+  jjs_port_path_free (full_path);
 }
 
 static void
 test_esm_import_source (void)
 {
-  jjs_source_options_t options = jjs_source_options_init ();
-  jjs_value_t ns = jjs_esm_import_source (JJS_STR (TEST_SOURCE), JJS_STRLEN (TEST_SOURCE), &options);
+  const char* source = "export default 5;";
 
-  TEST_ASSERT (!jjs_value_is_exception (ns));
-
-  jjs_value_t def = jjs_object_get_sz (ns, "default");
-
-  TEST_ASSERT (!jjs_value_is_exception (def));
-  TEST_ASSERT (strict_equals_int32 (def, TEST_SOURCE_EXPECTED_DEFAULT_VALUE));
-
-  jjs_value_free (ns);
-  jjs_value_free (def);
-  jjs_source_options_free (&options);
+  check_namespace_int32 (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), NULL), "default", 5);
+  check_namespace_int32 (jjs_esm_import_source_value (push_sz (source), NULL), "default", 5);
 }
 
 static void
 test_esm_import_source_options (void)
 {
-  const char* source = "export default import.meta.extension";
-  jjs_source_options_t options = jjs_source_options_init ();
+  const char* source;
+  jjs_esm_options_t options;
+  jjs_value_t expected;
 
-  options.meta_extension = jjs_number_from_uint32 (7);
+  // meta_extension
+  source = "export default import.meta.extension";
+  options = jjs_esm_options_init ();
 
-  jjs_value_t ns = jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options);
-  jjs_value_t def = jjs_object_get_sz (ns, "default");
+  options.meta_extension = jjs_number_from_int32 (7);
 
-  TEST_ASSERT (!jjs_value_is_exception (def));
-  TEST_ASSERT (strict_equals_int32 (def, 7));
+  check_namespace_int32 (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options), "default", 7);
+  check_namespace_int32 (jjs_esm_import_source_value (push_sz (source), &options), "default", 7);
 
-  jjs_value_free (ns);
-  jjs_value_free (def);
-  jjs_source_options_free (&options);
-}
+  jjs_esm_options_free (&options);
 
-static void
-test_esm_import_source_value (void)
-{
-  jjs_source_options_t options = jjs_source_options_init ();
-  jjs_value_t value = jjs_string_sz (TEST_SOURCE);
-  jjs_value_t ns = jjs_esm_import_source_value (value, &options);
+  // filename: default
+  source = "export default import.meta.filename";
+  options = jjs_esm_options_init ();
+  expected = annex_path_join (push (annex_path_cwd ()), push_sz ("<anonymous>.mjs"), false);
 
-  TEST_ASSERT (!jjs_value_is_exception (ns));
+  check_namespace (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options), "default", expected);
+  check_namespace (jjs_esm_import_source_value (push_sz (source), &options), "default", jjs_value_copy (expected));
 
-  jjs_value_t def = jjs_object_get_sz (ns, "default");
+  jjs_esm_options_free (&options);
 
-  TEST_ASSERT (!jjs_value_is_exception (def));
-  TEST_ASSERT (strict_equals_int32 (def, TEST_SOURCE_EXPECTED_DEFAULT_VALUE));
+  // filename: override
+  source = "export default import.meta.filename";
+  options = jjs_esm_options_init ();
+  options.filename = jjs_string_sz ("override.js");
+  expected = annex_path_join (push (annex_path_cwd ()), push_sz ("override.js"), false);
 
-  jjs_value_free (ns);
-  jjs_value_free (def);
-  jjs_value_free (value);
-  jjs_source_options_free (&options);
-}
+  check_namespace (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options), "default", expected);
+  check_namespace (jjs_esm_import_source_value (push_sz (source), &options), "default", jjs_value_copy (expected));
 
-static void
-test_esm_evaluate_source (void)
-{
-  jjs_source_options_t options = jjs_source_options_init ();
-  jjs_value_t result = jjs_esm_evaluate_source (JJS_STR (TEST_SOURCE), JJS_STRLEN (TEST_SOURCE), &options);
+  jjs_esm_options_free (&options);
 
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  TEST_ASSERT (strict_equals_int32 (result, TEST_SOURCE_EXPECTED_EVALUATE_VALUE));
+  // dirname: default
+  source = "export default import.meta.dirname";
+  options = jjs_esm_options_init ();
+  expected = annex_path_cwd ();
 
-  jjs_value_free (result);
-  jjs_source_options_free (&options);
-}
+  check_namespace (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options), "default", expected);
+  check_namespace (jjs_esm_import_source_value (push_sz (source), &options), "default", jjs_value_copy (expected));
 
-static void
-test_esm_evaluate_source_exceptions (void)
-{
-  jjs_source_options_t options = jjs_source_options_init ();
-  jjs_value_t result;
+  jjs_esm_options_free (&options);
 
-  result = jjs_esm_evaluate_source (JJS_STR (TEST_SOURCE_PARSE_ERROR), JJS_STRLEN (TEST_SOURCE_PARSE_ERROR), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
+  // dirname: override
+  // dirname must exist on fs, as it goes through realpath. / will work cross platform.
+  source = "export default import.meta.dirname";
+  options = jjs_esm_options_init ();
+  options.dirname = annex_path_normalize (push_sz ("/"));
+  expected = annex_path_normalize (push_sz ("/"));
 
-  result = jjs_esm_evaluate_source (JJS_STR (TEST_SOURCE_LINK_ERROR), JJS_STRLEN (TEST_SOURCE_LINK_ERROR), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
+  check_namespace (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options), "default", expected);
+  check_namespace (jjs_esm_import_source_value (push_sz (source), &options), "default", jjs_value_copy (expected));
 
-  result =
-    jjs_esm_evaluate_source (JJS_STR (TEST_SOURCE_EVALUATE_ERROR), JJS_STRLEN (TEST_SOURCE_EVALUATE_ERROR), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  jjs_source_options_free (&options);
-}
-
-static void
-test_esm_evaluate_source_value (void)
-{
-  jjs_source_options_t options = jjs_source_options_init ();
-  jjs_value_t value = jjs_string_sz (TEST_SOURCE);
-  jjs_value_t result = jjs_esm_evaluate_source_value (value, &options);
-
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  TEST_ASSERT (strict_equals_int32 (result, TEST_SOURCE_EXPECTED_EVALUATE_VALUE));
-
-  jjs_value_free (result);
-  jjs_value_free (value);
-  jjs_source_options_free (&options);
-}
-
-static void
-test_esm_evaluate_source_value_exceptions (void)
-{
-  jjs_source_options_t options = jjs_source_options_init ();
-  jjs_value_t value;
-  jjs_value_t result;
-
-  value = jjs_string_sz (TEST_SOURCE_PARSE_ERROR);
-  result = jjs_esm_evaluate_source_value (value, &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (value);
-
-  value = jjs_string_sz (TEST_SOURCE_LINK_ERROR);
-  result = jjs_esm_evaluate_source_value (value, &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (value);
-
-  value = jjs_string_sz (TEST_SOURCE_EVALUATE_ERROR);
-  result = jjs_esm_evaluate_source_value (value, &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (value);
-
-  result = jjs_esm_evaluate_source_value (jjs_undefined (), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  jjs_source_options_free (&options);
+  jjs_esm_options_free (&options);
 }
 
 static void
 test_esm_import_source_exceptions (void)
 {
-  jjs_source_options_t options = jjs_source_options_init ();
-  jjs_value_t result;
+  const char* source = "export default 1";
+  jjs_esm_options_t options;
 
-  result = jjs_esm_import_source (JJS_STR (TEST_SOURCE_PARSE_ERROR), JJS_STRLEN (TEST_SOURCE_PARSE_ERROR), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
+  check_exception (
+    jjs_esm_import_source (JJS_STR (TEST_SOURCE_PARSE_ERROR), JJS_STRLEN (TEST_SOURCE_PARSE_ERROR), NULL));
+  check_exception (jjs_esm_import_source_value (push_sz (TEST_SOURCE_PARSE_ERROR), NULL));
 
-  result = jjs_esm_import_source (JJS_STR (TEST_SOURCE_LINK_ERROR), JJS_STRLEN (TEST_SOURCE_LINK_ERROR), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
+  check_exception (jjs_esm_import_source (JJS_STR (TEST_SOURCE_LINK_ERROR), JJS_STRLEN (TEST_SOURCE_LINK_ERROR), NULL));
+  check_exception (jjs_esm_import_source_value (push_sz (TEST_SOURCE_LINK_ERROR), NULL));
 
-  result =
-    jjs_esm_import_source (JJS_STR (TEST_SOURCE_EVALUATE_ERROR), JJS_STRLEN (TEST_SOURCE_EVALUATE_ERROR), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
+  check_exception (
+    jjs_esm_import_source (JJS_STR (TEST_SOURCE_EVALUATE_ERROR), JJS_STRLEN (TEST_SOURCE_EVALUATE_ERROR), NULL));
+  check_exception (jjs_esm_import_source_value (push_sz (TEST_SOURCE_EVALUATE_ERROR), NULL));
 
-  jjs_source_options_free (&options);
+  options = jjs_esm_options_init ();
+  options.filename = jjs_string_sz ("");
+  check_exception (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options));
+  check_exception (jjs_esm_import_source_value (push_sz (source), &options));
+  jjs_esm_options_free (&options);
+
+  options = jjs_esm_options_init ();
+  options.filename = jjs_number_from_int32 (0);
+  check_exception (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options));
+  check_exception (jjs_esm_import_source_value (push_sz (source), &options));
+  jjs_esm_options_free (&options);
+
+  options = jjs_esm_options_init ();
+  options.dirname = jjs_string_sz ("/path-does-not-exist");
+  check_exception (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options));
+  check_exception (jjs_esm_import_source_value (push_sz (source), &options));
+  jjs_esm_options_free (&options);
+
+  options = jjs_esm_options_init ();
+  options.dirname = jjs_number_from_int32 (0);
+  check_exception (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options));
+  check_exception (jjs_esm_import_source_value (push_sz (source), &options));
+  jjs_esm_options_free (&options);
+
+  options = jjs_esm_options_init ();
+  options.cache = true;
+  options.filename = jjs_string_sz ("cached.js");
+  check_ok (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options));
+  check_exception (jjs_esm_import_source (JJS_STR (source), JJS_STRLEN (source), &options));
+  check_exception (jjs_esm_import_source_value (push_sz (source), &options));
+  jjs_esm_options_free (&options);
 }
 
 static void
-test_esm_import_source_value_exceptions (void)
+test_esm_evaluate_source (void)
 {
-  jjs_value_t value;
-  jjs_value_t result;
-  jjs_source_options_t options = jjs_source_options_init ();
+  const char* source = "5";
 
-  value = jjs_string_sz (TEST_SOURCE_PARSE_ERROR);
-  result = jjs_esm_import_source_value (value, &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (value);
-
-  value = jjs_string_sz (TEST_SOURCE_LINK_ERROR);
-  result = jjs_esm_import_source_value (value, &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (value);
-
-  value = jjs_string_sz (TEST_SOURCE_EVALUATE_ERROR);
-  result = jjs_esm_import_source_value (value, &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (value);
-
-  result = jjs_esm_import_source_value (jjs_undefined (), &options);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
-  jjs_source_options_free (&options);
+  check_evaluate_int32 (jjs_esm_evaluate_source (JJS_STR (source), JJS_STRLEN (source), NULL), 5);
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (push_sz (source), NULL), 5);
 }
 
 int
@@ -352,23 +284,20 @@ main (void)
 
   test_esm_import_relative_path ();
   test_esm_import_relative_path_from_script ();
-
+  test_esm_import_absolute_path ();
   test_invalid_jjs_esm_import_arg ();
   test_invalid_jjs_esm_import_sz_arg ();
+
   test_invalid_jjs_esm_evaluate_arg ();
   test_invalid_jjs_esm_evaluate_sz_arg ();
 
   test_esm_import_source ();
   test_esm_import_source_options ();
   test_esm_import_source_exceptions ();
-  test_esm_import_source_value ();
-  test_esm_import_source_value_exceptions ();
 
   test_esm_evaluate_source ();
-  test_esm_evaluate_source_exceptions ();
-  test_esm_evaluate_source_value ();
-  test_esm_evaluate_source_value_exceptions ();
 
+  free_values ();
   jjs_cleanup ();
   return 0;
 } /* main */

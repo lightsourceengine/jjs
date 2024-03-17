@@ -13,19 +13,19 @@
  * limitations under the License.
  */
 
-#include "lit-magic-strings.h"
-#include "lit-strings.h"
-
-#include "jjs-core.h"
-#include "jjs-port.h"
-#include "jjs-annex.h"
-#include "jcontext.h"
 #include "jjs-annex-module-util.h"
 #include "jjs-annex-vmod.h"
+#include "jjs-annex.h"
+#include "jjs-core.h"
+#include "jjs-port.h"
 
-#include "ecma-errors.h"
 #include "ecma-builtins.h"
+#include "ecma-errors.h"
+
 #include "annex.h"
+#include "jcontext.h"
+#include "lit-magic-strings.h"
+#include "lit-strings.h"
 
 #if JJS_MODULE_SYSTEM
 
@@ -61,8 +61,8 @@ typedef struct
  */
 static void
 jjs_module_free (jjs_module_manager_t *manager_p, /**< module manager */
-                   const jjs_value_t realm) /**< if this argument is object, release only those modules,
-                                               *   which realm value is equal to this argument. */
+                 const jjs_value_t realm) /**< if this argument is object, release only those modules,
+                                           *   which realm value is equal to this argument. */
 {
   jjs_module_t *module_p = manager_p->module_head_p;
 
@@ -151,8 +151,8 @@ jjs_module_copy_string_property (jjs_value_t target, jjs_value_t source, lit_mag
  */
 jjs_value_t
 jjs_module_resolve (const jjs_value_t specifier, /**< module specifier string */
-                      const jjs_value_t referrer, /**< parent module */
-                      void *user_p) /**< user data */
+                    const jjs_value_t referrer, /**< parent module */
+                    void *user_p) /**< user data */
 {
 #if JJS_MODULE_SYSTEM
   JJS_UNUSED (user_p);
@@ -256,7 +256,7 @@ jjs_module_resolve (const jjs_value_t specifier, /**< module specifier string */
  */
 void
 jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, release only those modules,
-                                                  *   which realm value is equal to this argument. */
+                                              *   which realm value is equal to this argument. */
 {
 #if JJS_MODULE_SYSTEM
   jjs_module_free ((jjs_module_manager_t *) jjs_context_data (&jjs_module_manager), realm);
@@ -267,20 +267,27 @@ jjs_module_cleanup (const jjs_value_t realm) /**< if this argument is object, re
 
 #if JJS_MODULE_SYSTEM
 
-typedef enum {
+typedef enum
+{
   ESM_RUN_RESULT_EVALUATE,
   ESM_RUN_RESULT_NAMESPACE,
-} esm_run_result_t;
+  ESM_RUN_RESULT_NONE,
+} esm_result_type_t;
+
+typedef struct
+{
+  jjs_value_t value;
+  const jjs_char_t *bytes_p;
+  jjs_size_t bytes_size;
+} esm_source_t;
 
 static jjs_value_t esm_read (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path);
+static jjs_value_t esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t result_type);
 static jjs_value_t user_value_to_path (jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
-static jjs_value_t esm_link (jjs_value_t module);
-static jjs_value_t esm_evaluate (jjs_value_t module);
 static jjs_value_t
-esm_run (jjs_value_t module, bool move_module, jjs_value_t meta_extension, esm_run_result_t run_result_type);
-static jjs_value_t esm_validate_source_options (jjs_source_options_t *options, jjs_parse_options_t *parse_options);
+esm_run_source (const esm_source_t *source_p, const jjs_esm_options_t *options_p, esm_result_type_t result_type);
 static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url);
 #if JJS_COMMONJS
 static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
@@ -303,7 +310,7 @@ static jjs_value_t vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t 
  * @return object containing 'source' and 'format'; otherwise, an exception. return value must be freed.
  */
 jjs_value_t
-jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p)
+jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t *context_p, void *user_p)
 {
   JJS_UNUSED (user_p);
   jjs_assert_api_enabled ();
@@ -321,26 +328,26 @@ jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p,
   }
 
   ecma_value_t source;
-  ecma_string_t* format_p = ecma_get_string_from_value (context_p->format);
+  ecma_string_t *format_p = ecma_get_string_from_value (context_p->format);
 
-  if (ecma_compare_ecma_string_to_magic_id(format_p, LIT_MAGIC_STRING_SNAPSHOT))
+  if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_SNAPSHOT))
   {
-    source = jjs_arraybuffer(source_size);
+    source = jjs_arraybuffer (source_size);
 
-    if (jjs_value_is_exception(source))
+    if (jjs_value_is_exception (source))
     {
       source = ECMA_VALUE_EMPTY;
     }
     else
     {
-      uint8_t* buffer_p = jjs_arraybuffer_data (source);
-      JJS_ASSERT(buffer_p != NULL);
+      uint8_t *buffer_p = jjs_arraybuffer_data (source);
+      JJS_ASSERT (buffer_p != NULL);
       memcpy (buffer_p, source_raw, source_size);
     }
   }
-  else if (!ecma_compare_ecma_string_to_magic_id(format_p, LIT_MAGIC_STRING_NONE))
+  else if (!ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_NONE))
   {
-    source = jjs_string ((const jjs_char_t*) source_raw, source_size, JJS_ENCODING_UTF8);
+    source = jjs_string ((const jjs_char_t *) source_raw, source_size, JJS_ENCODING_UTF8);
   }
   else
   {
@@ -390,7 +397,7 @@ jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p,
  * @return on success, an object containing 'path' to a module and 'format' of the module
  */
 jjs_value_t
-jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p)
+jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t *context_p, void *user_p)
 {
   JJS_UNUSED (user_p);
   jjs_assert_api_enabled ();
@@ -424,7 +431,7 @@ jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t*
     }
   }
 
-  if (jjs_value_is_exception(path))
+  if (jjs_value_is_exception (path))
   {
     return path;
   }
@@ -476,7 +483,7 @@ jjs_esm_import (jjs_value_t specifier)
 
   if (!jjs_value_is_string (referrer_path))
   {
-    return jjs_throw_sz(JJS_ERROR_COMMON, "Failed to get current working directory");
+    return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
   jjs_value_t module = esm_import (specifier, referrer_path);
@@ -508,7 +515,8 @@ jjs_esm_import (jjs_value_t specifier)
  * @return the namespace object of the module. on error, an exception is returned. return
  * value must be freed with jjs_value_free.
  */
-jjs_value_t jjs_esm_import_sz (const char* specifier_p)
+jjs_value_t
+jjs_esm_import_sz (const char *specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
@@ -525,36 +533,30 @@ jjs_value_t jjs_esm_import_sz (const char* specifier_p)
 } /* jjs_esm_import_sz */
 
 /**
- * import a module from source.
- *
- * TODO: add source options
+ * import a module from in-memory source.
  *
  * @param source_p UTF-8 encoded module source
  * @param source_len size of source_p in bytes (not encoded characters)
+ * @param options_p configuration options for the new module
  * @return the namespace of the imported module or an exception on failure to import the
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_import_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_source_options_t *options)
+jjs_esm_import_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_esm_options_t *options_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t parse_options;
-  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+  esm_source_t source = {
+    .bytes_p = source_p,
+    .bytes_size = source_len,
+    .value = ECMA_VALUE_EMPTY,
+  };
 
-  if (jjs_value_is_exception (validate_result))
-  {
-    return validate_result;
-  }
-
-  return esm_run (jjs_parse (source_p, source_len, &parse_options),
-                  true,
-                  options->meta_extension,
-                  ESM_RUN_RESULT_NAMESPACE);
+  return esm_run_source (&source, options_p, ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source_p);
   JJS_UNUSED (source_len);
-  JJS_UNUSED (options);
+  JJS_UNUSED (options_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_import_source */
@@ -562,29 +564,26 @@ jjs_esm_import_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_so
 /**
  * import a module from a string value
  *
- * TODO: add source options
- *
  * @param source_p string value
+ * @param options_p configuration options for the new module
  * @return the namespace of the imported module or an exception on failure to import the
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_import_source_value (jjs_value_t source, jjs_source_options_t *options)
+jjs_esm_import_source_value (jjs_value_t source, jjs_esm_options_t *options_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t parse_options;
-  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+  esm_source_t source_wrapper = {
+    .bytes_p = NULL,
+    .bytes_size = 0,
+    .value = source,
+  };
 
-  if (jjs_value_is_exception (validate_result))
-  {
-    return validate_result;
-  }
-
-  return esm_run (jjs_parse_value (source, &parse_options), true, options->meta_extension, ESM_RUN_RESULT_NAMESPACE);
+  return esm_run_source (&source_wrapper, options_p, ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source);
-  JJS_UNUSED (options);
+  JJS_UNUSED (options_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_import_source_value */
@@ -610,7 +609,8 @@ jjs_esm_import_source_value (jjs_value_t source, jjs_source_options_t *options)
  * @return the evaluation result of the module. on error, an exception is
  * returned. return value must be freed with jjs_value_free.
  */
-jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
+jjs_value_t
+jjs_esm_evaluate (jjs_value_t specifier)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
@@ -625,7 +625,7 @@ jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
 
   jjs_value_free (referrer_path);
 
-  return esm_run (module, true, jjs_undefined (), ESM_RUN_RESULT_EVALUATE);
+  return esm_link_and_evaluate (module, true, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (specifier);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
@@ -641,7 +641,8 @@ jjs_value_t jjs_esm_evaluate (jjs_value_t specifier)
  * @return the evaluation result of the module. on error, an exception is returned. return
  * value must be freed with jjs_value_free.
  */
-jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p)
+jjs_value_t
+jjs_esm_evaluate_sz (const char *specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
@@ -660,34 +661,28 @@ jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p)
 /**
  * Evaluate a module from source.
  *
- * TODO: add source options
- *
  * @param source_p UTF-8 encoded module source
  * @param source_len size of source_p in bytes (not encoded characters)
+ * @param options_p configuration options for the new module
  * @return the evaluation result of the module or an exception on failure to evaluate the
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_evaluate_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_source_options_t *options)
+jjs_esm_evaluate_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_esm_options_t *options_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t parse_options;
-  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+  esm_source_t source = {
+    .bytes_p = source_p,
+    .bytes_size = source_len,
+    .value = ECMA_VALUE_EMPTY,
+  };
 
-  if (jjs_value_is_exception (validate_result))
-  {
-    return validate_result;
-  }
-
-  return esm_run (jjs_parse (source_p, source_len, &parse_options),
-                  true,
-                  options->meta_extension,
-                  ESM_RUN_RESULT_EVALUATE);
+  return esm_run_source (&source, options_p, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source_p);
   JJS_UNUSED (source_len);
-  JJS_UNUSED (options);
+  JJS_UNUSED (options_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_evaluate_source */
@@ -695,30 +690,27 @@ jjs_esm_evaluate_source (const jjs_char_t *source_p, jjs_size_t source_len, jjs_
 /**
  * Evaluate a module from a string value.
  *
- * TODO: add source options
- *
  * @param source string value
  * @param source_len size of source_p in bytes (not encoded characters)
+ * @param options_p configuration options for the new module
  * @return the evaluation result of the module or an exception on failure to evaluate the
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_evaluate_source_value (jjs_value_t source, jjs_source_options_t *options)
+jjs_esm_evaluate_source_value (jjs_value_t source, jjs_esm_options_t *options_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_MODULE_SYSTEM
-  jjs_parse_options_t parse_options;
-  jjs_value_t validate_result = esm_validate_source_options (options, &parse_options);
+  esm_source_t source_wrapper = {
+    .bytes_p = NULL,
+    .bytes_size = 0,
+    .value = source,
+  };
 
-  if (jjs_value_is_exception (validate_result))
-  {
-    return validate_result;
-  }
-
-  return esm_run (jjs_parse_value (source, &parse_options), true, options->meta_extension, ESM_RUN_RESULT_EVALUATE);
+  return esm_run_source (&source_wrapper, options_p, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (source);
-  JJS_UNUSED (options);
+  JJS_UNUSED (options_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_evaluate_source_value */
@@ -760,7 +752,8 @@ jjs_commonjs_require (jjs_value_t specifier)
  * @return module export object. on error, an exception is returned. return
  * value must be freed with jjs_value_free.
  */
-jjs_value_t jjs_commonjs_require_sz (const char* specifier_p)
+jjs_value_t
+jjs_commonjs_require_sz (const char *specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_COMMONJS
@@ -830,52 +823,48 @@ jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object, voi
 static jjs_value_t
 esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
 {
-  // parse module
   jjs_value_t module = esm_read (specifier, referrer_path);
+  jjs_value_t result = esm_link_and_evaluate (module, false, ESM_RUN_RESULT_NONE);
 
-  if (jjs_value_is_exception (module))
-  {
-    return module;
-  }
-
-  // link
-  jjs_value_t linked = esm_link (module);
-
-  if (jjs_value_is_exception (linked))
-  {
-    jjs_value_free (module);
-    return linked;
-  }
-
-  // evaluate
-  jjs_value_t evaluated = esm_evaluate (module);
-
-  if (jjs_value_is_exception (evaluated))
-  {
-    jjs_value_free (module);
-    return evaluated;
-  }
-
-  jjs_value_free (evaluated);
-
-  // ensure the imported module is in the evaluated state
-  jjs_module_state_t state = jjs_module_state (module);
-
-  JJS_ASSERT(state == JJS_MODULE_STATE_EVALUATED);
-
-  if (state != JJS_MODULE_STATE_EVALUATED)
-  {
-    jjs_value_free (module);
-    module = jjs_throw_sz (JJS_ERROR_COMMON, "imported module in unknown state");
-  }
+  jjs_value_free (result);
 
   return module;
 } /* esm_import */
 
 static jjs_value_t
-esm_link (jjs_value_t module)
+esm_realpath_dirname (jjs_value_t dirname_value)
 {
-  jjs_module_state_t state = jjs_module_state (module);
+  if (ecma_is_value_undefined (dirname_value))
+  {
+    return annex_path_cwd ();
+  }
+
+  return annex_path_normalize (dirname_value);
+} /* esm_realpath_dirname */
+
+static jjs_value_t
+esm_basename_or_default (jjs_value_t filename_value)
+{
+  if (ecma_is_value_undefined (filename_value))
+  {
+    return ecma_make_magic_string_value(LIT_MAGIC_STRING_ESM_FILENAME_DEFAULT);
+  }
+
+  return annex_path_basename (filename_value);
+} /* esm_basename_or_default */
+
+static jjs_value_t
+esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t result_type)
+{
+  jjs_module_state_t state;
+  jjs_value_t result;
+
+  if (jjs_value_is_exception (module))
+  {
+    return move_module ? module : jjs_value_copy (module);
+  }
+
+  state = jjs_module_state (module);
 
   if (state == JJS_MODULE_STATE_UNLINKED)
   {
@@ -883,63 +872,45 @@ esm_link (jjs_value_t module)
 
     if (jjs_value_is_exception (link_result))
     {
-      return link_result;
+      result = link_result;
+      goto done;
     }
 
-    bool linked = jjs_value_is_true (link_result);
-
+    JJS_ASSERT (jjs_value_is_true (link_result));
     jjs_value_free (link_result);
-
-    if (!linked)
-    {
-      return jjs_throw_sz (JJS_ERROR_COMMON, "failed to link module");
-    }
   }
 
-  return ECMA_VALUE_UNDEFINED;
-} /* esm_link */
+  state = jjs_module_state (module);
 
-static jjs_value_t
-esm_evaluate (jjs_value_t module)
-{
-  jjs_module_state_t state = jjs_module_state (module);
-
-  if (state == JJS_MODULE_STATE_LINKED || state == JJS_MODULE_STATE_UNLINKED)
+  if (state == JJS_MODULE_STATE_LINKED)
   {
-    return jjs_module_evaluate (module);
-  }
-
-  return ECMA_VALUE_UNDEFINED;
-} /* esm_evaluate */
-
-static jjs_value_t
-esm_run (jjs_value_t module, bool move_module, jjs_value_t meta_extension, esm_run_result_t run_result_type)
-{
-  if (jjs_value_is_exception (module))
-  {
-    return move_module ? module : jjs_value_copy (module);
-  }
-
-  if (!ecma_is_value_empty (meta_extension))
-  {
-    ecma_set_m (module, LIT_MAGIC_STRING_EXTENSION, meta_extension);
-  }
-
-  jjs_value_t result;
-  jjs_value_t link_result = esm_link (module);
-
-  if (jjs_value_is_exception (link_result))
-  {
-    result = link_result;
+    result = jjs_module_evaluate (module);
+    goto done;
   }
   else
   {
-    result = esm_evaluate (module);
+    result = jjs_throw_sz (JJS_ERROR_COMMON, "module must be in linked state to evaluate");
+  }
 
-    if (run_result_type == ESM_RUN_RESULT_NAMESPACE && !jjs_value_is_exception (result))
+done:
+  if (!jjs_value_is_exception (result))
+  {
+    switch (result_type)
     {
-      jjs_value_free (result);
-      result = jjs_module_namespace (module);
+      case ESM_RUN_RESULT_NAMESPACE:
+        jjs_value_free (result);
+        result = jjs_module_namespace (module);
+        break;
+      case ESM_RUN_RESULT_EVALUATE:
+        break;
+      case ESM_RUN_RESULT_NONE:
+        jjs_value_free (result);
+        result = ECMA_VALUE_UNDEFINED;
+        break;
+      default:
+        jjs_value_free (result);
+        result = jjs_throw_sz (JJS_ERROR_COMMON, "invalid result_type");
+        break;
     }
   }
 
@@ -949,32 +920,107 @@ esm_run (jjs_value_t module, bool move_module, jjs_value_t meta_extension, esm_r
   }
 
   return result;
-} /* esm_run */
+} /* esm_link_and_evaluate */
 
 static jjs_value_t
-esm_validate_source_options (jjs_source_options_t *options, jjs_parse_options_t *parse_options)
+esm_run_source (const esm_source_t *source_p, const jjs_esm_options_t *options_p, esm_result_type_t result_type)
 {
-  parse_options->options = JJS_PARSE_MODULE;
+  ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
+  jjs_parse_options_t parse_options;
+  jjs_esm_options_t default_source_options;
+  jjs_value_t module;
+  jjs_value_t basename_value = ECMA_VALUE_UNDEFINED;
+  jjs_value_t filename_value = ECMA_VALUE_UNDEFINED;
+  jjs_value_t dirname_value;
 
-  if (!ecma_is_value_empty (options->source_name))
+  if (!options_p)
   {
-    if (!jjs_value_is_string (options->source_name))
-    {
-      return jjs_throw_sz (JJS_ERROR_TYPE, "jjs_source_options_t.source_name must be a string");
-    }
-
-    parse_options->options |= JJS_PARSE_HAS_SOURCE_NAME;
-    parse_options->source_name = options->source_name;
+    default_source_options = jjs_esm_options_init ();
+    options_p = &default_source_options;
   }
 
-  // TODO: validate dirname
-  // TODO: validate filename
+  dirname_value = esm_realpath_dirname (options_p->dirname);
 
-  parse_options->start_line = options->start_line;
-  parse_options->start_column = options->start_column;
+  if (!jjs_value_is_string (dirname_value))
+  {
+    module = jjs_throw_sz (JJS_ERROR_TYPE, "jjs_source_options_t.dirname must be a path to an fs directory");
+    goto after_parse;
+  }
 
-  return jjs_undefined ();
-} /* esm_validate_source_options */
+  basename_value = esm_basename_or_default (options_p->filename);
+
+  if (!jjs_value_is_string (basename_value))
+  {
+    module = jjs_throw_sz (JJS_ERROR_TYPE, "jjs_source_options_t.filename must be a normal filename");
+    goto after_parse;
+  }
+
+  filename_value = annex_path_join (dirname_value, basename_value, false);
+
+  if (!jjs_value_is_string (filename_value))
+  {
+    module = jjs_throw_sz (JJS_ERROR_TYPE, "Failed to create filename path to source module.");
+    goto after_parse;
+  }
+
+  if (ecma_has_own_v (esm_cache, filename_value))
+  {
+    module = jjs_throw_sz (JJS_ERROR_TYPE, "A module with this filename has already been loaded.");
+    goto after_parse;
+  }
+
+  parse_options = (jjs_parse_options_t){
+    .options = JJS_PARSE_MODULE | JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME | JJS_PARSE_HAS_START,
+    .start_column = options_p->start_column,
+    .start_line = options_p->start_line,
+    .user_value = filename_value,
+    .source_name = basename_value,
+  };
+
+  if (source_p->bytes_p)
+  {
+    module = jjs_parse (source_p->bytes_p, source_p->bytes_size, &parse_options);
+  }
+  else
+  {
+    module = jjs_parse_value (source_p->value, &parse_options);
+  }
+
+  if (!jjs_value_is_exception (module))
+  {
+    jjs_value_t file_url = annex_path_to_file_url (filename_value);
+
+    JJS_ASSERT (ecma_is_value_string (file_url));
+
+    if (!ecma_is_value_string (file_url))
+    {
+      file_url = ECMA_VALUE_UNDEFINED;
+    }
+
+    ecma_set_m (module, LIT_MAGIC_STRING_DIRNAME, dirname_value);
+    ecma_set_m (module, LIT_MAGIC_STRING_URL, file_url);
+    ecma_set_m (module, LIT_MAGIC_STRING_FILENAME, filename_value);
+
+    if (!ecma_is_value_undefined (options_p->meta_extension))
+    {
+      ecma_set_m (module, LIT_MAGIC_STRING_EXTENSION, options_p->meta_extension);
+    }
+
+    if (options_p->cache)
+    {
+      ecma_set_v (esm_cache, filename_value, module);
+    }
+
+    jjs_value_free (file_url);
+  }
+
+after_parse:
+  jjs_value_free (filename_value);
+  jjs_value_free (basename_value);
+  jjs_value_free (dirname_value);
+
+  return esm_link_and_evaluate (module, true, result_type);
+} /* esm_run_source */
 
 static jjs_value_t
 esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
@@ -1015,7 +1061,7 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
     return loaded.result;
   }
 
-  ecma_string_t* format_p = ecma_get_string_from_value (loaded.format);
+  ecma_string_t *format_p = ecma_get_string_from_value (loaded.format);
   jjs_value_t module;
 
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_JS)
@@ -1054,15 +1100,15 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
 
     // TODO: get export names from pmap?
 
-    if (jjs_value_is_string(file_url))
+    JJS_ASSERT (ecma_is_value_string (file_url));
+
+    if (!ecma_is_value_string (file_url))
     {
-      module = jjs_native_module (commonjs_module_evaluate_cb, &default_name, 1);
-      set_module_properties (module, resolved.path, file_url);
+      file_url = ECMA_VALUE_UNDEFINED;
     }
-    else
-    {
-      module = jjs_throw_sz (JJS_ERROR_COMMON, "failed to convert path to file url");
-    }
+
+    module = jjs_native_module (commonjs_module_evaluate_cb, &default_name, 1);
+    set_module_properties (module, resolved.path, file_url);
 
     jjs_value_free (default_name);
     jjs_value_free (file_url);
@@ -1111,12 +1157,12 @@ esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p)
  * freed with jjs_value_free.
  */
 static jjs_value_t
-module_native_set_default(jjs_value_t native_module, jjs_value_t exports)
+module_native_set_default (jjs_value_t native_module, jjs_value_t exports)
 {
   jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
   ecma_value_t default_value = ecma_find_own_v (exports, default_name);
-  jjs_value_t result = jjs_native_module_set (
-    native_module, default_name, ecma_is_value_found (default_value) ? default_value : exports);
+  jjs_value_t result =
+    jjs_native_module_set (native_module, default_name, ecma_is_value_found (default_value) ? default_value : exports);
 
   jjs_value_free (default_name);
   ecma_free_value (default_value);
@@ -1318,27 +1364,28 @@ user_value_to_path (jjs_value_t user_value)
 
   if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
   {
-     jjs_value_t module = ecma_find_own_v (ecma_get_global_object ()->esm_cache, user_value);
+    jjs_value_t module = ecma_find_own_v (ecma_get_global_object ()->esm_cache, user_value);
 
-     result = ecma_is_value_found (module) ? ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME) : annex_path_dirname (user_value);
+    result = ecma_is_value_found (module) ? ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME)
+                                          : annex_path_dirname (user_value);
 
-     jjs_value_free (module);
-    }
-    else if (path_type == ANNEX_SPECIFIER_TYPE_FILE_URL)
-    {
-      result = jjs_throw_sz (JJS_ERROR_COMMON, "user_value cannot be a file url");
-    }
-    else
-    {
-      // if no absolute path, ignore user_value contents and use the cwd.
-      //
-      // when using jjs_parse, the caller may forget to set user_value, they need to contrive a fake absolute
-      // path (for parsing an in mem string) or the absolute path needs to be built. if user_value is not set,
-      // cwd is a reasonable default value for most use cases.
-      result = annex_path_cwd ();
-    }
+    jjs_value_free (module);
+  }
+  else if (path_type == ANNEX_SPECIFIER_TYPE_FILE_URL)
+  {
+    result = jjs_throw_sz (JJS_ERROR_COMMON, "user_value cannot be a file url");
+  }
+  else
+  {
+    // if no absolute path, ignore user_value contents and use the cwd.
+    //
+    // when using jjs_parse, the caller may forget to set user_value, they need to contrive a fake absolute
+    // path (for parsing an in mem string) or the absolute path needs to be built. if user_value is not set,
+    // cwd is a reasonable default value for most use cases.
+    result = annex_path_cwd ();
+  }
 
-    return result;
+  return result;
 } /* user_value_to_path */
 
 static void

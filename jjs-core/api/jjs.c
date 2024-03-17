@@ -7567,21 +7567,42 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
 #endif /* JJS_BUILTIN_CONTAINER */
 } /* jjs_container_op */
 
-jjs_source_options_t jjs_source_options_init (void)
+/**
+ * Initialize a jjs_esm_option_t object.
+ *
+ * Usage:
+ *   jjs_esm_options_t options = jjs_esm_options_init ();
+ *
+ *   // options object now owns the new string
+ *   options.filename = jjs_string_sz ("file.js");
+ *   ...
+ *   // the filename string will be freed here:
+ *   jjs_esm_options_free (&options);
+ *
+ * @return default options object. The value must be freed using jjs_esm_options_free ().
+ */
+jjs_esm_options_t
+jjs_esm_options_init (void)
 {
   jjs_assert_api_enabled ();
 
-  return (jjs_source_options_t) {
-    .source_name = ECMA_VALUE_EMPTY,
-    .filename = ECMA_VALUE_EMPTY,
-    .dirname = ECMA_VALUE_EMPTY,
-    .meta_extension = ECMA_VALUE_EMPTY,
+  return (jjs_esm_options_t) {
+    .filename = ECMA_VALUE_UNDEFINED,
+    .dirname = ECMA_VALUE_UNDEFINED,
+    .meta_extension = ECMA_VALUE_UNDEFINED,
     .start_column = 0,
     .start_line = 0,
+    .cache = false,
   };
-} /* jjs_source_options_init */
+} /* jjs_esm_options_init */
 
-void jjs_source_options_free (jjs_source_options_t* options)
+/**
+ * Cleanup jjs_esm_options_t object.
+ *
+ * @param options options object to cleanup. if NULL, the operation is a no-op.
+ */
+void
+jjs_esm_options_free (jjs_esm_options_t * options)
 {
   jjs_assert_api_enabled ();
 
@@ -7590,18 +7611,15 @@ void jjs_source_options_free (jjs_source_options_t* options)
     return;
   }
 
-  jjs_value_free (options->source_name);
-  options->source_name = jjs_undefined ();
-
   jjs_value_free (options->filename);
-  options->filename = jjs_undefined ();
+  options->filename = ECMA_VALUE_UNDEFINED;
 
   jjs_value_free (options->dirname);
-  options->dirname = jjs_undefined ();
+  options->dirname = ECMA_VALUE_UNDEFINED;
 
   jjs_value_free (options->meta_extension);
-  options->meta_extension = jjs_undefined ();
-} /* jjs_source_options_free */
+  options->meta_extension = ECMA_VALUE_UNDEFINED;
+} /* jjs_esm_options_free */
 
 /**
  * @}

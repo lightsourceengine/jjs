@@ -351,6 +351,66 @@ annex_path_to_file_url (ecma_value_t path)
   return result;
 } /* annex_path_to_file_url */
 
+/**
+ * Gets the basename of the given path.
+ *
+ * If not a string, an invalid filename, "", "." or "..", ECMA_EMPTY_VALUE is returned.
+ *
+ * @param path the string path to work on
+ * @return the basename of the given path or ECMA_EMPTY_VALUE for all other cases.
+ */
+ecma_value_t
+annex_path_basename (ecma_value_t path)
+{
+  // note: this function may not work correctly with unc paths on windows
+
+  if (!ecma_is_value_string(path))
+  {
+    return ECMA_VALUE_EMPTY;
+  }
+
+  ecma_value_t result;
+  ecma_string_t* path_p = ecma_get_string_from_value (path);
+
+  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+
+  // "" or "." or ".." -> empty
+  if ((path_bytes_len == 0) || (path_bytes_len == 1 && path_bytes_p[0] == '.') || (path_bytes_len == 2 && path_bytes_p[0] == '.' && path_bytes_p[1] == '.'))
+  {
+    result = ECMA_VALUE_EMPTY;
+    goto done;
+  }
+
+  lit_utf8_size_t i;
+  lit_utf8_size_t last_slash_index = path_bytes_len;
+
+  for (i = 0; i < path_bytes_len; i++)
+  {
+    if (is_separator (path_bytes_p[i]))
+    {
+      last_slash_index = i;
+    }
+  }
+
+  if (last_slash_index == path_bytes_len)
+  {
+    result = ecma_copy_value (path);
+    goto done;
+  }
+
+  if (last_slash_index + 1 >= path_bytes_len)
+  {
+    result = ECMA_VALUE_EMPTY;
+    goto done;
+  }
+
+  result = ecma_make_string_value (ecma_new_ecma_string_from_utf8 (&path_bytes_p[last_slash_index + 1], path_bytes_len - last_slash_index - 1));
+
+done:
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+  return result;
+} /* annex_path_basename */
+
 static lit_utf8_size_t
 annex_encode_char (lit_utf8_byte_t c, lit_utf8_byte_t* buffer)
 {

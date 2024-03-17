@@ -52,7 +52,8 @@ OPTIONS_DEBUG = ['--debug']
 OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-snapshot=on']
 OPTIONS_UNITTESTS = ['--unittests=on', '--jjs-cmdline=off', '--error-messages=on',
                      '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on',
-                     '--vm-throw=on', '--line-info=on', '--mem-stats=on', '--promise-callback=on']
+                     '--vm-throw=on', '--line-info=on', '--mem-stats=on', '--promise-callback=on',
+                     '--jjs-ext=on', '--jjs-ext-debugger=on']
 OPTIONS_DOCTESTS = ['--doctests=on', '--jjs-cmdline=off', '--error-messages=on',
                     '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on']
 OPTIONS_PROMISE_CALLBACK = ['--promise-callback=on']

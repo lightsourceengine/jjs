@@ -113,6 +113,30 @@ bool strict_equals (jjs_value_t a, jjs_value_t b);
 
 #ifdef TEST_COMMON_IMPLEMENTATION
 
+static jjs_value_t s_values [256] = { 0 };
+static size_t s_values_index = 0;
+
+jjs_value_t push (jjs_value_t value)
+{
+  TEST_ASSERT(s_values_index < (sizeof (s_values) / sizeof (s_values[0])));
+  s_values[s_values_index++] = value;
+
+  return value;
+}
+
+jjs_value_t push_sz (const char* value)
+{
+  return push (jjs_string_sz (value));
+}
+
+void free_values (void)
+{
+  for (size_t i = 0; i < s_values_index; i++)
+  {
+    jjs_value_free (s_values[i]);
+  }
+}
+
 void print_if_exception (jjs_value_t value)
 {
   if (!jjs_value_is_exception (value))

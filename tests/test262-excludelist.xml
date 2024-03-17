@@ -168,7 +168,6 @@
   <test id="language/expressions/compound-assignment/S11.13.2_A7.7_T4.js"/>
   <test id="language/expressions/compound-assignment/S11.13.2_A7.8_T4.js"/>
   <test id="language/expressions/compound-assignment/S11.13.2_A7.9_T4.js"/>
-  <test id="language/expressions/import.meta/distinct-for-each-module.js"/>
   <test id="language/expressions/object/method-definition/early-errors-object-async-method-duplicate-parameters.js"/>
   <test id="language/expressions/object/method-definition/early-errors-object-method-async-lineterminator.js"/>
   <test id="language/expressions/object/method-definition/early-errors-object-method-duplicate-parameters.js"/>
