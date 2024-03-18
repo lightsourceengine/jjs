@@ -53,5 +53,8 @@ else
   7z a -r -tzip "${JJS_ARCHIVE}" "${TAG}"
 fi
 
+# add git hash to a file
+echo "$(git rev-parse HEAD)" > "${TAG}.rev"
+
 # cleanup staging directory
 rm -rf "${TAG}"
