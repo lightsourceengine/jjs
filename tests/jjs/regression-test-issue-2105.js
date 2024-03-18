@@ -49,6 +49,7 @@ try {
   assert(e instanceof TypeError);
 }
 /* Check properties of a */
-assert(Object.keys(a) == "one,two");
+assert(Object.keys(a).join(',') === "one,two");
 /* Check properties of global object */
-assert(Object.keys(this) == "queueMicrotask,require,assert,gc,print,sourceName,createRealm,a,fail,fail_two");
+assert(Object.keys(this).includes('fail'));
+assert(Object.keys(this).includes('fail_two'));

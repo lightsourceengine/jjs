@@ -16,31 +16,8 @@
 const { test, runAllTests } = require('../lib/test.cjs');
 const { assertEquals, assertThrows } = require('../lib/assert.js');
 
-const vmod = require('jjs:vmod');
-
-test('jjs:vmod should be available through commonjs require', () => {
-  const exports = require('jjs:vmod');
-
-  assert(exports === vmod);
-  assert(typeof exports === 'function');
-  assert(typeof exports.exists === 'function');
-  assert(typeof exports.remove === 'function');
-  assert(typeof exports.resolve === 'function');
-});
-
-test('jjs:vmod should be available through esm dynamic import()', async () => {
-  const ns = await import('jjs:vmod');
-
-  assert('default' in ns);
-  assert(ns.default === vmod);
-  assert(typeof ns.default === 'function');
-  assert(typeof ns.default.exists === 'function');
-  assert(typeof ns.default.remove === 'function');
-  assert(typeof ns.default.resolve === 'function');
-});
-
-test('vmod.exists() should return true for jjs:vmod package', () => {
-  assert(vmod.exists('jjs:vmod'));
+test('vmod is in the global namespace', () => {
+  assert(typeof globalThis.vmod === 'function', 'expected vmod in the global namespace');
 });
 
 test('vmod.exists() should return false for invalid package names', () => {
@@ -65,7 +42,11 @@ test('vmod.remove() should do nothing for invalid package names', () => {
 });
 
 test('vmod.resolve() should return the same vmod instance exports', () => {
-  assert(vmod.resolve('jjs:vmod') === vmod);
+  const name = genPackageName();
+
+  vmod(name, { exports: 1 });
+
+  assert(vmod.resolve(name) === vmod.resolve(name), 'vmod.resolve() expected to return the same object');
 });
 
 test('vmod.resolve() should throw Error when callback throws Error', () => {

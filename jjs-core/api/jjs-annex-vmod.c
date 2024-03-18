@@ -232,24 +232,21 @@ jjs_vmod_remove_sz (const char *name)
 #if JJS_VMOD
 
 void
-jjs_annex_vmod_init_realm (ecma_value_t vmod_cache)
+jjs_annex_vmod_init_realm (ecma_value_t realm)
 {
   jjs_value_t vmod = jjs_function_external (annex_vmod_handler);
   jjs_value_t vmod_resolve = jjs_function_external (annex_vmod_resolve_handler);
   jjs_value_t vmod_exists = jjs_function_external (annex_vmod_exists_handler);
   jjs_value_t vmod_remove = jjs_function_external (annex_vmod_remove_handler);
-  ecma_value_t vmod_package_name = ecma_string_ascii_sz ("jjs:vmod");
 
   ecma_set_m (vmod, LIT_MAGIC_STRING_EXISTS, vmod_exists);
   ecma_set_m (vmod, LIT_MAGIC_STRING_RESOLVE, vmod_resolve);
   ecma_set_m (vmod, LIT_MAGIC_STRING_REMOVE, vmod_remove);
 
-  jjs_value_t entry = annex_vmod_entry_new (true, vmod);
+  ecma_value_t key = ecma_make_magic_string_value(LIT_MAGIC_STRING_VMOD);
+  ecma_set_v (realm, key, vmod);
+  ecma_free_value (key);
 
-  ecma_set_v (vmod_cache, vmod_package_name, entry);
-
-  ecma_free_value (vmod_package_name);
-  jjs_value_free (entry);
   jjs_value_free (vmod_exists);
   jjs_value_free (vmod_resolve);
   jjs_value_free (vmod_remove);
