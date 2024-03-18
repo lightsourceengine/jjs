@@ -826,6 +826,12 @@ esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
   jjs_value_t module = esm_read (specifier, referrer_path);
   jjs_value_t result = esm_link_and_evaluate (module, false, ESM_RUN_RESULT_NONE);
 
+  if (jjs_value_is_exception(result))
+  {
+    jjs_value_free(module);
+    return result;
+  }
+
   jjs_value_free (result);
 
   return module;
@@ -885,7 +891,10 @@ esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t r
   if (state == JJS_MODULE_STATE_LINKED)
   {
     result = jjs_module_evaluate (module);
-    goto done;
+  }
+  else if (state == JJS_MODULE_STATE_EVALUATED)
+  {
+    result = ECMA_VALUE_UNDEFINED;
   }
   else
   {

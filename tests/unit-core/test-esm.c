@@ -22,6 +22,7 @@
 
 static const char* TEST_MODULE_A = "./unit-fixtures/modules/a.mjs";
 static const char* TEST_MODULE_NESTED = "./unit-fixtures/modules/nested.mjs";
+static const char* TEST_MODULE_CIRCULAR = "./unit-fixtures/modules/circular.mjs";
 
 static const char* TEST_SOURCE_PARSE_ERROR = "import 434324 from dasdasd;";
 static const char* TEST_SOURCE_LINK_ERROR = "import {f} from 'does-not-exist;";
@@ -133,6 +134,9 @@ test_esm_import_relative_path_from_script (void)
 {
   check_namespace_sz (jjs_esm_import (push_sz (TEST_MODULE_NESTED)), "default", "a");
   check_namespace_sz (jjs_esm_import_sz (TEST_MODULE_NESTED), "default", "a");
+
+  check_ok (jjs_esm_import (push_sz (TEST_MODULE_CIRCULAR)));
+  check_ok (jjs_esm_import_sz (TEST_MODULE_CIRCULAR));
 }
 
 static void
