@@ -48,7 +48,7 @@ check_basename_result_sz (const char* filename, const char* expected)
   ecma_free_value (expected_value);
 }
 
-void
+static void
 test_annex_path_basename (void)
 {
   check_basename_result ("", ECMA_VALUE_EMPTY);
