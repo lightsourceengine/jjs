@@ -15,6 +15,9 @@
 cmake_minimum_required(VERSION 3.10)
 project (JJS C)
 
+# remove -rdynamic
+cmake_policy(SET CMP0065 NEW)
+
 if(NOT DEFINED PYTHON)
   set(PYTHON "python")
 endif()

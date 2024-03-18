@@ -9,7 +9,7 @@ env:
 
 jobs:
   linux-x64:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: $RUNNER --linker-flag=-static
@@ -22,7 +22,7 @@ jobs:
             build/jjs-*.tgz
             build/jjs-*.rev
   linux-armv7l:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
@@ -37,7 +37,7 @@ jobs:
             build/jjs-*.tgz
             build/jjs-*.rev
   linux-aarch64:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
@@ -93,7 +93,7 @@ jobs:
             build/jjs-*.zip
             build/jjs-*.rev
   amalgam:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: ./tools/build.py --amalgam ON --jjs-pack ON
