@@ -250,10 +250,10 @@ jobs:
   windows_x64_release:
     # note: Date().getDay() is broken on windows, disable associated tests
     runs-on: windows-2019
+    env:
+      CMAKE_GENERATOR: Visual Studio 16 2019
     steps:
       - uses: actions/checkout@v4
-      - run: Remove-Variable -name CMAKE_GENERATOR
-        shell: powershell
       - name: JS Tests
         run: python .\tools\run-tests.py -q --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
@@ -268,10 +268,10 @@ jobs:
     # note: Date().getDay() is broken on windows, disable associated tests
     # note: external-context + stack_limit > 0 are broken on windows debug builds (problem seen in linux 32 bit also)
     runs-on: windows-2019
+    env:
+      CMAKE_GENERATOR: Visual Studio 16 2019
     steps:
       - uses: actions/checkout@v4
-      - run: Remove-Variable -name CMAKE_GENERATOR
-        shell: powershell
       - name: JS Tests
         run: python .\tools\run-tests.py -q --build-debug --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js --no-external-context-tests
         shell: powershell
@@ -286,6 +286,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - name: Run Tests
         run: python $RUNNER --test262
       - uses: actions/upload-artifact@v4
@@ -299,6 +300,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get install ninja-build
       - name: Run Tests
         run: python $RUNNER --test262 --build-debug
       - uses: actions/upload-artifact@v4
