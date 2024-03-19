@@ -311,6 +311,8 @@ jobs:
             build/tests/test262-debug/local/bin/test262.report
 
   zig_example:
+    env:
+      CMAKE_GENERATOR: ''
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
