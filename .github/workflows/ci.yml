@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
+      - run: sudo apt install ninja-build
       - run: $RUNNER -q --jjs-tests
       - run: $RUNNER -q --jjs-pack-tests
       - run: $RUNNER -q --unittests
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
+      - run: sudo apt install ninja-build
       - run: $RUNNER -q --jjs-tests --build-debug
       - run: $RUNNER -q --jjs-pack-tests --build-debug
       - run: $RUNNER -q --unittests --build-debug
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
+      - run: sudo apt install ninja-build
       - run: sudo apt update
       - run: sudo apt install gcc-multilib
       - run: $RUNNER --buildoption-test
@@ -92,17 +92,17 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
-      - run: $RUNNER -q --jjs-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
-      - run: $RUNNER -q --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
+      - run: sudo apt install ninja-build
+      - run: $RUNNER --jjs-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
+      - run: $RUNNER --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86-64_debug_asan:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
-      - run: $RUNNER -q --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
-      - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
+      - run: sudo apt install ninja-build
+      - run: $RUNNER --jjs-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
+      - run: $RUNNER --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86_release_ubsan:
     runs-on: ubuntu-22.04
@@ -126,17 +126,17 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
-      - run: $RUNNER -q --jjs-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
-      - run: $RUNNER -q --jjs-pack-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
+      - run: sudo apt install ninja-build
+      - run: $RUNNER --jjs-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
+      - run: $RUNNER --jjs-pack-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
   linux_x86-64_debug_ubsan:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
-      - run: $RUNNER -q --jjs-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
-      - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
+      - run: sudo apt install ninja-build
+      - run: $RUNNER --jjs-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
+      - run: $RUNNER --jjs-pack-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
   linux_armv6l_release:
     if: false # needs raspberry pi cross compiler to be set up
@@ -286,7 +286,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
+      - run: sudo apt install ninja-build
       - name: Run Tests
         run: python $RUNNER --test262
       - uses: actions/upload-artifact@v4
@@ -300,7 +300,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install ninja-build
+      - run: sudo apt install ninja-build
       - name: Run Tests
         run: python $RUNNER --test262 --build-debug
       - uses: actions/upload-artifact@v4
