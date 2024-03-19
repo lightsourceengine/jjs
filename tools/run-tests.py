@@ -339,7 +339,7 @@ def run_check(runnable, env=None, cwd=None):
 
     kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
     proc = subprocess.Popen(runnable, cwd=cwd, env=env, **kwargs)
-    proc.wait()
+    proc.communicate()
     return proc.returncode
 
 def run_jjs_debugger_tests(options):

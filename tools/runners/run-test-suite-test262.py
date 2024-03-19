@@ -212,7 +212,7 @@ def main(args):
                 if (counter % 5000) == 0:
                     print(" Executed %d tests." % counter)
 
-    proc.wait()
+    proc.communicate()
 
     if sys.platform == 'win32':
         util.set_timezone(original_timezone)

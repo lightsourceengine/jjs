@@ -282,7 +282,7 @@ def make_jjs(arguments):
     env['CMAKE_BUILD_PARALLEL_LEVEL'] = str(arguments.jobs)
     env['MAKEFLAGS'] = '-j%d' % (arguments.jobs) # Workaround for CMake < 3.12
     proc = subprocess.Popen(make_cmd, env=env)
-    proc.wait()
+    proc.communicate()
 
     return proc.returncode
 

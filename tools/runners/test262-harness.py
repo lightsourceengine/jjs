@@ -636,7 +636,8 @@ class TestCase(object):
             )
             timer = threading.Timer(TEST262_CASE_TIMEOUT, process.kill)
             timer.start()
-            code = process.wait()
+            process.communicate()
+            code = process.returncode
             timer.cancel()
             out = stdout.read()
             err = stderr.read()
