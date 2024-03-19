@@ -266,9 +266,6 @@ def create_binary(job, options):
     if options.toolchain:
         build_cmd.append('--toolchain=%s' % options.toolchain)
 
-    if shutil.which('ninja'):
-        build_cmd.append('--cmake-g=Ninja')
-
     report_command('Build command:', build_cmd)
 
     binary_key = tuple(sorted(build_args))

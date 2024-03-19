@@ -4,6 +4,7 @@ name: jjs CI
 on: workflow_dispatch
 
 env:
+  CMAKE_GENERATOR: Ninja
   RUNNER: tools/run-tests.py
   ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
   JJS_ASAN_BUILD_OPTS_32: --buildoptions=--cpointer-32bit=off,--error-messages=off,--line-info=off,--mem-heap=512,--stack-limit=0,--compile-flag=-fsanitize=address,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--compile-flag=-O2,--system-allocator=on,--linker-flag=-fuse-ld=gold,--compile-flag=-m32
@@ -43,7 +44,7 @@ jobs:
         if: ${{ always() }}
 
   linux_x86-64_release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install ninja-build
@@ -52,7 +53,7 @@ jobs:
       - run: $RUNNER -q --unittests
 
   linux_x86-64_debug:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install ninja-build
@@ -61,7 +62,7 @@ jobs:
       - run: $RUNNER -q --unittests --build-debug
 
   linux_x86-64_buildopts:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install ninja-build
@@ -70,7 +71,7 @@ jobs:
       - run: $RUNNER --buildoption-test
 
   linux_x86_release_asan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
@@ -79,7 +80,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
 
   linux_x86_debug_asan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
@@ -88,7 +89,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
 
   linux_x86-64_release_asan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install ninja-build
@@ -96,7 +97,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86-64_debug_asan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install ninja-build
@@ -104,7 +105,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86_release_ubsan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
@@ -113,7 +114,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
 
   linux_x86_debug_ubsan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt update
@@ -122,7 +123,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_UBSAN_BUILD_OPTS_32 $JJS_UBSAN_SKIP_LIST
 
   linux_x86-64_release_ubsan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install ninja-build
@@ -130,7 +131,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
   linux_x86-64_debug_ubsan:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install ninja-build
@@ -139,7 +140,7 @@ jobs:
 
   linux_armv6l_release:
     if: false # needs raspberry pi cross compiler to be set up
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-arm-static
       TIMEOUT: 300
@@ -153,7 +154,7 @@ jobs:
 
   linux_armv6l_debug:
     if: false # some unit tests fail on 32 bit debug builds
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-arm-static
       TIMEOUT: 300
@@ -166,7 +167,7 @@ jobs:
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
 
   linux_armv7l_release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-arm-static
       TIMEOUT: 300
@@ -181,7 +182,7 @@ jobs:
 
   linux_armv7l_debug:
     # note: external-context + stack_limit > 0 are broken on 32 bit debug builds
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-arm-static
       TIMEOUT: 300
@@ -195,7 +196,7 @@ jobs:
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
 
   linux_aarch64_release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-aarch64-static
       TIMEOUT: 300
@@ -209,7 +210,7 @@ jobs:
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
 
   linux_aarch64_debug:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-aarch64-static
       TIMEOUT: 300
@@ -251,6 +252,8 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
+      - run: Remove-Variable -name CMAKE_GENERATOR
+        shell: powershell
       - name: JS Tests
         run: python .\tools\run-tests.py -q --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell
@@ -267,6 +270,8 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
+      - run: Remove-Variable -name CMAKE_GENERATOR
+        shell: powershell
       - name: JS Tests
         run: python .\tools\run-tests.py -q --build-debug --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js --no-external-context-tests
         shell: powershell
@@ -278,7 +283,7 @@ jobs:
         shell: powershell
 
   ecma_test262_release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Run Tests
@@ -291,7 +296,7 @@ jobs:
             build/tests/test262/local/bin/test262.report
 
   ecma_test262_debug:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Run Tests
