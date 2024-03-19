@@ -89,7 +89,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_ASAN_BUILD_OPTS_32 $JJS_ASAN_SKIP_LIST
 
   linux_x86-64_release_asan:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt install ninja-build
@@ -97,7 +97,7 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests $JJS_ASAN_BUILD_OPTS_64 $JJS_ASAN_SKIP_LIST
 
   linux_x86-64_debug_asan:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt install ninja-build
@@ -139,7 +139,8 @@ jobs:
       - run: $RUNNER -q --jjs-pack-tests --build-debug $JJS_UBSAN_BUILD_OPTS_64 $JJS_UBSAN_SKIP_LIST
 
   linux_armv6l_release:
-    if: false # needs raspberry pi cross compiler to be set up
+    # needs raspberry pi cross compiler to be set up
+    if: false
     runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-arm-static
@@ -153,7 +154,8 @@ jobs:
       - run: $RUNNER $JJS_BUILD_OPTS --unittests
 
   linux_armv6l_debug:
-    if: false # some unit tests fail on 32 bit debug builds
+    # some unit tests fail on 32 bit debug builds
+    if: false
     runs-on: ubuntu-22.04
     env:
       RUNTIME: qemu-arm-static
