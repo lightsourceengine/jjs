@@ -22,15 +22,17 @@
 #include "jjs-port.h"
 
 #ifdef _WIN32
-#define platform_is_path_separator(c) ((c) == '/' || (c) == '\\')
-#define platform_realpath(path_p) _fullpath(NULL, path_p, 0)
-static bool platform_is_absolute_path(const char* path_p, size_t path_len);
+#define platform_separator            '\\'
+#define platform_is_path_separator(c) ((c) == '/' || (c) == platform_separator)
+#define platform_realpath(path_p)     _fullpath (NULL, path_p, 0)
+static bool platform_is_absolute_path (const char* path_p, size_t path_len);
 #else
 #include <libgen.h>
 
-#define platform_is_path_separator(c) ((c) == '/')
-#define platform_realpath(path_p) realpath(path_p, NULL)
-static bool platform_is_absolute_path(const char* path_p, size_t path_len);
+#define platform_separator            '/'
+#define platform_is_path_separator(c) ((c) == platform_separator)
+#define platform_realpath(path_p)     realpath (path_p, NULL)
+static bool platform_is_absolute_path (const char* path_p, size_t path_len);
 #endif
 
 typedef struct raw_source_s
@@ -46,6 +48,8 @@ static void free_source (raw_source_t* source);
 static jjs_value_t resolve_specifier (const char* path_p);
 static void object_set_handler_sz (jjs_value_t object, const char* key_sz, jjs_external_handler_t fn);
 static void object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value);
+
+static const char* DEFAULT_STDIN_FILENAME = "<stdin>";
 
 /**
  * Run a module from a file.
@@ -117,9 +121,46 @@ main_module_run (const char* path_p)
 static bool
 is_relative_path (const char* path_p, size_t path_len)
 {
-    return path_len > 2 && ((path_p[0] == '.' && platform_is_path_separator (path_p[1])) ||
-                            (path_p[0] == '.' && path_p[1] == '.' && platform_is_path_separator (path_p[2])));
+  return path_len > 2
+         && ((path_p[0] == '.' && platform_is_path_separator (path_p[1]))
+             || (path_p[0] == '.' && path_p[1] == '.' && platform_is_path_separator (path_p[2])));
 } /* is_relative_path */
+
+/**
+ * Joins cwd with filename that may or may not exist on disk.
+ */
+static jjs_value_t
+cwd_append (const char* filename)
+{
+  char* p = platform_realpath (".");
+
+  if (!p)
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "cwd_append(): failed to realpath '.'");
+  }
+
+  size_t p_size = strlen (p);
+  size_t filename_size = strlen (filename);
+
+  if (p_size == 0 || filename_size == 0)
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "cwd_append(): filename is empty");
+  }
+
+  size_t buffer_size = p_size + filename_size + 1;
+  jjs_char_t* buffer = malloc (buffer_size);
+
+  memcpy (buffer, p, p_size);
+  buffer[p_size] = platform_separator;
+  memcpy (&buffer[p_size + 1], filename, filename_size);
+
+  jjs_value_t result = jjs_string (buffer, (jjs_size_t) buffer_size, JJS_ENCODING_UTF8);
+
+  free (p);
+  free (buffer);
+
+  return result;
+} /* cwd_append */
 
 /**
  * Ensure the specifier is a relative or absolute path.
@@ -366,7 +407,7 @@ main_register_jjs_test_object (void)
 } /* main_register_jjs_test_object */
 
 jjs_value_t
-main_exec_stdin (main_input_type_t input_type)
+main_exec_stdin (main_input_type_t input_type, const char* filename)
 {
   jjs_char_t *source_p = NULL;
   jjs_size_t source_size = 0;
@@ -395,40 +436,65 @@ main_exec_stdin (main_input_type_t input_type)
     return jjs_throw_sz (JJS_ERROR_SYNTAX, "Input is not a valid UTF-8 encoded string.");
   }
 
+  if (filename == NULL)
+  {
+    filename = DEFAULT_STDIN_FILENAME;
+  }
+
+  jjs_value_t result;
+
   if (input_type == INPUT_TYPE_MODULE)
   {
     jjs_esm_options_t options = jjs_esm_options_init ();
-    options.filename = jjs_string_sz ("<stdin>");
-    jjs_value_t evaluate_result = jjs_esm_evaluate_source (source_p, source_size, &options);
+    options.filename = jjs_string_sz (filename);
+
+    result = jjs_esm_evaluate_source (source_p, source_size, &options);
 
     jjs_esm_options_free (&options);
-    free (source_p);
-
-    return evaluate_result;
   }
-
-  jjs_parse_options_t opts = {
-    .options = JJS_PARSE_HAS_SOURCE_NAME,
-    .source_name = jjs_string_sz ("<stdin>"),
-  };
-
-  if (input_type == INPUT_TYPE_STRICT)
+  else if (input_type == INPUT_TYPE_SLOPPY_MODE || input_type == INPUT_TYPE_STRICT_MODE)
   {
-    opts.options |= JJS_PARSE_STRICT_MODE;
+    jjs_parse_options_t opts = {
+      .options = JJS_PARSE_HAS_SOURCE_NAME,
+      .source_name = jjs_string_sz (filename),
+      .user_value = cwd_append (filename),
+    };
+
+    if (input_type == INPUT_TYPE_STRICT_MODE)
+    {
+      opts.options |= JJS_PARSE_STRICT_MODE;
+    }
+
+    jjs_value_t parse_result;
+
+    if (jjs_value_is_exception (opts.user_value))
+    {
+      parse_result = jjs_value_copy (opts.user_value);
+    }
+    else
+    {
+      parse_result = jjs_parse (source_p, source_size, &opts);
+    }
+
+    jjs_value_free (opts.source_name);
+    jjs_value_free (opts.user_value);
+
+    if (jjs_value_is_exception (parse_result))
+    {
+      result = parse_result;
+    }
+    else
+    {
+      result = jjs_run (parse_result);
+      jjs_value_free (parse_result);
+    }
+  }
+  else
+  {
+    result = jjs_throw_sz (JJS_ERROR_COMMON, "Invalid input type.");
   }
 
-  jjs_value_t parse_result = jjs_parse (source_p, source_size, &opts);
-  
   free (source_p);
-  jjs_value_free (opts.source_name);
-
-  if (jjs_value_is_exception (parse_result))
-  {
-    return parse_result;
-  }
-
-  jjs_value_t result = jjs_run (parse_result);
-  jjs_value_free (parse_result);
 
   return result;
 } /* main_exec_stdin */

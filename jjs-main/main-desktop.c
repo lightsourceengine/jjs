@@ -232,7 +232,7 @@ restart:
   }
   else if (arguments.option_flags & OPT_FLAG_USE_STDIN)
   {
-    result = main_exec_stdin (arguments.input_type);
+    result = main_exec_stdin (arguments.input_type, arguments.stdin_filename);
 
     if (jjs_value_is_exception (result))
     {

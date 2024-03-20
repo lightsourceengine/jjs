@@ -396,9 +396,10 @@ static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_v
   JJS_ASSERT (ecma_is_value_string (filename));
 
   jjs_parse_options_t parse_opts = {
-    .options = JJS_PARSE_HAS_ARGUMENT_LIST | JJS_PARSE_HAS_USER_VALUE,
+    .options = JJS_PARSE_HAS_ARGUMENT_LIST | JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME,
     .argument_list = JJS_CONTEXT (commonjs_args),
     .user_value = filename,
+    .source_name = filename,
   };
 
   jjs_value_t fn = jjs_parse_value (source, &parse_opts);

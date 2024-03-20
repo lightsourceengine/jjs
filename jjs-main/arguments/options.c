@@ -52,6 +52,7 @@ typedef enum
   OPT_CALL_ON_EXIT,
   OPT_USE_STDIN,
   OPT_INPUT_TYPE,
+  OPT_STDIN_FILENAME,
 } main_opt_id_t;
 
 /**
@@ -107,7 +108,11 @@ static const cli_opt_t main_opts[] = {
   CLI_OPT_DEF (.id = OPT_INPUT_TYPE,
                .longopt = "input-type",
                .meta = "STRING",
-               .help = "the method to parse source from stdin. (module, raw, strict) default: module"),
+               .help = "the method to parse source from stdin. (module, sloppy, strict) default: module"),
+  CLI_OPT_DEF (.id = OPT_STDIN_FILENAME,
+               .longopt = "stdin-filename",
+               .meta = "FILE",
+               .help = "basename used to create __filename or import.meta.filename when loading a module from stdin. Default: <stdin>"),
   CLI_OPT_DEF (.id = CLI_OPT_DEFAULT, .meta = "FILE", .help = "input JS file(s)"),
 };
 
@@ -174,6 +179,7 @@ main_parse_args (int argc, /**< argc */
 
   arguments_p->parse_result = JJS_STANDALONE_EXIT_CODE_FAIL;
   arguments_p->input_type = INPUT_TYPE_MODULE;
+  arguments_p->stdin_filename = NULL;
 
   cli_state_t cli_state = cli_init (main_opts, argc, argv);
   for (int id = cli_consume_option (&cli_state); id != CLI_OPT_END; id = cli_consume_option (&cli_state))
@@ -386,17 +392,17 @@ main_parse_args (int argc, /**< argc */
       }
       case OPT_INPUT_TYPE:
       {
-        const char* value = cli_consume_string(&cli_state);
+        const char* value = cli_consume_string (&cli_state);
         
-        if (strcmp(value, "raw") == 0)
+        if (strcmp (value, "sloppy") == 0)
         {
-          arguments_p->input_type = INPUT_TYPE_RAW;
+          arguments_p->input_type = INPUT_TYPE_SLOPPY_MODE;
         }
-        else if (strcmp(value, "strict") == 0)
+        else if (strcmp (value, "strict") == 0)
         {
-          arguments_p->input_type = INPUT_TYPE_STRICT;
+          arguments_p->input_type = INPUT_TYPE_STRICT_MODE;
         }
-        else if (strcmp(value, "module") == 0)
+        else if (strcmp (value, "module") == 0)
         {
           arguments_p->input_type = INPUT_TYPE_MODULE;
         }
@@ -408,6 +414,11 @@ main_parse_args (int argc, /**< argc */
                               value);
         }
 
+        break;
+      }
+      case OPT_STDIN_FILENAME:
+      {
+        arguments_p->stdin_filename = cli_consume_string (&cli_state);
         break;
       }
       case CLI_OPT_DEFAULT:

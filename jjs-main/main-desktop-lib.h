@@ -23,7 +23,7 @@ jjs_value_t main_module_run_esm (const char* path_p);
 jjs_value_t main_module_run (const char* path_p);
 
 void main_register_jjs_test_object (void);
-jjs_value_t main_exec_stdin (main_input_type_t input_type);
+jjs_value_t main_exec_stdin (main_input_type_t input_type, const char* filename);
 
 #define JJS_HANDLER(NAME) jjs_value_t NAME (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], jjs_length_t args_cnt)
 

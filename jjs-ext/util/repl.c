@@ -52,8 +52,15 @@ jjsx_repl (const char *prompt_p)
       goto exception;
     }
 
-    result = jjs_parse (line_p, length, NULL);
+    jjs_parse_options_t opts = {
+      .options = JJS_PARSE_HAS_SOURCE_NAME,
+      .source_name = jjs_string_sz ("<repl>"),
+    };
+
+    result = jjs_parse (line_p, length, &opts);
     jjs_port_line_free (line_p);
+
+    jjs_value_free (opts.source_name);
 
     if (jjs_value_is_exception (result))
     {

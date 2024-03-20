@@ -65,8 +65,8 @@ typedef struct
  */
 typedef enum
 {
-  INPUT_TYPE_RAW,
-  INPUT_TYPE_STRICT,
+  INPUT_TYPE_SLOPPY_MODE,
+  INPUT_TYPE_STRICT_MODE,
   INPUT_TYPE_MODULE,
 } main_input_type_t;
 
@@ -89,6 +89,7 @@ typedef struct
   uint16_t init_flags;
   uint8_t parse_result;
   main_input_type_t input_type;
+  const char* stdin_filename;
 } main_args_t;
 
 bool main_parse_args (int argc, char **argv, main_args_t *arguments_p);
