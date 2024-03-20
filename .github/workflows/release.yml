@@ -3,7 +3,7 @@ name: jjs-release
 on: workflow_dispatch
 
 env:
-  JJS_TAG_PREFIX: jjs-4.3.0
+  JJS_TAG_PREFIX: jjs-4.4.0
   RUNNER: ./tools/build.py --mem-heap 8192 --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON --jjs-debugger ON --cpointer-32bit ON --error-messages ON --line-info ON --external-context ON --snapshot-exec ON --snapshot-save ON
   BUNDLER: ./tools/create-release-bundle.sh
 
