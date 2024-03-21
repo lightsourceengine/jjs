@@ -13,23 +13,28 @@
  * limitations under the License.
  */
 
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/isWellFormed#examples
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toWellFormed#examples
 const strings = [
   // Lone leading surrogate
-  ["\uD800", false],
-  ["ab\uD800", false],
-  ["ab\uD800c", false],
+  ["\uD800", "�"],
+  ["ab\uD800", "ab�"],
+  ["\uD800ab", "�ab"],
+  ["ab\uD800c", "ab�c"],
   // Lone trailing surrogate
-  ["\uDFFFab", false],
-  ["c\uDFFFab", false],
+  ["\uDFFF", "�"],
+  ["ab\uDFFF", "ab�"],
+  ["\uDFFFab", "�ab"],
+  ["c\uDFFFab", "c�ab"],
   // Well-formed
-  ["", true],
-  ["abc", true],
-  ["\uD83D\uDE04", true],
-  ["\uD83D\uDE04c", true],
-  ["ab\uD83D\uDE04c", true],
+  ["", ""],
+  ["abc", "abc"],
+  ["\uD83D\uDE04", "😄"],
+  ["ab\uD83D\uDE04", "ab😄"],
+  ["\uD83D\uDE04ab", "😄ab"],
+  ["ab\uD83D\uDE04c", "ab😄c"],
 ];
 
-for (const [ str, expected ] of strings) {
-  assert(str.isWellFormed() === expected, `'${str}'.isWellFormed() expected to return ${expected}`);
+for (const [input, expected] of strings) {
+  const actual = input.toWellFormed();
+  assert(actual === expected, `'${input}'.toWellFormed() -> '${actual}', but expected '${expected}'`);
 }

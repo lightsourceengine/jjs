@@ -1412,6 +1412,12 @@ ecma_builtin_string_prototype_object_to_well_formed (ecma_string_t *string_p)
 
     if (lit_is_code_point_utf16_high_surrogate (ch))
     {
+      if (string_cursor_p == string_end_p)
+      {
+        ecma_stringbuilder_append_codepoint (&out, 0xFFFD);
+        break;
+      }
+
       read_size = lit_read_code_unit_from_cesu8_safe (string_cursor_p, string_end_p, &next_ch);
 
       if (read_size == 0)
@@ -1491,6 +1497,12 @@ ecma_builtin_string_prototype_object_is_well_formed (ecma_string_t *string_p)
 
     if (lit_is_code_point_utf16_high_surrogate (ch))
     {
+      if (string_cursor_p == string_end_p)
+      {
+        has_error = true;
+        break;
+      }
+
       read_size = lit_read_code_unit_from_cesu8_safe (string_cursor_p, string_end_p, &next_ch);
 
       if (read_size == 0)
