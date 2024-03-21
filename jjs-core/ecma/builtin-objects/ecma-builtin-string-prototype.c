@@ -94,6 +94,9 @@ enum
   ECMA_STRING_PROTOTYPE_ITERATOR,
   ECMA_STRING_PROTOTYPE_REPLACE_ALL,
   ECMA_STRING_PROTOTYPE_MATCH_ALL,
+
+  ECMA_STRING_PROTOTYPE_IS_WELL_FORMED,
+  ECMA_STRING_PROTOTYPE_TO_WELL_FORMED,
 };
 
 #define BUILTIN_INC_HEADER_NAME "ecma-builtin-string-prototype.inc.h"
@@ -1360,6 +1363,160 @@ ecma_builtin_string_prototype_object_iterator (ecma_value_t to_string) /**< this
 } /* ecma_builtin_string_prototype_object_iterator */
 
 /**
+ * See also:
+ *   ECMA (2025) v16 22.1.3.31 String.prototype.toWellFormed ()
+ *
+ * @param string_p
+ * @return
+ */
+static ecma_value_t
+ecma_builtin_string_prototype_object_to_well_formed (ecma_string_t *string_p)
+{
+  if (ecma_string_is_empty (string_p))
+  {
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
+  }
+
+  ecma_stringbuilder_t out = ecma_stringbuilder_create ();
+
+  // note: path_bytes_p is a CESU8 encoded, despite the macro indicating otherwise
+  ECMA_STRING_TO_UTF8_STRING (string_p, string_bytes_p, string_bytes_len);
+
+  const lit_utf8_byte_t *string_cursor_p = string_bytes_p;
+  const lit_utf8_byte_t *string_end_p = string_bytes_p + string_bytes_len;
+  lit_utf8_size_t read_size;
+  bool has_error = false;
+  ecma_char_t ch;
+  ecma_char_t next_ch;
+  lit_code_point_t code_point;
+
+  while (string_cursor_p < string_end_p)
+  {
+    read_size = lit_read_code_unit_from_cesu8_safe (string_cursor_p, string_end_p, &ch);
+
+    if (read_size == 0)
+    {
+      has_error = true;
+      break;
+    }
+
+    string_cursor_p += read_size;
+
+    if (lit_is_code_point_utf16_low_surrogate (ch))
+    {
+      ecma_stringbuilder_append_codepoint (&out, 0xFFFD);
+      continue;
+    }
+
+    code_point = ch;
+
+    if (lit_is_code_point_utf16_high_surrogate (ch))
+    {
+      read_size = lit_read_code_unit_from_cesu8_safe (string_cursor_p, string_end_p, &next_ch);
+
+      if (read_size == 0)
+      {
+        has_error = true;
+        break;
+      }
+
+      if (lit_is_code_point_utf16_low_surrogate (next_ch))
+      {
+        code_point = lit_convert_surrogate_pair_to_code_point (ch, next_ch);
+        string_cursor_p += read_size;
+      }
+      else
+      {
+        code_point = 0xFFFD;
+      }
+    }
+
+    ecma_stringbuilder_append_codepoint (&out, code_point);
+  }
+
+  ECMA_FINALIZE_UTF8_STRING (string_bytes_p, string_bytes_len);
+
+  JJS_ASSERT (!has_error);
+  if (has_error)
+  {
+    ecma_stringbuilder_destroy (&out);
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
+  }
+
+  return ecma_make_string_value (ecma_stringbuilder_finalize (&out));
+} /* ecma_builtin_string_prototype_object_to_well_formed */
+
+/**
+ *
+ * See also:
+ *   ECMA (2025) v16 22.1.3.10 String.prototype.isWellFormed ()
+ * @param string_p
+ * @return
+ */
+static ecma_value_t
+ecma_builtin_string_prototype_object_is_well_formed (ecma_string_t *string_p)
+{
+  if (ecma_string_is_empty (string_p))
+  {
+    return ECMA_VALUE_TRUE;
+  }
+
+  // note: path_bytes_p is a CESU8 encoded, despite the macro indicating otherwise
+  ECMA_STRING_TO_UTF8_STRING (string_p, string_bytes_p, string_bytes_len);
+
+  const lit_utf8_byte_t *string_cursor_p = string_bytes_p;
+  const lit_utf8_byte_t *string_end_p = string_bytes_p + string_bytes_len;
+  lit_utf8_size_t read_size;
+  bool has_error = false;
+  ecma_char_t ch;
+  ecma_char_t next_ch;
+
+  while (string_cursor_p < string_end_p)
+  {
+    read_size = lit_read_code_unit_from_cesu8_safe (string_cursor_p, string_end_p, &ch);
+
+    if (read_size == 0)
+    {
+      has_error = true;
+      break;
+    }
+
+    string_cursor_p += read_size;
+
+    if (lit_is_code_point_utf16_low_surrogate (ch))
+    {
+      has_error = true;
+      break;
+    }
+
+    if (lit_is_code_point_utf16_high_surrogate (ch))
+    {
+      read_size = lit_read_code_unit_from_cesu8_safe (string_cursor_p, string_end_p, &next_ch);
+
+      if (read_size == 0)
+      {
+        has_error = true;
+        break;
+      }
+
+      if (lit_is_code_point_utf16_low_surrogate (next_ch))
+      {
+        string_cursor_p += read_size;
+      }
+      else
+      {
+        has_error = true;
+        break;
+      }
+    }
+  }
+
+  ECMA_FINALIZE_UTF8_STRING (string_bytes_p, string_bytes_len);
+
+  return has_error ? ECMA_VALUE_FALSE : ECMA_VALUE_TRUE;
+} /* ecma_builtin_string_prototype_object_is_well_formed */
+
+/**
  * Dispatcher of the built-in's routines
  *
  * @return ecma value
@@ -1429,6 +1586,12 @@ ecma_builtin_string_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
 
   switch (builtin_routine_id)
   {
+    case ECMA_STRING_PROTOTYPE_IS_WELL_FORMED:
+      ret_value = ecma_builtin_string_prototype_object_is_well_formed (string_p);
+      break;
+    case ECMA_STRING_PROTOTYPE_TO_WELL_FORMED:
+      ret_value = ecma_builtin_string_prototype_object_to_well_formed (string_p);
+      break;
     case ECMA_STRING_PROTOTYPE_CONCAT:
     {
       ret_value = ecma_builtin_string_prototype_object_concat (string_p, arguments_list_p, arguments_number);
