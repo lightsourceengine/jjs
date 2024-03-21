@@ -2511,6 +2511,9 @@ parser_parse_export_statement (parser_context_t *context_p) /**< context */
     {
       if (lexer_token_is_async (context_p))
       {
+#if JJS_FUNCTION_TO_STRING
+        context_p->function_start_p = context_p->token.lit_location.char_p;
+#endif /* JJS_FUNCTION_TO_STRING */
         lexer_next_token (context_p);
       }
 
