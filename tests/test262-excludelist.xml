@@ -9,8 +9,6 @@
   <feature id="json-parse-with-source"/>
   <feature id="symbols-as-weakmap-keys"/>
   <feature id="promise-with-resolvers"/>
-  <feature id="String.prototype.toWellFormed"/>
-  <feature id="String.prototype.isWellFormed"/>
   <feature id="array-grouping"/>
   <feature id="iterator-helpers"/>
   <feature id="Temporal"/>
