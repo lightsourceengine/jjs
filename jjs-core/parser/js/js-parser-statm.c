@@ -2507,6 +2507,24 @@ parser_parse_export_statement (parser_context_t *context_p) /**< context */
       consume_last_statement = true;
       break;
     }
+    case LEXER_LITERAL:
+    {
+      if (lexer_token_is_async (context_p))
+      {
+        lexer_next_token (context_p);
+      }
+
+      if (context_p->token.type != LEXER_KEYW_FUNCTION)
+      {
+        parser_raise_error(context_p, PARSER_ERR_LEFT_BRACE_MULTIPLY_LITERAL_EXPECTED);
+        break;
+      }
+
+      context_p->status_flags |= PARSER_MODULE_STORE_IDENT;
+      parser_parse_function_statement (context_p);
+      consume_last_statement = true;
+      break;
+    }
     case LEXER_KEYW_FUNCTION:
     {
       context_p->status_flags |= PARSER_MODULE_STORE_IDENT;

@@ -24,6 +24,7 @@ module-export-07.mjs
 module-export-08.mjs
 module-export-09.mjs
 module-export-10.mjs
+module-export-async.mjs
 module-export-default-1.mjs
 module-export-default-2.mjs
 module-export-default-3.mjs
