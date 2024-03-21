@@ -2450,6 +2450,7 @@ scanner_scan_all (parser_context_t *context_p) /**< context */
 
       parser_stack_push_uint8 (context_p, SCAN_STACK_SCRIPT);
 
+      lexer_skip_hashbang(context_p);
       lexer_next_token (context_p);
       scanner_check_directives (context_p, &scanner_context);
     }

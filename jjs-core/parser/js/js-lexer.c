@@ -212,12 +212,13 @@ typedef enum
 } skip_mode_t;
 
 /**
- * Skip spaces.
+ * Internal function to initialize the skip mode. Should not be called outside
+ * of lexer_skip_* functions.
  */
 static void
-lexer_skip_spaces (parser_context_t *context_p) /**< context */
+lexer_skip_spaces_mode (parser_context_t *context_p, /**< context */
+                        skip_mode_t mode) /**< initial skip mode */
 {
-  skip_mode_t mode = LEXER_SKIP_SPACES;
   const uint8_t *source_end_p = context_p->source_end_p;
 
   if (context_p->token.flags & LEXER_NO_SKIP_SPACES)
@@ -379,6 +380,15 @@ lexer_skip_spaces (parser_context_t *context_p) /**< context */
       context_p->column++;
     }
   }
+} /* lexer_skip_spaces_mode */
+
+/**
+ * Skip spaces.
+ */
+static void
+lexer_skip_spaces (parser_context_t *context_p) /**< context */
+{
+  lexer_skip_spaces_mode (context_p, LEXER_SKIP_SPACES);
 } /* lexer_skip_spaces */
 
 /**
@@ -1482,6 +1492,23 @@ lexer_parse_number (parser_context_t *context_p) /**< context */
     length = 1;                                                                    \
     break;                                                                         \
   }
+
+/**
+ * Skip the #! at the beginning of the source code. The function is expected
+ * to be called at the beginning of the parsing phase.
+ */
+void
+lexer_skip_hashbang (parser_context_t *context_p) /**< context */
+{
+  const uint8_t *source_end_p = context_p->source_end_p;
+
+  if (context_p->source_p + 1 < source_end_p && context_p->source_p[0] == LIT_CHAR_HASHMARK && context_p->source_p[1] == LIT_CHAR_EXCLAMATION)
+  {
+    context_p->source_p += 2;
+    PARSER_PLUS_EQUAL_LC (context_p->column, 2);
+    lexer_skip_spaces_mode (context_p, LEXER_SKIP_SINGLE_LINE_COMMENT);
+  }
+} /* lexer_skip_hashbang */
 
 /**
  * Get next token.

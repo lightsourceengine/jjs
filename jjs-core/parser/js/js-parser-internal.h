@@ -731,6 +731,7 @@ void parser_reverse_class_fields (parser_context_t *context_p, size_t fields_siz
 
 /* Lexer functions */
 
+void lexer_skip_hashbang (parser_context_t *context_p);
 void lexer_next_token (parser_context_t *context_p);
 bool lexer_check_next_character (parser_context_t *context_p, lit_utf8_byte_t character);
 bool lexer_check_next_characters (parser_context_t *context_p, lit_utf8_byte_t character1, lit_utf8_byte_t character2);

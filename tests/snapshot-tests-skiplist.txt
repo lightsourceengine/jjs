@@ -4,6 +4,7 @@ bigint6.js
 bigint7.js
 bigint8.js
 bigint9.js
+hashbang.mjs
 logical-assignment.js
 module-circular-01.mjs
 module-circular-02.mjs

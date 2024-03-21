@@ -2229,6 +2229,13 @@ parser_parse_source (void *source_p, /**< source code */
     /* Pushing a dummy value ensures the stack is never empty.
      * This simplifies the stack management routines. */
     parser_stack_push_uint8 (&context, CBC_MAXIMUM_BYTE_VALUE);
+
+    // Skip initial #! if not parsing arguments
+    if (context.arguments_start_p == NULL)
+    {
+      lexer_skip_hashbang (&context);
+    }
+
     /* The next token must always be present to make decisions
      * in the parser. Therefore when a token is consumed, the
      * lexer_next_token() must be immediately called. */
