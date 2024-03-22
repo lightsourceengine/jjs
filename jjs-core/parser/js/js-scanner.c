@@ -1202,7 +1202,7 @@ scanner_scan_primary_expression_end (parser_context_t *context_p, /**< context *
             break;
           }
 
-          if (type == LEXER_LEFT_SQUARE)
+          if (type == LEXER_LEFT_SQUARE || type == LEXER_HASHMARK)
           {
             source_p = context_p->source_p - 1;
             break;
