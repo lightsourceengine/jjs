@@ -47,6 +47,7 @@ enum
   ECMA_PROMISE_ROUTINE_ALL,
   ECMA_PROMISE_ROUTINE_ALLSETTLED,
   ECMA_PROMISE_ROUTINE_ANY,
+  ECMA_PROMISE_ROUTINE_WITH_RESOLVERS,
   ECMA_PROMISE_ROUTINE_SPECIES_GET
 };
 
@@ -508,6 +509,10 @@ ecma_builtin_promise_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     case ECMA_PROMISE_ROUTINE_ANY:
     {
       return ecma_builtin_promise_helper (this_arg, arguments_list_p[0], builtin_routine_id);
+    }
+    case ECMA_PROMISE_ROUTINE_WITH_RESOLVERS:
+    {
+      return ecma_promise_with_resolvers (this_arg);
     }
     case ECMA_PROMISE_ROUTINE_SPECIES_GET:
     {

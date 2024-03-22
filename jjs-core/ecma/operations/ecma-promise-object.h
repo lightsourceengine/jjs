@@ -105,6 +105,7 @@ ecma_value_t ecma_fulfill_promise_with_checks (ecma_value_t promise, ecma_value_
 ecma_object_t *ecma_promise_new_capability (ecma_value_t constructor, ecma_value_t parent);
 ecma_value_t ecma_promise_reject_or_resolve (ecma_value_t this_arg, ecma_value_t value, bool is_resolve);
 ecma_value_t ecma_promise_then (ecma_value_t promise, ecma_value_t on_fulfilled, ecma_value_t on_rejected);
+ecma_value_t ecma_promise_with_resolvers (ecma_value_t this_arg);
 
 ecma_value_t
 ecma_value_thunk_helper_cb (ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);

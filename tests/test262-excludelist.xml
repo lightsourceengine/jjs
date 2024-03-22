@@ -8,7 +8,6 @@
   <feature id="json-modules"/>
   <feature id="json-parse-with-source"/>
   <feature id="symbols-as-weakmap-keys"/>
-  <feature id="promise-with-resolvers"/>
   <feature id="array-grouping"/>
   <feature id="iterator-helpers"/>
   <feature id="Temporal"/>

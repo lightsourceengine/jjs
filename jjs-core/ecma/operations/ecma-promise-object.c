@@ -538,6 +538,45 @@ ecma_op_create_promise_object (ecma_value_t executor, /**< the executor function
 } /* ecma_op_create_promise_object */
 
 /**
+ * This function returns an object with three properties: a new promise together with the
+ * resolve and reject functions associated with it.
+ *
+ * See also:
+ *   ECMA2024 v15 27.2.4.8
+ *
+ * @param this_arg the promise capability object (Promise constructor)
+ * @return object with properties promise, resolve and reject
+ */
+ecma_value_t
+ecma_promise_with_resolvers (ecma_value_t this_arg)
+{
+  ecma_promise_capabality_t *capability_obj_p =
+    (ecma_promise_capabality_t *) ecma_promise_new_capability (this_arg, ECMA_VALUE_UNDEFINED);
+
+  if (JJS_UNLIKELY (capability_obj_p == NULL))
+  {
+    return ECMA_VALUE_ERROR;
+  }
+
+  ecma_object_t *obj = ecma_op_create_object_object_noarg ();
+  ecma_value_t p;
+
+  p = ecma_op_object_put (obj,
+                          ecma_get_magic_string (LIT_MAGIC_STRING_PROMISE),
+                          capability_obj_p->header.u.cls.u3.promise,
+                          false);
+  ecma_free_value (p);
+  p = ecma_op_object_put (obj, ecma_get_magic_string (LIT_MAGIC_STRING_RESOLVE), capability_obj_p->resolve, false);
+  ecma_free_value (p);
+  p = ecma_op_object_put (obj, ecma_get_magic_string (LIT_MAGIC_STRING_REJECT), capability_obj_p->reject, false);
+  ecma_free_value (p);
+
+  ecma_deref_object ((ecma_object_t *) capability_obj_p);
+
+  return ecma_make_object_value (obj);
+} /* ecma_promise_with_resolvers */
+
+/**
  * Helper function for increase or decrease the remaining count.
  *
  * @return the current remaining count after increase or decrease.
