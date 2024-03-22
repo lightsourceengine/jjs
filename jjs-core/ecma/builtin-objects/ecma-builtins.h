@@ -98,15 +98,15 @@ typedef struct
   jmem_cpointer_t global_env_cp; /**< global lexical environment */
   jmem_cpointer_t global_scope_cp; /**< global lexical scope */
   jmem_cpointer_t builtin_objects[ECMA_BUILTIN_OBJECTS_COUNT]; /**< pointer to instances of built-in objects */
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
   ecma_value_t commonjs_cache; /**< CommonJS modules cache: fully resolved path -> CommonJSModule */
-#endif /* JJS_COMMONJS */
-#if JJS_ESM
+#endif /* JJS_ANNEX_COMMONJS */
+#if JJS_ANNEX_ESM
   ecma_value_t esm_cache; /**< Module cache: fully resolved path -> Module */
-#endif /* JJS_ESM */
-#if JJS_VMOD
+#endif /* JJS_ANNEX_ESM */
+#if JJS_ANNEX_VMOD
   ecma_value_t vmod_cache; /**< VMOD cache: name -> exports */
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } ecma_global_object_t;
 
 /* ecma-builtins.c */

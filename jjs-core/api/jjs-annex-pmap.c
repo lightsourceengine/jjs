@@ -22,7 +22,7 @@
 #include "ecma-helpers.h"
 #include "ecma-builtin-helpers.h"
 
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
 static jjs_value_t validate_pmap (jjs_value_t pmap);
 static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type);
 static jjs_value_t set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root);
@@ -30,7 +30,7 @@ static ecma_value_t find_nearest_package_path (ecma_value_t packages, ecma_value
 static bool is_object (ecma_value_t value);
 static bool starts_with_dot_slash (ecma_value_t value);
 static jjs_value_t expect_path_like_string (ecma_value_t value);
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 
 /**
  * Load a pmap (Package Map) from a file.
@@ -52,7 +52,7 @@ jjs_value_t
 jjs_pmap_from_file (jjs_value_t filename)
 {
   jjs_assert_api_enabled ();
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   // get filename and dirname
   jjs_value_t normalized = annex_path_normalize (filename);
 
@@ -100,10 +100,10 @@ jjs_pmap_from_file (jjs_value_t filename)
   jjs_value_free (root_path);
 
   return result;
-#else /* !JJS_PMAP */
+#else /* !JJS_ANNEX_PMAP */
   JJS_UNUSED (filename);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_from_file */
 
 /**
@@ -119,7 +119,7 @@ jjs_value_t
 jjs_pmap_from_file_sz (const char* filename_sz)
 {
   jjs_assert_api_enabled ();
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   jjs_value_t filename = annex_util_create_string_utf8_sz (filename_sz);
 
   if (jjs_value_is_exception (filename))
@@ -133,10 +133,10 @@ jjs_pmap_from_file_sz (const char* filename_sz)
   jjs_value_free (filename);
 
   return result;
-#else /* !JJS_PMAP */
+#else /* !JJS_ANNEX_PMAP */
   JJS_UNUSED (filename_sz);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_from_file_sz */
 
 /**
@@ -153,7 +153,7 @@ jjs_value_t
 jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
 {
   jjs_assert_api_enabled ();
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   if (!jjs_value_is_string (json_string))
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, "json_string must be a string");
@@ -168,11 +168,11 @@ jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
   ECMA_FINALIZE_UTF8_STRING (json_string_p, json_string_size);
 
   return result;
-#else /* !JJS_PMAP */
+#else /* !JJS_ANNEX_PMAP */
   JJS_UNUSED (json_string);
   JJS_UNUSED (root);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_from_json */
 
 /**
@@ -202,13 +202,13 @@ jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
 jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type)
 {
   jjs_assert_api_enabled ();
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   return jjs_annex_pmap_resolve (specifier, module_type);
-#else /* !JJS_PMAP */
+#else /* !JJS_ANNEX_PMAP */
   JJS_UNUSED (specifier);
   JJS_UNUSED (module_type);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_resolve */
 
 /**
@@ -225,7 +225,7 @@ jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_ty
 jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t module_type)
 {
   jjs_assert_api_enabled ();
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_sz);
 
   if (jjs_value_is_exception (specifier))
@@ -239,14 +239,14 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t mod
   jjs_value_free (specifier);
 
   return result;
-#else /* !JJS_PMAP */
+#else /* !JJS_ANNEX_PMAP */
   JJS_UNUSED (specifier_sz);
   JJS_UNUSED (module_type);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_resolve_sz */
 
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
 
 /**
  * Resolve a specifier or request against the current pmap (package map).
@@ -777,4 +777,4 @@ expect_path_like_string (ecma_value_t value)
   return ECMA_VALUE_TRUE;
 } /* expect_path_like_string */
 
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */

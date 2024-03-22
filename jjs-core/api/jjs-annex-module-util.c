@@ -18,7 +18,7 @@
 #include "jcontext.h"
 #include "annex.h"
 
-#if JJS_COMMONJS || JJS_ESM
+#if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
 
 /**
  * Call the module_on_resolve callback.
@@ -146,4 +146,4 @@ void jjs_annex_module_load_free (jjs_annex_module_load_t *load_result_p)
   jjs_value_free (load_result_p->result);
 } /* jjs_annex_module_load_free */
 
-#endif /* JJS_COMMONJS || JJS_ESM */
+#endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */

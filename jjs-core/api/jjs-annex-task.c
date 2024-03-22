@@ -19,9 +19,9 @@
 
 #include "jcontext.h"
 
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
 static jjs_value_t queue_microtask_impl (jjs_value_t callback);
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 /**
  * Add a callback function to the microtask queue.
@@ -36,15 +36,15 @@ jjs_queue_microtask(const jjs_value_t callback)
 {
   jjs_assert_api_enabled ();
 
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
   return queue_microtask_impl (callback);
-#else /* !JJS_QUEUE_MICROTASK */
+#else /* !JJS_ANNEX_QUEUE_MICROTASK */
   JJS_UNUSED (callback);
   return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_QUEUE_MICROTASK_NOT_SUPPORTED));
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
 } /* jjs_queue_microtask */
 
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
 
 /**
  * Handler for the queueMicrotask() function.
@@ -76,4 +76,4 @@ queue_microtask_impl (jjs_value_t callback)
   return ECMA_VALUE_UNDEFINED;
 } /* queue_microtask_impl */
 
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */

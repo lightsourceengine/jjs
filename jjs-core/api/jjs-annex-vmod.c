@@ -23,7 +23,7 @@
 #include "annex.h"
 #include "jcontext.h"
 
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
 static jjs_value_t annex_vmod_new (jjs_value_t name, jjs_value_t value);
 static void annex_vmod_remove (jjs_value_t name);
 static jjs_value_t
@@ -39,7 +39,7 @@ static void annex_vmod_entry_update (jjs_value_t entry, jjs_value_t exports);
 static bool annex_vmod_entry_is_ready (jjs_value_t entry);
 static jjs_value_t annex_vmod_entry_new (bool ready, jjs_value_t exports);
 static jjs_value_t annex_vmod_get_exports_from_config (jjs_value_t config);
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 
 /**
  * Register a virtual module.
@@ -77,13 +77,13 @@ jjs_value_t
 jjs_vmod (jjs_value_t name, jjs_value_t value)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   return annex_vmod_new (name, value);
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   JJS_UNUSED (value);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod */
 
 /**
@@ -93,18 +93,18 @@ jjs_value_t
 jjs_vmod_sz (const char *name, jjs_value_t value)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   jjs_value_t name_value = jjs_string_sz (name);
   jjs_value_t result = jjs_vmod (name_value, value);
 
   jjs_value_free (name_value);
 
   return result;
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   JJS_UNUSED (value);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_sz */
 
 /**
@@ -124,12 +124,12 @@ jjs_value_t
 jjs_vmod_resolve (jjs_value_t name)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   return jjs_annex_vmod_resolve (name);
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_resolve */
 
 /**
@@ -139,17 +139,17 @@ jjs_value_t
 jjs_vmod_resolve_sz (const char *name)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   jjs_value_t value = jjs_string_sz (name);
   jjs_value_t result = jjs_vmod_resolve (value);
 
   jjs_value_free (value);
 
   return result;
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_resolve_sz */
 
 /**
@@ -165,12 +165,12 @@ bool
 jjs_vmod_exists (jjs_value_t name)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   return jjs_annex_vmod_exists (name);
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   return false;
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_exists */
 
 /**
@@ -180,17 +180,17 @@ bool
 jjs_vmod_exists_sz (const char *name)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   jjs_value_t value = jjs_string_sz (name);
   bool result = jjs_vmod_exists (value);
 
   jjs_value_free (value);
 
   return result;
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   return false;
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_exists */
 
 /**
@@ -205,11 +205,11 @@ void
 jjs_vmod_remove (jjs_value_t name)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   annex_vmod_remove (name);
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_remove */
 
 /**
@@ -219,17 +219,17 @@ void
 jjs_vmod_remove_sz (const char *name)
 {
   jjs_assert_api_enabled ();
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   jjs_value_t value = jjs_string_sz (name);
 
   jjs_vmod_remove (value);
   jjs_value_free (value);
-#else /* !JJS_VMOD */
+#else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_remove */
 
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
 
 void
 jjs_annex_vmod_init_realm (ecma_value_t realm)
@@ -488,4 +488,4 @@ annex_vmod_get_exports_from_config (jjs_value_t config)
   }
 } /* annex_vmod_get_exports_from_config */
 
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */

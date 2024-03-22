@@ -171,16 +171,16 @@ struct jjs_context_t
   void *module_import_callback_user_p; /**< user pointer for module_import_callback_p */
 #endif /* JJS_MODULE_SYSTEM */
 
-#if JJS_COMMONJS || JJS_ESM
+#if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
   jjs_esm_load_cb_t module_on_load_cb; /**< callback for CommonJS module loading */
   void *module_on_load_user_p; /**< user pointer for commonjs_load_callback_p */
   jjs_esm_resolve_cb_t module_on_resolve_cb; /**< callback for CommonJS module resolving */
   void *module_on_resolve_user_p; /**< user pointer for commonjs_resolve_callback_p */
-#endif /* JJS_COMMONJS || JJS_ESM */
+#endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */
 
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
   ecma_value_t commonjs_args; /**< arguments of the CommonJS module */
-#endif /* JJS_COMMONJS */
+#endif /* JJS_ANNEX_COMMONJS */
 
   vm_frame_ctx_t *vm_top_context_p; /**< top (current) interpreter context */
   jjs_context_data_header_t *context_data_p; /**< linked list of user-provided context-specific pointers */
@@ -273,10 +273,10 @@ struct jjs_context_t
   ecma_lcache_hash_entry_t lcache[ECMA_LCACHE_HASH_ROWS_COUNT][ECMA_LCACHE_HASH_ROW_LENGTH];
 #endif /* JJS_LCACHE */
 
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   ecma_value_t pmap; /**< global package map */
   ecma_value_t pmap_root; /**< base directory for resolving relative pmap paths */
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 
   /**
    * Allowed values and it's meaning:

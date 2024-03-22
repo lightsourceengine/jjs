@@ -193,26 +193,26 @@ ecma_gc_mark_global_object (ecma_global_object_t *global_object_p) /**< global o
     }
   }
 
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
   if (ecma_is_value_object(global_object_p->commonjs_cache))
   {
     ecma_gc_set_object_visited (ecma_get_object_from_value (global_object_p->commonjs_cache));
   }
-#endif /* JJS_COMMONJS */
+#endif /* JJS_ANNEX_COMMONJS */
 
-#if JJS_ESM
+#if JJS_ANNEX_ESM
   if (ecma_is_value_object (global_object_p->esm_cache))
   {
     ecma_gc_set_object_visited (ecma_get_object_from_value (global_object_p->esm_cache));
   }
-#endif /* JJS_ESM */
+#endif /* JJS_ANNEX_ESM */
 
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   if (ecma_is_value_object (global_object_p->vmod_cache))
   {
     ecma_gc_set_object_visited (ecma_get_object_from_value (global_object_p->vmod_cache));
   }
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 
 } /* ecma_gc_mark_global_object */
 

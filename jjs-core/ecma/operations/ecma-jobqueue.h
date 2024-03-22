@@ -35,9 +35,9 @@ typedef enum
   ECMA_JOB_PROMISE_ASYNC_REACTION_REJECTED, /**< rejected promise async reaction job */
   ECMA_JOB_PROMISE_ASYNC_GENERATOR, /**< continue async generator */
   ECMA_JOB_PROMISE_THENABLE, /**< promise thenable job */
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
   ECMA_JOB_MICROTASK, /**< microtask job */
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
 } ecma_job_queue_item_type_t;
 
 /**

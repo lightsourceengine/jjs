@@ -27,7 +27,7 @@
  */
 static void module_on_init_scope (ecma_module_t* module_p)
 {
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
  // For a non-native ES module, a require function (resolving relative to
  // the module's user_value or URL) is added to the module scope. If the
  // module is native, does not have a user_value or the require function
@@ -60,9 +60,9 @@ static void module_on_init_scope (ecma_module_t* module_p)
  }
 
  jjs_value_free (require);
-#else /* !JJS_COMMONJS */
+#else /* !JJS_ANNEX_COMMONJS */
  JJS_UNUSED (module_p);
-#endif /* JJS_COMMONJS */
+#endif /* JJS_ANNEX_COMMONJS */
 } /* module_on_init_scope */
 
 #endif /* JJS_MODULE_SYSTEM */
@@ -122,14 +122,14 @@ install_system_info_props (ecma_object_t* global_p)
  */
 void jjs_annex_init (void)
 {
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   JJS_CONTEXT (pmap) = ECMA_VALUE_UNDEFINED;
   JJS_CONTEXT (pmap_root) = ECMA_VALUE_UNDEFINED;
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
   JJS_CONTEXT (commonjs_args) = ecma_string_ascii_sz ("module,exports,require,__filename,__dirname");
-#endif /* JJS_COMMONJS */
+#endif /* JJS_ANNEX_COMMONJS */
 
 #if JJS_MODULE_SYSTEM
   JJS_CONTEXT (module_on_init_scope_p) = module_on_init_scope;
@@ -146,13 +146,13 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
   // note: system info has no home, they are being put into the realm for now so packs can get this info.
   install_system_info_props ((ecma_object_t*) global_p);
 
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
   annex_util_define_function ((ecma_object_t*)global_p,
                               LIT_MAGIC_STRING_QUEUE_MICROTASK,
                               queue_microtask_handler);
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
   global_p->commonjs_cache = ecma_create_object_with_null_proto ();
   ecma_free_value (global_p->commonjs_cache);
 
@@ -161,19 +161,19 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
   annex_util_define_value ((ecma_object_t*)global_p, LIT_MAGIC_STRING_REQUIRE, fn);
 
   ecma_free_value (fn);
-#endif /* JJS_COMMONJS */
+#endif /* JJS_ANNEX_COMMONJS */
 
-#if JJS_ESM
+#if JJS_ANNEX_ESM
   global_p->esm_cache = ecma_create_object_with_null_proto ();
   ecma_free_value (global_p->esm_cache);
-#endif /* JJS_ESM */
+#endif /* JJS_ANNEX_ESM */
 
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   global_p->vmod_cache = ecma_create_object_with_null_proto ();
   ecma_free_value (global_p->vmod_cache);
 
   jjs_annex_vmod_init_realm (ecma_make_object_value((ecma_object_t*) global_p));
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 } /* jjs_annex_init_realm */
 
 /**
@@ -181,7 +181,7 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
  */
 void jjs_annex_finalize (void)
 {
-#if JJS_ESM
+#if JJS_ANNEX_ESM
   // the esm modules lifetime of the vm. in some cases, that I don't fully understand,
   // the module gc does not occur during the final memory cleanup and debug builds
   // assert. the problem has only been observed on windows for an import capi call
@@ -192,14 +192,14 @@ void jjs_annex_finalize (void)
   ecma_get_global_object ()->esm_cache = ECMA_VALUE_UNDEFINED;
 #endif /* JJS_MODULE_SYSTEM */
 
-#if JJS_PMAP
+#if JJS_ANNEX_PMAP
   jjs_value_free (JJS_CONTEXT (pmap));
   jjs_value_free (JJS_CONTEXT (pmap_root));
-#endif /* JJS_PMAP */
+#endif /* JJS_ANNEX_PMAP */
 
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
   jjs_value_free (JJS_CONTEXT (commonjs_args));
-#endif /* JJS_COMMONJS */
+#endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_annex_finalize */
 
 /**

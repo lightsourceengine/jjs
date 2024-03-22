@@ -176,7 +176,7 @@ ecma_free_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *job
   jmem_heap_free_block (job_p, sizeof (ecma_job_promise_resolve_thenable_t));
 } /* ecma_free_promise_resolve_thenable_job */
 
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
 
 /**
  * Free the ecma_job_microtask_t job object.
@@ -191,7 +191,7 @@ ecma_free_microtask_job (ecma_job_microtask_t *job_p) /**< job pointer */
   jmem_heap_free_block (job_p, sizeof (ecma_job_microtask_t));
 } /* ecma_free_microtask_job */
 
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 /**
  * The processor for PromiseReactionJob.
@@ -463,7 +463,7 @@ ecma_process_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *
   return ret;
 } /* ecma_process_promise_resolve_thenable_job */
 
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
 
 /**
  * Process a microtask job.
@@ -483,7 +483,7 @@ ecma_process_microtask_job (ecma_job_microtask_t *job_p) /**< the job to be oper
   return result;
 } /* ecma_process_microtask_job */
 
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 /**
  * Enqueue a Promise job into the jobqueue.
@@ -579,7 +579,7 @@ ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, /**< promise to
   ecma_enqueue_job (&job_p->header);
 } /* ecma_enqueue_promise_resolve_thenable_job */
 
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
 
 /**
  * Enqueue a Microtask into the job queue.
@@ -598,7 +598,7 @@ void ecma_enqueue_microtask_job(ecma_value_t callback)
   ecma_enqueue_job (&job_p->header);
 } /* ecma_enqueue_microtask_job */
 
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 bool
 ecma_has_enqueued_jobs (void)
@@ -643,13 +643,13 @@ ecma_process_all_enqueued_jobs (void)
         ret = ecma_process_promise_async_generator_job ((ecma_job_promise_async_generator_t *) job_p);
         break;
       }
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
       case ECMA_JOB_MICROTASK:
       {
         ret = ecma_process_microtask_job ((ecma_job_microtask_t *) job_p);
         break;
       }
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
       default:
       {
         JJS_ASSERT (ecma_job_queue_get_type (job_p) == ECMA_JOB_PROMISE_THENABLE);
@@ -698,13 +698,13 @@ ecma_free_all_enqueued_jobs (void)
         ecma_free_promise_async_generator_job ((ecma_job_promise_async_generator_t *) job_p);
         break;
       }
-#if JJS_QUEUE_MICROTASK
+#if JJS_ANNEX_QUEUE_MICROTASK
       case ECMA_JOB_MICROTASK:
       {
         ecma_free_microtask_job ((ecma_job_microtask_t *) job_p);
         break;
       }
-#endif /* JJS_QUEUE_MICROTASK */
+#endif /* JJS_ANNEX_QUEUE_MICROTASK */
       default:
       {
         JJS_ASSERT (ecma_job_queue_get_type (job_p) == ECMA_JOB_PROMISE_THENABLE);

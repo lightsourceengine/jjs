@@ -219,12 +219,12 @@ jjs_init_ex (jjs_init_flag_t flags, /**< combination of JJS flags */
   jjs_annex_init ();
   jjs_annex_init_realm (JJS_CONTEXT (global_object_p));
 
-#if JJS_COMMONJS || JJS_ESM
+#if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
   jjs_esm_on_load (jjs_esm_default_on_load_cb, NULL);
   jjs_esm_on_resolve (jjs_esm_default_on_resolve_cb, NULL);
-#endif /* JJS_COMMONJS || JJS_MODULE_SYSTEM */
+#endif /* JJS_ANNEX_COMMONJS || JJS_MODULE_SYSTEM */
 
-#if JJS_ESM
+#if JJS_ANNEX_ESM
   jjs_module_on_import_meta (jjs_esm_default_on_import_meta_cb, NULL);
   jjs_module_on_import (jjs_esm_default_on_import_cb, NULL);
 #endif /* JJS_MODULE_SYSTEM */
@@ -1316,18 +1316,18 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
     case JJS_FEATURE_FUNCTION_TO_STRING:
       return IS_FEATURE_ENABLED (JJS_FUNCTION_TO_STRING);
     case JJS_FEATURE_QUEUE_MICROTASK:
-      return IS_FEATURE_ENABLED (JJS_QUEUE_MICROTASK);
+      return IS_FEATURE_ENABLED (JJS_ANNEX_QUEUE_MICROTASK);
     case JJS_FEATURE_COMMONJS:
-      return IS_FEATURE_ENABLED (JJS_COMMONJS);
+      return IS_FEATURE_ENABLED (JJS_ANNEX_COMMONJS);
     case JJS_FEATURE_ESM:
-      return IS_FEATURE_ENABLED (JJS_ESM);
+      return IS_FEATURE_ENABLED (JJS_ANNEX_ESM);
     case JJS_FEATURE_PMAP:
-      return IS_FEATURE_ENABLED (JJS_PMAP);
+      return IS_FEATURE_ENABLED (JJS_ANNEX_PMAP);
     case JJS_FEATURE_PROMISE:
     case JJS_FEATURE_SYMBOL:
       return true;
     case JJS_FEATURE_VMOD:
-      return IS_FEATURE_ENABLED (JJS_VMOD);
+      return IS_FEATURE_ENABLED (JJS_ANNEX_VMOD);
     default:
       JJS_ASSERT (false);
       return false;

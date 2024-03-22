@@ -41,17 +41,17 @@ jjs_value_t
 jjs_commonjs_require (jjs_value_t specifier)
 {
   jjs_assert_api_enabled ();
-#if JJS_ESM
+#if JJS_ANNEX_ESM
   jjs_value_t referrer_path = annex_path_cwd ();
   jjs_value_t result = jjs_annex_require (specifier, referrer_path);
 
   jjs_value_free (referrer_path);
 
   return result;
-#else /* !JJS_ESM */
+#else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (specifier);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
-#endif /* JJS_ESM */
+#endif /* JJS_ANNEX_ESM */
 } /* jjs_commonjs_require */
 
 /**
@@ -67,20 +67,20 @@ jjs_value_t
 jjs_commonjs_require_sz (const char *specifier_p)
 {
   jjs_assert_api_enabled ();
-#if JJS_ESM
+#if JJS_ANNEX_ESM
   jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_p);
   jjs_value_t result = jjs_commonjs_require (specifier);
 
   jjs_value_free (specifier);
 
   return result;
-#else /* !JJS_ESM */
+#else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (specifier_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
-#endif /* JJS_ESM */
+#endif /* JJS_ANNEX_ESM */
 } /* jjs_commonjs_require_sz */
 
-#if JJS_COMMONJS
+#if JJS_ANNEX_COMMONJS
 
 static jjs_value_t create_require_from_directory (jjs_value_t referrer_path);
 static void referrer_path_free (void *native_p, const jjs_object_native_info_t *info_p);
@@ -239,7 +239,7 @@ static JJS_HANDLER(resolve_handler)
     return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid argument");
   }
 
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   if (jjs_vmod_exists (request))
   {
     return ecma_copy_value (request);
@@ -306,12 +306,12 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
     return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require referrer");
   }
 
-#if JJS_VMOD
+#if JJS_ANNEX_VMOD
   if (jjs_annex_vmod_exists (specifier))
   {
     return jjs_annex_vmod_resolve (specifier);
   }
-#endif /* JJS_VMOD */
+#endif /* JJS_ANNEX_VMOD */
 
   /* resolve the request to an absolute path */
   jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_COMMONJS);
@@ -569,4 +569,4 @@ static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_
   return ecma_find_own_m (module, LIT_MAGIC_STRING_EXPORTS);
 } /* run_module */
 
-#endif // JJS_COMMONJS
+#endif // JJS_ANNEX_COMMONJS
