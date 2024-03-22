@@ -148,7 +148,7 @@ test_synthetic_module_set_exports (void)
                                                         "});"));
 } /* test_synthetic_module_set_exports */
 
-void
+static void
 test_synthetic_module_set_exports_invalid_args (void)
 {
   jjs_value_t export_name = push_sz ("name");

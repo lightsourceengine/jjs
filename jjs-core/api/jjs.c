@@ -1052,50 +1052,6 @@ jjs_synthetic_module (jjs_synthetic_module_evaluate_cb_t callback, /**< evaluati
 } /* jjs_native_module */
 
 /**
- * Gets the value of an export which belongs to a native module.
- *
- * Note:
- *      returned value must be freed with jjs_value_free, when it is no longer needed.
- *
- * @return value of the export - if success
- *         error - otherwise
- */
-jjs_value_t
-jjs_native_module_get (const jjs_value_t native_module, /**< a native module object */
-                         const jjs_value_t export_name) /**< string identifier of the export */
-{
-  jjs_assert_api_enabled ();
-
-#if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (native_module);
-
-  if (module_p == NULL)
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_NOT_MODULE));
-  }
-
-  if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC) || !ecma_is_value_string (export_name))
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
-  }
-
-  ecma_property_t *property_p = ecma_find_named_property (module_p->scope_p, ecma_get_string_from_value (export_name));
-
-  if (property_p == NULL)
-  {
-    return jjs_throw_sz (JJS_ERROR_REFERENCE, ecma_get_error_msg (ECMA_ERR_UNKNOWN_EXPORT));
-  }
-
-  return ecma_copy_value (ECMA_PROPERTY_VALUE_PTR (property_p)->value);
-#else /* !JJS_MODULE_SYSTEM */
-  JJS_UNUSED (native_module);
-  JJS_UNUSED (export_name);
-
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
-#endif /* JJS_MODULE_SYSTEM */
-} /* jjs_native_module_get */
-
-/**
  * Sets the value of an export which belongs to a native module.
  *
  * Note:

@@ -1144,17 +1144,18 @@ jjs_value_t jjs_module_evaluate (const jjs_value_t module);
  */
 
 /**
- * @defgroup jjs-api-module-native Native modules
+ * @defgroup jjs-api-synthetic Synthetic modules
  * @{
  */
+
 jjs_value_t jjs_synthetic_module (jjs_synthetic_module_evaluate_cb_t callback,
                                   const jjs_value_t *const exports_p,
                                   size_t export_count);
-jjs_value_t jjs_native_module_get (const jjs_value_t module, const jjs_value_t export_name);
 jjs_value_t
 jjs_synthetic_module_set_export (jjs_value_t module, const jjs_value_t export_name, const jjs_value_t value);
+
 /**
- * jjs-api-module-native @}
+ * jjs-api-synthetic-module @}
  */
 
 /**

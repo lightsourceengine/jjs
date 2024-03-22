@@ -138,10 +138,12 @@ resolve_callback3 (const jjs_value_t specifier, /**< module specifier */
   (void) user_p;
 
   TEST_ASSERT (false);
+
+  return jjs_undefined();
 } /* resolve_callback3 */
 
 static jjs_value_t
-native_module_evaluate (const jjs_value_t native_module) /**< native module */
+synthetic_module_evaluate (const jjs_value_t synthetic_module) /**< synthetic module */
 {
   ++counter;
 
@@ -149,45 +151,25 @@ native_module_evaluate (const jjs_value_t native_module) /**< native module */
 
   jjs_value_t exp_val = jjs_string_sz ("exp");
   jjs_value_t other_exp_val = jjs_string_sz ("other_exp");
-  /* The native module has no such export. */
+  /* The synthetic module has no such export. */
   jjs_value_t no_exp_val = jjs_string_sz ("no_exp");
 
-  jjs_value_t result = jjs_native_module_get (native_module, exp_val);
-  TEST_ASSERT (jjs_value_is_undefined (result));
-  jjs_value_free (result);
-
-  result = jjs_native_module_get (native_module, other_exp_val);
-  TEST_ASSERT (jjs_value_is_undefined (result));
-  jjs_value_free (result);
-
-  result = jjs_native_module_get (native_module, no_exp_val);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  TEST_ASSERT (jjs_error_type (result) == JJS_ERROR_REFERENCE);
-  jjs_value_free (result);
-
+  jjs_value_t result;
   jjs_value_t export = jjs_number (3.5);
-  result = jjs_synthetic_module_set_export (native_module, exp_val, export);
+  result = jjs_synthetic_module_set_export (synthetic_module, exp_val, export);
   TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
   jjs_value_free (result);
   jjs_value_free (export);
 
   export = jjs_string_sz ("str");
-  result = jjs_synthetic_module_set_export (native_module, other_exp_val, export);
+  result = jjs_synthetic_module_set_export (synthetic_module, other_exp_val, export);
   TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
   jjs_value_free (result);
   jjs_value_free (export);
 
-  result = jjs_synthetic_module_set_export (native_module, no_exp_val, no_exp_val);
+  result = jjs_synthetic_module_set_export (synthetic_module, no_exp_val, no_exp_val);
   TEST_ASSERT (jjs_value_is_exception (result));
   TEST_ASSERT (jjs_error_type (result) == JJS_ERROR_REFERENCE);
-  jjs_value_free (result);
-
-  result = jjs_native_module_get (native_module, exp_val);
-  TEST_ASSERT (jjs_value_is_number (result) && jjs_value_as_number (result) == 3.5);
-  jjs_value_free (result);
-
-  result = jjs_native_module_get (native_module, other_exp_val);
-  TEST_ASSERT (jjs_value_is_string (result));
   jjs_value_free (result);
 
   jjs_value_free (exp_val);
@@ -201,7 +183,7 @@ native_module_evaluate (const jjs_value_t native_module) /**< native module */
   }
 
   return jjs_undefined ();
-} /* native_module_evaluate */
+} /* synthetic_module_evaluate */
 
 static jjs_value_t
 resolve_callback4 (const jjs_value_t specifier, /**< module specifier */
@@ -215,14 +197,14 @@ resolve_callback4 (const jjs_value_t specifier, /**< module specifier */
 
   jjs_value_t exports[2] = { jjs_string_sz ("exp"), jjs_string_sz ("other_exp") };
 
-  jjs_value_t native_module = jjs_synthetic_module (native_module_evaluate, exports, 2);
-  TEST_ASSERT (!jjs_value_is_exception (native_module));
+  jjs_value_t synthetic_module = jjs_synthetic_module (synthetic_module_evaluate, exports, 2);
+  TEST_ASSERT (!jjs_value_is_exception (synthetic_module));
 
   jjs_value_free (exports[0]);
   jjs_value_free (exports[1]);
 
-  *((jjs_value_t *) user_p) = jjs_value_copy (native_module);
-  return native_module;
+  *((jjs_value_t *) user_p) = jjs_value_copy (synthetic_module);
+  return synthetic_module;
 } /* resolve_callback4 */
 
 static void
@@ -428,10 +410,6 @@ main (void)
   TEST_ASSERT (!jjs_value_is_exception (module));
   TEST_ASSERT (jjs_module_state (module) == JJS_MODULE_STATE_UNLINKED);
 
-  result = jjs_native_module_get (object, number);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-
   result = jjs_synthetic_module_set_export (module, number, number);
   TEST_ASSERT (jjs_value_is_exception (result));
   jjs_value_free (result);
@@ -482,15 +460,15 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (module));
     TEST_ASSERT (jjs_module_state (module) == JJS_MODULE_STATE_UNLINKED);
 
-    jjs_value_t native_module;
+    jjs_value_t synthetic_module;
 
-    result = jjs_module_link (module, resolve_callback4, (void *) &native_module);
+    result = jjs_module_link (module, resolve_callback4, (void *) &synthetic_module);
     TEST_ASSERT (!jjs_value_is_exception (result));
     jjs_value_free (result);
 
     TEST_ASSERT (counter == i * 2 + 1);
     TEST_ASSERT (jjs_module_state (module) == JJS_MODULE_STATE_LINKED);
-    TEST_ASSERT (jjs_module_state (native_module) == JJS_MODULE_STATE_LINKED);
+    TEST_ASSERT (jjs_module_state (synthetic_module) == JJS_MODULE_STATE_LINKED);
 
     result = jjs_module_evaluate (module);
 
@@ -498,20 +476,20 @@ main (void)
     {
       TEST_ASSERT (!jjs_value_is_exception (result));
       TEST_ASSERT (jjs_module_state (module) == JJS_MODULE_STATE_EVALUATED);
-      TEST_ASSERT (jjs_module_state (native_module) == JJS_MODULE_STATE_EVALUATED);
+      TEST_ASSERT (jjs_module_state (synthetic_module) == JJS_MODULE_STATE_EVALUATED);
       TEST_ASSERT (counter == 2);
     }
     else
     {
       TEST_ASSERT (jjs_value_is_exception (result));
       TEST_ASSERT (jjs_module_state (module) == JJS_MODULE_STATE_ERROR);
-      TEST_ASSERT (jjs_module_state (native_module) == JJS_MODULE_STATE_ERROR);
+      TEST_ASSERT (jjs_module_state (synthetic_module) == JJS_MODULE_STATE_ERROR);
       TEST_ASSERT (counter == 5);
     }
 
     jjs_value_free (result);
     jjs_value_free (module);
-    jjs_value_free (native_module);
+    jjs_value_free (synthetic_module);
   }
 
   jjs_value_free (object);
