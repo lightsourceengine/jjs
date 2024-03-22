@@ -1627,7 +1627,7 @@ ecma_script_get_from_value (ecma_value_t value) /**< compiled code */
         {
           ecma_module_t *module_p = (ecma_module_t *) object_p;
 
-          if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE))
+          if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC))
           {
             bytecode_p = module_p->u.compiled_code_p;
             break;

@@ -1136,28 +1136,8 @@ jjs_value_t jjs_module_namespace (const jjs_value_t module);
  * @{
  */
 
-/**
- * Resolve and parse a module file
- *
- * @param specifier: module request specifier string.
- * @param referrer: parent module.
- * @param user_p: user specified pointer.
- *
- * @return module object if resolving is successful, error otherwise.
- */
-jjs_value_t jjs_module_resolve (const jjs_value_t specifier, const jjs_value_t referrer, void *user_p);
-
 jjs_value_t jjs_module_link (const jjs_value_t module, jjs_module_link_cb_t callback, void *user_p);
 jjs_value_t jjs_module_evaluate (const jjs_value_t module);
-
-/**
- * Release known modules in the current context. If realm parameter is supplied, cleans up modules native to that realm
- * only. This function should be called by the user application when the module database in the current context is no
- * longer needed.
- *
- * @param realm: release only those modules which realm value is equal to this argument.
- */
-void jjs_module_cleanup (const jjs_value_t realm);
 
 /**
  * jjs-api-module-op @}
@@ -1167,12 +1147,12 @@ void jjs_module_cleanup (const jjs_value_t realm);
  * @defgroup jjs-api-module-native Native modules
  * @{
  */
-jjs_value_t jjs_native_module (jjs_native_module_evaluate_cb_t callback,
-                                   const jjs_value_t *const exports_p,
-                                   size_t export_count);
-jjs_value_t jjs_native_module_get (const jjs_value_t native_module, const jjs_value_t export_name);
+jjs_value_t jjs_synthetic_module (jjs_synthetic_module_evaluate_cb_t callback,
+                                  const jjs_value_t *const exports_p,
+                                  size_t export_count);
+jjs_value_t jjs_native_module_get (const jjs_value_t module, const jjs_value_t export_name);
 jjs_value_t
-jjs_native_module_set (jjs_value_t native_module, const jjs_value_t export_name, const jjs_value_t value);
+jjs_synthetic_module_set_export (jjs_value_t module, const jjs_value_t export_name, const jjs_value_t value);
 /**
  * jjs-api-module-native @}
  */

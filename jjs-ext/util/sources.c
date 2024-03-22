@@ -73,43 +73,6 @@ jjsx_source_exec_script (const char *path_p)
 } /* jjsx_source_exec_script */
 
 jjs_value_t
-jjsx_source_exec_module (const char *path_p)
-{
-  jjs_value_t specifier =
-    jjs_string ((const jjs_char_t *) path_p, (jjs_size_t) strlen (path_p), JJS_ENCODING_UTF8);
-  jjs_value_t referrer = jjs_undefined ();
-
-  jjs_value_t module = jjs_module_resolve (specifier, referrer, NULL);
-
-  jjs_value_free (referrer);
-  jjs_value_free (specifier);
-
-  if (jjs_value_is_exception (module))
-  {
-    return module;
-  }
-
-  if (jjs_module_state (module) == JJS_MODULE_STATE_UNLINKED)
-  {
-    jjs_value_t link_result = jjs_module_link (module, NULL, NULL);
-
-    if (jjs_value_is_exception (link_result))
-    {
-      jjs_value_free (module);
-      return link_result;
-    }
-
-    jjs_value_free (link_result);
-  }
-
-  jjs_value_t result = jjs_module_evaluate (module);
-  jjs_value_free (module);
-
-  jjs_module_cleanup (jjs_undefined ());
-  return result;
-} /* jjsx_source_exec_module */
-
-jjs_value_t
 jjsx_source_exec_snapshot (const char *path_p, size_t function_index)
 {
   jjs_size_t source_size;

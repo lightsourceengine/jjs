@@ -642,6 +642,23 @@ jjs_eval (const jjs_char_t *source_p, /**< source code */
 } /* jjs_eval */
 
 /**
+ * Resolve callback used by jjs_module_link() when the user specifies a NULL callback.
+ *
+ * If the callback is NULL, the user's module contains no import statements, thus nothing
+ * for the module link to resolve. In this situation, this callback is never called. If it
+ * is, the user has import statements that they need to resolve by supplying their own
+ * custom callback.
+ */
+static jjs_value_t
+jjs_module_link_default_callback (const jjs_value_t specifier, const jjs_value_t referrer, void *user_p)
+{
+  JJS_UNUSED(specifier);
+  JJS_UNUSED(referrer);
+  JJS_UNUSED(user_p);
+  return jjs_throw_sz(JJS_ERROR_COMMON, "Provide a callback to jjs_module_link to resolve import specifiers.");
+} /* jjs_module_link_default_callback */
+
+/**
  * Link modules to their dependencies. The dependencies are resolved by a user callback.
  *
  * Note:
@@ -651,16 +668,16 @@ jjs_eval (const jjs_char_t *source_p, /**< source code */
  */
 jjs_value_t
 jjs_module_link (const jjs_value_t module, /**< root module */
-                 jjs_module_link_cb_t callback, /**< resolve module callback, uses
-                                                        *   jjs_module_resolve when NULL is passed */
-                   void *user_p) /**< pointer passed to the resolve callback */
+                 jjs_module_link_cb_t callback, /**< resolve module callback */
+                 void *user_p) /**< pointer passed to the resolve callback */
 {
   jjs_assert_api_enabled ();
 
 #if JJS_MODULE_SYSTEM
   if (callback == NULL)
   {
-    callback = jjs_module_resolve;
+    callback = jjs_module_link_default_callback;
+    user_p = NULL;
   }
 
   ecma_module_t *module_p = ecma_module_get_resolved_module (module);
@@ -928,7 +945,7 @@ jjs_module_on_import (jjs_module_import_cb_t callback_p, /**< callback which han
  *         error - otherwise
  */
 jjs_value_t
-jjs_native_module (jjs_native_module_evaluate_cb_t callback, /**< evaluation callback for
+jjs_synthetic_module (jjs_synthetic_module_evaluate_cb_t callback, /**< evaluation callback for
                                                                   *   native modules */
                      const jjs_value_t *const exports_p, /**< list of the exported bindings of the module,
                                                             *   must be valid string identifiers */
@@ -1016,7 +1033,7 @@ jjs_native_module (jjs_native_module_evaluate_cb_t callback, /**< evaluation cal
 
   ecma_module_t *module_p = ecma_module_create ();
 
-  module_p->header.u.cls.u2.module_flags |= ECMA_MODULE_IS_NATIVE;
+  module_p->header.u.cls.u2.module_flags |= ECMA_MODULE_IS_SYNTHETIC;
   module_p->scope_p = scope_p;
   module_p->local_exports_p = local_exports_p;
   module_p->u.callback = callback;
@@ -1057,7 +1074,7 @@ jjs_native_module_get (const jjs_value_t native_module, /**< a native module obj
     return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_NOT_MODULE));
   }
 
-  if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE) || !ecma_is_value_string (export_name))
+  if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC) || !ecma_is_value_string (export_name))
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
@@ -1088,24 +1105,30 @@ jjs_native_module_get (const jjs_value_t native_module, /**< a native module obj
  *         error - otherwise
  */
 jjs_value_t
-jjs_native_module_set (jjs_value_t native_module, /**< a native module object */
-                         const jjs_value_t export_name, /**< string identifier of the export */
-                         const jjs_value_t value) /**< new value of the export */
+jjs_synthetic_module_set_export (jjs_value_t module, /**< a synthetic module object */
+                                 const jjs_value_t export_name, /**< string identifier of the export */
+                                 const jjs_value_t value) /**< new value of the export */
 {
   jjs_assert_api_enabled ();
 
 #if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (native_module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
 
   if (module_p == NULL)
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_NOT_MODULE));
   }
 
-  if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE) || !ecma_is_value_string (export_name)
+  if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC) || !ecma_is_value_string (export_name)
       || ecma_is_value_exception (value))
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+  }
+
+  if (module_p->header.u.cls.u1.module_state == JJS_MODULE_STATE_EVALUATED
+      || module_p->header.u.cls.u1.module_state == JJS_MODULE_STATE_ERROR)
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Cannot set exports on a module in evaluated or error state.");
   }
 
   ecma_property_t *property_p = ecma_find_named_property (module_p->scope_p, ecma_get_string_from_value (export_name));
@@ -5910,7 +5933,7 @@ jjs_source_info (const jjs_value_t value) /**< JJS api value */
         {
           ecma_module_t *module_p = (ecma_module_t *) object_p;
 
-          if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE))
+          if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC))
           {
             bytecode_p = module_p->u.compiled_code_p;
           }

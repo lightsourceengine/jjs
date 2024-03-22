@@ -166,18 +166,18 @@ native_module_evaluate (const jjs_value_t native_module) /**< native module */
   jjs_value_free (result);
 
   jjs_value_t export = jjs_number (3.5);
-  result = jjs_native_module_set (native_module, exp_val, export);
+  result = jjs_synthetic_module_set_export (native_module, exp_val, export);
   TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
   jjs_value_free (result);
   jjs_value_free (export);
 
   export = jjs_string_sz ("str");
-  result = jjs_native_module_set (native_module, other_exp_val, export);
+  result = jjs_synthetic_module_set_export (native_module, other_exp_val, export);
   TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
   jjs_value_free (result);
   jjs_value_free (export);
 
-  result = jjs_native_module_set (native_module, no_exp_val, no_exp_val);
+  result = jjs_synthetic_module_set_export (native_module, no_exp_val, no_exp_val);
   TEST_ASSERT (jjs_value_is_exception (result));
   TEST_ASSERT (jjs_error_type (result) == JJS_ERROR_REFERENCE);
   jjs_value_free (result);
@@ -215,7 +215,7 @@ resolve_callback4 (const jjs_value_t specifier, /**< module specifier */
 
   jjs_value_t exports[2] = { jjs_string_sz ("exp"), jjs_string_sz ("other_exp") };
 
-  jjs_value_t native_module = jjs_native_module (native_module_evaluate, exports, 2);
+  jjs_value_t native_module = jjs_synthetic_module (native_module_evaluate, exports, 2);
   TEST_ASSERT (!jjs_value_is_exception (native_module));
 
   jjs_value_free (exports[0]);
@@ -420,11 +420,11 @@ main (void)
 
   jjs_value_free (module);
 
-  module = jjs_native_module (NULL, &object, 1);
+  module = jjs_synthetic_module (NULL, &object, 1);
   TEST_ASSERT (jjs_value_is_exception (module));
   jjs_value_free (module);
 
-  module = jjs_native_module (NULL, NULL, 0);
+  module = jjs_synthetic_module (NULL, NULL, 0);
   TEST_ASSERT (!jjs_value_is_exception (module));
   TEST_ASSERT (jjs_module_state (module) == JJS_MODULE_STATE_UNLINKED);
 
@@ -432,7 +432,7 @@ main (void)
   TEST_ASSERT (jjs_value_is_exception (result));
   jjs_value_free (result);
 
-  result = jjs_native_module_set (module, number, number);
+  result = jjs_synthetic_module_set_export (module, number, number);
   TEST_ASSERT (jjs_value_is_exception (result));
   jjs_value_free (result);
 
@@ -441,7 +441,7 @@ main (void)
   /* Valid identifier. */
   jjs_value_t export = jjs_string_sz ("\xed\xa0\x83\xed\xb2\x80");
 
-  module = jjs_native_module (NULL, &export, 1);
+  module = jjs_synthetic_module (NULL, &export, 1);
   TEST_ASSERT (!jjs_value_is_exception (module));
   TEST_ASSERT (jjs_module_state (module) == JJS_MODULE_STATE_UNLINKED);
 
@@ -458,13 +458,13 @@ main (void)
 
   /* Invalid identifiers. */
   export = jjs_string_sz ("a+");
-  module = jjs_native_module (NULL, &export, 1);
+  module = jjs_synthetic_module (NULL, &export, 1);
   TEST_ASSERT (jjs_value_is_exception (module));
   jjs_value_free (module);
   jjs_value_free (export);
 
   export = jjs_string_sz ("\xed\xa0\x80");
-  module = jjs_native_module (NULL, &export, 1);
+  module = jjs_synthetic_module (NULL, &export, 1);
   TEST_ASSERT (jjs_value_is_exception (module));
   jjs_value_free (module);
   jjs_value_free (export);

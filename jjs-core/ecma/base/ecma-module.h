@@ -29,7 +29,7 @@
  */
 typedef enum
 {
-  ECMA_MODULE_IS_NATIVE = (1 << 0), /**< native module */
+  ECMA_MODULE_IS_SYNTHETIC = (1 << 0), /**< native module */
   ECMA_MODULE_HAS_NAMESPACE = (1 << 1), /**< namespace object has been initialized */
 } ecma_module_flags_t;
 
@@ -68,7 +68,7 @@ typedef struct ecma_module
   union
   {
     ecma_compiled_code_t *compiled_code_p; /**< compiled code for the module */
-    jjs_native_module_evaluate_cb_t callback; /**< callback for evaluating native modules */
+    jjs_synthetic_module_evaluate_cb_t callback; /**< callback for evaluating native modules */
   } u;
 } ecma_module_t;
 

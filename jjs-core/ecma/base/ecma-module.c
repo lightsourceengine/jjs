@@ -555,7 +555,7 @@ ecma_module_evaluate (ecma_module_t *module_p) /**< module */
 
   ecma_value_t ret_value;
 
-  if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE)
+  if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC)
   {
     ret_value = ECMA_VALUE_UNDEFINED;
 
@@ -593,7 +593,7 @@ ecma_module_evaluate (ecma_module_t *module_p) /**< module */
     ecma_module_set_error_state (module_p);
   }
 
-  if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE))
+  if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC))
   {
     ecma_bytecode_deref (module_p->u.compiled_code_p);
   }
@@ -1229,7 +1229,7 @@ restart:
 
     if (current_module_p->scope_p == NULL)
     {
-      JJS_ASSERT (!(current_module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE));
+      JJS_ASSERT (!(current_module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC));
 
       /* Initialize scope for handling circular references. */
       ecma_value_t result = vm_init_module_scope (current_module_p);
@@ -1443,7 +1443,7 @@ ecma_module_release_module (ecma_module_t *module_p) /**< module */
 
   ecma_module_release_module_names (module_p->local_exports_p);
 
-  if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE)
+  if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC)
   {
     return;
   }

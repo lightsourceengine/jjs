@@ -714,9 +714,9 @@ typedef void (*jjs_module_import_meta_cb_t) (const jjs_value_t module,
                                                void *user_p);
 
 /**
- * Callback which is called by jjs_module_evaluate to evaluate the native module.
+ * Callback which is called by jjs_module_evaluate to evaluate the synthetic module.
  */
-typedef jjs_value_t (*jjs_native_module_evaluate_cb_t) (const jjs_value_t native_module);
+typedef jjs_value_t (*jjs_synthetic_module_evaluate_cb_t) (const jjs_value_t module);
 
 typedef enum
 {

@@ -61,6 +61,26 @@
     }                                                              \
   } while (0)
 
+#define JJS_EXPECT_EXCEPTION(EXPR)         \
+  TEST_ASSERT (jjs_value_is_exception(EXPR))
+#define JJS_EXPECT_NOT_EXCEPTION(EXPR)         \
+  TEST_ASSERT (!jjs_value_is_exception(EXPR))
+#define JJS_EXPECT_TRUE(EXPR)         \
+  TEST_ASSERT (jjs_value_is_true(EXPR))
+#define JJS_EXPECT_UNDEFINED(EXPR)         \
+  TEST_ASSERT (jjs_value_is_undefined(EXPR))
+#define JJS_EXPECT_PROMISE(EXPR)         \
+  TEST_ASSERT (jjs_value_is_promise(EXPR))
+
+#define JJS_EXPECT_EXCEPTION_MOVE(EXPR)         \
+  JJS_EXPECT_EXCEPTION (push(EXPR))
+#define JJS_EXPECT_TRUE_MOVE(EXPR)         \
+  JJS_EXPECT_TRUE (push(EXPR))
+#define JJS_EXPECT_UNDEFINED_MOVE(EXPR)         \
+  JJS_EXPECT_UNDEFINED (push(EXPR))
+#define JJS_EXPECT_PROMISE_MOVE(EXPR)         \
+  JJS_EXPECT_PROMISE (push(EXPR))
+
 /**
  * Test initialization statement that should be included
  * at the beginning of main function in every unit test.

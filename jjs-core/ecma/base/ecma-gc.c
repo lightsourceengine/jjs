@@ -961,7 +961,7 @@ ecma_gc_mark (ecma_object_t *object_p) /**< object to mark from */
               ecma_gc_set_object_visited (((ecma_module_t *) ext_object_p)->namespace_object_p);
             }
 
-            if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE)
+            if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC)
                 && module_p->u.compiled_code_p != NULL)
             {
               const ecma_compiled_code_t *compiled_code_p = module_p->u.compiled_code_p;

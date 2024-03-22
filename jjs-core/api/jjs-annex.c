@@ -33,7 +33,7 @@ static void module_on_init_scope (ecma_module_t* module_p)
  // module is native, does not have a user_value or the require function
  // cannot otherwise be created, the require function is not added.
 
- if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_NATIVE)
+ if (module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC)
  {
    return;
  }
