@@ -1165,13 +1165,7 @@ jjs_synthetic_module_set_export (jjs_value_t module, const jjs_value_t export_na
 void jjs_module_on_state_changed (jjs_module_state_changed_cb_t callback, void *user_p);
 void jjs_module_on_import_meta (jjs_module_import_meta_cb_t callback, void *user_p);
 void jjs_module_on_import (jjs_module_import_cb_t callback, void *user_p);
-void jjs_module_on_load (jjs_module_load_cb_t callback_p, void *user_p);
-void jjs_module_on_resolve (jjs_module_resolve_cb_t callback_p, void *user_p);
 
-jjs_value_t jjs_module_default_load (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p);
-jjs_value_t jjs_module_default_resolve (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p);
-jjs_value_t jjs_module_default_import (jjs_value_t specifier, jjs_value_t user_value, void *user_p);
-void jjs_module_default_import_meta (jjs_value_t module, jjs_value_t meta_object, void *user_p);
 /**
  * jjs-api-module-cb @}
  */
@@ -1248,6 +1242,14 @@ jjs_value_t jjs_esm_evaluate_source_value (jjs_value_t source, jjs_esm_options_t
 
 jjs_esm_options_t jjs_esm_options_init (void);
 void jjs_esm_options_free (jjs_esm_options_t * options);
+
+void jjs_esm_on_load (jjs_esm_load_cb_t callback_p, void *user_p);
+void jjs_esm_on_resolve (jjs_esm_resolve_cb_t callback_p, void *user_p);
+
+jjs_value_t jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t * context_p, void *user_p);
+jjs_value_t jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t * context_p, void *user_p);
+jjs_value_t jjs_esm_default_on_import_cb (jjs_value_t specifier, jjs_value_t user_value, void *user_p);
+void jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_object, void *user_p);
 
 /**
  * jjs-esm-ops @}

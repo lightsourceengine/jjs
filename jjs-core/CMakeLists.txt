@@ -137,6 +137,7 @@ set(SOURCE_CORE_FILES
   annex/annex-util.c
   api/jjs-annex.c
   api/jjs-annex-commonjs.c
+  api/jjs-annex-esm.c
   api/jjs-annex-module-util.c
   api/jjs-annex-pmap.c
   api/jjs-annex-task.c

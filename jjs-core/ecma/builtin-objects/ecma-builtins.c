@@ -502,9 +502,9 @@ ecma_builtin_create_global_object (void)
   global_object_p->commonjs_cache = ECMA_VALUE_EMPTY;
 #endif /* JJS_COMMONJS */
 
-#if JJS_MODULE_SYSTEM
+#if JJS_ESM
   global_object_p->esm_cache = ECMA_VALUE_EMPTY;
-#endif /* JJS_MODULE_SYSTEM */
+#endif /* JJS_ESM */
 
 #if JJS_VMOD
   global_object_p->vmod_cache = ECMA_VALUE_EMPTY;

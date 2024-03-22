@@ -145,10 +145,13 @@ JJS_BUILDOPTIONS = [
             OPTIONS_GC_MARK_LIMIT),
     Options('buildoption_test-jjs-debugger',
             ['--jjs-debugger=on']),
+    # annex (or just esm) needs to be off to disable the module system api
     Options('buildoption_test-module-off',
-            ['--compile-flag=-DJJS_MODULE_SYSTEM=0', '--lto=off']),
+            ['--compile-flag=-DJJS_MODULE_SYSTEM=0', '--compile-flag=-DJJS_ANNEX=0', '--lto=off']),
     Options('buildoption_test-commonjs-off',
             ['--compile-flag=-DJJS_COMMONJS=0', '--lto=off']),
+    Options('buildoption_test-esm-off',
+            ['--compile-flag=-DJJS_ESM=0', '--lto=off']),
     Options('buildoption_test-commonjs-off',
             ['--compile-flag=-DJJS_PMAP=0', '--lto=off']),
     Options('buildoption_test-vmod-off',
@@ -156,7 +159,7 @@ JJS_BUILDOPTIONS = [
     Options('buildoption_test-queuemicrotask-off',
             ['--compile-flag=-DJJS_QUEUE_MICROTASK=0', '--lto=off']),
     Options('buildoption_test-pack-esm-off',
-            ['--jjs-pack=on', '--compile-flag=-DJJS_MODULE_SYSTEM=0', '--compile-flag=-DJJS_COMMONJS=0']),
+            ['--jjs-pack=on', '--compile-flag=-DJJS_ESM=0', '--compile-flag=-DJJS_COMMONJS=0']),
     Options('buildoption_test-builtin-proxy-off',
             ['--compile-flag=-DJJS_BUILTIN_PROXY=0']),
 ]

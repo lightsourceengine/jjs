@@ -171,12 +171,12 @@ struct jjs_context_t
   void *module_import_callback_user_p; /**< user pointer for module_import_callback_p */
 #endif /* JJS_MODULE_SYSTEM */
 
-#if JJS_COMMONJS || JJS_MODULE_SYSTEM
-  jjs_module_load_cb_t module_on_load_cb; /**< callback for CommonJS module loading */
+#if JJS_COMMONJS || JJS_ESM
+  jjs_esm_load_cb_t module_on_load_cb; /**< callback for CommonJS module loading */
   void *module_on_load_user_p; /**< user pointer for commonjs_load_callback_p */
-  jjs_module_resolve_cb_t module_on_resolve_cb; /**< callback for CommonJS module resolving */
+  jjs_esm_resolve_cb_t module_on_resolve_cb; /**< callback for CommonJS module resolving */
   void *module_on_resolve_user_p; /**< user pointer for commonjs_resolve_callback_p */
-#endif /* JJS_COMMONJS || JJS_MODULE_SYSTEM */
+#endif /* JJS_COMMONJS || JJS_ESM */
 
 #if JJS_COMMONJS
   ecma_value_t commonjs_args; /**< arguments of the CommonJS module */

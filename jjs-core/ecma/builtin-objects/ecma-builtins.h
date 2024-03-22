@@ -101,9 +101,9 @@ typedef struct
 #if JJS_COMMONJS
   ecma_value_t commonjs_cache; /**< CommonJS modules cache: fully resolved path -> CommonJSModule */
 #endif /* JJS_COMMONJS */
-#if JJS_MODULE_SYSTEM
+#if JJS_ESM
   ecma_value_t esm_cache; /**< Module cache: fully resolved path -> Module */
-#endif /* JJS_MODULE_SYSTEM */
+#endif /* JJS_ESM */
 #if JJS_VMOD
   ecma_value_t vmod_cache; /**< VMOD cache: name -> exports */
 #endif /* JJS_VMOD */

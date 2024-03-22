@@ -49,4 +49,6 @@ JJS_HANDLER(queue_microtask_handler);
  */
 #define jjs_assert_api_enabled() JJS_ASSERT (JJS_CONTEXT (status_flags) & ECMA_STATUS_API_ENABLED)
 
+jjs_value_t jjs_return (jjs_value_t value);
+
 #endif // JJS_ANNEX_H

@@ -133,11 +133,12 @@ typedef enum
   JJS_FEATURE_REALM, /**< realm support */
   JJS_FEATURE_GLOBAL_THIS, /**< GlobalThisValue support */
   JJS_FEATURE_PROMISE_CALLBACK, /**< Promise callback support */
-  JJS_FEATURE_MODULE, /**< Module support */
+  JJS_FEATURE_MODULE, /**< Module API support */
   JJS_FEATURE_WEAKREF, /**< WeakRef support */
   JJS_FEATURE_FUNCTION_TO_STRING, /**< function toString support */
   JJS_FEATURE_QUEUE_MICROTASK, /**< queueMicrotask support */
-  JJS_FEATURE_COMMONJS, /**< CommonJS module support */
+  JJS_FEATURE_ESM, /**< ES Module support (import from file) */
+  JJS_FEATURE_COMMONJS, /**< CommonJS module support (import from file) */
   JJS_FEATURE_PMAP, /**< Package Map support */
   JJS_FEATURE_VMOD, /**< Virtual Module support */
   JJS_FEATURE__COUNT /**< number of features. NOTE: must be at the end of the list */
@@ -687,16 +688,12 @@ typedef enum
 /**
  * Callback which is called by jjs_module_link to get the referenced module.
  */
-typedef jjs_value_t (*jjs_module_link_cb_t) (const jjs_value_t specifier,
-                                                    const jjs_value_t referrer,
-                                                    void *user_p);
+typedef jjs_value_t (*jjs_module_link_cb_t) (const jjs_value_t specifier, const jjs_value_t referrer, void *user_p);
 
 /**
  * Callback which is called when an import is resolved dynamically to get the referenced module.
  */
-typedef jjs_value_t (*jjs_module_import_cb_t) (const jjs_value_t specifier,
-                                                   const jjs_value_t user_value,
-                                                   void *user_p);
+typedef jjs_value_t (*jjs_module_import_cb_t) (const jjs_value_t specifier, const jjs_value_t user_value, void *user_p);
 
 /**
  * Callback which is called after the module enters into linked, evaluated or error state.
@@ -725,27 +722,33 @@ typedef enum
   JJS_MODULE_TYPE_MODULE,
 } jjs_module_type_t;
 
+/**
+ *
+ */
 typedef struct
 {
   jjs_module_type_t type;
   jjs_value_t referrer_path;
-} jjs_module_resolve_context_t;
+} jjs_esm_resolve_context_t;
 
+/**
+ *
+ */
 typedef struct
 {
   jjs_module_type_t type;
   jjs_value_t format;
-} jjs_module_load_context_t;
+} jjs_esm_load_context_t;
 
 /**
  *
  */
-typedef jjs_value_t (*jjs_module_resolve_cb_t) (jjs_value_t specifier, jjs_module_resolve_context_t* context_p, void *user_p);
+typedef jjs_value_t (*jjs_esm_resolve_cb_t) (jjs_value_t specifier, jjs_esm_resolve_context_t *context_p, void *user_p);
 
 /**
  *
  */
-typedef jjs_value_t (*jjs_module_load_cb_t) (jjs_value_t path, jjs_module_load_context_t* context_p, void *user_p);
+typedef jjs_value_t (*jjs_esm_load_cb_t) (jjs_value_t path, jjs_esm_load_context_t *context_p, void *user_p);
 
 /**
  * Proxy related types.

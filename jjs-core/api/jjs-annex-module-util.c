@@ -18,7 +18,7 @@
 #include "jcontext.h"
 #include "annex.h"
 
-#if JJS_MODULE_SYSTEM || JJS_COMMONJS
+#if JJS_COMMONJS || JJS_ESM
 
 /**
  * Call the module_on_resolve callback.
@@ -32,12 +32,12 @@ jjs_annex_module_resolve_t jjs_annex_module_resolve (ecma_value_t request,
                                                      ecma_value_t referrer_path,
                                                      jjs_module_type_t module_type)
 {
-  jjs_module_resolve_context_t context = {
+  jjs_esm_resolve_context_t context = {
     .type = module_type,
     .referrer_path = referrer_path,
   };
 
-  jjs_module_resolve_cb_t module_on_resolve_cb = JJS_CONTEXT (module_on_resolve_cb);
+  jjs_esm_resolve_cb_t module_on_resolve_cb = JJS_CONTEXT (module_on_resolve_cb);
 
   JJS_ASSERT (module_on_resolve_cb != NULL);
 
@@ -86,7 +86,7 @@ jjs_annex_module_load_t jjs_annex_module_load (ecma_value_t path,
                                                ecma_value_t format,
                                                jjs_module_type_t module_type)
 {
-  jjs_module_load_context_t context = {
+  jjs_esm_load_context_t context = {
     .type = module_type,
     .format = format,
   };
@@ -146,4 +146,4 @@ void jjs_annex_module_load_free (jjs_annex_module_load_t *load_result_p)
   jjs_value_free (load_result_p->result);
 } /* jjs_annex_module_load_free */
 
-#endif /* JJS_MODULE_SYSTEM || JJS_COMMONJS */
+#endif /* JJS_COMMONJS || JJS_ESM */

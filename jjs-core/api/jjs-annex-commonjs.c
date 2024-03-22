@@ -26,6 +26,60 @@
 #include "ecma-function-object.h"
 #include "ecma-gc.h"
 
+/**
+* Import a CommonJS module.
+*
+* The specifier can be a package name, relative path (qualified with
+* ./ or ../) or absolute path. Package names are resolved by the currently
+* set pmap.
+*
+* @param specifier string value of the specifier
+* @return module export object. on error, an exception is returned. return
+* value must be freed with jjs_value_free.
+ */
+jjs_value_t
+jjs_commonjs_require (jjs_value_t specifier)
+{
+  jjs_assert_api_enabled ();
+#if JJS_ESM
+  jjs_value_t referrer_path = annex_path_cwd ();
+  jjs_value_t result = jjs_annex_require (specifier, referrer_path);
+
+  jjs_value_free (referrer_path);
+
+  return result;
+#else /* !JJS_ESM */
+  JJS_UNUSED (specifier);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
+#endif /* JJS_ESM */
+} /* jjs_commonjs_require */
+
+/**
+* Import a CommonJS module.
+*
+* @see jjs_commonjs_require
+*
+* @param specifier string value of the specifier
+* @return module export object. on error, an exception is returned. return
+* value must be freed with jjs_value_free.
+ */
+jjs_value_t
+jjs_commonjs_require_sz (const char *specifier_p)
+{
+  jjs_assert_api_enabled ();
+#if JJS_ESM
+  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_p);
+  jjs_value_t result = jjs_commonjs_require (specifier);
+
+  jjs_value_free (specifier);
+
+  return result;
+#else /* !JJS_ESM */
+  JJS_UNUSED (specifier_p);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
+#endif /* JJS_ESM */
+} /* jjs_commonjs_require_sz */
+
 #if JJS_COMMONJS
 
 static jjs_value_t create_require_from_directory (jjs_value_t referrer_path);

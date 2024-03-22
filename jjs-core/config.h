@@ -135,6 +135,10 @@
 #define JJS_COMMONJS JJS_ANNEX
 #endif /* !defined (JJS_COMMONJS) */
 
+#ifndef JJS_ESM
+#define JJS_ESM JJS_ANNEX
+#endif /* !defined (JJS_ESM) */
+
 #ifndef JJS_PMAP
 #define JJS_PMAP JJS_ANNEX
 #endif /* !defined (JJS_PMAP) */
@@ -596,6 +600,9 @@
 #if (JJS_COMMONJS != 0) && (JJS_COMMONJS != 1)
 #error "Invalid value for JJS_COMMONJS macro."
 #endif /* (JJS_COMMONJS != 0) && (JJS_COMMONJS != 1) */
+#if (JJS_ESM != 0) && (JJS_ESM != 1)
+#error "Invalid value for JJS_ESM macro."
+#endif /* (JJS_ESM != 0) && (JJS_ESM != 1) */
 #if (JJS_PMAP != 0) && (JJS_PMAP != 1)
 #error "Invalid value for JJS_PMAP macro."
 #endif /* (JJS_PMAP != 0) && (JJS_PMAP != 1) */
@@ -716,5 +723,9 @@
 #else /* !(JJS_LINE_INFO || JJS_ERROR_MESSAGES || JJS_MODULE_SYSTEM) */
 #define JJS_SOURCE_NAME 0
 #endif /* JJS_LINE_INFO || JJS_ERROR_MESSAGES || JJS_MODULE_SYSTEM */
+
+#if JJS_ESM && !JJS_MODULE_SYSTEM
+#error "JJS_ESM depends on JJS_MODULE_SYSTEM"
+#endif /* JJS_ESM && !JJS_MODULE_SYSTEM */
 
 #endif /* !JJS_CONFIG_H */

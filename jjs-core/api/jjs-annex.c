@@ -163,10 +163,10 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
   ecma_free_value (fn);
 #endif /* JJS_COMMONJS */
 
-#if JJS_MODULE_SYSTEM
+#if JJS_ESM
   global_p->esm_cache = ecma_create_object_with_null_proto ();
   ecma_free_value (global_p->esm_cache);
-#endif /* JJS_MODULE_SYSTEM */
+#endif /* JJS_ESM */
 
 #if JJS_VMOD
   global_p->vmod_cache = ecma_create_object_with_null_proto ();
@@ -181,7 +181,7 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
  */
 void jjs_annex_finalize (void)
 {
-#if JJS_MODULE_SYSTEM
+#if JJS_ESM
   // the esm modules lifetime of the vm. in some cases, that I don't fully understand,
   // the module gc does not occur during the final memory cleanup and debug builds
   // assert. the problem has only been observed on windows for an import capi call
@@ -201,3 +201,19 @@ void jjs_annex_finalize (void)
   jjs_value_free (JJS_CONTEXT (commonjs_args));
 #endif /* JJS_COMMONJS */
 } /* jjs_annex_finalize */
+
+/**
+ * Create an API compatible return value.
+ *
+ * @return return value for JJS API functions
+ */
+jjs_value_t
+jjs_return (const jjs_value_t value) /**< return value */
+{
+  if (ECMA_IS_VALUE_ERROR (value))
+  {
+    return ecma_create_exception_from_context ();
+  }
+
+  return value;
+} /* jjs_return */
