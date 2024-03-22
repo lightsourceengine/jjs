@@ -141,22 +141,4 @@ jjs_port_path_free (jjs_char_t *path_p)
   free (path_p);
 } /* jjs_port_normalize_path */
 
-/**
- * Computes the end of the directory part of a path.
- *
- * @return end of the directory part of a path.
- */
-jjs_size_t JJS_ATTR_WEAK
-jjs_port_path_base (const jjs_char_t *path_p) /**< path */
-{
-  const jjs_char_t *basename_p = (jjs_char_t *) strrchr ((char *) path_p, '/') + 1;
-
-  if (basename_p == NULL)
-  {
-    return 0;
-  }
-
-  return (jjs_size_t) (basename_p - path_p);
-} /* jjs_port_get_directory_end */
-
 #endif /* defined(JJS_WEAK_SYMBOL_SUPPORT) && !(defined(__unix__) || defined(__APPLE__) || defined(_WIN32)) */

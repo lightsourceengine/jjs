@@ -257,18 +257,6 @@ jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_
 void jjs_port_path_free (jjs_char_t *path_p);
 
 /**
- * Get the offset of the basename component in the input path.
- *
- * The implementation should return the offset of the first character after the last path separator found in the path.
- * This is used by the caller to split the path into a directory name and a file name.
- *
- * @param path_p: input zero-terminated path string
- *
- * @return offset of the basename component in the input path
- */
-jjs_size_t jjs_port_path_base (const jjs_char_t *path_p);
-
-/**
  * Open a source file and read the content into a buffer.
  *
  * When the source file is no longer needed by the caller, the returned pointer will be passed to

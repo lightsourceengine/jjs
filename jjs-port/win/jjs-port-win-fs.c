@@ -102,29 +102,4 @@ jjs_port_path_free (jjs_char_t *path_p)
   free (path_p);
 } /* jjs_port_path_free */
 
-/**
- * Get the end of the directory part of the input path.
- *
- * @param path_p: input zero-terminated path string
- *
- * @return offset of the directory end in the input path string
- */
-jjs_size_t
-jjs_port_path_base (const jjs_char_t *path_p)
-{
-  const jjs_char_t *end_p = path_p + strlen ((const char *) path_p);
-
-  while (end_p > path_p)
-  {
-    if (end_p[-1] == '/' || end_p[-1] == '\\')
-    {
-      return (jjs_size_t) (end_p - path_p);
-    }
-
-    end_p--;
-  }
-
-  return 0;
-} /* jjs_port_path_base */
-
 #endif /* defined(_WIN32) */
