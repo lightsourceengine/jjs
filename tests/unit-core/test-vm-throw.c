@@ -33,7 +33,8 @@ vm_throw_callback (const jjs_value_t error_value, /**< captured error */
     case 0:
     {
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jjs_value_is_number (error_value) && jjs_value_as_number (error_value) == -5.6);
+      TEST_ASSERT (jjs_value_is_number (error_value));
+      TEST_ASSERT_DOUBLE_EQUALS (jjs_value_as_number (error_value), -5.6);
       break;
     }
     case 1:

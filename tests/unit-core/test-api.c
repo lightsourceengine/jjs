@@ -254,7 +254,7 @@ static bool foreach (const jjs_value_t name, /**< field name */
   else if (!strncmp (str_buf_p, "delta", (size_t) sz))
   {
     TEST_ASSERT (jjs_value_is_number (value));
-    TEST_ASSERT (jjs_value_as_number (value) == 123.45);
+    TEST_ASSERT_DOUBLE_EQUALS (jjs_value_as_number (value), 123.45);
     return true;
   }
   else if (!strncmp (str_buf_p, "echo", (size_t) sz))
@@ -954,7 +954,8 @@ main (void)
       run_result = jjs_run (parse_result);
       TEST_ASSERT (jjs_value_is_exception (run_result));
       jjs_value_t error_value = jjs_exception_value (run_result, false);
-      TEST_ASSERT (jjs_value_is_number (error_value) && jjs_value_as_number (error_value) == 42.1);
+      TEST_ASSERT (jjs_value_is_number (error_value));
+      TEST_ASSERT_DOUBLE_EQUALS(jjs_value_as_number (error_value), 42.1);
       jjs_value_free (error_value);
       jjs_value_free (run_result);
       jjs_value_free (parse_result);

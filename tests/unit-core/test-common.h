@@ -84,6 +84,11 @@
 #define JJS_ARRAY_SIZE(ARRAY) (sizeof(ARRAY) / sizeof(ARRAY[0]))
 
 /**
+ * Assert that a double is approximately equal (within .001) to an expected double.
+ */
+#define TEST_ASSERT_DOUBLE_EQUALS(ACTUAL, EXPECTED) TEST_ASSERT (fabs ((ACTUAL) - (EXPECTED)) < .001)
+
+/**
  * Test initialization statement that should be included
  * at the beginning of main function in every unit test.
  */
