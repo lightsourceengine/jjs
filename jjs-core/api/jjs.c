@@ -20,6 +20,7 @@
 #include <stdio.h>
 
 #include "jjs-annex.h"
+#include "jjs-context-init.h"
 #include "jjs-debugger-transport.h"
 
 #include "ecma-alloc.h"
@@ -131,86 +132,7 @@ void
 jjs_init_ex (jjs_init_flag_t flags, /**< combination of JJS flags */
                jjs_init_options_t* options) /**< extra init options */
 {
-  jjs_init_options_t clean_options = { .flags = JJS_INIT_OPTION_ALL };
-  uint32_t options_flags = options ? options->flags : JJS_INIT_OPTION_NO_OPTS;
-
-  if (options_flags & JJS_INIT_OPTION_HAS_HEAP_SIZE)
-  {
-    clean_options.heap_size = options->heap_size;
-  }
-  else
-  {
-    clean_options.heap_size = JJS_GLOBAL_HEAP_SIZE;
-  }
-
-  if (options_flags & JJS_INIT_OPTION_HAS_GC_LIMIT)
-  {
-    clean_options.gc_limit = options->gc_limit * 1024;
-  }
-  else
-  {
-    clean_options.gc_limit = JJS_GC_LIMIT * 1024;
-  }
-
-  if (clean_options.gc_limit == 0)
-  {
-    clean_options.gc_limit = (clean_options.heap_size * 1024) / 32;
-  }
-
-  if (options_flags & JJS_INIT_OPTION_HAS_GC_MARK_LIMIT)
-  {
-    clean_options.gc_mark_limit = options->gc_mark_limit;
-  }
-  else
-  {
-    clean_options.gc_mark_limit = JJS_GC_MARK_LIMIT;
-  }
-
-  if (options_flags & JJS_INIT_OPTION_HAS_STACK_LIMIT)
-  {
-    clean_options.stack_limit = options->stack_limit;
-  }
-  else
-  {
-    clean_options.stack_limit = JJS_STACK_LIMIT;
-  }
-
-  if (options_flags & JJS_INIT_OPTION_HAS_GC_NEW_OBJECTS_FRACTION)
-  {
-    clean_options.gc_new_objects_fraction = options->gc_new_objects_fraction;
-  }
-
-  if (clean_options.gc_new_objects_fraction == 0)
-  {
-    clean_options.gc_new_objects_fraction = 16;
-  }
-
-#if JJS_EXTERNAL_CONTEXT
-  size_t total_size = jjs_port_context_alloc (sizeof (jjs_context_t), &clean_options);
-  JJS_UNUSED (total_size);
-#endif /* JJS_EXTERNAL_CONTEXT */
-
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-  memset (context_p, 0, sizeof (jjs_context_t));
-
-  context_p->cfg_global_heap_size = clean_options.heap_size;
-  context_p->cfg_gc_limit = clean_options.gc_limit;
-  context_p->cfg_gc_mark_limit = clean_options.gc_mark_limit;
-  context_p->cfg_stack_limit = clean_options.stack_limit;
-  context_p->cfg_gc_new_objects_fraction = clean_options.gc_new_objects_fraction;
-
-#if JJS_EXTERNAL_CONTEXT && !JJS_SYSTEM_ALLOCATOR
-  uint32_t heap_start_offset = JJS_ALIGNUP (sizeof (jjs_context_t), JMEM_ALIGNMENT);
-  uint8_t *heap_p = ((uint8_t *) context_p) + heap_start_offset;
-  uint32_t heap_size = JJS_ALIGNDOWN (total_size - heap_start_offset, JMEM_ALIGNMENT);
-
-  JJS_ASSERT (heap_p + heap_size <= ((uint8_t *) context_p) + total_size);
-
-  context_p->heap_p = (jmem_heap_t *) heap_p;
-  context_p->heap_size = heap_size;
-#endif /* JJS_EXTERNAL_CONTEXT && !JJS_SYSTEM_ALLOCATOR */
-
-  JJS_CONTEXT (jjs_init_flags) = flags;
+  jjs_context_init (flags, options);
 
   jjs_api_enable ();
 
@@ -285,10 +207,7 @@ jjs_cleanup (void)
     jmem_heap_free_block (this_p, sizeof (jjs_context_data_header_t) + this_p->manager_p->bytes_needed);
   }
 
-  jmem_finalize ();
-#if JJS_EXTERNAL_CONTEXT
-  jjs_port_context_free ();
-#endif /* JJS_EXTERNAL_CONTEXT */
+  jjs_context_cleanup ();
 } /* jjs_cleanup */
 
 /**

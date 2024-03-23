@@ -17,6 +17,7 @@
 #include "ecma-init-finalize.h"
 
 #include "js-parser-internal.h"
+#include "jjs-context-init.h"
 #include "lit-char-helpers.h"
 #include "lit-strings.h"
 #include "test-common.h"
@@ -58,6 +59,7 @@ main (void)
 {
   TEST_INIT ();
 
+  jjs_context_init (JJS_INIT_EMPTY, NULL);
   jmem_init ();
   ecma_init ();
 
@@ -116,6 +118,7 @@ main (void)
 
   ecma_finalize ();
   jmem_finalize ();
+  jjs_context_cleanup ();
 
   return 0;
 } /* main */

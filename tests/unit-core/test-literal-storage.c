@@ -16,6 +16,7 @@
 #include "ecma-helpers.h"
 #include "ecma-literal-storage.h"
 
+#include "jjs-context-init.h"
 #include "test-common.h"
 
 /* Iterations count. */
@@ -64,6 +65,7 @@ main (void)
   lit_utf8_byte_t strings[test_sub_iters][max_characters_in_string + 1];
   lit_utf8_size_t lengths[test_sub_iters];
 
+  jjs_context_init (JJS_INIT_EMPTY, NULL);
   jmem_init ();
 
   for (uint32_t i = 0; i < test_iters; i++)
@@ -131,5 +133,6 @@ main (void)
 
   ecma_finalize_lit_storage ();
   jmem_finalize ();
+  jjs_context_cleanup ();
   return 0;
 } /* main */

@@ -194,9 +194,9 @@ restart:
         result = jjs_throw_sz (JJS_ERROR_COMMON, print_buffer);
         break;
       }
-
-      main_realpath_free (file_path_p);
     }
+
+    main_realpath_free (file_path_p);
 
     if (jjs_value_is_exception (result))
     {

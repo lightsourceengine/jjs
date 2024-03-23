@@ -142,6 +142,7 @@ set(SOURCE_CORE_FILES
   api/jjs-annex-pmap.c
   api/jjs-annex-task.c
   api/jjs-annex-vmod.c
+  api/jjs-context-init.c
   api/jjs-debugger-transport.c
   api/jjs-debugger.c
   api/jjs-module.c
@@ -492,6 +493,7 @@ if(JJS_AMALGAM)
     ecma/operations/ecma-symbol-object.h
     ecma/operations/ecma-typedarray-object.h
     include/jjs-compiler.h
+    include/jjs-context-init.h
     include/jjs-core.h
     include/jjs-debugger-transport.h
     include/jjs-debugger.h

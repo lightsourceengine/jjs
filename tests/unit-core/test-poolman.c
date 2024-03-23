@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "jjs-context-init.h"
 #include "jmem.h"
 
 #define JMEM_ALLOCATOR_INTERNAL
@@ -42,6 +43,7 @@ main (void)
 {
   TEST_INIT ();
 
+  jjs_context_init (JJS_INIT_EMPTY, NULL);
   jmem_init ();
 
   for (uint32_t i = 0; i < test_iters; i++)
@@ -86,6 +88,7 @@ main (void)
 #endif /* JMEM_STATS */
 
   jmem_finalize ();
+  jjs_context_cleanup ();
 
   return 0;
 } /* main */

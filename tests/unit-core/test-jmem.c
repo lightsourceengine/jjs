@@ -16,6 +16,7 @@
 #include "ecma-init-finalize.h"
 
 #include "jmem.h"
+#include "jjs-context-init.h"
 #include "test-common.h"
 
 #define BASIC_SIZE (64)
@@ -25,6 +26,7 @@ main (void)
 {
   TEST_INIT ();
 
+  jjs_context_init (JJS_INIT_EMPTY, NULL);
   jmem_init ();
   ecma_init ();
 
@@ -105,6 +107,7 @@ main (void)
 
   ecma_finalize ();
   jmem_finalize ();
+  jjs_context_cleanup ();
 
   return 0;
 } /* main */

@@ -155,8 +155,7 @@ proxy_native_freecb (void *native_p, /**< native pointer */
 {
   TEST_ASSERT (native_p != NULL);
   TEST_ASSERT (info_p->free_cb == proxy_native_freecb);
-  struct test_data *data_p = (struct test_data *) native_p;
-  data_p->value = -1;
+  free (native_p);
 } /* proxy_native_freecb */
 
 static const jjs_object_native_info_t proxy_native_info = {
