@@ -66,10 +66,6 @@ endif()
 # JJS standalones
 if(JJS_CMDLINE)
   jjs_create_executable("jjs" "main-desktop.c" "arguments/options.c" "arguments/cli.c" "main-desktop-lib.c")
-  if(USING_GCC)
-    # patch to make module stuff work in the commandline tool
-    target_compile_options("jjs" PUBLIC "--std=gnu99")
-  endif()
   target_include_directories("jjs" PRIVATE "${INCLUDE_PACK_PUBLIC}")
   target_link_libraries("jjs" jjs-ext jjs-port)
 endif()
