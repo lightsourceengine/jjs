@@ -21,18 +21,11 @@
 
 #include "jjs-port.h"
 
+// TODO: should come from port / platform
 #ifdef _WIN32
 #define platform_separator            '\\'
-#define platform_is_path_separator(c) ((c) == '/' || (c) == platform_separator)
-#define platform_realpath(path_p)     _fullpath (NULL, path_p, 0)
-static bool platform_is_absolute_path (const char* path_p, size_t path_len);
 #else
-#include <libgen.h>
-
 #define platform_separator            '/'
-#define platform_is_path_separator(c) ((c) == platform_separator)
-#define platform_realpath(path_p)     realpath (path_p, NULL)
-static bool platform_is_absolute_path (const char* path_p, size_t path_len);
 #endif
 
 typedef struct raw_source_s
@@ -45,27 +38,32 @@ typedef struct raw_source_s
 static jjs_value_t jjs_string_utf8_sz (const char* str);
 static raw_source_t read_source (const char* path_p);
 static void free_source (raw_source_t* source);
-static jjs_value_t resolve_specifier (const char* path_p);
 static void object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value);
 
 static const char* DEFAULT_STDIN_FILENAME = "<stdin>";
 
 /**
- * Run a module from a file.
- *
- * @param path_p filename of module to run
- * @return evaluation result or exception (read file, parse, JS runtime error)
+ * Get the realpath of the given path.
+ * 
+ * @param path_p file path
+ * @return resolved path. must be freed with main_realpath_free.
  */
-jjs_value_t
-main_module_run_esm (const char* path_p)
+char* main_realpath (const char* path_p)
 {
-  jjs_value_t specifier = resolve_specifier (path_p);
-  jjs_value_t result = jjs_esm_evaluate (specifier);
+  size_t path_len = path_p ? strlen (path_p) : 0;
 
-  jjs_value_free (specifier);
+  return (char*) jjs_port_path_normalize((const jjs_char_t*) path_p, (jjs_size_t) path_len);
+} /* main_realpath */
 
-  return result;
-}
+/**
+ * Free memory allocated by main_realpath.
+ * 
+ * @param path_p result of main_realpath
+ */
+void main_realpath_free (char* path_p)
+{
+  jjs_port_path_free ((jjs_char_t*) path_p);
+} /* main_realpath_free */
 
 /**
  * Run a non-ESM file.
@@ -73,22 +71,14 @@ main_module_run_esm (const char* path_p)
 jjs_value_t
 main_module_run (const char* path_p)
 {
-  char* full_path_p = platform_realpath (path_p);
-
-  if (!full_path_p)
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "cannot resolve require path");
-  }
-
-  raw_source_t source = read_source (full_path_p);
+  raw_source_t source = read_source (path_p);
 
   if (jjs_value_is_exception (source.status))
   {
-    free (full_path_p);
     return source.status;
   }
 
-  jjs_value_t path_value = jjs_string_utf8_sz (full_path_p);
+  jjs_value_t path_value = jjs_string_utf8_sz (path_p);
 
   jjs_parse_options_t parse_options = {
     .options = JJS_PARSE_HAS_SOURCE_NAME | JJS_PARSE_HAS_USER_VALUE,
@@ -98,7 +88,6 @@ main_module_run (const char* path_p)
 
   jjs_value_t parsed = jjs_parse (source.buffer_p, source.buffer_size, &parse_options);
 
-  free (full_path_p);
   free_source (&source);
   jjs_value_free (path_value);
 
@@ -115,78 +104,30 @@ main_module_run (const char* path_p)
 } /* main_module_run */
 
 /**
- * Check if the path is relative.
- */
-static bool
-is_relative_path (const char* path_p, size_t path_len)
-{
-  return path_len > 2
-         && ((path_p[0] == '.' && platform_is_path_separator (path_p[1]))
-             || (path_p[0] == '.' && path_p[1] == '.' && platform_is_path_separator (path_p[2])));
-} /* is_relative_path */
-
-/**
  * Joins cwd with filename that may or may not exist on disk.
  */
 static jjs_value_t
-cwd_append (const char* filename)
+cwd_append (jjs_value_t filename)
 {
-  char* p = platform_realpath (".");
+  char* cwd_p = main_realpath (".");
 
-  if (!p)
+  if (!cwd_p)
   {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "cwd_append(): failed to realpath '.'");
+    return jjs_throw_sz (JJS_ERROR_COMMON, "cwd_append(): failed to get cwd");
   }
 
-  size_t p_size = strlen (p);
-  size_t filename_size = strlen (filename);
+  jjs_value_t cwd = jjs_string_utf8_sz (cwd_p);
+  char separator_p [] = { platform_separator, 0 };
+  jjs_value_t separator = jjs_string_sz (separator_p);
+  jjs_value_t lhs = jjs_binary_op (JJS_BIN_OP_ADD, cwd, separator);
+  jjs_value_t full_path = jjs_binary_op (JJS_BIN_OP_ADD, lhs, filename);
 
-  if (p_size == 0 || filename_size == 0)
-  {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "cwd_append(): filename is empty");
-  }
-
-  size_t buffer_size = p_size + filename_size + 1;
-  jjs_char_t* buffer = malloc (buffer_size);
-
-  memcpy (buffer, p, p_size);
-  buffer[p_size] = platform_separator;
-  memcpy (&buffer[p_size + 1], filename, filename_size);
-
-  jjs_value_t result = jjs_string (buffer, (jjs_size_t) buffer_size, JJS_ENCODING_UTF8);
-
-  free (p);
-  free (buffer);
-
-  return result;
+  jjs_value_free (separator);
+  jjs_value_free (lhs);
+  main_realpath_free (cwd_p);
+  
+  return full_path;
 } /* cwd_append */
-
-/**
- * Ensure the specifier is a relative or absolute path.
- */
-static jjs_value_t
-resolve_specifier (const char* path_p)
-{
-  jjs_value_t specifier;
-  size_t path_len = strlen (path_p);
-
-  if (platform_is_absolute_path (path_p, path_len) || is_relative_path (path_p, path_len))
-  {
-    specifier = jjs_string_utf8_sz (path_p);
-  }
-  else
-  {
-    jjs_value_t prefix = jjs_string_utf8_sz ("./");
-    jjs_value_t path = jjs_string_utf8_sz (path_p);
-
-    specifier = jjs_binary_op (JJS_BIN_OP_ADD, prefix, path);
-
-    jjs_value_free (prefix);
-    jjs_value_free (path);
-  }
-
-  return specifier;
-} /* resolve_specifier */
 
 /**
  * Creates JJS string from a UTF-8 encoded C string.
@@ -243,32 +184,6 @@ free_source (raw_source_t* source)
   jjs_port_source_free (source->buffer_p);
   jjs_value_free (source->status);
 } /* free_source */
-
-#ifdef _WIN32
-
-static bool
-platform_is_absolute_path(const char* path_p, size_t path_len)
-{
-  if (platform_is_path_separator (path_p[0]))
-  {
-    return true;
-  }
-  else
-  {
-    return path_len > 2 && isalpha(path_p[0]) && path_p[1] == ':' && platform_is_path_separator (path_p[2]);
-  }
-} /* platform_is_absolute_path */
-
-#else
-
-static bool
-platform_is_absolute_path (const char* path_p, size_t path_len)
-{
-  (void) path_len;
-  return platform_is_path_separator (path_p[0]);
-} /* platform_is_absolute_path */
-
-#endif
 
 /**
  * Set an object property to a value.
@@ -439,10 +354,12 @@ main_exec_stdin (main_input_type_t input_type, const char* filename)
   }
   else if (input_type == INPUT_TYPE_SLOPPY_MODE || input_type == INPUT_TYPE_STRICT_MODE)
   {
+    jjs_value_t filename_value = jjs_string_utf8_sz (filename);
+
     jjs_parse_options_t opts = {
       .options = JJS_PARSE_HAS_SOURCE_NAME,
-      .source_name = jjs_string_sz (filename),
-      .user_value = cwd_append (filename),
+      .source_name = filename_value,
+      .user_value = cwd_append (filename_value),
     };
 
     if (input_type == INPUT_TYPE_STRICT_MODE)

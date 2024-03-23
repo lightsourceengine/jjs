@@ -151,13 +151,19 @@ restart:
   for (uint32_t source_index = 0; source_index < arguments.source_count; source_index++)
   {
     main_source_t *source_file_p = sources_p + source_index;
-    const char *file_path_p = argv[source_file_p->path_index];
+    uint16_t source_file_type = source_file_p->type;
+    char *file_path_p = main_realpath (argv[source_file_p->path_index]);
 
-    switch (source_file_p->type)
+    if (file_path_p == NULL)
+    {
+      source_file_type = SOURCE_UNKNOWN;
+    }
+
+    switch (source_file_type)
     {
       case SOURCE_MODULE:
       {
-        result = main_module_run_esm (file_path_p);
+        result = jjs_esm_evaluate_sz (file_path_p);
         break;
       }
       case SOURCE_SNAPSHOT:
@@ -165,10 +171,8 @@ restart:
         result = jjsx_source_exec_snapshot (file_path_p, source_file_p->snapshot_index);
         break;
       }
-      default:
+      case SOURCE_SCRIPT:
       {
-        assert (source_file_p->type == SOURCE_SCRIPT);
-
         if ((arguments.option_flags & OPT_FLAG_PARSE_ONLY) != 0)
         {
           result = jjsx_source_parse_script (file_path_p);
@@ -180,6 +184,18 @@ restart:
 
         break;
       }
+      case SOURCE_UNKNOWN:
+      default:
+      {
+        assert (source_file_type == SOURCE_UNKNOWN);
+
+        char print_buffer[4096];
+        snprintf (print_buffer, sizeof(print_buffer) / sizeof(print_buffer[0]), "Cannot file module: %s", argv[source_file_p->path_index]);
+        result = jjs_throw_sz (JJS_ERROR_COMMON, print_buffer);
+        break;
+      }
+
+      main_realpath_free (file_path_p);
     }
 
     if (jjs_value_is_exception (result))
