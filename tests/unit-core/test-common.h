@@ -81,6 +81,8 @@
 #define JJS_EXPECT_PROMISE_MOVE(EXPR)         \
   JJS_EXPECT_PROMISE (push(EXPR))
 
+#define JJS_ARRAY_SIZE(ARRAY) (sizeof(ARRAY) / sizeof(ARRAY[0]))
+
 /**
  * Test initialization statement that should be included
  * at the beginning of main function in every unit test.

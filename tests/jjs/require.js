@@ -18,7 +18,7 @@ assert(require === globalThis.require, 'require !== globalThis.require');
 const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows } = require('../lib/assert.js');
 
-$jjs.jjs_pmap_from_file('./fixtures/pmap/pmap.json');
+$jjs.pmap('./fixtures/pmap/pmap.json');
 
 test('require() should load require, module, exports, __filename and __dirname into a module scope', () => {
   // note: this file is not a module. scope checks will happen in the required module

@@ -16,8 +16,7 @@
 const { assertThrows } = require('../lib/assert.js');
 const { test, runAllTests } = require('../lib/test.cjs');
 
-const fromJSON = $jjs.jjs_pmap_from_json;
-const resolve = $jjs.jjs_pmap_resolve;
+const { resolve } = $jjs.pmap;
 
 test('should resolve "pkg" with package main shorthand', () => {
   pmap({
@@ -113,12 +112,7 @@ test('should resolve "@test/pkg2" with module system specific package path', () 
 });
 
 function pmap(obj) {
-  try {
-    fromJSON(JSON.stringify(obj), './fixtures/pmap');
-  } catch (e) {
-    print(e);
-    throw e;
-  }
+  return $jjs.pmap(obj, './fixtures/pmap');
 }
 
 function expectEndsWith(actual, expected)  {

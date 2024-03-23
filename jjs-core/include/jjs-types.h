@@ -221,82 +221,24 @@ typedef struct
 } jjs_parse_options_t;
 
 /**
- * Options loading modules from in-memory source.
+ * Source code and configuration data of an in-memory ES module.
  *
- * ES modules are tied to paths, either package, network or filesystem. When embedding JJS into another
- * program, the embedder may want to load a module from in-memory source. These options are configuration
- * for the in-memory module to play nice with the rest of the ES module ecosystem.
- *
- * To initialize a jjs_esm_options_t, use jjs_esm_options_init() and cleanup with
- * jjs_esm_options_free(&options). If a JS value is assigned to options, the options object owns the reference
- * and jjs_esm_options_free() will clean it up. Note, this is slightly different, and less verbose, API than
- * other options/desc objects in JJS.
- *
- * When source is parsed and loaded, the options will affect import.meta in the following way:
- *
- * import.meta.filename  = join(jjs_esm_options_t.dirname, basename(jjs_esm_options_t.filename))
- * import.meta.dirname   = realpath(jjs_esm_options_t.dirname) or cwd()
- * import.meta.extension = jjs_esm_options_t.meta_extension
- * import.meta.url       = path_to_file_url(import.meta.filename)
- *
- * When options is null or the default:
- *
- * import.meta.filename  = join(cwd(), basename(jjs_esm_options_t.filename))
- * import.meta.dirname   = cwd()
- * import.meta.extension = undefined
- * import.meta.url       = path_to_file_url(import.meta.filename)
- *
- * dirname must be a fs path that can be resolved with realpath. The requirement exists so that the cache key
- * for the source module is consistent with the rest of the system. Also, dirname is the referrer path for the
- * module. The referrer path is used when the module calls require or import or resolve. By default, dirname
- * will be the cwd.
- *
- * import.meta.extension is a JJS specific concept. It is intended as a way to pass bindings or other stuff from
- * native to a module, accessed in the JS runtime by import.meta.extension.
- *
- * With respect to caching, by default, in-memory source modules will NOT be cached. Calling the same source and
- * options multiple times will compile, link and evaluate the source each time. If options.cache is true, the
- * source module will be cached using options.filename (fully resolved) as the cache keys. Attempts to use this
- * key for in-memory source will result in an exception. Static or dynamic imports will be able to import using the
- * key.
+ * This struct should not be accessed directly. See jjs_esm_source_init* and jjs_esm_source_set* API
+ * functions for usage information.
  */
 typedef struct
 {
-  /**
-   * Simple filename.
-   *
-   * The value must be a string with no path separators.
-   *
-   * If undefined, a default value of "<anonymous>.mjs" is used.
-   */
-  jjs_value_t filename;
+  jjs_value_t source_value; /**< module source code value. valid if !undefined. default is undefined. */
+  const jjs_char_t* source_buffer_p; /**< module source code. valid if source_value is unset. default is NULL. */
+  jjs_size_t source_buffer_size; /**< size, in bytes, of source_buffer_p. default is 0. */
 
-  /**
-   * Directory path.
-   *
-   * The value must be a string to a directory path on disk. realpath will be run on the string to ensure
-   * the path and that the directory exists.
-   *
-   * If undefined, the current working directory (cwd) is used.
-   */
-  jjs_value_t dirname;
-
-  /**
-   * Value for import.meta.extension.
-   *
-   * If undefined, the value is ignored.
-   */
-  jjs_value_t meta_extension;
-
+  jjs_value_t filename; /**< simple filename of module. default is undefined, resolves to <anonymous>.mjs */
+  jjs_value_t dirname; /**< fs dirname of the module. default is undefined, resolves to cwd. */
+  jjs_value_t meta_extension; /**< value of import.meta.extension. default in undefined. */
   uint32_t start_line; /**< start line of the source code. default is 0. */
   uint32_t start_column; /**< start column of the source code. default is 0. */
-
-  /**
-   * If true, this module is put into the ESM cache using the resolve dirname + filename as the
-   * key. By default, caching is turned off.
-   */
-  bool cache;
-} jjs_esm_options_t;
+  bool cache; /**< if true, the module will be put in the esm cache using resolved dirname + filename as the key. default is false.*/
+} jjs_esm_source_t;
 
 /**
  * Description of ECMA property descriptor.

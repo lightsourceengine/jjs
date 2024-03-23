@@ -14,38 +14,51 @@
  */
 
 const { test, runAllTests } = require('../lib/test.cjs');
-const { assertThrows } = require('../lib/assert.js');
 
-$jjs.jjs_pmap_from_file('./fixtures/pmap/pmap.json');
+$jjs.pmap('./fixtures/pmap/pmap.json');
 
-test('jjs_esm_import() should import module from relative specifier', () => {
-  const { one } = $jjs.jjs_esm_import('./fixtures/one-export.mjs');
+test('jjs_esm_import() should import module from relative specifier', async () => {
+  const { one } = await import('./fixtures/one-export.mjs');
 
   assert(one === 'test', `${one} !== test`);
 });
 
-test('jjs_esm_import() should import module from relative specifier', () => {
-  const { x } = $jjs.jjs_esm_import('pkg');
+test('jjs_esm_import() should import module from relative specifier', async () => {
+  const { x } = await import('pkg');
 
   assert(x === 5, `${x} !== 5`);
 });
 
-test('jjs_esm_import() should import from module system with path', () => {
-  const ns = $jjs.jjs_esm_import('@test/pkg2/a.js');
+test('jjs_esm_import() should import from module system with path', async () => {
+  const ns = await import('@test/pkg2/a.js');
 
   assert(ns.default === "module.a", `${ns.default} !== module.a`);
 })
 
-test('jjs_esm_import() should throw Error when package not found', () => {
+test('jjs_esm_import() should throw Error when package not found', async () => {
   const specifiers = ['unknown', './unknown', '@unknown/pkg', '/unknown', ''];
 
-  specifiers.forEach((specifier) => assertThrows(Error, () => { $jjs.jjs_esm_import(specifier); }));
+  for (const specifier of specifiers) {
+    try {
+      await import(specifier);
+    } catch (e) {
+      continue;
+    }
+    assert(false, `expected import('${specifier}') to throw`);
+  }
 });
 
-test('jjs_esm_import() should throw Error on non-string specifier', () => {
+test('jjs_esm_import() should throw Error on non-string specifier', async () => {
   const inputs = [null, undefined, 0, 1, true, false, {}, [], () => {}];
 
-  inputs.forEach((input) => assertThrows(Error, () => { $jjs.jjs_esm_import(input); }));
+  for (const specifier of inputs) {
+    try {
+      await import(specifier);
+    } catch (e) {
+      continue;
+    }
+    assert(false, `expected import('${specifier}') to throw`);
+  }
 });
 
 runAllTests();

@@ -1230,18 +1230,25 @@ jjs_value_t jjs_commonjs_require_sz (const char* specifier_p);
  * @{
  */
 
+void jjs_esm_source_init (jjs_esm_source_t* esm_source_p, const jjs_char_t* source_p, jjs_size_t source_size);
+void jjs_esm_source_init_sz (jjs_esm_source_t* esm_source_p, const char* source_p);
+void jjs_esm_source_init_value (jjs_esm_source_t* esm_source_p, jjs_value_t source, bool move);
+void jjs_esm_source_deinit (jjs_esm_source_t* esm_source_p);
+
+void jjs_esm_source_set_start (jjs_esm_source_t* esm_source_p, uint32_t start_column, uint32_t start_line);
+void jjs_esm_source_set_meta_extension (jjs_esm_source_t* esm_source_p, jjs_value_t meta_extension, bool move);
+void jjs_esm_source_set_path (jjs_esm_source_t* esm_source_p, jjs_value_t dirname, bool move_dirname, jjs_value_t filename, bool move_filename);
+void jjs_esm_source_set_filename (jjs_esm_source_t* esm_source_p, jjs_value_t filename, bool move);
+void jjs_esm_source_set_dirname (jjs_esm_source_t* esm_source_p, jjs_value_t dirname, bool move);
+void jjs_esm_source_set_cache (jjs_esm_source_t* esm_source_p, bool cache);
+
 jjs_value_t jjs_esm_import (jjs_value_t specifier);
 jjs_value_t jjs_esm_import_sz (const char* specifier_p);
-jjs_value_t jjs_esm_import_source (const jjs_char_t* source_p, jjs_size_t source_len, jjs_esm_options_t * options);
-jjs_value_t jjs_esm_import_source_value (jjs_value_t source, jjs_esm_options_t * options);
+jjs_value_t jjs_esm_import_source (jjs_esm_source_t* source_p);
 
 jjs_value_t jjs_esm_evaluate (jjs_value_t specifier);
 jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p);
-jjs_value_t jjs_esm_evaluate_source (const jjs_char_t* source_p, jjs_size_t source_len, jjs_esm_options_t * options);
-jjs_value_t jjs_esm_evaluate_source_value (jjs_value_t source, jjs_esm_options_t * options);
-
-jjs_esm_options_t jjs_esm_options_init (void);
-void jjs_esm_options_free (jjs_esm_options_t * options);
+jjs_value_t jjs_esm_evaluate_source (jjs_esm_source_t* source_p);
 
 void jjs_esm_on_load (jjs_esm_load_cb_t callback_p, void *user_p);
 void jjs_esm_on_resolve (jjs_esm_resolve_cb_t callback_p, void *user_p);
