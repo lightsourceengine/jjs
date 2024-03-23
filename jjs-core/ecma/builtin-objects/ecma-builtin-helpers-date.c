@@ -496,9 +496,8 @@ static ecma_value_t
 ecma_date_to_string_format (ecma_number_t datetime_number, /**< datetime */
                             const char *format_p) /**< format buffer */
 {
-  const uint32_t date_buffer_length = 37;
-  JJS_VLA (lit_utf8_byte_t, date_buffer, date_buffer_length);
-
+  lit_utf8_byte_t date_buffer[37];
+  const uint32_t date_buffer_length = sizeof (date_buffer) / sizeof (date_buffer[0]);
   lit_utf8_byte_t *dest_p = date_buffer;
 
   while (*format_p != LIT_CHAR_NULL)

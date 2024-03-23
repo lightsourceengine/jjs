@@ -81,8 +81,11 @@ ecma_uint128_shift_left (ecma_uint128_t *num_p, int32_t shift)
 static void JJS_ATTR_ALWAYS_INLINE
 ecma_uint128_shift_right (ecma_uint128_t *num_p, int32_t shift)
 {
-  num_p->lo = (num_p->lo >> shift) | (num_p->hi << (64 - shift));
-  num_p->hi >>= shift;
+  if (shift > 0)
+  {
+    num_p->lo = (num_p->lo >> shift) | (shift == 0 ? 0 : (num_p->hi << (64 - shift)));
+    num_p->hi >>= shift;
+  }
 } /* ecma_uint128_shift_right */
 
 /**

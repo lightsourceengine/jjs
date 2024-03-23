@@ -15,9 +15,6 @@
 cmake_minimum_required(VERSION 3.10)
 project (JJS C)
 
-set(C_STANDARD 99)
-set(CMAKE_C_EXTENSIONS ON)
-
 # remove -rdynamic
 cmake_policy(SET CMP0065 NEW)
 
@@ -223,7 +220,7 @@ elseif((NOT CYGWIN AND NOT MINGW AND NOT MSYS) AND (USING_GCC OR USING_CLANG))
 endif()
 
 if(USING_GCC OR USING_CLANG)
-  jjs_add_compile_flags(-pedantic)
+  jjs_add_compile_flags(-std=c99 -pedantic)
   if(JJS_MATH)
     jjs_add_compile_flags(-fno-builtin)
   endif()
