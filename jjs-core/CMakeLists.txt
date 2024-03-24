@@ -34,7 +34,6 @@ set(JJS_REGEXP_STRICT_MODE        OFF          CACHE BOOL   "Enable regexp stric
 set(JJS_REGEXP_DUMP_BYTE_CODE     OFF          CACHE BOOL   "Enable regexp byte-code dumps?")
 set(JJS_SNAPSHOT_EXEC             ON           CACHE BOOL   "Enable executing snapshot files?")
 set(JJS_SNAPSHOT_SAVE             OFF          CACHE BOOL   "Enable saving snapshot files?")
-set(JJS_SYSTEM_ALLOCATOR          OFF          CACHE BOOL   "Enable system allocator?")
 set(JJS_VALGRIND                  OFF          CACHE BOOL   "Enable Valgrind support?")
 set(JJS_VM_HALT                   OFF          CACHE BOOL   "Enable VM execution stop callback?")
 set(JJS_VM_THROW                  OFF          CACHE BOOL   "Enable VM throw callback?")
@@ -44,12 +43,6 @@ set(JJS_STACK_LIMIT               "(0)"        CACHE STRING "Maximum stack usage
 set(JJS_GC_MARK_LIMIT             "(8)"        CACHE STRING "Maximum depth of recursion during GC mark phase")
 
 # Option overrides
-if(JJS_SYSTEM_ALLOCATOR)
-  set(JJS_CPOINTER_32_BIT ON)
-
-  set(JJS_CPOINTER_32_BIT_MESSAGE " (FORCED BY SYSTEM ALLOCATOR)")
-endif()
-
 if (JJS_GLOBAL_HEAP_SIZE GREATER 512)
   set(JJS_CPOINTER_32_BIT ON)
 
@@ -99,7 +92,6 @@ message(STATUS "JJS_REGEXP_STRICT_MODE         " ${JJS_REGEXP_STRICT_MODE})
 message(STATUS "JJS_REGEXP_DUMP_BYTE_CODE      " ${JJS_REGEXP_DUMP_BYTE_CODE})
 message(STATUS "JJS_SNAPSHOT_EXEC              " ${JJS_SNAPSHOT_EXEC} ${JJS_SNAPSHOT_EXEC_MESSAGE})
 message(STATUS "JJS_SNAPSHOT_SAVE              " ${JJS_SNAPSHOT_SAVE} ${JJS_SNAPSHOT_SAVE_MESSAGE})
-message(STATUS "JJS_SYSTEM_ALLOCATOR           " ${JJS_SYSTEM_ALLOCATOR})
 message(STATUS "JJS_VALGRIND                   " ${JJS_VALGRIND})
 message(STATUS "JJS_VM_HALT                    " ${JJS_VM_HALT})
 message(STATUS "JJS_VM_THROW                   " ${JJS_VM_THROW})
@@ -653,9 +645,6 @@ jjs_add_define01(JJS_SNAPSHOT_EXEC)
 
 # Snapshot save
 jjs_add_define01(JJS_SNAPSHOT_SAVE)
-
-# Enable system allocator
-jjs_add_define01(JJS_SYSTEM_ALLOCATOR)
 
 # Valgrind
 jjs_add_define01(JJS_VALGRIND)

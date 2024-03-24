@@ -230,7 +230,6 @@ def generate_build_options(arguments):
     build_options_append('JJS_REGEXP_DUMP_BYTE_CODE', arguments.show_regexp_opcodes)
     build_options_append('JJS_SNAPSHOT_EXEC', arguments.snapshot_exec)
     build_options_append('JJS_SNAPSHOT_SAVE', arguments.snapshot_save)
-    build_options_append('JJS_SYSTEM_ALLOCATOR', arguments.system_allocator)
     build_options_append('JJS_VALGRIND', arguments.valgrind)
     build_options_append('JJS_VM_HALT', arguments.vm_exec_stop)
     build_options_append('JJS_VM_THROW', arguments.vm_throw)

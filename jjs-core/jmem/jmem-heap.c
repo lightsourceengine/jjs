@@ -34,7 +34,6 @@
  * @{
  */
 
-#if !JJS_SYSTEM_ALLOCATOR
 /**
  * End of list marker.
  */
@@ -65,7 +64,6 @@ jmem_heap_get_region_end (jmem_heap_free_t *curr_p) /**< current region */
 {
   return (jmem_heap_free_t *) ((uint8_t *) curr_p + curr_p->size);
 } /* jmem_heap_get_region_end */
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 
 /**
  * Startup initialization of heap
@@ -73,7 +71,6 @@ jmem_heap_get_region_end (jmem_heap_free_t *curr_p) /**< current region */
 void
 jmem_heap_init (void)
 {
-#if !JJS_SYSTEM_ALLOCATOR
 #if !JJS_CPOINTER_32_BIT
   /* the maximum heap size for 16bit compressed pointers should be 512K */
   JJS_ASSERT (((UINT16_MAX + 1) << JMEM_ALIGNMENT_LOG) >= JMEM_HEAP_SIZE);
@@ -95,7 +92,6 @@ jmem_heap_init (void)
   JMEM_VALGRIND_NOACCESS_SPACE (&JJS_HEAP_CONTEXT (first), sizeof (jmem_heap_free_t));
   JMEM_VALGRIND_NOACCESS_SPACE (JJS_HEAP_CONTEXT (area), JMEM_HEAP_AREA_SIZE);
 
-#endif /* !JJS_SYSTEM_ALLOCATOR */
   JMEM_HEAP_STAT_INIT ();
 } /* jmem_heap_init */
 
@@ -106,9 +102,7 @@ void
 jmem_heap_finalize (void)
 {
   JJS_ASSERT (JJS_CONTEXT (jmem_heap_allocated_size) == 0);
-#if !JJS_SYSTEM_ALLOCATOR
   JMEM_VALGRIND_NOACCESS_SPACE (&JJS_HEAP_CONTEXT (first), JMEM_HEAP_SIZE);
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 } /* jmem_heap_finalize */
 
 /**
@@ -123,7 +117,6 @@ jmem_heap_finalize (void)
 static void *JJS_ATTR_HOT
 jmem_heap_alloc (const size_t size) /**< size of requested block */
 {
-#if !JJS_SYSTEM_ALLOCATOR
   /* Align size. */
   const size_t required_size = ((size + JMEM_ALIGNMENT - 1) / JMEM_ALIGNMENT) * JMEM_ALIGNMENT;
   jmem_heap_free_t *data_space_p = NULL;
@@ -243,16 +236,6 @@ jmem_heap_alloc (const size_t size) /**< size of requested block */
   JMEM_VALGRIND_MALLOCLIKE_SPACE (data_space_p, size);
 
   return (void *) data_space_p;
-#else /* JJS_SYSTEM_ALLOCATOR */
-  JJS_CONTEXT (jmem_heap_allocated_size) += size;
-
-  while (JJS_CONTEXT (jmem_heap_allocated_size) >= JJS_CONTEXT (jmem_heap_limit))
-  {
-    JJS_CONTEXT (jmem_heap_limit) += CONFIG_GC_LIMIT;
-  }
-
-  return malloc (size);
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 } /* jmem_heap_alloc */
 
 /**
@@ -351,7 +334,6 @@ jmem_heap_alloc_block_null_on_error (const size_t size) /**< required memory siz
   return block_p;
 } /* jmem_heap_alloc_block_null_on_error */
 
-#if !JJS_SYSTEM_ALLOCATOR
 /**
  * Finds the block in the free block list which preceeds the argument block
  *
@@ -445,7 +427,6 @@ jmem_heap_insert_block (jmem_heap_free_t *block_p, /**< block to insert */
   JMEM_VALGRIND_NOACCESS_SPACE (block_p, sizeof (jmem_heap_free_t));
   JMEM_VALGRIND_NOACCESS_SPACE (next_p, sizeof (jmem_heap_free_t));
 } /* jmem_heap_insert_block */
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 
 /**
  * Internal method for freeing a memory block.
@@ -458,7 +439,6 @@ jmem_heap_free_block_internal (void *ptr, /**< pointer to beginning of data spac
   JJS_ASSERT (JJS_CONTEXT (jmem_heap_limit) >= JJS_CONTEXT (jmem_heap_allocated_size));
   JJS_ASSERT (JJS_CONTEXT (jmem_heap_allocated_size) > 0);
 
-#if !JJS_SYSTEM_ALLOCATOR
   /* checking that ptr points to the heap */
   JJS_ASSERT (jmem_is_heap_pointer (ptr));
   JJS_ASSERT ((uintptr_t) ptr % JMEM_ALIGNMENT == 0);
@@ -472,10 +452,7 @@ jmem_heap_free_block_internal (void *ptr, /**< pointer to beginning of data spac
   JJS_CONTEXT (jmem_heap_allocated_size) -= aligned_size;
 
   JMEM_VALGRIND_FREELIKE_SPACE (ptr);
-#else /* JJS_SYSTEM_ALLOCATOR */
-  JJS_CONTEXT (jmem_heap_allocated_size) -= size;
-  free (ptr);
-#endif /* !JJS_SYSTEM_ALLOCATOR */
+
   while (JJS_CONTEXT (jmem_heap_allocated_size) + CONFIG_GC_LIMIT <= JJS_CONTEXT (jmem_heap_limit))
   {
     JJS_CONTEXT (jmem_heap_limit) -= CONFIG_GC_LIMIT;
@@ -494,7 +471,6 @@ jmem_heap_realloc_block (void *ptr, /**< memory region to reallocate */
                          const size_t old_size, /**< current size of the region */
                          const size_t new_size) /**< desired new size */
 {
-#if !JJS_SYSTEM_ALLOCATOR
   JJS_ASSERT (jmem_is_heap_pointer (ptr));
   JJS_ASSERT ((uintptr_t) ptr % JMEM_ALIGNMENT == 0);
   JJS_ASSERT (old_size != 0);
@@ -651,34 +627,6 @@ jmem_heap_realloc_block (void *ptr, /**< memory region to reallocate */
   JMEM_HEAP_STAT_FREE (old_size);
   JMEM_HEAP_STAT_ALLOC (new_size);
   return ret_block_p;
-#else /* JJS_SYSTEM_ALLOCATOR */
-  const size_t required_size = new_size - old_size;
-
-#if !JJS_MEM_GC_BEFORE_EACH_ALLOC
-  if (JJS_CONTEXT (jmem_heap_allocated_size) + required_size >= JJS_CONTEXT (jmem_heap_limit))
-  {
-    ecma_free_unused_memory (JMEM_PRESSURE_LOW);
-  }
-#else /* !JJS_MEM_GC_BEFORE_EACH_ALLOC */
-  ecma_gc_run ();
-#endif /* JJS_MEM_GC_BEFORE_EACH_ALLOC */
-
-  JJS_CONTEXT (jmem_heap_allocated_size) += required_size;
-
-  while (JJS_CONTEXT (jmem_heap_allocated_size) >= JJS_CONTEXT (jmem_heap_limit))
-  {
-    JJS_CONTEXT (jmem_heap_limit) += CONFIG_GC_LIMIT;
-  }
-
-  while (JJS_CONTEXT (jmem_heap_allocated_size) + CONFIG_GC_LIMIT <= JJS_CONTEXT (jmem_heap_limit))
-  {
-    JJS_CONTEXT (jmem_heap_limit) -= CONFIG_GC_LIMIT;
-  }
-
-  JMEM_HEAP_STAT_FREE (old_size);
-  JMEM_HEAP_STAT_ALLOC (new_size);
-  return realloc (ptr, new_size);
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 } /* jmem_heap_realloc_block */
 
 /**
@@ -706,13 +654,8 @@ jmem_heap_free_block (void *ptr, /**< pointer to beginning of data space of the 
 bool
 jmem_is_heap_pointer (const void *pointer) /**< pointer */
 {
-#if !JJS_SYSTEM_ALLOCATOR
   return ((uint8_t *) pointer >= JJS_HEAP_CONTEXT (area)
           && (uint8_t *) pointer <= (JJS_HEAP_CONTEXT (area) + JMEM_HEAP_AREA_SIZE));
-#else /* JJS_SYSTEM_ALLOCATOR */
-  JJS_UNUSED (pointer);
-  return true;
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 } /* jmem_is_heap_pointer */
 #endif /* !JJS_NDEBUG */
 
@@ -737,9 +680,7 @@ jmem_heap_stats_print (void)
   jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
 
   JJS_DEBUG_MSG ("Heap stats:\n");
-#if !JJS_SYSTEM_ALLOCATOR
   JJS_DEBUG_MSG ("  Heap size = %u bytes\n", (unsigned) heap_stats->size);
-#endif /* !JJS_SYSTEM_ALLOCATOR */
   JJS_DEBUG_MSG ("  Allocated = %u bytes\n", (unsigned) heap_stats->allocated_bytes);
   JJS_DEBUG_MSG ("  Peak allocated = %u bytes\n", (unsigned) heap_stats->peak_allocated_bytes);
   JJS_DEBUG_MSG ("  Waste = %u bytes\n", (unsigned) heap_stats->waste_bytes);
@@ -760,9 +701,7 @@ jmem_heap_stats_print (void)
 void
 jmem_heap_stat_init (void)
 {
-#if !JJS_SYSTEM_ALLOCATOR
   JJS_CONTEXT (jmem_heap_stats).size = JMEM_HEAP_AREA_SIZE;
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 } /* jmem_heap_stat_init */
 
 /**

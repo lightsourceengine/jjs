@@ -100,7 +100,7 @@ jjs_context_init (jjs_init_flag_t flags, jjs_init_options_t* options_p)
   context_p->cfg_stack_limit = options_p->stack_limit;
   context_p->cfg_gc_new_objects_fraction = options_p->gc_new_objects_fraction;
 
-#if JJS_EXTERNAL_CONTEXT && !JJS_SYSTEM_ALLOCATOR
+#if JJS_EXTERNAL_CONTEXT
   uint32_t heap_start_offset = JJS_ALIGNUP (sizeof (jjs_context_t), JMEM_ALIGNMENT);
   uint8_t *heap_p = ((uint8_t *) context_p) + heap_start_offset;
   uint32_t heap_size = JJS_ALIGNDOWN (total_size - heap_start_offset, JMEM_ALIGNMENT);
@@ -109,7 +109,7 @@ jjs_context_init (jjs_init_flag_t flags, jjs_init_options_t* options_p)
 
   context_p->heap_p = (jmem_heap_t *) heap_p;
   context_p->heap_size = heap_size;
-#endif /* JJS_EXTERNAL_CONTEXT && !JJS_SYSTEM_ALLOCATOR */
+#endif /* JJS_EXTERNAL_CONTEXT */
 
   JJS_CONTEXT (jjs_init_flags) = flags;
 }

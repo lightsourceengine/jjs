@@ -436,19 +436,6 @@
 #endif /* !defined (JJS_SNAPSHOT_SAVE) */
 
 /**
- * Enable/Disable usage of system allocator.
- *
- * Allowed values:
- *  0: Disable usage of system allocator.
- *  1: Enable usage of system allocator.
- *
- * Default value: 0
- */
-#ifndef JJS_SYSTEM_ALLOCATOR
-#define JJS_SYSTEM_ALLOCATOR 0
-#endif /* !defined (JJS_SYSTEM_ALLOCATOR) */
-
-/**
  * Enables/disables the unicode case conversion in the engine.
  * By default Unicode case conversion is enabled.
  */
@@ -688,9 +675,6 @@
 #if (JJS_SNAPSHOT_SAVE != 0) && (JJS_SNAPSHOT_SAVE != 1)
 #error "Invalid value for 'JJS_SNAPSHOT_SAVE' macro."
 #endif /* (JJS_SNAPSHOT_SAVE != 0) && (JJS_SNAPSHOT_SAVE != 1) */
-#if (JJS_SYSTEM_ALLOCATOR != 0) && (JJS_SYSTEM_ALLOCATOR != 1)
-#error "Invalid value for 'JJS_SYSTEM_ALLOCATOR' macro."
-#endif /* (JJS_SYSTEM_ALLOCATOR != 0) && (JJS_SYSTEM_ALLOCATOR != 1) */
 #if (JJS_UNICODE_CASE_CONVERSION != 0) && (JJS_UNICODE_CASE_CONVERSION != 1)
 #error "Invalid value for 'JJS_UNICODE_CASE_CONVERSION' macro."
 #endif /* (JJS_UNICODE_CASE_CONVERSION != 0) && (JJS_UNICODE_CASE_CONVERSION != 1) */

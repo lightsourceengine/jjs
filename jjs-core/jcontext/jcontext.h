@@ -93,7 +93,6 @@
 #define CONFIG_GC_MARK_LIMIT JJS_GC_MARK_LIMIT
 #endif /* JJS_EXTERNAL_CONTEXT */
 
-#if !JJS_SYSTEM_ALLOCATOR
 /**
  * Heap structure
  *
@@ -107,7 +106,6 @@
  * there.
  */
 typedef struct jmem_heap_t jmem_heap_t;
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 
 /**
  * User context item
@@ -130,10 +128,8 @@ struct jjs_context_t
 {
   /* The value of external context members must be preserved across initializations and cleanups. */
 #if JJS_EXTERNAL_CONTEXT
-#if !JJS_SYSTEM_ALLOCATOR
   jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
   uint32_t heap_size; /**< size of the heap */
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 #endif /* JJS_EXTERNAL_CONTEXT */
 
   ecma_global_object_t *global_object_p; /**< current global object */
@@ -295,8 +291,6 @@ struct jjs_context_t
 #define JJS_CONTEXT_STRUCT (*jjs_port_context_get ())
 #define JJS_CONTEXT(field) (jjs_port_context_get ()->field)
 
-#if !JJS_SYSTEM_ALLOCATOR
-
 #define JMEM_HEAP_SIZE (JJS_CONTEXT (heap_size))
 
 #define JMEM_HEAP_AREA_SIZE (JMEM_HEAP_SIZE - JMEM_ALIGNMENT)
@@ -308,8 +302,6 @@ struct jmem_heap_t
 };
 
 #define JJS_HEAP_CONTEXT(field) (JJS_CONTEXT (heap_p)->field)
-
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 
 #else /* !JJS_EXTERNAL_CONTEXT */
 
@@ -331,8 +323,6 @@ extern jjs_context_t jjs_global_context;
  * Provides a reference to a field in the current context.
  */
 #define JJS_CONTEXT(field) (jjs_global_context.field)
-
-#if !JJS_SYSTEM_ALLOCATOR
 
 /**
  * Size of heap
@@ -360,7 +350,6 @@ extern jmem_heap_t jjs_global_heap;
  */
 #define JJS_HEAP_CONTEXT(field) (jjs_global_heap.field)
 
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 
 #endif /* JJS_EXTERNAL_CONTEXT */
 

@@ -128,8 +128,6 @@ jcontext_take_exception (void)
  */
 jjs_context_t jjs_global_context;
 
-#if !JJS_SYSTEM_ALLOCATOR
-
 /**
  * Check size of heap is corresponding to configuration
  */
@@ -140,8 +138,6 @@ JJS_STATIC_ASSERT (sizeof (jmem_heap_t) <= JMEM_HEAP_SIZE,
  * Global heap.
  */
 jmem_heap_t jjs_global_heap JJS_ATTR_ALIGNED (JMEM_ALIGNMENT) JJS_ATTR_GLOBAL_HEAP;
-
-#endif /* !JJS_SYSTEM_ALLOCATOR */
 
 #endif /* !JJS_EXTERNAL_CONTEXT */
 

@@ -122,7 +122,7 @@ JJS_BUILDOPTIONS = [
     Options('buildoption_test-show_regexp_opcodes',
             ['--show-regexp-opcodes=on']),
     Options('buildoption_test-cpointer_32bit',
-            ['--compile-flag=-m32', '--cpointer-32bit=on', '--system-allocator=on'],
+            ['--compile-flag=-m32', '--cpointer-32bit=on'],
             skip=skip_if(
                 platform.system() != 'Linux' or (platform.machine() != 'i386' and platform.machine() != 'x86_64'),
                 '-m32 is only supported on x86[-64]-linux')

@@ -103,11 +103,6 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-vmod.c
 )
 
-# jjs_heap_stats_t.size == 0 if system allocator is used.
-if(JJS_SYSTEM_ALLOCATOR)
-  list(REMOVE_ITEM SOURCE_UNIT_TEST_MAIN_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/test-mem-stats.c)
-endif()
-
 # Unit tests declaration
 add_custom_target(unittests-core)
 
