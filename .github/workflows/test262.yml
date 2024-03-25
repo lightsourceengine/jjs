@@ -83,7 +83,7 @@ jobs:
   test262-macos:
     env:
       # sanitizer builds take too long, fall back to normal debug builds
-      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
+      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }}
     strategy:
       matrix:
         type: [release, debug]
