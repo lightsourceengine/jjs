@@ -88,7 +88,7 @@ ecma_gc_set_object_visited (ecma_object_t *object_p) /**< object */
 {
   if (object_p->type_flags_refs >= ECMA_OBJECT_NON_VISITED)
   {
-    if (JJS_CONTEXT (cfg_gc_mark_limit) != 0)
+    if (JJS_CONTEXT (gc_mark_limit) != 0)
     {
       if (JJS_CONTEXT (ecma_gc_mark_recursion_limit) != 0)
       {
@@ -2130,9 +2130,11 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
 void
 ecma_gc_run (void)
 {
-  if (JJS_CONTEXT (cfg_gc_mark_limit) != 0)
+  uint32_t gc_mark_limit = JJS_CONTEXT (gc_mark_limit);
+
+  if (gc_mark_limit != 0)
   {
-    JJS_ASSERT (JJS_CONTEXT (ecma_gc_mark_recursion_limit) == JJS_GC_MARK_LIMIT);
+    JJS_ASSERT (JJS_CONTEXT (ecma_gc_mark_recursion_limit) == gc_mark_limit);
   }
 
   JJS_CONTEXT (ecma_gc_new_objects) = 0;
@@ -2190,9 +2192,9 @@ ecma_gc_run (void)
 
   do
   {
-    if (CONFIG_GC_MARK_LIMIT != 0)
+    if (gc_mark_limit != 0)
     {
-      JJS_ASSERT (JJS_CONTEXT (ecma_gc_mark_recursion_limit) == JJS_GC_MARK_LIMIT);
+      JJS_ASSERT (JJS_CONTEXT (ecma_gc_mark_recursion_limit) == gc_mark_limit);
     }
 
     marked_anything_during_current_iteration = false;
@@ -2216,7 +2218,7 @@ ecma_gc_run (void)
         black_end_p->gc_next_cp = obj_iter_cp;
         black_end_p = obj_iter_p;
 
-        if (CONFIG_GC_MARK_LIMIT != 0)
+        if (JJS_CONTEXT (gc_mark_limit) != 0)
         {
           if (obj_iter_p->type_flags_refs >= ECMA_OBJECT_REF_ONE)
           {
@@ -2292,9 +2294,7 @@ ecma_free_unused_memory (jmem_pressure_t pressure) /**< current pressure */
      * If there is enough newly allocated objects since last GC, probably it is worthwhile to start GC now.
      * Otherwise, probability to free sufficient space is considered to be low.
      */
-    size_t new_objects_fraction = CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION;
-
-    if (JJS_CONTEXT (ecma_gc_new_objects) * new_objects_fraction > JJS_CONTEXT (ecma_gc_objects_number))
+    if (JJS_CONTEXT (ecma_gc_new_objects) * JJS_CONTEXT (gc_new_objects_fraction) > JJS_CONTEXT (ecma_gc_objects_number))
     {
       ecma_gc_run ();
     }

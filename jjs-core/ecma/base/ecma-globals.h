@@ -2039,7 +2039,7 @@ typedef enum
  */
 #define ECMA_SYMBOL_FLAGS_MASK ((1 << ECMA_SYMBOL_FLAGS_SHIFT) - 1)
 
-#if JJS_EXTERNAL_CONTEXT || JJS_STACK_LIMIT > 0
+#if !JJS_VM_STACK_STATIC && JJS_DEFAULT_VM_STACK_LIMIT > 0
 /**
  * Check the current stack usage. If the limit is reached a RangeError is raised.
  * The macro argument specifies the return value which is usally ECMA_VALUE_ERROR or NULL.
@@ -2047,8 +2047,7 @@ typedef enum
 #define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)                          \
   do                                                                         \
   {                                                                          \
-    volatile uint32_t cfg_stack_limit = JJS_CONTEXT(cfg_stack_limit);        \
-    if (cfg_stack_limit != 0 && ecma_is_stack_limit_exceeded())              \
+    if (JJS_CONTEXT(vm_stack_limit) != 0 && ecma_is_stack_limit_exceeded())  \
     {                                                                        \
       ecma_raise_maximum_callstack_error ();                                 \
       return RETURN_VALUE;                                                   \
@@ -2060,10 +2059,11 @@ typedef enum
  * This version should be used in most cases.
  */
 #define ECMA_CHECK_STACK_USAGE() ECMA_CHECK_STACK_USAGE_RETURN (ECMA_VALUE_ERROR)
-#else /* !(JJS_EXTERNAL_CONTEXT || JJS_STACK_LIMIT > 0) */
+#else /* !(!JJS_VM_STACK_STATIC && JJS_DEFAULT_VM_STACK_LIMIT > 0) */
+
 /**
  * Check the current stack usage. If the limit is reached a RangeError is raised.
- * The macro argument specifies the return value which is usally ECMA_VALUE_ERROR or NULL.
+ * The macro argument specifies the return value which is usually ECMA_VALUE_ERROR or NULL.
  */
 #define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)
 
@@ -2072,7 +2072,7 @@ typedef enum
  * This version should be used in most cases.
  */
 #define ECMA_CHECK_STACK_USAGE()
-#endif /* JJS_EXTERNAL_CONTEXT || JJS_STACK_LIMIT > 0 */
+#endif /* JJS_STACK_LIMIT > 0 */
 
 /**
  * Invalid object pointer which represents abrupt completion

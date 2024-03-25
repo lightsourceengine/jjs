@@ -52,7 +52,7 @@ main (void)
 {
   TEST_INIT ();
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   // few toUint32 test-cases
   test_to_uint32 (1.0, 1);

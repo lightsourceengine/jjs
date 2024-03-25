@@ -72,7 +72,7 @@ run_eval_error (const char *source_p)
 int
 main (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   if (!jjs_feature_enabled (JJS_FEATURE_MAP) || !jjs_feature_enabled (JJS_FEATURE_SET)
       || !jjs_feature_enabled (JJS_FEATURE_WEAKMAP) || !jjs_feature_enabled (JJS_FEATURE_WEAKSET))

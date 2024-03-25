@@ -202,7 +202,7 @@ test_free_cb (jjs_arraybuffer_type_t buffer_type, /**< type of the array buffer 
 int
 main (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   if (!jjs_feature_enabled (JJS_FEATURE_TYPEDARRAY))
   {

@@ -126,7 +126,7 @@ main (void)
   /* The test system enables this feature when Promises are enabled. */
   TEST_ASSERT (jjs_feature_enabled (JJS_FEATURE_PROMISE_CALLBACK));
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_promise_event_filter_t filters =
     (JJS_PROMISE_EVENT_FILTER_CREATE | JJS_PROMISE_EVENT_FILTER_RESOLVE | JJS_PROMISE_EVENT_FILTER_REJECT

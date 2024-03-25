@@ -51,7 +51,7 @@ main (void)
 {
   TEST_INIT ();
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   const jjs_char_t arrow_function[] = "_ => 5";
   const jjs_char_t async_arrow_function[] = "async _ => 5";

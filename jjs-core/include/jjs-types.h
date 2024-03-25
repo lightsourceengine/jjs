@@ -41,34 +41,131 @@ typedef enum
 } jjs_init_flag_t;
 
 /**
- * Option bits for jjs_init_options_t.
+ * Status values returned by jjs_init functions.
  */
 typedef enum
 {
-  JJS_INIT_OPTION_NO_OPTS = 0, /**< no options passed */
-  JJS_INIT_OPTION_HAS_HEAP_SIZE = (1 << 0), /**< heap_size field is valid */
-  JJS_INIT_OPTION_HAS_GC_LIMIT = (1 << 1), /**< gc_limit field is valid */
-  JJS_INIT_OPTION_HAS_GC_MARK_LIMIT = (1 << 2), /**< gc_mark_limit field is valid */
-  JJS_INIT_OPTION_HAS_STACK_LIMIT = (1 << 3), /**< stack_limit field is valid */
-  JJS_INIT_OPTION_HAS_GC_NEW_OBJECTS_FRACTION = (1 << 4), /**< gc_new_objects_fraction field is valid */
-  JJS_INIT_OPTION_ALL = 0xFFFF,
-} jjs_init_option_enable_feature_t;
+  JJS_CONTEXT_STATUS_OK = 0, /**< context successfully initialized */
+  JJS_CONTEXT_STATUS_ALREADY_INITIALIZED, /**< context already in an initialized state */
+  JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP, /**< external heap is invalid or not aligned */
+  JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE, /**< heap size was configured at compile time and cannot be changed  */
+  JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT, /**< stack limit was configured at compile time and cannot be changed  */
+  JJS_CONTEXT_STATUS_CHAOS, /**< context is in a horrible state */
+} jjs_context_status_t;
 
 /**
- * Various configuration options for jjs_init_ex().
+ * JJS init flags.
+ */
+typedef enum
+{
+  JJS_CONTEXT_UNUSED = (0u), /**< empty flag set */
+  JJS_CONTEXT_INITIALIZED = (1u << 0), /**< context is initialized. used internally. */
+  JJS_CONTEXT_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
+  JJS_CONTEXT_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
+  JJS_CONTEXT_MEM_STATS = (1u << 2), /**< dump memory statistics */
+
+  JJS_CONTEXT_USING_EXTERNAL_HEAP = (1u << 3),
+} jjs_context_flag_t;
+
+/**
+ * Callback for cleaning up an externally set context vm heap.
+ */
+typedef void (*jjs_context_heap_free_cb_t) (void* context_heap, void* user_p);
+
+/**
+ * Context initialization settings.
+ *
+ * Use jjs_context_options_init() to initialize this structure, as that function fills
+ * in configured defaults.
  */
 typedef struct
 {
-  uint32_t flags; /**< combination of jjs_parse_option_enable_feature_t values */
-  uint32_t heap_size; /**< maximum global heap size in bytes. if 0, JJS_GLOBAL_HEAP_SIZE define is used */
-  uint32_t gc_limit; /**< allowed heap usage limit until next garbage collection. if 0, 1/32 of heap_size is used */
-  uint32_t gc_mark_limit; /**< gc mark depth. if 0, mark depth is unlimited */
-  uint32_t stack_limit; /**< maximum stack usage size in bytes. if 0, stack usage is unlimited. */
-  uint32_t gc_new_objects_fraction; /**< Amount of newly allocated objects since the last GC run,
-                                      * represented as a fraction of all allocated objects. If 0,
-                                      * 16 is used.
-                                      */
-} jjs_init_options_t;
+  /**
+   * Context configuration flags. Bits enumerated in jjs_context_flag_t.
+   */
+  uint32_t context_flags;
+
+  /**
+   * Externally provided heap.
+   *
+   * It is necessary for the caller to ensure that the heap pointer's lifetime outlasts
+   * the lifetime of JJS. The pointer lifetime should end with the callback to
+   * external_heap_free_cb or after jjs_cleanup has been called.
+   *
+   * If set, add JJS_CONTEXT_USING_EXTERNAL_HEAP to the context_flags.
+   *
+   * If the pointer is not aligned (address and vm_heap_size) or JJS_VM_HEAP_STATIC is set,
+   * jjs_init will return an error status code.
+   */
+  uint8_t* external_heap;
+
+  /**
+   * Cleanup callback when the context is destroyed and the external heap can be freed.
+   */
+  jjs_context_heap_free_cb_t external_heap_free_cb;
+
+  /**
+   * Optional user defined token passed to external_heap_free_cb.
+   */
+  void* external_heap_free_user_p;
+
+  /**
+   * Maximum VM heap size.
+   *
+   * Use JJS_TO_KB() or JJS_TO_MB() macros to set this field. The field format is in short
+   * hand kilobytes. The macros make setup code easier to read.
+   *
+   * If JJS_VM_HEAP_STATIC is set, jjs_init will return an error status if you attempt to
+   * set this field.
+   *
+   * Default: JJS_DEFAULT_VM_HEAP_SIZE
+   */
+  uint32_t vm_heap_size;
+
+  /**
+   * VM stack size limit.
+   *
+   * Use JJS_TO_KB() or JJS_TO_MB() macros to set this field. The field format is in short
+   * hand kilobytes. The macros make setup code easier to read.
+   *
+   * If JJS_VM_STACK_STATIC is set, jjs_init will return an error status if you attempt to
+   * set this field.
+   *
+   * Default: JJS_DEFAULT_VM_STACK_LIMIT
+   */
+  uint32_t vm_stack_limit;
+
+  /**
+   * Allowed heap usage limit until next garbage collection.
+   *
+   * Use JJS_TO_KB() or JJS_TO_MB() macros to set this field. The field format is in short
+   * hand kilobytes. The macros make setup code easier to read.
+   *
+   * If 0, the computed value is min (1/32 of heap size, 8K).
+   *
+   * Default: JJS_DEFAULT_GC_LIMIT
+   */
+  uint32_t gc_limit;
+
+  /**
+   * GC mark depth.
+   *
+   * if 0, mark depth is unlimited.
+   *
+   * Default: JJS_DEFAULT_GC_MARK_LIMIT
+   */
+  uint32_t gc_mark_limit;
+
+  /**
+   * Amount of newly allocated objects since the last GC run, represented as
+   * a fraction of all allocated objects.
+   *
+   * If 0, 16 is used.
+   *
+   * Default: JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
+   */
+  uint32_t gc_new_objects_fraction;
+} jjs_context_options_t;
 
 /**
  * JJS log levels. The levels are in severity order
@@ -141,6 +238,8 @@ typedef enum
   JJS_FEATURE_COMMONJS, /**< CommonJS module support (import from file) */
   JJS_FEATURE_PMAP, /**< Package Map support */
   JJS_FEATURE_VMOD, /**< Virtual Module support */
+  JJS_FEATURE_VM_HEAP_STATIC, /**< VM stack heap size has been set at compile time.  */
+  JJS_FEATURE_VM_STACK_STATIC, /**< VM stack limit size has been set at compile time. */
   JJS_FEATURE__COUNT /**< number of features. NOTE: must be at the end of the list */
 } jjs_feature_t;
 
@@ -958,6 +1057,28 @@ typedef void (*jjs_arraybuffer_free_cb_t) (jjs_arraybuffer_type_t buffer_type,
  * @param user_p user_p value passed to the jjs_vmod_native* function. can be NULL.
  */
 typedef jjs_value_t (*jjs_vmod_create_cb_t) (jjs_value_t name, void* user_p);
+
+/**
+ * Converts a megabyte value representation to a kilobyte format for size values
+ * in jjs_init settings.
+ *
+ * This is not a general purpose conversion. It should only be used for
+ * declaratively setting jjs_init size values.
+ *
+ * Example: init_options.vm_heap_size = JJS_TO_MB (4); // set heap size to 4MB
+ */
+#define JJS_TO_MB(VALUE) ((VALUE) * 1024)
+
+/**
+ * Converts a kilobyte value representation to a kilobyte format for size values
+ * in jjs_init settings.
+ *
+ * This is not a general purpose conversion. It should only be used for
+ * declaratively setting jjs_init size values.
+ *
+ * Example: init_options.vm_heap_size = JJS_TO_KB (512); // set heap size to 512K
+ */
+#define JJS_TO_KB(VALUE) (VALUE)
 
 /**
  * @}

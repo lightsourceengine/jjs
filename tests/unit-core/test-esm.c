@@ -115,7 +115,7 @@ source_exceptions_impl (jjs_value_t fn (jjs_esm_source_t*))
 
   TEST_ASSERT (p == JJS_ARRAY_SIZE (bad_config_p));
 
-  for (size_t i = 0; i < JJS_ARRAY_SIZE (bad_config_p); i++)
+  for (size_t i = 0; i < p; i++)
   {
     check_exception (fn (&bad_config_p[i]));
     jjs_esm_source_deinit (&bad_config_p[i]);
@@ -326,7 +326,7 @@ main (void)
 {
   TEST_INIT ();
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   // jjs_esm_source*()
   test_esm_source ();

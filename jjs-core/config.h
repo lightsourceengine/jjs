@@ -190,57 +190,35 @@
 #endif /* !defined (JJS_ERROR_MESSAGES) */
 
 /**
- * Enable/Disable external context.
+ * Enable a static (immutable size) VM heap size.
  *
- * Allowed values:
- *  0: Disable external context.
- *  1: Enable external context support.
+ * When enabled, the vm heap size cannot be dynamically set through jjs_init. Instead,
+ * a heap size of JJS_DEFAULT_VM_HEAP_SIZE is always used. Also, the heap does not
+ * get malloc'd(), but resides in a global variable.
+ *
+ * When disabled, the vm heap can be set through jjs_init. The heap will be malloc'd
+ * and free'd on clean up.
  *
  * Default value: 0
  */
-#ifndef JJS_EXTERNAL_CONTEXT
-#define JJS_EXTERNAL_CONTEXT 0
-#endif /* !defined (JJS_EXTERNAL_CONTEXT) */
+#ifndef JJS_VM_HEAP_STATIC
+#define JJS_VM_HEAP_STATIC 0
+#endif /* JJS_VM_HEAP_STATIC */
 
 /**
- * Maximum size of heap in kilobytes
+ * Enable a static VM stack limit.
  *
- * Default value: 1024 KiB
+ * When enabled, the VM stack limit is fixed to JJS_DEFAULT_VM_STACK_LIMIT. The stack
+ * cannot be set dynamically through jjs_init(). If JJS_DEFAULT_VM_STACK_LIMIT is 0,
+ * this setting will disable all stack limit checks (recommended).
+ *
+ * When disabled, the VM stack limit can be set in jjs_init.
+ *
+ * Default value: 0
  */
-#ifndef JJS_GLOBAL_HEAP_SIZE
-#define JJS_GLOBAL_HEAP_SIZE (1024)
-#endif /* !defined (JJS_GLOBAL_HEAP_SIZE) */
-
-/**
- * The allowed heap usage limit until next garbage collection, in bytes.
- *
- * If value is 0, the default is 1/32 of JJS_HEAP_SIZE
- */
-#ifndef JJS_GC_LIMIT
-#define JJS_GC_LIMIT (0)
-#endif /* !defined (JJS_GC_LIMIT) */
-
-/**
- * Maximum stack usage size in kilobytes
- *
- * Note: This feature cannot be used when 'detect_stack_use_after_return=1' ASAN option is enabled.
- * For more detailed description:
- *   - https://github.com/google/sanitizers/wiki/AddressSanitizerUseAfterReturn#compatibility
- *
- * Default value: 0, unlimited
- */
-#ifndef JJS_STACK_LIMIT
-#define JJS_STACK_LIMIT (0)
-#endif /* !defined (JJS_STACK_LIMIT) */
-
-/**
- * Maximum depth of recursion during GC mark phase
- *
- * Default value: 8
- */
-#ifndef JJS_GC_MARK_LIMIT
-#define JJS_GC_MARK_LIMIT (8)
-#endif /* !defined (JJS_GC_MARK_LIMIT) */
+#ifndef JJS_VM_STACK_STATIC
+#define JJS_VM_STACK_STATIC 0
+#endif /* JJS_VM_STACK_STATIC */
 
 /**
  * Enable/Disable property lookup cache.
@@ -477,6 +455,71 @@
 #endif /* !defined (JJS_VM_THROW) */
 
 /**
+ * Default settings for VM initialization (see jjs_init).
+ *
+ * The defaults are set up so they may be optionally provided at compile time
+ * by simple compiler defines.
+ */
+
+/**
+ * Maximum size of heap in kilobytes
+ *
+ * Default value: 1024 KiB
+ */
+#ifndef JJS_DEFAULT_VM_HEAP_SIZE
+#define JJS_DEFAULT_VM_HEAP_SIZE (1024)
+#endif /* !defined (JJS_DEFAULT_VM_HEAP_SIZE) */
+
+/**
+ * Allowed heap usage limit until next garbage collection
+ *
+ * Whenever the total allocated memory size reaches the current heap limit, garbage collection will be triggered
+ * to try and reduce clutter from unreachable objects. If the allocated memory can't be reduced below the limit,
+ * then the current limit will be incremented by the gc limit.
+ *
+ * If value is 0, the default is calculated by JJS_COMPUTE_GC_LIMIT
+ */
+#ifndef JJS_DEFAULT_GC_LIMIT
+#define JJS_DEFAULT_GC_LIMIT (0)
+#endif /* !defined (JJS_DEFAULT_GC_LIMIT) */
+
+/**
+ * Maximum stack usage size in kilobytes
+ *
+ * Note: This feature cannot be used when 'detect_stack_use_after_return=1' ASAN option is enabled.
+ * For more detailed description:
+ *   - https://github.com/google/sanitizers/wiki/AddressSanitizerUseAfterReturn#compatibility
+ *
+ * Default value: 0, unlimited
+ */
+#ifndef JJS_DEFAULT_VM_STACK_LIMIT
+#define JJS_DEFAULT_VM_STACK_LIMIT (0)
+#endif /* !defined (JJS_DEFAULT_VM_STACK_LIMIT) */
+
+/**
+ * Maximum depth of recursion during GC mark phase
+ *
+ * Default value: 8
+ */
+#ifndef JJS_DEFAULT_GC_MARK_LIMIT
+#define JJS_DEFAULT_GC_MARK_LIMIT (8)
+#endif /* !defined (JJS_DEFAULT_GC_MARK_LIMIT) */
+
+/**
+ * Amount of newly allocated objects since the last GC run, represented as a
+ * fraction of all allocated objects, which when reached will trigger garbage
+ * collection to run with a low pressure setting.
+ *
+ * The fraction is calculated as:
+ *                1.0 / JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
+ *
+ * Default value: 16
+ */
+#ifndef JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
+#define JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION (16)
+#endif /* !defined (JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION) */
+
+/**
  * Advanced section configurations.
  */
 
@@ -490,7 +533,7 @@
  * For the moment it is mainly meant for the following targets:
  *      - ESP8266
  *
- * Example configuration for moving (some) constatns into a given section:
+ * Example configuration for moving (some) constants into a given section:
  *  # define JJS_ATTR_CONST_DATA __attribute__((section(".rodata.const")))
  */
 #ifndef JJS_ATTR_CONST_DATA
@@ -498,14 +541,38 @@
 #endif /* !defined (JJS_ATTR_CONST_DATA) */
 
 /**
- * The JJS_ATTR_GLOBAL_HEAP allows adding extra attributes for the JJS global heap.
+ * The JJS_ATTR_STATIC_HEAP allows adding extra attributes for the JJS global heap.
  *
  * Example on how to move the global heap into it's own section:
- *   #define JJS_ATTR_GLOBAL_HEAP __attribute__((section(".text.globalheap")))
+ *   #define JJS_ATTR_STATIC_HEAP __attribute__((section(".text.globalheap")))
  */
-#ifndef JJS_ATTR_GLOBAL_HEAP
-#define JJS_ATTR_GLOBAL_HEAP
-#endif /* !defined (JJS_ATTR_GLOBAL_HEAP) */
+#ifndef JJS_ATTR_STATIC_HEAP
+#define JJS_ATTR_STATIC_HEAP
+#endif /* !defined (JJS_ATTR_STATIC_HEAP) */
+
+/**
+ * Component of the equation that calculates gc limit, the threshold, in bytes, before
+ * a gc is triggered.
+ *
+ * See: JJS_COMPUTE_GC_LIMIT ()
+ *
+ * Default value: 32
+ */
+#ifndef JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR
+#define JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR 32
+#endif /* JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR */
+
+/**
+ * Component of the equation that calculates gc limit, the threshold, in bytes, before
+ * a gc is triggered.
+ *
+ * See: JJS_COMPUTE_GC_LIMIT (HEAP_SIZE)
+ *
+ * Default value: 8192
+ */
+#ifndef JJS_DEFAULT_MAX_GC_LIMIT
+#define JJS_DEFAULT_MAX_GC_LIMIT 8192
+#endif /* JJS_DEFAULT_MAX_GC_LIMIT */
 
 /**
  * Sanity check for macros to see if the values are 0 or 1
@@ -615,21 +682,21 @@
 #if (JJS_ERROR_MESSAGES != 0) && (JJS_ERROR_MESSAGES != 1)
 #error "Invalid value for 'JJS_ERROR_MESSAGES' macro."
 #endif /* (JJS_ERROR_MESSAGES != 0) && (JJS_ERROR_MESSAGES != 1) */
-#if (JJS_EXTERNAL_CONTEXT != 0) && (JJS_EXTERNAL_CONTEXT != 1)
-#error "Invalid value for 'JJS_EXTERNAL_CONTEXT' macro."
-#endif /* (JJS_EXTERNAL_CONTEXT != 0) && (JJS_EXTERNAL_CONTEXT != 1) */
-#if JJS_GLOBAL_HEAP_SIZE <= 0
-#error "Invalid value for 'JJS_GLOBAL_HEAP_SIZE' macro."
-#endif /* JJS_GLOBAL_HEAP_SIZE <= 0 */
-#if JJS_GC_LIMIT < 0
-#error "Invalid value for 'JJS_GC_LIMIT' macro."
-#endif /* JJS_GC_LIMIT < 0 */
-#if JJS_STACK_LIMIT < 0
-#error "Invalid value for 'JJS_STACK_LIMIT' macro."
-#endif /* JJS_STACK_LIMIT < 0 */
-#if JJS_GC_MARK_LIMIT < 0
-#error "Invalid value for 'JJS_GC_MARK_LIMIT' macro."
-#endif /* JJS_GC_MARK_LIMIT < 0 */
+#if JJS_DEFAULT_VM_HEAP_SIZE <= 0
+#error "Invalid value for 'JJS_DEFAULT_VM_HEAP_SIZE' macro."
+#endif /* JJS_DEFAULT_VM_HEAP_SIZE <= 0 */
+#if JJS_DEFAULT_GC_LIMIT < 0
+#error "Invalid value for 'JJS_DEFAULT_GC_LIMIT' macro."
+#endif /* JJS_DEFAULT_GC_LIMIT < 0 */
+#if (JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION <= 0)
+#error "Invalud value for 'JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION' macro."
+#endif /* (JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION <= 0) */
+#if JJS_DEFAULT_VM_STACK_LIMIT < 0
+#error "Invalid value for 'JJS_DEFAULT_VM_STACK_LIMIT' macro."
+#endif /* JJS_DEFAULT_VM_STACK_LIMIT < 0 */
+#if JJS_DEFAULT_GC_MARK_LIMIT < 0
+#error "Invalid value for 'JJS_DEFAULT_GC_MARK_LIMIT' macro."
+#endif /* JJS_DEFAULT_GC_MARK_LIMIT < 0 */
 #if (JJS_LCACHE != 0) && (JJS_LCACHE != 1)
 #error "Invalid value for 'JJS_LCACHE' macro."
 #endif /* (JJS_LCACHE != 0) && (JJS_LCACHE != 1) */
@@ -687,6 +754,18 @@
 #if (JJS_VM_THROW != 0) && (JJS_VM_THROW != 1)
 #error "Invalid value for 'JJS_VM_THROW' macro."
 #endif /* (JJS_VM_THROW != 0) && (JJS_VM_THROW != 1) */
+#if (JJS_VM_HEAP_STATIC != 0) && (JJS_VM_HEAP_STATIC != 1)
+#error "Invalid value for 'JJS_VM_HEAP_STATIC' macro."
+#endif /* (JJS_VM_HEAP_STATIC != 0) && (JJS_VM_HEAP_STATIC != 1) */
+#if (JJS_VM_STACK_STATIC != 0) && (JJS_VM_STACK_STATIC != 1)
+#error "Invalid value for 'JJS_VM_STACK_STATIC' macro."
+#endif /* (JJS_VM_STACK_STATIC != 0) && (JJS_VM_STACK_STATIC != 1) */
+#if (JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR <= 0)
+#error "Invalud value for 'JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR' macro."
+#endif /* (JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR <= 0) */
+#if (JJS_DEFAULT_MAX_GC_LIMIT <= 0)
+#error "Invalud value for 'JJS_DEFAULT_MAX_GC_LIMIT' macro."
+#endif /* (JJS_DEFAULT_MAX_GC_LIMIT <= 0) */
 
 /**
  * Cross component requirements check.

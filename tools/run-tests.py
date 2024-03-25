@@ -42,59 +42,65 @@ def skip_if(condition, desc):
     return desc if condition else False
 
 
-OPTIONS_COMMON = ['--lto=off', '--function-to-string=on', '--mem-heap=512', '--cpointer-32bit=off',
-                  '--error-messages=off', '--line-info=off']
-OPTIONS_PROFILE_MIN = ['--profile=minimal']
+OPTIONS_COMMON = [
+    # vm configuration (minimal heap for 16 bit pointers)
+    '--default-vm-heap-size=512',
+    '--default-vm-stack-limit=96',
+    # stuff the tests need
+    '--function-to-string=on',
+]
 OPTIONS_STACK_LIMIT = ['--stack-limit=96']
-OPTIONS_GC_MARK_LIMIT = ['--gc-mark-limit=16']
 OPTIONS_MEM_STRESS = ['--mem-stress-test=on']
 OPTIONS_DEBUG = ['--debug']
 OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-snapshot=on']
-OPTIONS_UNITTESTS = ['--unittests=on', '--jjs-cmdline=off', '--error-messages=on',
-                     '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on',
-                     '--vm-throw=on', '--line-info=on', '--mem-stats=on', '--promise-callback=on',
-                     '--jjs-ext=on', '--jjs-ext-debugger=on']
-OPTIONS_DOCTESTS = ['--doctests=on', '--jjs-cmdline=off', '--error-messages=on',
-                    '--snapshot-save=on', '--snapshot-exec=on', '--vm-exec-stop=on']
+OPTIONS_UNITTESTS = [
+    # enable unittests
+    '--unittests=on',
+    # vm configuration (minimal heap for 16 bit pointers)
+    '--default-vm-heap-size=512',
+    '--default-vm-stack-limit=96',
+    # stuff the tests need
+    '--function-to-string=on',
+    '--jjs-cmdline=off',
+    '--snapshot-save=on',
+    '--snapshot-exec=on',
+    '--vm-exec-stop=on',
+    '--vm-throw=on',
+    '--mem-stats=on',
+    '--promise-callback=on',
+    '--jjs-ext=on',
+    '--jjs-ext-debugger=on',
+]
 OPTIONS_PROMISE_CALLBACK = ['--promise-callback=on']
-
-# Test options for unittests
 JJS_UNITTESTS_OPTIONS = [
-    Options('doctests',
-            OPTIONS_COMMON + OPTIONS_DOCTESTS + OPTIONS_PROMISE_CALLBACK),
-    Options('unittests',
-            OPTIONS_COMMON + OPTIONS_UNITTESTS),
-    Options('unittests-init-fini',
-            OPTIONS_COMMON + OPTIONS_UNITTESTS
-            + ['--cmake-param=-DJJS_FEATURE_INIT_FINI=ON']),
+    # # 16 bit pointers + dynamic heap/stack
+    # Options('unittests-dynamic-16',
+    #         OPTIONS_UNITTESTS + ['--cpointer-32bit=off']),
+    # 32 bit pointers + dynamic heap/stack
+    Options('unittests-dynamic-32',
+            OPTIONS_UNITTESTS + ['--cpointer-32bit=on']),
+    # # 16 bit pointers + static heap/stack
+    # Options('unittests-static-16',
+    #         OPTIONS_UNITTESTS + ['--cpointer-32bit=off', '--vm-heap-static=on', '--vm-stack-static=on']),
+    # # 32 bit pointers + static heap/stack
+    # Options('unittests-static-32',
+    #         OPTIONS_UNITTESTS + ['--cpointer-32bit=on', '--vm-heap-static=on', '--vm-stack-static=on']),
 ]
 
 # Test options for jjs-tests
 JJS_TESTS_OPTIONS = [
-    Options('jjs_tests',
-            OPTIONS_COMMON + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT + OPTIONS_MEM_STRESS),
-    Options('jjs_tests-snapshot',
-            OPTIONS_COMMON + OPTIONS_SNAPSHOT + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT,
-            ['--snapshot']),
-    Options('jjs_tests-cpointer_32bit',
-            OPTIONS_COMMON + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT
-            + ['--cpointer-32bit=on', '--mem-heap=1024']),
-    Options('jjs_tests-external_context',
-            OPTIONS_COMMON + OPTIONS_STACK_LIMIT + OPTIONS_GC_MARK_LIMIT
-            + ['--external-context=on']),
+    Options('jjs_tests', OPTIONS_COMMON),
+    # Options('jjs_tests-snapshot', OPTIONS_COMMON + OPTIONS_SNAPSHOT, ['--snapshot']),
 ]
 
 # Test options for jjs-pack-tests
 JJS_PACK_TESTS_OPTIONS = [
-    Options('jjs_pack_tests',
-            OPTIONS_COMMON + OPTIONS_GC_MARK_LIMIT
-            + ['--jjs-pack=on', '--cpointer-32bit=on', '--mem-heap=1024', '--stack-limit=0', '--external-context=on']),
+    Options('jjs_pack_tests', OPTIONS_COMMON + ['--jjs-pack=on']),
 ]
 
 # Test options for test262
 TEST262_TEST_SUITE_OPTIONS = [
-    Options('test262',
-            OPTIONS_COMMON + ['--line-info=on', '--error-messages=on', '--mem-heap=20480']),
+    Options('test262', OPTIONS_COMMON + ['--default-vm-heap-size=20480']),
 ]
 
 # Test options for jjs-debugger
@@ -136,13 +142,11 @@ JJS_BUILDOPTIONS = [
             skip=skip_if((sys.platform == 'win32'), 'Not yet supported, link failure on Windows')),
     Options('buildoption_test-cmdline_test',
             ['--jjs-cmdline-test=on'],
-            skip=skip_if((sys.platform == 'win32'), 'rand() can\'t be overriden on Windows (benchmarking.c)')),
+            skip=skip_if((sys.platform == 'win32'), 'rand() can\'t be overridden on Windows (benchmarking.c)')),
     Options('buildoption_test-cmdline_snapshot',
             ['--jjs-cmdline-snapshot=on']),
     Options('buildoption_test-recursion_limit',
             OPTIONS_STACK_LIMIT),
-    Options('buildoption_test-gc-mark_limit',
-            OPTIONS_GC_MARK_LIMIT),
     Options('buildoption_test-jjs-debugger',
             ['--jjs-debugger=on']),
     # annex (or just esm) needs to be off to disable the module system api
@@ -208,7 +212,7 @@ def get_arguments():
     parser.add_argument('--test262-test-list', metavar='LIST',
                         help='Add a comma separated list of tests or directories to run in test262 test suite')
     parser.add_argument('--unittests', action='store_true',
-                        help='Run unittests (including doctests)')
+                        help='Run unittests')
     parser.add_argument('--buildoption-test', action='store_true',
                         help='Run buildoption-test')
     parser.add_argument('--all', '--precommit', action='store_true',

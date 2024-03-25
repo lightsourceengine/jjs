@@ -45,7 +45,7 @@ main (void)
 {
   TEST_INIT ();
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_value_t base_obj = jjs_object ();
   jjs_value_t constructor = jjs_function_external (my_constructor);

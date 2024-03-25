@@ -87,56 +87,6 @@ uint64_t jjs_port_hrtime (void);
  */
 
 /**
- * @defgroup jjs-port-context External Context API
- * @{
- */
-
-/**
- * Allocate a new context for the engine.
- *
- * This port function is called by jjs_init when JJS_EXTERNAL_CONTEXT is enabled. Otherwise this function is not
- * used.
- *
- * The engine will pass the size required for the context structure. An implementation must make sure to
- * allocate at least this amount.
- *
- * Excess allocated space will be used as the engine heap when JJS is configured to use it's internal allocator,
- * this can be used to control the internal heap size.
- *
- * NOTE: The allocated memory must be pointer-aligned, otherwise the behavior is undefined.
- *
- * @param context_size: the size of the internal context structure
- * @param options: additional options, including heap size, for configuring the context.
- *
- * @return total size of the allocated buffer
- */
-size_t jjs_port_context_alloc (size_t context_size, jjs_init_options_t* options);
-
-/**
- * Get the currently active context of the engine.
- *
- * This port function is called by jjs-core when JJS_EXTERNAL_CONTEXT is enabled.
- * Otherwise this function is not used.
- *
- * @return the pointer to the currently used engine context.
- */
-struct jjs_context_t *jjs_port_context_get (void);
-
-/**
- * Free the currently used context.
- *
- * This port function is called by jjs_cleanup when JJS_EXTERNAL_CONTEXT is enabled.
- * Otherwise this function is not used.
- *
- * @return the pointer to the engine context.
- */
-void jjs_port_context_free (void);
-
-/**
- * jjs-port-context @}
- */
-
-/**
  * @defgroup jjs-port-io I/O API
  * @{
  */

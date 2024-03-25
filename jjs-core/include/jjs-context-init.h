@@ -18,7 +18,7 @@
 
 #include "jjs-types.h"
 
-void jjs_context_init (jjs_init_flag_t flags, jjs_init_options_t* options_p);
+jjs_context_status_t jjs_context_init (const jjs_context_options_t* options_p);
 void jjs_context_cleanup (void);
 
 #endif /* JJS_CONTEXT_INIT_H */

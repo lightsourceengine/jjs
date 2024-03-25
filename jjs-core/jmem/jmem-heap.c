@@ -39,6 +39,8 @@
  */
 #define JMEM_HEAP_END_OF_LIST ((uint32_t) 0xffffffff)
 
+#define JMEM_HEAP_AREA_SIZE (JJS_CONTEXT(vm_heap_size) - JMEM_ALIGNMENT)
+
 /**
  * @{
  */
@@ -73,15 +75,18 @@ jmem_heap_init (void)
 {
 #if !JJS_CPOINTER_32_BIT
   /* the maximum heap size for 16bit compressed pointers should be 512K */
-  JJS_ASSERT (((UINT16_MAX + 1) << JMEM_ALIGNMENT_LOG) >= JMEM_HEAP_SIZE);
+  JJS_ASSERT (((UINT16_MAX + 1) << JMEM_ALIGNMENT_LOG) >= JJS_CONTEXT(vm_heap_size));
 #endif /* !JJS_CPOINTER_32_BIT */
   JJS_ASSERT ((uintptr_t) JJS_HEAP_CONTEXT (area) % JMEM_ALIGNMENT == 0);
 
-  JJS_CONTEXT (jmem_heap_limit) = CONFIG_GC_LIMIT;
+  JJS_CONTEXT (jmem_heap_limit) = JJS_CONTEXT(gc_limit);
 
   jmem_heap_free_t *const region_p = (jmem_heap_free_t *) JJS_HEAP_CONTEXT (area);
+  const uint32_t heap_area_size = JMEM_HEAP_AREA_SIZE;
 
-  region_p->size = JMEM_HEAP_AREA_SIZE;
+  JJS_CONTEXT(jmem_area_end) = JJS_HEAP_CONTEXT(area) + heap_area_size;
+
+  region_p->size = heap_area_size;
   region_p->next_offset = JMEM_HEAP_END_OF_LIST;
 
   JJS_HEAP_CONTEXT (first).size = 0;
@@ -90,7 +95,7 @@ jmem_heap_init (void)
   JJS_CONTEXT (jmem_heap_list_skip_p) = &JJS_HEAP_CONTEXT (first);
 
   JMEM_VALGRIND_NOACCESS_SPACE (&JJS_HEAP_CONTEXT (first), sizeof (jmem_heap_free_t));
-  JMEM_VALGRIND_NOACCESS_SPACE (JJS_HEAP_CONTEXT (area), JMEM_HEAP_AREA_SIZE);
+  JMEM_VALGRIND_NOACCESS_SPACE (JJS_HEAP_CONTEXT (area), heap_area_size);
 
   JMEM_HEAP_STAT_INIT ();
 } /* jmem_heap_init */
@@ -102,7 +107,7 @@ void
 jmem_heap_finalize (void)
 {
   JJS_ASSERT (JJS_CONTEXT (jmem_heap_allocated_size) == 0);
-  JMEM_VALGRIND_NOACCESS_SPACE (&JJS_HEAP_CONTEXT (first), JMEM_HEAP_SIZE);
+  JMEM_VALGRIND_NOACCESS_SPACE (&JJS_HEAP_CONTEXT (first), JJS_CONTEXT (vm_heap_size));
 } /* jmem_heap_finalize */
 
 /**
@@ -134,7 +139,7 @@ jmem_heap_alloc (const size_t size) /**< size of requested block */
 
     if (JJS_CONTEXT (jmem_heap_allocated_size) >= JJS_CONTEXT (jmem_heap_limit))
     {
-      JJS_CONTEXT (jmem_heap_limit) += CONFIG_GC_LIMIT;
+      JJS_CONTEXT (jmem_heap_limit) += JJS_CONTEXT (gc_limit);
     }
 
     if (data_space_p->size == JMEM_ALIGNMENT)
@@ -217,7 +222,7 @@ jmem_heap_alloc (const size_t size) /**< size of requested block */
 
         while (JJS_CONTEXT (jmem_heap_allocated_size) >= JJS_CONTEXT (jmem_heap_limit))
         {
-          JJS_CONTEXT (jmem_heap_limit) += CONFIG_GC_LIMIT;
+          JJS_CONTEXT (jmem_heap_limit) += JJS_CONTEXT(gc_limit);
         }
 
         break;
@@ -453,9 +458,11 @@ jmem_heap_free_block_internal (void *ptr, /**< pointer to beginning of data spac
 
   JMEM_VALGRIND_FREELIKE_SPACE (ptr);
 
-  while (JJS_CONTEXT (jmem_heap_allocated_size) + CONFIG_GC_LIMIT <= JJS_CONTEXT (jmem_heap_limit))
+  const uint32_t gc_limit = JJS_CONTEXT (gc_limit);
+
+  while (JJS_CONTEXT (jmem_heap_allocated_size) + gc_limit <= JJS_CONTEXT (jmem_heap_limit))
   {
-    JJS_CONTEXT (jmem_heap_limit) -= CONFIG_GC_LIMIT;
+    JJS_CONTEXT (jmem_heap_limit) -= gc_limit;
   }
 
   JJS_ASSERT (JJS_CONTEXT (jmem_heap_limit) >= JJS_CONTEXT (jmem_heap_allocated_size));
@@ -498,9 +505,12 @@ jmem_heap_realloc_block (void *ptr, /**< memory region to reallocate */
                             aligned_old_size - aligned_new_size);
 
     JJS_CONTEXT (jmem_heap_allocated_size) -= (aligned_old_size - aligned_new_size);
-    while (JJS_CONTEXT (jmem_heap_allocated_size) + CONFIG_GC_LIMIT <= JJS_CONTEXT (jmem_heap_limit))
+
+    const uint32_t gc_limit = JJS_CONTEXT (gc_limit);
+
+    while (JJS_CONTEXT (jmem_heap_allocated_size) + gc_limit <= JJS_CONTEXT (jmem_heap_limit))
     {
-      JJS_CONTEXT (jmem_heap_limit) -= CONFIG_GC_LIMIT;
+      JJS_CONTEXT (jmem_heap_limit) -= gc_limit;
     }
 
     return block_p;
@@ -603,7 +613,7 @@ jmem_heap_realloc_block (void *ptr, /**< memory region to reallocate */
 
     while (JJS_CONTEXT (jmem_heap_allocated_size) >= JJS_CONTEXT (jmem_heap_limit))
     {
-      JJS_CONTEXT (jmem_heap_limit) += CONFIG_GC_LIMIT;
+      JJS_CONTEXT (jmem_heap_limit) += JJS_CONTEXT (gc_limit);
     }
   }
   else
@@ -654,8 +664,7 @@ jmem_heap_free_block (void *ptr, /**< pointer to beginning of data space of the 
 bool
 jmem_is_heap_pointer (const void *pointer) /**< pointer */
 {
-  return ((uint8_t *) pointer >= JJS_HEAP_CONTEXT (area)
-          && (uint8_t *) pointer <= (JJS_HEAP_CONTEXT (area) + JMEM_HEAP_AREA_SIZE));
+  return ((uint8_t *) pointer >= JJS_HEAP_CONTEXT (area) && (uint8_t *) pointer <= JJS_CONTEXT (jmem_area_end));
 } /* jmem_is_heap_pointer */
 #endif /* !JJS_NDEBUG */
 

@@ -31,6 +31,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-api-binary-operations-instanceof.c
   test-api-errortype.c
   test-api-functiontype.c
+  test-api-init.c
   test-api-iteratortype.c
   test-api-object-property-names.c
   test-api-objecttype.c

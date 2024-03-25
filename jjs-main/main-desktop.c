@@ -96,7 +96,7 @@ main_init_debugger (main_args_t *arguments_p) /**< main arguments */
 static void
 main_init_engine (main_args_t *arguments_p) /**< main arguments */
 {
-  jjs_init (arguments_p->init_flags);
+  jjs_init_default ();
 
   jjs_promise_on_event (JJS_PROMISE_EVENT_FILTER_ERROR, jjsx_handler_promise_reject, NULL);
 

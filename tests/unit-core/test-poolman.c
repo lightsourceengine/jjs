@@ -42,8 +42,8 @@ int
 main (void)
 {
   TEST_INIT ();
+  TEST_CONTEXT_INIT ();
 
-  jjs_context_init (JJS_INIT_EMPTY, NULL);
   jmem_init ();
 
   for (uint32_t i = 0; i < test_iters; i++)
@@ -88,7 +88,7 @@ main (void)
 #endif /* JMEM_STATS */
 
   jmem_finalize ();
-  jjs_context_cleanup ();
+  TEST_CONTEXT_CLEANUP ();
 
   return 0;
 } /* main */

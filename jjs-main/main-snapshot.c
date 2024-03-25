@@ -204,8 +204,8 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 {
   (void) argc;
 
+  uint32_t context_flags;
   uint32_t snapshot_flags = 0;
-  jjs_init_flag_t flags = JJS_INIT_EMPTY;
 
   const char *file_name_p = NULL;
   uint8_t *source_p = input_buffer;
@@ -244,7 +244,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
         if (check_feature (JJS_FEATURE_PARSER_DUMP, cli_state_p->arg))
         {
           jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
-          flags |= JJS_INIT_SHOW_OPCODES;
+          context_flags = JJS_CONTEXT_SHOW_OPCODES;
         }
         break;
       }
@@ -294,7 +294,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  jjs_init (flags);
+  jjs_init_with_flags (context_flags);
 
   if (!jjs_validate_string (source_p, (jjs_size_t) source_length, JJS_ENCODING_UTF8))
   {
@@ -515,7 +515,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  jjs_init (JJS_INIT_EMPTY);
+  jjs_init_default ();
 
   size_t lit_buf_sz = 0;
   if (number_of_files == 1)
@@ -675,7 +675,7 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
   
-  jjs_init (JJS_INIT_EMPTY);
+  jjs_init_default ();
 
   const char *error_p = NULL;
   size_t merged_snapshot_size = jjs_merge_snapshots (merge_buffers,

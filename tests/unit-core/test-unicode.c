@@ -37,7 +37,7 @@ test_syntax_error (char *script_p) /**< script */
 int
 main (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   if (!test_syntax_error ("\\u{61}"))
   {

@@ -16,7 +16,6 @@ set(JJS_PORT_NAME jjs-port)
 
 # Source directories
 set(PORT_SOURCES
-  common/jjs-port-context.c
   common/jjs-port-fs.c
   common/jjs-port-io.c
   common/jjs-port-process.c
@@ -33,7 +32,8 @@ set(PORT_SOURCES
 set(PORT_DEFINES
   _BSD_SOURCE
   _DEFAULT_SOURCE
-  JJS_GLOBAL_HEAP_SIZE=${JJS_GLOBAL_HEAP_SIZE}
+  # TODO: remove after refactor
+  JJS_VM_HEAP_SIZE=${JJS_VM_HEAP_SIZE}
 )
 
 # Amalgamated JJS source/header build.

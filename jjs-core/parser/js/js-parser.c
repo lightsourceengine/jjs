@@ -2155,7 +2155,7 @@ parser_parse_source (void *source_p, /**< source code */
 #endif /* JJS_FUNCTION_TO_STRING */
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  context.is_show_opcodes = (JJS_CONTEXT (jjs_init_flags) & JJS_INIT_SHOW_OPCODES);
+  context.is_show_opcodes = (JJS_CONTEXT (context_flags) & JJS_CONTEXT_SHOW_OPCODES);
   context.total_byte_code_size = 0;
 
   if (context.is_show_opcodes)
@@ -2452,7 +2452,7 @@ parser_parse_source (void *source_p, /**< source code */
     jcontext_raise_exception (ECMA_VALUE_NULL);
     return NULL;
   }
-  if (CONFIG_MEM_STACK_LIMIT != 0)
+  if (JJS_CONTEXT (vm_stack_limit) != 0)
   {
     if (context.error == PARSER_ERR_STACK_OVERFLOW)
     {

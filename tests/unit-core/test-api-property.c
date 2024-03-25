@@ -22,7 +22,7 @@ main (void)
 {
   TEST_INIT ();
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   /* Test: init property descriptor */
   jjs_property_descriptor_t prop_desc = jjs_property_descriptor ();

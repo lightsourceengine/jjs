@@ -134,6 +134,21 @@ void jjs_annex_init (void)
 #if JJS_MODULE_SYSTEM
   JJS_CONTEXT (module_on_init_scope_p) = module_on_init_scope;
 #endif /* JJS_MODULE_SYSTEM */
+
+#if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
+  JJS_CONTEXT (module_on_load_cb) = jjs_esm_default_on_load_cb;
+  JJS_CONTEXT (module_on_load_user_p) = NULL;
+
+  JJS_CONTEXT (module_on_resolve_cb) = jjs_esm_default_on_resolve_cb;
+  JJS_CONTEXT (module_on_resolve_user_p) = NULL;
+#endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */
+
+#if JJS_ANNEX_ESM
+  JJS_CONTEXT (module_import_meta_callback_p) = jjs_esm_default_on_import_meta_cb;
+  JJS_CONTEXT (module_import_meta_callback_user_p) = NULL;
+  JJS_CONTEXT (module_import_callback_p) = jjs_esm_default_on_import_cb;
+  JJS_CONTEXT (module_import_callback_user_p) = NULL;
+#endif /* JJS_ANNEX_ESM */
 } /* jjs_annex_init */
 
 /**

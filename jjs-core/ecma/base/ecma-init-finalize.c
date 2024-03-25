@@ -42,9 +42,9 @@
 void
 ecma_init (void)
 {
-  if (CONFIG_GC_MARK_LIMIT != 0)
+  if (JJS_CONTEXT(gc_mark_limit) != 0)
   {
-    JJS_CONTEXT (ecma_gc_mark_recursion_limit) = CONFIG_GC_MARK_LIMIT;
+    JJS_CONTEXT (ecma_gc_mark_recursion_limit) = JJS_CONTEXT(gc_mark_limit);
   }
   ecma_init_global_environment ();
 
@@ -53,7 +53,7 @@ ecma_init (void)
   JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_HIGH_PRESSURE_GC;
 #endif /* JJS_PROPERTY_HASHMAP */
 
-  if (CONFIG_MEM_STACK_LIMIT != 0)
+  if (JJS_CONTEXT(vm_stack_limit) != 0)
   {
     volatile int sp;
     JJS_CONTEXT (stack_base) = (uintptr_t) &sp;

@@ -58,7 +58,7 @@ assert_package (const char* package_name, const char* expected_export)
 static void
 test_jjs_vmod_with_callback (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_value_t callback = jjs_function_external (vmod_callback);
   jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, callback);
@@ -75,7 +75,7 @@ test_jjs_vmod_with_callback (void)
 static void
 test_jjs_vmod_with_config (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_value_t config = create_config ();
   jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, config);
@@ -92,7 +92,7 @@ test_jjs_vmod_with_config (void)
 static void
 test_jjs_vmod_remove (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_value_t config = create_config ();
   jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, config);

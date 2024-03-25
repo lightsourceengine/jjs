@@ -20,7 +20,6 @@ include(CheckLibraryExists)
 set(JJS_CPOINTER_32_BIT           ON           CACHE BOOL   "Enable 32 bit compressed pointers?")
 set(JJS_DEBUGGER                  OFF          CACHE BOOL   "Enable JJS debugger?")
 set(JJS_ERROR_MESSAGES            ON           CACHE BOOL   "Enable error messages?")
-set(JJS_EXTERNAL_CONTEXT          OFF          CACHE BOOL   "Enable external context?")
 set(JJS_PARSER                    ON           CACHE BOOL   "Enable javascript-parser?")
 set(JJS_FUNCTION_TO_STRING        OFF          CACHE BOOL   "Enable function toString operation?")
 set(JJS_LINE_INFO                 ON           CACHE BOOL   "Enable line info?")
@@ -28,7 +27,6 @@ set(JJS_LOGGING                   OFF          CACHE BOOL   "Enable logging?")
 set(JJS_MEM_STATS                 OFF          CACHE BOOL   "Enable memory statistics?")
 set(JJS_MEM_GC_BEFORE_EACH_ALLOC  OFF          CACHE BOOL   "Enable mem-stress test?")
 set(JJS_PARSER_DUMP_BYTE_CODE     OFF          CACHE BOOL   "Enable parser byte-code dumps?")
-set(JJS_PROFILE                   "es.next"    CACHE STRING "Use default or other profile?")
 set(JJS_PROMISE_CALLBACK          OFF          CACHE BOOL   "Enable Promise callbacks?")
 set(JJS_REGEXP_STRICT_MODE        OFF          CACHE BOOL   "Enable regexp strict mode?")
 set(JJS_REGEXP_DUMP_BYTE_CODE     OFF          CACHE BOOL   "Enable regexp byte-code dumps?")
@@ -37,16 +35,16 @@ set(JJS_SNAPSHOT_SAVE             OFF          CACHE BOOL   "Enable saving snaps
 set(JJS_VALGRIND                  OFF          CACHE BOOL   "Enable Valgrind support?")
 set(JJS_VM_HALT                   OFF          CACHE BOOL   "Enable VM execution stop callback?")
 set(JJS_VM_THROW                  OFF          CACHE BOOL   "Enable VM throw callback?")
-set(JJS_GLOBAL_HEAP_SIZE          "(1024)"     CACHE STRING "Size of memory heap, in kilobytes")
-set(JJS_GC_LIMIT                  "(0)"        CACHE STRING "Heap usage limit to trigger garbage collection")
-set(JJS_STACK_LIMIT               "(0)"        CACHE STRING "Maximum stack usage size, in kilobytes")
-set(JJS_GC_MARK_LIMIT             "(8)"        CACHE STRING "Maximum depth of recursion during GC mark phase")
+set(JJS_VM_HEAP_STATIC            OFF          CACHE BOOL   "Use a fixed size VM heap size of JJS_DEFAULT_VM_HEAP_SIZE?")
+set(JJS_VM_STACK_STATIC           OFF          CACHE BOOL   "Use a fixed VM stack limit of size JJS_DEFAULT_VM_STACK_LIMIT?")
+set(JJS_DEFAULT_VM_HEAP_SIZE      "(1024)"     CACHE STRING "Size of memory heap, in kilobytes")
+set(JJS_DEFAULT_VM_STACK_LIMIT    "(0)"        CACHE STRING "Maximum stack usage size, in kilobytes")
 
 # Option overrides
-if (JJS_GLOBAL_HEAP_SIZE GREATER 512)
+if (NOT JJS_VM_HEAP_STATIC OR JJS_VM_HEAP_SIZE GREATER 512)
   set(JJS_CPOINTER_32_BIT ON)
 
-  set(JJS_CPOINTER_32_BIT_MESSAGE " (FORCED BY HEAP SIZE)")
+  set(JJS_CPOINTER_32_BIT_MESSAGE " (FORCED BY NOT HEAP STATIC OR HEAP SIZE > 512)")
 endif()
 
 if(NOT JJS_PARSER)
@@ -78,7 +76,6 @@ endif()
 message(STATUS "JJS_CPOINTER_32_BIT            " ${JJS_CPOINTER_32_BIT} ${JJS_CPOINTER_32_BIT_MESSAGE})
 message(STATUS "JJS_DEBUGGER                   " ${JJS_DEBUGGER})
 message(STATUS "JJS_ERROR_MESSAGES             " ${JJS_ERROR_MESSAGES})
-message(STATUS "JJS_EXTERNAL_CONTEXT           " ${JJS_EXTERNAL_CONTEXT})
 message(STATUS "JJS_PARSER                     " ${JJS_PARSER})
 message(STATUS "JJS_FUNCTION_TO_STRING         " ${JJS_FUNCTION_TO_STRING})
 message(STATUS "JJS_LINE_INFO                  " ${JJS_LINE_INFO})
@@ -86,7 +83,6 @@ message(STATUS "JJS_LOGGING                    " ${JJS_LOGGING} ${JJS_LOGGING_ME
 message(STATUS "JJS_MEM_STATS                  " ${JJS_MEM_STATS})
 message(STATUS "JJS_MEM_GC_BEFORE_EACH_ALLOC   " ${JJS_MEM_GC_BEFORE_EACH_ALLOC})
 message(STATUS "JJS_PARSER_DUMP_BYTE_CODE      " ${JJS_PARSER_DUMP_BYTE_CODE} ${JJS_PARSER_DUMP_MESSAGE})
-message(STATUS "JJS_PROFILE                    " ${JJS_PROFILE})
 message(STATUS "JJS_PROMISE_CALLBACK           " ${JJS_PROMISE_CALLBACK})
 message(STATUS "JJS_REGEXP_STRICT_MODE         " ${JJS_REGEXP_STRICT_MODE})
 message(STATUS "JJS_REGEXP_DUMP_BYTE_CODE      " ${JJS_REGEXP_DUMP_BYTE_CODE})
@@ -95,10 +91,10 @@ message(STATUS "JJS_SNAPSHOT_SAVE              " ${JJS_SNAPSHOT_SAVE} ${JJS_SNAP
 message(STATUS "JJS_VALGRIND                   " ${JJS_VALGRIND})
 message(STATUS "JJS_VM_HALT                    " ${JJS_VM_HALT})
 message(STATUS "JJS_VM_THROW                   " ${JJS_VM_THROW})
-message(STATUS "JJS_GLOBAL_HEAP_SIZE           " ${JJS_GLOBAL_HEAP_SIZE})
-message(STATUS "JJS_GC_LIMIT                   " ${JJS_GC_LIMIT})
-message(STATUS "JJS_STACK_LIMIT                " ${JJS_STACK_LIMIT})
-message(STATUS "JJS_GC_MARK_LIMIT              " ${JJS_GC_MARK_LIMIT})
+message(STATUS "JJS_VM_HEAP_STATIC             " ${JJS_VM_HEAP_STATIC})
+message(STATUS "JJS_VM_STACK_STATIC            " ${JJS_VM_STACK_STATIC})
+message(STATUS "JJS_DEFAULT_VM_HEAP_SIZE       " ${JJS_DEFAULT_VM_HEAP_SIZE})
+message(STATUS "JJS_DEFAULT_VM_STACK_LIMIT     " ${JJS_DEFAULT_VM_STACK_LIMIT})
 
 # Include directories
 set(INCLUDE_CORE_PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -551,13 +547,8 @@ set(INCLUDE_THIRD_PARTY_VALGRIND "${PROJECT_SOURCE_DIR}/third-party/valgrind")
 set(DEFINES_JJS ${DEFINES_JJS} $<$<NOT:$<CONFIG:Debug>>:JJS_NDEBUG>)
 
 # JJS heap-section
-if(DEFINED JJS_ATTR_GLOBAL_HEAP)
-  set(DEFINES_JJS ${DEFINES_JJS} JJS_ATTR_GLOBAL_HEAP=${JJS_ATTR_GLOBAL_HEAP})
-endif()
-
-# Memory usage limit for triggering garbage collection
-if(JJS_GC_LIMIT)
-  set(DEFINES_JJS ${DEFINES_JJS} JJS_GC_LIMIT=${JJS_GC_LIMIT})
+if(DEFINED JJS_ATTR_STATIC_HEAP)
+  set(DEFINES_JJS ${DEFINES_JJS} JJS_ATTR_STATIC_HEAP=${JJS_ATTR_STATIC_HEAP})
 endif()
 
 # Helper macro to set 0/1 switch as JJS Defines
@@ -575,9 +566,6 @@ jjs_add_define01(JJS_CPOINTER_32_BIT)
 
 # Fill error messages for builtin error objects
 jjs_add_define01(JJS_ERROR_MESSAGES)
-
-# Use external context instead of static one
-jjs_add_define01(JJS_EXTERNAL_CONTEXT)
 
 # JS-Parser
 jjs_add_define01(JJS_PARSER)
@@ -602,34 +590,6 @@ jjs_add_define01(JJS_MEM_GC_BEFORE_EACH_ALLOC)
 
 # Parser byte-code dumps
 jjs_add_define01(JJS_PARSER_DUMP_BYTE_CODE)
-
-# Profile
-if (${JJS_PROFILE} STREQUAL "es2015-subset")
-  message(DEPRECATION "'es2015-subset' profile is deprecated, please use 'es.next' instead.")
-endif()
-
-if (NOT IS_ABSOLUTE ${JJS_PROFILE})
-  set(JJS_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/profiles/${JJS_PROFILE}.profile")
-endif()
-
-if(EXISTS ${JJS_PROFILE})
-  file(READ "${JJS_PROFILE}" PROFILE_SETTINGS)
-  string(REGEX REPLACE "[ \t]*#[^\n]*" "" PROFILE_SETTINGS "${PROFILE_SETTINGS}")
-  string(REGEX REPLACE "[\r\n]" ";" PROFILE_SETTINGS "${PROFILE_SETTINGS}")
-
-  # Process entries and save them as CMake variables.
-  # This is required to correctly generate the jjs-config.h file.
-  foreach(PROFILE_ENTRY ${PROFILE_SETTINGS})
-    string(REPLACE "=" ";" PROFILE_ENTRY "${PROFILE_ENTRY}")
-    list(GET PROFILE_ENTRY 0 PROFILE_KEY)
-    list(GET PROFILE_ENTRY 1 PROFILE_VALUE)
-    set(${PROFILE_KEY} ${PROFILE_VALUE})
-  endforeach()
-
-  set(DEFINES_JJS ${DEFINES_JJS} ${PROFILE_SETTINGS})
-else()
-  message(FATAL_ERROR "Profile file: '${JJS_PROFILE}' doesn't exist!")
-endif()
 
 # Promise callback
 jjs_add_define01(JJS_PROMISE_CALLBACK)
@@ -658,14 +618,17 @@ jjs_add_define01(JJS_VM_HALT)
 # Enable VM throw callback
 jjs_add_define01(JJS_VM_THROW)
 
+# Enable VM static heap flag
+jjs_add_define01(JJS_VM_HEAP_STATIC)
+
+# Enable VM static stack flag
+jjs_add_define01(JJS_VM_STACK_STATIC)
+
 # Size of heap
-set(DEFINES_JJS ${DEFINES_JJS} JJS_GLOBAL_HEAP_SIZE=${JJS_GLOBAL_HEAP_SIZE})
+set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_HEAP_SIZE=${JJS_DEFAULT_VM_HEAP_SIZE})
 
 # Maximum size of stack memory usage
-set(DEFINES_JJS ${DEFINES_JJS} JJS_STACK_LIMIT=${JJS_STACK_LIMIT})
-
-# Maximum depth of recursion during GC mark phase
-set(DEFINES_JJS ${DEFINES_JJS} JJS_GC_MARK_LIMIT=${JJS_GC_MARK_LIMIT})
+set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_STACK_LIMIT=${JJS_DEFAULT_VM_STACK_LIMIT})
 
 # Export defines to parent scope (for other modules, like jjs-pack)
 set(DEFINES_JJS_CORE ${DEFINES_JJS} PARENT_SCOPE)

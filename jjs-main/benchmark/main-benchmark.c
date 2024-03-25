@@ -75,7 +75,7 @@ static char **argv;
 static JJS_ATTR_NOINLINE int
 run (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  jjs_init_default ();
   jjs_value_t ret_value = jjs_undefined ();
 
   for (int i = 1; i < argc; i++)

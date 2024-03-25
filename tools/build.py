@@ -130,14 +130,10 @@ def get_arguments():
                          help='provide line info (%(choices)s)')
     coregrp.add_argument('--logging', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable logging (%(choices)s)')
-    coregrp.add_argument('--mem-heap', metavar='SIZE', type=int,
+    coregrp.add_argument('--default-vm-heap-size', metavar='SIZE', type=int,
                          help='size of memory heap (in kilobytes)')
-    coregrp.add_argument('--gc-limit', metavar='SIZE', type=int,
-                         help='memory usage limit to trigger garbage collection (in bytes)')
-    coregrp.add_argument('--stack-limit', metavar='SIZE', type=int,
+    coregrp.add_argument('--default-vm-stack-limit', metavar='SIZE', type=int,
                          help='maximum stack usage (in kilobytes)')
-    coregrp.add_argument('--gc-mark-limit', metavar='SIZE', type=int,
-                         help='maximum depth of recursion during GC mark phase')
     coregrp.add_argument('--mem-stats', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('enable memory statistics (%(choices)s)'))
     coregrp.add_argument('--mem-stress-test', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -164,6 +160,10 @@ def get_arguments():
                          help='enable VM execution stop callback (%(choices)s)')
     coregrp.add_argument('--vm-throw', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable VM throw callback (%(choices)s)')
+    coregrp.add_argument('--vm-heap-static', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enabled a compile time fixed vm heap size of JJS_DEFAULT_VM_HEAP_SIZE (%(choices)s)')
+    coregrp.add_argument('--vm-stack-static', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable a compile time fixed vm stack limit of JJS_DEFAULT_VM_STACK_LIMIT (%(choices)s)')
 
     maingrp = parser.add_argument_group('jjs-main options')
     maingrp.add_argument('--link-map', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -218,9 +218,8 @@ def generate_build_options(arguments):
     build_options_append('JJS_FUNCTION_TO_STRING', arguments.function_to_string)
     build_options_append('JJS_LINE_INFO', arguments.line_info)
     build_options_append('JJS_LOGGING', arguments.logging)
-    build_options_append('JJS_GLOBAL_HEAP_SIZE', arguments.mem_heap)
-    build_options_append('JJS_GC_LIMIT', arguments.gc_limit)
-    build_options_append('JJS_STACK_LIMIT', arguments.stack_limit)
+    build_options_append('JJS_DEFAULT_VM_HEAP_SIZE', arguments.default_vm_heap_size)
+    build_options_append('JJS_DEFAULT_VM_STACK_LIMIT', arguments.default_vm_stack_limit)
     build_options_append('JJS_MEM_STATS', arguments.mem_stats)
     build_options_append('JJS_MEM_GC_BEFORE_EACH_ALLOC', arguments.mem_stress_test)
     build_options_append('JJS_PROFILE', arguments.profile)
@@ -233,9 +232,8 @@ def generate_build_options(arguments):
     build_options_append('JJS_VALGRIND', arguments.valgrind)
     build_options_append('JJS_VM_HALT', arguments.vm_exec_stop)
     build_options_append('JJS_VM_THROW', arguments.vm_throw)
-
-    if arguments.gc_mark_limit is not None:
-        build_options.append('-D%s=%s' % ('JJS_GC_MARK_LIMIT', arguments.gc_mark_limit))
+    build_options_append('JJS_VM_HEAP_STATIC', arguments.vm_heap_static)
+    build_options_append('JJS_VM_STACK_STATIC', arguments.vm_stack_static)
 
     # jjs-main options
     build_options_append('JJS_CMDLINE_LINK_MAP', arguments.link_map)

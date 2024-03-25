@@ -296,7 +296,7 @@ compare (jjs_value_t array, /**< array */
 static void
 test_get_backtrace_api_call (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   register_callback (backtrace_handler, "backtrace");
   register_callback (capture_handler, "capture");
@@ -471,7 +471,7 @@ test_get_backtrace_api_call (void)
 static void
 test_exception_backtrace (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   const char *source = ("function f() {\n"
                         "  undef_reference;\n"
@@ -513,7 +513,7 @@ test_exception_backtrace (void)
 static void
 test_large_line_count (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   const char *source = ("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
                         "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"

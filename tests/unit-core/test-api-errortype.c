@@ -22,7 +22,7 @@ main (void)
 {
   TEST_INIT ();
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_error_t errors[] = { JJS_ERROR_COMMON, JJS_ERROR_EVAL, JJS_ERROR_RANGE, JJS_ERROR_REFERENCE,
                              JJS_ERROR_SYNTAX, JJS_ERROR_TYPE, JJS_ERROR_URI };

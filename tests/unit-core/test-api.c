@@ -65,14 +65,9 @@ handler (const jjs_call_info_t *call_info_p, /**< call information */
          const jjs_value_t args_p[], /**< arguments list */
          const jjs_length_t args_cnt) /**< arguments length */
 {
+  JJS_UNUSED (call_info_p);
   char buffer[32];
   jjs_size_t sz;
-
-  printf ("ok %u %u %p %u\n",
-          (unsigned int) call_info_p->function,
-          (unsigned int) call_info_p->this_value,
-          (void *) args_p,
-          (unsigned int) args_cnt);
 
   TEST_ASSERT (args_cnt == 2);
 
@@ -93,12 +88,9 @@ handler_throw_test (const jjs_call_info_t *call_info_p, /**< call information */
                     const jjs_value_t args_p[], /**< arguments list */
                     const jjs_length_t args_cnt) /**< arguments length */
 {
-  printf ("ok %u %u %p %u\n",
-          (unsigned int) call_info_p->function,
-          (unsigned int) call_info_p->this_value,
-          (void *) args_p,
-          (unsigned int) args_cnt);
-
+  JJS_UNUSED (call_info_p);
+  JJS_UNUSED (args_p);
+  JJS_UNUSED (args_cnt);
   return jjs_throw_sz (JJS_ERROR_TYPE, "error");
 } /* handler_throw_test */
 
@@ -108,7 +100,6 @@ handler_construct_1_freecb (void *native_p, /**< native pointer */
 {
   TEST_ASSERT ((uintptr_t) native_p == (uintptr_t) 0x0000000000000000ull);
   TEST_ASSERT (info_p->free_cb == handler_construct_1_freecb);
-  printf ("ok object free callback\n");
 
   test_api_is_free_callback_was_called = true;
 } /* handler_construct_1_freecb */
@@ -119,7 +110,6 @@ handler_construct_2_freecb (void *native_p, /**< native pointer */
 {
   TEST_ASSERT ((uintptr_t) native_p == (uintptr_t) 0x0012345678abcdefull);
   TEST_ASSERT (info_p->free_cb == handler_construct_2_freecb);
-  printf ("ok object free callback\n");
 
   test_api_is_free_callback_was_called = true;
 } /* handler_construct_2_freecb */
@@ -148,12 +138,6 @@ handler_construct (const jjs_call_info_t *call_info_p, /**< call information */
                    const jjs_value_t args_p[], /**< arguments list */
                    const jjs_length_t args_cnt) /**< arguments length */
 {
-  printf ("ok construct %u %u %p %u\n",
-          (unsigned int) call_info_p->function,
-          (unsigned int) call_info_p->this_value,
-          (void *) args_p,
-          (unsigned int) args_cnt);
-
   TEST_ASSERT (jjs_value_is_object (call_info_p->this_value));
 
   TEST_ASSERT (args_cnt == 1);
@@ -381,7 +365,7 @@ main (void)
   double number_val;
   char buffer[32];
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
   TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
@@ -849,7 +833,7 @@ main (void)
 
   /* Test: jjs_exception_value */
   {
-    jjs_init (JJS_INIT_EMPTY);
+    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
     jjs_value_t num_val = jjs_number (123);
     num_val = jjs_throw_value (num_val, true);
     TEST_ASSERT (jjs_value_is_exception (num_val));
@@ -867,7 +851,7 @@ main (void)
   }
 
   {
-    jjs_init (JJS_INIT_EMPTY);
+    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
     const jjs_char_t scoped_src_p[] = "let a; this.b = 5";
     jjs_value_t parse_result = jjs_parse (scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (parse_result));
@@ -998,7 +982,7 @@ main (void)
   /* Test: parser error location */
   if (jjs_feature_enabled (JJS_FEATURE_ERROR_MESSAGES))
   {
-    jjs_init (JJS_INIT_SHOW_OPCODES);
+    TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
 
     test_syntax_error ("b = 'hello';\nvar a = (;",
                        NULL,
@@ -1032,7 +1016,7 @@ main (void)
   }
 
   /* External Magic String */
-  jjs_init (JJS_INIT_SHOW_OPCODES);
+  TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
 
   uint32_t num_magic_string_items = (uint32_t) (sizeof (magic_string_items) / sizeof (jjs_char_t *));
   jjs_register_magic_strings (magic_string_items, num_magic_string_items, magic_string_lengths);

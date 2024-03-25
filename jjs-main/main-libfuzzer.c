@@ -21,7 +21,7 @@ int
 LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 {
   srand (0);
-  jjs_init (JJS_INIT_EMPTY);
+  jjs_init_default ();
 
   if (jjs_validate_string ((jjs_char_t *) data, (jjs_size_t) size, JJS_ENCODING_UTF8))
   {

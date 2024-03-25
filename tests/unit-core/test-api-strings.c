@@ -25,7 +25,7 @@ main (void)
   jjs_value_t args[2];
 
   TEST_INIT ();
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   /* Test corner case for jjs_string_to_char_buffer */
   args[0] = jjs_string_sz ("");

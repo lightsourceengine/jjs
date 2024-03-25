@@ -121,25 +121,10 @@ jcontext_take_exception (void)
   return JJS_CONTEXT (error_value);
 } /* jcontext_take_exception */
 
-#if !JJS_EXTERNAL_CONTEXT
-
 /**
  * Global context.
  */
-jjs_context_t jjs_global_context;
-
-/**
- * Check size of heap is corresponding to configuration
- */
-JJS_STATIC_ASSERT (sizeof (jmem_heap_t) <= JMEM_HEAP_SIZE,
-                     size_of_mem_heap_must_be_less_than_or_equal_to_JMEM_HEAP_SIZE);
-
-/**
- * Global heap.
- */
-jmem_heap_t jjs_global_heap JJS_ATTR_ALIGNED (JMEM_ALIGNMENT) JJS_ATTR_GLOBAL_HEAP;
-
-#endif /* !JJS_EXTERNAL_CONTEXT */
+jjs_context_t jjs_global_context = {0};
 
 /**
  * @}

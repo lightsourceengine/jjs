@@ -104,6 +104,23 @@
   } while (0)
 
 /**
+ * Initialize just the global context, but not the ecma, annex and pack layers.
+ *
+ * Most tests should use jjs_init. This helper is for tests that target lower
+ * layers that need the context to be setup.
+ */
+#define TEST_CONTEXT_INIT() \
+  TEST_ASSERT (jjs_context_init (NULL) == JJS_CONTEXT_STATUS_OK)
+
+/**
+ * Cleanup a test environment that called TEST_CONTEXT_INIT() to start.
+ *
+ * This is for specialized tests. Most test should use jjs_init/jjs_cleanup to
+ * manage the environment.
+ */
+#define TEST_CONTEXT_CLEANUP() jjs_context_cleanup()
+
+/**
  * Dummy macro to enable the breaking of long string literals into multiple
  * substrings on separate lines. (Style checker doesn't allow it without putting
  * the whole literal into parentheses but the compiler warns about parenthesized

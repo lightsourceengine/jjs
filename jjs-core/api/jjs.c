@@ -123,44 +123,95 @@ jjs_api_disable (void)
 #ifndef JJS_NDEBUG
   JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_API_ENABLED;
 #endif /* JJS_NDEBUG */
-} /* jjs_make_api_unavailable */
+} /* jjs_api_disable */
+
+jjs_context_options_t
+jjs_context_options (void)
+{
+  jjs_context_options_t opts;
+
+  jjs_context_options_init(&opts);
+
+  return opts;
+} /* jjs_context_options */
 
 /**
- * JJS engine initialization
+ * Initializes a jjs_context_options_t with defaults.
+ *
+ * Always use this function for jjs_context_options_t, as defaults are configured that
+ * may or may not be available otherwise and jjs_init assumes jjs_context_options_t has
+ * these defaults.
+ *
+ * After this function runs, you can add or remove jjs_context_options_t configuration to
+ * suit your application's needs.
+ *
+ * @param opts context options to initialize
+ * @return the opts argument
  */
-void
-jjs_init_ex (jjs_init_flag_t flags, /**< combination of JJS flags */
-               jjs_init_options_t* options) /**< extra init options */
+jjs_context_options_t *
+jjs_context_options_init (jjs_context_options_t * opts)
 {
-  jjs_context_init (flags, options);
+  JJS_ASSERT (opts != NULL);
+  memset(opts, 0, sizeof (jjs_context_options_t));
+
+  opts->vm_heap_size = JJS_DEFAULT_VM_HEAP_SIZE;
+  opts->vm_stack_limit = JJS_DEFAULT_VM_STACK_LIMIT;
+  opts->gc_limit = JJS_DEFAULT_GC_LIMIT;
+  opts->gc_mark_limit = JJS_DEFAULT_GC_MARK_LIMIT;
+  opts->gc_new_objects_fraction = JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION;
+
+  return opts;
+} /* jjs_context_options */
+
+/**
+ * Start JJS with context options.
+ *
+ * Use jjs_context_options_init () to init the context options and make your changes from
+ * there. jjs_init () expects the context options to be fully populated and there are
+ * quite a few options. Some defaults may not be available otherwise.
+ *
+ * @param opts context options. if NULL, (compile time set) default context options are used
+ * @return JJS_CONTEXT_STATUS_OK or an error code on failure
+ */
+jjs_context_status_t
+jjs_init (const jjs_context_options_t * opts)
+{
+  jjs_context_status_t status = jjs_context_init (opts);
+
+  if (status != JJS_CONTEXT_STATUS_OK)
+  {
+    return status;
+  }
 
   jjs_api_enable ();
-
   jmem_init ();
   ecma_init ();
   jjs_annex_init ();
   jjs_annex_init_realm (JJS_CONTEXT (global_object_p));
 
-#if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
-  jjs_esm_on_load (jjs_esm_default_on_load_cb, NULL);
-  jjs_esm_on_resolve (jjs_esm_default_on_resolve_cb, NULL);
-#endif /* JJS_ANNEX_COMMONJS || JJS_MODULE_SYSTEM */
-
-#if JJS_ANNEX_ESM
-  jjs_module_on_import_meta (jjs_esm_default_on_import_meta_cb, NULL);
-  jjs_module_on_import (jjs_esm_default_on_import_cb, NULL);
-#endif /* JJS_MODULE_SYSTEM */
-
-} /* jjs_init_ex */
+  return JJS_CONTEXT_STATUS_OK;
+} /* jjs_init */
 
 /**
- * JJS engine initialization
+ * Start JJS with default context options.
+ *
+ * @return JJS_CONTEXT_STATUS_OK or an error code on failure
  */
-void
-jjs_init (jjs_init_flag_t flags) /**< combination of JJS flags */
+jjs_context_status_t
+jjs_init_default (void)
 {
-  jjs_init_ex (flags, NULL);
-} /* jjs_init */
+  return jjs_init (NULL);
+} /* jjs_init_default */
+
+jjs_context_status_t
+jjs_init_with_flags (uint32_t context_flags)
+{
+  jjs_context_options_t opts = jjs_context_options ();
+
+  opts.context_flags = context_flags;
+
+  return jjs_init (&opts);
+}
 
 /**
  * Terminate JJS engine
@@ -1247,6 +1298,10 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
       return true;
     case JJS_FEATURE_VMOD:
       return IS_FEATURE_ENABLED (JJS_ANNEX_VMOD);
+    case JJS_FEATURE_VM_STACK_STATIC:
+      return IS_FEATURE_ENABLED (JJS_VM_STACK_STATIC);
+    case JJS_FEATURE_VM_HEAP_STATIC:
+      return IS_FEATURE_ENABLED (JJS_VM_HEAP_STATIC);
     default:
       JJS_ASSERT (false);
       return false;

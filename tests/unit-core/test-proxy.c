@@ -228,7 +228,7 @@ main (void)
     return 0;
   }
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_value_t handler = jjs_object ();
   {

@@ -26,7 +26,7 @@ main (void)
     return 0;
   }
 
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   jjs_value_t string = jjs_string_sz ("0xfffffff1fffffff2fffffff3");
   TEST_ASSERT (!jjs_value_is_exception (string));

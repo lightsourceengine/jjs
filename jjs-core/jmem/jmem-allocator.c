@@ -162,7 +162,7 @@ jmem_finalize (void)
   jmem_pools_finalize ();
 
 #if JJS_MEM_STATS
-  if (JJS_CONTEXT (jjs_init_flags) & JJS_INIT_MEM_STATS)
+  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_MEM_STATS)
   {
     jmem_heap_stats_print ();
   }

@@ -533,9 +533,9 @@ ecma_regexp_run (ecma_regexp_ctx_t *re_ctx_p, /**< RegExp matcher context */
                  const uint8_t *bc_p, /**< pointer to the current RegExp bytecode */
                  const lit_utf8_byte_t *str_curr_p) /**< input string pointer */
 {
-  if (CONFIG_MEM_STACK_LIMIT != 0)
+  if (JJS_CONTEXT (vm_stack_limit) != 0)
   {
-    if (JJS_UNLIKELY (ecma_get_current_stack_usage () > CONFIG_MEM_STACK_LIMIT))
+    if (JJS_UNLIKELY (ecma_get_current_stack_usage () > JJS_CONTEXT (vm_stack_limit)))
     {
       return ECMA_RE_OUT_OF_STACK;
     }

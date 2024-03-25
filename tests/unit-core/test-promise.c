@@ -105,7 +105,7 @@ register_js_function (const char *name_p, /**< name of the function */
 int
 main (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   register_js_function ("create_promise1", create_promise1_handler);
   register_js_function ("create_promise2", create_promise2_handler);

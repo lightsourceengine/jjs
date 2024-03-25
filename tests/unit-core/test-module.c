@@ -254,13 +254,13 @@ resolve_callback5 (const jjs_value_t specifier, /**< module specifier */
 
   /* This circular reference is valid. However, import resolving triggers
    * a SyntaxError, because the module does not export a default binding. */
-  return referrer;
+  return jjs_value_copy (referrer);
 } /* resolve_callback5 */
 
 int
 main (void)
 {
-  jjs_init (JJS_INIT_EMPTY);
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   if (!jjs_feature_enabled (JJS_FEATURE_MODULE))
   {

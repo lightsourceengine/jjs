@@ -36,64 +36,6 @@
  */
 
 /**
- * Advanced allocator configurations.
- */
-/**
- * Maximum global heap size in bytes
- */
-#if JJS_EXTERNAL_CONTEXT
-#define CONFIG_MEM_HEAP_SIZE (JJS_CONTEXT(cfg_global_heap_size) * 1024)
-#else
-#define CONFIG_MEM_HEAP_SIZE (JJS_GLOBAL_HEAP_SIZE * 1024)
-#endif /* JJS_EXTERNAL_CONTEXT */
-
-/**
- * Maximum stack usage size in bytes
- */
-#if JJS_EXTERNAL_CONTEXT
-#define CONFIG_MEM_STACK_LIMIT (JJS_CONTEXT(cfg_stack_limit) * 1024)
-#else
-#define CONFIG_MEM_STACK_LIMIT (JJS_STACK_LIMIT * 1024)
-#endif /* JJS_EXTERNAL_CONTEXT */
-
-/**
- * Allowed heap usage limit until next garbage collection
- *
- * Whenever the total allocated memory size reaches the current heap limit, garbage collection will be triggered
- * to try and reduce clutter from unreachable objects. If the allocated memory can't be reduced below the limit,
- * then the current limit will be incremented by CONFIG_MEM_HEAP_LIMIT.
- */
-#if JJS_EXTERNAL_CONTEXT
-#define CONFIG_GC_LIMIT (JJS_CONTEXT(cfg_gc_limit))
-#else
-#define CONFIG_MAX_GC_LIMIT 8192
-#if defined(JJS_GC_LIMIT) && (JJS_GC_LIMIT != 0)
-#define CONFIG_GC_LIMIT JJS_GC_LIMIT
-#else /* !(defined(JJS_GC_LIMIT) && (JJS_GC_LIMIT != 0)) */
-#define CONFIG_GC_LIMIT (JJS_MIN (CONFIG_MEM_HEAP_SIZE / 32, CONFIG_MAX_GC_LIMIT))
-#endif /* defined(JJS_GC_LIMIT) && (JJS_GC_LIMIT != 0) */
-#endif
-
-/**
- * Amount of newly allocated objects since the last GC run, represented as a fraction of all allocated objects,
- * which when reached will trigger garbage collection to run with a low pressure setting.
- *
- * The fraction is calculated as:
- *                1.0 / CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION
- */
-#if JJS_EXTERNAL_CONTEXT
-#define CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION (JJS_CONTEXT(cfg_gc_new_objects_fraction))
-#else
-#define CONFIG_ECMA_GC_NEW_OBJECTS_FRACTION (16)
-#endif /* JJS_EXTERNAL_CONTEXT */
-
-#if JJS_EXTERNAL_CONTEXT
-#define CONFIG_GC_MARK_LIMIT (JJS_CONTEXT(cfg_gc_mark_limit))
-#else
-#define CONFIG_GC_MARK_LIMIT JJS_GC_MARK_LIMIT
-#endif /* JJS_EXTERNAL_CONTEXT */
-
-/**
  * Heap structure
  *
  * Memory blocks returned by the allocator must not start from the
@@ -105,7 +47,11 @@
  * for other purposes. Currently the free region start is stored
  * there.
  */
-typedef struct jmem_heap_t jmem_heap_t;
+typedef struct
+{
+  jmem_heap_free_t first; /**< first node in free region list */
+  uint8_t area[]; /**< heap area */
+} jmem_heap_t;
 
 /**
  * User context item
@@ -116,25 +62,31 @@ typedef struct jjs_context_data_header
   const jjs_context_data_manager_t *manager_p; /**< manager responsible for deleting this item */
 } jjs_context_data_header_t;
 
-#define JJS_CONTEXT_DATA_HEADER_USER_DATA(item_p) ((uint8_t *) (item_p + 1))
+#define JJS_CONTEXT_DATA_HEADER_USER_DATA(item_p) ((uint8_t *) ((item_p) + 1))
 
 /**
  * JJS context
  *
- * The purpose of this header is storing
- * all global variables for JJS
+ * The purpose of this header is storing all global variables for JJS.
  */
 struct jjs_context_t
 {
-  /* The value of external context members must be preserved across initializations and cleanups. */
-#if JJS_EXTERNAL_CONTEXT
-  jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
-  uint32_t heap_size; /**< size of the heap */
-#endif /* JJS_EXTERNAL_CONTEXT */
+  uint32_t context_flags; /**< context flags */
+  jmem_heap_t* heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
+
+  jjs_context_heap_free_cb_t heap_free_cb; /**< called when an external heap pointer should be free'd */
+  void* heap_free_user_p; /**< user defined token to pass to heap_free_cb */
+
+  uint32_t vm_heap_size; /**< size of vm heap */
+  uint32_t vm_stack_limit; /**< vm stack limit. if 0, no stack limit checks are performed. */
+  uint32_t gc_limit; /**< allocation limit before triggering a gc */
+  uint32_t gc_mark_limit; /**< gc mark recursion depth */
+  uint32_t gc_new_objects_fraction; /**< number of new objects before triggering gc */
 
   ecma_global_object_t *global_object_p; /**< current global object */
   jmem_heap_free_t *jmem_heap_list_skip_p; /**< improves deallocation performance */
   jmem_pools_chunk_t *jmem_free_8_byte_chunk_p; /**< list of free eight byte pool chunks */
+  uint8_t* jmem_area_end; /**< precomputed address of end of heap; only for pointer validation */
 #if JJS_BUILTIN_REGEXP
   re_compiled_code_t *re_cache[RE_CACHE_SIZE]; /**< regex cache */
 #endif /* JJS_BUILTIN_REGEXP */
@@ -190,14 +142,7 @@ struct jjs_context_t
                            *   causes call of "try give memory back" callbacks */
   ecma_value_t error_value; /**< currently thrown error value */
   uint32_t lit_magic_string_ex_count; /**< external magic strings count */
-  uint32_t jjs_init_flags; /**< run-time configuration flags */
   uint32_t status_flags; /**< run-time flags (the top 8 bits are used for passing class parsing options) */
-
-  uint32_t cfg_global_heap_size;
-  uint32_t cfg_stack_limit;
-  uint32_t cfg_gc_limit;
-  uint32_t cfg_gc_mark_limit;
-  uint32_t cfg_gc_new_objects_fraction;
 
   uint32_t ecma_gc_mark_recursion_limit; /**< GC mark recursion limit */
 
@@ -282,33 +227,6 @@ struct jjs_context_t
   ecma_object_t *current_new_target_p;
 };
 
-#if JJS_EXTERNAL_CONTEXT
-
-/*
- * This part is for JJS which uses external context.
- */
-
-#define JJS_CONTEXT_STRUCT (*jjs_port_context_get ())
-#define JJS_CONTEXT(field) (jjs_port_context_get ()->field)
-
-#define JMEM_HEAP_SIZE (JJS_CONTEXT (heap_size))
-
-#define JMEM_HEAP_AREA_SIZE (JMEM_HEAP_SIZE - JMEM_ALIGNMENT)
-
-struct jmem_heap_t
-{
-  jmem_heap_free_t first; /**< first node in free region list */
-  uint8_t area[]; /**< heap area */
-};
-
-#define JJS_HEAP_CONTEXT(field) (JJS_CONTEXT (heap_p)->field)
-
-#else /* !JJS_EXTERNAL_CONTEXT */
-
-/*
- * This part is for JJS which uses default context.
- */
-
 /**
  * Global context.
  */
@@ -325,33 +243,9 @@ extern jjs_context_t jjs_global_context;
 #define JJS_CONTEXT(field) (jjs_global_context.field)
 
 /**
- * Size of heap
- */
-#define JMEM_HEAP_SIZE            ((size_t) (JJS_GLOBAL_HEAP_SIZE * 1024))
-
-/**
- * Calculate heap area size, leaving space for a pointer to the free list
- */
-#define JMEM_HEAP_AREA_SIZE       (JMEM_HEAP_SIZE - JMEM_ALIGNMENT)
-
-struct jmem_heap_t
-{
-  jmem_heap_free_t first; /**< first node in free region list */
-  uint8_t area[JMEM_HEAP_AREA_SIZE]; /**< heap area */
-};
-
-/**
- * Global heap.
- */
-extern jmem_heap_t jjs_global_heap;
-
-/**
  * Provides a reference to a field of the heap.
  */
-#define JJS_HEAP_CONTEXT(field) (jjs_global_heap.field)
-
-
-#endif /* JJS_EXTERNAL_CONTEXT */
+#define JJS_HEAP_CONTEXT(field) (jjs_global_context.heap_p->field)
 
 void jcontext_set_exception_flag (bool is_exception);
 

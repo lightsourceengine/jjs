@@ -988,7 +988,7 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
   }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (JJS_CONTEXT (jjs_init_flags) & JJS_INIT_SHOW_OPCODES)
+  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_SHOW_OPCODES)
   {
     util_print_cbc (bytecode_p);
   }

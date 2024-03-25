@@ -34,8 +34,14 @@ JJS_C_API_BEGIN
  * @defgroup jjs-api-general-context Context management
  * @{
  */
-void jjs_init (jjs_init_flag_t flags);
-void jjs_init_ex (jjs_init_flag_t flags, jjs_init_options_t* options);
+
+jjs_context_options_t jjs_context_options (void);
+jjs_context_options_t *jjs_context_options_init (jjs_context_options_t * opts);
+
+jjs_context_status_t jjs_init (const jjs_context_options_t * opts);
+jjs_context_status_t jjs_init_default (void);
+jjs_context_status_t jjs_init_with_flags (uint32_t context_flags);
+
 void jjs_cleanup (void);
 
 void *jjs_context_data (const jjs_context_data_manager_t *manager_p);
