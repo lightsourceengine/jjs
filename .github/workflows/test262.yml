@@ -28,7 +28,7 @@ env:
 jobs:
   test262-linux:
     env:
-      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }}${{ (contains(matrix.arch, 'x86') && ',--compile-flag=-m32') || '' }}
+      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }} ${{ (contains(matrix.arch, 'x86') && '--buildoptions=--compile-flag=-m32') || '' }}
     strategy:
       matrix:
         type: [release, debug]
@@ -44,6 +44,7 @@ jobs:
           fi
         shell: bash
       - run: $RUNNER --test262 ${TEST_OPTIONS}
+        shell: bash
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
