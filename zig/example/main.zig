@@ -23,7 +23,7 @@ pub fn main() anyerror!void {
 
     // initialize JJS with the default heap size (usually configure to 512KB). Use jjs_init_ex()
     // for more control of memory configuration.
-    jjs.jjs_init(0);
+    _ = jjs.jjs_init_default();
     defer jjs.jjs_cleanup();
 
     // parse the script

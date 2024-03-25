@@ -100,7 +100,7 @@ JJS_PACK_TESTS_OPTIONS = [
 
 # Test options for test262
 TEST262_TEST_SUITE_OPTIONS = [
-    Options('test262', OPTIONS_COMMON + ['--default-vm-heap-size=20480']),
+    Options('test262', ['--default-vm-stack-limit=0', '--default-vm-heap-size=20480', '--function-to-string=on']),
 ]
 
 # Test options for jjs-debugger

@@ -1,0 +1,56 @@
+# test262 workflow
+#
+# Conformance tests are limited to macos and linux x64, as these configurations are
+# known to work.
+#
+# On windows, the test262 harness is broken. The JJS unit tests run on windows (with a few
+# exceptions), so running the test262 should not be an issue. However, it will require
+# work to fix the harness and verify.
+#
+# Other linux and macos architectures should be added, but should be verified first.
+#
+# On debug builds, the undefined and address sanitizers are turned on so the test runs will
+# be slow. At the time of writing, about 10 tests fail due to sanitizer issues.
+#
+# The full suite of conformance tests includes late stage proposals and features that JJS
+# does not (or will not) implement. And, JJS has bugs causing some tests to fail. With the
+# full test suite considered, JJS passes about 80% of test262.
+#
+# Excludes can be found at tests/test262-excludelist.xml
+
+name: test262
+
+on: [push, pull_request]
+
+env:
+  RUNNER: tools/run-tests.py
+  ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
+  UBSAN_OPTIONS: print_stacktrace=1
+  SANITIZER_FLAGS: --compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
+jobs:
+  test262:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            name: test262-linux-x64-release
+          - os: ubuntu-22.04
+            name: test262-linux-x64-debug
+            args: --build-debug
+          - os: macos-11
+            name: test262-macos-x64-release
+          - os: macos-11
+            name: test262-macos-x64-debug
+            args: --build-debug ${{env.SANITIZER_FLAGS}}
+    runs-on: ${{matrix.os}}
+    name: ${{matrix.name}}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Tests
+        run: ./tools/run-tests.py --test262 ${{matrix.args}}
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: ${{matrix.name}}-report
+          path: |
+            build/tests/test262/local/bin/test262.report

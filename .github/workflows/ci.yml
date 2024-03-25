@@ -1,7 +1,7 @@
 name: jjs CI
 
-on: [push, pull_request]
-#on: workflow_dispatch
+#on: [push, pull_request]
+on: workflow_dispatch
 
 env:
   CMAKE_GENERATOR: Ninja
@@ -295,34 +295,6 @@ jobs:
       - name: C Unit Tests
         run: python .\tools\run-tests.py -q --build-debug --unittests
         shell: powershell
-
-  ecma_test262_release:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt install ninja-build
-      - name: Run Tests
-        run: python $RUNNER --test262
-      - uses: actions/upload-artifact@v4
-        if: success() || failure()
-        with:
-          name: Test262-report-release
-          path: |
-            build/tests/test262/local/bin/test262.report
-
-  ecma_test262_debug:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt install ninja-build
-      - name: Run Tests
-        run: python $RUNNER --test262 --build-debug
-      - uses: actions/upload-artifact@v4
-        if: success() || failure()
-        with:
-          name: Test262-report-debug
-          path: |
-            build/tests/test262-debug/local/bin/test262.report
 
   zig_example:
     env:
