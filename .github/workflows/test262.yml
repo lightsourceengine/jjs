@@ -26,28 +26,48 @@ env:
   RUNNER: tools/run-tests.py
   ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
   UBSAN_OPTIONS: print_stacktrace=1
+
 jobs:
-  test262:
+  test262-linux:
+    env:
+      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }}${{ (contains(matrix.arc, 'x86') && ',--compile-flag=-m32') || '' }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-22.04
-            name: test262-linux-x64-release
-          - os: ubuntu-22.04
-            name: test262-linux-x64-debug
-            args: --build-debug --buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
-          - os: macos-11
-            name: test262-macos-x64-release
-          - os: macos-11
-            name: test262-macos-x64-debug
-            # address sanitizer so limit to undefined
-            args: --build-debug --buildoptions=--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
-    runs-on: ${{matrix.os}}
-    name: ${{matrix.name}}
+        type: [release, debug]
+        arch: [x86, x64]
+    runs-on: ubuntu-22.04
+    name: test262-linux-${{matrix.arch}}-${{matrix.type}}
     steps:
       - uses: actions/checkout@v4
-      - name: Run Tests
-        run: $RUNNER --test262 ${{matrix.args}}
+      - run: |
+          if [ ${{ matrix.arch }} == 'x86' ]; then
+            sudo apt update
+            sudo apt install gcc-multilib
+          fi
+        shell: bash
+      - run: $RUNNER --test262 ${TEST_OPTIONS}
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: ${{matrix.name}}-report
+          path: |
+            build/tests/test262*/local/bin/test262.report
+  test262-macos:
+    env:
+      # address sanitizer takes a really long time to run, limit to undefined for now
+      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }}
+    strategy:
+      matrix:
+        type: [release, debug]
+    runs-on: macos-11
+    name: test262-macos-x64-${{matrix.type}}
+    steps:
+      - uses: actions/checkout@v4
+      # this version of python seems to be better with subprocess hangs (needs investigation)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: $RUNNER --test262 ${TEST_OPTIONS}
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
