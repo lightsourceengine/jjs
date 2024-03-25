@@ -40,16 +40,17 @@ jobs:
             name: test262-macos-x64-release
           - os: macos-11
             name: test262-macos-x64-debug
-            args: --build-debug --buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
+            # address sanitizer so limit to undefined
+            args: --build-debug --buildoptions=--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
     runs-on: ${{matrix.os}}
     name: ${{matrix.name}}
     steps:
       - uses: actions/checkout@v4
       - name: Run Tests
-        run: ./tools/run-tests.py --test262 ${{matrix.args}}
+        run: $RUNNER --test262 ${{matrix.args}}
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
           name: ${{matrix.name}}-report
           path: |
-            build/tests/test262/local/bin/test262.report
+            build/tests/test262*/local/bin/test262.report
