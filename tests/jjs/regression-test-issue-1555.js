@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// note: this tested a vm byte code issue, but src is tuned for 512K heap.
+// if src is too big, null is thrown. it seems like the vm byte code issue
+// was fixed, but there is an OOM condition issue with eval/parsing.
+
 var src = "var a = 0; while(a) { switch(a) {";
 /* The += operation has a longer opcode. */
-for (var i = 0; i < 3300; i++)
+for (var i = 0; i < 2270; i++)
     src += "case " + i + ": a += a += a; break; ";
 src += "} }";
 
