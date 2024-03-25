@@ -26,7 +26,6 @@ env:
   RUNNER: tools/run-tests.py
   ASAN_OPTIONS: detect_stack_use_after_return=1:check_initialization_order=true:strict_init_order=true
   UBSAN_OPTIONS: print_stacktrace=1
-  SANITIZER_FLAGS: --compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
 jobs:
   test262:
     strategy:
@@ -36,12 +35,12 @@ jobs:
             name: test262-linux-x64-release
           - os: ubuntu-22.04
             name: test262-linux-x64-debug
-            args: --build-debug
+            args: --build-debug --compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
           - os: macos-11
             name: test262-macos-x64-release
           - os: macos-11
             name: test262-macos-x64-debug
-            args: --build-debug ${{env.SANITIZER_FLAGS}}
+            args: --build-debug --compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common
     runs-on: ${{matrix.os}}
     name: ${{matrix.name}}
     steps:
