@@ -49,7 +49,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
-          name: ${{matrix.name}}-report
+          name: ${{github.job}}-report
           path: |
             build/tests/test262*/local/bin/test262.report
   test262-macos:
@@ -71,6 +71,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
-          name: ${{matrix.name}}-report
+          name: ${{github.job}}-report
           path: |
             build/tests/test262*/local/bin/test262.report
