@@ -7,8 +7,6 @@
 # exceptions), so running the test262 should not be an issue. However, it will require
 # work to fix the harness and verify.
 #
-# Other linux and macos architectures should be added, but should be verified first.
-#
 # On debug builds, the undefined and address sanitizers are turned on so the test runs will
 # be slow. At the time of writing, about 10 tests fail due to sanitizer issues.
 #
@@ -30,7 +28,7 @@ env:
 jobs:
   test262-linux:
     env:
-      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }}${{ (contains(matrix.arc, 'x86') && ',--compile-flag=-m32') || '' }}
+      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }}${{ (contains(matrix.arch, 'x86') && ',--compile-flag=-m32') || '' }}
     strategy:
       matrix:
         type: [release, debug]
@@ -40,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          if [ ${{ matrix.arch }} == 'x86' ]; then
+          if [ '${{ matrix.arch }}' == 'x86' ]; then
             sudo apt update
             sudo apt install gcc-multilib
           fi
@@ -52,10 +50,39 @@ jobs:
           name: test262-linux-${{matrix.arch}}-${{matrix.type}}-report
           path: |
             build/tests/test262*/local/bin/test262.report
+  test262-linux-arm:
+    env:
+      RUNTIME: qemu-${{ (contains(matrix.arch, 'armv7l') && 'arm') || matrix.arch }}-static
+      TIMEOUT: 300
+      # sanitizer builds take too long, fall back to normal debug builds
+      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
+    strategy:
+      matrix:
+        type: [release, debug]
+        arch: [aarch64, armv7l]
+    runs-on: ubuntu-22.04
+    name: test262-linux-arm-${{matrix.arch}}-${{matrix.type}}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt update
+          if [ '${{ matrix.arch }}' == 'aarch64' ]; then
+            sudo apt install gcc-aarch64-linux-gnu qemu-user-static
+          else
+            sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
+          fi
+        shell: bash
+      - run: $RUNNER --test262 ${TEST_OPTIONS} --buildoptions=--toolchain=cmake/toolchain_linux_${{matrix.arch}}.cmake,--linker-flag=-static
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: test262-linux-arm-${{matrix.arch}}-${{matrix.type}}-report
+          path: |
+            build/tests/test262*/local/bin/test262.report
   test262-macos:
     env:
-      # address sanitizer takes a really long time to run, limit to undefined for now
-      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug --buildoptions=--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common') || '' }}
+      # sanitizer builds take too long, fall back to normal debug builds
+      TEST_OPTIONS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
     strategy:
       matrix:
         type: [release, debug]
