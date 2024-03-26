@@ -13,6 +13,7 @@ jobs:
       matrix:
         type: [release, debug]
         arch: [x86, x64]
+      fail-fast: false
     runs-on: ubuntu-22.04
     name: ci-linux-${{matrix.arch}}-${{matrix.type}}
     steps:
@@ -35,6 +36,7 @@ jobs:
       matrix:
         type: [release, debug]
         arch: [aarch64, armv7l]
+      fail-fast: false
     runs-on: ubuntu-22.04
     name: ci-linux-arm-${{matrix.arch}}-${{matrix.type}}
     steps:
@@ -55,6 +57,7 @@ jobs:
       matrix:
         arch: [x64]
         type: [release, debug]
+      fail-fast: false
     runs-on: macos-11
     name: ci-macos-${{matrix.arch}}-${{matrix.type}}
     steps:
@@ -80,6 +83,7 @@ jobs:
     strategy:
       matrix:
         type: [release, debug]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - run: choco install ninja
@@ -99,6 +103,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
     runs-on: ${{matrix.os}}
     name: ci-zig-example-${{matrix.os}}
     steps:
