@@ -65,7 +65,7 @@ jobs:
             # build only, as this running does not
             ./tools/build.py ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} "--compile-flag=-target arm64-apple-macos11" --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
           else
-            $TEST_BATTERY ${{matrix.type}} "--buildoptions=--complile-flag=-target x86_64-apple-macos10.12"
+            $TEST_BATTERY ${{matrix.type}}
           fi
 
 
