@@ -6,7 +6,7 @@ on: [push, pull_request]
 env:
   CMAKE_GENERATOR: Ninja
   RUNNER: tools/run-tests.py
-
+  TEST_BATTERY: ./tools/ci-test-battery.sh
 jobs:
   ci-linux:
     strategy:
