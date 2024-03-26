@@ -41,7 +41,7 @@ set(JJS_DEFAULT_VM_HEAP_SIZE      "(1024)"     CACHE STRING "Size of memory heap
 set(JJS_DEFAULT_VM_STACK_LIMIT    "(0)"        CACHE STRING "Maximum stack usage size, in kilobytes")
 
 # Option overrides
-if (NOT JJS_VM_HEAP_STATIC OR JJS_VM_HEAP_SIZE GREATER 512)
+if (JJS_VM_HEAP_SIZE GREATER 512)
   set(JJS_CPOINTER_32_BIT ON)
 
   set(JJS_CPOINTER_32_BIT_MESSAGE " (FORCED BY NOT HEAP STATIC OR HEAP SIZE > 512)")
