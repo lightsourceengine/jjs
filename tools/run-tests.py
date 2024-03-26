@@ -43,7 +43,7 @@ def skip_if(condition, desc):
 
 
 OPTIONS_COMMON = [
-    # vm configuration (minimal heap for 16 bit pointers)
+    # vm configuration
     '--default-vm-heap-size=512',
     '--default-vm-stack-limit=96',
     # stuff the tests need
@@ -56,7 +56,7 @@ OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-s
 OPTIONS_UNITTESTS = [
     # enable unittests
     '--unittests=on',
-    # vm configuration (minimal heap for 16 bit pointers)
+    # vm configuration
     '--default-vm-heap-size=512',
     '--default-vm-stack-limit=96',
     # stuff the tests need
@@ -73,23 +73,13 @@ OPTIONS_UNITTESTS = [
 ]
 OPTIONS_PROMISE_CALLBACK = ['--promise-callback=on']
 JJS_UNITTESTS_OPTIONS = [
-    # # 16 bit pointers + dynamic heap/stack
-    # Options('unittests-dynamic-16',
-    #         OPTIONS_UNITTESTS + ['--cpointer-32bit=off']),
-    # 32 bit pointers + dynamic heap/stack
-    Options('unittests-dynamic-32',
-            OPTIONS_UNITTESTS + ['--cpointer-32bit=on']),
-    # # 16 bit pointers + static heap/stack
-    # Options('unittests-static-16',
-    #         OPTIONS_UNITTESTS + ['--cpointer-32bit=off', '--vm-heap-static=on', '--vm-stack-static=on']),
-    # # 32 bit pointers + static heap/stack
-    # Options('unittests-static-32',
-    #         OPTIONS_UNITTESTS + ['--cpointer-32bit=on', '--vm-heap-static=on', '--vm-stack-static=on']),
+    Options('unittests', OPTIONS_UNITTESTS),
 ]
 
 # Test options for jjs-tests
 JJS_TESTS_OPTIONS = [
     Options('jjs_tests', OPTIONS_COMMON),
+    # TODO: snapshot tests are broken
     # Options('jjs_tests-snapshot', OPTIONS_COMMON + OPTIONS_SNAPSHOT, ['--snapshot']),
 ]
 

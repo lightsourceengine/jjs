@@ -71,7 +71,7 @@ def get_tests(test_dir, test_list, skip_list):
             if skipped in test:
                 return False
         container = os.path.dirname(test)
-        if container.endswith('lib') or os.path.normpath('tests/jjs/fixtures') in container:
+        if container.endswith('lib') or container.endswith('exclude') or os.path.normpath('tests/jjs/fixtures') in container:
             return False
         return True
 

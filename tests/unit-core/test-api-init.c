@@ -112,7 +112,7 @@ static void
 test_init_options_external_heap_when_heap_static (void)
 {
 #if JJS_VM_HEAP_STATIC
-  const static uint32_t external_heap_size = 512 * 1024;
+  static const uint32_t external_heap_size = 512 * 1024;
   jjs_context_options_t opts = jjs_context_options ();
   uint8_t* external_heap = malloc (external_heap_size);
 
