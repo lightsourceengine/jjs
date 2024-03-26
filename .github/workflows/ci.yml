@@ -1,4 +1,4 @@
-name: jjs CI
+name: ci
 
 on: [push, pull_request]
 # on: workflow_dispatch
@@ -63,7 +63,7 @@ jobs:
       - run: |
           if [ '${{ matrix.arch }}' == 'arm64' ]; then
             # build only, as this running does not
-            ./tools/build.py ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }} "--compile-flag=-target arm64-apple-macos11" --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
+            ./tools/build.py ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} "--compile-flag=-target arm64-apple-macos11" --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
           else
             $TEST_BATTERY ${{matrix.type}} "--buildoptions=--complile-flag=-target x86_64-apple-macos10.12"
           fi
