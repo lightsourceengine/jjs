@@ -18,12 +18,7 @@
 
 name: test262
 
-# on: [push, pull_request]
-# on: workflow_dispatch
-on:
-  workflow_run:
-    workflows: ["ci"]
-    types: [completed]
+on: workflow_dispatch
 
 env:
   RUNNER: tools/run-tests.py
