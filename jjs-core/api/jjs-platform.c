@@ -17,6 +17,7 @@
 #include "jjs-core.h"
 
 #include "jcontext.h"
+#include "jjs-platform.h"
 
 // Allow user to specify JJS_PLATFORM_OS at compile time. Otherwise, pick a supported one based on compiler flags.
 #ifndef JJS_PLATFORM_OS
@@ -106,7 +107,7 @@ platform_set_string (const char* value_p, char* dest_p, uint32_t dest_len)
 
   if (len > 0 && len < dest_len - 1)
   {
-    memcpy (dest_p, value_p, len);
+    memcpy (dest_p, value_p, len + 1);
     return true;
   }
 
