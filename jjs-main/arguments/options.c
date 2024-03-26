@@ -174,7 +174,7 @@ main_parse_args (int argc, /**< argc */
   arguments_p->debug_port = 5001;
 
   arguments_p->exit_cb_name_p = NULL;
-  arguments_p->init_flags = JJS_INIT_EMPTY;
+  arguments_p->init_flags = JJS_CONTEXT_NONE;
   arguments_p->option_flags = OPT_FLAG_EMPTY;
 
   arguments_p->parse_result = JJS_STANDALONE_EXIT_CODE_FAIL;
@@ -209,7 +209,7 @@ main_parse_args (int argc, /**< argc */
         if (check_feature (JJS_FEATURE_HEAP_STATS, cli_state.arg))
         {
           jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
-          arguments_p->init_flags |= JJS_INIT_MEM_STATS;
+          arguments_p->init_flags |= JJS_CONTEXT_MEM_STATS;
         }
         break;
       }
@@ -233,7 +233,7 @@ main_parse_args (int argc, /**< argc */
         if (check_feature (JJS_FEATURE_PARSER_DUMP, cli_state.arg))
         {
           jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
-          arguments_p->init_flags |= JJS_INIT_SHOW_OPCODES;
+          arguments_p->init_flags |= JJS_CONTEXT_SHOW_OPCODES;
         }
         break;
       }
@@ -247,7 +247,7 @@ main_parse_args (int argc, /**< argc */
         if (check_feature (JJS_FEATURE_REGEXP_DUMP, cli_state.arg))
         {
           jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
-          arguments_p->init_flags |= JJS_INIT_SHOW_REGEXP_OPCODES;
+          arguments_p->init_flags |= JJS_CONTEXT_SHOW_REGEXP_OPCODES;
         }
         break;
       }

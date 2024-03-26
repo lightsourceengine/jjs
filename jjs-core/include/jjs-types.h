@@ -30,15 +30,38 @@ JJS_C_API_BEGIN
  */
 
 /**
- * JJS init flags.
+ * Contains platform specific data and functions used internally by JJS. The
+ * structure is exposed publicly so that the embedding application can inject
+ * their own platform specific implementations.
  */
-typedef enum
+typedef struct
 {
-  JJS_INIT_EMPTY = (0u), /**< empty flag set */
-  JJS_INIT_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
-  JJS_INIT_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
-  JJS_INIT_MEM_STATS = (1u << 2), /**< dump memory statistics */
-} jjs_init_flag_t;
+  /**
+   * Get the system os platform identifier.
+   * 
+   * JJS determines the platform identifier based on compiler flags with 'unknown'
+   * as a fallback. Node's platform identifiers are used as a baseline. Here are
+   * the possible values JJS can produce:
+   * 
+   * [ aix, darwin, freebsd, linux, openbsd, sunos, win32, unknown ]
+   *
+   * The identifier picker can be overridden at compile time by defining JJS_PLATFORM_OS.
+   */
+  char os_sz[16];
+
+  /**
+   * Get the system arch platform identifier.
+   *
+   * JJS determines the platform identifier based on compiler flags with 'unknown'
+   * as a fallback. Node's platform identifiers are used as a baseline. Here are
+   * the possible values JJS can produce:
+   *
+   * [ arm, arm64, ia32, loong64, mips, mipsel, ppc, ppc64, riscv64, s390, s390x, x64, unknown ]
+   *
+   * The identifier picker can be overridden at compile time by defining JJS_PLATFORM_ARCH.
+   */
+  char arch_sz[16];
+} jjs_platform_t;
 
 /**
  * Status values returned by jjs_init functions.
@@ -58,7 +81,7 @@ typedef enum
  */
 typedef enum
 {
-  JJS_CONTEXT_UNUSED = (0u), /**< empty flag set */
+  JJS_CONTEXT_NONE = (0u), /**< empty flag set */
   JJS_CONTEXT_INITIALIZED = (1u << 0), /**< context is initialized. used internally. */
   JJS_CONTEXT_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
   JJS_CONTEXT_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
@@ -165,6 +188,19 @@ typedef struct
    * Default: JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
    */
   uint32_t gc_new_objects_fraction;
+
+  /**
+   * Platform object.
+   *
+   * When jjs_context_options or jjs_context_options_init is called, this is filled in with all
+   * the platform specific information and functions JJS will use by default. Depending on
+   * compile time configuration some fields will be filled in and other not.
+   *
+   * As part of context configuration, you can modify anything in platform with your own data
+   * of behavior. When the options are committed to the context through jjs_init, the modified
+   * platform is used by JJS.
+   */
+  jjs_platform_t platform;
 } jjs_context_options_t;
 
 /**

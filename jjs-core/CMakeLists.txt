@@ -134,6 +134,7 @@ set(SOURCE_CORE_FILES
   api/jjs-debugger-transport.c
   api/jjs-debugger.c
   api/jjs-module.c
+  api/jjs-platform.c
   api/jjs-api-snapshot.c
   api/jjs.c
   debugger/debugger.c
@@ -347,6 +348,7 @@ if(JJS_AMALGAM)
     api/jjs-annex-module-util.h
     api/jjs-annex-vmod.h
     api/jjs-api-snapshot.h
+    api/jjs-platform.h
     debugger/debugger.h
     ecma/base/ecma-alloc.h
     ecma/base/ecma-error-messages.inc.h

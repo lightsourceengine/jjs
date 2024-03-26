@@ -1202,7 +1202,29 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t mod
  */
 
 /**
- * jjs-pmap @}
+ * jjs-platform @}
+ */
+
+/**
+ * @defgroup jjs-platform Platform API
+ * @{
+ */
+
+/**
+ * @defgroup jjs-platform-ops Operations
+ * @{
+ */
+
+const jjs_platform_t* jjs_platform (void);
+bool jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char* value_p);
+bool jjs_platform_set_os_sz (jjs_platform_t* platform_p, const char* value_p);
+
+/**
+ * jjs-platform-ops @}
+ */
+
+/**
+ * jjs-platform @}
  */
 
 /**

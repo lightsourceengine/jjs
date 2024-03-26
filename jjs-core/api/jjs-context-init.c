@@ -116,6 +116,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
 
   context_flags |= JJS_CONTEXT_INITIALIZED;
   JJS_CONTEXT (context_flags) = context_flags;
+  JJS_CONTEXT (platform_api) = options_p->platform;
 
   return JJS_CONTEXT_STATUS_OK;
 }

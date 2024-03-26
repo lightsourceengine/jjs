@@ -74,6 +74,8 @@ struct jjs_context_t
   uint32_t context_flags; /**< context flags */
   jmem_heap_t* heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
 
+  jjs_platform_t platform_api; /**< platform api access */
+
   jjs_context_heap_free_cb_t heap_free_cb; /**< called when an external heap pointer should be free'd */
   void* heap_free_user_p; /**< user defined token to pass to heap_free_cb */
 

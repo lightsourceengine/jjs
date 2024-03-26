@@ -35,6 +35,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-api-iteratortype.c
   test-api-object-property-names.c
   test-api-objecttype.c
+  test-api-platform.c
   test-api-promise.c
   test-api-property.c
   test-api-set-and-clear-error-flag.c

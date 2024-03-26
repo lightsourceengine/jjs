@@ -22,6 +22,7 @@
 #include "jjs-annex.h"
 #include "jjs-context-init.h"
 #include "jjs-debugger-transport.h"
+#include "jjs-platform.h"
 
 #include "ecma-alloc.h"
 #include "ecma-array-object.h"
@@ -130,7 +131,7 @@ jjs_context_options (void)
 {
   jjs_context_options_t opts;
 
-  jjs_context_options_init(&opts);
+  jjs_context_options_init (&opts);
 
   return opts;
 } /* jjs_context_options */
@@ -159,6 +160,8 @@ jjs_context_options_init (jjs_context_options_t * opts)
   opts->gc_limit = JJS_DEFAULT_GC_LIMIT;
   opts->gc_mark_limit = JJS_DEFAULT_GC_MARK_LIMIT;
   opts->gc_new_objects_fraction = JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION;
+
+  opts->platform = jjs_platform_defaults ();
 
   return opts;
 } /* jjs_context_options */
