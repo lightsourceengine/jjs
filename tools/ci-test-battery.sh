@@ -12,7 +12,7 @@ if [[ "$1" == 'debug' ]]; then
     # on macos, gcc cross compiler arm and gcc cross compiler aarch64, the address and undefined
     # sanitizer messes with the stack pointer calculation in ecma_get_current_stack_usage(). The
     # work around is to turn off stack limit checks.
-    SANITIZER_BUILDOPTIONS="--buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--default_vm_stack_limit=0"
+    SANITIZER_BUILDOPTIONS="--buildoptions=--compile-flag=-fsanitize=address,--compile-flag=-fsanitize=undefined,--compile-flag=-fno-omit-frame-pointer,--compile-flag=-fno-common,--default-vm-stack-limit=0"
 elif [[ "$1" == 'release' ]]; then
     BUILD_TYPE=
     SANITIZER_BUILDOPTIONS=""
