@@ -982,7 +982,7 @@ main (void)
   /* Test: parser error location */
   if (jjs_feature_enabled (JJS_FEATURE_ERROR_MESSAGES))
   {
-    TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
 
     test_syntax_error ("b = 'hello';\nvar a = (;",
                        NULL,
@@ -1016,7 +1016,7 @@ main (void)
   }
 
   /* External Magic String */
-  TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
 
   uint32_t num_magic_string_items = (uint32_t) (sizeof (magic_string_items) / sizeof (jjs_char_t *));
   jjs_register_magic_strings (magic_string_items, num_magic_string_items, magic_string_lengths);

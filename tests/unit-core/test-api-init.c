@@ -97,7 +97,7 @@ test_init_options_external_heap (void)
   uint8_t* external_heap = malloc (external_heap_size);
 
   // TODO: cannot set external_heap precisely, api is a little unclear
-  opts.context_flags = JJS_CONTEXT_USING_EXTERNAL_HEAP;
+  opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
   opts.external_heap = external_heap;
   opts.vm_heap_size = 512;
 
@@ -117,7 +117,7 @@ test_init_options_external_heap_when_heap_static (void)
   uint8_t* external_heap = malloc (external_heap_size);
 
   // TODO: cannot set external_heap precisely, api is a little unclear
-  opts.context_flags = JJS_CONTEXT_USING_EXTERNAL_HEAP;
+  opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
   opts.external_heap = external_heap;
   opts.vm_heap_size = 512;
 

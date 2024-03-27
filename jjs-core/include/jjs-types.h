@@ -81,13 +81,11 @@ typedef enum
  */
 typedef enum
 {
-  JJS_CONTEXT_NONE = (0u), /**< empty flag set */
-  JJS_CONTEXT_INITIALIZED = (1u << 0), /**< context is initialized. used internally. */
-  JJS_CONTEXT_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
-  JJS_CONTEXT_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
-  JJS_CONTEXT_MEM_STATS = (1u << 2), /**< dump memory statistics */
-
-  JJS_CONTEXT_USING_EXTERNAL_HEAP = (1u << 3),
+  JJS_CONTEXT_FLAG_NONE = (0u), /**< empty flag set */
+  JJS_CONTEXT_FLAG_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
+  JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
+  JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
+  JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP = (1u << 3),
 } jjs_context_flag_t;
 
 /**
@@ -115,7 +113,7 @@ typedef struct
    * the lifetime of JJS. The pointer lifetime should end with the callback to
    * external_heap_free_cb or after jjs_cleanup has been called.
    *
-   * If set, add JJS_CONTEXT_USING_EXTERNAL_HEAP to the context_flags.
+   * If set, add JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP to the context_flags.
    *
    * If the pointer is not aligned (address and vm_heap_size) or JJS_VM_HEAP_STATIC is set,
    * jjs_init will return an error status code.

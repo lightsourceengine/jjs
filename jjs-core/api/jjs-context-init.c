@@ -49,7 +49,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
     options_p = jjs_context_options_init (&default_options);
   }
 
-  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_INITIALIZED)
+  if (JJS_CONTEXT (status_flags) & ECMA_STATUS_CONTEXT_INITIALIZED)
   {
     return JJS_CONTEXT_STATUS_ALREADY_INITIALIZED;
   }
@@ -66,10 +66,10 @@ jjs_context_init (const jjs_context_options_t* options_p)
 
   if (options_p->external_heap)
   {
-    context_flags |= JJS_CONTEXT_USING_EXTERNAL_HEAP;
+    context_flags |= JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
   }
 
-  if ((context_flags & JJS_CONTEXT_USING_EXTERNAL_HEAP) && options_p->external_heap == NULL)
+  if ((context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP) && options_p->external_heap == NULL)
   {
     return JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP;
   }
@@ -84,7 +84,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
 
 #if JJS_VM_HEAP_STATIC
   // user cannot change the default
-  if (options_p->vm_heap_size != JJS_DEFAULT_VM_HEAP_SIZE || context_flags & JJS_CONTEXT_USING_EXTERNAL_HEAP)
+  if (options_p->vm_heap_size != JJS_DEFAULT_VM_HEAP_SIZE || context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
   {
     return JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE;
   }
@@ -102,7 +102,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
 #if JJS_VM_HEAP_STATIC
   block = &jjs_static_heap;
 #else /* !JJS_VM_HEAP_STATIC */
-  if (context_flags & JJS_CONTEXT_USING_EXTERNAL_HEAP)
+  if (context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
   {
     block = options_p->external_heap;
     JJS_CONTEXT (heap_free_cb) = options_p->external_heap_free_cb;
@@ -114,7 +114,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
 #endif /* JJS_VM_HEAP_STATIC */
   JJS_CONTEXT (heap_p) = block;
 
-  context_flags |= JJS_CONTEXT_INITIALIZED;
+  context_flags |= ECMA_STATUS_CONTEXT_INITIALIZED;
   JJS_CONTEXT (context_flags) = context_flags;
   JJS_CONTEXT (platform_api) = options_p->platform;
 
@@ -130,7 +130,7 @@ jjs_context_cleanup (void)
 #if JJS_VM_HEAP_STATIC
   memset (&jjs_static_heap, 0, sizeof (jjs_static_heap));
 #else /* !JJS_VM_HEAP_STATIC */
-  if ((JJS_CONTEXT (context_flags) & JJS_CONTEXT_USING_EXTERNAL_HEAP))
+  if ((JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP))
   {
     if (JJS_CONTEXT (heap_free_cb))
     {

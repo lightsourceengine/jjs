@@ -2155,7 +2155,7 @@ parser_parse_source (void *source_p, /**< source code */
 #endif /* JJS_FUNCTION_TO_STRING */
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  context.is_show_opcodes = (JJS_CONTEXT (context_flags) & JJS_CONTEXT_SHOW_OPCODES);
+  context.is_show_opcodes = (JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_SHOW_OPCODES);
   context.total_byte_code_size = 0;
 
   if (context.is_show_opcodes)

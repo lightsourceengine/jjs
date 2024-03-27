@@ -809,7 +809,8 @@ ecma_regexp_run (ecma_regexp_ctx_t *re_ctx_p, /**< RegExp matcher context */
 
         {
           /* Save and clear all nested capturing groups, and try to iterate. */
-          JJS_VLA (const lit_utf8_byte_t *, saved_captures_p, group_p->subcapture_count);
+          // + 1 avoid zero-length vla error from undefined sanitizer
+          JJS_VLA (const lit_utf8_byte_t *, saved_captures_p, group_p->subcapture_count + 1);
           for (uint32_t i = 0; i < group_p->subcapture_count; ++i)
           {
             ecma_regexp_capture_t *const capture_p = re_ctx_p->captures_p + group_p->subcapture_start + i;

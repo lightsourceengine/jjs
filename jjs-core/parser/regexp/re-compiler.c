@@ -156,7 +156,7 @@ re_compile_bytecode (ecma_string_t *pattern_str_p, /**< pattern */
   re_compiled_code_p->non_captures_count = re_ctx.non_captures_count;
 
 #if JJS_REGEXP_DUMP_BYTE_CODE
-  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_SHOW_REGEXP_OPCODES)
+  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES)
   {
     re_dump_bytecode (&re_ctx);
   }

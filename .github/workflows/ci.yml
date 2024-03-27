@@ -69,7 +69,7 @@ jobs:
             ./tools/build.py ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} "--compile-flag=-target arm64-apple-macos11" --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
           else
             # TODO: investigate why these tests are failing. they appear to be legitimate failures
-            $TEST_BATTERY ${{matrix.type}} --skip-list=regexp-backtrack.js,regexp-capture-groups.js,regexp-non-capture-groups.js,regexp-simple-atom-and-iterations.js,string-prototype-replace.js
+            $TEST_BATTERY ${{matrix.type}}
           fi
 
 

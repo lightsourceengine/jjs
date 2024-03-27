@@ -67,6 +67,7 @@ typedef enum
 #if JJS_VM_THROW
   ECMA_STATUS_ERROR_THROWN = (1u << 6), /**< the vm_throw_callback_p is called */
 #endif /* JJS_VM_THROW */
+  ECMA_STATUS_CONTEXT_INITIALIZED = (1u << 7) /**< is the context initialized? */
 } ecma_status_flag_t;
 
 /**
