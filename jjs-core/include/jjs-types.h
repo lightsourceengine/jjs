@@ -152,6 +152,8 @@ typedef struct
    * If JJS_VM_STACK_STATIC is set, jjs_init will return an error status if you attempt to
    * set this field.
    *
+   * WARNING: This feature will not work across platforms, compilers and build configurations!
+   * 
    * Default: JJS_DEFAULT_VM_STACK_LIMIT
    */
   uint32_t vm_stack_limit;

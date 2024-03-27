@@ -36,9 +36,9 @@ set(JJS_VALGRIND                  OFF          CACHE BOOL   "Enable Valgrind sup
 set(JJS_VM_HALT                   OFF          CACHE BOOL   "Enable VM execution stop callback?")
 set(JJS_VM_THROW                  OFF          CACHE BOOL   "Enable VM throw callback?")
 set(JJS_VM_HEAP_STATIC            OFF          CACHE BOOL   "Use a fixed size VM heap size of JJS_DEFAULT_VM_HEAP_SIZE?")
-set(JJS_VM_STACK_STATIC           OFF          CACHE BOOL   "Use a fixed VM stack limit of size JJS_DEFAULT_VM_STACK_LIMIT?")
+set(JJS_VM_STACK_STATIC           ON           CACHE BOOL   "Use a fixed VM stack limit of size JJS_DEFAULT_VM_STACK_LIMIT?")
 set(JJS_DEFAULT_VM_HEAP_SIZE      "(1024)"     CACHE STRING "Size of memory heap, in kilobytes")
-set(JJS_DEFAULT_VM_STACK_LIMIT    "(0)"        CACHE STRING "Maximum stack usage size, in kilobytes")
+set(JJS_DEFAULT_VM_STACK_LIMIT    "(0)"        CACHE STRING "Maximum stack usage size, in kilobytes. WARNING: does not work across all configurations!")
 
 # Option overrides
 if (JJS_VM_HEAP_SIZE GREATER 512)

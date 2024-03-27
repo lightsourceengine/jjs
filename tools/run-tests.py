@@ -45,7 +45,6 @@ def skip_if(condition, desc):
 OPTIONS_COMMON = [
     # vm configuration
     '--default-vm-heap-size=512',
-    '--default-vm-stack-limit=96',
     # stuff the tests need
     '--function-to-string=on',
 ]
@@ -58,7 +57,6 @@ OPTIONS_UNITTESTS = [
     '--unittests=on',
     # vm configuration
     '--default-vm-heap-size=512',
-    '--default-vm-stack-limit=96',
     # stuff the tests need
     '--function-to-string=on',
     '--jjs-cmdline=off',
@@ -90,7 +88,7 @@ JJS_PACK_TESTS_OPTIONS = [
 
 # Test options for test262
 TEST262_TEST_SUITE_OPTIONS = [
-    Options('test262', ['--default-vm-stack-limit=0', '--default-vm-heap-size=20480', '--function-to-string=on']),
+    Options('test262', ['--default-vm-heap-size=20480', '--function-to-string=on']),
 ]
 
 # Test options for jjs-debugger

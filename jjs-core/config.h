@@ -217,7 +217,7 @@
  * Default value: 0
  */
 #ifndef JJS_VM_STACK_STATIC
-#define JJS_VM_STACK_STATIC 0
+#define JJS_VM_STACK_STATIC 1
 #endif /* JJS_VM_STACK_STATIC */
 
 /**
@@ -490,6 +490,10 @@
  * For more detailed description:
  *   - https://github.com/google/sanitizers/wiki/AddressSanitizerUseAfterReturn#compatibility
  *
+ * Note: Beyond ASAN, this does not work on macos debug + sanitizers and linux 32bit 
+ *       (arm, x86). If you need this feature, it is your responsibility to test
+ *       your code and configuration. The JJS CI does not include stack limit tests.
+ * 
  * Default value: 0, unlimited
  */
 #ifndef JJS_DEFAULT_VM_STACK_LIMIT
