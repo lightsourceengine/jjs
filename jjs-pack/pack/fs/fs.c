@@ -31,13 +31,14 @@
 #define platform_stat stat
 #endif
 
-#if UINTPTR_MAX == 0xffffffff
+// TODO: revisit. stat size type is different on different platforms
+//#if UINTPTR_MAX == 0xffffffff
 // 32-bit
 #define JJS_PACK_FS_MAX_FILE_SIZE (INT32_MAX)
-#else
+//#else
 // 64-bit
-#define JJS_PACK_FS_MAX_FILE_SIZE (UINT32_MAX)
-#endif
+//#define JJS_PACK_FS_MAX_FILE_SIZE (UINT32_MAX)
+//#endif
 
 #if !defined(EFTYPE)
 #define EFTYPE (4028)
