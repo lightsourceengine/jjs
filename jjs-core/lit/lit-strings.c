@@ -356,6 +356,8 @@ lit_get_utf8_length_of_cesu8_string (const lit_utf8_byte_t *cesu8_buf_p, /**< ce
  * Gets the number of codepoints in a utf-16 string and the size of a cesu8 buffer if the codepoints were
  * converted to cesu8.
  *
+ * Note: lone surrogates will be encoded into utf-8
+ *
  * @param str_p utf-16 string
  * @param str_size number of elements, not bytes, of str_p
  * @param character_count number of codepoints in str_p
@@ -365,7 +367,8 @@ void
 lit_utf16_as_cesu8_measure (const ecma_char_t* str_p, uint32_t str_size, uint32_t* character_count, lit_utf8_size_t* cesu8_size)
 {
   uint32_t codepoint;
-  lit_utf8_byte_t buf[6];
+  lit_utf8_byte_t buf[LIT_UTF8_CODE_POINT_MAX_BYTES];
+  uint32_t next;
   uint32_t c = 0;
   lit_utf8_size_t b = 0;
 
@@ -374,23 +377,28 @@ lit_utf16_as_cesu8_measure (const ecma_char_t* str_p, uint32_t str_size, uint32_
     if (lit_is_code_point_utf16_high_surrogate (str_p[i]))
     {
       c++;
-      codepoint = (str_p[i] & 0x3FFu) << 10;
+      next = i + 1;
 
-      if (lit_is_code_point_utf16_low_surrogate (str_p[i]) && i < str_size)
+      if (next >= str_size || !lit_is_code_point_utf16_low_surrogate (str_p[next]))
       {
-        b += lit_code_point_to_cesu8 (str_p[i], buf);
-        continue;
+        // lone surrogate
+        codepoint = str_p[i];
       }
-
-      codepoint += (str_p[i] & 0x3FFu);
-      codepoint += 0x10000u;
-      b += lit_code_point_to_cesu8 (codepoint, buf);
+      else
+      {
+        codepoint = (str_p[i] & 0x3FFu) << 10;
+        codepoint += (str_p[next] & 0x3FFu);
+        codepoint += 0x10000u;
+        i++;
+      }
     }
     else
     {
       c++;
-      b += lit_code_point_to_cesu8 (str_p[i], buf);
+      codepoint = str_p[i];
     }
+
+    b += lit_code_point_to_cesu8 (codepoint, buf);
   }
 
   *character_count = c;
@@ -410,46 +418,41 @@ lit_convert_utf16_string_to_cesu8_string (const ecma_char_t* str_p, /**< utf-16 
                                           lit_utf8_size_t cesu8_size) /**< size, in bytes, of the cesu8 array */
 {
   uint32_t codepoint;
-  lit_utf8_byte_t buf[6];
+  lit_utf8_byte_t buf[LIT_UTF8_CODE_POINT_MAX_BYTES];
   lit_utf8_size_t size;
+  uint32_t next;
   lit_utf8_size_t cesu8_index = 0;
 
   for (uint32_t i = 0; i < str_size; i++)
   {
     if (lit_is_code_point_utf16_high_surrogate (str_p[i]))
     {
-      codepoint = (str_p[i] & 0x3FFu) << 10;
+      next = i + 1;
 
-      if (lit_is_code_point_utf16_low_surrogate (str_p[i]) && i < str_size)
+      if (next >= str_size || !lit_is_code_point_utf16_low_surrogate (str_p[next]))
       {
-        size = lit_code_point_to_cesu8 (str_p[i], buf);
-
-        if (size && cesu8_index + size < cesu8_size)
-        {
-          memcpy (&cesu8[cesu8_index], buf, size);
-        }
-
-        continue;
+        // lone surrogate
+        codepoint = str_p[i];
       }
-
-      codepoint += (str_p[i] & 0x3FF);
-      codepoint += 0x10000;
-
-      size = lit_code_point_to_cesu8 (codepoint, buf);
-
-      if (size && cesu8_index + size < cesu8_size)
+      else
       {
-        memcpy (&cesu8[cesu8_index], buf, size);
+        codepoint = (str_p[i] & 0x3FFu) << 10;
+        codepoint += (str_p[next] & 0x3FFu);
+        codepoint += 0x10000u;
+        i++;
       }
     }
     else
     {
-      size = lit_code_point_to_cesu8 (str_p[i], buf);
+      codepoint = str_p[i];
+    }
 
-      if (size && cesu8_index + size < cesu8_size)
-      {
-        memcpy (&cesu8[cesu8_index], buf, size);
-      }
+    size = lit_code_point_to_cesu8 (codepoint, buf);
+
+    if (size && cesu8_index + size <= cesu8_size)
+    {
+      memcpy (&cesu8[cesu8_index], buf, size);
+      cesu8_index += size;
     }
   }
 } /* lit_convert_utf16_string_to_cesu8_string */
