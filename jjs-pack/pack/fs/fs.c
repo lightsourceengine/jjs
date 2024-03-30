@@ -129,7 +129,7 @@ int fs_get_size (const char* path, uint32_t* size_p)
 
   if (result == 0)
   {
-    if (st.st_size <= JJS_PACK_FS_MAX_FILE_SIZE)
+    if (st.st_size <= (off_t) JJS_PACK_FS_MAX_FILE_SIZE)
     {
       *size_p = st.st_size < 0 ? 0 : (uint32_t) st.st_size;
     }

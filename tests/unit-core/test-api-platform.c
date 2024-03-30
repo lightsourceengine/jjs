@@ -75,6 +75,22 @@ test_platform_set_arch_sz (void)
   TEST_ASSERT (jjs_platform_set_arch_sz (&platform, "012345678901234567890") == false);
 }
 
+static void
+test_platform_cwd (void)
+{
+  jjs_init_default ();
+  jjs_platform_cwd_fn_t cwd = jjs_platform ()->cwd;
+  jjs_platform_buffer_t buffer;
+
+  TEST_ASSERT (cwd (&buffer) == JJS_PLATFORM_STATUS_OK);
+  TEST_ASSERT (buffer.length > 0);
+  TEST_ASSERT (buffer.data_p != NULL);
+  TEST_ASSERT (buffer.free != NULL);
+
+  buffer.free (&buffer);
+  jjs_cleanup ();
+}
+
 int
 main (void)
 {
@@ -82,6 +98,8 @@ main (void)
   test_platform_changes ();
   test_platform_set_arch_sz ();
   test_platform_set_os_sz ();
+
+  test_platform_cwd ();
 
   return 0;
 } /* main */

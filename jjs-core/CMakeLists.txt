@@ -135,6 +135,8 @@ set(SOURCE_CORE_FILES
   api/jjs-debugger.c
   api/jjs-module.c
   api/jjs-platform.c
+  api/jjs-platform-win.c
+  api/jjs-platform-unix.c
   api/jjs-api-snapshot.c
   api/jjs.c
   debugger/debugger.c

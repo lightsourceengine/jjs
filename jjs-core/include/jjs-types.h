@@ -30,9 +30,48 @@ JJS_C_API_BEGIN
  */
 
 /**
+ * Status code for platform api calls.
+ */
+typedef enum
+{
+  JJS_PLATFORM_STATUS_OK,
+  JJS_PLATFORM_STATUS_ERR,
+} jjs_platform_status_t;
+
+/**
+ * Encoding types of platform buffers used by platform apis.
+ */
+typedef enum
+{
+  JJS_PLATFORM_BUFFER_ENCODING_NONE,
+  JJS_PLATFORM_BUFFER_ENCODING_UTF8,
+  JJS_PLATFORM_BUFFER_ENCODING_UTF16,
+} jjs_platform_buffer_encoding_t;
+
+/**
+ * Buffer object used by platform api.
+ *
+ * The structure of the buffer object is generic. It is up to the platform api that is using it
+ * to define the data type, how to free and whether to use encoding.
+ */
+typedef struct jjs_platform_buffer_t
+{
+  void* data_p; /**< pointer to the buffer data, type is chosen by the platform api using jjs_platform_buffer_t */
+  uint32_t length; /**< size of the buffer data in bytes */
+  jjs_platform_buffer_encoding_t encoding; /**< encoding type of the data */
+  void (*free) (struct jjs_platform_buffer_t*); /**< when done, this function should be called to release buffer memory */
+} jjs_platform_buffer_t;
+
+// Platform API Signatures
+typedef jjs_platform_status_t (*jjs_platform_cwd_fn_t) (jjs_platform_buffer_t*);
+
+/**
  * Contains platform specific data and functions used internally by JJS. The
  * structure is exposed publicly so that the embedding application can inject
  * their own platform specific implementations.
+ *
+ * Depending on compile settings and the platform, all platform functionality
+ * might not be available. API should be checked for NULL before using.
  */
 typedef struct
 {
@@ -61,6 +100,8 @@ typedef struct
    * The identifier picker can be overridden at compile time by defining JJS_PLATFORM_ARCH.
    */
   char arch_sz[16];
+
+  jjs_platform_cwd_fn_t cwd; /**< raw function for getting the current working directory of the platform */
 } jjs_platform_t;
 
 /**

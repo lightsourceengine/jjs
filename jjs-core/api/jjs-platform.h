@@ -17,7 +17,14 @@
 #define JJS_PLATFORM_H
 
 #include "jjs-core.h"
+#include "ecma-globals.h"
 
-jjs_platform_t jjs_platform_defaults (void);
+jjs_platform_t jjsp_defaults (void);
+
+void jjsp_buffer_free (jjs_platform_buffer_t* buffer_p);
+char* jjsp_strndup (char* str_p, uint32_t length);
+ecma_value_t jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move);
+
+jjs_platform_status_t jjsp_cwd (jjs_platform_buffer_t* buffer_p);
 
 #endif /* JJS_PLATFORM_H */

@@ -282,6 +282,7 @@ bool ecma_prop_name_is_map_key (ecma_string_t *string_p);
 #endif /* JJS_BUILTIN_CONTAINER */
 ecma_string_t *ecma_new_ecma_string_from_ascii (const lit_utf8_byte_t *string_p, lit_utf8_size_t string_size);
 ecma_string_t *ecma_new_ecma_string_from_utf8 (const lit_utf8_byte_t *string_p, lit_utf8_size_t string_size);
+ecma_string_t *ecma_new_ecma_string_from_utf16 (const ecma_char_t *string_p, lit_utf8_size_t string_size);
 ecma_string_t *ecma_new_ecma_string_from_utf8_converted_to_cesu8 (const lit_utf8_byte_t *string_p,
                                                                   lit_utf8_size_t string_size);
 ecma_string_t *

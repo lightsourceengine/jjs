@@ -99,6 +99,7 @@ lit_utf8_size_t lit_get_utf8_size_of_cesu8_string (const lit_utf8_byte_t *cesu8_
 lit_utf8_size_t lit_utf8_string_length (const lit_utf8_byte_t *utf8_buf_p, lit_utf8_size_t utf8_buf_size);
 lit_utf8_size_t lit_get_utf8_length_of_cesu8_string (const lit_utf8_byte_t *cesu8_buf_p,
                                                      lit_utf8_size_t cesu8_buf_size);
+void lit_utf16_as_cesu8_measure (const ecma_char_t* str_p, uint32_t str_size, uint32_t* character_count, uint32_t* cesu8_size);
 
 /* hash */
 lit_string_hash_t lit_utf8_string_calc_hash (const lit_utf8_byte_t *utf8_buf_p, lit_utf8_size_t utf8_buf_size);
@@ -120,6 +121,10 @@ lit_utf8_size_t lit_convert_cesu8_string_to_utf8_string (const lit_utf8_byte_t *
                                                          lit_utf8_size_t cesu8_size,
                                                          lit_utf8_byte_t *utf8_string_p,
                                                          lit_utf8_size_t utf8_size);
+void lit_convert_utf16_string_to_cesu8_string (const ecma_char_t* str_p,
+                                               uint32_t str_size,
+                                               lit_utf8_byte_t* cesu8,
+                                               lit_utf8_size_t cesu8_size);
 lit_code_point_t lit_convert_surrogate_pair_to_code_point (ecma_char_t high_surrogate, ecma_char_t low_surrogate);
 
 bool lit_compare_utf8_strings_relational (const lit_utf8_byte_t *string1_p,

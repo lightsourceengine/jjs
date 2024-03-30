@@ -185,6 +185,33 @@ void *__cdecl _alloca (size_t _Size);
 #define JJS_VLA(type, name, size) type name[size]
 #endif /* !JJS_VLA */
 
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
+#define JJS_OS_IS_WINDOWS
+#elif defined(_AIX) || defined(__TOS_AIX__)
+#define JJS_OS_IS_AIX
+#elif defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
+#define JJS_OS_IS_LINUX
+#elif defined(macintosh) || defined(Macintosh) || (defined(__APPLE__) && defined(__MACH__))
+#define JJS_OS_IS_MACOS
+#endif
+
+#if defined (JJS_OS_IS_LINUX) || defined (JJS_OS_IS_MACOS)
+#define JJS_OS_IS_UNIX
+#endif
+
+#if defined(i386) || defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)    \
+  || defined(__i386) || defined(_M_IX86) || defined(_X86_) || defined(__THW_INTEL__) || defined(__I86__) \
+  || defined(__INTEL__)
+#define JJS_ARCH_IS_X32
+#elif defined(__ARM_ARCH) || defined(__TARGET_ARCH_ARM) || defined(__TARGET_ARCH_THUMB) || defined(_M_ARM) \
+  || defined(__arm__) || defined(__thumb__)
+#define JJS_ARCH_IS_ARM
+#elif defined(__arm64) || defined(_M_ARM64) || defined(__aarch64__) || defined(__AARCH64EL__)
+#define JJS_ARCH_IS_ARM64
+#elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64__) || defined(__amd64) || defined(_M_X64)
+#define JJS_ARCH_IS_X64
+#endif
+
 /**
  * @}
  */

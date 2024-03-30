@@ -386,6 +386,37 @@ ecma_new_ecma_string_from_utf8 (const lit_utf8_byte_t *string_p, /**< utf-8 stri
 } /* ecma_new_ecma_string_from_utf8 */
 
 /**
+ * Allocate new ecma-string and fill it with characters from the utf16 string
+ *
+ * @return pointer to ecma-string descriptor
+ */
+ecma_string_t *
+ecma_new_ecma_string_from_utf16 (const ecma_char_t *string_p, lit_utf8_size_t string_size)
+{
+  JJS_ASSERT (string_p != NULL || string_size == 0);
+
+  if (string_size == 0)
+  {
+    return ecma_get_magic_string (LIT_MAGIC_STRING__EMPTY);
+  }
+
+  uint32_t character_count;
+  uint32_t cesu8_size;
+  lit_utf8_byte_t *data_p;
+  ecma_string_t *string_desc_p;
+
+  lit_utf16_as_cesu8_measure (string_p, string_size, &character_count, &cesu8_size);
+
+  string_desc_p = ecma_new_ecma_string_from_utf8_buffer (character_count, cesu8_size, &data_p);
+
+  lit_convert_utf16_string_to_cesu8_string (string_p, string_size, data_p, cesu8_size);
+
+  string_desc_p->u.hash = lit_utf8_string_calc_hash (data_p, cesu8_size);
+
+  return string_desc_p;
+} /* ecma_new_ecma_string_from_utf16 */
+
+/**
  * Allocate a new ecma-string and initialize it from the utf8 string argument.
  * All 4-bytes long unicode sequences are converted into two 3-bytes long sequences.
  *

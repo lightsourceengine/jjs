@@ -353,6 +353,108 @@ lit_get_utf8_length_of_cesu8_string (const lit_utf8_byte_t *cesu8_buf_p, /**< ce
 } /* lit_get_utf8_length_of_cesu8_string */
 
 /**
+ * Gets the number of codepoints in a utf-16 string and the size of a cesu8 buffer if the codepoints were
+ * converted to cesu8.
+ *
+ * @param str_p utf-16 string
+ * @param str_size number of elements, not bytes, of str_p
+ * @param character_count number of codepoints in str_p
+ * @param cesu8_size size, in bytes, needed to convert str_p to cesu8
+ */
+void
+lit_utf16_as_cesu8_measure (const ecma_char_t* str_p, uint32_t str_size, uint32_t* character_count, lit_utf8_size_t* cesu8_size)
+{
+  uint32_t codepoint;
+  lit_utf8_byte_t buf[6];
+  uint32_t c = 0;
+  lit_utf8_size_t b = 0;
+
+  for (uint32_t i = 0; i < str_size; i++)
+  {
+    if (lit_is_code_point_utf16_high_surrogate (str_p[i]))
+    {
+      c++;
+      codepoint = (str_p[i] & 0x3FFu) << 10;
+
+      if (lit_is_code_point_utf16_low_surrogate (str_p[i]) && i < str_size)
+      {
+        b += lit_code_point_to_cesu8 (str_p[i], buf);
+        continue;
+      }
+
+      codepoint += (str_p[i] & 0x3FFu);
+      codepoint += 0x10000u;
+      b += lit_code_point_to_cesu8 (codepoint, buf);
+    }
+    else
+    {
+      c++;
+      b += lit_code_point_to_cesu8 (str_p[i], buf);
+    }
+  }
+
+  *character_count = c;
+  *cesu8_size = b;
+} /* lit_utf16_as_cesu8_measure */
+
+/**
+ * Convert utf-16 string to an cesu8 string and put it into a pre-allocated buffer.
+ *
+ * Note: This function assumes the cesu8 array has been allocated to fit the converted utf16 string. Use
+ *       lit_utf16_as_cesu8_measure to get the correct size.
+ */
+void
+lit_convert_utf16_string_to_cesu8_string (const ecma_char_t* str_p, /**< utf-16 string */
+                                          uint32_t str_size, /**< number of elements, not bytes, of str_p */
+                                          lit_utf8_byte_t* cesu8, /**< pre-allocated byte array that can exactly hold the converted string */
+                                          lit_utf8_size_t cesu8_size) /**< size, in bytes, of the cesu8 array */
+{
+  uint32_t codepoint;
+  lit_utf8_byte_t buf[6];
+  lit_utf8_size_t size;
+  lit_utf8_size_t cesu8_index = 0;
+
+  for (uint32_t i = 0; i < str_size; i++)
+  {
+    if (lit_is_code_point_utf16_high_surrogate (str_p[i]))
+    {
+      codepoint = (str_p[i] & 0x3FFu) << 10;
+
+      if (lit_is_code_point_utf16_low_surrogate (str_p[i]) && i < str_size)
+      {
+        size = lit_code_point_to_cesu8 (str_p[i], buf);
+
+        if (size && cesu8_index + size < cesu8_size)
+        {
+          memcpy (&cesu8[cesu8_index], buf, size);
+        }
+
+        continue;
+      }
+
+      codepoint += (str_p[i] & 0x3FF);
+      codepoint += 0x10000;
+
+      size = lit_code_point_to_cesu8 (codepoint, buf);
+
+      if (size && cesu8_index + size < cesu8_size)
+      {
+        memcpy (&cesu8[cesu8_index], buf, size);
+      }
+    }
+    else
+    {
+      size = lit_code_point_to_cesu8 (str_p[i], buf);
+
+      if (size && cesu8_index + size < cesu8_size)
+      {
+        memcpy (&cesu8[cesu8_index], buf, size);
+      }
+    }
+  }
+} /* lit_convert_utf16_string_to_cesu8_string */
+
+/**
  * Decodes a unicode code point from non-empty utf-8-encoded buffer
  *
  * @return number of bytes occupied by code point in the string
