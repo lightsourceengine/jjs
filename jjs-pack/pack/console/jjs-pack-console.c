@@ -15,9 +15,10 @@
 
 #include "jjs-pack-lib.h"
 #include "jjs-pack.h"
-#include "jjs-port.h"
 
 #if JJS_PACK_CONSOLE
+
+#include <stdio.h>
 
 extern uint8_t jjs_pack_console_snapshot[];
 extern const uint32_t jjs_pack_console_snapshot_len;
@@ -38,7 +39,7 @@ println (jjs_value_t value)
 
     if (written > 0)
     {
-      jjs_port_print_buffer (&small_buffer[0], written);
+      fwrite (&small_buffer[0], sizeof (small_buffer[0]), written, stdout);
     }
   }
   else
@@ -51,14 +52,14 @@ println (jjs_value_t value)
 
       if (written > 0)
       {
-        jjs_port_print_buffer (buffer_p, written);
+        fwrite (&buffer_p, sizeof (buffer_p[0]), written, stdout);
       }
 
       jjs_heap_free (buffer_p, size);
     }
   }
 
-  jjs_port_print_byte ('\n');
+  putc ('\n', stdout);
 } /* println */
 
 static JJS_HANDLER (jjs_pack_console_println)

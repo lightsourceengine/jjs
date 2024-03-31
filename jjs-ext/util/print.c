@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -43,6 +44,33 @@ typedef struct
   jjs_size_t index; /**< write index */
   jjs_char_t data[JJSX_PRINT_BUFFER_SIZE]; /**< buffer data */
 } jjsx_print_buffer_t;
+
+// TODO: putting here for now.. bigger refactor of cmdline code is needed
+
+/**
+ * Default implementation of jjs_port_print_byte. Uses 'putchar' to
+ * print a single character to standard output.
+ */
+static void
+jjs_port_print_byte (jjs_char_t byte) /**< the character to print */
+{
+  putchar (byte);
+} /* jjs_port_print_byte */
+
+/**
+ * Default implementation of jjs_port_print_buffer. Uses 'jjs_port_print_byte' to
+ * print characters of the input buffer.
+ */
+static void
+jjs_port_print_buffer (const jjs_char_t *buffer_p, /**< string buffer */
+                         jjs_size_t buffer_size) /**< string size*/
+{
+  for (jjs_size_t i = 0; i < buffer_size; i++)
+  {
+    jjs_port_print_byte (buffer_p[i]);
+  }
+} /* jjs_port_print_byte */
+
 
 /**
  * Callback used by jjsx_print_value to batch written characters and print them in bulk.

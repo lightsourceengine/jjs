@@ -66,36 +66,6 @@ void JJS_ATTR_NORETURN jjs_port_fatal (jjs_fatal_code_t code);
  */
 
 /**
- * @defgroup jjs-port-io I/O API
- * @{
- */
-
-/**
- * Print a single character to standard output.
- *
- * This port function is never called from jjs-core directly, it is only used by jjs-ext components to print
- * information.
- *
- * @param byte: the byte to print.
- */
-void jjs_port_print_byte (jjs_char_t byte);
-
-/**
- * Print a buffer to standard output
- *
- * This port function is never called from jjs-core directly, it is only used by jjs-ext components to print
- * information.
- *
- * @param buffer_p: input buffer
- * @param buffer_size: data size
- */
-void jjs_port_print_buffer (const jjs_char_t *buffer_p, jjs_size_t buffer_size);
-
-/**
- * jjs-port-io @}
- */
-
-/**
  * @defgroup jjs-port-fd Filesystem API
  * @{
  */
