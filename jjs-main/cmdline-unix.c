@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <sys/time.h>
+#include <inttypes.h>
 
 void cmdline_srand_init (void)
 {
@@ -26,7 +27,7 @@ void cmdline_srand_init (void)
 
   if (gettimeofday (&time, NULL) == 0)
   {
-    srand (((time.tv_sec * 1000) + (time.tv_usec / 1000)) & 0xFFFFFFFF);
+    srand ((uint32_t)((time.tv_sec * 1000) + (time.tv_usec / 1000)));
   }
 }
 

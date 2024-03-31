@@ -73,9 +73,10 @@ jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   struct timespec timeout;
   int rc;
+  int32_t ms = (sleep_time_ms == UINT32_MAX) ? INT32_MAX : (int32_t) sleep_time_ms;
 
-  timeout.tv_sec = sleep_time_ms / 1000;
-  timeout.tv_nsec = (sleep_time_ms % 1000) * 1000 * 1000;
+  timeout.tv_sec = ms / 1000;
+  timeout.tv_nsec = (ms % 1000) * 1000 * 1000;
 
   do
   {

@@ -84,18 +84,3 @@ uint64_t jjs_port_hrtime (void)
 } /* jjs_port_hrtime */
 
 #endif /* defined(__APPLE__) */
-
-#if defined(__unix__) || defined(__APPLE__)
-
-#include <unistd.h>
-
-/**
- * Default implementation of jjs_port_sleep, uses 'usleep'.
- */
-void
-jjs_port_sleep (uint32_t sleep_time) /**< milliseconds to sleep */
-{
-  usleep ((useconds_t) sleep_time * 1000);
-} /* jjs_port_sleep */
-
-#endif /* defined(__unix__) || defined(__APPLE__) */
