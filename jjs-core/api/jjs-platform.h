@@ -32,5 +32,6 @@ void jjsp_io_log (const char* message_p);
 void jjsp_time_sleep (uint32_t sleep_time_ms);
 int32_t jjsp_time_local_tza (double unix_ms);
 double jjsp_time_now_ms (void);
+uint64_t jjsp_time_hrtime (void);
 
 #endif /* JJS_PLATFORM_H */

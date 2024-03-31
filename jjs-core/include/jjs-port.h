@@ -62,17 +62,6 @@ typedef enum
 void JJS_ATTR_NORETURN jjs_port_fatal (jjs_fatal_code_t code);
 
 /**
- * Returns the current high-resolution timestamp. This is expressed in
- * nanoseconds. It is relative to an arbitrary time in the past. It is
- * not related to the time of day and therefore not subject to clock
- * drift. The primary use is for measuring performance between
- * intervals.
- *
- * @return the current high-resolution timestamp in nanoseconds.
- */
-uint64_t jjs_port_hrtime (void);
-
-/**
  * jjs-port-process @}
  */
 
@@ -101,34 +90,6 @@ void jjs_port_print_byte (jjs_char_t byte);
  * @param buffer_size: data size
  */
 void jjs_port_print_buffer (const jjs_char_t *buffer_p, jjs_size_t buffer_size);
-
-/**
- * Read a line from standard input.
- *
- * The implementation should allocate storage necessary for the string. The result string should include the ending line
- * terminator character(s) and should be zero terminated.
- *
- * An implementation may return NULL to signal that the end of input is reached, or an error occured.
- *
- * When a non-NULL value is returned, the caller will pass the returned value to `jjs_port_line_free` when the line is
- * no longer needed. This can be used to finalize dynamically allocated buffers if necessary.
- *
- * This port function is never called from jjs-core directly, it is only used by some jjs-ext components that
- * require user input.
- *
- * @param out_size_p: size of the input string in bytes, excluding terminating zero byte
- *
- * @return pointer to the buffer storing the string,
- *         or NULL if end of input
- */
-jjs_char_t *jjs_port_line_read (jjs_size_t *out_size_p);
-
-/**
- * Free a line buffer allocated by jjs_port_line_read
- *
- * @param buffer_p: buffer returned by jjs_port_line_read
- */
-void jjs_port_line_free (jjs_char_t *buffer_p);
 
 /**
  * jjs-port-io @}

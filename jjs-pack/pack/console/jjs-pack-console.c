@@ -76,7 +76,7 @@ static JJS_HANDLER (jjs_pack_console_println)
 static JJS_HANDLER (jjs_pack_console_now)
 {
   JJS_HANDLER_HEADER ();
-  return jjs_number ((double) (jjs_port_hrtime () - console_now_time_origin) / 1e6);
+  return jjs_number ((double) (jjs_platform ()->time_hrtime () - console_now_time_origin) / 1e6);
 } /* jjs_pack_console_now */
 
 #endif /* JJS_PACK_CONSOLE */
@@ -85,9 +85,14 @@ jjs_value_t
 jjs_pack_console_init (void)
 {
 #if JJS_PACK_CONSOLE
+  if (jjs_platform ()->time_hrtime == NULL)
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "console pack(age) requires platform api 'time_hrtime' to be available");
+  }
+
   if (console_now_time_origin == 0)
   {
-    console_now_time_origin = jjs_port_hrtime ();
+    console_now_time_origin = jjs_platform ()->time_hrtime ();
   }
 
   jjs_value_t bindings = jjs_bindings ();

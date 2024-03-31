@@ -27,7 +27,7 @@ static uint64_t performance_now_time_origin = 0;
 static JJS_HANDLER (jjs_pack_performance_now)
 {
   JJS_HANDLER_HEADER ();
-  return jjs_number ((double) (jjs_port_hrtime () - performance_now_time_origin) / 1e6);
+  return jjs_number ((double) (jjs_platform ()->time_hrtime () - performance_now_time_origin) / 1e6);
 } /* jjs_pack_performance_now */
 
 #endif /* JJS_PACK_PERFORMANCE */
@@ -36,11 +36,15 @@ jjs_value_t
 jjs_pack_performance_init (void)
 {
 #if JJS_PACK_PERFORMANCE
+  if (jjs_platform ()->time_hrtime == NULL)
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "performance pack(age) requires platform api 'time_hrtime' to be available");
+  }
+
   if (performance_now_time_origin == 0)
   {
-    jjs_port_hrtime ();
     time_origin = jjs_platform ()->time_now_ms ();
-    performance_now_time_origin = jjs_port_hrtime ();
+    performance_now_time_origin = jjs_platform ()->time_hrtime ();
   }
 
   jjs_value_t bindings = jjs_bindings ();

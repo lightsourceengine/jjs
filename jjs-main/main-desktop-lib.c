@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "jjs-port.h"
+#include "cmdline.h"
 
 // TODO: should come from port / platform
 #ifdef _WIN32
@@ -313,7 +314,7 @@ main_exec_stdin (main_input_type_t input_type, const char* filename)
   while (true)
   {
     jjs_size_t line_size;
-    jjs_char_t *line_p = jjs_port_line_read (&line_size);
+    jjs_char_t *line_p = cmdline_stdin_readline (1024, &line_size);
 
     if (line_p == NULL)
     {
@@ -324,7 +325,7 @@ main_exec_stdin (main_input_type_t input_type, const char* filename)
     source_p = realloc (source_p, new_size);
 
     memcpy (source_p + source_size, line_p, line_size);
-    jjs_port_line_free (line_p);
+    free (line_p);
     source_size = new_size;
   }
 

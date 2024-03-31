@@ -16,6 +16,8 @@
 #ifndef CMDLINE_H
 #define CMDLINE_H
 
+#include <jjs.h>
+
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
 #define CMDLINE_IS_WINDOWS
 #else
@@ -27,5 +29,6 @@
 #endif
 
 void cmdline_srand_init (void);
+jjs_char_t *cmdline_stdin_readline (size_t buffer_size, jjs_size_t *out_size_p);
 
 #endif /* CMDLINE_H */

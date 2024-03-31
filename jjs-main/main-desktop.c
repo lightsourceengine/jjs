@@ -124,7 +124,7 @@ repl (const char *prompt_p)
     jjsx_print_string (prompt_p);
 
     jjs_size_t length;
-    jjs_char_t *line_p = jjs_port_line_read (&length);
+    jjs_char_t *line_p = cmdline_stdin_readline (0, &length);
 
     if (line_p == NULL)
     {
@@ -139,7 +139,7 @@ repl (const char *prompt_p)
 
     if (!jjs_validate_string (line_p, length, JJS_ENCODING_UTF8))
     {
-      jjs_port_line_free (line_p);
+      free (line_p);
       result = jjs_throw_sz (JJS_ERROR_SYNTAX, "Input is not a valid UTF-8 string");
       goto exception;
     }
@@ -150,7 +150,7 @@ repl (const char *prompt_p)
     };
 
     result = jjs_parse (line_p, length, &opts);
-    jjs_port_line_free (line_p);
+    free (line_p);
 
     jjs_value_free (opts.source_name);
 

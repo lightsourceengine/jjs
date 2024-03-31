@@ -151,4 +151,41 @@ jjsp_time_now_ms (void)
   return ((double) tv_sec) * 1000.0 + ((double) tv_usec) / 1000.0;
 }
 
+uint64_t
+jjsp_time_hrtime (void)
+{
+  // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/win/util.c
+
+  static double scaled_frequency = 0;
+
+  if (scaled_frequency == 0)
+  {
+    LARGE_INTEGER frequency;
+
+    if (QueryPerformanceFrequency (&frequency))
+    {
+      scaled_frequency = ((double) frequency.QuadPart) / 1e9;
+    }
+    else
+    {
+      fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
+      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+    }
+  }
+
+  LARGE_INTEGER counter;
+
+  JJS_ASSERT (scaled_frequency != 0);
+
+  if (!QueryPerformanceCounter(&counter))
+  {
+    fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
+    jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+  }
+
+  JJS_ASSERT (counter.QuadPart != 0);
+
+  return (uint64_t) ((double) counter.QuadPart / scaled_frequency);
+}
+
 #endif /* JJS_OS_IS_WINDOWS */

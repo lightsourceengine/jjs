@@ -20,9 +20,7 @@ set(PORT_SOURCES
   common/jjs-port-io.c
   common/jjs-port-process.c
   unix/jjs-port-unix-fs.c
-  unix/jjs-port-unix-process.c
   win/jjs-port-win-fs.c
-  win/jjs-port-win-process.c
 )
 
 # Define _BSD_SOURCE and _DEFAULT_SOURCE

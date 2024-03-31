@@ -101,6 +101,7 @@ jjsp_defaults (void)
   platform.time_local_tza = jjsp_time_local_tza;
   platform.time_now_ms = jjsp_time_now_ms;
   platform.time_sleep = jjsp_time_sleep;
+  platform.time_hrtime = jjsp_time_hrtime;
 
   return platform;
 } /* jjsp_defaults */
