@@ -97,6 +97,7 @@ jjsp_defaults (void)
   jjs_platform_set_arch_sz (&platform, jjs_arch_identifier_p);
 
   platform.cwd = jjsp_cwd;
+  platform.fatal = jjsp_fatal;
   platform.io_log = jjsp_io_log;
   platform.time_local_tza = jjsp_time_local_tza;
   platform.time_now_ms = jjsp_time_now_ms;
@@ -191,3 +192,14 @@ jjsp_io_log (const char* message_p)
 {
   fputs (message_p, stderr);
 } /* jjsp_log */
+
+void
+jjsp_fatal (jjs_fatal_code_t code)
+{
+  if (code != 0 && code != JJS_FATAL_OUT_OF_MEMORY)
+  {
+    abort ();
+  }
+
+  exit ((int) code);
+}

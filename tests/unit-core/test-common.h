@@ -39,7 +39,7 @@
                  __FILE__,                                       \
                  __func__,                                       \
                  (uint32_t) __LINE__);                           \
-      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);               \
+      jjs_platform ()->fatal (JJS_FATAL_FAILED_ASSERTION);       \
     }                                                            \
   } while (0)
 
@@ -58,7 +58,7 @@
                  (uint32_t) __LINE__,                              \
                  __expected,                                       \
                  __result);                                        \
-      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);                 \
+      jjs_platform ()->fatal (JJS_FATAL_FAILED_ASSERTION);         \
     }                                                              \
   } while (0)
 

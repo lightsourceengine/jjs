@@ -17,7 +17,6 @@ set(JJS_PORT_NAME jjs-port)
 # Source directories
 set(PORT_SOURCES
   common/jjs-port-fs.c
-  common/jjs-port-process.c
   unix/jjs-port-unix-fs.c
   win/jjs-port-win-fs.c
 )

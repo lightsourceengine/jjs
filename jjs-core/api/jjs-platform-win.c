@@ -13,11 +13,12 @@
  * limitations under the License.
  */
 
-#include "jjs-platform.h"
 #include "jjs-compiler.h"
+#include "jjs-platform.h"
 
 #ifdef JJS_OS_IS_WINDOWS
 
+#include "jcontext.h"
 #include <windows.h>
 
 jjs_platform_status_t
@@ -169,7 +170,7 @@ jjsp_time_hrtime (void)
     else
     {
       fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
-      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+      JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
     }
   }
 
@@ -180,7 +181,7 @@ jjsp_time_hrtime (void)
   if (!QueryPerformanceCounter(&counter))
   {
     fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
-    jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+    JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
   }
 
   JJS_ASSERT (counter.QuadPart != 0);

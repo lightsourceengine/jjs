@@ -62,6 +62,8 @@ assert_handler (const jjs_call_info_t *call_info_p, /**< call information */
   }
 
   TEST_ASSERT (false);
+
+  return jjs_undefined ();
 } /* assert_handler */
 
 /**

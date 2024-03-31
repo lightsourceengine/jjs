@@ -30,6 +30,18 @@ JJS_C_API_BEGIN
  */
 
 /**
+ * Error codes that can be passed by the engine when calling jjs_port_fatal
+ */
+typedef enum
+{
+  JJS_FATAL_OUT_OF_MEMORY = 10, /**< Out of memory */
+  JJS_FATAL_REF_COUNT_LIMIT = 12, /**< Reference count limit reached */
+  JJS_FATAL_DISABLED_BYTE_CODE = 13, /**< Executed disabled instruction */
+  JJS_FATAL_UNTERMINATED_GC_LOOPS = 14, /**< Garbage collection loop limit reached */
+  JJS_FATAL_FAILED_ASSERTION = 120 /**< Assertion failed */
+} jjs_fatal_code_t;
+
+/**
  * Status code for platform api calls.
  */
 typedef enum
@@ -64,6 +76,8 @@ typedef struct jjs_platform_buffer_t
 
 // Platform API Signatures
 typedef jjs_platform_status_t (*jjs_platform_cwd_fn_t) (jjs_platform_buffer_t*);
+typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
+
 typedef void (*jjs_platform_io_log_fn_t) (const char*);
 
 typedef void (*jjs_platform_time_sleep_fn_t) (uint32_t);
@@ -108,6 +122,16 @@ typedef struct
   char arch_sz[16];
 
   /**
+   * Engine calls this platform function when the process experiences a fatal failure
+   * which it cannot recover.
+   *
+   * A libc implementation will implement this with exit(), abort() or both.
+   *
+   * This platform function is required by the engine.
+   */
+  jjs_platform_fatal_fn_t fatal;
+
+  /**
    * Get the current working directory of the process.
    *
    * The return values is a jjs_platform_status_t code. If OK, the pointer to a jjs_platform_buffer_t
@@ -120,7 +144,7 @@ typedef struct
    * This platform function is required for commonjs and esm modules to construct paths
    * from relative specifiers.
    */
-  jjs_platform_cwd_fn_t cwd; /**< get the current working directory of the platform */
+  jjs_platform_cwd_fn_t cwd;
 
   /**
    * Display or log a debug/error message.
@@ -190,9 +214,10 @@ typedef enum
   JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE, /**< heap size was configured at compile time and cannot be changed  */
   JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT, /**< stack limit was configured at compile time and cannot be changed  */
   JJS_CONTEXT_STATUS_CHAOS, /**< context is in a horrible state */
-  JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP,
-  JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA,
-  JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS,
+  JJS_CONTEXT_STATUS_REQUIRES_FATAL, /**< platform.fatal function is required by the engine */
+  JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP, /**< platform.time_sleep function is required by the engine */
+  JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA, /**< platform.time_local_tza function is required by the engine */
+  JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS, /**< platform.time_now_ms function is required by the engine */
 } jjs_context_status_t;
 
 /**

@@ -26,46 +26,6 @@ JJS_C_API_BEGIN
  */
 
 /**
- * @defgroup jjs-port-process Process management API
- *
- * It is questionable whether a library should be able to terminate an
- * application. However, as of now, we only have the concept of completion
- * code around jjs_parse and jjs_run. Most of the other API functions
- * have no way of signaling an error. So, we keep the termination approach
- * with this port function.
- *
- * @{
- */
-
-/**
- * Error codes that can be passed by the engine when calling jjs_port_fatal
- */
-typedef enum
-{
-  JJS_FATAL_OUT_OF_MEMORY = 10, /**< Out of memory */
-  JJS_FATAL_REF_COUNT_LIMIT = 12, /**< Reference count limit reached */
-  JJS_FATAL_DISABLED_BYTE_CODE = 13, /**< Executed disabled instruction */
-  JJS_FATAL_UNTERMINATED_GC_LOOPS = 14, /**< Garbage collection loop limit reached */
-  JJS_FATAL_FAILED_ASSERTION = 120 /**< Assertion failed */
-} jjs_fatal_code_t;
-
-/**
- * Signal the port that the process experienced a fatal failure from which it cannot
- * recover.
- *
- * A libc-based port may implement this with exit() or abort(), or both.
- *
- * Note: This function is expected to not return.
- *
- * @param code: the cause of the error.
- */
-void JJS_ATTR_NORETURN jjs_port_fatal (jjs_fatal_code_t code);
-
-/**
- * jjs-port-process @}
- */
-
-/**
  * @defgroup jjs-port-fd Filesystem API
  * @{
  */

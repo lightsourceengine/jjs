@@ -27,13 +27,13 @@
   {                                                              \
     if (!(x))                                                    \
     {                                                            \
-      jjs_log (JJS_LOG_LEVEL_ERROR,                          \
+      jjs_log (JJS_LOG_LEVEL_ERROR,                              \
                  "TEST: Assertion '%s' failed at %s(%s):%lu.\n", \
                  #x,                                             \
                  __FILE__,                                       \
                  __func__,                                       \
                  (unsigned long) __LINE__);                      \
-      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);           \
+      jjs_platform ()->fatal (JJS_FATAL_FAILED_ASSERTION);       \
     }                                                            \
   } while (0)
 

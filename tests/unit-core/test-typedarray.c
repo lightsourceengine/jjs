@@ -72,6 +72,7 @@ assert_handler (const jjs_call_info_t *call_info_p, /**< call information */
       printf ("JS assert: %s\n", utf8_string);
     }
     TEST_ASSERT (false);
+    return jjs_undefined ();
   }
 } /* assert_handler */
 

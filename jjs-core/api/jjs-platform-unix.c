@@ -15,6 +15,7 @@
 
 #include "jjs-platform.h"
 #include "jjs-compiler.h"
+#include "jcontext.h"
 
 #ifdef JJS_OS_IS_UNIX
 
@@ -143,7 +144,7 @@ uint64_t jjsp_time_hrtime (void)
   {
     if (KERN_SUCCESS != mach_timebase_info (&hrtime_timebase))
     {
-      jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+      JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
     }
 
     hrtime_fn = &mach_continuous_time;

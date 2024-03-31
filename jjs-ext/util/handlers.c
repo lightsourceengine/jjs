@@ -108,7 +108,9 @@ jjsx_handler_assert (const jjs_call_info_t *call_info_p, /**< call information *
 
   jjsx_print_backtrace (5);
 
-  jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
+  jjs_platform ()->fatal (JJS_FATAL_FAILED_ASSERTION);
+
+  return jjs_undefined();
 } /* jjsx_handler_assert_fatal */
 
 /**

@@ -74,6 +74,11 @@ jjs_context_init (const jjs_context_options_t* options_p)
     return JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP;
   }
 
+  if (options_p->platform.fatal == NULL)
+  {
+    return JJS_CONTEXT_STATUS_REQUIRES_FATAL;
+  }
+
 #if JJS_DEBUGGER
   if (options_p->platform.time_sleep == NULL)
   {

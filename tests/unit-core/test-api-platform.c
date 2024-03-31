@@ -137,6 +137,11 @@ test_platform_time_api_exists (void)
 
   TEST_ASSERT (options.platform.time_sleep != NULL);
   options.platform.time_sleep (1);
+
+  TEST_ASSERT (options.platform.time_hrtime != NULL);
+  TEST_ASSERT (options.platform.time_hrtime () > 0);
+
+  TEST_ASSERT (options.platform.fatal != NULL);
 }
 
 static void
