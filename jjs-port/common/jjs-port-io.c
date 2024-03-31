@@ -20,15 +20,6 @@
 #include "jjs-port.h"
 
 /**
- * Default implementation of jjs_port_log. Prints log messages to stderr.
- */
-void JJS_ATTR_WEAK
-jjs_port_log (const char *message_p) /**< message */
-{
-  fputs (message_p, stderr);
-} /* jjs_port_log */
-
-/**
  * Default implementation of jjs_port_print_byte. Uses 'putchar' to
  * print a single character to standard output.
  */

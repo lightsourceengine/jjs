@@ -204,7 +204,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 {
   (void) argc;
 
-  uint32_t context_flags;
+  uint32_t context_flags = JJS_CONTEXT_FLAG_NONE;
   uint32_t snapshot_flags = 0;
 
   const char *file_name_p = NULL;
@@ -244,7 +244,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
         if (check_feature (JJS_FEATURE_PARSER_DUMP, cli_state_p->arg))
         {
           jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
-          context_flags = JJS_CONTEXT_SHOW_OPCODES;
+          context_flags |= JJS_CONTEXT_FLAG_SHOW_OPCODES;
         }
         break;
       }

@@ -62,16 +62,6 @@ typedef enum
 void JJS_ATTR_NORETURN jjs_port_fatal (jjs_fatal_code_t code);
 
 /**
- * Make the process sleep for a given time.
- *
- * This port function can be called by jjs-core when JJS_DEBUGGER is enabled.
- * Otherwise this function is not used.
- *
- * @param sleep_time: milliseconds to sleep.
- */
-void jjs_port_sleep (uint32_t sleep_time);
-
-/**
  * Returns the current high-resolution timestamp. This is expressed in
  * nanoseconds. It is relative to an arbitrary time in the past. It is
  * not related to the time of day and therefore not subject to clock
@@ -90,22 +80,6 @@ uint64_t jjs_port_hrtime (void);
  * @defgroup jjs-port-io I/O API
  * @{
  */
-
-/**
- * Display or log a debug/error message.
- *
- * The message is passed as a zero-terminated string. Messages may be logged in parts, which
- * will result in multiple calls to this functions. The implementation should consider
- * this before appending or prepending strings to the argument.
- *
- * This function is called with messages coming from the JJS engine as
- * the result of some abnormal operation or describing its internal operations
- * (e.g., data structure dumps or tracing info).
- *
- * The implementation can decide whether error and debug messages are logged to
- * the console, or saved to a database or to a file.
- */
-void jjs_port_log (const char *message_p);
 
 /**
  * Print a single character to standard output.
@@ -228,42 +202,6 @@ void jjs_port_source_free (jjs_char_t *buffer_p);
 
 /**
  * jjs-port-fs @}
- */
-
-/**
- * @defgroup jjs-port-date Date API
- * @{
- */
-
-/**
- * Get local time zone adjustment in milliseconds for the given input time.
- *
- * The argument is a time value representing milliseconds since unix epoch.
- *
- * Ideally, this function should satisfy the stipulations applied to LocalTZA
- * in section 21.4.1.7 of the ECMAScript version 12.0, as if called with isUTC true.
- *
- * This port function can be called by jjs-core when JJS_BUILTIN_DATE is enabled.
- * Otherwise this function is not used.
- *
- * @param unix_ms: time value in milliseconds since unix epoch
- *
- * @return local time offset in milliseconds applied to UTC for the given time value
- */
-int32_t jjs_port_local_tza (double unix_ms);
-
-/**
- * Get the current system time in UTC.
- *
- * This port function is called by jjs-core when JJS_BUILTIN_DATE is enabled.
- * It can also be used in the implementing application to initialize the random number generator.
- *
- * @return milliseconds since Unix epoch
- */
-double jjs_port_current_time (void);
-
-/**
- * jjs-port-date @}
  */
 
 /**

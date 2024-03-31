@@ -40,7 +40,6 @@ set(SOURCE_EXT
   util/handlers.c
   util/print.c
   util/properties.c
-  util/repl.c
   util/sources.c
   util/test262.c
 )

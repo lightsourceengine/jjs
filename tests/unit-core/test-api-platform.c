@@ -83,12 +83,68 @@ test_platform_cwd (void)
   jjs_platform_buffer_t buffer;
 
   TEST_ASSERT (cwd (&buffer) == JJS_PLATFORM_STATUS_OK);
+  TEST_ASSERT (buffer.encoding != JJS_PLATFORM_BUFFER_ENCODING_NONE);
   TEST_ASSERT (buffer.length > 0);
   TEST_ASSERT (buffer.data_p != NULL);
   TEST_ASSERT (buffer.free != NULL);
 
   buffer.free (&buffer);
   jjs_cleanup ();
+}
+
+static void
+test_platform_debugger_requirements (void)
+{
+#if JJS_DEBUGGER
+  jjs_context_options_t options = jjs_context_options();
+
+  options.platform.time_sleep = NULL;
+
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP);
+#endif
+}
+
+static void
+test_platform_date_requirements (void)
+{
+#if JJS_BUILTIN_DATE
+  jjs_context_options_t options = jjs_context_options ();
+
+  TEST_ASSERT (options.platform.time_local_tza != NULL);
+  options.platform.time_local_tza = NULL;
+
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA);
+
+  options = jjs_context_options ();
+
+  TEST_ASSERT (options.platform.time_now_ms != NULL);
+  options.platform.time_now_ms = NULL;
+
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS);
+#endif
+}
+
+static void
+test_platform_time_api_exists (void)
+{
+  jjs_context_options_t options = jjs_context_options ();
+
+  TEST_ASSERT (options.platform.time_now_ms != NULL);
+  TEST_ASSERT (options.platform.time_now_ms () > 0);
+
+  TEST_ASSERT (options.platform.time_local_tza != NULL);
+  options.platform.time_local_tza (options.platform.time_now_ms ());
+
+  TEST_ASSERT (options.platform.time_sleep != NULL);
+  options.platform.time_sleep (1);
+}
+
+static void
+test_platform_io_api_exists (void)
+{
+  jjs_context_options_t options = jjs_context_options ();
+
+  TEST_ASSERT (options.platform.io_log != NULL);
 }
 
 int
@@ -100,6 +156,11 @@ main (void)
   test_platform_set_os_sz ();
 
   test_platform_cwd ();
+  test_platform_io_api_exists ();
+  test_platform_time_api_exists ();
+
+  test_platform_date_requirements ();
+  test_platform_debugger_requirements ();
 
   return 0;
 } /* main */

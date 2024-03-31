@@ -97,6 +97,10 @@ jjsp_defaults (void)
   jjs_platform_set_arch_sz (&platform, jjs_arch_identifier_p);
 
   platform.cwd = jjsp_cwd;
+  platform.io_log = jjsp_io_log;
+  platform.time_local_tza = jjsp_time_local_tza;
+  platform.time_now_ms = jjsp_time_now_ms;
+  platform.time_sleep = jjsp_time_sleep;
 
   return platform;
 } /* jjsp_defaults */
@@ -180,3 +184,9 @@ jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move)
 
   return result;
 } /* jjsp_buffer_to_string */
+
+void
+jjsp_io_log (const char* message_p)
+{
+  fputs (message_p, stderr);
+} /* jjsp_log */

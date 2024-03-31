@@ -19,10 +19,8 @@ set(PORT_SOURCES
   common/jjs-port-fs.c
   common/jjs-port-io.c
   common/jjs-port-process.c
-  unix/jjs-port-unix-date.c
   unix/jjs-port-unix-fs.c
   unix/jjs-port-unix-process.c
-  win/jjs-port-win-date.c
   win/jjs-port-win-fs.c
   win/jjs-port-win-process.c
 )

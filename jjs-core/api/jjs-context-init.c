@@ -74,6 +74,25 @@ jjs_context_init (const jjs_context_options_t* options_p)
     return JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP;
   }
 
+#if JJS_DEBUGGER
+  if (options_p->platform.time_sleep == NULL)
+  {
+    return JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP;
+  }
+#endif
+
+#if JJS_BUILTIN_DATE
+  if (options_p->platform.time_local_tza == NULL)
+  {
+    return JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA;
+  }
+
+  if (options_p->platform.time_now_ms == NULL)
+  {
+    return JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS;
+  }
+#endif
+
 #if JJS_VM_STACK_STATIC
   // user cannot change the default
   if (options_p->vm_stack_limit != JJS_DEFAULT_VM_STACK_LIMIT)

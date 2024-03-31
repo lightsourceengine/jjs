@@ -27,4 +27,10 @@ ecma_value_t jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool 
 
 jjs_platform_status_t jjsp_cwd (jjs_platform_buffer_t* buffer_p);
 
+void jjsp_io_log (const char* message_p);
+
+void jjsp_time_sleep (uint32_t sleep_time_ms);
+int32_t jjsp_time_local_tza (double unix_ms);
+double jjsp_time_now_ms (void);
+
 #endif /* JJS_PLATFORM_H */

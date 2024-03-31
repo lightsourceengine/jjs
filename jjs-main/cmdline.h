@@ -1,4 +1,4 @@
-/* Copyright JS Foundation and other contributors, http://js.foundation
+/* Copyright Light Source Software, LLC and other contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,19 @@
  * limitations under the License.
  */
 
-#ifndef JJSX_SOURCES_H
-#define JJSX_SOURCES_H
+#ifndef CMDLINE_H
+#define CMDLINE_H
 
-#include "jjs-types.h"
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
+#define CMDLINE_IS_WINDOWS
+#else
+#define CMDLINE_IS_UNIX
+#endif
 
-JJS_C_API_BEGIN
+#if defined(macintosh) || defined(Macintosh) || (defined(__APPLE__) && defined(__MACH__))
+#define CMDLINE_IS_MACOS
+#endif
 
-jjs_value_t jjsx_source_parse_script (const char* path);
-jjs_value_t jjsx_source_exec_script (const char* path);
-jjs_value_t jjsx_source_exec_snapshot (const char* path, size_t function_index);
+void cmdline_srand_init (void);
 
-JJS_C_API_END
-
-#endif /* !JJSX_EXEC_H */
+#endif /* CMDLINE_H */

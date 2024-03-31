@@ -65,17 +65,29 @@ endif()
 
 # JJS standalones
 if(JJS_CMDLINE)
-  jjs_create_executable("jjs" "main-desktop.c" "arguments/options.c" "arguments/cli.c" "main-desktop-lib.c")
-  if(USING_GCC)
-    # patch to make module stuff work in the commandline tool
-    target_compile_options("jjs" PUBLIC "--std=gnu99")
-  endif()
+  jjs_create_executable(
+      "jjs"
+      "main-desktop.c"
+      "arguments/options.c"
+      "arguments/cli.c"
+      "main-desktop-lib.c"
+      "cmdline.c"
+      "cmdline-win.c"
+      "cmdline-unix.c"
+  )
   target_include_directories("jjs" PRIVATE "${INCLUDE_PACK_PUBLIC}")
   target_link_libraries("jjs" jjs-ext jjs-port)
 endif()
 
 if(JJS_CMDLINE_TEST)
-  jjs_create_executable("jjs-test" "benchmark/main-benchmark.c" "benchmark/stubs.c")
+  jjs_create_executable(
+      "jjs-test"
+      "benchmark/main-benchmark.c"
+      "benchmark/stubs.c"
+      "cmdline.c"
+      "cmdline-win.c"
+      "cmdline-unix.c"
+  )
   target_link_libraries("jjs-test" jjs-port)
   if (JJS_TEST_STACK_MEASURE)
     target_compile_definitions("jjs-test" PRIVATE -DJJS_TEST_STACK_MEASURE=1)
@@ -83,6 +95,13 @@ if(JJS_CMDLINE_TEST)
 endif()
 
 if(JJS_CMDLINE_SNAPSHOT)
-  jjs_create_executable("jjs-snapshot" "main-snapshot.c" "arguments/cli.c")
+  jjs_create_executable(
+      "jjs-snapshot"
+      "main-snapshot.c"
+      "arguments/cli.c"
+      "cmdline.c"
+      "cmdline-win.c"
+      "cmdline-unix.c"
+  )
   target_link_libraries("jjs-snapshot" jjs-port)
 endif()

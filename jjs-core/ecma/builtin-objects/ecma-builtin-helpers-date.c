@@ -21,6 +21,7 @@
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
 #include "ecma-objects.h"
+#include "jcontext.h"
 
 #include "lit-char-helpers.h"
 
@@ -274,7 +275,8 @@ ecma_date_week_day (ecma_number_t time) /**< time value */
 extern inline int32_t JJS_ATTR_ALWAYS_INLINE
 ecma_date_local_time_zone_adjustment (ecma_number_t time) /**< time value */
 {
-  return jjs_port_local_tza (time);
+  JJS_ASSERT (JJS_CONTEXT (platform_api).time_local_tza != NULL);
+  return JJS_CONTEXT (platform_api).time_local_tza (time);
 } /* ecma_date_local_time_zone_adjustment */
 
 /**
@@ -288,7 +290,7 @@ ecma_date_local_time_zone_adjustment (ecma_number_t time) /**< time value */
 ecma_number_t
 ecma_date_utc (ecma_number_t time) /**< time value */
 {
-  return time - jjs_port_local_tza (time);
+  return time - ecma_date_local_time_zone_adjustment (time);
 } /* ecma_date_utc */
 
 /**

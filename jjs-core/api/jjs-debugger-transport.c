@@ -242,7 +242,8 @@ jjs_debugger_transport_receive_completed (jjs_debugger_transport_receive_context
 void
 jjs_debugger_transport_sleep (void)
 {
-  jjs_port_sleep (JJS_DEBUGGER_TRANSPORT_TIMEOUT);
+  JJS_ASSERT(JJS_CONTEXT (platform_api).time_sleep != NULL);
+  JJS_CONTEXT (platform_api).time_sleep (JJS_DEBUGGER_TRANSPORT_TIMEOUT);
 } /* jjs_debugger_transport_sleep */
 
 #endif /* JJS_DEBUGGER */

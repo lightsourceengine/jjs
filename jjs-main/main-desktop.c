@@ -29,25 +29,10 @@
 #include "jjs-ext/handlers.h"
 #include "jjs-ext/print.h"
 #include "jjs-ext/properties.h"
-#include "jjs-ext/repl.h"
 #include "jjs-ext/sources.h"
 #include "jjs-ext/test262.h"
 #include "main-desktop-lib.h"
-
-/**
- * Initialize random seed
- */
-static void
-main_init_random_seed (void)
-{
-  union
-  {
-    double d;
-    unsigned u;
-  } now = { .d = jjs_port_current_time () };
-
-  srand (now.u);
-} /* main_init_random_seed */
+#include "cmdline.h"
 
 static void
 main_vm_cleanup (void)
@@ -129,10 +114,91 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
   jjsx_register_global ("createRealm", jjsx_handler_create_realm);
 } /* main_init_engine */
 
+static void
+repl (const char *prompt_p)
+{
+  jjs_value_t result;
+
+  while (true)
+  {
+    jjsx_print_string (prompt_p);
+
+    jjs_size_t length;
+    jjs_char_t *line_p = jjs_port_line_read (&length);
+
+    if (line_p == NULL)
+    {
+      jjsx_print_byte ('\n');
+      return;
+    }
+
+    if (length == 0)
+    {
+      continue;
+    }
+
+    if (!jjs_validate_string (line_p, length, JJS_ENCODING_UTF8))
+    {
+      jjs_port_line_free (line_p);
+      result = jjs_throw_sz (JJS_ERROR_SYNTAX, "Input is not a valid UTF-8 string");
+      goto exception;
+    }
+
+    jjs_parse_options_t opts = {
+      .options = JJS_PARSE_HAS_SOURCE_NAME,
+      .source_name = jjs_string_sz ("<repl>"),
+    };
+
+    result = jjs_parse (line_p, length, &opts);
+    jjs_port_line_free (line_p);
+
+    jjs_value_free (opts.source_name);
+
+    if (jjs_value_is_exception (result))
+    {
+      goto exception;
+    }
+
+    jjs_value_t script = result;
+    result = jjs_run (script);
+    jjs_value_free (script);
+
+    if (jjs_value_is_exception (result))
+    {
+      goto exception;
+    }
+
+    jjs_value_t print_result = jjsx_print_value (result);
+    jjs_value_free (result);
+    result = print_result;
+
+    if (jjs_value_is_exception (result))
+    {
+      goto exception;
+    }
+
+    jjsx_print_byte ('\n');
+
+    jjs_value_free (result);
+    result = jjs_run_jobs ();
+
+    if (jjs_value_is_exception (result))
+    {
+      goto exception;
+    }
+
+    jjs_value_free (result);
+    continue;
+
+exception:
+    jjsx_print_unhandled_exception (result);
+  }
+}
+
 int
 main (int argc, char **argv)
 {
-  main_init_random_seed ();
+  cmdline_srand_init ();
   JJS_VLA (main_source_t, sources_p, argc);
 
   main_args_t arguments;
@@ -223,7 +289,7 @@ restart:
 
       if (receive_status == JJS_DEBUGGER_SOURCE_RECEIVE_FAILED)
       {
-        jjs_log (JJS_LOG_LEVEL_ERROR, "Connection aborted before source arrived.");
+        jjs_log (JJS_LOG_LEVEL_ERROR, "Connection aborted before source arrived.\n");
         goto exit;
       }
 
@@ -261,7 +327,7 @@ restart:
   else if (arguments.source_count == 0)
   {
     const char *prompt_p = (arguments.option_flags & OPT_FLAG_NO_PROMPT) ? "" : "jjs> ";
-    jjsx_repl (prompt_p);
+    repl (prompt_p);
   }
 
   result = jjs_run_jobs ();

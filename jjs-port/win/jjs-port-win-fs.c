@@ -64,9 +64,10 @@ jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_
 
   if (e != 0)
   {
-    char buffer[64];
-    sprintf(buffer, "_splitpath_s failed: %d\n", e);
-    jjs_port_log (buffer);
+//    TODO: replace
+//    char buffer[64];
+//    sprintf(buffer, "_splitpath_s failed: %d\n", e);
+//    jjs_port_log (buffer);
     jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
   }
 

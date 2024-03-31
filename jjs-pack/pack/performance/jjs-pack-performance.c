@@ -39,7 +39,7 @@ jjs_pack_performance_init (void)
   if (performance_now_time_origin == 0)
   {
     jjs_port_hrtime ();
-    time_origin = jjs_port_current_time ();
+    time_origin = jjs_platform ()->time_now_ms ();
     performance_now_time_origin = jjs_port_hrtime ();
   }
 

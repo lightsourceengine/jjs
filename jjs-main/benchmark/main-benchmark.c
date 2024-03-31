@@ -19,6 +19,7 @@
 
 #include "jjs-port.h"
 #include "jjs.h"
+#include "../cmdline.h"
 
 /**
  * Maximum size of source code / snapshots buffer
@@ -225,12 +226,7 @@ stack_usage (uint32_t *stack_top_p, size_t length_in_bytes)
 int
 main (int main_argc, char **main_argv)
 {
-  union
-  {
-    double d;
-    unsigned u;
-  } now = { .d = jjs_port_current_time () };
-  srand (now.u);
+  cmdline_srand_init ();
 
   argc = main_argc;
   argv = main_argv;

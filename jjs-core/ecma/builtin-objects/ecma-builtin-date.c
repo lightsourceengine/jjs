@@ -692,7 +692,8 @@ ecma_builtin_date_utc (const ecma_value_t args[], /**< arguments list */
 static ecma_number_t
 ecma_builtin_date_now_helper (void)
 {
-  return floor (DOUBLE_TO_ECMA_NUMBER_T (jjs_port_current_time ()));
+  JJS_ASSERT (JJS_CONTEXT (platform_api).time_now_ms != NULL);
+  return floor (DOUBLE_TO_ECMA_NUMBER_T (JJS_CONTEXT (platform_api).time_now_ms ()));
 } /* ecma_builtin_date_now_helper */
 
 /**

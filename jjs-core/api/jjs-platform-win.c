@@ -74,6 +74,81 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
   buffer_p->free = jjsp_buffer_free;
 
   return JJS_PLATFORM_STATUS_OK;
-} /* jjsp_cwd */
+}
+
+#include <windows.h>
+
+void
+jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
+{
+  Sleep (sleep_time_ms);
+}
+
+#define UNIX_EPOCH_IN_TICKS 116444736000000000ull /* difference between 1970 and 1601 */
+#define TICKS_PER_MS        10000ull /* 1 tick is 100 nanoseconds */
+
+static void
+unix_time_to_filetime (double t, LPFILETIME ft_p)
+{
+  // https://support.microsoft.com/en-us/help/167296/how-to-convert-a-unix-time-t-to-a-win32-filetime-or-systemtime
+
+  LONGLONG ll = (LONGLONG) t * (LONGLONG) TICKS_PER_MS + (LONGLONG) UNIX_EPOCH_IN_TICKS;
+
+  /* FILETIME values before the epoch are invalid. */
+  if (ll < 0)
+  {
+    ll = 0;
+  }
+
+  ft_p->dwLowDateTime = (DWORD) ll;
+  ft_p->dwHighDateTime = (DWORD) (ll >> 32);
+}
+
+static double
+filetime_to_unix_time (LPFILETIME ft_p)
+{
+  ULARGE_INTEGER date;
+  date.HighPart = ft_p->dwHighDateTime;
+  date.LowPart = ft_p->dwLowDateTime;
+  return (((double) date.QuadPart - (double) UNIX_EPOCH_IN_TICKS) / (double) TICKS_PER_MS);
+}
+
+int32_t
+jjsp_time_local_tza (double unix_ms)
+{
+  FILETIME utc;
+  FILETIME local;
+  SYSTEMTIME utc_sys;
+  SYSTEMTIME local_sys;
+
+  unix_time_to_filetime (unix_ms, &utc);
+
+  if (FileTimeToSystemTime (&utc, &utc_sys) && SystemTimeToTzSpecificLocalTime (NULL, &utc_sys, &local_sys)
+      && SystemTimeToFileTime (&local_sys, &local))
+  {
+    double unix_local = filetime_to_unix_time (&local);
+    return (int32_t) (unix_local - unix_ms);
+  }
+
+  return 0;
+}
+
+double
+jjsp_time_now_ms (void)
+{
+  // Based on https://doxygen.postgresql.org/gettimeofday_8c_source.html
+  const uint64_t epoch = (uint64_t) 116444736000000000ULL;
+  FILETIME file_time;
+  ULARGE_INTEGER ularge;
+
+  GetSystemTimeAsFileTime (&file_time);
+  ularge.LowPart = file_time.dwLowDateTime;
+  ularge.HighPart = file_time.dwHighDateTime;
+
+  int64_t tv_sec = (int64_t) ((ularge.QuadPart - epoch) / 10000000L);
+  int32_t tv_usec = (int32_t) (((ularge.QuadPart - epoch) % 10000000L) / 10);
+
+  return ((double) tv_sec) * 1000.0 + ((double) tv_usec) / 1000.0;
+}
 
 #endif /* JJS_OS_IS_WINDOWS */

@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "jjs-port.h"
 
@@ -95,12 +96,7 @@
 #define TEST_INIT()                              \
   do                                             \
   {                                              \
-    union                                        \
-    {                                            \
-      double d;                                  \
-      unsigned u;                                \
-    } now = { .d = jjs_port_current_time () };   \
-    srand (now.u);                               \
+    srand ((uint32_t) time (NULL));              \
   } while (0)
 
 /**

@@ -1,4 +1,4 @@
-/* Copyright JS Foundation and other contributors, http://js.foundation
+/* Copyright Light Source Software, LLC and other contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,4 @@
  * limitations under the License.
  */
 
-#ifndef JJSX_REPL_H
-#define JJSX_REPL_H
-
-#include "jjs-types.h"
-
-JJS_C_API_BEGIN
-
-void jjsx_repl (const char* prompt_p);
-
-JJS_C_API_END
-
-#endif /* !JJSX_REPL_H */
+#include "cmdline.h"

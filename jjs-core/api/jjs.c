@@ -4784,7 +4784,11 @@ jjs_log_set_level (jjs_log_level_t level)
 static void
 jjs_log_string (const char *str_p)
 {
-  jjs_port_log (str_p);
+  jjs_platform_io_log_fn_t log = JJS_CONTEXT (platform_api).io_log;
+
+  if (log) {
+    log (str_p);
+  }
 
 #if JJS_DEBUGGER
   if (jjs_debugger_is_connected ())

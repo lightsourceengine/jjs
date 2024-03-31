@@ -63,6 +63,70 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
   buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF8;
 
   return JJS_PLATFORM_STATUS_OK;
-} /* jjsp_cwd */
+}
+
+#include <time.h>
+#include <errno.h>
+
+void
+jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
+{
+  struct timespec timeout;
+  int rc;
+
+  timeout.tv_sec = sleep_time_ms / 1000;
+  timeout.tv_nsec = (sleep_time_ms % 1000) * 1000 * 1000;
+
+  do
+  {
+    rc = nanosleep (&timeout, &timeout);
+  }
+  while (rc == -1 && errno == EINTR);
+}
+
+#include <time.h>
+
+int32_t
+jjsp_time_local_tza (double unix_ms)
+{
+  time_t time = (time_t) unix_ms / 1000;
+
+#if defined(HAVE_TM_GMTOFF)
+  struct tm tm;
+  localtime_r (&time, &tm);
+
+  return ((int32_t) tm.tm_gmtoff) * 1000;
+#else /* !defined(HAVE_TM_GMTOFF) */
+  struct tm gmt_tm;
+  struct tm local_tm;
+
+  gmtime_r (&time, &gmt_tm);
+  localtime_r (&time, &local_tm);
+
+  time_t gmt = mktime (&gmt_tm);
+
+  /* mktime removes the daylight saving time from the result time value, however we want to keep it */
+  local_tm.tm_isdst = 0;
+  time_t local = mktime (&local_tm);
+
+  return (int32_t) difftime (local, gmt) * 1000;
+#endif /* HAVE_TM_GMTOFF */
+}
+
+#include <time.h>
+#include <sys/time.h>
+
+double
+jjsp_time_now_ms (void)
+{
+  struct timeval tv;
+
+  if (gettimeofday (&tv, NULL) != 0)
+  {
+    return 0;
+  }
+
+  return ((double) tv.tv_sec) * 1000.0 + ((double) tv.tv_usec) / 1000.0;
+}
 
 #endif /* JJS_OS_IS_UNIX */

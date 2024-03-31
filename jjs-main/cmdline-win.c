@@ -1,4 +1,4 @@
-/* Copyright JS Foundation and other contributors, http://js.foundation
+/* Copyright Light Source Software, LLC and other contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,16 @@
  * limitations under the License.
  */
 
-#ifndef JJSX_SOURCES_H
-#define JJSX_SOURCES_H
+#include "cmdline.h"
 
-#include "jjs-types.h"
+#ifdef CMDLINE_IS_WINDOWS
 
-JJS_C_API_BEGIN
+#include <stdlib.h>
+#include <windows.h>
 
-jjs_value_t jjsx_source_parse_script (const char* path);
-jjs_value_t jjsx_source_exec_script (const char* path);
-jjs_value_t jjsx_source_exec_snapshot (const char* path, size_t function_index);
+void cmdline_srand_init (void)
+{
+  srand (GetTickCount ());
+}
 
-JJS_C_API_END
-
-#endif /* !JJSX_EXEC_H */
+#endif /* CMDLINE_IS_WINDOWS */

@@ -59,13 +59,4 @@ uint64_t jjs_port_hrtime (void)
   return (uint64_t) ((double) counter.QuadPart / scaled_frequency);
 } /* jjs_port_hrtime */
 
-/**
- * Default implementation of jjs_port_sleep, uses 'Sleep'.
- */
-void
-jjs_port_sleep (uint32_t sleep_time) /**< milliseconds to sleep */
-{
-  Sleep (sleep_time);
-} /* jjs_port_sleep */
-
 #endif /* defined(_WIN32) */

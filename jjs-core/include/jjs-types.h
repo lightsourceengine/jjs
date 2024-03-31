@@ -64,6 +64,11 @@ typedef struct jjs_platform_buffer_t
 
 // Platform API Signatures
 typedef jjs_platform_status_t (*jjs_platform_cwd_fn_t) (jjs_platform_buffer_t*);
+typedef void (*jjs_platform_io_log_fn_t) (const char*);
+
+typedef void (*jjs_platform_time_sleep_fn_t) (uint32_t);
+typedef int32_t (*jjs_platform_time_local_tza_fn_t) (double);
+typedef double (*jjs_platform_time_now_ms_fn_t) (void);
 
 /**
  * Contains platform specific data and functions used internally by JJS. The
@@ -101,7 +106,63 @@ typedef struct
    */
   char arch_sz[16];
 
-  jjs_platform_cwd_fn_t cwd; /**< raw function for getting the current working directory of the platform */
+  /**
+   * Get the current working directory of the process.
+   *
+   * The return values is a jjs_platform_status_t code. If OK, the pointer to a jjs_platform_buffer_t
+   * is populated. The implementation will set the data pointer, length and provide a free function
+   * that should be called to cleanup the buffer resources. If the implementation does not have a
+   * need for a free operation, a dummy free function should be set. The returned buffer also
+   * can have a UTF8 or UTF16 encoding. The caller must honor the encoding when converting the
+   * buffer to string.
+   *
+   * This platform function is required for commonjs and esm modules to construct paths
+   * from relative specifiers.
+   */
+  jjs_platform_cwd_fn_t cwd; /**< get the current working directory of the platform */
+
+  /**
+   * Display or log a debug/error message.
+   *
+   * The message is passed as a zero-terminated string. Messages may be logged in parts, which
+   * will result in multiple calls to this functions. The implementation should consider
+   * this before appending or prepending strings to the argument.
+   *
+   * This platform function is called with messages coming from the JJS engine as
+   * the result of some abnormal operation or describing its internal operations
+   * (e.g., data structure dumps or tracing info).
+   *
+   * The implementation can decide whether error and debug messages are logged to
+   * the console, or saved to a database or to a file.
+   */
+  jjs_platform_io_log_fn_t io_log;
+
+  /**
+   * Get local time zone adjustment in milliseconds for the given input time.
+   *
+   * The argument is a time value representing milliseconds since unix epoch.
+   *
+   * Ideally, this function should satisfy the stipulations applied to LocalTZA
+   * in section 21.4.1.7 of the ECMAScript version 12.0, as if called with isUTC true.
+   *
+   * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
+   */
+  jjs_platform_time_local_tza_fn_t time_local_tza;
+
+  /**
+   * Get the current system time in UTC time or milliseconds since the unix epoch.
+   *
+   * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
+   */
+  jjs_platform_time_now_ms_fn_t time_now_ms;
+
+  /**
+   * Put the current thread to sleep for the given number of milliseconds.
+   *
+   * This platform function is required by jjs-core when JJS_DEBUGGER is enabled.
+   */
+  jjs_platform_time_sleep_fn_t time_sleep;
+
 } jjs_platform_t;
 
 /**
@@ -115,6 +176,9 @@ typedef enum
   JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE, /**< heap size was configured at compile time and cannot be changed  */
   JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT, /**< stack limit was configured at compile time and cannot be changed  */
   JJS_CONTEXT_STATUS_CHAOS, /**< context is in a horrible state */
+  JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP,
+  JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA,
+  JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS,
 } jjs_context_status_t;
 
 /**
