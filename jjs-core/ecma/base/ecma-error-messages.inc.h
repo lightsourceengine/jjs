@@ -233,9 +233,9 @@ ECMA_ERROR_DEF (ECMA_ERR_SYMBOL_IS_NOT_A_CONSTRUCTOR, "Symbol is not a construct
 ECMA_ERROR_DEF (ECMA_ERR_TARGET_IS_NOT_A_CONSTRUCTOR, "Target is not a constructor")
 #endif /* JJS_BUILTIN_REFLECT */
 ECMA_ERROR_DEF (ECMA_ERR_ACCESSOR_WRITABLE, "Accessors cannot be writable")
-#if !(JJS_ANNEX_ESM)
+#if !(JJS_ANNEX_COMMONJS)
 ECMA_ERROR_DEF (ECMA_ERR_COMMONJS_NOT_SUPPORTED, "CommonJS support is disabled")
-#endif /* !(JJS_ANNEX_ESM) */
+#endif /* !(JJS_ANNEX_COMMONJS) */
 #if !(JJS_BUILTIN_DATAVIEW)
 ECMA_ERROR_DEF (ECMA_ERR_DATA_VIEW_NOT_SUPPORTED, "DataView support is disabled")
 #endif /* !(JJS_BUILTIN_DATAVIEW) */

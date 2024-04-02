@@ -68,19 +68,32 @@ static jjs_value_t annex_vmod_get_exports_from_config (jjs_value_t config);
  *
  * @param name name of the virtual module. non-string values will return an
  * exception
+ * @param name_o name reference ownership
  * @param value callback function or vmod config object
+ * @param value_o value reference ownership
  * @return undefined on success. exception on failure. return value must be freed
  * with jj_value_free.
  */
 jjs_value_t
-jjs_vmod (jjs_value_t name, jjs_value_t value)
+jjs_vmod (jjs_value_t name, jjs_value_ownership_t name_o, jjs_value_t value, jjs_value_ownership_t value_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
-  return annex_vmod_new (name, value);
+  jjs_value_t result = annex_vmod_new (name, value);
+
+  if (name_o == JJS_MOVE)
+  {
+    jjs_value_free (name);
+  }
+
+  if (value_o == JJS_MOVE)
+  {
+    jjs_value_free (value);
+  }
+
+  return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED (name);
-  JJS_UNUSED (value);
+  JJS_UNUSED_ALL (name, name_o, value, value_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod */
@@ -89,19 +102,13 @@ jjs_vmod (jjs_value_t name, jjs_value_t value)
  * @see jjs_vmod
  */
 jjs_value_t
-jjs_vmod_sz (const char *name, jjs_value_t value)
+jjs_vmod_sz (const char *name, jjs_value_t value, jjs_value_ownership_t value_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
-  jjs_value_t name_value = jjs_string_sz (name);
-  jjs_value_t result = jjs_vmod (name_value, value);
-
-  jjs_value_free (name_value);
-
-  return result;
+  return jjs_vmod (annex_util_create_string_utf8_sz (name), JJS_MOVE, value, value_o);
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED (name);
-  JJS_UNUSED (value);
+  JJS_UNUSED_ALL (name, value, value_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_sz */
@@ -117,16 +124,24 @@ jjs_vmod_sz (const char *name, jjs_value_t value)
  * exports generated and cached. Then, the exports will be returned.
  *
  * @param name package name to resolve
+ * @param name_o name reference ownership
  * @return on success, package exports; otherwise, an exception is thrown
  */
 jjs_value_t
-jjs_vmod_resolve (jjs_value_t name)
+jjs_vmod_resolve (jjs_value_t name, jjs_value_ownership_t name_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
-  return jjs_annex_vmod_resolve (name);
+  jjs_value_t result = jjs_annex_vmod_resolve (name);
+
+  if (name_o == JJS_MOVE)
+  {
+    jjs_value_free (name);
+  }
+
+  return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED (name);
+  JJS_UNUSED_ALL (name, name_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_resolve */
@@ -139,12 +154,7 @@ jjs_vmod_resolve_sz (const char *name)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
-  jjs_value_t value = jjs_string_sz (name);
-  jjs_value_t result = jjs_vmod_resolve (value);
-
-  jjs_value_free (value);
-
-  return result;
+  return jjs_vmod_resolve (annex_util_create_string_utf8_sz(name), JJS_MOVE);
 #else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
@@ -158,16 +168,24 @@ jjs_vmod_resolve_sz (const char *name)
  * exports may or may not have been loaded into the vmod cache.
  *
  * @param name string package name
+ * @param name_o name reference ownership
  * @return true if package is registered; otherwise, false
  */
 bool
-jjs_vmod_exists (jjs_value_t name)
+jjs_vmod_exists (jjs_value_t name, jjs_value_ownership_t name_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
-  return jjs_annex_vmod_exists (name);
+  jjs_value_t result = jjs_annex_vmod_exists (name);
+
+  if (name_o == JJS_MOVE)
+  {
+    jjs_value_free (name);
+  }
+
+  return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED (name);
+  JJS_UNUSED_ALL (name, name_o);
   return false;
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_exists */
@@ -180,12 +198,7 @@ jjs_vmod_exists_sz (const char *name)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
-  jjs_value_t value = jjs_string_sz (name);
-  bool result = jjs_vmod_exists (value);
-
-  jjs_value_free (value);
-
-  return result;
+  return jjs_vmod_exists (annex_util_create_string_utf8_sz (name), JJS_MOVE);
 #else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
   return false;
@@ -199,15 +212,21 @@ jjs_vmod_exists_sz (const char *name)
  * try to use the package, their calls will fail.
  *
  * @param name string package name
+ * @param name_o name reference ownership
  */
 void
-jjs_vmod_remove (jjs_value_t name)
+jjs_vmod_remove (jjs_value_t name, jjs_value_ownership_t name_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
   annex_vmod_remove (name);
+
+  if (name_o == JJS_MOVE)
+  {
+    jjs_value_free (name);
+  }
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED (name);
+  JJS_UNUSED_ALL (name, name_o);
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_remove */
 
@@ -219,10 +238,7 @@ jjs_vmod_remove_sz (const char *name)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_VMOD
-  jjs_value_t value = jjs_string_sz (name);
-
-  jjs_vmod_remove (value);
-  jjs_value_free (value);
+  jjs_vmod_remove (annex_util_create_string_utf8_sz(name), JJS_MOVE);
 #else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
 #endif /* JJS_ANNEX_VMOD */

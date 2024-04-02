@@ -8,6 +8,17 @@ env:
   RUNNER: tools/run-tests.py
   TEST_BATTERY: ./tools/ci-test-battery.sh
 jobs:
+  ci-linux-buildoption-test:
+    runs-on: ubuntu-22.04
+    name: ci-linux-buildoption-test
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt update    
+          sudo apt install ninja-build
+        shell: bash
+      - run: $RUNNER --buildoption-test --build-debug --buildoptions=--clean
+        shell: bash
   ci-linux:
     strategy:
       matrix:

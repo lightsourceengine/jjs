@@ -60,14 +60,12 @@ test_jjs_vmod_with_callback (void)
 {
   TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
-  jjs_value_t callback = jjs_function_external (vmod_callback);
-  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, callback);
+  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, jjs_function_external (vmod_callback), JJS_MOVE);
 
   TEST_ASSERT (strict_equals (result, jjs_undefined ()));
   assert_package (TEST_PACKAGE, TEST_EXPORT);
 
   jjs_value_free (result);
-  jjs_value_free (callback);
 
   jjs_cleanup ();
 }
@@ -77,14 +75,12 @@ test_jjs_vmod_with_config (void)
 {
   TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
-  jjs_value_t config = create_config ();
-  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, config);
+  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, create_config (), JJS_MOVE);
 
   TEST_ASSERT (jjs_vmod_exists_sz (TEST_PACKAGE));
   assert_package (TEST_PACKAGE, TEST_EXPORT);
 
   jjs_value_free (result);
-  jjs_value_free (config);
 
   jjs_cleanup ();
 }
@@ -94,8 +90,7 @@ test_jjs_vmod_remove (void)
 {
   TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
-  jjs_value_t config = create_config ();
-  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, config);
+  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, create_config (), JJS_MOVE);
 
   TEST_ASSERT (jjs_vmod_exists_sz (TEST_PACKAGE));
 
@@ -104,7 +99,6 @@ test_jjs_vmod_remove (void)
   TEST_ASSERT (!jjs_vmod_exists_sz (TEST_PACKAGE));
 
   jjs_value_free (result);
-  jjs_value_free (config);
 
   jjs_cleanup ();
 }

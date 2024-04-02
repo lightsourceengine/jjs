@@ -118,8 +118,6 @@ def get_arguments():
                          help='enable 32 bit compressed pointers (%(choices)s)')
     coregrp.add_argument('--error-messages', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable error messages (%(choices)s)')
-    coregrp.add_argument('--external-context', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='enable external context (%(choices)s)')
     coregrp.add_argument('--jjs-debugger', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable the JJS debugger (%(choices)s)')
     coregrp.add_argument('--js-parser', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -212,7 +210,6 @@ def generate_build_options(arguments):
     # jjs-core options
     build_options_append('JJS_CPOINTER_32_BIT', arguments.cpointer_32bit)
     build_options_append('JJS_ERROR_MESSAGES', arguments.error_messages)
-    build_options_append('JJS_EXTERNAL_CONTEXT', arguments.external_context)
     build_options_append('JJS_DEBUGGER', arguments.jjs_debugger)
     build_options_append('JJS_PARSER', arguments.js_parser)
     build_options_append('JJS_FUNCTION_TO_STRING', arguments.function_to_string)

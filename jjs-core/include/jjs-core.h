@@ -1310,16 +1310,16 @@ void jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_obj
  * @{
  */
 
-jjs_value_t jjs_vmod (jjs_value_t name, jjs_value_t value);
-jjs_value_t jjs_vmod_sz (const char* name, jjs_value_t value);
+jjs_value_t jjs_vmod (jjs_value_t name, jjs_value_ownership_t name_o, jjs_value_t value, jjs_value_ownership_t value_o);
+jjs_value_t jjs_vmod_sz (const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
 
-jjs_value_t jjs_vmod_resolve (jjs_value_t name);
+jjs_value_t jjs_vmod_resolve (jjs_value_t name, jjs_value_ownership_t name_o);
 jjs_value_t jjs_vmod_resolve_sz (const char* name);
 
-bool jjs_vmod_exists (jjs_value_t name);
+bool jjs_vmod_exists (jjs_value_t name, jjs_value_ownership_t name_o);
 bool jjs_vmod_exists_sz (const char* name);
 
-void jjs_vmod_remove (jjs_value_t name);
+void jjs_vmod_remove (jjs_value_t name, jjs_value_ownership_t name_o);
 void jjs_vmod_remove_sz (const char* name);
 
 /**

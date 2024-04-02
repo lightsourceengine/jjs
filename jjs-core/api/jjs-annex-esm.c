@@ -124,9 +124,7 @@ jjs_esm_source_init (jjs_esm_source_t* esm_source_p, const jjs_char_t* source_p,
   esm_source_p->source_buffer_p = source_p;
   esm_source_p->source_buffer_size = source_size;
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (source_p);
-  JJS_UNUSED (source_size);
+  JJS_UNUSED_ALL (esm_source_p, source_p, source_size);
 #endif
 } /* jjs_esm_source_init */
 
@@ -170,9 +168,7 @@ jjs_esm_source_init_value (jjs_esm_source_t* esm_source_p, jjs_value_t source, j
   esm_source_init(esm_source_p);
   esm_source_p->source_value = jjs_move (source, source_o);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (source);
-  JJS_UNUSED (move);
+  JJS_UNUSED_ALL (esm_source_p, source, source_o);
 #endif
 } /* jjs_esm_source_init_value */
 
@@ -219,9 +215,7 @@ jjs_esm_source_set_start (jjs_esm_source_t* esm_source_p, uint32_t start_column,
   esm_source_p->start_column = start_column;
   esm_source_p->start_line = start_line;
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (start_column);
-  JJS_UNUSED (start_line);
+  JJS_UNUSED_ALL (esm_source_p, start_column, start_line);
 #endif
 } /* jjs_esm_source_set_start */
 
@@ -247,9 +241,7 @@ jjs_esm_source_set_meta_extension (jjs_esm_source_t* esm_source_p,
   jjs_value_free (esm_source_p->meta_extension);
   esm_source_p->meta_extension = jjs_move (meta_extension, meta_extension_o);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (meta_extension);
-  JJS_UNUSED (move);
+  JJS_UNUSED_ALL (esm_source_p, meta_extension, meta_extension_o);
 #endif
 } /* jjs_esm_source_set_meta_extension */
 
@@ -277,11 +269,7 @@ jjs_esm_source_set_path (jjs_esm_source_t* esm_source_p,
   jjs_esm_source_set_filename (esm_source_p, filename, filename_o);
   jjs_esm_source_set_dirname (esm_source_p, dirname, dirname_o);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (dirname);
-  JJS_UNUSED (move_dirname);
-  JJS_UNUSED (filename);
-  JJS_UNUSED (move_filename);
+  JJS_UNUSED_ALL (esm_source_p, dirname, dirname_o, filename, filename_o);
 #endif
 } /* jjs_esm_source_set_path */
 
@@ -310,9 +298,7 @@ jjs_esm_source_set_filename (jjs_esm_source_t* esm_source_p, jjs_value_t filenam
   jjs_value_free (esm_source_p->filename);
   esm_source_p->filename = jjs_move (filename, filename_o);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (filename);
-  JJS_UNUSED (move);
+  JJS_UNUSED_ALL (esm_source_p, filename, filename_o);
 #endif
 } /* jjs_esm_source_set_filename */
 
@@ -339,9 +325,7 @@ jjs_esm_source_set_dirname (jjs_esm_source_t* esm_source_p, jjs_value_t dirname,
   jjs_value_free (esm_source_p->dirname);
   esm_source_p->dirname = jjs_move (dirname, dirname_o);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (dirname);
-  JJS_UNUSED (move);
+  JJS_UNUSED_ALL (esm_source_p, dirname, dirname_o);
 #endif
 } /* jjs_esm_source_set_dirname */
 
@@ -590,7 +574,7 @@ jjs_esm_import (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 
   return namespace;
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (specifier);
+  JJS_UNUSED_ALL (specifier, specifier_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_import */
@@ -686,7 +670,7 @@ jjs_esm_evaluate (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 
   return esm_link_and_evaluate (module, true, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (specifier);
+  JJS_UNUSED_ALL (specifier, specifier_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_evaluate */

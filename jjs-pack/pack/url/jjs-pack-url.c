@@ -32,11 +32,7 @@ jjs_pack_url_init (void)
                                                    jjs_undefined (),
                                                    false,
                                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
-  jjs_value_t result = jjs_vmod_sz ("jjs:url", exports);
-
-  jjs_value_free (exports);
-
-  return result;
+  return jjs_vmod_sz ("jjs:url", exports, JJS_MOVE);;
 #else /* !JJS_PACK_URL */
   return jjs_throw_sz (JJS_ERROR_COMMON, "url pack is not enabled");
 #endif /* JJS_PACK_URL */

@@ -54,7 +54,7 @@ jjs_commonjs_require (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 
   return result;
 #else /* !JJS_ANNEX_COMMONJS */
-  JJS_UNUSED (specifier);
+  JJS_UNUSED_ALL (specifier, specifier_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_commonjs_require */
@@ -240,7 +240,7 @@ static JJS_HANDLER(resolve_handler)
   }
 
 #if JJS_ANNEX_VMOD
-  if (jjs_vmod_exists (request))
+  if (jjs_vmod_exists (request, JJS_KEEP))
   {
     return ecma_copy_value (request);
   }

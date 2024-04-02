@@ -48,7 +48,7 @@ OPTIONS_COMMON = [
     # stuff the tests need
     '--function-to-string=on',
 ]
-OPTIONS_STACK_LIMIT = ['--stack-limit=96']
+OPTIONS_STACK_LIMIT = ['--default-vm-stack-limit=96']
 OPTIONS_MEM_STRESS = ['--mem-stress-test=on']
 OPTIONS_DEBUG = ['--debug']
 OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-snapshot=on']
@@ -123,8 +123,6 @@ JJS_BUILDOPTIONS = [
            ),
     Options('buildoption_test-no_lcache_prophashmap',
             ['--compile-flag=-DJJS_LCACHE=0', '--compile-flag=-DJJS_PROPERTY_HASHMAP=0']),
-    Options('buildoption_test-external_context',
-            ['--external-context=on']),
     Options('buildoption_test-shared_libs',
             ['--shared-libs=on'],
             skip=skip_if((sys.platform == 'win32'), 'Not yet supported, link failure on Windows')),

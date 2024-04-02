@@ -78,12 +78,7 @@ jjs_pack_lib_main (uint8_t* source, jjs_size_t source_size, jjs_value_t bindings
 jjs_value_t
 jjs_pack_lib_main_vmod (const char* package_name, jjs_external_handler_t vmod_callback)
 {
-  jjs_value_t function_value = jjs_function_external (vmod_callback);
-  jjs_value_t result = jjs_vmod_sz (package_name, function_value);
-
-  jjs_value_free (function_value);
-
-  return result;
+  return jjs_vmod_sz (package_name, jjs_function_external (vmod_callback), JJS_MOVE);
 } /* jjs_pack_lib_main_vmod */
 
 jjs_value_t
@@ -161,7 +156,7 @@ jjs_bindings_number (jjs_value_t bindings, const char* name, double number)
 static JJS_HANDLER(jjs_pack_lib_require)
 {
   JJS_HANDLER_HEADER ();
-  return jjs_vmod_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined());
+  return jjs_vmod_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined(), JJS_KEEP);
 } /* jjs_pack_lib_require */
 
 static jjs_value_t
