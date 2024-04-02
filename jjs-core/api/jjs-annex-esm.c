@@ -16,6 +16,7 @@
 #include "jjs-annex-module-util.h"
 #include "jjs-annex-vmod.h"
 #include "jjs-annex.h"
+#include "jjs-platform.h"
 
 #include "annex.h"
 #include "jcontext.h"
@@ -412,49 +413,25 @@ jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p,
   jjs_assert_api_enabled ();
 
 #if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
-  ecma_cstr_t path_cstr = ecma_string_to_cstr (path);
-  jjs_size_t source_size;
-  jjs_char_t *source_raw = jjs_port_source_read (path_cstr.str_p, &source_size);
-
-  ecma_free_cstr (&path_cstr);
-
-  if (!source_raw)
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to read source file");
-  }
-
   ecma_value_t source;
   ecma_string_t *format_p = ecma_get_string_from_value (context_p->format);
 
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_SNAPSHOT))
   {
-    source = jjs_arraybuffer (source_size);
-
-    if (jjs_value_is_exception (source))
-    {
-      source = ECMA_VALUE_EMPTY;
-    }
-    else
-    {
-      uint8_t *buffer_p = jjs_arraybuffer_data (source);
-      JJS_ASSERT (buffer_p != NULL);
-      memcpy (buffer_p, source_raw, source_size);
-    }
+    source = jjsp_read_file (path, JJS_PLATFORM_BUFFER_ENCODING_NONE);
   }
   else if (!ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_NONE))
   {
-    source = jjs_string ((const jjs_char_t *) source_raw, source_size, JJS_ENCODING_UTF8);
+    source = jjsp_read_file (path, JJS_PLATFORM_BUFFER_ENCODING_UTF8);
   }
   else
   {
-    source = ECMA_VALUE_EMPTY;
+    source = jjs_throw_sz(JJS_ERROR_TYPE, "load context contains an unsupported format field");
   }
 
-  jjs_port_source_free (source_raw);
-
-  if (source == ECMA_VALUE_EMPTY)
+  if (jjs_value_is_exception(source))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to create source");
+    return source;
   }
 
   ecma_value_t result = ecma_create_object_with_null_proto ();

@@ -30,7 +30,7 @@ JJS_C_API_BEGIN
  */
 
 /**
- * Error codes that can be passed by the engine when calling jjs_port_fatal
+ * Error codes that can be passed by the engine when calling jjs_platform_fatal.
  */
 typedef enum
 {
@@ -79,6 +79,8 @@ typedef jjs_platform_status_t (*jjs_platform_cwd_fn_t) (jjs_platform_buffer_t*);
 typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
 
 typedef void (*jjs_platform_io_log_fn_t) (const char*);
+
+typedef jjs_platform_status_t (*jjs_platform_fs_read_file_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
 
 typedef void (*jjs_platform_time_sleep_fn_t) (uint32_t);
 typedef int32_t (*jjs_platform_time_local_tza_fn_t) (double);
@@ -205,8 +207,34 @@ typedef struct
   jjs_platform_time_hrtime_fn_t time_hrtime;
 
   jjs_platform_path_normalize_fn_t path_normalize;
+
+  /**
+   * Returns an absolute path with symlinks resolved to their real path names.
+   *
+   * The input path must be encoded in CESU8.
+   *
+   * The implementation should use realpath or GetFinalPathNameByHandle
+   * (on windows). The primary use case for resolving module path names
+   * so that they can be consistent cache keys, preventing modules from being
+   * reloaded.
+   */
   jjs_platform_path_realpath_fn_t path_realpath;
 
+  /**
+   * Reads the entire contents of a file into a (system) memory buffer. This
+   * read is intended for JS source files, JSON files and snapshot. It is not
+   * intended to be a general purpose read.
+   *
+   * The input path must be encoded in CESU8.
+   *
+   * The returned buffer will have a NONE encoding. On success, the caller must
+   * call the buffer's free function to cleanup memory.
+   *
+   * The intent is to put the file contents in system memory, but the implementation
+   * can decide to use vm memory or static memory. In that case, the implementation
+   * should provide an appropriate buffer free function.
+   */
+  jjs_platform_fs_read_file_fn_t fs_read_file;
 } jjs_platform_t;
 
 /**

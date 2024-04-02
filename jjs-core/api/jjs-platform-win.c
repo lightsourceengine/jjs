@@ -169,7 +169,7 @@ jjsp_time_hrtime (void)
     }
     else
     {
-      fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
+      jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
       JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
     }
   }
@@ -180,7 +180,7 @@ jjsp_time_hrtime (void)
 
   if (!QueryPerformanceCounter(&counter))
   {
-    fprintf (stderr, "jjs_port_hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
+    jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
     JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
   }
 
@@ -236,9 +236,9 @@ jjsp_remove_long_path_prefixes (ecma_char_t *path_p, lit_utf8_size_t len)
 }
 
 jjs_platform_status_t
-jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
 {
-  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (utf8_p, size);
+  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size);
 
   if (path_p == NULL)
   {
@@ -390,9 +390,60 @@ jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, li
 }
 
 bool
-jjsp_path_is_separator (uint32_t codepoint)
+jjsp_path_is_separator (lit_utf8_byte_t ch)
 {
-  return codepoint == '\\' || codepoint == '/';
+  return ch == '\\' || ch == '/';
+}
+
+jjs_platform_status_t
+jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+{
+  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size);
+
+  if (path_p == NULL)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  HANDLE file = CreateFileW (path_p, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  free (path_p);
+
+  if (file == INVALID_HANDLE_VALUE)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  LARGE_INTEGER file_size_result;
+
+  if (GetFileSizeEx (file, &file_size_result) != TRUE || file_size_result.QuadPart > INT_MAX)
+  {
+    CloseHandle (file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  uint32_t file_size = (uint32_t) file_size_result.QuadPart;
+  void* data_p = malloc (file_size);
+
+  if (data_p == NULL)
+  {
+    CloseHandle (file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  if (ReadFile (file, data_p, (DWORD) file_size, NULL, NULL) != TRUE)
+  {
+    free (data_p);
+    CloseHandle (file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  buffer_p->data_p = data_p;
+  buffer_p->length = file_size;
+  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_NONE;
+  buffer_p->free = jjsp_buffer_free;
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 
 #endif /* JJS_OS_IS_WINDOWS */

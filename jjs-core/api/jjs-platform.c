@@ -147,8 +147,77 @@ jjsp_defaults (void)
   platform.path_normalize = jjsp_path_normalize;
   platform.path_realpath = jjsp_path_realpath;
 
+  platform.fs_read_file = jjsp_fs_read_file;
+
   return platform;
 } /* jjsp_defaults */
+
+jjs_value_t
+jjsp_read_file_buffer (jjs_value_t path, jjs_platform_buffer_t* buffer_p)
+{
+  jjs_platform_fs_read_file_fn_t read_file = JJS_CONTEXT (platform_api).fs_read_file;
+
+  if (!read_file)
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "platform api 'fs_read_file' not installed");
+  }
+
+  if (!ecma_is_value_string (path))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "expected path to be a string");
+  }
+
+  ecma_string_t* path_p = ecma_get_string_from_value (path);
+  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_len);
+  jjs_platform_status_t status = read_file (path_bytes_p, path_len, buffer_p);
+
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_len);
+
+  if (status != JJS_PLATFORM_STATUS_OK)
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to read source file");
+  }
+
+  return ECMA_VALUE_UNDEFINED;
+}
+
+jjs_value_t
+jjsp_read_file (jjs_value_t path, jjs_platform_buffer_encoding_t encoding)
+{
+  jjs_platform_buffer_t buffer;
+  jjs_value_t result = jjsp_read_file_buffer (path, &buffer);
+
+  if (jjs_value_is_exception (result))
+  {
+    return result;
+  }
+
+  jjs_value_free (result);
+
+  if (encoding == JJS_PLATFORM_BUFFER_ENCODING_NONE)
+  {
+    result = jjs_arraybuffer (buffer.length);
+
+    if (!jjs_value_is_exception (result))
+    {
+      uint8_t* buffer_p = jjs_arraybuffer_data (result);
+      JJS_ASSERT (buffer_p != NULL);
+      memcpy (buffer_p, buffer.data_p, buffer.length);
+    }
+  }
+  else if (encoding == JJS_PLATFORM_BUFFER_ENCODING_UTF8)
+  {
+    result = jjs_string (buffer.data_p, buffer.length, JJS_ENCODING_UTF8);
+  }
+  else
+  {
+    result = jjs_throw_sz (JJS_ERROR_TYPE, "unsupported read file encoding");
+  }
+
+  buffer.free (&buffer);
+
+  return result;
+}
 
 static bool
 jjsp_set_string (const char* value_p, char* dest_p, uint32_t dest_len)
@@ -198,7 +267,37 @@ jjsp_strndup (const char* str_p, uint32_t length, bool is_null_terminated)
   return result_p;
 } /* jjsp_strndup */
 
-ecma_char_t* jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
+char*
+jjsp_cesu8_to_utf8_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
+{
+  if (cesu8_size == 0)
+  {
+    return NULL;
+  }
+
+  lit_utf8_size_t utf8_size = lit_get_utf8_size_of_cesu8_string (cesu8_p, cesu8_size);
+  lit_utf8_byte_t* utf8_p = malloc (utf8_size + 1);
+
+  if (utf8_p == NULL)
+  {
+    return NULL;
+  }
+
+  lit_utf8_size_t written = lit_convert_cesu8_string_to_utf8_string (cesu8_p, cesu8_size, utf8_p, utf8_size);
+
+  if (written != utf8_size)
+  {
+    free (utf8_p);
+    return NULL;
+  }
+
+  utf8_p[utf8_size] = '\0';
+
+  return (char*) utf8_p;
+}
+
+ecma_char_t*
+jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
 {
   lit_utf8_size_t advance;
   ecma_char_t ch;

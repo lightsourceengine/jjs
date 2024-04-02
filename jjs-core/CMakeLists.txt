@@ -489,7 +489,6 @@ if(JJS_AMALGAM)
     include/jjs-core.h
     include/jjs-debugger-transport.h
     include/jjs-debugger.h
-    include/jjs-port.h
     include/jjs-snapshot.h
     jcontext/jcontext.h
     jmem/jmem-allocator-internal.h

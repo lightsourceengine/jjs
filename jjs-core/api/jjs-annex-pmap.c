@@ -13,14 +13,15 @@
  * limitations under the License.
  */
 
-#include "jjs-core.h"
-#include "jjs-port.h"
 #include "jjs-annex.h"
+#include "jjs-core.h"
+#include "jjs-platform.h"
+
+#include "ecma-builtin-helpers.h"
+#include "ecma-helpers.h"
 
 #include "annex.h"
 #include "jcontext.h"
-#include "ecma-helpers.h"
-#include "ecma-builtin-helpers.h"
 
 #if JJS_ANNEX_PMAP
 static jjs_value_t validate_pmap (jjs_value_t pmap);
@@ -70,33 +71,23 @@ jjs_pmap_from_file (jjs_value_t filename)
     return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to get dirname from normalized filename");
   }
 
-  ecma_cstr_t filename_cstr = ecma_string_to_cstr (normalized);
+  jjs_platform_buffer_t buffer;
+  jjs_value_t read_file_result = jjsp_read_file_buffer (normalized, &buffer);
 
   jjs_value_free (normalized);
 
-  if (filename_cstr.size == 0)
+  if (jjs_value_is_exception (read_file_result))
   {
     jjs_value_free (root_path);
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to parse normalized filename");
+    return read_file_result;
   }
 
-  // read JSON file
-  jjs_size_t filename_size;
-  jjs_char_t* source = jjs_port_source_read (filename_cstr.str_p, &filename_size);
-
-  ecma_free_cstr (&filename_cstr);
-
-  if (!source)
-  {
-    jjs_value_free (root_path);
-    jjs_port_source_free (source);
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to read json source file.");
-  }
+  jjs_value_free (read_file_result);
 
   // set pmap variables from JSON source
-  jjs_value_t result = set_pmap_from_json (source, filename_size, root_path);
+  jjs_value_t result = set_pmap_from_json (buffer.data_p, buffer.length, root_path);
 
-  jjs_port_source_free (source);
+  buffer.free (&buffer);
   jjs_value_free (root_path);
 
   return result;

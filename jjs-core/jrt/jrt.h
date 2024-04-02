@@ -20,7 +20,6 @@
 #include <string.h>
 
 #include "jjs-core.h"
-#include "jjs-port.h"
 
 #include "config.h"
 #include "jrt-types.h"

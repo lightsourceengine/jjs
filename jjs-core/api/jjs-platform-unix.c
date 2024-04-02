@@ -31,8 +31,7 @@
 jjs_platform_status_t
 jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 {
-  char buffer[PATH_MAX];
-  char* path_p = getcwd (buffer, sizeof (buffer) / sizeof (buffer[0]));
+  char* path_p = getcwd (NULL, 0);
 
   if (path_p == NULL)
   {
@@ -41,24 +40,12 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 
   uint32_t path_len = (uint32_t) strlen (path_p);
 
-  if (path_len == 0)
-  {
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
   // no trailing slash
-  if (path_len > 1 && buffer[path_len - 1] == '/') {
+  if (path_len > 1 && jjsp_path_is_separator((lit_utf8_byte_t) path_p[path_len - 1])) {
     path_len -= 1;
   }
 
-  char* result_p = jjsp_strndup (path_p, path_len, false);
-
-  if (result_p == NULL)
-  {
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
-  buffer_p->data_p = result_p;
+  buffer_p->data_p = path_p;
   buffer_p->length = path_len;
   buffer_p->free = jjsp_buffer_free;
   buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF8;
@@ -200,17 +187,21 @@ jjsp_path_normalize (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t
 }
 
 jjs_platform_status_t
-jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
 {
-  char* path_p = jjsp_strndup ((const char*) utf8_p, size, true);
-  // TODO: null
+  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size);
+
+  if (path_p == NULL)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
   char* data_p;
 
 #if defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L
   data_p = realpath (path_p, NULL);
 #else
-  // TODO: get path max
-  data_p = malloc (PATH_MAX + 1);
+  data_p = malloc (PATH_MAX);
 
   if (data_p && realpath (path_p, data_p) == NULL) {
     free (data_p);
@@ -233,17 +224,95 @@ jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t*
   return JJS_PLATFORM_STATUS_OK;
 }
 
+jjs_platform_status_t
+jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+{
+  jjs_platform_status_t status;
+  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size);
+
+  if (path_p == NULL)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  FILE* file_p = fopen (path_p, "rb");
+  free (path_p);
+
+  if (!file_p)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  if (ftell (file_p) != 0)
+  {
+    status = JJS_PLATFORM_STATUS_ERR;
+    goto done;
+  }
+
+  int err = fseek (file_p, 0, SEEK_END);
+
+  if (err != 0)
+  {
+    status = JJS_PLATFORM_STATUS_ERR;
+    goto done;
+  }
+
+  long file_size = ftell (file_p);
+
+  if (file_size <= 0 || file_size > INT32_MAX)
+  {
+    status = JJS_PLATFORM_STATUS_ERR;
+    goto done;
+  }
+
+  err = fseek (file_p, 0, SEEK_SET);
+
+  if (err != 0)
+  {
+    status = JJS_PLATFORM_STATUS_ERR;
+    goto done;
+  }
+
+  void* data_p = malloc ((size_t) file_size);
+
+  if (data_p == NULL)
+  {
+    status = JJS_PLATFORM_STATUS_ERR;
+    goto done;
+  }
+
+  size_t num_read = fread (data_p, (size_t) file_size, 1, file_p);
+
+  if (num_read != 1)
+  {
+    free (data_p);
+    status = JJS_PLATFORM_STATUS_ERR;
+    goto done;
+  }
+
+  buffer_p->data_p = data_p;
+  buffer_p->length = (uint32_t) file_size;
+  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_NONE;
+  buffer_p->free = jjsp_buffer_free;
+
+  status = JJS_PLATFORM_STATUS_OK;
+
+done:
+  fclose (file_p);
+  return status;
+}
+
 bool
 jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index)
 {
-  if (size == 0 || *str_p != '/')
+  if (size == 0 || !jjsp_path_is_separator(*str_p))
   {
     return false;
   }
 
   lit_utf8_size_t i = 1;
 
-  while (i < size && str_p[i] == '/')
+  while (i < size && jjsp_path_is_separator (str_p[i]))
   {
     i++;
   }
@@ -254,9 +323,9 @@ jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, li
 }
 
 bool
-jjsp_path_is_separator (uint32_t codepoint)
+jjsp_path_is_separator (lit_utf8_byte_t ch)
 {
-  return codepoint == '/';
+  return ch == '/';
 }
 
 #endif /* JJS_OS_IS_UNIX */
