@@ -49,7 +49,7 @@ jjs_commonjs_require (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 
   if (specifier_o == JJS_MOVE)
   {
-    jjs_value_free (specifier_o);
+    jjs_value_free (specifier);
   }
 
   return result;
