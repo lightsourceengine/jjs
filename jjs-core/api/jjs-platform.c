@@ -182,7 +182,7 @@ jjsp_read_file_buffer (jjs_value_t path, jjs_platform_buffer_t* buffer_p)
 }
 
 jjs_value_t
-jjsp_read_file (jjs_value_t path, jjs_platform_buffer_encoding_t encoding)
+jjsp_read_file (jjs_value_t path, jjs_encoding_t encoding)
 {
   jjs_platform_buffer_t buffer;
   jjs_value_t result = jjsp_read_file_buffer (path, &buffer);
@@ -194,7 +194,7 @@ jjsp_read_file (jjs_value_t path, jjs_platform_buffer_encoding_t encoding)
 
   jjs_value_free (result);
 
-  if (encoding == JJS_PLATFORM_BUFFER_ENCODING_NONE)
+  if (encoding == JJS_ENCODING_NONE)
   {
     result = jjs_arraybuffer (buffer.length);
 
@@ -205,7 +205,7 @@ jjsp_read_file (jjs_value_t path, jjs_platform_buffer_encoding_t encoding)
       memcpy (buffer_p, buffer.data_p, buffer.length);
     }
   }
-  else if (encoding == JJS_PLATFORM_BUFFER_ENCODING_UTF8)
+  else if (encoding == JJS_ENCODING_UTF8)
   {
     result = jjs_string (buffer.data_p, buffer.length, JJS_ENCODING_UTF8);
   }
@@ -344,12 +344,12 @@ jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move)
 {
   ecma_value_t result;
 
-  if (buffer_p->encoding == JJS_PLATFORM_BUFFER_ENCODING_UTF8)
+  if (buffer_p->encoding == JJS_ENCODING_UTF8)
   {
     result =
       ecma_make_string_value (ecma_new_ecma_string_from_utf8 ((const lit_utf8_byte_t*) buffer_p->data_p, buffer_p->length));
   }
-  else if (buffer_p->encoding == JJS_PLATFORM_BUFFER_ENCODING_UTF16)
+  else if (buffer_p->encoding == JJS_ENCODING_UTF16)
   {
     JJS_ASSERT(buffer_p->length % 2 == 0);
     // buffer.length is in bytes convert to utf16 array size

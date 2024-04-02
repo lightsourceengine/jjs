@@ -42,6 +42,21 @@ typedef enum
 } jjs_fatal_code_t;
 
 /**
+ * Encoding types.
+ *
+ * ECMA calls for UTF16 encoding for internal strings. For embedded systems, CESU8 is a common
+ * replacement for UTF16. JJS has opted to use CESU8. Most JJS apis are encoding and decoding is
+ * between UTF8 and CESU8. Not all apis support UTF16.
+ */
+typedef enum
+{
+  JJS_ENCODING_NONE, /**< indicates no encoding selected. api dependent on how this is interpreted. */
+  JJS_ENCODING_CESU8, /**< cesu-8 encoding */
+  JJS_ENCODING_UTF8, /**< utf-8 encoding */
+  JJS_ENCODING_UTF16, /**< utf-16 encoding (endianness of platform) */
+} jjs_encoding_t;
+
+/**
  * Status code for platform api calls.
  */
 typedef enum
@@ -49,16 +64,6 @@ typedef enum
   JJS_PLATFORM_STATUS_OK,
   JJS_PLATFORM_STATUS_ERR,
 } jjs_platform_status_t;
-
-/**
- * Encoding types of platform buffers used by platform apis.
- */
-typedef enum
-{
-  JJS_PLATFORM_BUFFER_ENCODING_NONE,
-  JJS_PLATFORM_BUFFER_ENCODING_UTF8,
-  JJS_PLATFORM_BUFFER_ENCODING_UTF16,
-} jjs_platform_buffer_encoding_t;
 
 /**
  * Buffer object used by platform api.
@@ -70,7 +75,7 @@ typedef struct jjs_platform_buffer_t
 {
   void* data_p; /**< pointer to the buffer data, type is chosen by the platform api using jjs_platform_buffer_t */
   uint32_t length; /**< size of the buffer data in bytes */
-  jjs_platform_buffer_encoding_t encoding; /**< encoding type of the data */
+  jjs_encoding_t encoding; /**< encoding type of the data */
   void (*free) (struct jjs_platform_buffer_t*); /**< when done, this function should be called to release buffer memory */
 } jjs_platform_buffer_t;
 
@@ -608,15 +613,6 @@ typedef enum
                                                                *   converted to string. Enabling this flags keeps
                                                                *   integer index property keys as numbers. */
 } jjs_property_filter_t;
-
-/**
- * String encoding.
- */
-typedef enum
-{
-  JJS_ENCODING_CESU8, /**< cesu-8 encoding */
-  JJS_ENCODING_UTF8, /**< utf-8 encoding */
-} jjs_encoding_t;
 
 /**
  * Description of JJS heap memory stats.

@@ -71,7 +71,7 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 
   buffer_p->data_p = p;
   buffer_p->length = n * sizeof (WCHAR);
-  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF16;
+  buffer_p->encoding = JJS_ENCODING_UTF16;
   buffer_p->free = jjsp_buffer_free;
 
   return JJS_PLATFORM_STATUS_OK;
@@ -279,7 +279,7 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 
   buffer_p->data_p = data_p;
   buffer_p->length = data_len * ((uint32_t) sizeof (ecma_char_t));
-  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF16;
+  buffer_p->encoding = JJS_ENCODING_UTF16;
   buffer_p->free = jjsp_buffer_free;
 
   return JJS_PLATFORM_STATUS_OK;
@@ -440,7 +440,7 @@ jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t*
 
   buffer_p->data_p = data_p;
   buffer_p->length = file_size;
-  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_NONE;
+  buffer_p->encoding = JJS_ENCODING_NONE;
   buffer_p->free = jjsp_buffer_free;
 
   return JJS_PLATFORM_STATUS_OK;

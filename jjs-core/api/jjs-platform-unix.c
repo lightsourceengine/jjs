@@ -48,7 +48,7 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
   buffer_p->data_p = path_p;
   buffer_p->length = path_len;
   buffer_p->free = jjsp_buffer_free;
-  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF8;
+  buffer_p->encoding = JJS_ENCODING_UTF8;
 
   return JJS_PLATFORM_STATUS_OK;
 }
@@ -217,7 +217,7 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
   }
 
   buffer_p->data_p = data_p;
-  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF8;
+  buffer_p->encoding = JJS_ENCODING_UTF8;
   buffer_p->length = (uint32_t) strlen (data_p);
   buffer_p->free = jjsp_buffer_free;
 
@@ -292,7 +292,7 @@ jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t*
 
   buffer_p->data_p = data_p;
   buffer_p->length = (uint32_t) file_size;
-  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_NONE;
+  buffer_p->encoding = JJS_ENCODING_NONE;
   buffer_p->free = jjsp_buffer_free;
 
   status = JJS_PLATFORM_STATUS_OK;

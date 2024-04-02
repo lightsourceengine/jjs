@@ -418,11 +418,11 @@ jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p,
 
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_SNAPSHOT))
   {
-    source = jjsp_read_file (path, JJS_PLATFORM_BUFFER_ENCODING_NONE);
+    source = jjsp_read_file (path, JJS_ENCODING_NONE);
   }
   else if (!ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_NONE))
   {
-    source = jjsp_read_file (path, JJS_PLATFORM_BUFFER_ENCODING_UTF8);
+    source = jjsp_read_file (path, JJS_ENCODING_UTF8);
   }
   else
   {

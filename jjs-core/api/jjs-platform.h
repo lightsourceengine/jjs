@@ -21,7 +21,7 @@
 
 jjs_platform_t jjsp_defaults (void);
 
-jjs_value_t jjsp_read_file (jjs_value_t path, jjs_platform_buffer_encoding_t encoding);
+jjs_value_t jjsp_read_file (jjs_value_t path, jjs_encoding_t encoding);
 jjs_value_t jjsp_read_file_buffer (jjs_value_t path, jjs_platform_buffer_t* buffer_p);
 
 void jjsp_buffer_free (jjs_platform_buffer_t* buffer_p);
