@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jjs-port.h"
 #include "jjs.h"
 
 #include "arguments/cli.h"

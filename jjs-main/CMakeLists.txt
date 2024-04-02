@@ -76,7 +76,7 @@ if(JJS_CMDLINE)
       "cmdline-unix.c"
   )
   target_include_directories("jjs" PRIVATE "${INCLUDE_PACK_PUBLIC}")
-  target_link_libraries("jjs" jjs-ext jjs-port)
+  target_link_libraries("jjs" jjs-ext)
 endif()
 
 if(JJS_CMDLINE_TEST)
@@ -88,7 +88,6 @@ if(JJS_CMDLINE_TEST)
       "cmdline-win.c"
       "cmdline-unix.c"
   )
-  target_link_libraries("jjs-test" jjs-port)
   if (JJS_TEST_STACK_MEASURE)
     target_compile_definitions("jjs-test" PRIVATE -DJJS_TEST_STACK_MEASURE=1)
   endif()
@@ -103,5 +102,4 @@ if(JJS_CMDLINE_SNAPSHOT)
       "cmdline-win.c"
       "cmdline-unix.c"
   )
-  target_link_libraries("jjs-snapshot" jjs-port)
 endif()

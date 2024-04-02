@@ -57,7 +57,6 @@ set(JJS_CMDLINE               ON  CACHE BOOL "Build JJS command line tool?")
 set(JJS_CMDLINE_TEST          OFF CACHE BOOL "Build JJS test command line tool?")
 set(JJS_CMDLINE_SNAPSHOT      OFF CACHE BOOL "Build JJS snapshot command line tool?")
 set(JJS_LIBFUZZER             OFF CACHE BOOL "Build JJS with libfuzzer support?")
-set(JJS_PORT                  ON  CACHE BOOL "Build default JJS port implementation?")
 set(JJS_EXT                   OFF CACHE BOOL "Build jjs-ext?")
 set(JJS_EXT_DEBUGGER          OFF CACHE BOOL "Build jjs-ext debugger support?")
 set(JJS_PACK                  OFF CACHE BOOL "Build jjs-pack?")
@@ -75,12 +74,6 @@ if(NOT USING_CLANG)
   set(JJS_LIBFUZZER OFF)
 
   set(JJS_LIBFUZZER_MESSAGE " (FORCED BY COMPILER)")
-endif()
-
-if(JJS_CMDLINE OR JJS_CMDLINE_TEST OR JJS_CMDLINE_SNAPSHOT OR JJS_LIBFUZZER OR JJS_UNITTESTS)
-  set(JJS_PORT ON)
-
-  set(JJS_PORT_MESSAGE " (FORCED BY CMDLINE OR LIBFUZZER OR TESTS)")
 endif()
 
 if(JJS_CMDLINE)
@@ -143,7 +136,6 @@ message(STATUS "JJS_CMDLINE                    " ${JJS_CMDLINE} ${JJS_CMDLINE_ME
 message(STATUS "JJS_CMDLINE_TEST               " ${JJS_CMDLINE_TEST} ${JJS_CMDLINE_TEST_MESSAGE})
 message(STATUS "JJS_CMDLINE_SNAPSHOT           " ${JJS_CMDLINE_SNAPSHOT} ${JJS_CMDLINE_SNAPSHOT_MESSAGE})
 message(STATUS "JJS_LIBFUZZER                  " ${JJS_LIBFUZZER} ${JJS_LIBFUZZER_MESSAGE})
-message(STATUS "JJS_PORT                       " ${JJS_PORT} ${JJS_PORT_MESSAGE})
 message(STATUS "JJS_EXT                        " ${JJS_EXT} ${JJS_EXT_MESSAGE})
 message(STATUS "JJS_EXT_DEBUGGER               " ${JJS_EXT_DEBUGGER} ${JJS_EXT_DEBUGGER_MESSAGE})
 message(STATUS "JJS_PACK                       " ${JJS_PACK} ${JJS_PACK_MESSAGE})
@@ -278,11 +270,6 @@ add_subdirectory(jjs-core)
 # JJS's extension tools
 if(JJS_EXT)
   add_subdirectory(jjs-ext)
-endif()
-
-# JJS's default port implementation
-if(JJS_PORT)
-  add_subdirectory(jjs-port)
 endif()
 
 # JJS's pack(age) implementation, containing Web API and other JS API that

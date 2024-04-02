@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include "jjs-port.h"
 #include "jjs.h"
 
 #include "test-common.h"

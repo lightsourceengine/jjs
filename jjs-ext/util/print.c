@@ -24,7 +24,6 @@
 
 #include "jjs-core.h"
 #include "jjs-debugger.h"
-#include "jjs-port.h"
 
 /**
  * Print buffer size
@@ -287,14 +286,18 @@ jjsx_print_unhandled_exception (jjs_value_t exception) /**< exception value */
 
     if (err_line > 0 && err_col > 0 && err_col < JJSX_SYNTAX_ERROR_MAX_LINE_LENGTH)
     {
+      // TODO: replace this functionality?
       /* Temporarily modify the error message, so we can use the path. */
-      *path_str_end_p = '\0';
+//      *path_str_end_p = '\0';
 
-      jjs_size_t source_size;
-      jjs_char_t *source_p = jjs_port_source_read (path_str_p, &source_size);
+      jjs_size_t source_size = 0;
+      jjs_char_t *source_p = NULL;
+
+      (void) path_str_p;
+      (void) path_str_end_p;
 
       /* Revert the error message. */
-      *path_str_end_p = ':';
+//      *path_str_end_p = ':';
 
       if (source_p != NULL)
       {
@@ -325,7 +328,6 @@ jjsx_print_unhandled_exception (jjs_value_t exception) /**< exception value */
         }
 
         jjs_log (JJS_LOG_LEVEL_ERROR, "\n");
-        jjs_port_source_free (source_p);
 
         while (--err_col)
         {

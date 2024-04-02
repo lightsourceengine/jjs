@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jjs-port.h"
 #include "cmdline.h"
 
 // TODO: should come from port / platform
@@ -36,72 +35,9 @@ typedef struct raw_source_s
   jjs_value_t status;
 } raw_source_t;
 
-static raw_source_t read_source (const char* path_p);
-static void free_source (raw_source_t* source);
 static void object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value);
 
 static const char* DEFAULT_STDIN_FILENAME = "<stdin>";
-
-/**
- * Get the realpath of the given path.
- * 
- * @param path_p file path
- * @return resolved path. must be freed with main_realpath_free.
- */
-char* main_realpath (const char* path_p)
-{
-  size_t path_len = path_p ? strlen (path_p) : 0;
-
-  return (char*) jjs_port_path_normalize((const jjs_char_t*) path_p, (jjs_size_t) path_len);
-} /* main_realpath */
-
-/**
- * Free memory allocated by main_realpath.
- * 
- * @param path_p result of main_realpath
- */
-void main_realpath_free (char* path_p)
-{
-  jjs_port_path_free ((jjs_char_t*) path_p);
-} /* main_realpath_free */
-
-/**
- * Run a non-ESM file.
- */
-jjs_value_t
-main_module_run (const char* path_p)
-{
-  raw_source_t source = read_source (path_p);
-
-  if (jjs_value_is_exception (source.status))
-  {
-    return source.status;
-  }
-
-  jjs_value_t path_value = jjs_string_utf8_sz (path_p);
-
-  jjs_parse_options_t parse_options = {
-    .options = JJS_PARSE_HAS_SOURCE_NAME | JJS_PARSE_HAS_USER_VALUE,
-    .source_name = path_value,
-    .user_value = path_value,
-  };
-
-  jjs_value_t parsed = jjs_parse (source.buffer_p, source.buffer_size, &parse_options);
-
-  free_source (&source);
-  jjs_value_free (path_value);
-
-  if (jjs_value_is_exception (parsed))
-  {
-    return parsed;
-  }
-
-  jjs_value_t result = jjs_run (parsed);
-
-  jjs_value_free (parsed);
-
-  return result;
-} /* main_module_run */
 
 /**
  * Joins cwd with filename that may or may not exist on disk.
@@ -121,53 +57,6 @@ cwd_append (jjs_value_t filename)
 
   return full_path;
 } /* cwd_append */
-
-/**
- * Read source from a UTF-8 encoded file into a buffer.
- *
- * @param path_p path to file
- *
- * error: JJS exception
- * success: raw_source_t containing buffer and buffer size
- * memory: caller must call free_source() on result
- */
-static raw_source_t
-read_source (const char* path_p)
-{
-  jjs_size_t source_size;
-  jjs_char_t *source_p = jjs_port_source_read (path_p, &source_size);
-
-  if (source_p == NULL)
-  {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %s\n", path_p);
-    return (raw_source_t) {
-      .buffer_p = NULL,
-      .buffer_size = 0,
-      .status = jjs_throw_sz (JJS_ERROR_SYNTAX, "Source file not found"),
-    };
-  }
-  else if (!jjs_validate_string (source_p, source_size, JJS_ENCODING_UTF8))
-  {
-    jjs_port_source_free (source_p);
-    return (raw_source_t) {
-      .buffer_p = NULL,
-      .buffer_size = 0,
-      .status = jjs_throw_sz (JJS_ERROR_SYNTAX, "Source is not a valid UTF-8 encoded string."),
-    };
-  }
-
-  return  (raw_source_t){ .buffer_p = source_p, .buffer_size = source_size, .status = jjs_undefined() };
-} /* read_source */
-
-/**
- * Cleanup the result of read_source().
- */
-static void
-free_source (raw_source_t* source)
-{
-  jjs_port_source_free (source->buffer_p);
-  jjs_value_free (source->status);
-} /* free_source */
 
 /**
  * Set an object property to a value.

@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "jjs-port.h"
 #include "jjs.h"
 
 /*

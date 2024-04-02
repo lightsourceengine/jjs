@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jjs-port.h"
 #include "jjs.h"
 #if JJS_PACK
 #include "jjs-pack.h"
@@ -218,9 +217,9 @@ restart:
   {
     main_source_t *source_file_p = sources_p + source_index;
     uint16_t source_file_type = source_file_p->type;
-    char *file_path_p = main_realpath (argv[source_file_p->path_index]);
+    jjs_value_t file_path = jjs_platform_realpath (jjs_string_utf8_sz(argv[source_file_p->path_index]), JJS_MOVE);
 
-    if (file_path_p == NULL)
+    if (!jjs_value_is_string (file_path))
     {
       source_file_type = SOURCE_UNKNOWN;
     }
@@ -229,23 +228,24 @@ restart:
     {
       case SOURCE_MODULE:
       {
-        result = jjs_esm_evaluate_sz (file_path_p);
+        result = jjs_esm_evaluate (file_path, JJS_KEEP);
         break;
       }
       case SOURCE_SNAPSHOT:
       {
-        result = jjsx_source_exec_snapshot (file_path_p, source_file_p->snapshot_index);
+        result = jjsx_source_exec_snapshot (file_path, source_file_p->snapshot_index);
         break;
       }
       case SOURCE_SCRIPT:
       {
-        if ((arguments.option_flags & OPT_FLAG_PARSE_ONLY) != 0)
+        result = jjsx_source_parse_script (file_path);
+
+        if ((arguments.option_flags & OPT_FLAG_PARSE_ONLY) == 0 && !jjs_value_is_exception (result))
         {
-          result = jjsx_source_parse_script (file_path_p);
-        }
-        else
-        {
-          result = main_module_run (file_path_p);
+          jjs_value_t run_result = jjs_run (result);
+
+          jjs_value_free (result);
+          result = run_result;
         }
 
         break;
@@ -256,13 +256,13 @@ restart:
         assert (source_file_type == SOURCE_UNKNOWN);
 
         char print_buffer[4096];
-        snprintf (print_buffer, sizeof(print_buffer) / sizeof(print_buffer[0]), "Cannot file module: %s", argv[source_file_p->path_index]);
+        snprintf (print_buffer, sizeof(print_buffer) / sizeof(print_buffer[0]), "Cannot find module: %s", argv[source_file_p->path_index]);
         result = jjs_throw_sz (JJS_ERROR_COMMON, print_buffer);
         break;
       }
     }
 
-    main_realpath_free (file_path_p);
+    jjs_value_free (file_path);
 
     if (jjs_value_is_exception (result))
     {

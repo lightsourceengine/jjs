@@ -15,7 +15,6 @@
 
 #include <stdio.h>
 
-#include "jjs-port.h"
 #include "jjs.h"
 
 #include "test-common.h"

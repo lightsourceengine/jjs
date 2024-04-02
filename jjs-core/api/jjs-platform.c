@@ -101,6 +101,103 @@ jjs_platform_cwd (void)
 } /* jjs_platform_cwd */
 
 /**
+ * Calls the platform realpath on the given path. All symlinks are removed
+ * and the returned path is absolute.
+ *
+ * If the path does not exist, this function will return an exception.
+ *
+ * If the platform does not have realpath installed, this function will return
+ * an exception.
+ *
+ * @param path string path to transform
+ * @param path_o path reference ownership
+ * @return resolved path string; otherwise, an exception. the returned value must
+ * be cleaned up with jjs_value_free.
+ */
+jjs_value_t
+jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o)
+{
+  jjs_assert_api_enabled();
+  jjs_platform_path_realpath_fn_t realpath_fn = JJS_CONTEXT (platform_api).path_realpath;
+
+  if (realpath_fn == NULL)
+  {
+    if (path_o == JJS_MOVE)
+    {
+      jjs_value_free (path);
+    }
+
+    return jjs_throw_sz (JJS_ERROR_COMMON, "platform api 'path_realpath' not installed");
+  }
+
+  if (!jjs_value_is_string (path))
+  {
+    if (path_o == JJS_MOVE)
+    {
+      jjs_value_free (path);
+    }
+
+    return jjs_throw_sz (JJS_ERROR_TYPE, "expected path to be a string");
+  }
+
+  ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value(path), path_bytes_p, path_bytes_len);
+
+  if (path_o == JJS_MOVE)
+  {
+    jjs_value_free (path);
+  }
+
+  jjs_platform_buffer_t buffer;
+  jjs_platform_status_t status = realpath_fn (path_bytes_p, path_bytes_len, &buffer);
+  jjs_value_t result;
+
+  if (status == JJS_PLATFORM_STATUS_OK)
+  {
+    result = jjsp_buffer_to_string_value (&buffer, true);
+  }
+  else
+  {
+    result = jjs_throw_sz (JJS_ERROR_COMMON, "failed to get realpath from path");
+  }
+
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+
+  return result;
+} /* jjs_platform_realpath */
+
+/**
+ * Read the contents of a file into a string or array buffer using the platform
+ * fs read api. The function is used internally to load source files, snapshots and
+ * json files. It is not intended to be a general purpose file read.
+ *
+ * If encoding is JJS_ENCODING_UTF8 or JJS_ENCODING_CESU8, the file is read as binary
+ * and decoded as a string with the given encoding. If successful, a string value
+ * is returned.
+ *
+ * If encoding is JJS_ENCODING_NONE, the file is read as binary and returned as an
+ * array buffer.
+ *
+ * @param path string path to the file.
+ * @param path_o path reference ownership
+ * @param opts options. if NULL, JJS_ENCODING_NONE is used.
+ * @return string or array buffer; otherwise, an exception is returned. the returned value
+ * must be cleaned up with jjs_value_free
+ */
+jjs_value_t
+jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts)
+{
+  jjs_assert_api_enabled();
+  jjs_value_t result = jjsp_read_file (path, opts ? opts->encoding : JJS_ENCODING_NONE);
+
+  if (path_o == JJS_MOVE)
+  {
+    jjs_value_free (path);
+  }
+
+  return result;
+} /* jjs_platform_read_file */
+
+/**
  * Helper function to set platform arch string. Should only be used at context initialization time.
  *
  * @param platform_p platform object
@@ -205,9 +302,16 @@ jjsp_read_file (jjs_value_t path, jjs_encoding_t encoding)
       memcpy (buffer_p, buffer.data_p, buffer.length);
     }
   }
-  else if (encoding == JJS_ENCODING_UTF8)
+  else if (encoding == JJS_ENCODING_UTF8 || encoding == JJS_ENCODING_CESU8)
   {
-    result = jjs_string (buffer.data_p, buffer.length, JJS_ENCODING_UTF8);
+    if (!jjs_validate_string (buffer.data_p, buffer.length, encoding))
+    {
+      result = jjs_throw_sz (JJS_ERROR_COMMON, "file contents cannot be decoded");
+    }
+    else
+    {
+      result = jjs_string (buffer.data_p, buffer.length, encoding);
+    }
   }
   else
   {

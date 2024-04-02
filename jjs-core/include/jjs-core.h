@@ -1221,6 +1221,8 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t mod
 const jjs_platform_t* jjs_platform (void);
 
 jjs_value_t jjs_platform_cwd (void);
+jjs_value_t jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o);
+jjs_value_t jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts);
 
 bool jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char* value_p);
 bool jjs_platform_set_os_sz (jjs_platform_t* platform_p, const char* value_p);

@@ -16,7 +16,6 @@
 #ifndef JJSX_PRINT_H
 #define JJSX_PRINT_H
 
-#include "jjs-port.h"
 #include "jjs-types.h"
 
 JJS_C_API_BEGIN

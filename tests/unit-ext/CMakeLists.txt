@@ -44,7 +44,7 @@ foreach(SOURCE_UNIT_TEST_EXT ${SOURCE_UNIT_TEST_EXT_MODULES})
   set_property(TARGET ${TARGET_NAME} PROPERTY LINK_FLAGS "${LINKER_FLAGS_COMMON}")
   set_property(TARGET ${TARGET_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
-  target_link_libraries(${TARGET_NAME} jjs-ext jjs-core jjs-port)
+  target_link_libraries(${TARGET_NAME} jjs-ext jjs-core)
 
   add_dependencies(unittests-ext ${TARGET_NAME})
 endforeach()

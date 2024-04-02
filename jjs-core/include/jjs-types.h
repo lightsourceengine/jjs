@@ -1310,6 +1310,14 @@ typedef jjs_value_t (*jjs_vmod_create_cb_t) (jjs_value_t name, void* user_p);
 #define JJS_TO_KB(VALUE) (VALUE)
 
 /**
+ * Options for jjs_platform_read_file function.
+ */
+typedef struct
+{
+  jjs_encoding_t encoding; /**< method to decode file contents */
+} jjs_platform_read_file_options_t;
+
+/**
  * @}
  */
 

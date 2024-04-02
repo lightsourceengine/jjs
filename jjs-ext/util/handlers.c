@@ -17,7 +17,6 @@
 
 #include "jjs-core.h"
 #include "jjs-debugger.h"
-#include "jjs-port.h"
 
 #include "jjs-ext/print.h"
 

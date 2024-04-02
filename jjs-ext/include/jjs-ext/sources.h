@@ -20,9 +20,8 @@
 
 JJS_C_API_BEGIN
 
-jjs_value_t jjsx_source_parse_script (const char* path);
-jjs_value_t jjsx_source_exec_script (const char* path);
-jjs_value_t jjsx_source_exec_snapshot (const char* path, size_t function_index);
+jjs_value_t jjsx_source_parse_script (jjs_value_t path);
+jjs_value_t jjsx_source_exec_snapshot (jjs_value_t path, size_t function_index);
 
 JJS_C_API_END
 

@@ -21,83 +21,65 @@
 #include <string.h>
 
 #include "jjs-debugger.h"
-#include "jjs-port.h"
 #include "jjs.h"
 
 #include "jjs-ext/print.h"
 
 jjs_value_t
-jjsx_source_parse_script (const char *path_p)
+jjsx_source_parse_script (jjs_value_t path)
 {
-  jjs_size_t source_size;
-  jjs_char_t *source_p = jjs_port_source_read (path_p, &source_size);
+  jjs_platform_read_file_options_t options = {
+    .encoding = JJS_ENCODING_UTF8,
+  };
 
-  if (source_p == NULL)
+  jjs_value_t source = jjs_platform_read_file (path, JJS_KEEP, &options);
+
+  if (jjs_value_is_exception (source))
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %s\n", path_p);
+    jjs_value_free (source);
+//    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %j", path);
     return jjs_throw_sz (JJS_ERROR_SYNTAX, "Source file not found");
   }
 
-  if (!jjs_validate_string (source_p, source_size, JJS_ENCODING_UTF8))
-  {
-    jjs_port_source_free (source_p);
-    return jjs_throw_sz (JJS_ERROR_SYNTAX, "Input is not a valid UTF-8 encoded string.");
-  }
+  jjs_parse_options_t parse_options = {
+    .options = JJS_PARSE_HAS_SOURCE_NAME | JJS_PARSE_HAS_USER_VALUE,
+    .user_value = path,
+    .source_name = path,
+  };
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_SOURCE_NAME;
-  parse_options.source_name =
-    jjs_string ((const jjs_char_t *) path_p, (jjs_size_t) strlen (path_p), JJS_ENCODING_UTF8);
+  jjs_value_t result = jjs_parse_value (source, &parse_options);
 
-  jjs_value_t result = jjs_parse (source_p, source_size, &parse_options);
-
-  jjs_value_free (parse_options.source_name);
-  jjs_port_source_free (source_p);
+  jjs_value_free (source);
 
   return result;
 } /* jjsx_source_parse_script */
 
 jjs_value_t
-jjsx_source_exec_script (const char *path_p)
+jjsx_source_exec_snapshot (jjs_value_t path, size_t function_index)
 {
-  jjs_value_t result = jjsx_source_parse_script (path_p);
+  jjs_value_t source = jjs_platform_read_file(path, JJS_KEEP, NULL);
 
-  if (!jjs_value_is_exception (result))
+  if (jjs_value_is_exception (source))
   {
-    jjs_value_t script = result;
-    result = jjs_run (script);
-    jjs_value_free (script);
-  }
-
-  return result;
-} /* jjsx_source_exec_script */
-
-jjs_value_t
-jjsx_source_exec_snapshot (const char *path_p, size_t function_index)
-{
-  jjs_size_t source_size;
-  jjs_char_t *source_p = jjs_port_source_read (path_p, &source_size);
-
-  if (source_p == NULL)
-  {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %s\n", path_p);
+    jjs_value_free (source);
+//    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %j", path);
     return jjs_throw_sz (JJS_ERROR_SYNTAX, "Snapshot file not found");
   }
 
   jjs_exec_snapshot_option_values_t opts = {
-    .source_name = jjs_string_utf8_sz (path_p),
+    .source_name = path,
   };
 
   uint32_t snapshot_flags = JJS_SNAPSHOT_EXEC_COPY_DATA
                             | JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME;
 
-  jjs_value_t result = jjs_exec_snapshot ((uint32_t *) source_p,
-                                          source_size,
+  jjs_value_t result = jjs_exec_snapshot ((uint32_t *) jjs_arraybuffer_data (source),
+                                          jjs_array_length (source),
                                           function_index,
                                           snapshot_flags,
                                           &opts);
 
-  jjs_port_source_free (source_p);
+  jjs_value_free (source);
   jjs_value_free (opts.source_name);
 
   return result;

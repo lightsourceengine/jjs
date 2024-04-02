@@ -16,7 +16,6 @@
 #ifndef JJSX_HANDLE_SCOPE_INTERNAL_H
 #define JJSX_HANDLE_SCOPE_INTERNAL_H
 
-#include "jjs-port.h"
 #include "jjs.h"
 
 #include "jjs-ext/handle-scope.h"

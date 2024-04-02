@@ -24,8 +24,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "jjs-port.h"
-
 #define JJS_UNUSED(x) ((void) (x))
 
 #define TEST_ASSERT(x)                                           \
