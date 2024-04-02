@@ -134,7 +134,7 @@ test_annex_path_dirname (void)
                            "\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\a");
 
   // unc long path prefix
-  check_dirname_result_sz ("\\\\?\\UNC\\a", "\\\\?\\UNC");
+  check_dirname_result_sz ("\\\\?\\UNC\\a", "\\\\?\\UNC\\");
   check_dirname_result_sz ("\\\\?\\UNC\\a\\b", "\\\\?\\UNC\\a");
 
   check_dirname_returns_empty_value_sz ("\\\\?\\X\\a");

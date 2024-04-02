@@ -299,13 +299,13 @@ jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, li
   {
     start_index = 2;
   }
-  else if (size >= 4 && memcmp (str_p, "\\\\?\\", 4))
+  else if (size >= 4 && memcmp (str_p, "\\\\?\\", 4) == 0)
   {
     if (size >= 6 && isalpha (str_p[4]) && str_p[5] == ':')
     {
       start_index = 6;
     }
-    else if (size >= 10 && memcmp (str_p, "Volume", 6) == 0)
+    else if (size >= 10 && memcmp (&str_p[4], "Volume", 6) == 0)
     {
       const lit_utf8_byte_t* guid_p = str_p + 10;
 
@@ -357,7 +357,7 @@ jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, li
       }
       start_index = 10;
     }
-    else if (size >= 8 && memcmp (str_p, "UNC\\", 4) == 0)
+    else if (size >= 8 && memcmp (&str_p[4], "UNC\\", 4) == 0)
     {
       start_index = 8;
     }

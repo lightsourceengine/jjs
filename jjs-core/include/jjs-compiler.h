@@ -72,7 +72,6 @@ JJS_C_API_BEGIN
  * Microsoft Visual C/C++ Compiler doesn't support for VLA, using _alloca
  * instead.
  */
-void *__cdecl _alloca (size_t _Size);
 #define JJS_VLA(type, name, size) type *name = (type *) (_alloca (sizeof (type) * (size)))
 
 #endif /* _MSC_VER */
