@@ -79,16 +79,11 @@ static void
 test_platform_cwd (void)
 {
   jjs_init_default ();
-  jjs_platform_cwd_fn_t cwd = jjs_platform ()->cwd;
-  jjs_platform_buffer_t buffer;
 
-  TEST_ASSERT (cwd (&buffer) == JJS_PLATFORM_STATUS_OK);
-  TEST_ASSERT (buffer.encoding != JJS_PLATFORM_BUFFER_ENCODING_NONE);
-  TEST_ASSERT (buffer.length > 0);
-  TEST_ASSERT (buffer.data_p != NULL);
-  TEST_ASSERT (buffer.free != NULL);
+  jjs_value_t cwd = jjs_platform_cwd ();
+  TEST_ASSERT (jjs_value_is_string (cwd));
+  jjs_value_free (cwd);
 
-  buffer.free (&buffer);
   jjs_cleanup ();
 }
 
@@ -142,6 +137,9 @@ test_platform_time_api_exists (void)
   TEST_ASSERT (options.platform.time_hrtime () > 0);
 
   TEST_ASSERT (options.platform.fatal != NULL);
+
+  TEST_ASSERT (options.platform.path_normalize != NULL);
+  TEST_ASSERT (options.platform.path_realpath != NULL);
 }
 
 static void

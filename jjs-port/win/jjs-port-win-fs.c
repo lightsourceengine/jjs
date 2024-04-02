@@ -48,54 +48,6 @@ jjs_port_path_normalize (const jjs_char_t *path_p, /**< input path */
 } /* jjs_port_path_normalize */
 
 /**
- * dirname
- */
-jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_p)
-{
-  if (path_p == NULL || *path_p == '\0')
-  {
-    return (jjs_char_t *) _strdup(".");
-  }
-
-  char drive[_MAX_DRIVE];
-  char dir[_MAX_DIR];
-
-  errno_t e = _splitpath_s (path_p, drive, sizeof (drive), dir, sizeof (dir), NULL, 0, NULL, 0);
-
-  if (e != 0)
-  {
-//    TODO: replace
-//    char buffer[64];
-//    sprintf(buffer, "_splitpath_s failed: %d\n", e);
-//    jjs_port_log (buffer);
-//    jjs_port_fatal (JJS_FATAL_FAILED_ASSERTION);
-    return NULL;
-  }
-
-  size_t dirname_len = strlen (drive) + strlen (dir) + 1;
-  char* dirname_p = malloc (dirname_len);
-
-  strcpy_s (dirname_p, dirname_len, drive);
-  strcat_s (dirname_p, dirname_len, dir);
-
-  size_t len = strlen (dirname_p);
-  size_t last = len - 1;
-
-  if (dirname_p[last] == '/' || dirname_p[last] == '\\')
-  {
-    dirname_p[last] = '\0';
-    len -= 1;
-  }
-
-  if (dirname_size_p != NULL)
-  {
-    *dirname_size_p = (jjs_size_t)len;
-  }
-
-  return (jjs_char_t *)dirname_p;
-} /* jjs_port_path_dirname */
-
-/**
  * Free a path buffer returned by jjs_port_path_normalize.
  */
 void

@@ -54,17 +54,6 @@ JJS_C_API_BEGIN
 jjs_char_t *jjs_port_path_normalize (const jjs_char_t *path_p, jjs_size_t path_size);
 
 /**
- * Gets the dirname of the given path.
- *
- * @param path_p the path. if null of empty string, "." is returned.
- * @param dirname_size_p out value for the size of the returned string. if NULL, the
- * size is ignored.
- * @return dirname of the given path. on error, "." is returned. return value must be
- * freed with jjs_port_path_free.
- */
-jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_p);
-
-/**
  * Free a path buffer returned by jjs_port_path_normalize.
  *
  * @param path_p: the path buffer to free

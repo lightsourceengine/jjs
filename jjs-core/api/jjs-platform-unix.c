@@ -51,7 +51,7 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
     path_len -= 1;
   }
 
-  char* result_p = jjsp_strndup (path_p, path_len);
+  char* result_p = jjsp_strndup (path_p, path_len, false);
 
   if (result_p == NULL)
   {
@@ -191,5 +191,72 @@ uint64_t jjsp_time_hrtime (void)
   return (uint64_t) t.tv_sec * (uint64_t) 1e9 + (uint64_t) t.tv_nsec;
 }
 #endif /* JJS_OS_IS_MACOS */
+
+jjs_platform_status_t
+jjsp_path_normalize (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+{
+  JJS_UNUSED_ALL(utf8_p, size, buffer_p);
+  return JJS_PLATFORM_STATUS_ERR;
+}
+
+jjs_platform_status_t
+jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+{
+  char* path_p = jjsp_strndup ((const char*) utf8_p, size, true);
+  // TODO: null
+  char* data_p;
+
+#if defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L
+  data_p = realpath (path_p, NULL);
+#else
+  // TODO: get path max
+  data_p = malloc (PATH_MAX + 1);
+
+  if (data_p && realpath (path_p, data_p) == NULL) {
+    free (data_p);
+    data_p = NULL;
+  }
+#endif
+
+  free (path_p);
+
+  if (data_p == NULL)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  buffer_p->data_p = data_p;
+  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF8;
+  buffer_p->length = (uint32_t) strlen (data_p);
+  buffer_p->free = jjsp_buffer_free;
+
+  return JJS_PLATFORM_STATUS_OK;
+}
+
+bool
+jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index)
+{
+  if (size == 0 || *str_p != '/')
+  {
+    return false;
+  }
+
+  lit_utf8_size_t i = 1;
+
+  while (i < size && str_p[i] == '/')
+  {
+    i++;
+  }
+
+  *index = i;
+
+  return true;
+}
+
+bool
+jjsp_path_is_separator (uint32_t codepoint)
+{
+  return codepoint == '/';
+}
 
 #endif /* JJS_OS_IS_UNIX */

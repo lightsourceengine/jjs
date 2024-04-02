@@ -48,48 +48,6 @@ jjs_port_path_normalize (const jjs_char_t *path_p, /**< input path */
   return (jjs_char_t *) realpath ((char *) path_p, NULL);
 } /* jjs_port_path_normalize */
 
-static char* string_copy (const char* str, size_t count)
-{
-  char* dest = memcpy(malloc(count + 1), str, count);
-
-  dest[count] = '\0';
-
-  return dest;
-} /* string_copy */
-
-/**
- * dirname
- */
-jjs_char_t *jjs_port_path_dirname (const char* path_p, jjs_size_t* dirname_size_p)
-{
-  if (path_p == NULL || *path_p == '\0')
-  {
-    return (jjs_char_t *) string_copy(".", 1);
-  }
-
-  // copy the buffer to satisfy dirname's requirement for a non-const path.
-  char* p;
-  char buffer[PATH_MAX + 1];
-  int len = snprintf(buffer, sizeof(buffer), "%s", path_p);
-
-  if (len <= 0)
-  {
-    return (jjs_char_t *) string_copy(".", 1);
-  }
-
-  // get the dirname
-  p = dirname (buffer);
-  size_t p_len = strlen (p);
-
-  if (dirname_size_p)
-  {
-    *dirname_size_p = (jjs_size_t) p_len;
-  }
-
-  // copy dirname result to the heap (for api and cross-platform consistency)
-  return (jjs_char_t *) string_copy (p, p_len);
-} /* jjs_port_path_dirname */
-
 /**
  * Free a path buffer returned by jjs_port_path_normalize.
  */

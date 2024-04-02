@@ -2364,6 +2364,32 @@ jjs_string_sz (const char *str_p) /**< pointer to string */
 } /* jjs_string_sz */
 
 /**
+ * Creates JJS string from a null-terminated, UTF-8 encoded C string.
+ *
+ * Shorthand for jjs_string with JJS_ENCODING_UTF8 encoding.
+ *
+ * @return created string
+ */
+jjs_value_t
+jjs_string_utf8_sz (const char *str_p) /**< pointer to string */
+{
+  return jjs_string ((const jjs_char_t *) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_UTF8);
+} /* jjs_string_utf8_sz */
+
+/**
+ * Creates JJS string from a null-terminated, CESU8 encoded C string.
+ *
+ * Shorthand for jjs_string with JJS_ENCODING_CESU8 encoding.
+ *
+ * @return created string
+ */
+jjs_value_t
+jjs_string_cesu8_sz (const char *str_p) /**< pointer to string */
+{
+  return jjs_string ((const jjs_char_t *) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_CESU8);
+} /* jjs_string_cesu8_sz */
+
+/**
  * Create a string value from the input buffer using the specified encoding.
  * The content of the buffer is assumed to be valid in the specified encoding, it's the callers responsibility to
  * validate the input.

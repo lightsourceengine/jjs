@@ -155,4 +155,11 @@ ecma_char_t lit_cesu8_peek_prev (const lit_utf8_byte_t *buf_p);
 void lit_utf8_incr (const lit_utf8_byte_t **buf_p);
 void lit_utf8_decr (const lit_utf8_byte_t **buf_p);
 
+bool
+lit_peek_wchar_from_cesu8 (const lit_utf8_byte_t *buf_p,
+                           lit_utf8_size_t size,
+                           lit_utf8_size_t index,
+                           lit_utf8_size_t* advance,
+                           ecma_char_t *out);
+
 #endif /* !LIT_STRINGS_H */

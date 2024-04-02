@@ -169,7 +169,7 @@ void free_values (void);
 #ifdef TEST_COMMON_IMPLEMENTATION
 
 // 256 is arbitrary. if push assertion is hit, just makes this number larger.
-static jjs_value_t s_values [256] = { 0 };
+static jjs_value_t s_values [1024] = { 0 };
 static size_t s_values_index = 0;
 
 jjs_value_t

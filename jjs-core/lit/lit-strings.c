@@ -521,6 +521,77 @@ lit_read_code_unit_from_cesu8 (const lit_utf8_byte_t *buf_p, /**< buffer with ch
 } /* lit_read_code_unit_from_cesu8 */
 
 /**
+ * Get the next code unit.
+ *
+ * @param buf_p cesu8 string buffer
+ * @param size size of buf_p
+ * @param index current index into buf_p
+ * @param advance number of bytes to move buf_p to go to the next code unit (set if returns true)
+ * @param out the current code unit (set if returns true)
+ * @return true if code unit can be read (out and advance are set); false, end of stream or error
+ * parsing cesu8 string
+ */
+bool
+lit_peek_wchar_from_cesu8 (const lit_utf8_byte_t *buf_p,
+                           lit_utf8_size_t size,
+                           lit_utf8_size_t index,
+                           lit_utf8_size_t* advance,
+                           ecma_char_t *out)
+{
+  if (index >= size)
+  {
+    return false;
+  }
+
+  lit_utf8_byte_t c = buf_p[index];
+  if ((c & LIT_UTF8_1_BYTE_MASK) == LIT_UTF8_1_BYTE_MARKER)
+  {
+    *out = (ecma_char_t) (c & LIT_UTF8_LAST_7_BITS_MASK);
+    *advance = 1;
+    return true;
+  }
+
+  lit_code_point_t ret;
+  lit_utf8_size_t bytes_count;
+
+  if ((c & LIT_UTF8_2_BYTE_MASK) == LIT_UTF8_2_BYTE_MARKER)
+  {
+    bytes_count = 2;
+    ret = ((lit_code_point_t) (c & LIT_UTF8_LAST_5_BITS_MASK));
+  }
+  else if ((c & LIT_UTF8_3_BYTE_MASK) == LIT_UTF8_3_BYTE_MARKER)
+  {
+    bytes_count = 3;
+    ret = ((lit_code_point_t) (c & LIT_UTF8_LAST_4_BITS_MASK));
+  }
+  else
+  {
+    return false;
+  }
+
+  if (index + bytes_count > size)
+  {
+    return false;
+  }
+
+  for (uint32_t i = 1; i < bytes_count; ++i)
+  {
+    ret <<= LIT_UTF8_BITS_IN_EXTRA_BYTES;
+    ret |= (buf_p[i + index] & LIT_UTF8_LAST_6_BITS_MASK);
+  }
+
+  if (ret > LIT_UTF16_CODE_UNIT_MAX)
+  {
+    return false;
+  }
+
+  *out = (ecma_char_t) ret;
+  *advance = bytes_count;
+
+  return true;
+} /* lit_peek_wchar_from_cesu8 */
+
+/**
  * Reads a code unit, up to 3 bytes, from non-empty CESU8-encoded buffer.
  *
  * The method will check bounds before accessing multi-byte code units on

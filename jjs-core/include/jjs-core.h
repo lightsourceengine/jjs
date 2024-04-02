@@ -448,6 +448,9 @@ jjs_value_t jjs_string (const jjs_char_t *buffer_p, jjs_size_t buffer_size, jjs_
 jjs_value_t jjs_string_sz (const char *str_p);
 jjs_value_t jjs_string_external (const jjs_char_t *buffer_p, jjs_size_t buffer_size, void *user_p);
 jjs_value_t jjs_string_external_sz (const char *str_p, void *user_p);
+jjs_value_t jjs_string_utf8_sz (const char *str_p);
+jjs_value_t jjs_string_cesu8_sz (const char *str_p);
+
 /**
  * jjs-api-string-cotr @}
  */
@@ -1216,6 +1219,9 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t mod
  */
 
 const jjs_platform_t* jjs_platform (void);
+
+jjs_value_t jjs_platform_cwd (void);
+
 bool jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char* value_p);
 bool jjs_platform_set_os_sz (jjs_platform_t* platform_p, const char* value_p);
 

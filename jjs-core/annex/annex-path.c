@@ -137,31 +137,6 @@ annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize)
 } /* annex_path_join */
 
 /**
- * Normalize a path using a cstring and it's length.
- *
- * @param str path to normalize (must be null terminated)
- * @param str_len length of str (passed in for performance reasons)
- * @return a normalized path or an empty value if the path is invalid or normalization fails
- */
-static ecma_value_t
-annex_path_normalize_from_string (const char* str, jjs_size_t str_len)
-{
-  lit_utf8_byte_t* normalized_path_p = jjs_port_path_normalize ((const jjs_char_t *) str, str_len);
-
-  if (normalized_path_p == NULL)
-  {
-    return ECMA_VALUE_EMPTY;
-  }
-
-  lit_utf8_size_t buffer_size = (lit_utf8_size_t)strlen ((const char*) normalized_path_p);
-  ecma_string_t* result = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (normalized_path_p, buffer_size);
-
-  jjs_port_path_free (normalized_path_p);
-
-  return ecma_make_string_value (result);
-} /* annex_path_normalize_from_string */
-
-/**
  * Normalize a path.
  *
  * @param path the string path
@@ -170,18 +145,31 @@ annex_path_normalize_from_string (const char* str, jjs_size_t str_len)
 ecma_value_t
 annex_path_normalize (ecma_value_t path)
 {
-  ecma_cstr_t path_cstr = ecma_string_to_cstr (path);
-
-  if (path_cstr.size == 0)
+  if (!ecma_is_value_string (path))
   {
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_value_t result = annex_path_normalize_from_string (path_cstr.str_p, path_cstr.size);
+  ecma_string_t* path_p = ecma_get_string_from_value (path);
 
-  ecma_free_cstr(&path_cstr);
+  if (ecma_string_get_length (path_p) == 0)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
 
-  return result;
+  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+
+  jjs_platform_buffer_t buffer;
+  jjs_platform_status_t status = JJS_CONTEXT (platform_api).path_realpath (path_bytes_p, path_bytes_len, &buffer);
+
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+
+  if (status == JJS_PLATFORM_STATUS_ERR)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
+
+  return jjsp_buffer_to_string_value (&buffer, true);
 } /* annex_path_normalize */
 
 /**
@@ -211,22 +199,67 @@ annex_path_cwd (void)
 ecma_value_t
 annex_path_dirname (ecma_value_t path)
 {
-  ecma_cstr_t path_cstr = ecma_string_to_cstr (path);
-
-  if (path_cstr.size == 0)
+  if (!ecma_is_value_string (path))
   {
-    return ECMA_VALUE_UNDEFINED;
+    return ECMA_VALUE_EMPTY;
   }
 
-  jjs_size_t result_len;
-  jjs_char_t* dirname_p = jjs_port_path_dirname (path_cstr.str_p, &result_len);
-  ecma_free_cstr(&path_cstr);
+  ecma_string_t* path_p = ecma_get_string_from_value (path);
 
-  ecma_string_t* result_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (
-    (lit_utf8_byte_t*)dirname_p, result_len);
-  jjs_port_path_free (dirname_p);
+  if (ecma_string_get_length (path_p) == 0)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
 
-  return ecma_make_string_value (result_p);
+  ecma_value_t result;
+
+  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+
+  lit_utf8_size_t start_index;
+
+  if (!jjsp_find_root_end_index (path_bytes_p, path_bytes_len, &start_index))
+  {
+    result = ECMA_VALUE_EMPTY;
+    goto done;
+  }
+
+  lit_utf8_size_t last_index = path_bytes_len - 1;
+
+  if (last_index == path_bytes_len)
+  {
+    result = ecma_copy_value (path);
+    goto done;
+  }
+
+  // remove trailing slashes
+  while (last_index > start_index && jjsp_path_is_separator(path_bytes_p[last_index]))
+  {
+    last_index--;
+  }
+
+  // move past basename to next slash
+  while (last_index > start_index && !jjsp_path_is_separator(path_bytes_p[last_index]))
+  {
+    last_index--;
+  }
+
+  // remove any trailing slashes
+  if (jjsp_path_is_separator (path_bytes_p[last_index]))
+  {
+    while (last_index > start_index && jjsp_path_is_separator (path_bytes_p[last_index]))
+    {
+      last_index--;
+    }
+
+    last_index++;
+  }
+
+  result = ecma_make_string_value (ecma_new_ecma_string_from_utf8 (&path_bytes_p[0], last_index));
+
+done:
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+
+  return result;
 } /* annex_path_dirname */
 
 /**

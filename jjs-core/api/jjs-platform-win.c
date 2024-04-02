@@ -189,4 +189,210 @@ jjsp_time_hrtime (void)
   return (uint64_t) ((double) counter.QuadPart / scaled_frequency);
 }
 
+jjs_platform_status_t
+jjsp_path_normalize (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+{
+  JJS_UNUSED_ALL(utf8_p, size, buffer_p);
+  return JJS_PLATFORM_STATUS_ERR;
+}
+
+static lit_utf8_size_t
+jjsp_remove_long_path_prefixes (ecma_char_t *path_p, lit_utf8_size_t len)
+{
+  static const WCHAR LONG_PATH_PREFIX[] = L"\\\\?\\";
+  static const WCHAR LONG_PATH_PREFIX_LEN = 4;
+
+  static const WCHAR UNC_PATH_PREFIX[] = L"\\\\?\\UNC\\";
+  static const WCHAR UNC_PATH_PREFIX_LEN = 8;
+
+  ecma_char_t *copy_point_p;
+  lit_utf8_size_t copy_len;
+  lit_utf8_size_t i;
+
+  if (wcsncmp (path_p, UNC_PATH_PREFIX, UNC_PATH_PREFIX_LEN) == 0)
+  {
+    copy_point_p = path_p + 6;
+    *copy_point_p = L'\\';
+    copy_len = len - 6;
+  }
+  else if (wcsncmp (path_p, LONG_PATH_PREFIX, LONG_PATH_PREFIX_LEN) == 0)
+  {
+    copy_point_p = path_p + 4;
+    copy_len = len - 4;
+  }
+  else
+  {
+    return len;
+  }
+
+  for (i = 0; i < copy_len; i++)
+  {
+    path_p[i] = copy_point_p[i];
+  }
+
+  path_p[i] = L'\0';
+
+  return copy_len;
+}
+
+jjs_platform_status_t
+jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+{
+  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (utf8_p, size);
+
+  if (path_p == NULL)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  HANDLE file = CreateFileW (path_p, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+  free (path_p);
+
+  if (file == INVALID_HANDLE_VALUE)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  DWORD length = GetFinalPathNameByHandleW (file, NULL, 0, VOLUME_NAME_DOS);
+
+  if (length <= 0)
+  {
+    CloseHandle(file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  // length includes null terminator
+  ecma_char_t* data_p = malloc (((size_t) length) * sizeof (ecma_char_t));
+
+  if (GetFinalPathNameByHandleW (file, data_p, length, VOLUME_NAME_DOS) <= 0)
+  {
+    free (data_p);
+    CloseHandle(file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  CloseHandle(file);
+
+  // length includes null terminator
+  lit_utf8_size_t data_len = jjsp_remove_long_path_prefixes (data_p, (lit_utf8_size_t) (length - 1));
+
+  buffer_p->data_p = data_p;
+  buffer_p->length = data_len * ((uint32_t) sizeof (ecma_char_t));
+  buffer_p->encoding = JJS_PLATFORM_BUFFER_ENCODING_UTF16;
+  buffer_p->free = jjsp_buffer_free;
+
+  return JJS_PLATFORM_STATUS_OK;
+}
+
+bool
+jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index)
+{
+  if (size == 0)
+  {
+    return false;
+  }
+
+  lit_utf8_size_t start_index;
+
+  if (size >= 2 && isalpha (str_p[0]) && str_p[1] == ':')
+  {
+    start_index = 2;
+  }
+  else if (size >= 4 && memcmp (str_p, "\\\\?\\", 4))
+  {
+    if (size >= 6 && isalpha (str_p[4]) && str_p[5] == ':')
+    {
+      start_index = 6;
+    }
+    else if (size >= 10 && memcmp (str_p, "Volume", 6) == 0)
+    {
+      const lit_utf8_byte_t* guid_p = str_p + 10;
+
+      if (size < 47)
+      {
+        return false;
+      }
+
+      for (lit_utf8_size_t i = 0; i <= 37; i++)
+      {
+        switch (i)
+        {
+          case 0:
+          {
+            if (guid_p[i] != '{')
+            {
+              return false;
+            }
+            break;
+          }
+          case 9:
+          case 14:
+          case 19:
+          case 24:
+          {
+            if (guid_p[i] != '-')
+            {
+              return false;
+            }
+            break;
+          }
+          case 37:
+          {
+            if (guid_p[i] != '}')
+            {
+              return FALSE;
+            }
+            break;
+          }
+          default:
+          {
+            if (!isxdigit (guid_p[i]))
+            {
+              return false;
+            }
+            break;
+          }
+        }
+      }
+      start_index = 10;
+    }
+    else if (size >= 8 && memcmp (str_p, "UNC\\", 4) == 0)
+    {
+      start_index = 8;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  else if (size >= 2 && str_p[0] == '\\' && str_p[1] == '\\')
+  {
+    start_index = 2;
+  }
+  else if (size >= 1 && jjsp_path_is_separator (str_p[0]))
+  {
+    start_index = 1;
+  }
+  else
+  {
+    return false;
+  }
+
+  while (start_index < size && jjsp_path_is_separator (str_p[start_index]))
+  {
+    start_index++;
+  }
+
+  *index = start_index;
+
+  return true;
+}
+
+bool
+jjsp_path_is_separator (uint32_t codepoint)
+{
+  return codepoint == '\\' || codepoint == '/';
+}
+
 #endif /* JJS_OS_IS_WINDOWS */

@@ -36,7 +36,6 @@ typedef struct raw_source_s
   jjs_value_t status;
 } raw_source_t;
 
-static jjs_value_t jjs_string_utf8_sz (const char* str);
 static raw_source_t read_source (const char* path_p);
 static void free_source (raw_source_t* source);
 static void object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value);
@@ -110,14 +109,7 @@ main_module_run (const char* path_p)
 static jjs_value_t
 cwd_append (jjs_value_t filename)
 {
-  char* cwd_p = main_realpath (".");
-
-  if (!cwd_p)
-  {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "cwd_append(): failed to get cwd");
-  }
-
-  jjs_value_t cwd = jjs_string_utf8_sz (cwd_p);
+  jjs_value_t cwd = jjs_platform_cwd ();
   char separator_p [] = { platform_separator, 0 };
   jjs_value_t separator = jjs_string_sz (separator_p);
   jjs_value_t lhs = jjs_binary_op (JJS_BIN_OP_ADD, cwd, separator);
@@ -125,19 +117,10 @@ cwd_append (jjs_value_t filename)
 
   jjs_value_free (separator);
   jjs_value_free (lhs);
-  main_realpath_free (cwd_p);
-  
+  jjs_value_free (cwd);
+
   return full_path;
 } /* cwd_append */
-
-/**
- * Creates JJS string from a UTF-8 encoded C string.
- */
-static jjs_value_t
-jjs_string_utf8_sz(const char* str)
-{
-  return jjs_string ((const jjs_char_t *) str, (jjs_size_t) strlen (str), JJS_ENCODING_UTF8);
-} /* jjs_string_utf8_sz */
 
 /**
  * Read source from a UTF-8 encoded file into a buffer.

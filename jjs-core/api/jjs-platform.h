@@ -22,8 +22,12 @@
 jjs_platform_t jjsp_defaults (void);
 
 void jjsp_buffer_free (jjs_platform_buffer_t* buffer_p);
-char* jjsp_strndup (char* str_p, uint32_t length);
+char* jjsp_strndup (const char* str_p, uint32_t length, bool is_null_terminated);
+ecma_char_t* jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size);
 ecma_value_t jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move);
+
+bool jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index);
+bool jjsp_path_is_separator (uint32_t codepoint);
 
 void JJS_ATTR_NORETURN jjsp_fatal (jjs_fatal_code_t code);
 jjs_platform_status_t jjsp_cwd (jjs_platform_buffer_t* buffer_p);
@@ -34,5 +38,8 @@ void jjsp_time_sleep (uint32_t sleep_time_ms);
 int32_t jjsp_time_local_tza (double unix_ms);
 double jjsp_time_now_ms (void);
 uint64_t jjsp_time_hrtime (void);
+
+jjs_platform_status_t jjsp_path_normalize (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);
+jjs_platform_status_t jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);
 
 #endif /* JJS_PLATFORM_H */

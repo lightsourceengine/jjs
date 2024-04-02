@@ -18,7 +18,6 @@
 
 #include "jjs-pack-lib.h"
 #include "jjs-pack.h"
-#include "jjs-port.h"
 
 #if JJS_PACK_PATH
 
@@ -53,17 +52,7 @@ static JJS_HANDLER (jjs_pack_path_env)
 static JJS_HANDLER (jjs_pack_path_cwd)
 {
   JJS_HANDLER_HEADER ();
-  jjs_char_t* cwd = jjs_port_path_normalize ((const jjs_char_t*) ".", 1);
-
-  if (cwd == NULL)
-  {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "Unable to get current working directory");
-  }
-
-  jjs_value_t cwd_value = jjs_string (cwd, (jjs_size_t) strlen ((const char*) cwd), JJS_ENCODING_UTF8);
-  jjs_port_path_free (cwd);
-
-  return cwd_value;
+  return jjs_platform_cwd ();
 } /* jjs_pack_path_cwd */
 
 static JJS_HANDLER (jjs_pack_lib_path_vmod_callback)

@@ -63,6 +63,44 @@ jjs_platform (void)
 } /* jjs_platform */
 
 /**
+ * Gets the current working directory.
+ *
+ * The platform provides the function to get the current working directory. If the function is not
+ * installed or available, this function will throw an exception. If the platform function fails,
+ * an exception will also be thrown.
+ *
+ * @return current working directory path string; otherwise, an exception is thrown. the return value
+ * must be cleaned up with jjs_value_free
+ */
+jjs_value_t
+jjs_platform_cwd (void)
+{
+  jjs_assert_api_enabled();
+  jjs_platform_cwd_fn_t cwd = JJS_CONTEXT (platform_api).cwd;
+
+  if (cwd == NULL)
+  {
+    return jjs_throw_sz (JJS_ERROR_COMMON, "platform cwd api not installed");
+  }
+
+  jjs_platform_buffer_t buffer;
+
+  if (cwd (&buffer) == JJS_PLATFORM_STATUS_OK)
+  {
+    ecma_value_t result = jjsp_buffer_to_string_value (&buffer, true);
+
+    if (jjs_value_is_string (result))
+    {
+      return result;
+    }
+
+    ecma_free_value(result);
+  }
+
+  return jjs_throw_sz (JJS_ERROR_COMMON, "platform failed to get cwd");
+} /* jjs_platform_cwd */
+
+/**
  * Helper function to set platform arch string. Should only be used at context initialization time.
  *
  * @param platform_p platform object
@@ -98,11 +136,16 @@ jjsp_defaults (void)
 
   platform.cwd = jjsp_cwd;
   platform.fatal = jjsp_fatal;
+
   platform.io_log = jjsp_io_log;
+
   platform.time_local_tza = jjsp_time_local_tza;
   platform.time_now_ms = jjsp_time_now_ms;
   platform.time_sleep = jjsp_time_sleep;
   platform.time_hrtime = jjsp_time_hrtime;
+
+  platform.path_normalize = jjsp_path_normalize;
+  platform.path_realpath = jjsp_path_realpath;
 
   return platform;
 } /* jjsp_defaults */
@@ -133,22 +176,62 @@ jjsp_buffer_free (jjs_platform_buffer_t* buffer_p)
 } /* jjsp_buffer_free */
 
 char*
-jjsp_strndup (char* str_p, uint32_t length)
+jjsp_strndup (const char* str_p, uint32_t length, bool is_null_terminated)
 {
   if (str_p == NULL || length == 0)
   {
     return NULL;
   }
 
-  char* result_p = malloc (length);
+  char* result_p = malloc (length + (is_null_terminated ? 1 : 0));
 
   if (result_p != NULL)
   {
     memcpy (result_p, str_p, length);
+
+    if (is_null_terminated)
+    {
+      result_p[length] = '\0';
+    }
   }
 
   return result_p;
 } /* jjsp_strndup */
+
+ecma_char_t* jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
+{
+  lit_utf8_size_t advance;
+  ecma_char_t ch;
+  ecma_char_t* result;
+  ecma_char_t* result_cursor;
+  lit_utf8_size_t result_size = 0;
+  lit_utf8_size_t index = 0;
+
+  while (lit_peek_wchar_from_cesu8 (cesu8_p, cesu8_size, index, &advance, &ch))
+  {
+    result_size++;
+    index += advance;
+  }
+
+  result = result_cursor = malloc ((result_size + 1) * sizeof (ecma_char_t));
+
+  if (result == NULL)
+  {
+    return NULL;
+  }
+
+  index = 0;
+
+  while (lit_peek_wchar_from_cesu8 (cesu8_p, cesu8_size, index, &advance, &ch))
+  {
+    index += advance;
+    *result_cursor++ = ch;
+  }
+
+  *result_cursor = L'\0';
+
+  return result;
+}
 
 /**
  * Create an ecma string value from a platform buffer.
