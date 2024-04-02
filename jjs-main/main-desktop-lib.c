@@ -330,7 +330,7 @@ main_exec_stdin (main_input_type_t input_type, const char* filename)
     jjs_esm_source_t source;
 
     jjs_esm_source_init (&source, source_p, source_size);
-    jjs_esm_source_set_filename (&source, jjs_string_sz (filename), true);
+    jjs_esm_source_set_filename (&source, jjs_string_sz (filename), JJS_MOVE);
 
     result = jjs_esm_evaluate_source (&source);
 

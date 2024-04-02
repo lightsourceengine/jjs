@@ -387,6 +387,25 @@ typedef struct
 } jjs_context_options_t;
 
 /**
+ * Enum that is associated with a value passed to an api. It indicates how to handle
+ * the lifetime of the JJS value.
+ */
+typedef enum
+{
+  /**
+   * Caller owns the lifetime of the JJS value. If an api needs its own reference, it
+   * must use jjs_value_copy.
+   */
+  JJS_KEEP,
+  /**
+   * Caller is transferring ownership of the JJS value to an api. The api is responsible
+   * for free'ing the reference. The transfer is absolute. If the api has an error, it
+   * is still responsible for the JS value reference.
+   */
+  JJS_MOVE,
+} jjs_value_ownership_t;
+
+/**
  * JJS log levels. The levels are in severity order
  * where the most serious levels come first.
  */

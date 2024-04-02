@@ -18,14 +18,13 @@
 #include "config.h"
 #include "test-common.h"
 
-#define TRY_JJS_COMMONJS_REQUIRE(VALUE)                \
-  do                                                   \
-  {                                                    \
-    jjs_value_t value = VALUE;                         \
-    jjs_value_t result = jjs_commonjs_require (value); \
-    TEST_ASSERT (jjs_value_is_exception (result));     \
-    jjs_value_free (result);                           \
-    jjs_value_free (value);                            \
+#define TRY_JJS_COMMONJS_REQUIRE(VALUE)                          \
+  do                                                             \
+  {                                                              \
+    jjs_value_t value = VALUE;                                   \
+    jjs_value_t result = jjs_commonjs_require (value, JJS_MOVE); \
+    TEST_ASSERT (jjs_value_is_exception (result));               \
+    jjs_value_free (result);                                     \
   } while (0)
 
 static void

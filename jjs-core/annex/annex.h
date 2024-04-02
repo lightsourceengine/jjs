@@ -55,8 +55,6 @@ ecma_value_t ecma_find_own_v (ecma_value_t object, ecma_value_t key);
 bool ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key);
 bool ecma_has_own_v (ecma_value_t object, ecma_value_t key);
 ecma_value_t ecma_string_ascii_sz (const char* string_p);
-ecma_cstr_t ecma_string_to_cstr (ecma_value_t value);
-void ecma_free_cstr (ecma_cstr_t* cstr_p);
 
 void annex_util_define_function (ecma_object_t* global_p,
                                  lit_magic_string_id_t name_id,

@@ -91,26 +91,26 @@ source_exceptions_impl (jjs_value_t fn (jjs_esm_source_t*))
 
   // empty filename
   jjs_esm_source_init_sz (&bad_config_p[p], perfect_source_code_p);
-  jjs_esm_source_set_filename (&bad_config_p[p], jjs_string_sz (""), true);
+  jjs_esm_source_set_filename (&bad_config_p[p], jjs_string_sz (""), JJS_MOVE);
   p++;
 
   // invalid filename
   jjs_esm_source_init_sz (&bad_config_p[p], perfect_source_code_p);
-  jjs_esm_source_set_filename (&bad_config_p[p], jjs_number_from_int32 (1), true);
+  jjs_esm_source_set_filename (&bad_config_p[p], jjs_number_from_int32 (1), JJS_MOVE);
   p++;
 
   // dirname does not exist on fs
   jjs_esm_source_init_sz (&bad_config_p[p], perfect_source_code_p);
-  jjs_esm_source_set_dirname (&bad_config_p[p], jjs_string_sz ("/does-not-exist"), true);
+  jjs_esm_source_set_dirname (&bad_config_p[p], jjs_string_sz ("/does-not-exist"), JJS_MOVE);
   p++;
 
   // invalid dirname
   jjs_esm_source_init_sz (&bad_config_p[p], perfect_source_code_p);
-  jjs_esm_source_set_dirname (&bad_config_p[p], jjs_number_from_int32 (1), true);
+  jjs_esm_source_set_dirname (&bad_config_p[p], jjs_number_from_int32 (1), JJS_MOVE);
   p++;
 
   // invalid source value
-  jjs_esm_source_init_value (&bad_config_p[p], jjs_number_from_int32 (1), true);
+  jjs_esm_source_init_value (&bad_config_p[p], jjs_number_from_int32 (1), JJS_MOVE);
   p++;
 
   TEST_ASSERT (p == JJS_ARRAY_SIZE (bad_config_p));
@@ -125,13 +125,13 @@ source_exceptions_impl (jjs_value_t fn (jjs_esm_source_t*))
 static void
 test_esm_import_invalid_args (void)
 {
-  check_exception (jjs_esm_import (push (jjs_null ())));
-  check_exception (jjs_esm_import (push (jjs_undefined ())));
-  check_exception (jjs_esm_import (push (jjs_number (0))));
-  check_exception (jjs_esm_import (push (jjs_boolean (true))));
-  check_exception (jjs_esm_import (push (jjs_object ())));
-  check_exception (jjs_esm_import (push (jjs_array (0))));
-  check_exception (jjs_esm_import (push (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG))));
+  check_exception (jjs_esm_import (jjs_null (), JJS_MOVE));
+  check_exception (jjs_esm_import (jjs_undefined (), JJS_MOVE));
+  check_exception (jjs_esm_import (jjs_number (0), JJS_MOVE));
+  check_exception (jjs_esm_import (jjs_boolean (true), JJS_MOVE));
+  check_exception (jjs_esm_import (jjs_object (), JJS_MOVE));
+  check_exception (jjs_esm_import (jjs_array (0), JJS_MOVE));
+  check_exception (jjs_esm_import (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG), JJS_MOVE));
 
   check_exception (jjs_esm_import_sz (NULL));
   check_exception (jjs_esm_import_sz (""));
@@ -144,13 +144,13 @@ test_esm_import_invalid_args (void)
 static void
 test_invalid_jjs_esm_evaluate_invalid_args (void)
 {
-  check_exception (jjs_esm_evaluate (push (jjs_null ())));
-  check_exception (jjs_esm_evaluate (push (jjs_undefined ())));
-  check_exception (jjs_esm_evaluate (push (jjs_number (0))));
-  check_exception (jjs_esm_evaluate (push (jjs_boolean (true))));
-  check_exception (jjs_esm_evaluate (push (jjs_object ())));
-  check_exception (jjs_esm_evaluate (push (jjs_array (0))));
-  check_exception (jjs_esm_evaluate (push (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG))));
+  check_exception (jjs_esm_evaluate (jjs_null (), JJS_MOVE));
+  check_exception (jjs_esm_evaluate (jjs_undefined (), JJS_MOVE));
+  check_exception (jjs_esm_evaluate (jjs_number (0), JJS_MOVE));
+  check_exception (jjs_esm_evaluate (jjs_boolean (true), JJS_MOVE));
+  check_exception (jjs_esm_evaluate (jjs_object (), JJS_MOVE));
+  check_exception (jjs_esm_evaluate (jjs_array (0), JJS_MOVE));
+  check_exception (jjs_esm_evaluate (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG), JJS_MOVE));
 
   check_exception (jjs_esm_evaluate_sz (NULL));
   check_exception (jjs_esm_evaluate_sz (""));
@@ -171,13 +171,13 @@ test_esm_import_relative_path (void)
 static void
 test_esm_import_absolute_path (void)
 {
-  jjs_value_t a = push (annex_path_normalize (push_sz (TEST_MODULE_A)));
-  jjs_value_t nested = push (annex_path_normalize (push_sz (TEST_MODULE_NESTED)));
-  jjs_value_t circular = push (annex_path_normalize (push_sz (TEST_MODULE_CIRCULAR)));
+  jjs_value_t a = annex_path_normalize (push_sz (TEST_MODULE_A));
+  jjs_value_t nested = annex_path_normalize (push_sz (TEST_MODULE_NESTED));
+  jjs_value_t circular = annex_path_normalize (push_sz (TEST_MODULE_CIRCULAR));
 
-  check_namespace_sz (jjs_esm_import (a), "default", "a");
-  check_namespace_sz (jjs_esm_import (nested), "default", "a");
-  check_ok (jjs_esm_import (circular));
+  check_namespace_sz (jjs_esm_import (a, JJS_MOVE), "default", "a");
+  check_namespace_sz (jjs_esm_import (nested, JJS_MOVE), "default", "a");
+  check_ok (jjs_esm_import (circular, JJS_MOVE));
 } /* test_esm_import_absolute_path */
 
 static void
@@ -191,9 +191,9 @@ test_esm_evaluate_relative_path (void)
 static void
 test_esm_evaluate_absolute_path (void)
 {
-  check_ok (jjs_esm_import (push (annex_path_normalize (push_sz (TEST_MODULE_A)))));
-  check_ok (jjs_esm_import (push (annex_path_normalize (push_sz (TEST_MODULE_NESTED)))));
-  check_ok (jjs_esm_import (push (annex_path_normalize (push_sz (TEST_MODULE_CIRCULAR)))));
+  check_ok (jjs_esm_import (annex_path_normalize (push_sz (TEST_MODULE_A)), JJS_MOVE));
+  check_ok (jjs_esm_import (annex_path_normalize (push_sz (TEST_MODULE_NESTED)), JJS_MOVE));
+  check_ok (jjs_esm_import (annex_path_normalize (push_sz (TEST_MODULE_CIRCULAR)), JJS_MOVE));
 } /* test_esm_evaluate_absolute_path */
 
 static void
@@ -203,8 +203,8 @@ test_esm_import_source (void)
   jjs_esm_source_t source[4];
 
   jjs_esm_source_init_sz (&source[0], source_p);
-  jjs_esm_source_init_value (&source[1], jjs_string_sz (source_p), true);
-  jjs_esm_source_init_value (&source[2], push_sz (source_p), false);
+  jjs_esm_source_init_value (&source[1], jjs_string_sz (source_p), JJS_MOVE);
+  jjs_esm_source_init_value (&source[2], push_sz (source_p), JJS_KEEP);
   jjs_esm_source_init (&source[3], JJS_STR (source_p), JJS_STRLEN (source_p));
 
   for (size_t i = 0; i < JJS_ARRAY_SIZE (source); i++)
@@ -221,8 +221,8 @@ test_esm_evaluate_source (void)
   jjs_esm_source_t source[4];
 
   jjs_esm_source_init_sz (&source[0], source_p);
-  jjs_esm_source_init_value (&source[1], jjs_string_sz (source_p), true);
-  jjs_esm_source_init_value (&source[2], push_sz (source_p), false);
+  jjs_esm_source_init_value (&source[1], jjs_string_sz (source_p), JJS_MOVE);
+  jjs_esm_source_init_value (&source[2], push_sz (source_p), JJS_KEEP);
   jjs_esm_source_init (&source[3], JJS_STR (source_p), JJS_STRLEN (source_p));
 
   for (size_t i = 0; i < JJS_ARRAY_SIZE (source); i++)
@@ -263,12 +263,12 @@ test_esm_source (void)
   jjs_esm_source_deinit (&source);
 
   // should set source value and own value
-  jjs_esm_source_init_value (&source, jjs_string_sz (source_p), true);
+  jjs_esm_source_init_value (&source, jjs_string_sz (source_p), JJS_MOVE);
   TEST_ASSERT (jjs_value_is_string (source.source_value));
   jjs_esm_source_deinit (&source);
 
   // should set source value and take a copy of value
-  jjs_esm_source_init_value (&source, push_sz (source_p), false);
+  jjs_esm_source_init_value (&source, push_sz (source_p), JJS_KEEP);
   TEST_ASSERT (jjs_value_is_string (source.source_value));
   jjs_esm_source_deinit (&source);
 
@@ -284,36 +284,36 @@ test_esm_source (void)
   TEST_ASSERT (source.cache);
 
   // should set meta extension and own value
-  jjs_esm_source_set_meta_extension (&source, jjs_string_sz ("ext"), true);
+  jjs_esm_source_set_meta_extension (&source, jjs_string_sz ("ext"), JJS_MOVE);
   TEST_ASSERT (jjs_value_is_string (source.meta_extension));
 
   // should set meta extension and take a copy of value
-  jjs_esm_source_set_meta_extension (&source, push_sz ("ext"), false);
+  jjs_esm_source_set_meta_extension (&source, push_sz ("ext"), JJS_KEEP);
   TEST_ASSERT (jjs_value_is_string (source.meta_extension));
 
   // should set filename and own value
-  jjs_esm_source_set_filename (&source, jjs_string_sz ("test.js"), true);
+  jjs_esm_source_set_filename (&source, jjs_string_sz ("test.js"), JJS_MOVE);
   TEST_ASSERT (jjs_value_is_string (source.filename));
 
   // should set filename and take a copy of value
-  jjs_esm_source_set_filename (&source, push_sz ("test.js"), false);
+  jjs_esm_source_set_filename (&source, push_sz ("test.js"), JJS_KEEP);
   TEST_ASSERT (jjs_value_is_string (source.filename));
 
   // should set dirname and own value
-  jjs_esm_source_set_dirname (&source, jjs_string_sz ("."), true);
+  jjs_esm_source_set_dirname (&source, jjs_string_sz ("."), JJS_MOVE);
   TEST_ASSERT (jjs_value_is_string (source.dirname));
 
   // should set dirname and take a copy of value
-  jjs_esm_source_set_dirname (&source, push_sz ("."), false);
+  jjs_esm_source_set_dirname (&source, push_sz ("."), JJS_KEEP);
   TEST_ASSERT (jjs_value_is_string (source.dirname));
 
   // should set filename + dirname and own the values
-  jjs_esm_source_set_path (&source, jjs_string_sz ("."), true, jjs_string_sz ("test.js"), true);
+  jjs_esm_source_set_path (&source, jjs_string_sz ("."), JJS_MOVE, jjs_string_sz ("test.js"), JJS_MOVE);
   TEST_ASSERT (jjs_value_is_string (source.filename));
   TEST_ASSERT (jjs_value_is_string (source.dirname));
 
   // should set filename + dirname and take a copy of values
-  jjs_esm_source_set_path (&source, push_sz ("."), false, push_sz ("test.js"), false);
+  jjs_esm_source_set_path (&source, push_sz ("."), JJS_KEEP, push_sz ("test.js"), JJS_KEEP);
   TEST_ASSERT (jjs_value_is_string (source.filename));
   TEST_ASSERT (jjs_value_is_string (source.dirname));
 

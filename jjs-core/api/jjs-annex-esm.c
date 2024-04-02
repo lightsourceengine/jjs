@@ -46,9 +46,9 @@ static jjs_value_t jjs_copy (jjs_value_t value)
 
 // TODO: move to a more general area
 static inline jjs_value_t JJS_ATTR_ALWAYS_INLINE
-jjs_move (jjs_value_t value, bool move)
+jjs_move (jjs_value_t value, jjs_value_ownership_t value_o)
 {
-  return move ? value : jjs_copy(value);
+  return value_o == JJS_MOVE ? value : jjs_copy (value);
 } /* jjs_move */
 
 static void
@@ -159,16 +159,16 @@ jjs_esm_source_init_sz (jjs_esm_source_t* esm_source_p, const char* source_p)
  *
  * @param esm_source_p
  * @param source JS string value. If not a string, the value will be set and an error will occur at import or evaluate.
- * @param move if true, jjs_esm_source_t will take ownership of the ref. if false, jjs_esm_source_t will ref the
+ * @param source_o source reference ownership
  * value and manage the lifecycle of the ref.
  */
 void
-jjs_esm_source_init_value (jjs_esm_source_t* esm_source_p, jjs_value_t source, bool move)
+jjs_esm_source_init_value (jjs_esm_source_t* esm_source_p, jjs_value_t source, jjs_value_ownership_t source_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
   esm_source_init(esm_source_p);
-  esm_source_p->source_value = jjs_move (source, move);
+  esm_source_p->source_value = jjs_move (source, source_o);
 #else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (esm_source_p);
   JJS_UNUSED (source);
@@ -233,17 +233,19 @@ jjs_esm_source_set_start (jjs_esm_source_t* esm_source_p, uint32_t start_column,
  *
  * @param esm_source_p jjs_esm_source_t object
  * @param meta_extension any JS value
- * @param move if true, ownership of the meta_extension reference is transferred to esm_source_p
+ * @param meta_extension_o meta_extension reference ownership
  */
 void
-jjs_esm_source_set_meta_extension (jjs_esm_source_t* esm_source_p, jjs_value_t meta_extension, bool move)
+jjs_esm_source_set_meta_extension (jjs_esm_source_t* esm_source_p,
+                                   jjs_value_t meta_extension,
+                                   jjs_value_ownership_t meta_extension_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
   JJS_ASSERT(esm_source_p != NULL);
 
-  jjs_value_free(esm_source_p->meta_extension);
-  esm_source_p->meta_extension = jjs_move (meta_extension, move);
+  jjs_value_free (esm_source_p->meta_extension);
+  esm_source_p->meta_extension = jjs_move (meta_extension, meta_extension_o);
 #else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (esm_source_p);
   JJS_UNUSED (meta_extension);
@@ -257,19 +259,23 @@ jjs_esm_source_set_meta_extension (jjs_esm_source_t* esm_source_p, jjs_value_t m
  *
  * @param esm_source_p jjs_esm_source_t object
  * @param dirname string of a directory filename or undefined
- * @param move_dirname if true, ownership of the dirname reference is transferred to esm_source_p
+ * @param dirname_o dirname reference ownership
  * @param filename string of a filename or undefined
- * @param move_filename if true, ownership of the filename reference is transferred to esm_source_p
+ * @param filename_o filename reference ownership
  */
 void
-jjs_esm_source_set_path (jjs_esm_source_t* esm_source_p, jjs_value_t dirname, bool move_dirname, jjs_value_t filename, bool move_filename)
+jjs_esm_source_set_path (jjs_esm_source_t* esm_source_p,
+                         jjs_value_t dirname,
+                         jjs_value_ownership_t dirname_o,
+                         jjs_value_t filename,
+                         jjs_value_ownership_t filename_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
+  JJS_ASSERT (esm_source_p != NULL);
 
-  jjs_esm_source_set_filename(esm_source_p, filename, move_filename);
-  jjs_esm_source_set_dirname(esm_source_p, dirname, move_dirname);
+  jjs_esm_source_set_filename (esm_source_p, filename, filename_o);
+  jjs_esm_source_set_dirname (esm_source_p, dirname, dirname_o);
 #else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (esm_source_p);
   JJS_UNUSED (dirname);
@@ -292,17 +298,17 @@ jjs_esm_source_set_path (jjs_esm_source_t* esm_source_p, jjs_value_t dirname, bo
  *
  * @param esm_source_p jjs_esm_source_t object
  * @param filename string of a filename or undefined
- * @param move if true, ownership of the filename reference is transferred to esm_source_p
+ * @param filename_o filename reference ownership
  */
 void
-jjs_esm_source_set_filename (jjs_esm_source_t* esm_source_p, jjs_value_t filename, bool move)
+jjs_esm_source_set_filename (jjs_esm_source_t* esm_source_p, jjs_value_t filename, jjs_value_ownership_t filename_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
+  JJS_ASSERT (esm_source_p != NULL);
 
-  jjs_value_free(esm_source_p->filename);
-  esm_source_p->filename = jjs_move (filename, move);
+  jjs_value_free (esm_source_p->filename);
+  esm_source_p->filename = jjs_move (filename, filename_o);
 #else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (esm_source_p);
   JJS_UNUSED (filename);
@@ -321,17 +327,17 @@ jjs_esm_source_set_filename (jjs_esm_source_t* esm_source_p, jjs_value_t filenam
  *
  * @param esm_source_p jjs_esm_source_t object
  * @param dirname string of a directory filename or undefined
- * @param move if true, ownership of the dirname reference is transferred to esm_source_p
+ * @param dirname_o dirname reference ownership
  */
 void
-jjs_esm_source_set_dirname (jjs_esm_source_t* esm_source_p, jjs_value_t dirname, bool move)
+jjs_esm_source_set_dirname (jjs_esm_source_t* esm_source_p, jjs_value_t dirname, jjs_value_ownership_t dirname_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
+  JJS_ASSERT (esm_source_p != NULL);
 
-  jjs_value_free(esm_source_p->dirname);
-  esm_source_p->dirname = jjs_move (dirname, move);
+  jjs_value_free (esm_source_p->dirname);
+  esm_source_p->dirname = jjs_move (dirname, dirname_o);
 #else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (esm_source_p);
   JJS_UNUSED (dirname);
@@ -359,7 +365,7 @@ jjs_esm_source_set_cache (jjs_esm_source_t* esm_source_p, bool cache)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
+  JJS_ASSERT (esm_source_p != NULL);
 
   esm_source_p->cache = cache;
 #else /* !JJS_ANNEX_ESM */
@@ -544,11 +550,12 @@ jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t 
  *       future, this method may be changed to be asynchronous or deprecated.
  *
  * @param specifier string value of the specifier
+ * @param specifier_o specifier reference ownership
  * @return the namespace object of the module. on error, an exception is
  * returned. return value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_import (jjs_value_t specifier)
+jjs_esm_import (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
@@ -556,12 +563,21 @@ jjs_esm_import (jjs_value_t specifier)
 
   if (!jjs_value_is_string (referrer_path))
   {
+    if (specifier_o == JJS_MOVE)
+    {
+      jjs_value_free (specifier);
+    }
     return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
   jjs_value_t module = esm_import (specifier, referrer_path);
 
   jjs_value_free (referrer_path);
+
+  if (specifier_o == JJS_MOVE)
+  {
+    jjs_value_free (specifier);
+  }
 
   if (jjs_value_is_exception (module))
   {
@@ -593,12 +609,7 @@ jjs_esm_import_sz (const char *specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_p);
-  jjs_value_t result = jjs_esm_import (specifier);
-
-  jjs_value_free (specifier);
-
-  return result;
+  return jjs_esm_import (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE);
 #else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (specifier_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
@@ -644,11 +655,12 @@ jjs_esm_import_source (jjs_esm_source_t *source_p)
  *       evaluated once!
  *
  * @param specifier string value of the specifier
+ * @param specifier_o specifier reference ownership
  * @return the evaluation result of the module. on error, an exception is
  * returned. return value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_evaluate (jjs_value_t specifier)
+jjs_esm_evaluate (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
@@ -656,12 +668,21 @@ jjs_esm_evaluate (jjs_value_t specifier)
 
   if (!jjs_value_is_string (referrer_path))
   {
+    if (specifier_o == JJS_MOVE)
+    {
+      jjs_value_free (specifier);
+    }
     return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
   jjs_value_t module = esm_read (specifier, referrer_path);
 
   jjs_value_free (referrer_path);
+
+  if (specifier_o == JJS_MOVE)
+  {
+    jjs_value_free (specifier);
+  }
 
   return esm_link_and_evaluate (module, true, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
@@ -684,12 +705,7 @@ jjs_esm_evaluate_sz (const char *specifier_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_p);
-  jjs_value_t result = jjs_esm_evaluate (specifier);
-
-  jjs_value_free (specifier);
-
-  return result;
+  return jjs_esm_evaluate (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE);
 #else /* !JJS_ANNEX_ESM */
   JJS_UNUSED (specifier_p);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
