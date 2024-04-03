@@ -15,12 +15,10 @@ pub fn build(b: *std.Build) void {
     // - jjs.h includes "jjs-config.h", which contains JJS compile time settings
     exe.addIncludePath(.{ .path = "../../build/amalgam" });
 
-    // add jjs.c and jjs-port.c
-    // - jjs-port.c is a generic port implemented in C. In the future, the port methods
-    //   will be implemented in zig.
+    // add jjs.c
     // - Depending on how jjs-config.h is setup, you can also pass compile time settings via
     //   compile definitions: -DJJS_HEAP_SIZE=8192
-    exe.addCSourceFiles(&.{ "../../build/amalgam/jjs.c", "../../build/amalgam/jjs-port.c" }, &.{"-std=gnu99"});
+    exe.addCSourceFiles(&.{ "../../build/amalgam/jjs.c" }, &.{"-std=gnu99"});
 
     exe.linkLibC();
     b.installArtifact(exe);
