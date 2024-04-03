@@ -212,7 +212,8 @@ endif()
 
 if(USING_GCC OR USING_CLANG)
   # TODO: should this be configurable?
-  jjs_add_compile_flags(-D_POSIX_C_SOURCE=200112L)
+#  jjs_add_compile_flags(-D_POSIX_C_SOURCE=200112L)
+  jjs_add_compile_flags(-D_DARWIN_BETTER_REALPATH)
   jjs_add_compile_flags(-std=c99 -pedantic)
   jjs_add_compile_warnings(all extra format-nonliteral init-self sign-conversion format-security missing-declarations shadow strict-prototypes undef old-style-definition)
   if(NOT "${PLATFORM}" STREQUAL "WINDOWS")

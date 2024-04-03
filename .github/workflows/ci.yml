@@ -9,6 +9,10 @@ env:
   TEST_BATTERY: ./tools/ci-test-battery.sh
 jobs:
   ci-linux:
+    env:
+      RUN_TEST_BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }} --buildoptions=--clean
+      BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} --clean
+      ARCH_OPT: ${{ (contains(matrix.arch, 'x86') && '--compile-flag=-m32') || '' }}
     strategy:
       matrix:
         type: [release, debug]
@@ -24,14 +28,17 @@ jobs:
             sudo apt install gcc-multilib
           fi
           sudo apt install ninja-build
-      - run: ./tools/build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
-      - run: $RUNNER --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
-      - run: $TEST_BATTERY ${{matrix.type}} ${{ (contains(matrix.arch, 'x86') && '--buildoptions=--compile-flag=-m32') || '' }}
+      - run: ./tools/build.py ${BUILD_OPTS} --amalgam on --jjs-pack on ${ARCH_OPT}
+      - run: $RUNNER ${RUN_TEST_BUILD_OPTS} --buildoption-test --buildoptions=${ARCH_OPT}
+      - run: $TEST_BATTERY ${{matrix.type}} --buildoptions=${ARCH_OPT}
 
   ci-linux-arm:
     env:
       RUNTIME: qemu-${{ (contains(matrix.arch, 'armv7l') && 'arm') || matrix.arch }}-static
       TIMEOUT: 300
+      RUN_TEST_BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }} --buildoptions=--clean,--linker-flag=-static
+      BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} --clean --linker-flag=-static
+      TOOLCHAIN_OPT: --toolchain=cmake/toolchain_linux_${{matrix.arch}}.cmake
     strategy:
       matrix:
         type: [release, debug]
@@ -49,11 +56,15 @@ jobs:
             sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
           fi
           sudo apt install ninja-build
-      - run: ./tools/build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
-      - run: $RUNNER --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
-      - run: $TEST_BATTERY ${{matrix.type}} --buildoptions=--toolchain=cmake/toolchain_linux_${{matrix.arch}}.cmake,--linker-flag=-static
+      - run: ./tools/build.py ${BUILD_OPTS} ${TOOLCHAIN_OPT} --amalgam on --jjs-pack on
+      - run: $RUNNER --buildoption-test ${RUN_TEST_BUILD_OPTS} --buildoptions=${TOOLCHAIN_OPT}
+      - run: $TEST_BATTERY ${{matrix.type}} --buildoptions=${TOOLCHAIN_OPT}
 
   ci-macos:
+    env:
+      RUN_TEST_BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }} --buildoptions=--clean
+      BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} --clean
+      TARGET: ${{ (contains(matrix.arch, 'arm64') && '--compile-flag=-target arm64-apple-macos11') || '' }}
     strategy:
       matrix:
         arch: [x64]
@@ -64,14 +75,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install ninja
-      - run: ./tools/build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
-      - run: $RUNNER --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
+      - run: ./tools/build.py ${BUILD_OPTS} "${TARGET}" --amalgam on --jjs-pack on
+      - run: $RUNNER ${RUN_TEST_BUILD_OPTS} "--buildoptions=${TARGET}" --buildoption-test
       - run: |
           if [ '${{ matrix.arch }}' == 'arm64' ]; then
             # build only, as this running does not
-            ./tools/build.py ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} "--compile-flag=-target arm64-apple-macos11" --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
+            ./tools/build.py ${BUILD_OPTS} "${TARGET}" --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
           else
-            # TODO: investigate why these tests are failing. they appear to be legitimate failures
             $TEST_BATTERY ${{matrix.type}}
           fi
 
@@ -79,7 +89,8 @@ jobs:
     # note: Date().getDay() is broken on windows, disable associated tests
     env:
       CMAKE_GENERATOR: Visual Studio 16 2019
-      BUILD_TYPE_OPTS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
+      RUN_TEST_BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }} --buildoptions=--clean
+      BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} --clean
     runs-on: windows-2019
     name: ci-windows-x64-${{matrix.type}}
     strategy:
@@ -89,20 +100,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Amalgamated Sources
-        run: python .\tools\build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
-        shell: powershell
+        run: ./tools/build.py ${BUILD_OPTS} --amalgam on --jjs-pack on
+        shell: bash
       - name: buildoption-test
-        run: python .\tools\run-tests.py --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
-        shell: powershell
+        run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --buildoption-test
+        shell: bash
       - name: JS Tests
-        run: python .\tools\run-tests.py -q ${BUILD_TYPE_OPTS} --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
-        shell: powershell
+        run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        shell: bash
       - name: Pack(age) Unit Tests
-        run: python .\tools\run-tests.py -q ${BUILD_TYPE_OPTS} --jjs-pack-tests
-        shell: powershell
+        run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --jjs-pack-tests
+        shell: bash
       - name: C Unit Tests
-        run: python .\tools\run-tests.py -q ${BUILD_TYPE_OPTS} --unittests
-        shell: powershell
+        run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --unittests
+        shell: bash
 
   ci-zig-example:
     env:
