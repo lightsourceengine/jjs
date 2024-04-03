@@ -58,13 +58,13 @@ jobs:
           sudo apt install ninja-build
       - run: ./tools/build.py ${BUILD_OPTS} ${TOOLCHAIN_OPT} --amalgam on --jjs-pack on
       - run: $RUNNER --buildoption-test ${RUN_TEST_BUILD_OPTS} --buildoptions=${TOOLCHAIN_OPT}
-      - run: $TEST_BATTERY ${{matrix.type}} --buildoptions=${TOOLCHAIN_OPT}
+      - run: $TEST_BATTERY ${{matrix.type}} --buildoptions=${TOOLCHAIN_OPT},--linker-flag=-static
 
   ci-macos:
     env:
       RUN_TEST_BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }} --buildoptions=--clean
       BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--debug') || '' }} --clean
-      TARGET: ${{ (contains(matrix.arch, 'arm64') && '--compile-flag=-target arm64-apple-macos11') || '' }}
+      TARGET: ${{ (contains(matrix.arch, 'arm64') && '"--compile-flag=-target arm64-apple-macos11"') || '' }}
     strategy:
       matrix:
         arch: [x64]
@@ -75,12 +75,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install ninja
-      - run: ./tools/build.py ${BUILD_OPTS} "${TARGET}" --amalgam on --jjs-pack on
-      - run: $RUNNER ${RUN_TEST_BUILD_OPTS} "--buildoptions=${TARGET}" --buildoption-test
+      - run: ./tools/build.py ${BUILD_OPTS} ${TARGET} --amalgam on --jjs-pack on
+      - run: $RUNNER ${RUN_TEST_BUILD_OPTS} --buildoptions=${TARGET} --buildoption-test
       - run: |
           if [ '${{ matrix.arch }}' == 'arm64' ]; then
             # build only, as this running does not
-            ./tools/build.py ${BUILD_OPTS} "${TARGET}" --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
+            ./tools/build.py ${BUILD_OPTS} ${TARGET} --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
           else
             $TEST_BATTERY ${{matrix.type}}
           fi
