@@ -190,11 +190,6 @@ uint64_t jjsp_time_hrtime (void)
 
 #if JJS_PLATFORM_API_PATH_REALPATH
 
-#ifdef JJS_OS_IS_MACOS
-#include <sys/syslimits.h>
-#else
-#include <linux/limits.h>
-#endif
 #include <stdlib.h>
 
 jjs_platform_status_t
@@ -211,7 +206,7 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 
 #if defined (HAVE_CANONICALIZE_FILE_NAME)
   data_p = canonicalize_file_name (path_p);
-#elif defined (_DARWIN_BETTER_REALPATH)
+#elif (defined (JJS_OS_IS_MACOS) && defined (__clang__))
   data_p = realpath (path_p, NULL);
 #elif (defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L)
   data_p = realpath (path_p, NULL);
@@ -234,9 +229,6 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
    * If you are using an amalgam build, it could simply be that build flags have not
    * been set. JJS build defines _DEFAULT_SOURCE and _BSD_SOURCE. On recent gcc compilers,
    * this gives a POSIX version of 2008 or later.
-   *
-   * On clang on macos, the JJS build defines _DARWIN_BETTER_REALPATH to force a POSIX
-   * 2008 like realpath.
    *
    * On linux gcc, you can enable gnu extensions. If canonical_file_name is available,
    * your build can define HAVE_CANONICALIZE_FILE_NAME and JJS will use that.

@@ -20,13 +20,9 @@ pub fn build(b: *std.Build) !void {
 
     try jjs_flags.append("-std=c99");
 
-    if (target.isDarwin() or target.isLinux() or (target.isWindows() and target.isGnuLibC())) {
+    if (target.isLinux() or (target.isWindows() and target.isGnuLibC())) {
       try jjs_flags.append("-D_BSD_SOURCE");
       try jjs_flags.append("-D_DEFAULT_SOURCE");
-    }
-
-    if (target.isDarwin()) {
-      try jjs_flags.append("-D_DARWIN_BETTER_REALPATH");
     }
 
     if (optimize != .Debug) {
