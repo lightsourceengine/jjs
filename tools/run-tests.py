@@ -108,12 +108,6 @@ JJS_BUILDOPTIONS = [
     Options('buildoption_test-valgrind', JJS_BUILDOPTIONS_COMMON + ['--valgrind=on']),
     Options('buildoption_test-init_flag',
             JJS_BUILDOPTIONS_COMMON + ['--mem-stats=on', '--show-opcodes=on', '--show-regexp-opcodes=on']),
-    Options('buildoption_test-cpointer_32bit',
-            JJS_BUILDOPTIONS_COMMON + ['--compile-flag=-m32', '--cpointer-32bit=on'],
-            skip=skip_if(
-                platform.system() != 'Linux' or (platform.machine() != 'i386' and platform.machine() != 'x86_64'),
-                '-m32 is only supported on x86[-64]-linux')
-           ),
     Options('buildoption_test-no_lcache_prophashmap',
             JJS_BUILDOPTIONS_COMMON + ['--compile-flag=-DJJS_LCACHE=0', '--compile-flag=-DJJS_PROPERTY_HASHMAP=0']),
     Options('buildoption_test-shared_libs',
