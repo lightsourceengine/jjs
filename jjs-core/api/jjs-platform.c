@@ -76,7 +76,7 @@ jjs_value_t
 jjs_platform_cwd (void)
 {
   jjs_assert_api_enabled();
-  jjs_platform_cwd_fn_t cwd = JJS_CONTEXT (platform_api).cwd;
+  jjs_platform_cwd_fn_t cwd = JJS_CONTEXT (platform_api).path_cwd;
 
   if (cwd == NULL)
   {
@@ -231,7 +231,7 @@ jjsp_defaults (void)
   jjs_platform_set_os_sz (&platform, jjs_os_identifier_p);
   jjs_platform_set_arch_sz (&platform, jjs_arch_identifier_p);
 
-  platform.cwd = jjsp_cwd;
+  platform.path_cwd = jjsp_cwd;
   platform.fatal = jjsp_fatal;
 
   platform.io_log = jjsp_io_log;
@@ -241,7 +241,6 @@ jjsp_defaults (void)
   platform.time_sleep = jjsp_time_sleep;
   platform.time_hrtime = jjsp_time_hrtime;
 
-  platform.path_normalize = jjsp_path_normalize;
   platform.path_realpath = jjsp_path_realpath;
 
   platform.fs_read_file = jjsp_fs_read_file;

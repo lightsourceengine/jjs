@@ -92,7 +92,6 @@ typedef int32_t (*jjs_platform_time_local_tza_fn_t) (double);
 typedef double (*jjs_platform_time_now_ms_fn_t) (void);
 typedef uint64_t (*jjs_platform_time_hrtime_fn_t) (void);
 
-typedef jjs_platform_status_t (*jjs_platform_path_normalize_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
 typedef jjs_platform_status_t (*jjs_platform_path_realpath_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
 
 /**
@@ -154,7 +153,7 @@ typedef struct
    * This platform function is required for commonjs and esm modules to construct paths
    * from relative specifiers.
    */
-  jjs_platform_cwd_fn_t cwd;
+  jjs_platform_cwd_fn_t path_cwd;
 
   /**
    * Display or log a debug/error message.
@@ -210,8 +209,6 @@ typedef struct
    * to use console and performance pack(ages).
    */
   jjs_platform_time_hrtime_fn_t time_hrtime;
-
-  jjs_platform_path_normalize_fn_t path_normalize;
 
   /**
    * Returns an absolute path with symlinks resolved to their real path names.

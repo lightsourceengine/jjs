@@ -8,17 +8,6 @@ env:
   RUNNER: tools/run-tests.py
   TEST_BATTERY: ./tools/ci-test-battery.sh
 jobs:
-  ci-linux-buildoption-test:
-    runs-on: ubuntu-22.04
-    name: ci-linux-buildoption-test
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          sudo apt update    
-          sudo apt install gcc-multilib ninja-build
-        shell: bash
-      - run: $RUNNER --buildoption-test --build-debug --buildoptions=--clean
-        shell: bash
   ci-linux:
     strategy:
       matrix:
@@ -35,9 +24,9 @@ jobs:
             sudo apt install gcc-multilib
           fi
           sudo apt install ninja-build
-        shell: bash
+      - run: ./tools/build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
+      - run: $RUNNER --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
       - run: $TEST_BATTERY ${{matrix.type}} ${{ (contains(matrix.arch, 'x86') && '--buildoptions=--compile-flag=-m32') || '' }}
-        shell: bash
 
   ci-linux-arm:
     env:
@@ -60,7 +49,8 @@ jobs:
             sudo apt install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
           fi
           sudo apt install ninja-build
-        shell: bash
+      - run: ./tools/build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
+      - run: $RUNNER --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
       - run: $TEST_BATTERY ${{matrix.type}} --buildoptions=--toolchain=cmake/toolchain_linux_${{matrix.arch}}.cmake,--linker-flag=-static
 
   ci-macos:
@@ -74,6 +64,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install ninja
+      - run: ./tools/build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
+      - run: $RUNNER --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
       - run: |
           if [ '${{ matrix.arch }}' == 'arm64' ]; then
             # build only, as this running does not
@@ -82,7 +74,6 @@ jobs:
             # TODO: investigate why these tests are failing. they appear to be legitimate failures
             $TEST_BATTERY ${{matrix.type}}
           fi
-
 
   ci-windows-x64:
     # note: Date().getDay() is broken on windows, disable associated tests
@@ -97,7 +88,12 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - run: choco install ninja
+      - name: Amalgamated Sources
+        run: python .\tools\build.py --amalgam on --jjs-pack on --clean ${{ (contains(matrix.type, 'debug') && '--debug') || '' }}
+        shell: powershell
+      - name: buildoption-test
+        run: python .\tools\run-tests.py --buildoption-test --buildoptions=--clean ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }}
+        shell: powershell
       - name: JS Tests
         run: python .\tools\run-tests.py -q ${BUILD_TYPE_OPTS} --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
         shell: powershell

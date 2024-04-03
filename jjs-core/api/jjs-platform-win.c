@@ -15,10 +15,12 @@
 
 #include "jjs-compiler.h"
 #include "jjs-platform.h"
+#include "jcontext.h"
 
 #ifdef JJS_OS_IS_WINDOWS
 
-#include "jcontext.h"
+#if JJS_PLATFORM_API_PATH_CWD
+
 #include <windows.h>
 
 jjs_platform_status_t
@@ -77,6 +79,9 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
   return JJS_PLATFORM_STATUS_OK;
 }
 
+#endif /* JJS_PLATFORM_API_PATH_CWD */
+
+#if JJS_PLATFORM_API_TIME_SLEEP
 #include <windows.h>
 
 void
@@ -84,6 +89,12 @@ jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   Sleep (sleep_time_ms);
 }
+
+#endif /* JJS_PLATFORM_API_TIME_SLEEP */
+
+#if JJS_PLATFORM_API_TIME_LOCAL_TZA
+
+#include <windows.h>
 
 #define UNIX_EPOCH_IN_TICKS 116444736000000000ull /* difference between 1970 and 1601 */
 #define TICKS_PER_MS        10000ull /* 1 tick is 100 nanoseconds */
@@ -134,6 +145,12 @@ jjsp_time_local_tza (double unix_ms)
   return 0;
 }
 
+#endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
+
+#if JJS_PLATFORM_API_TIME_NOW_MS
+
+#include <windows.h>
+
 double
 jjsp_time_now_ms (void)
 {
@@ -151,6 +168,12 @@ jjsp_time_now_ms (void)
 
   return ((double) tv_sec) * 1000.0 + ((double) tv_usec) / 1000.0;
 }
+
+#endif /* JJS_PLATFORM_API_TIME_NOW_MS */
+
+#if JJS_PLATFORM_API_TIME_HRTIME
+
+#include <windows.h>
 
 uint64_t
 jjsp_time_hrtime (void)
@@ -178,7 +201,7 @@ jjsp_time_hrtime (void)
 
   JJS_ASSERT (scaled_frequency != 0);
 
-  if (!QueryPerformanceCounter(&counter))
+  if (!QueryPerformanceCounter (&counter))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
     JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
@@ -189,12 +212,11 @@ jjsp_time_hrtime (void)
   return (uint64_t) ((double) counter.QuadPart / scaled_frequency);
 }
 
-jjs_platform_status_t
-jjsp_path_normalize (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
-{
-  JJS_UNUSED_ALL(utf8_p, size, buffer_p);
-  return JJS_PLATFORM_STATUS_ERR;
-}
+#endif /* JJS_PLATFORM_API_TIME_HRTIME */
+
+#if JJS_PLATFORM_API_PATH_REALPATH
+
+#include <windows.h>
 
 static lit_utf8_size_t
 jjsp_remove_long_path_prefixes (ecma_char_t *path_p, lit_utf8_size_t len)
@@ -284,6 +306,65 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 
   return JJS_PLATFORM_STATUS_OK;
 }
+
+#endif /* JJS_PLATFORM_API_PATH_REALPATH */
+
+#if JJS_PLATFORM_API_FS_READ_FILE
+
+#include <windows.h>
+
+jjs_platform_status_t
+jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+{
+  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size);
+
+  if (path_p == NULL)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  HANDLE file = CreateFileW (path_p, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  free (path_p);
+
+  if (file == INVALID_HANDLE_VALUE)
+  {
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  LARGE_INTEGER file_size_result;
+
+  if (GetFileSizeEx (file, &file_size_result) != TRUE || file_size_result.QuadPart > INT_MAX)
+  {
+    CloseHandle (file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  uint32_t file_size = (uint32_t) file_size_result.QuadPart;
+  void* data_p = malloc (file_size);
+
+  if (data_p == NULL)
+  {
+    CloseHandle (file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  if (ReadFile (file, data_p, (DWORD) file_size, NULL, NULL) != TRUE)
+  {
+    free (data_p);
+    CloseHandle (file);
+    return JJS_PLATFORM_STATUS_ERR;
+  }
+
+  buffer_p->data_p = data_p;
+  buffer_p->length = file_size;
+  buffer_p->encoding = JJS_ENCODING_NONE;
+  buffer_p->free = jjsp_buffer_free;
+
+  return JJS_PLATFORM_STATUS_OK;
+}
+
+#endif /* JJS_PLATFORM_API_FS_READ_FILE */
 
 bool
 jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index)
@@ -393,57 +474,6 @@ bool
 jjsp_path_is_separator (lit_utf8_byte_t ch)
 {
   return ch == '\\' || ch == '/';
-}
-
-jjs_platform_status_t
-jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
-{
-  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size);
-
-  if (path_p == NULL)
-  {
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
-  HANDLE file = CreateFileW (path_p, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-  free (path_p);
-
-  if (file == INVALID_HANDLE_VALUE)
-  {
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
-  LARGE_INTEGER file_size_result;
-
-  if (GetFileSizeEx (file, &file_size_result) != TRUE || file_size_result.QuadPart > INT_MAX)
-  {
-    CloseHandle (file);
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
-  uint32_t file_size = (uint32_t) file_size_result.QuadPart;
-  void* data_p = malloc (file_size);
-
-  if (data_p == NULL)
-  {
-    CloseHandle (file);
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
-  if (ReadFile (file, data_p, (DWORD) file_size, NULL, NULL) != TRUE)
-  {
-    free (data_p);
-    CloseHandle (file);
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
-  buffer_p->data_p = data_p;
-  buffer_p->length = file_size;
-  buffer_p->encoding = JJS_ENCODING_NONE;
-  buffer_p->free = jjsp_buffer_free;
-
-  return JJS_PLATFORM_STATUS_OK;
 }
 
 #endif /* JJS_OS_IS_WINDOWS */

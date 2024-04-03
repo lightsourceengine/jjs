@@ -163,6 +163,23 @@ def get_arguments():
     coregrp.add_argument('--vm-stack-static', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable a compile time fixed vm stack limit of JJS_DEFAULT_VM_STACK_LIMIT (%(choices)s)')
 
+    coregrp.add_argument('--platform-api-io-log', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.io.log (%(choices)s)')
+    coregrp.add_argument('--platform-api-fs-read-file', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.fs.read_file (%(choices)s)')
+    coregrp.add_argument('--platform-api-path-cwd', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.path.cwd (%(choices)s)')
+    coregrp.add_argument('--platform-api-path-realpath', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.path.realpath (%(choices)s)')
+    coregrp.add_argument('--platform-api-time-hrtime', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.time.hrtime (%(choices)s)')
+    coregrp.add_argument('--platform-api-time-now-ms', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.time.now_ms (%(choices)s)')
+    coregrp.add_argument('--platform-api-time-local-tza', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.time.local_tza (%(choices)s)')
+    coregrp.add_argument('--platform-api-time-sleep', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.time.sleep (%(choices)s)')
+
     maingrp = parser.add_argument_group('jjs-main options')
     maingrp.add_argument('--link-map', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('enable the generation of link map for jjs command line tool (%(choices)s)'))

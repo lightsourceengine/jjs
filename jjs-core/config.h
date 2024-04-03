@@ -579,6 +579,87 @@
 #endif /* JJS_DEFAULT_MAX_GC_LIMIT */
 
 /**
+ * Platform API
+ *
+ * Include or exclude a platform api implementation. Some platform apis are
+ * necessary for engine operations and some are optional. If a necessary one
+ * is excluded from the build, you can provide your own with context options
+ * passed to jjs_init.
+ */
+
+/**
+ * platform.io.log
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_IO_LOG
+#define JJS_PLATFORM_API_IO_LOG 1
+#endif /* JJS_PLATFORM_API_IO_LOG */
+
+/**
+ * platform.fs.read_file
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_FS_READ_FILE
+#define JJS_PLATFORM_API_FS_READ_FILE 1
+#endif /* JJS_PLATFORM_API_FS_READ_FILE */
+
+/**
+ * platform.path.realpath
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_PATH_REALPATH
+#define JJS_PLATFORM_API_PATH_REALPATH 1
+#endif /* JJS_PLATFORM_API_PATH_REALPATH */
+
+/**
+ * platform.path.cwd
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_PATH_CWD
+#define JJS_PLATFORM_API_PATH_CWD 1
+#endif /* JJS_PLATFORM_API_PATH_CWD */
+
+/**
+ * platform.time.sleep
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_TIME_SLEEP
+#define JJS_PLATFORM_API_TIME_SLEEP 1
+#endif /* JJS_PLATFORM_API_TIME_SLEEP */
+
+/**
+ * platform.time.hrtime
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_TIME_HRTIME
+#define JJS_PLATFORM_API_TIME_HRTIME 1
+#endif /* JJS_PLATFORM_API_TIME_HRTIME */
+
+/**
+ * platform.time.now_ms
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_TIME_NOW_MS
+#define JJS_PLATFORM_API_TIME_NOW_MS 1
+#endif /* JJS_PLATFORM_API_TIME_NOW_MS */
+
+/**
+ * platform.time.local_tza
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_TIME_LOCAL_TZA
+#define JJS_PLATFORM_API_TIME_LOCAL_TZA 1
+#endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
+
+/**
  * Sanity check for macros to see if the values are 0 or 1
  *
  * If a new feature is added this should be updated.
@@ -770,6 +851,34 @@
 #if (JJS_DEFAULT_MAX_GC_LIMIT <= 0)
 #error "Invalud value for 'JJS_DEFAULT_MAX_GC_LIMIT' macro."
 #endif /* (JJS_DEFAULT_MAX_GC_LIMIT <= 0) */
+
+/**
+ * Platform API validation
+ */
+#if (JJS_PLATFORM_API_IO_LOG != 0) && (JJS_PLATFORM_API_IO_LOG != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_IO_LOG' macro."
+#endif /* (JJS_PLATFORM_API_IO_LOG != 0) && (JJS_PLATFORM_API_IO_LOG != 1) */
+#if (JJS_PLATFORM_API_TIME_LOCAL_TZA != 0) && (JJS_PLATFORM_API_TIME_LOCAL_TZA != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_TIME_LOCAL_TZA' macro."
+#endif /* (JJS_PLATFORM_API_TIME_LOCAL_TZA != 0) && (JJS_PLATFORM_API_TIME_LOCAL_TZA != 1) */
+#if (JJS_PLATFORM_API_TIME_NOW_MS != 0) && (JJS_PLATFORM_API_TIME_NOW_MS != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_TIME_NOW_MS' macro."
+#endif /* (JJS_PLATFORM_API_TIME_NOW_MS != 0) && (JJS_PLATFORM_API_TIME_NOW_MS != 1) */
+#if (JJS_PLATFORM_API_TIME_HRTIME != 0) && (JJS_PLATFORM_API_TIME_HRTIME != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_TIME_HRTIME' macro."
+#endif /* (JJS_PLATFORM_API_TIME_HRTIME != 0) && (JJS_PLATFORM_API_TIME_HRTIME != 1) */
+#if (JJS_PLATFORM_API_TIME_SLEEP != 0) && (JJS_PLATFORM_API_TIME_SLEEP != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_TIME_SLEEP' macro."
+#endif /* (JJS_PLATFORM_API_TIME_SLEEP != 0) && (JJS_PLATFORM_API_TIME_SLEEP != 1) */
+#if (JJS_PLATFORM_API_PATH_CWD != 0) && (JJS_PLATFORM_API_PATH_CWD != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_PATH_CWD' macro."
+#endif /* (JJS_PLATFORM_API_PATH_CWD != 0) && (JJS_PLATFORM_API_PATH_CWD != 1) */
+#if (JJS_PLATFORM_API_PATH_REALPATH != 0) && (JJS_PLATFORM_API_PATH_REALPATH != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_PATH_REALPATH' macro."
+#endif /* (JJS_PLATFORM_API_PATH_REALPATH != 0) && (JJS_PLATFORM_API_PATH_REALPATH != 1) */
+#if (JJS_PLATFORM_API_FS_READ_FILE != 0) && (JJS_PLATFORM_API_FS_READ_FILE != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_FS_READ_FILE' macro."
+#endif /* (JJS_PLATFORM_API_FS_READ_FILE != 0) && (JJS_PLATFORM_API_FS_READ_FILE != 1) */
 
 /**
  * Cross component requirements check.

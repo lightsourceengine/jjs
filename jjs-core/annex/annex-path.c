@@ -178,7 +178,7 @@ annex_path_normalize (ecma_value_t path)
 ecma_value_t
 annex_path_cwd (void)
 {
-  jjs_platform_cwd_fn_t cwd = JJS_CONTEXT (platform_api).cwd;
+  jjs_platform_cwd_fn_t cwd = JJS_CONTEXT (platform_api).path_cwd;
   jjs_platform_buffer_t buffer;
   jjs_platform_status_t status = cwd ? cwd (&buffer) : JJS_PLATFORM_STATUS_ERR;
 

@@ -18,7 +18,7 @@ set(JJS_EXT_NAME jjs-ext)
 set(JJS_FEATURE_INIT_FINI OFF CACHE BOOL "Enable library constructor/destructor support?")
 
 # Status messages
-message(STATUS "JJS_FEATURE_INIT_FINI          " ${JJS_FEATURE_INIT_FINI})
+message(STATUS "JJS_FEATURE_INIT_FINI           " ${JJS_FEATURE_INIT_FINI})
 
 # Include directories
 set(INCLUDE_EXT_PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -138,7 +138,6 @@ test_platform_time_api_exists (void)
 
   TEST_ASSERT (options.platform.fatal != NULL);
 
-  TEST_ASSERT (options.platform.path_normalize != NULL);
   TEST_ASSERT (options.platform.path_realpath != NULL);
 
   TEST_ASSERT (options.platform.fs_read_file != NULL);

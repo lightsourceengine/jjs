@@ -43,7 +43,6 @@ int32_t jjsp_time_local_tza (double unix_ms);
 double jjsp_time_now_ms (void);
 uint64_t jjsp_time_hrtime (void);
 
-jjs_platform_status_t jjsp_path_normalize (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);
 jjs_platform_status_t jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);
 
 jjs_platform_status_t jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);

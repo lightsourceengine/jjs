@@ -19,8 +19,7 @@
 
 #ifdef JJS_OS_IS_UNIX
 
-#include <string.h>
-
+#if JJS_PLATFORM_API_PATH_CWD
 #include <unistd.h>
 #ifdef JJS_OS_IS_MACOS
 #include <sys/syslimits.h>
@@ -41,7 +40,7 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
   uint32_t path_len = (uint32_t) strlen (path_p);
 
   // no trailing slash
-  if (path_len > 1 && jjsp_path_is_separator((lit_utf8_byte_t) path_p[path_len - 1])) {
+  if (path_len > 1 && jjsp_path_is_separator ((lit_utf8_byte_t) path_p[path_len - 1])) {
     path_len -= 1;
   }
 
@@ -52,6 +51,9 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 
   return JJS_PLATFORM_STATUS_OK;
 }
+#endif /* JJS_PLATFORM_API_PATH_CWD */
+
+#if JJS_PLATFORM_API_TIME_SLEEP
 
 #include <time.h>
 #include <errno.h>
@@ -72,6 +74,10 @@ jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
   }
   while (rc == -1 && errno == EINTR);
 }
+
+#endif /* JJS_PLATFORM_API_TIME_SLEEP */
+
+#if JJS_PLATFORM_API_TIME_LOCAL_TZA
 
 #include <time.h>
 
@@ -102,6 +108,10 @@ jjsp_time_local_tza (double unix_ms)
 #endif /* HAVE_TM_GMTOFF */
 }
 
+#endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
+
+#if JJS_PLATFORM_API_TIME_NOW_MS
+
 #include <time.h>
 #include <sys/time.h>
 
@@ -118,6 +128,9 @@ jjsp_time_now_ms (void)
   return ((double) tv.tv_sec) * 1000.0 + ((double) tv.tv_usec) / 1000.0;
 }
 
+#endif /* JJS_PLATFORM_API_TIME_NOW_MS */
+
+#if JJS_PLATFORM_API_TIME_HRTIME
 #ifdef JJS_OS_IS_MACOS
 #include <mach/mach_time.h>
 
@@ -178,13 +191,11 @@ uint64_t jjsp_time_hrtime (void)
   return (uint64_t) t.tv_sec * (uint64_t) 1e9 + (uint64_t) t.tv_nsec;
 }
 #endif /* JJS_OS_IS_MACOS */
+#endif /* JJS_PLATFORM_API_TIME_HRTIME */
 
-jjs_platform_status_t
-jjsp_path_normalize (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
-{
-  JJS_UNUSED_ALL(utf8_p, size, buffer_p);
-  return JJS_PLATFORM_STATUS_ERR;
-}
+#if JJS_PLATFORM_API_PATH_REALPATH
+
+#include <stdlib.h>
 
 jjs_platform_status_t
 jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
@@ -223,6 +234,13 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 
   return JJS_PLATFORM_STATUS_OK;
 }
+
+#endif /* JJS_PLATFORM_API_PATH_REALPATH */
+
+#if JJS_PLATFORM_API_FS_READ_FILE
+
+#include <stdlib.h>
+#include <stdio.h>
 
 jjs_platform_status_t
 jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
@@ -301,6 +319,8 @@ done:
   fclose (file_p);
   return status;
 }
+
+#endif /* JJS_PLATFORM_API_FS_READ_FILE */
 
 bool
 jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index)
