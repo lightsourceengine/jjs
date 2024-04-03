@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -15,10 +15,26 @@ pub fn build(b: *std.Build) void {
     // - jjs.h includes "jjs-config.h", which contains JJS compile time settings
     exe.addIncludePath(.{ .path = "../../build/amalgam" });
 
+    var jjs_flags = std.ArrayList([]const u8).init(b.allocator);
+    defer jjs_flags.deinit();
+
+    try jjs_flags.append("-std=c99");
+
+    if (target.isDarwin() or target.isLinux() or (target.isWindows() and target.isGnuLibC())) {
+      try jjs_flags.append("-D_BSD_SOURCE");
+      try jjs_flags.append("-D_DEFAULT_SOURCE");
+    }
+
+    if (target.isDarwin()) {
+      try jjs_flags.append("-D_DARWIN_BETTER_REALPATH");
+    }
+
+    if (optimize != .Debug) {
+      try jjs_flags.append("-DJJS_NDEBUG");
+    }
+
     // add jjs.c
-    // - Depending on how jjs-config.h is setup, you can also pass compile time settings via
-    //   compile definitions: -DJJS_HEAP_SIZE=8192
-    exe.addCSourceFiles(&.{ "../../build/amalgam/jjs.c" }, &.{"-std=gnu99"});
+    exe.addCSourceFiles(&.{ "../../build/amalgam/jjs.c" }, jjs_flags.items);
 
     exe.linkLibC();
     b.installArtifact(exe);

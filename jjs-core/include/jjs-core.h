@@ -1221,11 +1221,26 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t mod
 const jjs_platform_t* jjs_platform (void);
 
 jjs_value_t jjs_platform_cwd (void);
+bool jjs_platform_has_cwd (void);
 jjs_value_t jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o);
+bool jjs_platform_has_realpath (void);
 jjs_value_t jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts);
+bool jjs_platform_has_read_file (void);
 
-bool jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char* value_p);
-bool jjs_platform_set_os_sz (jjs_platform_t* platform_p, const char* value_p);
+jjs_value_t jjs_platform_os (void);
+jjs_value_t jjs_platform_arch (void);
+
+void jjs_platform_fatal (jjs_fatal_code_t code);
+
+bool jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char *value_p);
+bool jjs_platform_set_os_sz (jjs_platform_t* platform_p, const char *value_p);
+bool jjs_platform_convert_cesu8 (const jjs_char_t *cesu8,
+                                 jjs_size_t cesu8_size,
+                                 jjs_encoding_t encoding,
+                                 bool with_null_terminator,
+                                 void **out_pp,
+                                 jjs_size_t *out_len_p);
+void jjs_platform_convert_cesu8_free (void *converted);
 
 /**
  * jjs-platform-ops @}

@@ -5043,26 +5043,6 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
         jjs_log_string (jjs_format_unsigned (va_arg (vl, unsigned int), width, padding, 16, buffer_p));
         break;
       }
-      case 'j':
-      {
-        jjs_value_t as_string = jjs_value_to_string (va_arg (vl, jjs_value_t));
-        char buffer[4096];
-
-        jjs_size_t w = jjs_string_to_buffer (as_string,
-                                             JJS_ENCODING_UTF8,
-                                             (jjs_char_t *) &buffer,
-                                             sizeof (buffer) / sizeof (buffer[0]));
-
-        buffer[w] = '\0';
-
-        if (precision == 0)
-        {
-          jjs_log_string (buffer);
-          break;
-        }
-
-        jjs_log_string_fixed (buffer, precision, buffer_p);
-      }
       default:
       {
         buffer_p[buffer_index++] = '%';

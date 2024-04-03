@@ -80,14 +80,14 @@ install_system_info_props (ecma_object_t* global_p)
   // TODO: these need to move to an official global api
   ecma_value_t global = ecma_make_object_value (global_p);
 
-  ecma_value_t platform = ecma_string_ascii_sz (&jjs_platform ()->os_sz[0]);
+  ecma_value_t platform = annex_util_create_string_utf8_sz (&JJS_CONTEXT (platform_api).os_sz[0]);
   annex_util_define_ro_value_sz (global, "@platform", platform);
   ecma_free_value (platform);
 
-  ecma_value_t arch = ecma_string_ascii_sz (&jjs_platform ()->arch_sz[0]);
+  ecma_value_t arch = annex_util_create_string_utf8_sz (&JJS_CONTEXT (platform_api).arch_sz[0]);
   annex_util_define_ro_value_sz (global, "@arch", arch);
   ecma_free_value (arch);
-} /* load_system_info */
+} /* install_system_info_props */
 
 /**
  * Initialize context for annex apis.
@@ -144,6 +144,12 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
   ecma_free_value (global_p->commonjs_cache);
 
   ecma_value_t fn = jjs_annex_create_require (ECMA_VALUE_UNDEFINED);
+
+  if (jjs_value_is_exception (fn))
+  {
+    jjs_log (JJS_LOG_LEVEL_ERROR, "failed to create global require");
+    jjs_fatal (JJS_FATAL_FAILED_ASSERTION);
+  }
 
   annex_util_define_value ((ecma_object_t*)global_p, LIT_MAGIC_STRING_REQUIRE, fn);
 

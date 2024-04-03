@@ -198,6 +198,106 @@ jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jj
 } /* jjs_platform_read_file */
 
 /**
+ * Checks if platform api platform.path.cwd is installed in the current context.
+ *
+ * If installed, jjs_platform_cwd () can be called.
+ *
+ * @return bool
+ */
+bool jjs_platform_has_cwd (void)
+{
+  jjs_assert_api_enabled();
+  return (JJS_CONTEXT (platform_api).path_cwd != NULL);
+} /* jjs_platform_has_cwd */
+
+/**
+ * Checks if platform api platform.path.realpath is installed in the current context.
+ *
+ * If installed, jjs_platform_realpath () can be called.
+ *
+ * @return bool
+ */
+bool jjs_platform_has_realpath (void)
+{
+  jjs_assert_api_enabled();
+  return (JJS_CONTEXT (platform_api).path_realpath != NULL);
+} /* jjs_platform_has_realpath */
+
+/**
+ * Checks if platform api platform.fs.read_file is installed in the current context.
+ *
+ * If installed, jjs_platform_read_file () can be called.
+ *
+ * @return bool
+ */
+bool jjs_platform_has_read_file (void)
+{
+  jjs_assert_api_enabled();
+  return (JJS_CONTEXT (platform_api).fs_read_file != NULL);
+} /* jjs_platform_has_read_file */
+
+/**
+ * Get the platform's os identifier.
+ *
+ * The JJS engine can produce the following identifiers (similar
+ * to NodeJS's process.platform):
+ *
+ * [ aix, darwin, freebsd, linux, openbsd, sunos, win32, unknown ]
+ *
+ * However, the user can override the os through jjs_init, so os can be
+ * any string < 16 bytes long.
+ *
+ * @return string os identifier.
+ */
+jjs_value_t
+jjs_platform_os (void)
+{
+  jjs_assert_api_enabled();
+  return jjs_string_utf8_sz (&JJS_CONTEXT (platform_api).os_sz[0]);
+} /* jjs_platform_os */
+
+/**
+ * Get the platform's arch identifier.
+ *
+ * The JJS engine can produce the following identifiers (similar
+ * to NodeJS's process.arch):
+ *
+ * [ arm, arm64, ia32, loong64, mips, mipsel, ppc, ppc64, riscv64, s390, s390x, x64, unknown ]
+ *
+ * However, the user can override the arch through jjs_init, so arch can be
+ * any string < 16 bytes long.
+ *
+ * @return string arch identifier.
+ */
+jjs_value_t
+jjs_platform_arch (void)
+{
+  jjs_assert_api_enabled();
+  return jjs_string_utf8_sz (&JJS_CONTEXT (platform_api).arch_sz[0]);
+} /* jjs_platform_arch */
+
+/**
+ * Immediately terminate the process due to an unrecoverable condition. It is
+ * equivalent to an exit () or abort (), so this function will never return.
+ *
+ * The function can be called before engine initialization.
+ *
+ * @param code exit code
+ */
+void
+jjs_platform_fatal (jjs_fatal_code_t code)
+{
+  jjs_platform_fatal_fn_t fatal_fn = JJS_CONTEXT (platform_api).fatal;
+
+  if (!fatal_fn)
+  {
+    fatal_fn = jjsp_fatal;
+  }
+
+  fatal_fn (code);
+} /* jjs_platform_fatal */
+
+/**
  * Helper function to set platform arch string. Should only be used at context initialization time.
  *
  * @param platform_p platform object
@@ -205,7 +305,7 @@ jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jj
  * @return true if string successfully set, false on error
  */
 bool
-jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char* value_p)
+jjs_platform_set_arch_sz (jjs_platform_t *platform_p, const char *value_p)
 {
   return jjsp_set_string (value_p, &platform_p->arch_sz[0], (uint32_t) sizeof (platform_p->arch_sz));
 } /* jjs_platform_set_arch_sz */
@@ -218,10 +318,87 @@ jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char* value_p)
  * @return true if string successfully set, false on error
  */
 bool
-jjs_platform_set_os_sz (jjs_platform_t* platform_p, const char* value_p)
+jjs_platform_set_os_sz (jjs_platform_t *platform_p, const char *value_p)
 {
   return jjsp_set_string (value_p, &platform_p->os_sz[0], (uint32_t) sizeof (platform_p->os_sz));
 } /* jjs_platform_set_os_sz */
+
+/**
+ * Helper function to deal with cesu8 strings in platform api implementations.
+ *
+ * @param cesu8 bytes encoded in CESU8
+ * @param cesu8_size number of bytes in cesu8 buffer
+ * @param encoding encoding to convert to
+ * @param with_null_terminator append a null terminator to output buffer
+ * @param out_pp pointer to newly allocated buffer in target encoding format. for cesu8 or utf8, buffer is
+ *               uint8_t. for utf16, buffer is uint16_t.
+ * @param out_len_p number of elements (not byte size) in output buffer
+ * @return true: conversion successful. caller must free out buffer with jjs_platform_convert_cesu8_free.
+ *         false: conversion failed
+ */
+bool jjs_platform_convert_cesu8 (const jjs_char_t *cesu8,
+                                 jjs_size_t cesu8_size,
+                                 jjs_encoding_t encoding,
+                                 bool with_null_terminator,
+                                 void **out_pp,
+                                 jjs_size_t *out_len_p)
+{
+  switch (encoding)
+  {
+    case JJS_ENCODING_UTF8:
+    {
+      char* buffer_p = jjsp_cesu8_to_utf8_sz (cesu8, cesu8_size, with_null_terminator, out_len_p);
+
+      if (!buffer_p)
+      {
+        return false;
+      }
+
+      *out_pp = buffer_p;
+      return true;
+    }
+    case JJS_ENCODING_CESU8:
+    {
+      uint8_t* buffer_p = malloc (cesu8_size + (with_null_terminator ? 1 : 0));
+
+      if (!buffer_p)
+      {
+        return false;
+      }
+
+      memcpy (buffer_p, cesu8, cesu8_size);
+
+      if (with_null_terminator)
+      {
+        buffer_p[cesu8_size] = '\0';
+      }
+
+      *out_pp = buffer_p;
+      return true;
+    }
+    case JJS_ENCODING_UTF16:
+    {
+      uint16_t *buffer_p = jjsp_cesu8_to_utf16_sz (cesu8, cesu8_size, with_null_terminator, out_len_p);
+
+      if (!buffer_p)
+      {
+        return false;
+      }
+
+      *out_pp = buffer_p;
+      return true;
+    }
+    default:
+    {
+      return false;
+    }
+  }
+} /* jjs_platform_convert_cesu8 */
+
+void jjs_platform_convert_cesu8_free (void* converted)
+{
+  free (converted);
+} /* jjs_platform_convert_cesu8_free */
 
 jjs_platform_t
 jjsp_defaults (void)
@@ -348,30 +525,7 @@ jjsp_buffer_free (jjs_platform_buffer_t* buffer_p)
 } /* jjsp_buffer_free */
 
 char*
-jjsp_strndup (const char* str_p, uint32_t length, bool is_null_terminated)
-{
-  if (str_p == NULL || length == 0)
-  {
-    return NULL;
-  }
-
-  char* result_p = malloc (length + (is_null_terminated ? 1 : 0));
-
-  if (result_p != NULL)
-  {
-    memcpy (result_p, str_p, length);
-
-    if (is_null_terminated)
-    {
-      result_p[length] = '\0';
-    }
-  }
-
-  return result_p;
-} /* jjsp_strndup */
-
-char*
-jjsp_cesu8_to_utf8_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
+jjsp_cesu8_to_utf8_sz (const uint8_t* cesu8_p, uint32_t cesu8_size, bool is_null_terminated, lit_utf8_size_t* out_size)
 {
   if (cesu8_size == 0)
   {
@@ -379,7 +533,7 @@ jjsp_cesu8_to_utf8_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
   }
 
   lit_utf8_size_t utf8_size = lit_get_utf8_size_of_cesu8_string (cesu8_p, cesu8_size);
-  lit_utf8_byte_t* utf8_p = malloc (utf8_size + 1);
+  lit_utf8_byte_t* utf8_p = malloc (utf8_size + (is_null_terminated ? 1 : 0));
 
   if (utf8_p == NULL)
   {
@@ -394,13 +548,21 @@ jjsp_cesu8_to_utf8_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
     return NULL;
   }
 
-  utf8_p[utf8_size] = '\0';
+  if (is_null_terminated)
+  {
+    utf8_p[utf8_size] = '\0';
+  }
+
+  if (out_size)
+  {
+    *out_size = utf8_size;
+  }
 
   return (char*) utf8_p;
 }
 
 ecma_char_t*
-jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
+jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size, bool is_null_terminated, lit_utf8_size_t* out_size)
 {
   lit_utf8_size_t advance;
   ecma_char_t ch;
@@ -415,7 +577,7 @@ jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
     index += advance;
   }
 
-  result = result_cursor = malloc ((result_size + 1) * sizeof (ecma_char_t));
+  result = result_cursor = malloc ((result_size + (is_null_terminated ? 1 : 0)) * sizeof (ecma_char_t));
 
   if (result == NULL)
   {
@@ -430,7 +592,15 @@ jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size)
     *result_cursor++ = ch;
   }
 
-  *result_cursor = L'\0';
+  if (is_null_terminated)
+  {
+    *result_cursor = L'\0';
+  }
+
+  if (out_size)
+  {
+    *out_size = result_size;
+  }
 
   return result;
 }

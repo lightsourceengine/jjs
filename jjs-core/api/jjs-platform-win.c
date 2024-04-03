@@ -260,7 +260,7 @@ jjsp_remove_long_path_prefixes (ecma_char_t *path_p, lit_utf8_size_t len)
 jjs_platform_status_t
 jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
 {
-  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size);
+  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size, true, NULL);
 
   if (path_p == NULL)
   {
@@ -316,7 +316,7 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 jjs_platform_status_t
 jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
 {
-  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size);
+  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size, true, NULL);
 
   if (path_p == NULL)
   {

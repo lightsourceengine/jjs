@@ -33,7 +33,7 @@
                  __FILE__,                                       \
                  __func__,                                       \
                  (unsigned long) __LINE__);                      \
-      jjs_platform ()->fatal (JJS_FATAL_FAILED_ASSERTION);       \
+      jjs_platform_fatal (JJS_FATAL_FAILED_ASSERTION);           \
     }                                                            \
   } while (0)
 

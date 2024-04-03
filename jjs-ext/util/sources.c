@@ -25,6 +25,35 @@
 
 #include "jjs-ext/print.h"
 
+static char*
+to_string (jjs_value_t value, char* buffer_p, uint32_t buffer_size)
+{
+  if (jjs_value_is_exception (value))
+  {
+    buffer_p[0] = '\0';
+    return buffer_p;
+  }
+
+  jjs_value_t as_string = jjs_value_to_string (value);
+
+  if (jjs_value_is_exception (as_string))
+  {
+    jjs_value_free (as_string);
+    buffer_p[0] = '\0';
+    return buffer_p;
+  }
+
+  jjs_size_t w = jjs_string_to_buffer (as_string,
+                                       JJS_ENCODING_UTF8,
+                                       (jjs_char_t *) buffer_p,
+                                       buffer_size);
+
+  jjs_value_free (as_string);
+  buffer_p[w] = '\0';
+
+  return buffer_p;
+}
+
 jjs_value_t
 jjsx_source_parse_script (jjs_value_t path)
 {
@@ -36,8 +65,11 @@ jjsx_source_parse_script (jjs_value_t path)
 
   if (jjs_value_is_exception (source))
   {
+    char path_buffer[4096];
+
     jjs_value_free (source);
-//    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %j", path);
+
+    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %s", to_string (path, path_buffer, sizeof (path_buffer)));
     return jjs_throw_sz (JJS_ERROR_SYNTAX, "Source file not found");
   }
 
@@ -57,12 +89,14 @@ jjsx_source_parse_script (jjs_value_t path)
 jjs_value_t
 jjsx_source_exec_snapshot (jjs_value_t path, size_t function_index)
 {
-  jjs_value_t source = jjs_platform_read_file(path, JJS_KEEP, NULL);
+  jjs_value_t source = jjs_platform_read_file (path, JJS_KEEP, NULL);
 
   if (jjs_value_is_exception (source))
   {
+    char path_buffer[4096];
+
     jjs_value_free (source);
-//    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %j", path);
+    jjs_log (JJS_LOG_LEVEL_ERROR, "Failed to open file: %s", to_string (path, path_buffer, sizeof (path_buffer)));
     return jjs_throw_sz (JJS_ERROR_SYNTAX, "Snapshot file not found");
   }
 

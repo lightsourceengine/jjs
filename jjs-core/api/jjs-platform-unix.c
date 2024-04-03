@@ -200,7 +200,7 @@ uint64_t jjsp_time_hrtime (void)
 jjs_platform_status_t
 jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
 {
-  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size);
+  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size, true, NULL);
 
   if (path_p == NULL)
   {
@@ -210,42 +210,64 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
   char* data_p;
 
 #if defined (HAVE_CANONICALIZE_FILE_NAME)
-  // canonicalize_file_name is available in gnu extensions on linux
-  // build system needs to set HAVE_CANONICALIZE_FILE_NAME
   data_p = canonicalize_file_name (path_p);
-#elif (defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L) || defined (_DARWIN_BETTER_REALPATH)
-  // realpath was fixed to take NULL for resolve and malloc the resolved path internally in posix 2008
+#elif defined (_DARWIN_BETTER_REALPATH)
   data_p = realpath (path_p, NULL);
-#elif defined (PATH_MAX)
-  // note: this method can overflow if the system has paths > PATH_MAX
-  char realpath_buffer[PATH_MAX];
-
-  if (realpath (path_p, realpath_buffer) == NULL)
-  {
-    data_p = NULL;
-  }
-  else
-  {
-    data_p = strdup (realpath_buffer);
-  }
+#elif (defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L)
+  data_p = realpath (path_p, NULL);
 #else
-  // note: this method can overflow if the system has paths > _PC_PATH_MAX or 8192
-  ssize_t pathmax;
+  /*
+   * Problem:
+   *
+   * realpath was fixed to accept a NULL resolved path and internall malloc the space
+   * needed for the resolved path. The previous version wanted the caller to allocate
+   * enough space for the maximum size path.
+   *
+   * On some systems, passing a PATH_MAX mallocated buffer to realpath works fine, but
+   * on other systems PATH_MAX is a suggestion and realpath will fail by error or a
+   * buffer overflow. Or, PATH_MAX from pathconf is -1 (meaning unbound PATH_MAX) or
+   * a really huge number. jjs-core chooses not to implement a fallback because the
+   * behavior is not completely defined.
+   *
+   * Configuration:
+   *
+   * If you are using an amalgam build, it could simply be that build flags have not
+   * been set. JJS build defines _DEFAULT_SOURCE and _BSD_SOURCE. On recent gcc compilers,
+   * this gives a POSIX version of 2008 or later.
+   *
+   * On clang on macos, the JJS build defines _DARWIN_BETTER_REALPATH to force a POSIX
+   * 2008 like realpath.
+   *
+   * On linux gcc, you can enable gnu extensions. If canonical_file_name is available,
+   * your build can define HAVE_CANONICALIZE_FILE_NAME and JJS will use that.
+   *
+   * If configuration does not work, the compiler or system libc may not support POSIX
+   * 2008 (or a known working realpath alternative).
+   *
+   * Solution:
+   *
+   * If configuration is not possible, you can exclude THIS function in the build with the
+   * compiler define:
+   *
+   *   -DJJS_PLATFORM_API_PATH_REALPATH=0
+   *
+   * JJS needs realpath for pmap resolution, import'ing / require'ing relative and absolute
+   * paths, the jjs_platform_realpath api or commandline tools. If none of this is needed,
+   * you can just leave out realpath from the engine.
+   *
+   * If you think your platform realpath is ok or realpath with PATH_MAX is ok, you can
+   * implement you own version of this function and pass it to jjs_init as the realpath.
+   * jjs_platform_cesu8_convert () is available to convert the passed in path from CESU8 to
+   * a null terminated UTF8 (or UTF16). Your implementation will look similar with your own
+   * way of calling realpath or your own version of canonical paths.
+   *
+   * Examples of realpath with PATH_MAX/pathconf fallback:
+   *
+   * - https://github.com/libuv/libuv/blob/v1.x/src/unix/fs.c
+   * - https://github.com/gcc-mirror/gcc/blob/master/libiberty/lrealpath.c
+   */
 
-  pathmax = pathconf ("/", _PC_PATH_MAX);
-
-  if (pathmax <= 0)
-  {
-    // libuv uses this as a fallback
-    pathmax = 8192;
-  }
-
-  data_p = malloc (pathmax);
-
-  if (data_p && realpath (path_p, data_p) == NULL)
-  {
-    free (data_p);
-  }
+  #error "compiler does not have a known, working realpath"
 #endif
 
   free (path_p);
@@ -274,7 +296,7 @@ jjs_platform_status_t
 jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
 {
   jjs_platform_status_t status;
-  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size);
+  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size, true, NULL);
 
   if (path_p == NULL)
   {

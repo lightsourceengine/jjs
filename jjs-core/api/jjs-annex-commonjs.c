@@ -113,7 +113,14 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
 
   if (jjs_value_is_undefined (referrer))
   {
-    path = annex_path_cwd ();
+    if (JJS_CONTEXT (platform_api.path_cwd) != NULL)
+    {
+      path = annex_path_cwd ();
+    }
+    else
+    {
+      return create_require_from_directory (jjs_undefined ());
+    }
   }
   else if (jjs_value_is_string (referrer))
   {
@@ -137,7 +144,7 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
   {
     ecma_value_t fn = create_require_from_directory (path);
 
-    ecma_free_value(path);
+    ecma_free_value (path);
 
     return fn;
   }
@@ -301,17 +308,17 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
     return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require specifier");
   }
 
-  if (!ecma_is_value_string (referrer_path))
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require referrer");
-  }
-
 #if JJS_ANNEX_VMOD
   if (jjs_annex_vmod_exists (specifier))
   {
     return jjs_annex_vmod_resolve (specifier);
   }
 #endif /* JJS_ANNEX_VMOD */
+
+  if (!ecma_is_value_string (referrer_path))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require referrer");
+  }
 
   /* resolve the request to an absolute path */
   jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_COMMONJS);
