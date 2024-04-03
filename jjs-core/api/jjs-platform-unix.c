@@ -21,11 +21,6 @@
 
 #if JJS_PLATFORM_API_PATH_CWD
 #include <unistd.h>
-#ifdef JJS_OS_IS_MACOS
-#include <sys/syslimits.h>
-#else
-#include <linux/limits.h>
-#endif
 
 jjs_platform_status_t
 jjsp_cwd (jjs_platform_buffer_t* buffer_p)
@@ -195,6 +190,11 @@ uint64_t jjsp_time_hrtime (void)
 
 #if JJS_PLATFORM_API_PATH_REALPATH
 
+#ifdef JJS_OS_IS_MACOS
+#include <sys/syslimits.h>
+#else
+#include <linux/limits.h>
+#endif
 #include <stdlib.h>
 
 jjs_platform_status_t
@@ -209,14 +209,42 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 
   char* data_p;
 
-#if defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L
+#if defined (HAVE_CANONICALIZE_FILE_NAME)
+  // canonicalize_file_name is available in gnu extensions on linux
+  // build system needs to set HAVE_CANONICALIZE_FILE_NAME
+  data_p = canonicalize_file_name (path_p);
+#elif (defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L) || defined (_DARWIN_BETTER_REALPATH)
+  // realpath was fixed to take NULL for resolve and malloc the resolved path internally in posix 2008
   data_p = realpath (path_p, NULL);
-#else
-  data_p = malloc (PATH_MAX);
+#elif defined (PATH_MAX)
+  // note: this method can overflow if the system has paths > PATH_MAX
+  char realpath_buffer[PATH_MAX];
 
-  if (data_p && realpath (path_p, data_p) == NULL) {
-    free (data_p);
+  if (realpath (path_p, realpath_buffer) == NULL)
+  {
     data_p = NULL;
+  }
+  else
+  {
+    data_p = strdup (realpath_buffer);
+  }
+#else
+  // note: this method can overflow if the system has paths > _PC_PATH_MAX or 8192
+  ssize_t pathmax;
+
+  pathmax = pathconf ("/", _PC_PATH_MAX);
+
+  if (pathmax <= 0)
+  {
+    // libuv uses this as a fallback
+    pathmax = 8192;
+  }
+
+  data_p = malloc (pathmax);
+
+  if (data_p && realpath (path_p, data_p) == NULL)
+  {
+    free (data_p);
   }
 #endif
 
