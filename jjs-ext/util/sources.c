@@ -108,13 +108,12 @@ jjsx_source_exec_snapshot (jjs_value_t path, size_t function_index)
                             | JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME;
 
   jjs_value_t result = jjs_exec_snapshot ((uint32_t *) jjs_arraybuffer_data (source),
-                                          jjs_array_length (source),
+                                          jjs_arraybuffer_size (source),
                                           function_index,
                                           snapshot_flags,
                                           &opts);
 
   jjs_value_free (source);
-  jjs_value_free (opts.source_name);
 
   return result;
 } /* jjsx_source_exec_snapshot */
