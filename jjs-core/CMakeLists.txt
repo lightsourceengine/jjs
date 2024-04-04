@@ -14,6 +14,19 @@
 
 set(JJS_CORE_NAME jjs-core)
 
+INCLUDE (CheckStructHasMember)
+# CHECK_STRUCT_HAS_MEMBER works by trying to compile some C code that accesses the
+# given field of the given struct. However, our default compiler options break this
+# C code, so turn a couple of them off for this.
+if(USING_GCC OR USING_CLANG)
+  set(CMAKE_REQUIRED_FLAGS "-Wno-error=strict-prototypes -Wno-error=old-style-definition -Wno-error=unused-value")
+endif()
+
+# tm.tm_gmtoff is non-standard, so glibc doesn't expose it in c99 mode
+# (our default). Define some macros to expose it anyway.
+set(CMAKE_REQUIRED_DEFINITIONS "-D_BSD_SOURCE -D_DEFAULT_SOURCE")
+CHECK_STRUCT_HAS_MEMBER ("struct tm" tm_gmtoff time.h HAVE_TM_GMTOFF)
+
 include(CheckLibraryExists)
 
 # Optional features
@@ -112,6 +125,7 @@ message(STATUS "JJS_PLATFORM_API_TIME_HRTIME    " ${JJS_PLATFORM_API_TIME_HRTIME
 message(STATUS "JJS_PLATFORM_API_TIME_LOCAL_TZA " ${JJS_PLATFORM_API_TIME_LOCAL_TZA})
 message(STATUS "JJS_PLATFORM_API_TIME_NOW_MS    " ${JJS_PLATFORM_API_TIME_NOW_MS})
 message(STATUS "JJS_PLATFORM_API_TIME_SLEEP     " ${JJS_PLATFORM_API_TIME_SLEEP})
+message(STATUS "HAVE_TM_GMTOFF                  " ${HAVE_TM_GMTOFF})
 
 # Include directories
 set(INCLUDE_CORE_PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -659,6 +673,11 @@ jjs_add_define01(JJS_PLATFORM_API_TIME_HRTIME)
 jjs_add_define01(JJS_PLATFORM_API_TIME_LOCAL_TZA)
 jjs_add_define01(JJS_PLATFORM_API_TIME_NOW_MS)
 jjs_add_define01(JJS_PLATFORM_API_TIME_SLEEP)
+
+# localtime_r is is not threadsafe with clang on OSX
+if(HAVE_TM_GMTOFF AND NOT "${PLATFORM}" STREQUAL "DARWIN")
+  set(DEFINES_JJS ${DEFINES_JJS} HAVE_TM_GMTOFF)
+endif()
 
 set(DEFINES_JJS ${DEFINES_JJS} _BSD_SOURCE=)
 set(DEFINES_JJS ${DEFINES_JJS} _DEFAULT_SOURCE=)
