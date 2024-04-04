@@ -84,10 +84,12 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 #if JJS_PLATFORM_API_TIME_SLEEP
 #include <windows.h>
 
-void
+jjs_platform_status_t
 jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   Sleep (sleep_time_ms);
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_SLEEP */
@@ -125,8 +127,8 @@ filetime_to_unix_time (LPFILETIME ft_p)
   return (((double) date.QuadPart - (double) UNIX_EPOCH_IN_TICKS) / (double) TICKS_PER_MS);
 }
 
-int32_t
-jjsp_time_local_tza (double unix_ms)
+jjs_platform_status_t
+jjsp_time_local_tza (double unix_ms, int32_t* out_p)
 {
   FILETIME utc;
   FILETIME local;
@@ -139,10 +141,14 @@ jjsp_time_local_tza (double unix_ms)
       && SystemTimeToFileTime (&local_sys, &local))
   {
     double unix_local = filetime_to_unix_time (&local);
-    return (int32_t) (unix_local - unix_ms);
+    *out_p = (int32_t) (unix_local - unix_ms);
+
+    return JJS_PLATFORM_STATUS_OK;
   }
 
-  return 0;
+  *out_p = 0;
+
+  return JJS_PLATFORM_STATUS_ERR;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
@@ -151,8 +157,8 @@ jjsp_time_local_tza (double unix_ms)
 
 #include <windows.h>
 
-double
-jjsp_time_now_ms (void)
+jjs_platform_status_t
+jjsp_time_now_ms (double* out_p)
 {
   // Based on https://doxygen.postgresql.org/gettimeofday_8c_source.html
   const uint64_t epoch = (uint64_t) 116444736000000000ULL;
@@ -166,7 +172,9 @@ jjsp_time_now_ms (void)
   int64_t tv_sec = (int64_t) ((ularge.QuadPart - epoch) / 10000000L);
   int32_t tv_usec = (int32_t) (((ularge.QuadPart - epoch) % 10000000L) / 10);
 
-  return ((double) tv_sec) * 1000.0 + ((double) tv_usec) / 1000.0;
+  *out_p = ((double) tv_sec) * 1000.0 + ((double) tv_usec) / 1000.0;
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_NOW_MS */
@@ -175,8 +183,8 @@ jjsp_time_now_ms (void)
 
 #include <windows.h>
 
-uint64_t
-jjsp_time_hrtime (void)
+jjs_platform_status_t
+jjsp_time_hrtime (uint64_t* out_p)
 {
   // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/win/util.c
 
@@ -209,7 +217,9 @@ jjsp_time_hrtime (void)
 
   JJS_ASSERT (counter.QuadPart != 0);
 
-  return (uint64_t) ((double) counter.QuadPart / scaled_frequency);
+  *out_p = (uint64_t) ((double) counter.QuadPart / scaled_frequency);
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_HRTIME */

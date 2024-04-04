@@ -27,7 +27,15 @@ static uint64_t performance_now_time_origin = 0;
 static JJS_HANDLER (jjs_pack_performance_now)
 {
   JJS_HANDLER_HEADER ();
-  return jjs_number ((double) (jjs_platform ()->time_hrtime () - performance_now_time_origin) / 1e6);
+  uint64_t nanos;
+  jjs_platform_status_t status = jjs_platform ()->time_hrtime (&nanos);
+
+  if (status != JJS_PLATFORM_STATUS_OK)
+  {
+    return jjs_number (0);
+  }
+
+  return jjs_number ((double) (nanos - performance_now_time_origin) / 1e6);
 } /* jjs_pack_performance_now */
 
 #endif /* JJS_PACK_PERFORMANCE */
@@ -43,8 +51,15 @@ jjs_pack_performance_init (void)
 
   if (performance_now_time_origin == 0)
   {
-    time_origin = jjs_platform ()->time_now_ms ();
-    performance_now_time_origin = jjs_platform ()->time_hrtime ();
+    if (jjs_platform ()->time_now_ms (&time_origin) != JJS_PLATFORM_STATUS_OK)
+    {
+      return jjs_throw_sz (JJS_ERROR_COMMON, "performance: error getting now timestamp");
+    }
+
+    if (jjs_platform ()->time_hrtime (&performance_now_time_origin) != JJS_PLATFORM_STATUS_OK)
+    {
+      return jjs_throw_sz (JJS_ERROR_COMMON, "performance: error getting hrtime");
+    }
   }
 
   jjs_value_t bindings = jjs_bindings ();

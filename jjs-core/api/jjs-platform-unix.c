@@ -53,7 +53,7 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 #include <time.h>
 #include <errno.h>
 
-void
+jjs_platform_status_t
 jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   struct timespec timeout;
@@ -68,6 +68,8 @@ jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
     rc = nanosleep (&timeout, &timeout);
   }
   while (rc == -1 && errno == EINTR);
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_SLEEP */
@@ -76,8 +78,8 @@ jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 
 #include <time.h>
 
-int32_t
-jjsp_time_local_tza (double unix_ms)
+jjs_platform_status_t
+jjsp_time_local_tza (double unix_ms, int32_t* out_p)
 {
   time_t time = (time_t) unix_ms / 1000;
 
@@ -85,7 +87,7 @@ jjsp_time_local_tza (double unix_ms)
   struct tm tm;
   localtime_r (&time, &tm);
 
-  return ((int32_t) tm.tm_gmtoff) * 1000;
+  *out_p = ((int32_t) tm.tm_gmtoff) * 1000;
 #else /* !defined(HAVE_TM_GMTOFF) */
   struct tm gmt_tm;
   struct tm local_tm;
@@ -99,8 +101,10 @@ jjsp_time_local_tza (double unix_ms)
   local_tm.tm_isdst = 0;
   time_t local = mktime (&local_tm);
 
-  return (int32_t) difftime (local, gmt) * 1000;
+  *out_p =  (int32_t) difftime (local, gmt) * 1000;
 #endif /* HAVE_TM_GMTOFF */
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
@@ -110,17 +114,21 @@ jjsp_time_local_tza (double unix_ms)
 #include <time.h>
 #include <sys/time.h>
 
-double
-jjsp_time_now_ms (void)
+jjs_platform_status_t
+jjsp_time_now_ms (double* out_p)
 {
   struct timeval tv;
 
   if (gettimeofday (&tv, NULL) != 0)
   {
-    return 0;
+    *out_p = 0;
+    return JJS_PLATFORM_STATUS_ERR;
   }
-
-  return ((double) tv.tv_sec) * 1000.0 + ((double) tv.tv_usec) / 1000.0;
+  else
+  {
+    *out_p = ((double) tv.tv_sec) * 1000.0 + ((double) tv.tv_usec) / 1000.0;
+    return JJS_PLATFORM_STATUS_OK;
+  }
 }
 
 #endif /* JJS_PLATFORM_API_TIME_NOW_MS */
@@ -129,7 +137,8 @@ jjsp_time_now_ms (void)
 #ifdef JJS_OS_IS_MACOS
 #include <mach/mach_time.h>
 
-uint64_t jjsp_time_hrtime (void)
+jjs_platform_status_t
+jjsp_time_hrtime (uint64_t* out_p)
 {
   // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/unix/darwin.c
   static mach_timebase_info_data_t hrtime_timebase = {0};
@@ -150,13 +159,16 @@ uint64_t jjsp_time_hrtime (void)
     }
   }
 
-  return hrtime_fn () * hrtime_timebase.numer / hrtime_timebase.denom;
+  *out_p = hrtime_fn () * hrtime_timebase.numer / hrtime_timebase.denom;
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 
 #else
 #include <time.h>
 
-uint64_t jjsp_time_hrtime (void)
+jjs_platform_status_t
+jjsp_time_hrtime (uint64_t* out_p)
 {
   // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/unix/linux.c
 
@@ -180,10 +192,13 @@ uint64_t jjsp_time_hrtime (void)
 
   if (clock_gettime (clock_id, &t))
   {
-    return 0;
+    *out_p = 0;
+    return JJS_PLATFORM_STATUS_ERR;
   }
 
-  return (uint64_t) t.tv_sec * (uint64_t) 1e9 + (uint64_t) t.tv_nsec;
+  *out_p = (uint64_t) t.tv_sec * (uint64_t) 1e9 + (uint64_t) t.tv_nsec;
+
+  return JJS_PLATFORM_STATUS_OK;
 }
 #endif /* JJS_OS_IS_MACOS */
 #endif /* JJS_PLATFORM_API_TIME_HRTIME */

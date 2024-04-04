@@ -186,18 +186,23 @@ static void
 test_platform_api_exists (void)
 {
   jjs_context_options_t options = jjs_context_options ();
+  double unix_timestamp_ms;
+  int32_t tza;
+  uint64_t nanos;
 
   TEST_ASSERT (options.platform.time_now_ms != NULL);
-  TEST_ASSERT (options.platform.time_now_ms () > 0);
+  TEST_ASSERT (JJS_PLATFORM_STATUS_OK == options.platform.time_now_ms (&unix_timestamp_ms));
+  TEST_ASSERT (unix_timestamp_ms > 0);
 
   TEST_ASSERT (options.platform.time_local_tza != NULL);
-  options.platform.time_local_tza (options.platform.time_now_ms ());
+  TEST_ASSERT (JJS_PLATFORM_STATUS_OK == options.platform.time_local_tza (unix_timestamp_ms, &tza));
 
   TEST_ASSERT (options.platform.time_sleep != NULL);
-  options.platform.time_sleep (1);
+  TEST_ASSERT (JJS_PLATFORM_STATUS_OK == options.platform.time_sleep (1));
 
   TEST_ASSERT (options.platform.time_hrtime != NULL);
-  TEST_ASSERT (options.platform.time_hrtime () > 0);
+  TEST_ASSERT (JJS_PLATFORM_STATUS_OK == options.platform.time_hrtime (&nanos));
+  TEST_ASSERT (nanos > 0);
 
   TEST_ASSERT (options.platform.fatal != NULL);
 

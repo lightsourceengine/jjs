@@ -276,7 +276,10 @@ extern inline int32_t JJS_ATTR_ALWAYS_INLINE
 ecma_date_local_time_zone_adjustment (ecma_number_t time) /**< time value */
 {
   JJS_ASSERT (JJS_CONTEXT (platform_api).time_local_tza != NULL);
-  return JJS_CONTEXT (platform_api).time_local_tza (time);
+  int32_t tza;
+  jjs_platform_status_t status = JJS_CONTEXT (platform_api).time_local_tza (time, &tza);
+
+  return (status == JJS_PLATFORM_STATUS_OK) ? tza : 0;
 } /* ecma_date_local_time_zone_adjustment */
 
 /**

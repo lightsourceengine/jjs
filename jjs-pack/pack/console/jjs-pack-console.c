@@ -77,7 +77,15 @@ static JJS_HANDLER (jjs_pack_console_println)
 static JJS_HANDLER (jjs_pack_console_now)
 {
   JJS_HANDLER_HEADER ();
-  return jjs_number ((double) (jjs_platform ()->time_hrtime () - console_now_time_origin) / 1e6);
+  uint64_t nanos;
+  jjs_platform_status_t status = jjs_platform ()->time_hrtime (&nanos);
+
+  if (status != JJS_PLATFORM_STATUS_OK)
+  {
+    return jjs_number (0);
+  }
+
+  return jjs_number ((double) (nanos - console_now_time_origin) / 1e6);
 } /* jjs_pack_console_now */
 
 #endif /* JJS_PACK_CONSOLE */
@@ -93,7 +101,10 @@ jjs_pack_console_init (void)
 
   if (console_now_time_origin == 0)
   {
-    console_now_time_origin = jjs_platform ()->time_hrtime ();
+    if (jjs_platform ()->time_hrtime (&console_now_time_origin) != JJS_PLATFORM_STATUS_OK)
+    {
+      return jjs_throw_sz (JJS_ERROR_COMMON, "console: error getting hrtime");
+    }
   }
 
   jjs_value_t bindings = jjs_bindings ();

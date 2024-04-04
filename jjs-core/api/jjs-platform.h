@@ -37,10 +37,10 @@ jjs_platform_status_t jjsp_cwd (jjs_platform_buffer_t* buffer_p);
 
 void jjsp_io_log (const char* message_p);
 
-void jjsp_time_sleep (uint32_t sleep_time_ms);
-int32_t jjsp_time_local_tza (double unix_ms);
-double jjsp_time_now_ms (void);
-uint64_t jjsp_time_hrtime (void);
+jjs_platform_status_t jjsp_time_sleep (uint32_t sleep_time_ms);
+jjs_platform_status_t jjsp_time_local_tza (double unix_ms, int32_t* out_p);
+jjs_platform_status_t jjsp_time_now_ms (double* out_p);
+jjs_platform_status_t jjsp_time_hrtime (uint64_t* out_p);
 
 jjs_platform_status_t jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);
 
