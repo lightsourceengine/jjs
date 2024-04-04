@@ -559,7 +559,11 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_feature_enabled (JJS_FEATURE_LINE_INFO));
+  // backtrace tests require line info
+  if (!jjs_feature_enabled(JJS_FEATURE_LINE_INFO))
+  {
+    return 0;
+  }
 
   test_get_backtrace_api_call ();
   test_exception_backtrace ();
