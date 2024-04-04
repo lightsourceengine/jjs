@@ -51,7 +51,7 @@ OPTIONS_COMMON = [
 OPTIONS_STACK_LIMIT = ['--default-vm-stack-limit=96']
 OPTIONS_MEM_STRESS = ['--mem-stress-test=on']
 OPTIONS_DEBUG = ['--debug']
-OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-snapshot=on']
+OPTIONS_SNAPSHOT = ['--snapshot-save=on', '--snapshot-exec=on', '--jjs-cmdline-snapshot=on', '--line-info=off']
 OPTIONS_UNITTESTS = [
     # enable unittests
     '--unittests=on',
@@ -77,8 +77,11 @@ JJS_UNITTESTS_OPTIONS = [
 # Test options for jjs-tests
 JJS_TESTS_OPTIONS = [
     Options('jjs_tests', OPTIONS_COMMON),
-    # TODO: snapshot tests are broken
-    # Options('jjs_tests-snapshot', OPTIONS_COMMON + OPTIONS_SNAPSHOT, ['--snapshot']),
+]
+
+# Test options for jjs-snapshot-tests
+JJS_SNAPSHOT_TESTS_OPTIONS = [
+    Options('jjs_tests-snapshot', OPTIONS_COMMON + OPTIONS_SNAPSHOT, ['--snapshot']),
 ]
 
 # Test options for jjs-pack-tests
@@ -193,6 +196,8 @@ def get_arguments():
                         help='Run jjs-debugger tests')
     parser.add_argument('--jjs-tests', action='store_true',
                         help='Run jjs-tests')
+    parser.add_argument('--jjs-snapshot-tests', action='store_true',
+                        help='Run jjs-snapshot-tests')
     parser.add_argument('--jjs-pack-tests', action='store_true',
                         help='Run jjs-pack-tests')
     parser.add_argument('--test262', default=False, const='default',
@@ -365,9 +370,9 @@ def run_jjs_debugger_tests(options):
 
     return ret_build | ret_test
 
-def run_jjs_tests(options):
+def run_jjs_tests_internal(options, test_set):
     ret_build = ret_test = 0
-    for job, ret_build, test_cmd in iterate_test_runner_jobs(JJS_TESTS_OPTIONS, options):
+    for job, ret_build, test_cmd in iterate_test_runner_jobs(test_set, options):
         if ret_build:
             break
 
@@ -400,6 +405,11 @@ def run_jjs_tests(options):
 
     return ret_build | ret_test
 
+def run_jjs_tests(options):
+    return run_jjs_tests_internal(options, JJS_TESTS_OPTIONS)
+
+def run_jjs_snapshot_tests(options):
+    return run_jjs_tests_internal(options, JJS_SNAPSHOT_TESTS_OPTIONS)
 
 def run_jjs_pack_tests(options):
     ret_build = ret_test = 0
@@ -518,6 +528,7 @@ def main(options):
         Check(options.check_strings, run_check, [settings.STRINGS_SCRIPT]),
         Check(options.jjs_debugger, run_jjs_debugger_tests, options),
         Check(options.jjs_tests, run_jjs_tests, options),
+        Check(options.jjs_snapshot_tests, run_jjs_snapshot_tests, options),
         Check(options.jjs_pack_tests, run_jjs_pack_tests, options),
         Check(options.test262, run_test262_test_suite, options),
         Check(options.unittests, run_unittests, options),
