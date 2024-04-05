@@ -1,19 +1,16 @@
-name: jjs-release
+name: release
 
 on: workflow_dispatch
 
 env:
-  JJS_TAG_PREFIX: jjs-4.4.0
-  RUNNER: ./tools/build.py --mem-heap 8192 --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON --jjs-debugger ON --cpointer-32bit ON --error-messages ON --line-info ON --external-context ON --snapshot-exec ON --snapshot-save ON
-  BUNDLER: ./tools/create-release-bundle.sh
+  CREATOR: ./tools/ci-create-release-bundle.sh
 
 jobs:
   linux-x64:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: $RUNNER --linker-flag=-static
-      - run: $BUNDLER $JJS_TAG_PREFIX-linux-x64 tgz
+      - run: $CREATOR linux-x64 tgz "--linker-flag=-static"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -25,10 +22,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt update
-      - run: sudo apt install gcc-arm-linux-gnueabihf
-      - run: $RUNNER --toolchain=cmake/toolchain_linux_armv7l.cmake --linker-flag=-static
-      - run: $BUNDLER $JJS_TAG_PREFIX-linux-armv7l tgz
+      - run: |
+          sudo apt update
+          sudo apt install gcc-arm-linux-gnueabihf
+      - run: $CREATOR linux-armv7l tgz "--toolchain=cmake/toolchain_linux_armv7l.cmake --linker-flag=-static"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -40,10 +37,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt update
-      - run: sudo apt install gcc-aarch64-linux-gnu
-      - run: $RUNNER --toolchain=cmake/toolchain_linux_aarch64.cmake --linker-flag=-static
-      - run: $BUNDLER $JJS_TAG_PREFIX-linux-aarch64 tgz
+      - run: |
+          sudo apt update
+          sudo apt install gcc-aarch64-linux-gnu
+      - run: $CREATOR linux-aarch64 tgz "--toolchain=cmake/toolchain_linux_aarch64.cmake --linker-flag=-static"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -55,8 +52,7 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v4
-      - run: $RUNNER
-      - run: $BUNDLER $JJS_TAG_PREFIX-macos-x64 tgz
+      - run: $CREATOR macos-x64 tgz
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -68,8 +64,7 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v4
-      - run: $RUNNER "--compile-flag=-arch arm64"
-      - run: $BUNDLER $JJS_TAG_PREFIX-macos-arm64 tgz
+      - run: $CREATOR arm64-x64 tgz "--compile-flag=-arch arm64"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -81,9 +76,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
-      - run: $RUNNER
-        shell: bash
-      - run: $BUNDLER $JJS_TAG_PREFIX-windows-x64 zip
+      - run: $CREATOR windows-x64 zip
         shell: bash
       - uses: actions/upload-artifact@v4
         if: success()
