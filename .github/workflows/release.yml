@@ -79,7 +79,7 @@ jobs:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v4
-      - run: $CREATOR arm64-x64 tgz --compile-flag=-arch arm64
+      - run: $CREATOR arm64-x64 tgz "--compile-flag=-arch arm64"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
