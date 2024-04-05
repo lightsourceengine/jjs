@@ -257,7 +257,43 @@ typedef enum
 /**
  * Callback for cleaning up an externally set context vm heap.
  */
-typedef void (*jjs_context_heap_free_cb_t) (void* context_heap, void* user_p);
+typedef void (*jjs_context_heap_free_cb_t) (void* context_heap_p, void* user_p);
+
+/**
+ * Settings for an externally allocated heap.
+ */
+typedef struct
+{
+  /**
+   * User allocated memory block to be used as the engine's vm heap.
+   *
+   * The engine will use this memory as the vm heap, so the user must keep this buffer
+   * pointer active until the engine is finished with it. The engine no longer needs
+   * this pointer when jjs_cleanup() is called or the user provided free_cb function
+   * is called.
+   *
+   * The pointer and the size of this buffer must be aligned.
+   */
+  uint8_t* buffer_p;
+
+  /**
+   * The size of the user allocated memory block in bytes.
+   *
+   * The size must be aligned.
+   */
+  uint32_t buffer_size_in_bytes;
+
+  /**
+   * Optional callback indicating the engine is done using the external heap memory block.
+   */
+  jjs_context_heap_free_cb_t free_cb;
+
+  /**
+   * Optional user defined token passed to the free_cb function. Some use cases require
+   * extra information in the free process.
+   */
+  void* free_user_p;
+} jjs_external_heap_options_t;
 
 /**
  * Context initialization settings.
@@ -273,68 +309,47 @@ typedef struct
   uint32_t context_flags;
 
   /**
-   * Externally provided heap.
+   * Externally allocated heap configuration.
    *
-   * It is necessary for the caller to ensure that the heap pointer's lifetime outlasts
-   * the lifetime of JJS. The pointer lifetime should end with the callback to
-   * external_heap_free_cb or after jjs_cleanup has been called.
+   * To enable an external heap, add context flag: JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP and
+   * add settings to this struct.
    *
-   * If set, add JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP to the context_flags.
-   *
-   * If the pointer is not aligned (address and vm_heap_size) or JJS_VM_HEAP_STATIC is set,
-   * jjs_init will return an error status code.
+   * JJS_VM_HEAP_STATIC must be ON in order to use an external heap. Otherwise, jjs_init will
+   * fail with an error code.
    */
-  uint8_t* external_heap;
+  jjs_external_heap_options_t external_heap;
 
   /**
-   * Cleanup callback when the context is destroyed and the external heap can be freed.
-   */
-  jjs_context_heap_free_cb_t external_heap_free_cb;
-
-  /**
-   * Optional user defined token passed to external_heap_free_cb.
-   */
-  void* external_heap_free_user_p;
-
-  /**
-   * Maximum VM heap size.
+   * VM heap size in kilobytes.
    *
-   * Use JJS_TO_KB() or JJS_TO_MB() macros to set this field. The field format is in short
-   * hand kilobytes. The macros make setup code easier to read.
-   *
-   * If JJS_VM_HEAP_STATIC is set, jjs_init will return an error status if you attempt to
-   * set this field.
+   * If JJS_VM_HEAP_STATIC is ON, the vm heap cannot be manually configured. If you try to
+   * change the heap size, jjs_init will return an error code.
    *
    * Default: JJS_DEFAULT_VM_HEAP_SIZE
    */
-  uint32_t vm_heap_size;
+  uint32_t vm_heap_size_kb;
 
   /**
-   * VM stack size limit.
-   *
-   * Use JJS_TO_KB() or JJS_TO_MB() macros to set this field. The field format is in short
-   * hand kilobytes. The macros make setup code easier to read.
+   * VM stack size limit in kilobytes.
    *
    * If JJS_VM_STACK_STATIC is set, jjs_init will return an error status if you attempt to
    * set this field.
    *
    * WARNING: This feature will not work across platforms, compilers and build configurations!
+   * The recommendation is to use JJS_VM_STACK_STATIC ON and JJS_DEFAULT_VM_STACK_LIMIT 0.
    * 
    * Default: JJS_DEFAULT_VM_STACK_LIMIT
    */
-  uint32_t vm_stack_limit;
+  uint32_t vm_stack_limit_kb;
 
   /**
-   * Allowed heap usage limit until next garbage collection.
-   *
-   * Use JJS_TO_KB() or JJS_TO_MB() macros to set this field. The field format is in short
-   * hand kilobytes. The macros make setup code easier to read.
+   * Allowed heap usage limit until next garbage collection. The value is in kilobytes.
    *
    * If 0, the computed value is min (1/32 of heap size, 8K).
    *
    * Default: JJS_DEFAULT_GC_LIMIT
    */
-  uint32_t gc_limit;
+  uint32_t gc_limit_kb;
 
   /**
    * GC mark depth.
@@ -1252,45 +1267,6 @@ typedef void (*jjs_arraybuffer_free_cb_t) (jjs_arraybuffer_type_t buffer_type,
                                              uint32_t buffer_size,
                                              void *arraybuffer_user_p,
                                              void *user_p);
-
-/**
- * Callback to create exports for a Virtual Module.
- *
- * The return value must be an object containing a key 'exports'. When the module
- * is required, the exports value will be returned. When the module is imported,
- * the exports.default value will be returned. If default does not exist, then
- * exports will be returned as the ES module default.
- *
- * If an error occurs, the return value should be an exception.
- *
- * The caller is responsible for calling jjs_value_free() on the returned value.
- *
- * @param name the name of the virtual module being created
- * @param user_p user_p value passed to the jjs_vmod_native* function. can be NULL.
- */
-typedef jjs_value_t (*jjs_vmod_create_cb_t) (jjs_value_t name, void* user_p);
-
-/**
- * Converts a megabyte value representation to a kilobyte format for size values
- * in jjs_init settings.
- *
- * This is not a general purpose conversion. It should only be used for
- * declaratively setting jjs_init size values.
- *
- * Example: init_options.vm_heap_size = JJS_TO_MB (4); // set heap size to 4MB
- */
-#define JJS_TO_MB(VALUE) ((VALUE) * 1024)
-
-/**
- * Converts a kilobyte value representation to a kilobyte format for size values
- * in jjs_init settings.
- *
- * This is not a general purpose conversion. It should only be used for
- * declaratively setting jjs_init size values.
- *
- * Example: init_options.vm_heap_size = JJS_TO_KB (512); // set heap size to 512K
- */
-#define JJS_TO_KB(VALUE) (VALUE)
 
 /**
  * Options for jjs_platform_read_file function.

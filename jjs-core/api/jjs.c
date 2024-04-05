@@ -155,9 +155,9 @@ jjs_context_options_init (jjs_context_options_t * opts)
   JJS_ASSERT (opts != NULL);
   memset(opts, 0, sizeof (jjs_context_options_t));
 
-  opts->vm_heap_size = JJS_DEFAULT_VM_HEAP_SIZE;
-  opts->vm_stack_limit = JJS_DEFAULT_VM_STACK_LIMIT;
-  opts->gc_limit = JJS_DEFAULT_GC_LIMIT;
+  opts->vm_heap_size_kb = JJS_DEFAULT_VM_HEAP_SIZE;
+  opts->vm_stack_limit_kb = JJS_DEFAULT_VM_STACK_LIMIT;
+  opts->gc_limit_kb = JJS_DEFAULT_GC_LIMIT;
   opts->gc_mark_limit = JJS_DEFAULT_GC_MARK_LIMIT;
   opts->gc_new_objects_fraction = JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION;
 

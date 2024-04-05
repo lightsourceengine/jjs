@@ -64,12 +64,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
 
   uint32_t context_flags = options_p->context_flags;
 
-  if (options_p->external_heap)
-  {
-    context_flags |= JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
-  }
-
-  if ((context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP) && options_p->external_heap == NULL)
+  if ((context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP) && options_p->external_heap.buffer_p == NULL)
   {
     return JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP;
   }
@@ -100,7 +95,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
 
 #if JJS_VM_STACK_STATIC
   // user cannot change the default
-  if (options_p->vm_stack_limit != JJS_DEFAULT_VM_STACK_LIMIT)
+  if (options_p->vm_stack_limit_kb != JJS_DEFAULT_VM_STACK_LIMIT)
   {
     return JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT;
   }
@@ -108,17 +103,29 @@ jjs_context_init (const jjs_context_options_t* options_p)
 
 #if JJS_VM_HEAP_STATIC
   // user cannot change the default
-  if (options_p->vm_heap_size != JJS_DEFAULT_VM_HEAP_SIZE || context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
+  if (options_p->vm_heap_size_kb != JJS_DEFAULT_VM_HEAP_SIZE || context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
   {
     return JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE;
   }
 #endif /* JJS_VM_HEAP_STATIC */
 
-  JJS_CONTEXT (vm_stack_limit) = options_p->vm_stack_limit * 1024;
-  // TODO: check aligned?
-  JJS_CONTEXT (vm_heap_size) = options_p->vm_heap_size * 1024;
+  if (context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
+  {
+    // TODO: check alignment
+    if (options_p->external_heap.buffer_p == NULL)
+    {
+      return JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP;
+    }
+    JJS_CONTEXT (vm_heap_size) = options_p->external_heap.buffer_size_in_bytes;
+  }
+  else
+  {
+    JJS_CONTEXT (vm_heap_size) = options_p->vm_heap_size_kb * 1024;
+  }
+
+  JJS_CONTEXT (vm_stack_limit) = options_p->vm_stack_limit_kb * 1024;
   JJS_CONTEXT (gc_limit) =
-    (options_p->gc_limit == 0) ? JJS_COMPUTE_GC_LIMIT (JJS_CONTEXT (vm_heap_size)) : (options_p->gc_limit * 1024);
+    (options_p->gc_limit_kb == 0) ? JJS_COMPUTE_GC_LIMIT (JJS_CONTEXT (vm_heap_size)) : (options_p->gc_limit_kb * 1024);
   JJS_CONTEXT (gc_mark_limit) = options_p->gc_mark_limit;
   JJS_CONTEXT (gc_new_objects_fraction) = options_p->gc_new_objects_fraction;
 
@@ -128,8 +135,9 @@ jjs_context_init (const jjs_context_options_t* options_p)
 #else /* !JJS_VM_HEAP_STATIC */
   if (context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
   {
-    block = options_p->external_heap;
-    JJS_CONTEXT (heap_free_cb) = options_p->external_heap_free_cb;
+    block = options_p->external_heap.buffer_p;
+    JJS_CONTEXT (heap_free_cb) = options_p->external_heap.free_cb;
+    JJS_CONTEXT (heap_free_user_p) = options_p->external_heap.free_user_p;
   }
   else
   {

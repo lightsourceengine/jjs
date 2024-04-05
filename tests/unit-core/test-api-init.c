@@ -21,14 +21,15 @@ static void
 check_default_options (const jjs_context_options_t* options)
 {
   TEST_ASSERT (options->context_flags == 0);
-  TEST_ASSERT (options->gc_limit == JJS_DEFAULT_GC_LIMIT);
+  TEST_ASSERT (options->gc_limit_kb == JJS_DEFAULT_GC_LIMIT);
   TEST_ASSERT (options->gc_mark_limit == JJS_DEFAULT_GC_MARK_LIMIT);
   TEST_ASSERT (options->gc_new_objects_fraction == JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION);
-  TEST_ASSERT (options->vm_heap_size == JJS_DEFAULT_VM_HEAP_SIZE);
-  TEST_ASSERT (options->vm_stack_limit == JJS_DEFAULT_VM_STACK_LIMIT);
-  TEST_ASSERT (options->external_heap == NULL);
-  TEST_ASSERT (options->external_heap_free_cb == NULL);
-  TEST_ASSERT (options->external_heap_free_user_p == NULL);
+  TEST_ASSERT (options->vm_heap_size_kb == JJS_DEFAULT_VM_HEAP_SIZE);
+  TEST_ASSERT (options->vm_stack_limit_kb == JJS_DEFAULT_VM_STACK_LIMIT);
+  TEST_ASSERT (options->external_heap.buffer_p == NULL);
+  TEST_ASSERT (options->external_heap.buffer_size_in_bytes == 0);
+  TEST_ASSERT (options->external_heap.free_cb == NULL);
+  TEST_ASSERT (options->external_heap.free_user_p == NULL);
 }
 
 static void
@@ -82,10 +83,19 @@ test_init_options_stack_limit_when_stack_static (void)
 #if JJS_VM_STACK_STATIC
   jjs_context_options_t opts = jjs_context_options ();
 
-  opts.vm_stack_limit += 10;
+  opts.vm_stack_limit_kb += 10;
 
   TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT);
 #endif /* JJS_VM_STACK_STATIC */
+}
+
+static jjs_external_heap_options_t external_heap_options = {0};
+
+static void
+external_heap_free (void* context_heap_p, void* user_p)
+{
+  TEST_ASSERT (context_heap_p == external_heap_options.buffer_p);
+  TEST_ASSERT (user_p == external_heap_options.free_user_p);
 }
 
 static void
@@ -94,17 +104,39 @@ test_init_options_external_heap (void)
 #if !JJS_VM_HEAP_STATIC
   static const uint32_t external_heap_size = 512 * 1024;
   jjs_context_options_t opts = jjs_context_options ();
-  uint8_t* external_heap = malloc (external_heap_size);
 
-  // TODO: cannot set external_heap precisely, api is a little unclear
+  external_heap_options = (jjs_external_heap_options_t) {
+    .buffer_p = malloc (external_heap_size),
+    .buffer_size_in_bytes = external_heap_size,
+    .free_cb = external_heap_free,
+    .free_user_p = (void*) (uintptr_t) 1,
+  };
+
   opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
-  opts.external_heap = external_heap;
-  opts.vm_heap_size = 512;
+  opts.external_heap = external_heap_options;
 
   TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
-  jjs_cleanup ();
 
-  free (external_heap);
+  jjs_cleanup();
+  free (external_heap_options.buffer_p);
+#endif /* !JJS_VM_HEAP_STATIC */
+}
+
+static void
+test_init_options_external_heap_invalid (void)
+{
+#if !JJS_VM_HEAP_STATIC
+  jjs_context_options_t opts = jjs_context_options ();
+
+  external_heap_options = (jjs_external_heap_options_t) {
+    .buffer_p = NULL,
+    .buffer_size_in_bytes = 512 * 1024,
+  };
+
+  opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
+  opts.external_heap = external_heap_options;
+
+  TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP);
 #endif /* !JJS_VM_HEAP_STATIC */
 }
 
@@ -114,16 +146,18 @@ test_init_options_external_heap_when_heap_static (void)
 #if JJS_VM_HEAP_STATIC
   static const uint32_t external_heap_size = 512 * 1024;
   jjs_context_options_t opts = jjs_context_options ();
-  uint8_t* external_heap = malloc (external_heap_size);
 
-  // TODO: cannot set external_heap precisely, api is a little unclear
+  external_heap_options = (jjs_external_heap_options_t) {
+    .buffer_p = malloc (external_heap_size),
+    .buffer_size_in_bytes = external_heap_size,
+  };
+
   opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
-  opts.external_heap = external_heap;
-  opts.vm_heap_size = 512;
+  opts.external_heap = external_heap_options;
 
   TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE);
 
-  free (external_heap);
+  free (external_heap_options.buffer_p);
 #endif /* JJS_VM_HEAP_STATIC */
 }
 
@@ -136,6 +170,7 @@ main (void)
   test_init_default ();
   test_init_options_null ();
   test_init_options_external_heap ();
+  test_init_options_external_heap_invalid ();
   test_init_options_external_heap_when_heap_static ();
   test_init_options_stack_limit ();
   test_init_options_stack_limit_when_stack_static ();
