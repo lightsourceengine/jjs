@@ -1218,8 +1218,6 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t mod
  * @{
  */
 
-const jjs_platform_t* jjs_platform (void);
-
 jjs_value_t jjs_platform_cwd (void);
 bool jjs_platform_has_cwd (void);
 jjs_value_t jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o);

@@ -20,8 +20,8 @@
 // The script assumes jjs-snapshot has been built and is in $SRCROOT/build/bin. jjs-snapshot
 // can be built with the flag:
 //
-//   build.py: --jjs-cmdline-snapshot ON
-//   cmake:    -DJJS_CMDLINE_SNAPSHOT=ON
+//   build.py: --jjs-cmdline-snapshot ON --line-info=off
+//   cmake:    -DJJS_CMDLINE_SNAPSHOT=ON -DJJS_LINE_INFO=OFF
 // 
 // The c file is checked into git so that the build does not depend on esbuild and node.
 // The downside is that working on js file will require a dev to run this script and 

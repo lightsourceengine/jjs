@@ -22,7 +22,6 @@
 
 extern uint8_t jjs_pack_console_snapshot[];
 extern const uint32_t jjs_pack_console_snapshot_len;
-static uint64_t console_now_time_origin = 0;
 
 static void
 println (jjs_value_t value)
@@ -74,45 +73,18 @@ static JJS_HANDLER (jjs_pack_console_println)
   return jjs_undefined ();
 } /* jjs_pack_console_println */
 
-static JJS_HANDLER (jjs_pack_console_now)
-{
-  JJS_HANDLER_HEADER ();
-  uint64_t nanos;
-  jjs_platform_status_t status = jjs_platform ()->time_hrtime (&nanos);
-
-  if (status != JJS_PLATFORM_STATUS_OK)
-  {
-    return jjs_number (0);
-  }
-
-  return jjs_number ((double) (nanos - console_now_time_origin) / 1e6);
-} /* jjs_pack_console_now */
-
 #endif /* JJS_PACK_CONSOLE */
 
 jjs_value_t
 jjs_pack_console_init (void)
 {
 #if JJS_PACK_CONSOLE
-  if (jjs_platform ()->time_hrtime == NULL)
-  {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "console pack(age) requires platform api 'time_hrtime' to be available");
-  }
-
-  if (console_now_time_origin == 0)
-  {
-    if (jjs_platform ()->time_hrtime (&console_now_time_origin) != JJS_PLATFORM_STATUS_OK)
-    {
-      return jjs_throw_sz (JJS_ERROR_COMMON, "console: error getting hrtime");
-    }
-  }
-
   jjs_value_t bindings = jjs_bindings ();
 
   jjs_bindings_function (bindings, "println", &jjs_pack_console_println);
-  jjs_bindings_function (bindings, "now", jjs_pack_console_now);
+  jjs_bindings_function (bindings, "hrtime", jjs_pack_hrtime_handler);
 
-  return jjs_pack_lib_main (jjs_pack_console_snapshot, jjs_pack_console_snapshot_len, bindings, true);
+  return jjs_pack_lib_main (jjs_pack_console_snapshot, jjs_pack_console_snapshot_len, bindings, JJS_MOVE);
 #else /* !JJS_PACK_CONSOLE */
   return jjs_throw_sz (JJS_ERROR_COMMON, "console pack is not enabled");
 #endif /* JJS_PACK_CONSOLE */

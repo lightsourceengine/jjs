@@ -27,12 +27,16 @@ jjs_value_t
 jjs_pack_url_init (void)
 {
 #if JJS_PACK_URL
+  jjs_value_t bindings = jjs_bindings ();
+
+  jjs_bindings_value (bindings, "os", jjs_platform_os (), JJS_MOVE);
+
   jjs_value_t exports = jjs_pack_lib_read_exports (jjs_pack_url_snapshot,
                                                    jjs_pack_url_snapshot_len,
-                                                   jjs_undefined (),
-                                                   false,
+                                                   bindings,
+                                                   JJS_MOVE,
                                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
-  return jjs_vmod_sz ("jjs:url", exports, JJS_MOVE);;
+  return jjs_vmod_sz ("jjs:url", exports, JJS_MOVE);
 #else /* !JJS_PACK_URL */
   return jjs_throw_sz (JJS_ERROR_COMMON, "url pack is not enabled");
 #endif /* JJS_PACK_URL */

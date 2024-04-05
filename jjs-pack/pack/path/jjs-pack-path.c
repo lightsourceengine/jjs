@@ -62,11 +62,12 @@ static JJS_HANDLER (jjs_pack_lib_path_vmod_callback)
 
   jjs_bindings_function (bindings, "env", &jjs_pack_path_env);
   jjs_bindings_function (bindings, "cwd", &jjs_pack_path_cwd);
+  jjs_bindings_value (bindings, "os", jjs_platform_os (), JJS_MOVE);
 
   return jjs_pack_lib_read_exports (jjs_pack_path_snapshot,
                                     jjs_pack_path_snapshot_len,
                                     bindings,
-                                    true,
+                                    JJS_MOVE,
                                     JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
 } /* jjs_pack_lib_vmod_path */
 

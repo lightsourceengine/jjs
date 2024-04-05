@@ -19,7 +19,7 @@ import { fileURLToPath } from 'jjs:url';
 
 const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
-const isWindows = globalThis['@platform'] === 'win32';
+const isWindows = $jjs.os === 'win32';
 
 // note: this test does not belong here, but jjs tests have no fileURLToPath() capabilities
 test('fileURLToPath() should parse import.meta.url', () => {

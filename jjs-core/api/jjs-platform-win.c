@@ -161,7 +161,7 @@ jjs_platform_status_t
 jjsp_time_now_ms (double* out_p)
 {
   // Based on https://doxygen.postgresql.org/gettimeofday_8c_source.html
-  const uint64_t epoch = (uint64_t) 116444736000000000ULL;
+  static const uint64_t epoch = (uint64_t) 116444736000000000ULL;
   FILETIME file_time;
   ULARGE_INTEGER ularge;
 
@@ -170,7 +170,7 @@ jjsp_time_now_ms (double* out_p)
   ularge.HighPart = file_time.dwHighDateTime;
 
   int64_t tv_sec = (int64_t) ((ularge.QuadPart - epoch) / 10000000L);
-  int32_t tv_usec = (int32_t) (((ularge.QuadPart - epoch) % 10000000L) / 10);
+  int32_t tv_usec = (int32_t) (((ularge.QuadPart - epoch) % 10000000L) / 10L);
 
   *out_p = ((double) tv_sec) * 1000.0 + ((double) tv_usec) / 1000.0;
 
@@ -178,51 +178,6 @@ jjsp_time_now_ms (double* out_p)
 }
 
 #endif /* JJS_PLATFORM_API_TIME_NOW_MS */
-
-#if JJS_PLATFORM_API_TIME_HRTIME
-
-#include <windows.h>
-
-jjs_platform_status_t
-jjsp_time_hrtime (uint64_t* out_p)
-{
-  // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/win/util.c
-
-  static double scaled_frequency = 0;
-
-  if (scaled_frequency == 0)
-  {
-    LARGE_INTEGER frequency;
-
-    if (QueryPerformanceFrequency (&frequency))
-    {
-      scaled_frequency = ((double) frequency.QuadPart) / 1e9;
-    }
-    else
-    {
-      jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
-      JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
-    }
-  }
-
-  LARGE_INTEGER counter;
-
-  JJS_ASSERT (scaled_frequency != 0);
-
-  if (!QueryPerformanceCounter (&counter))
-  {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
-    JJS_CONTEXT (platform_api).fatal (JJS_FATAL_FAILED_ASSERTION);
-  }
-
-  JJS_ASSERT (counter.QuadPart != 0);
-
-  *out_p = (uint64_t) ((double) counter.QuadPart / scaled_frequency);
-
-  return JJS_PLATFORM_STATUS_OK;
-}
-
-#endif /* JJS_PLATFORM_API_TIME_HRTIME */
 
 #if JJS_PLATFORM_API_PATH_REALPATH
 

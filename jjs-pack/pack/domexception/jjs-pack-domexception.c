@@ -28,7 +28,7 @@ jjs_pack_domexception_init (void)
   return jjs_pack_lib_main (jjs_pack_domexception_snapshot,
                             jjs_pack_domexception_snapshot_len,
                             jjs_undefined (),
-                            false);
+                            JJS_KEEP);
 #else /* !JJS_PACK_DOMEXCEPTION */
   return jjs_throw_sz (JJS_ERROR_COMMON, "domexception pack is not enabled");
 #endif /* JJS_PACK_DOMEXCEPTION */

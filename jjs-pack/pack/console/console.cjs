@@ -15,8 +15,8 @@
 
 const { isArray } = Array;
 const { stringify } = JSON;
-
-const { println, now } = module.bindings;
+const { println, hrtime } = module.bindings;
+const [originH, originL] = hrtime();
 
 class Console {
   #timeTags = new Map();
@@ -68,6 +68,11 @@ class Console {
   countReset(label = 'default') {
     this.#countTags.delete(toString(label));
   }
+}
+
+function now() {
+  const [h, l] = hrtime();
+  return ((h - originH) * 1e3) + ((l - originL) / 1e6);
 }
 
 function format(args) {

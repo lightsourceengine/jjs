@@ -60,10 +60,10 @@ jjs_pack_cleanup (void)
 } /* jjs_pack_cleanup */
 
 jjs_value_t
-jjs_pack_lib_main (uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, bool bindings_move)
+jjs_pack_lib_main (uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, jjs_value_ownership_t bindings_o)
 {
   jjs_value_t exports =
-    jjs_pack_lib_read_exports (source, source_size, bindings, bindings_move, JJS_PACK_LIB_EXPORTS_FORMAT_OBJECT);
+    jjs_pack_lib_read_exports (source, source_size, bindings, bindings_o, JJS_PACK_LIB_EXPORTS_FORMAT_OBJECT);
 
   if (jjs_value_is_exception (exports))
   {
@@ -85,7 +85,7 @@ jjs_value_t
 jjs_pack_lib_read_exports (uint8_t* source,
                            jjs_size_t source_size,
                            jjs_value_t bindings,
-                           bool bindings_move,
+                           jjs_value_ownership_t bindings_o,
                            jjs_pack_lib_exports_format_t exports_format)
 {
   jjs_value_t fn =
@@ -93,7 +93,7 @@ jjs_pack_lib_read_exports (uint8_t* source,
 
   if (jjs_value_is_exception (fn))
   {
-    if (bindings_move)
+    if (bindings_o == JJS_MOVE)
     {
       jjs_value_free (bindings);
     }
@@ -105,7 +105,7 @@ jjs_pack_lib_read_exports (uint8_t* source,
 
   jjs_value_free (fn);
 
-  if (bindings_move)
+  if (bindings_o == JJS_MOVE)
   {
     jjs_value_free (bindings);
   }
@@ -135,20 +135,19 @@ jjs_pack_lib_read_exports (uint8_t* source,
 void
 jjs_bindings_function (jjs_value_t bindings, const char* name, jjs_external_handler_t function_p)
 {
-  jjs_value_t function = jjs_function_external (function_p);
-
-  jjs_value_free (jjs_object_set_sz (bindings, name, function));
-  jjs_value_free (function);
+  jjs_bindings_value(bindings, name, jjs_function_external (function_p), JJS_MOVE);
 } /* jjs_bindings_function */
 
 void
-jjs_bindings_number (jjs_value_t bindings, const char* name, double number)
+jjs_bindings_value (jjs_value_t bindings, const char* name, jjs_value_t value, jjs_value_ownership_t value_o)
 {
-  jjs_value_t value = jjs_number (number);
-
   jjs_value_free (jjs_object_set_sz (bindings, name, value));
-  jjs_value_free (value);
-} /* jjs_bindings_number */
+
+  if (value_o == JJS_MOVE)
+  {
+    jjs_value_free (value);
+  }
+} /* jjs_bindings_value */
 
 // note: the packs should never use the commonjs require or esm import(). if they need to depend on another
 // pack package, vmod.resolve() should be used. Since vmod can only be imported through commonjs or esm, send
@@ -156,7 +155,7 @@ jjs_bindings_number (jjs_value_t bindings, const char* name, double number)
 static JJS_HANDLER(jjs_pack_lib_require)
 {
   JJS_HANDLER_HEADER ();
-  return jjs_vmod_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined(), JJS_KEEP);
+  return jjs_vmod_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined (), JJS_KEEP);
 } /* jjs_pack_lib_require */
 
 static jjs_value_t
@@ -164,7 +163,7 @@ jjs_pack_lib_run_module (jjs_value_t fn, jjs_value_t bindings)
 {
   jjs_value_t module = jjs_object ();
   jjs_value_t exports = jjs_object ();
-  jjs_value_t require = jjs_function_external(jjs_pack_lib_require);
+  jjs_value_t require = jjs_function_external (jjs_pack_lib_require);
   jjs_value_t argv[] = { module, exports, require };
 
   jjs_value_free (jjs_object_set_sz (module, "exports", exports));
@@ -191,3 +190,28 @@ jjs_pack_lib_run_module (jjs_value_t fn, jjs_value_t bindings)
 
   return result;
 } /* jjs_pack_lib_run_module */
+
+#define NANOS_PER_SEC 1000000000
+
+JJS_HANDLER (jjs_pack_hrtime_handler)
+{
+  JJS_HANDLER_HEADER ();
+  uint64_t t = jjs_pack_platform_hrtime ();
+  jjs_value_t result = jjs_array (2);
+  uint64_t seconds = t / NANOS_PER_SEC;
+  jjs_value_t high_part = jjs_number ((double) seconds);
+  jjs_value_t low_part = jjs_number ((double) (t % NANOS_PER_SEC));
+
+  jjs_value_free (jjs_object_set_index (result, 0, high_part));
+  jjs_value_free (jjs_object_set_index (result, 1, low_part));
+  jjs_value_free (high_part);
+  jjs_value_free (low_part);
+
+  return result;
+} /* jjs_pack_hrtime_handler */
+
+JJS_HANDLER (jjs_pack_date_now_handler)
+{
+  JJS_HANDLER_HEADER ();
+  return jjs_number (jjs_pack_platform_date_now ());
+} /* jjs_pack_date_now_handler */

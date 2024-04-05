@@ -21,22 +21,6 @@
 
 extern uint8_t jjs_pack_performance_snapshot[];
 extern const uint32_t jjs_pack_performance_snapshot_len;
-static double time_origin = 0;
-static uint64_t performance_now_time_origin = 0;
-
-static JJS_HANDLER (jjs_pack_performance_now)
-{
-  JJS_HANDLER_HEADER ();
-  uint64_t nanos;
-  jjs_platform_status_t status = jjs_platform ()->time_hrtime (&nanos);
-
-  if (status != JJS_PLATFORM_STATUS_OK)
-  {
-    return jjs_number (0);
-  }
-
-  return jjs_number ((double) (nanos - performance_now_time_origin) / 1e6);
-} /* jjs_pack_performance_now */
 
 #endif /* JJS_PACK_PERFORMANCE */
 
@@ -44,30 +28,12 @@ jjs_value_t
 jjs_pack_performance_init (void)
 {
 #if JJS_PACK_PERFORMANCE
-  if (jjs_platform ()->time_hrtime == NULL)
-  {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "performance pack(age) requires platform api 'time_hrtime' to be available");
-  }
-
-  if (performance_now_time_origin == 0)
-  {
-    if (jjs_platform ()->time_now_ms (&time_origin) != JJS_PLATFORM_STATUS_OK)
-    {
-      return jjs_throw_sz (JJS_ERROR_COMMON, "performance: error getting now timestamp");
-    }
-
-    if (jjs_platform ()->time_hrtime (&performance_now_time_origin) != JJS_PLATFORM_STATUS_OK)
-    {
-      return jjs_throw_sz (JJS_ERROR_COMMON, "performance: error getting hrtime");
-    }
-  }
-
   jjs_value_t bindings = jjs_bindings ();
 
-  jjs_bindings_function (bindings, "now", &jjs_pack_performance_now);
-  jjs_bindings_number (bindings, "timeOrigin", time_origin);
+  jjs_bindings_function (bindings, "hrtime", jjs_pack_hrtime_handler);
+  jjs_bindings_function (bindings, "DateNow", jjs_pack_date_now_handler);
 
-  return jjs_pack_lib_main (jjs_pack_performance_snapshot, jjs_pack_performance_snapshot_len, bindings, true);
+  return jjs_pack_lib_main (jjs_pack_performance_snapshot, jjs_pack_performance_snapshot_len, bindings, JJS_MOVE);
 #else /* !JJS_PACK_PERFORMANCE */
   return jjs_throw_sz (JJS_ERROR_COMMON, "performance pack is not enabled");
 #endif /* JJS_PACK_PERFORMANCE */

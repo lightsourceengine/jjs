@@ -13,10 +13,12 @@
  * limitations under the License.
  */
 
-const { now, timeOrigin } = module.bindings;
+const { DateNow, hrtime } = module.bindings;
 
 const { toStringTag } = Symbol;
 const { prototype:ObjectPrototype, getPrototypeOf } = Object;
+const timeOrigin = DateNow();
+const [nowOriginH, nowOriginL] = hrtime();
 
 function isObject(value) {
   return (value !== null && typeof value === 'object' && getPrototypeOf(value) === ObjectPrototype);
@@ -45,11 +47,12 @@ class Performance {
   }
 
   now() {
-    return now();
+    const [h, l] = hrtime();
+    return ((h - nowOriginH) * 1e3) + ((l - nowOriginL) / 1e6);
   }
 
   mark(name, opts = undefined) {
-    const startTime = opts?.startTime ?? now();
+    const startTime = opts?.startTime ?? this.now();
 
     if (typeof startTime !== 'number' || startTime < 0) {
       throw new ERR_PERFORMANCE_INVALID_TIMESTAMP(startTime);
@@ -99,7 +102,7 @@ class Performance {
     } else if (optionsValid && start !== undefined && duration !== undefined) {
       end = this.#getStartTime(start) + this.#getStartTime(duration);
     } else {
-      end = now();
+      end = this.now();
     }
 
     if (typeof startMarkOrOptions === 'string') {

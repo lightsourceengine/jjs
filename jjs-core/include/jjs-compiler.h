@@ -194,7 +194,7 @@ JJS_C_API_BEGIN
 #define JJS_OS_IS_MACOS
 #endif
 
-#if defined (JJS_OS_IS_LINUX) || defined (JJS_OS_IS_MACOS)
+#if defined (JJS_OS_IS_LINUX) || defined (JJS_OS_IS_MACOS) || defined (JJS_OS_IS_AIX)
 #define JJS_OS_IS_UNIX
 #endif
 

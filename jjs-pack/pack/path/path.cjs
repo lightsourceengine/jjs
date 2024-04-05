@@ -39,8 +39,8 @@ const StringPrototypeReplace = String.prototype.replace;
 const StringPrototypeSlice = String.prototype.slice;
 const StringPrototypeToLowerCase = String.prototype.toLowerCase;
 
-const { cwd, env } = module.bindings;
-const isWindows = globalThis['@platform'] === 'win32';
+const { cwd, env, os } = module.bindings;
+const isWindows = os === 'win32';
 
 class ERR_INVALID_ARG_TYPE extends TypeError {
   constructor(name, expected, actual) {

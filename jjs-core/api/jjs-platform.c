@@ -54,14 +54,6 @@ static const char* const jjs_arch_identifier_p =
 
 static bool jjsp_set_string (const char* value_p, char* dest_p, uint32_t dest_len);
 
-// TODO: should this be exposed publicly?
-const jjs_platform_t*
-jjs_platform (void)
-{
-  jjs_assert_api_enabled ();
-  return &JJS_CONTEXT (platform_api);
-} /* jjs_platform */
-
 /**
  * Gets the current working directory.
  *
@@ -416,7 +408,6 @@ jjsp_defaults (void)
   platform.time_local_tza = jjsp_time_local_tza;
   platform.time_now_ms = jjsp_time_now_ms;
   platform.time_sleep = jjsp_time_sleep;
-  platform.time_hrtime = jjsp_time_hrtime;
 
   platform.path_realpath = jjsp_path_realpath;
 

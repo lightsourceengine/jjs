@@ -340,7 +340,7 @@ jjs_pack_text_init (void)
   jjs_bindings_function (bindings, "encodeInto", jjs_pack_text_encode_into);
   jjs_bindings_function (bindings, "decodeUTF8", jjs_pack_text_decode_utf8);
 
-  return jjs_pack_lib_main (jjs_pack_text_snapshot, jjs_pack_text_snapshot_len, bindings, true);
+  return jjs_pack_lib_main (jjs_pack_text_snapshot, jjs_pack_text_snapshot_len, bindings, JJS_MOVE);
 #else /* !JJS_PACK_TEXT */
   return jjs_throw_sz (JJS_ERROR_COMMON, "text pack is not enabled");
 #endif /* JJS_PACK_TEXT */

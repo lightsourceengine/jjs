@@ -633,15 +633,6 @@
 #endif /* JJS_PLATFORM_API_TIME_SLEEP */
 
 /**
- * platform.time.hrtime
- *
- * Default: 1
- */
-#ifndef JJS_PLATFORM_API_TIME_HRTIME
-#define JJS_PLATFORM_API_TIME_HRTIME 1
-#endif /* JJS_PLATFORM_API_TIME_HRTIME */
-
-/**
  * platform.time.now_ms
  *
  * Default: 1
@@ -864,9 +855,6 @@
 #if (JJS_PLATFORM_API_TIME_NOW_MS != 0) && (JJS_PLATFORM_API_TIME_NOW_MS != 1)
 #error "Invalid value for 'JJS_PLATFORM_API_TIME_NOW_MS' macro."
 #endif /* (JJS_PLATFORM_API_TIME_NOW_MS != 0) && (JJS_PLATFORM_API_TIME_NOW_MS != 1) */
-#if (JJS_PLATFORM_API_TIME_HRTIME != 0) && (JJS_PLATFORM_API_TIME_HRTIME != 1)
-#error "Invalid value for 'JJS_PLATFORM_API_TIME_HRTIME' macro."
-#endif /* (JJS_PLATFORM_API_TIME_HRTIME != 0) && (JJS_PLATFORM_API_TIME_HRTIME != 1) */
 #if (JJS_PLATFORM_API_TIME_SLEEP != 0) && (JJS_PLATFORM_API_TIME_SLEEP != 1)
 #error "Invalid value for 'JJS_PLATFORM_API_TIME_SLEEP' macro."
 #endif /* (JJS_PLATFORM_API_TIME_SLEEP != 0) && (JJS_PLATFORM_API_TIME_SLEEP != 1) */

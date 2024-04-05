@@ -21,6 +21,8 @@ set(INCLUDE_PACK_PUBLIC ${INCLUDE_PACK_PUBLIC} PARENT_SCOPE) # for jjs-main
 # Source directories
 set(PACK_SOURCES
   lib/jjs-pack-lib.c
+  lib/jjs-pack-lib-unix.c
+  lib/jjs-pack-lib-win.c
   pack/console/jjs-pack-console.c
   pack/console/jjs-pack-console-js.c
   pack/domexception/jjs-pack-domexception.c
@@ -71,10 +73,12 @@ add_dependencies(${JJS_PACK_NAME} amalgam)
 target_include_directories(${JJS_PACK_NAME} PRIVATE ${INCLUDE_CORE_PUBLIC} ${INCLUDE_PACK_PUBLIC} ${INCLUDE_PACK_PRIVATE})
 
 if (JJS_PACK)
-  target_compile_definitions(${JJS_PACK_NAME} PRIVATE -DJJS_PACK=1)
+    target_compile_definitions(${JJS_PACK_NAME} PRIVATE -DJJS_PACK=1)
 else()
   target_compile_definitions(${JJS_PACK_NAME} PRIVATE -DJJS_PACK=0)
 endif()
+
+target_compile_definitions(${JJS_PACK_NAME} PRIVATE _BSD_SOURCE _DEFAULT_SOURCE)
 
 # Installation
 configure_file(libjjs-pack.pc.in libjjs-pack.pc @ONLY)

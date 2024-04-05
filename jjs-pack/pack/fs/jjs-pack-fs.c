@@ -351,7 +351,7 @@ static JJS_HANDLER (jjs_pack_fs_vmod_callback)
   return jjs_pack_lib_read_exports (jjs_pack_fs_snapshot,
                                     jjs_pack_fs_snapshot_len,
                                     bindings,
-                                    true,
+                                    JJS_MOVE,
                                     JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
 }
 

@@ -90,7 +90,6 @@ typedef jjs_platform_status_t (*jjs_platform_fs_read_file_fn_t) (const uint8_t*,
 typedef jjs_platform_status_t (*jjs_platform_time_sleep_fn_t) (uint32_t);
 typedef jjs_platform_status_t (*jjs_platform_time_local_tza_fn_t) (double, int32_t*);
 typedef jjs_platform_status_t (*jjs_platform_time_now_ms_fn_t) (double*);
-typedef jjs_platform_status_t (*jjs_platform_time_hrtime_fn_t) (uint64_t*);
 
 typedef jjs_platform_status_t (*jjs_platform_path_realpath_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
 
@@ -196,19 +195,6 @@ typedef struct
    * This platform function is required by jjs-core when JJS_DEBUGGER is enabled.
    */
   jjs_platform_time_sleep_fn_t time_sleep;
-
-  /**
-   * Returns the current high-resolution timestamp in nanoseconds.
-   *
-   * The timestamp is relative to an arbitrary time in the past. It is
-   * not related to the time of day and therefore not subject to clock
-   * drift. The primary use is for measuring performance between
-   * intervals.
-   *
-   * This platform function is not used by jjs-core. However, it is required
-   * to use console and performance pack(ages).
-   */
-  jjs_platform_time_hrtime_fn_t time_hrtime;
 
   /**
    * Returns an absolute path with symlinks resolved to their real path names.

@@ -165,16 +165,19 @@ main_register_jjs_test_object (void)
   jjs_value_free (jjs_object_define_own_prop (global, jjs_key, &desc));
   jjs_value_free (jjs_key);
 
+  jjs_value_t os = jjs_platform_os ();
   jjs_value_t pmap = jjs_function_external (pmap_handler);
   jjs_value_t pmap_resolve = jjs_function_external (pmap_resolve_handler);
 
   object_set_sz (pmap, "resolve", pmap_resolve);
   object_set_sz (jjs, "pmap", pmap);
+  object_set_sz (jjs, "os", os);
 
   jjs_value_free (pmap);
   jjs_value_free (pmap_resolve);
   jjs_value_free (global);
   jjs_value_free (jjs);
+  jjs_value_free (os);
 } /* main_register_jjs_test_object */
 
 jjs_value_t
