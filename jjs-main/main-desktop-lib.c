@@ -200,14 +200,14 @@ main_exec_stdin (main_input_type_t input_type, const char* filename)
 
   if (input_type == INPUT_TYPE_MODULE)
   {
-    jjs_esm_source_t source;
+    jjs_esm_source_t source = {
+      .source_buffer_p = source_p,
+      .source_buffer_size = source_size,
+      .filename = jjs_string_utf8_sz (filename),
+      // TODO: .dirname = dirname (filename),
+    };
 
-    jjs_esm_source_init (&source, source_p, source_size);
-    jjs_esm_source_set_filename (&source, jjs_string_sz (filename), JJS_MOVE);
-
-    result = jjs_esm_evaluate_source (&source);
-
-    jjs_esm_source_deinit (&source);
+    result = jjs_esm_evaluate_source (&source, JJS_MOVE);
   }
   else if (input_type == INPUT_TYPE_SLOPPY_MODE || input_type == INPUT_TYPE_STRICT_MODE)
   {
@@ -216,6 +216,7 @@ main_exec_stdin (main_input_type_t input_type, const char* filename)
     jjs_parse_options_t opts = {
       .options = JJS_PARSE_HAS_SOURCE_NAME,
       .source_name = filename_value,
+      // TODO: this might not be correct without basename'ing filename
       .user_value = cwd_append (filename_value),
     };
 

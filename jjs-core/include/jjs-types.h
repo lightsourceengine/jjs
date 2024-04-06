@@ -558,20 +558,44 @@ typedef struct
 /**
  * Source code and configuration data of an in-memory ES module.
  *
- * This struct should not be accessed directly. See jjs_esm_source_init* and jjs_esm_source_set* API
- * functions for usage information.
+ * The source code is can be specified as a null-terminated c-string (source_sz),
+ * a JS string value (source_value) or a character buffer of a specified size
+ * (source_buffer_p + source_buffer_size). Exactly one of these source code sources
+ * can be set or this object will fail validation.
+ *
+ * The in-memory module is a module, so it needs a referrer path to support imports and
+ * requires. dirname is used to specify this path. The path MUST exist on disk. If dirname
+ * is not set, cwd will be used. The module will also need a filename for a possible
+ * cache key, import.meta.filename and source name in stack traces. The filename does NOT
+ * have to exist on disk. If filename is empty, <anonymous>.mjs will be used.
+ *
+ * By default, this module will not be added to the internal esm cache and cannot be imported
+ * by other modules. If the same source configuration was imported or evaluated twice, it
+ * would run twice. However, if cache is true, the dirname + filename will be used as a cache
+ * key. A subsequent attempt at loading the same source configuration OR the same cache key,
+ * will result in an exception from the in-memory source loading functions.
+ *
+ * If meta_extension is set, then import.meta.extension for this module will return the
+ * value of meta_extension. It's a mechanism to pass bindings or other native create JS
+ * values to a module.
  */
 typedef struct
 {
-  jjs_value_t source_value; /**< module source code value. valid if !undefined. default is undefined. */
-  const jjs_char_t* source_buffer_p; /**< module source code. valid if source_value is unset. default is NULL. */
-  jjs_size_t source_buffer_size; /**< size, in bytes, of source_buffer_p. default is 0. */
+  const char* source_sz; /**< source code in null-terminated c-string; UTF8 encoded */
 
-  jjs_value_t filename; /**< simple filename of module. default is undefined, resolves to <anonymous>.mjs */
-  jjs_value_t dirname; /**< fs dirname of the module. default is undefined, resolves to cwd. */
-  jjs_value_t meta_extension; /**< value of import.meta.extension. default in undefined. */
-  uint32_t start_line; /**< start line of the source code. default is 0. */
-  uint32_t start_column; /**< start column of the source code. default is 0. */
+  jjs_value_t source_value; /**< source code as a JS value */
+
+  const jjs_char_t* source_buffer_p; /**< source code buffer; UTF8 encoded */
+  jjs_size_t source_buffer_size; /**< size, in bytes, of source_buffer_p */
+
+  jjs_value_t filename; /**< simple filename of module. if not set, <anonymous>.mjs */
+  jjs_value_t dirname; /**< fs dirname of the module. if not set, cwd. */
+
+  jjs_value_t meta_extension; /**< value of import.meta.extension. if not set, undefined */
+
+  uint32_t start_line; /**< start line of the source code. if not set, 0. */
+  uint32_t start_column; /**< start column of the source code. if not set, 0. */
+
   bool cache; /**< if true, the module will be put in the esm cache using resolved dirname + filename as the key. default is false.*/
 } jjs_esm_source_t;
 
@@ -1275,6 +1299,13 @@ typedef struct
 {
   jjs_encoding_t encoding; /**< method to decode file contents */
 } jjs_platform_read_file_options_t;
+
+/**
+ * Function that accepts a JS reference and returns true/false.
+ *
+ * Used by api to test values for a user supplied condition.
+ */
+typedef bool (*jjs_value_condition_fn_t)(jjs_value_t);
 
 /**
  * @}

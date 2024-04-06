@@ -23,34 +23,6 @@
 
 #if JJS_ANNEX_ESM
 
-// TODO: move to a more general area
-static jjs_value_t jjs_copy (jjs_value_t value)
-{
-  switch (ecma_get_value_type_field (value))
-  {
-    case ECMA_TYPE_ERROR:
-    {
-      ecma_ref_extended_primitive (ecma_get_extended_primitive_from_value (value));
-      return value;
-    }
-    case ECMA_TYPE_DIRECT:
-    {
-      return value;
-    }
-    default:
-    {
-      return ecma_copy_value (value);
-    }
-  }
-} /* jjs_copy */
-
-// TODO: move to a more general area
-static inline jjs_value_t JJS_ATTR_ALWAYS_INLINE
-jjs_move (jjs_value_t value, jjs_value_ownership_t value_o)
-{
-  return value_o == JJS_MOVE ? value : jjs_copy (value);
-} /* jjs_move */
-
 static void
 jjs_module_copy_string_property (jjs_value_t target, jjs_value_t source, lit_magic_string_id_t key)
 {
@@ -62,7 +34,7 @@ jjs_module_copy_string_property (jjs_value_t target, jjs_value_t source, lit_mag
   }
 
   ecma_free_value (value);
-} /* jjs_module_copy_property */
+} /* jjs_module_copy_string_property */
 
 typedef enum
 {
@@ -76,7 +48,8 @@ static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
 static jjs_value_t esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t result_type);
 static jjs_value_t user_value_to_path (jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
-static jjs_value_t esm_run_source (jjs_esm_source_t *source_p, esm_result_type_t result_type);
+static jjs_value_t
+esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type);
 static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url);
 #if JJS_ANNEX_COMMONJS
 static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
@@ -100,269 +73,61 @@ esm_source_init (jjs_esm_source_t* esm_source_p)
 #endif /* JJS_ESM */
 
 /**
- * Initialize a jjs_esm_source_t object with a UTF-8 source code buffer.
+ * Constructs an empty jjs_esm_source_t object.
  *
- * Use the init and set functions to work with jjs_esm_source_t objects. The functions
- * help deal with the tricky and annoying lifecycles of the JS objects jjs_esm_source_t
- * holds.
+ * The resulting object does NOT hold any JS value references that need to be
+ * free'd. After this function call, if the caller adds a JS value reference,
+ * then the caller will need to clean up manually or via jjs_esm_source_free_values.
  *
- * esm_source_p must be cleaned up with jjs_esm_source_deinit().
- *
- * @param esm_source_p jjs_esm_source_t object to initialize
- * @param source_p module source code. if source_size is 0, this can be NULL
- * @param source_size number of bytes in source_p buffer
+ * @return an empty jjs_esm_source_t object
  */
-void
-jjs_esm_source_init (jjs_esm_source_t* esm_source_p, const jjs_char_t* source_p, jjs_size_t source_size)
+jjs_esm_source_t
+jjs_esm_source (void)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
-  JJS_ASSERT (source_size == 0 || source_p != NULL);
+  jjs_esm_source_t source;
 
-  esm_source_init(esm_source_p);
-  esm_source_p->source_buffer_p = source_p;
-  esm_source_p->source_buffer_size = source_size;
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED_ALL (esm_source_p, source_p, source_size);
-#endif
-} /* jjs_esm_source_init */
+  esm_source_init (&source);
 
-/**
- * Initialize a jjs_esm_source_t object with a UTF-8 null terminated source code buffer.
- *
- * Use the init and set functions to work with jjs_esm_source_t objects. The functions
- * help deal with the tricky and annoying lifecycles of the JS objects jjs_esm_source_t
- * holds.
- *
- * esm_source_p must be cleaned up with jjs_esm_source_deinit().
- *
- * @param esm_source_p jjs_esm_source_t object to initialize
- * @param source_p null-terminated string
- */
-void
-jjs_esm_source_init_sz (jjs_esm_source_t* esm_source_p, const char* source_p)
-{
-  jjs_esm_source_init (esm_source_p, (const jjs_char_t*) source_p, source_p ? ((jjs_size_t) strlen (source_p)) : 0);
-} /* jjs_esm_source_init_sz */
+  return source;
+#else /* !(JJS_ANNEX_ESM) */
+  JJS_ASSERT (false);
+  jjs_esm_source_t source;
+
+  memset (&source, 0, sizeof (source));
+
+  return source;
+#endif /* (JJS_ANNEX_ESM) */
+}
 
 /**
- * Initialize a jjs_esm_source_t object with a JS string value.
+ * Fills in a jjs_esm_source object with default values.
  *
- * Use the init and set functions to work with jjs_esm_source_t objects. The functions
- * help deal with the tricky and annoying lifecycles of the JS objects jjs_esm_source_t
- * holds.
+ * It is assumes source_p points to garbage memory on the stack or
+ * heap. This method will not attempt to free any JS references source_p.
  *
- * esm_source_p must be cleaned up with jjs_esm_source_deinit().
+ * The resulting object state does NOT hold any JS value references that need to be
+ * free'd. After this function call, if the caller adds a JS value reference,
+ * then the caller will need to clean up manually or via jjs_esm_source_free_values.
  *
- * @param esm_source_p
- * @param source JS string value. If not a string, the value will be set and an error will occur at import or evaluate.
- * @param source_o source reference ownership
- * value and manage the lifecycle of the ref.
+ * @param source_p pointer to a jjs_esm_source_t object to initialize
+ * @return the given source_p pointer
  */
-void
-jjs_esm_source_init_value (jjs_esm_source_t* esm_source_p, jjs_value_t source, jjs_value_ownership_t source_o)
+jjs_esm_source_t *
+jjs_esm_source_init (jjs_esm_source_t *source_p)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  esm_source_init(esm_source_p);
-  esm_source_p->source_value = jjs_move (source, source_o);
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED_ALL (esm_source_p);
-  JJS_DISOWN (source, source_o);
-#endif
-} /* jjs_esm_source_init_value */
-
-/**
- * Clean up a jjs_esm_source_t object.
- *
- * The internal JS values are cleaned up. The object has a source buffer (if set) and the object
- * pointer itself are the responsibility of the caller.
- *
- * @param esm_source_p jjs_esm_source_t object to clean up
- */
-void
-jjs_esm_source_deinit (jjs_esm_source_t* esm_source_p)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
-
-  jjs_value_free (esm_source_p->source_value);
-  jjs_value_free (esm_source_p->filename);
-  jjs_value_free (esm_source_p->dirname);
-  jjs_value_free (esm_source_p->meta_extension);
-
-  memset (esm_source_p, 0, sizeof (*esm_source_p));
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-#endif
-} /* jjs_esm_source_deinit */
-
-/**
- * Set line reporting information of the in-memory module.
- *
- * @param esm_source_p jjs_esm_source_t object
- * @param start_column start column
- * @param start_line start line
- */
-void
-jjs_esm_source_set_start (jjs_esm_source_t* esm_source_p, uint32_t start_column, uint32_t start_line)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
-
-  esm_source_p->start_column = start_column;
-  esm_source_p->start_line = start_line;
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED_ALL (esm_source_p, start_column, start_line);
-#endif
-} /* jjs_esm_source_set_start */
-
-/**
- * Set the value of import.meta.extension of the in-memory module.
- *
- * The purpose of import.meta.extension is to provide a way to pass native bindings to the
- * module.
- *
- * @param esm_source_p jjs_esm_source_t object
- * @param meta_extension any JS value
- * @param meta_extension_o meta_extension reference ownership
- */
-void
-jjs_esm_source_set_meta_extension (jjs_esm_source_t* esm_source_p,
-                                   jjs_value_t meta_extension,
-                                   jjs_value_ownership_t meta_extension_o)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_ESM
-  JJS_ASSERT(esm_source_p != NULL);
-
-  jjs_value_free (esm_source_p->meta_extension);
-  esm_source_p->meta_extension = jjs_move (meta_extension, meta_extension_o);
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED_ALL (esm_source_p);
-  JJS_DISOWN (meta_extension, meta_extension_o);
-#endif
-} /* jjs_esm_source_set_meta_extension */
-
-/**
- * Convenience function that combines jjs_esm_source_set_dirname and jjs_esm_source_set_filename into
- * a single call.
- *
- * @param esm_source_p jjs_esm_source_t object
- * @param dirname string of a directory filename or undefined
- * @param dirname_o dirname reference ownership
- * @param filename string of a filename or undefined
- * @param filename_o filename reference ownership
- */
-void
-jjs_esm_source_set_path (jjs_esm_source_t* esm_source_p,
-                         jjs_value_t dirname,
-                         jjs_value_ownership_t dirname_o,
-                         jjs_value_t filename,
-                         jjs_value_ownership_t filename_o)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_ESM
-  JJS_ASSERT (esm_source_p != NULL);
-
-  jjs_esm_source_set_filename (esm_source_p, filename, filename_o);
-  jjs_esm_source_set_dirname (esm_source_p, dirname, dirname_o);
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED_ALL (esm_source_p);
-  JJS_DISOWN (dirname, dirname_o);
-  JJS_DISOWN (filename, filename_o);
-#endif
-} /* jjs_esm_source_set_path */
-
-/**
- * Sets the simple filename of the in-memory module.
- *
- * The filename is used by the module to create import.meta.url and import.meta.filename. Since this
- * is an in-memory module, the filename does not have to exist (and probably should not).
- *
- * The filename should be a filename without path separators. To enforce this, basename of the filename
- * is used.
- *
- * If filename is not set or undefined, <anonymous>.mjs is used as the filename.
- *
- * @param esm_source_p jjs_esm_source_t object
- * @param filename string of a filename or undefined
- * @param filename_o filename reference ownership
- */
-void
-jjs_esm_source_set_filename (jjs_esm_source_t* esm_source_p, jjs_value_t filename, jjs_value_ownership_t filename_o)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_ESM
-  JJS_ASSERT (esm_source_p != NULL);
-
-  jjs_value_free (esm_source_p->filename);
-  esm_source_p->filename = jjs_move (filename, filename_o);
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED_ALL (esm_source_p);
-  JJS_DISOWN (filename, filename_o);
-#endif
-} /* jjs_esm_source_set_filename */
-
-/**
- * Sets the dirname of the in-memory module.
- *
- * The dirname is used by the module to create import.meta.url, import.meta.filename and
- * import.meta.dirname. It is also used as the referrer directory of the module, used to
- * load the module's relative imports. As a result, the dirname must exist on the filesystem.
- *
- * If dirname is not set or undefined, the current working directory is used.
- *
- * @param esm_source_p jjs_esm_source_t object
- * @param dirname string of a directory filename or undefined
- * @param dirname_o dirname reference ownership
- */
-void
-jjs_esm_source_set_dirname (jjs_esm_source_t* esm_source_p, jjs_value_t dirname, jjs_value_ownership_t dirname_o)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_ESM
-  JJS_ASSERT (esm_source_p != NULL);
-
-  jjs_value_free (esm_source_p->dirname);
-  esm_source_p->dirname = jjs_move (dirname, dirname_o);
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED_ALL (esm_source_p);
-  JJS_DISOWN (dirname, dirname_o);
-#endif
-} /* jjs_esm_source_set_dirname */
-
-/**
- * Sets whether the in-memory module will appear in the esm cache.
- *
- * By default, in-memory modules will not be cached, as they are for entry point use
- * cases. The modules is executed once. If the module is run again, it is parsed, linked
- * and evaluated again.
- *
- * If cache is true, the module will be cached using the resolved combination of dirname and
- * filename as the key. When cached, an error will be thrown if this in-memory module with the
- * same key is loaded again. When it is in the cache, of course, multiple imports of the key
- * will return the cached module.
- *
- * @param esm_source_p jjs_esm_source_t object
- * @param cache flag indicating whether this in-memory module should be cached
- */
-void
-jjs_esm_source_set_cache (jjs_esm_source_t* esm_source_p, bool cache)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_ESM
-  JJS_ASSERT (esm_source_p != NULL);
-
-  esm_source_p->cache = cache;
-#else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (esm_source_p);
-  JJS_UNUSED (cache);
-#endif
-} /* jjs_esm_source_set_cache */
+  JJS_ASSERT (source_p != NULL);
+  esm_source_init (source_p);
+  return source_p;
+#else /* !(JJS_ANNEX_ESM) */
+  JJS_UNUSED (source_p);
+  JJS_ASSERT (false);
+  return source_p;
+#endif /* (JJS_ANNEX_ESM) */
+}
 
 void
 jjs_esm_on_load (jjs_esm_load_cb_t callback_p, void *user_p)
@@ -530,6 +295,43 @@ jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t 
 } /* jjs_esm_default_on_resolve_cb */
 
 /**
+ * Releases JS reference values inside a jjs_esm_source_t object.
+ *
+ * This function will zero out the memory of esm_source_p. Any
+ * non-jjs_value_t, such as source code buffers, field cleanup
+ * should be done before calling this function.
+ *
+ * @param esm_source_p source object
+ */
+void
+jjs_esm_source_free_values (jjs_esm_source_t *esm_source_p)
+{
+  JJS_ASSERT (esm_source_p != NULL);
+
+  if (esm_source_p->source_value != 0)
+  {
+    jjs_value_free (esm_source_p->source_value);
+  }
+
+  if (esm_source_p->dirname != 0)
+  {
+    jjs_value_free (esm_source_p->dirname);
+  }
+
+  if (esm_source_p->filename != 0)
+  {
+    jjs_value_free (esm_source_p->filename);
+  }
+
+  if (esm_source_p->meta_extension != 0)
+  {
+    jjs_value_free (esm_source_p->meta_extension);
+  }
+
+  memset (esm_source_p, 0, sizeof (jjs_esm_source_t));
+} /* jjs_esm_source_free_values */
+
+/**
  * Import an ES module.
  *
  * The specifier can be a package name, relative path (qualified with
@@ -553,7 +355,7 @@ jjs_esm_import (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 
   if (!jjs_value_is_string (referrer_path))
   {
-    JJS_DISOWN(specifier, specifier_o);
+    JJS_DISOWN (specifier, specifier_o);
     return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
@@ -561,7 +363,7 @@ jjs_esm_import (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 
   jjs_value_free (referrer_path);
 
-  JJS_DISOWN(specifier, specifier_o);
+  JJS_DISOWN (specifier, specifier_o);
 
   if (jjs_value_is_exception (module))
   {
@@ -605,13 +407,16 @@ jjs_esm_import_sz (const char *specifier_p)
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_import_source (jjs_esm_source_t *source_p)
+jjs_esm_import_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  return esm_run_source (source_p, ESM_RUN_RESULT_NAMESPACE);
+  return esm_run_source (source_p, source_values_o, ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (source_p);
+  if (source_values_o == JJS_MOVE)
+  {
+    jjs_esm_source_free_values (source_p);
+  }
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_import_source */
@@ -690,13 +495,16 @@ jjs_esm_evaluate_sz (const char *specifier_p)
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_evaluate_source (jjs_esm_source_t *source_p)
+jjs_esm_evaluate_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_ESM
-  return esm_run_source (source_p, ESM_RUN_RESULT_EVALUATE);
+  return esm_run_source (source_p, source_values_o, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (source_p);
+  if (source_values_o == JJS_MOVE)
+  {
+    jjs_esm_source_free_values (source_p);
+  }
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_evaluate_source */
@@ -772,7 +580,7 @@ esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
 static jjs_value_t
 esm_realpath_dirname (jjs_value_t dirname_value)
 {
-  if (ecma_is_value_undefined (dirname_value))
+  if (dirname_value == 0 || ecma_is_value_undefined (dirname_value))
   {
     return annex_path_cwd ();
   }
@@ -783,7 +591,7 @@ esm_realpath_dirname (jjs_value_t dirname_value)
 static jjs_value_t
 esm_basename_or_default (jjs_value_t filename_value)
 {
-  if (ecma_is_value_undefined (filename_value))
+  if (filename_value == 0 || ecma_is_value_undefined (filename_value))
   {
     return ecma_make_magic_string_value (LIT_MAGIC_STRING_ESM_FILENAME_DEFAULT);
   }
@@ -864,12 +672,46 @@ done:
 } /* esm_link_and_evaluate */
 
 static jjs_value_t
-esm_run_source (jjs_esm_source_t *source_p, esm_result_type_t result_type)
+esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type)
 {
   if (source_p == NULL)
   {
-    return jjs_throw_sz(JJS_ERROR_TYPE, "source_p must not be NULL");
+    return jjs_throw_sz (JJS_ERROR_TYPE, "source_p must not be NULL");
   }
+
+  bool has_source_sz = source_p->source_sz != NULL;
+  bool has_source_value = source_p->source_value != 0 ? jjs_value_is_string (source_p->source_value) : false;
+  bool has_source_buffer = source_p->source_buffer_size != 0;
+  jjs_value_t validation;
+
+  if ((has_source_sz && !has_source_value && !has_source_buffer)
+      || (has_source_value && !has_source_sz && !has_source_buffer)
+      || (has_source_buffer && !has_source_value && !has_source_sz))
+  {
+    validation = jjs_undefined ();
+  }
+  else if (!has_source_sz && !has_source_value && !has_source_buffer)
+  {
+    validation = jjs_throw_sz (JJS_ERROR_TYPE, "source_p contains no sources");
+  }
+  else
+  {
+    validation =
+      jjs_throw_sz (JJS_ERROR_TYPE,
+                    "source_p contains multiple sources. Use only one of source_value, source_sz or source_buffer.");
+  }
+
+  if (jjs_value_is_exception (validation))
+  {
+    if (source_values_o == JJS_MOVE)
+    {
+      jjs_esm_source_free_values (source_p);
+    }
+
+    return validation;
+  }
+
+  jjs_value_free (validation);
 
   ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
   jjs_parse_options_t parse_options;
@@ -916,9 +758,13 @@ esm_run_source (jjs_esm_source_t *source_p, esm_result_type_t result_type)
     .source_name = basename_value,
   };
 
-  if (source_p->source_buffer_p)
+  if (has_source_buffer)
   {
     module = jjs_parse (source_p->source_buffer_p, source_p->source_buffer_size, &parse_options);
+  }
+  else if (has_source_sz)
+  {
+    module = jjs_parse ((const jjs_char_t *) source_p->source_sz, strlen (source_p->source_sz), &parse_options);
   }
   else
   {
@@ -957,6 +803,11 @@ after_parse:
   jjs_value_free (filename_value);
   jjs_value_free (basename_value);
   jjs_value_free (dirname_value);
+
+  if (source_values_o == JJS_MOVE)
+  {
+    jjs_esm_source_free_values (source_p);
+  }
 
   return esm_link_and_evaluate (module, true, result_type);
 } /* esm_run_source */

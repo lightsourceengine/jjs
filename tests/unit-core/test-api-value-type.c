@@ -146,6 +146,17 @@ main (void)
     jjs_set_realm (old_realm);
   }
 
+  {
+    jjs_value_t ex = jjs_throw_sz (JJS_ERROR_COMMON, "error");
+
+    TEST_ASSERT (jjs_value_free_unless (ex, jjs_value_is_exception) == false);
+    jjs_value_free (ex);
+
+    jjs_value_t obj = jjs_object ();
+
+    TEST_ASSERT (jjs_value_free_unless (obj, jjs_value_is_exception) == true);
+  }
+
   jjs_cleanup ();
 
   return 0;

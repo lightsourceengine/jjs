@@ -1929,6 +1929,34 @@ jjs_value_free (jjs_value_t value) /**< value */
 } /* jjs_value_free */
 
 /**
+ * Release ownership of the argument value, unless the condition function
+ * return true.
+ *
+ * This function is for a common pattern of api usage. The value should be
+ * released unless the value satisfies a condition, like jjs_value_is_exception. If
+ * the condition is satisfied, you may want to take additional steps like
+ * logging or chaning control flow before releasing the value.
+ *
+ * @param value the value to release
+ * @param condition_fn condition function to apply to the value
+ * @return true: value was released; false: value was not released
+ */
+bool jjs_value_free_unless (jjs_value_t value, jjs_value_condition_fn_t condition_fn)
+{
+  jjs_assert_api_enabled ();
+  JJS_ASSERT (condition_fn);
+
+  if (condition_fn (value))
+  {
+    return false;
+  }
+
+  jjs_value_free (value);
+
+  return true;
+} /* jjs_value_free_unless */
+
+/**
  * Create an array object value
  *
  * Note:
@@ -4928,7 +4956,7 @@ jjs_format_int (int num, uint8_t width, char padding, char *buffer_p)
   }
 
   return cursor_p;
-} /* jjs_foramt_int */
+} /* jjs_format_int */
 
 /**
  * Log a zero-terminated formatted message with the specified log level.
