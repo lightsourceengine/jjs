@@ -70,7 +70,7 @@ test_init_options_stack_limit (void)
 #if !JJS_VM_STACK_STATIC
   jjs_context_options_t opts = jjs_context_options ();
 
-  opts.vm_stack_limit = 96;
+  opts.vm_stack_limit_kb = 96;
 
   TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
   jjs_cleanup ();
