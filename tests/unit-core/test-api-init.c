@@ -67,26 +67,28 @@ test_init_options_null (void)
 static void
 test_init_options_stack_limit (void)
 {
-#if !JJS_VM_STACK_STATIC
-  jjs_context_options_t opts = jjs_context_options ();
+  if (!jjs_feature_enabled(JJS_FEATURE_VM_STACK_STATIC))
+  {
+    jjs_context_options_t opts = jjs_context_options ();
 
-  opts.vm_stack_limit_kb = 96;
+    opts.vm_stack_limit_kb = 96;
 
-  TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
-  jjs_cleanup ();
-#endif /* !JJS_VM_STACK_STATIC */
+    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
+    jjs_cleanup ();
+  }
 }
 
 static void
 test_init_options_stack_limit_when_stack_static (void)
 {
-#if JJS_VM_STACK_STATIC
-  jjs_context_options_t opts = jjs_context_options ();
+  if (jjs_feature_enabled (JJS_FEATURE_VM_STACK_STATIC))
+  {
+    jjs_context_options_t opts = jjs_context_options ();
 
-  opts.vm_stack_limit_kb += 10;
+    opts.vm_stack_limit_kb += 10;
 
-  TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT);
-#endif /* JJS_VM_STACK_STATIC */
+    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT);
+  }
 }
 
 static jjs_external_heap_options_t external_heap_options = {0};
@@ -101,64 +103,67 @@ external_heap_free (void* context_heap_p, void* user_p)
 static void
 test_init_options_external_heap (void)
 {
-#if !JJS_VM_HEAP_STATIC
-  static const uint32_t external_heap_size = 512 * 1024;
-  jjs_context_options_t opts = jjs_context_options ();
+  if (!jjs_feature_enabled(JJS_FEATURE_VM_HEAP_STATIC))
+  {
+    static const uint32_t external_heap_size = 512 * 1024;
+    jjs_context_options_t opts = jjs_context_options ();
 
-  external_heap_options = (jjs_external_heap_options_t) {
-    .buffer_p = malloc (external_heap_size),
-    .buffer_size_in_bytes = external_heap_size,
-    .free_cb = external_heap_free,
-    .free_user_p = (void*) (uintptr_t) 1,
-  };
+    external_heap_options = (jjs_external_heap_options_t){
+      .buffer_p = malloc (external_heap_size),
+      .buffer_size_in_bytes = external_heap_size,
+      .free_cb = external_heap_free,
+      .free_user_p = (void*) (uintptr_t) 1,
+    };
 
-  opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
-  opts.external_heap = external_heap_options;
+    opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
+    opts.external_heap = external_heap_options;
 
-  TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
 
-  jjs_cleanup();
-  free (external_heap_options.buffer_p);
-#endif /* !JJS_VM_HEAP_STATIC */
+    jjs_cleanup ();
+    free (external_heap_options.buffer_p);
+  }
 }
 
 static void
 test_init_options_external_heap_invalid (void)
 {
-#if !JJS_VM_HEAP_STATIC
-  jjs_context_options_t opts = jjs_context_options ();
+  if (!jjs_feature_enabled(JJS_FEATURE_VM_HEAP_STATIC))
+  {
+    jjs_context_options_t opts = jjs_context_options ();
 
-  external_heap_options = (jjs_external_heap_options_t) {
-    .buffer_p = NULL,
-    .buffer_size_in_bytes = 512 * 1024,
-  };
+    external_heap_options = (jjs_external_heap_options_t){
+      .buffer_p = NULL,
+      .buffer_size_in_bytes = 512 * 1024,
+    };
 
-  opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
-  opts.external_heap = external_heap_options;
+    opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
+    opts.external_heap = external_heap_options;
 
-  TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP);
-#endif /* !JJS_VM_HEAP_STATIC */
+    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP);
+  }
 }
 
 static void
 test_init_options_external_heap_when_heap_static (void)
 {
-#if JJS_VM_HEAP_STATIC
-  static const uint32_t external_heap_size = 512 * 1024;
-  jjs_context_options_t opts = jjs_context_options ();
+  if (jjs_feature_enabled(JJS_FEATURE_VM_HEAP_STATIC))
+  {
+    static const uint32_t external_heap_size = 512 * 1024;
+    jjs_context_options_t opts = jjs_context_options ();
 
-  external_heap_options = (jjs_external_heap_options_t) {
-    .buffer_p = malloc (external_heap_size),
-    .buffer_size_in_bytes = external_heap_size,
-  };
+    external_heap_options = (jjs_external_heap_options_t){
+      .buffer_p = malloc (external_heap_size),
+      .buffer_size_in_bytes = external_heap_size,
+    };
 
-  opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
-  opts.external_heap = external_heap_options;
+    opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
+    opts.external_heap = external_heap_options;
 
-  TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE);
+    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE);
 
-  free (external_heap_options.buffer_p);
-#endif /* JJS_VM_HEAP_STATIC */
+    free (external_heap_options.buffer_p);
+  }
 }
 
 int
