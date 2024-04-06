@@ -55,6 +55,7 @@
 #include "ecma-symbol-object.h"
 #include "ecma-typedarray-object.h"
 
+#include "annex.h"
 #include "debugger.h"
 #include "jcontext.h"
 #include "jmem.h"
@@ -6633,13 +6634,7 @@ jjs_value_t
 jjs_json_parse_sz (const char* string_p) /**< null-terminated json string */
 {
   jjs_assert_api_enabled ();
-#if JJS_BUILTIN_JSON
   return jjs_json_parse ((const jjs_char_t*) string_p, string_p ? (jjs_size_t) strlen (string_p) : 0);
-#else /* !JJS_BUILTIN_JSON */
-  JJS_UNUSED (string_p);
-
-  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
-#endif /* JJS_BUILTIN_JSON */
 } /* jjs_json_parse_sz */
 
 /**
@@ -6670,7 +6665,7 @@ jjs_json_parse_file (jjs_value_t filename, jjs_value_ownership_t filename_o)
 
   return result;
 #else /* !JJS_BUILTIN_JSON */
-  JJS_UNUSED_ALL (filename, filename_o);
+  JJS_DISOWN (filename, filename_o);
   return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_JSON */
 } /* jjs_json_parse_file */

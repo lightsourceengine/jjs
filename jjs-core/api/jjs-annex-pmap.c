@@ -30,8 +30,6 @@ static ecma_value_t find_nearest_package_path (ecma_value_t packages, ecma_value
 static bool is_object (ecma_value_t value);
 static bool starts_with_dot_slash (ecma_value_t value);
 static jjs_value_t expect_path_like_string (ecma_value_t value);
-// TODO: move to a common place
-#define JJS_DISOWN(VALUE, VALUE_OWNERSHIP) if ((VALUE_OWNERSHIP) == JJS_MOVE) jjs_value_free (VALUE)
 #endif /* JJS_ANNEX_PMAP */
 
 /**
@@ -137,7 +135,8 @@ jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, j
 
   return jjs_undefined ();
 #else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED_ALL (pmap, pmap_o, dirname, dirname_o);
+  JJS_DISOWN (pmap, pmap_o);
+  JJS_DISOWN (dirname, dirname_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap */
@@ -196,10 +195,21 @@ jjs_pmap_from_file (jjs_value_t filename, jjs_value_ownership_t filename_o)
 
   return jjs_pmap (pmap, JJS_MOVE, dirname, JJS_MOVE);
 #else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED_ALL (filename, filename_o);
+  JJS_DISOWN (filename, filename_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_from_file */
+
+/**
+ * Version of jjs_pmap_from_file that takes a null-terminated string for the filename.
+ *
+ * @see jjs_pmap_from_file
+ */
+jjs_value_t jjs_pmap_from_file_sz (const char* filename_p)
+{
+  jjs_assert_api_enabled ();
+  return jjs_pmap_from_file (annex_util_create_string_utf8_sz (filename_p), JJS_MOVE);
+} /* jjs_pmap_from_file_sz */
 
 /**
  * Resolve the absolute filename of a package specifier against the
@@ -234,10 +244,22 @@ jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t speci
   JJS_DISOWN (specifier, specifier_o);
   return result;
 #else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED_ALL (specifier, specifier_o, module_type);
+  JJS_UNUSED_ALL (module_type);
+  JJS_DISOWN (specifier, specifier_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_resolve */
+
+/**
+ * Version of jjs_pmap_resolve that takes a null-terminated string for the specifier.
+ *
+ * @see jjs_pmap_resolve
+ */
+jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t module_type)
+{
+  jjs_assert_api_enabled ();
+  return jjs_pmap_resolve (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE, module_type);
+} /* jjs_pmap_resolve_sz */
 
 #if JJS_ANNEX_PMAP
 

@@ -1199,8 +1199,10 @@ void jjs_module_on_import (jjs_module_import_cb_t callback, void *user_p);
 
 jjs_value_t jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, jjs_value_ownership_t dirname_o);
 jjs_value_t jjs_pmap_from_file (jjs_value_t filename, jjs_value_ownership_t filename_o);
+jjs_value_t jjs_pmap_from_file_sz (const char* filename_p);
 
 jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type);
+jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t module_type);
 
 /**
  * jjs-pmap-ops @}
@@ -1223,8 +1225,10 @@ jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t speci
 jjs_value_t jjs_platform_cwd (void);
 bool jjs_platform_has_cwd (void);
 jjs_value_t jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o);
+jjs_value_t jjs_platform_realpath_sz (const char* path_p);
 bool jjs_platform_has_realpath (void);
 jjs_value_t jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts);
+jjs_value_t jjs_platform_read_file_sz (const char* path_p, const jjs_platform_read_file_options_t* opts);
 bool jjs_platform_has_read_file (void);
 
 jjs_value_t jjs_platform_os (void);

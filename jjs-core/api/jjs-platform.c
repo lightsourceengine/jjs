@@ -16,6 +16,7 @@
 #include "jjs-annex.h"
 #include "jjs-core.h"
 
+#include "annex.h"
 #include "jcontext.h"
 #include "jjs-platform.h"
 #include "jjs-compiler.h"
@@ -158,6 +159,18 @@ jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o)
 } /* jjs_platform_realpath */
 
 /**
+ * Version of jjs_platform_realpath that takes a null-terminated string for the path.
+ *
+ * @see jjs_platform_realpath
+ */
+jjs_value_t
+jjs_platform_realpath_sz (const char* path_p)
+{
+  jjs_assert_api_enabled();
+  return jjs_platform_realpath (annex_util_create_string_utf8_sz (path_p), JJS_MOVE);
+} /* jjs_platform_realpath_sz */
+
+/**
  * Read the contents of a file into a string or array buffer using the platform
  * fs read api. The function is used internally to load source files, snapshots and
  * json files. It is not intended to be a general purpose file read.
@@ -188,6 +201,18 @@ jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jj
 
   return result;
 } /* jjs_platform_read_file */
+
+/**
+ * Version of jjs_platform_read_file that takes a null-terminated string for the path.
+ *
+ * @see jjs_platform_read_file
+ */
+jjs_value_t
+jjs_platform_read_file_sz (const char* path_p, const jjs_platform_read_file_options_t* opts)
+{
+  jjs_assert_api_enabled();
+  return jjs_platform_read_file (annex_util_create_string_utf8_sz (path_p), JJS_MOVE, opts);
+} /* jjs_platform_read_file_sz */
 
 /**
  * Checks if platform api platform.path.cwd is installed in the current context.

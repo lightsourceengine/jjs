@@ -47,14 +47,11 @@ jjs_commonjs_require (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 
   jjs_value_free (referrer_path);
 
-  if (specifier_o == JJS_MOVE)
-  {
-    jjs_value_free (specifier);
-  }
+  JJS_DISOWN (specifier, specifier_o);
 
   return result;
 #else /* !JJS_ANNEX_COMMONJS */
-  JJS_UNUSED_ALL (specifier, specifier_o);
+  JJS_DISOWN (specifier, specifier_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_commonjs_require */
@@ -72,12 +69,7 @@ jjs_value_t
 jjs_commonjs_require_sz (const char *specifier_p)
 {
   jjs_assert_api_enabled ();
-#if JJS_ANNEX_COMMONJS
   return jjs_commonjs_require (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE);
-#else /* !JJS_ANNEX_COMMONJS */
-  JJS_UNUSED (specifier_p);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
-#endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_commonjs_require_sz */
 
 #if JJS_ANNEX_COMMONJS

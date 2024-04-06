@@ -81,19 +81,13 @@ jjs_vmod (jjs_value_t name, jjs_value_ownership_t name_o, jjs_value_t value, jjs
 #if JJS_ANNEX_VMOD
   jjs_value_t result = annex_vmod_new (name, value);
 
-  if (name_o == JJS_MOVE)
-  {
-    jjs_value_free (name);
-  }
-
-  if (value_o == JJS_MOVE)
-  {
-    jjs_value_free (value);
-  }
+  JJS_DISOWN(name, name_o);
+  JJS_DISOWN(value, value_o);
 
   return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED_ALL (name, name_o, value, value_o);
+  JJS_DISOWN(name, name_o);
+  JJS_DISOWN(value, value_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod */
@@ -105,12 +99,7 @@ jjs_value_t
 jjs_vmod_sz (const char *name, jjs_value_t value, jjs_value_ownership_t value_o)
 {
   jjs_assert_api_enabled ();
-#if JJS_ANNEX_VMOD
   return jjs_vmod (annex_util_create_string_utf8_sz (name), JJS_MOVE, value, value_o);
-#else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED_ALL (name, value, value_o);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
-#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_sz */
 
 /**
@@ -134,14 +123,11 @@ jjs_vmod_resolve (jjs_value_t name, jjs_value_ownership_t name_o)
 #if JJS_ANNEX_VMOD
   jjs_value_t result = jjs_annex_vmod_resolve (name);
 
-  if (name_o == JJS_MOVE)
-  {
-    jjs_value_free (name);
-  }
+  JJS_DISOWN (name, name_o);
 
   return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED_ALL (name, name_o);
+  JJS_DISOWN (name, name_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_resolve */
@@ -178,14 +164,11 @@ jjs_vmod_exists (jjs_value_t name, jjs_value_ownership_t name_o)
 #if JJS_ANNEX_VMOD
   jjs_value_t result = jjs_annex_vmod_exists (name);
 
-  if (name_o == JJS_MOVE)
-  {
-    jjs_value_free (name);
-  }
+  JJS_DISOWN(name, name_o);
 
   return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED_ALL (name, name_o);
+  JJS_DISOWN (name, name_o);
   return false;
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_exists */
@@ -197,12 +180,7 @@ bool
 jjs_vmod_exists_sz (const char *name)
 {
   jjs_assert_api_enabled ();
-#if JJS_ANNEX_VMOD
   return jjs_vmod_exists (annex_util_create_string_utf8_sz (name), JJS_MOVE);
-#else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED (name);
-  return false;
-#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_exists */
 
 /**
@@ -221,12 +199,9 @@ jjs_vmod_remove (jjs_value_t name, jjs_value_ownership_t name_o)
 #if JJS_ANNEX_VMOD
   annex_vmod_remove (name);
 
-  if (name_o == JJS_MOVE)
-  {
-    jjs_value_free (name);
-  }
+  JJS_DISOWN (name, name_o);
 #else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED_ALL (name, name_o);
+  JJS_DISOWN (name, name_o);
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_remove */
 
@@ -237,11 +212,7 @@ void
 jjs_vmod_remove_sz (const char *name)
 {
   jjs_assert_api_enabled ();
-#if JJS_ANNEX_VMOD
   jjs_vmod_remove (annex_util_create_string_utf8_sz(name), JJS_MOVE);
-#else /* !JJS_ANNEX_VMOD */
-  JJS_UNUSED (name);
-#endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_remove */
 
 #if JJS_ANNEX_VMOD
