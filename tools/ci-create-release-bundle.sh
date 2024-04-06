@@ -28,10 +28,27 @@ shift
 TAG="jjs-$(./tools/version.py)-${TAG}"
 
 # standard jjs configuration
-./tools/build.py --builddir build/cmdline --default-vm-heap-size 8192 --vm-heap-static ON --jjs-pack ON --jjs-cmdline ON --snapshot-exec ON --clean "$@"
+./tools/build.py --builddir build/cmdline \
+  --default-vm-heap-size 8192 \
+  --show-opcodes ON \
+  --show-regexp-opcodes ON \
+  --vm-heap-static ON \
+  --mem-stats ON \
+  --jjs-pack ON \
+  --jjs-cmdline ON \
+  --logging ON \
+  --snapshot-exec ON \
+  --clean \
+  "$@"
 
 # jjs-snapshot must be a separate build because line info must be OFF
-./tools/build.py --builddir build/cmdline-snapshot --default-vm-heap-size 8192 --vm-heap-static ON --jjs-cmdline OFF --jjs-cmdline-snapshot ON --line-info OFF --clean "$@"
+./tools/build.py --builddir build/cmdline-snapshot \
+  --default-vm-heap-size 8192 \
+  --vm-heap-static ON \
+  --jjs-cmdline OFF \
+  --jjs-cmdline-snapshot ON \
+  --line-info OFF --clean \
+  "$@"
 
 cd build
 

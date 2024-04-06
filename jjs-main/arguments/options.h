@@ -87,7 +87,7 @@ typedef struct
   const char *exit_cb_name_p;
 
   uint16_t option_flags;
-  uint16_t init_flags;
+  uint32_t init_flags;
   uint8_t parse_result;
   main_input_type_t input_type;
   const char* stdin_filename;
