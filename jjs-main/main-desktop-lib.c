@@ -28,13 +28,6 @@
 #define platform_separator            '/'
 #endif
 
-typedef struct raw_source_s
-{
-  jjs_char_t* buffer_p;
-  jjs_size_t buffer_size;
-  jjs_value_t status;
-} raw_source_t;
-
 static void object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value);
 
 static const char* DEFAULT_STDIN_FILENAME = "<stdin>";
@@ -96,26 +89,14 @@ static JJS_HANDLER (pmap_handler)
 
   if (jjs_value_is_string (arg))
   {
-    return jjs_pmap_from_file (arg);
+    return jjs_pmap_from_file (arg, JJS_KEEP);
   }
   else if (jjs_value_is_object (arg))
   {
-    // TODO: should pmap api accept a json object?
-    jjs_value_t json = jjs_json_stringify (arg);
-
-    if (jjs_value_is_exception (json))
-    {
-      return json;
-    }
-
-    jjs_value_t result = jjs_pmap_from_json (json, args_cnt > 1 ? args_p[1] : jjs_undefined ());
-
-    jjs_value_free (json);
-
-    return result;
+    return jjs_pmap (arg, JJS_KEEP, args_cnt > 1 ? args_p[1] : jjs_undefined (), JJS_KEEP);
   }
 
-  return jjs_pmap_from_file (args_cnt > 0 ? args_p[0] : jjs_undefined ());
+  return jjs_throw_sz (JJS_ERROR_TYPE, "pmap expects a pmap object or a pmap filename");
 } /* pmap_handler */
 
 /**
@@ -141,7 +122,7 @@ static JJS_HANDLER (pmap_resolve_handler)
     module_type = JJS_MODULE_TYPE_NONE;
   }
 
-  return jjs_pmap_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined (), module_type);
+  return jjs_pmap_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined (), JJS_KEEP, module_type);
 } /* pmap_resolve_handler */
 
 /**

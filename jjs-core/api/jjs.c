@@ -6597,7 +6597,6 @@ jjs_typedarray_buffer (const jjs_value_t value, /**< TypedArray to get the array
  * call. The input buffer can be encoded as either cesu-8 or utf-8, but it is the callers responsibility to make sure
  * the encoding is valid.
  *
- *
  * @return object value, or exception
  */
 jjs_value_t
@@ -6622,6 +6621,59 @@ jjs_json_parse (const jjs_char_t *string_p, /**< json string */
   return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_JSON */
 } /* jjs_json_parse */
+
+/**
+ * Parse the given input buffer as a JSON string. The behaviour is equivalent with the "JSON.parse(string)" JS
+ * call. The input buffer can be encoded as either cesu-8 or utf-8, but it is the callers responsibility to make sure
+ * the encoding is valid.
+ *
+ * @return object value, or exception
+ */
+jjs_value_t
+jjs_json_parse_sz (const char* string_p) /**< null-terminated json string */
+{
+  jjs_assert_api_enabled ();
+#if JJS_BUILTIN_JSON
+  return jjs_json_parse ((const jjs_char_t*) string_p, string_p ? (jjs_size_t) strlen (string_p) : 0);
+#else /* !JJS_BUILTIN_JSON */
+  JJS_UNUSED (string_p);
+
+  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
+#endif /* JJS_BUILTIN_JSON */
+} /* jjs_json_parse_sz */
+
+/**
+ * Load a JSON object from file.
+ *
+ * @param filename path to JSON file
+ * @param filename_o filename reference ownership
+ * @return object value, or exception
+ */
+jjs_value_t
+jjs_json_parse_file (jjs_value_t filename, jjs_value_ownership_t filename_o)
+{
+  jjs_assert_api_enabled ();
+#if JJS_BUILTIN_JSON
+  jjs_value_t buffer = jjs_platform_read_file (filename, filename_o, NULL);
+
+  if (jjs_value_is_exception (buffer))
+  {
+    return buffer;
+  }
+
+  jjs_char_t* json_p = jjs_arraybuffer_data (buffer);
+  jjs_size_t len = jjs_arraybuffer_size (buffer);
+
+  jjs_value_t result = jjs_json_parse (json_p, len);
+
+  jjs_value_free (buffer);
+
+  return result;
+#else /* !JJS_BUILTIN_JSON */
+  JJS_UNUSED_ALL (filename, filename_o);
+  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
+#endif /* JJS_BUILTIN_JSON */
+} /* jjs_json_parse_file */
 
 /**
  * Create a JSON string from a JavaScript value.

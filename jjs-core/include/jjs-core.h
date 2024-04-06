@@ -1113,8 +1113,12 @@ jjs_value_t jjs_aggregate_error_sz (const jjs_value_t errors, const char *messag
  * @defgroup jjs-api-json-op Operations
  * @{
  */
+
 jjs_value_t jjs_json_parse (const jjs_char_t *string_p, jjs_size_t string_size);
+jjs_value_t jjs_json_parse_sz (const char* string_p);
+jjs_value_t jjs_json_parse_file (jjs_value_t filename, jjs_value_ownership_t filename_o);
 jjs_value_t jjs_json_stringify (const jjs_value_t object);
+
 /**
  * jjs-api-json-op @}
  */
@@ -1193,12 +1197,10 @@ void jjs_module_on_import (jjs_module_import_cb_t callback, void *user_p);
  * @{
  */
 
-jjs_value_t jjs_pmap_from_file (jjs_value_t filename);
-jjs_value_t jjs_pmap_from_file_sz (const char* filename_sz);
-jjs_value_t jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root);
+jjs_value_t jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, jjs_value_ownership_t dirname_o);
+jjs_value_t jjs_pmap_from_file (jjs_value_t filename, jjs_value_ownership_t filename_o);
 
-jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type);
-jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t module_type);
+jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type);
 
 /**
  * jjs-pmap-ops @}

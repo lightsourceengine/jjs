@@ -26,12 +26,121 @@
 #if JJS_ANNEX_PMAP
 static jjs_value_t validate_pmap (jjs_value_t pmap);
 static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type);
-static jjs_value_t set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root);
 static ecma_value_t find_nearest_package_path (ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type);
 static bool is_object (ecma_value_t value);
 static bool starts_with_dot_slash (ecma_value_t value);
 static jjs_value_t expect_path_like_string (ecma_value_t value);
+// TODO: move to a common place
+#define JJS_DISOWN(VALUE, VALUE_OWNERSHIP) if ((VALUE_OWNERSHIP) == JJS_MOVE) jjs_value_free (VALUE)
 #endif /* JJS_ANNEX_PMAP */
+
+/**
+ * Load a pmap (Package Map).
+ *
+ * A pmap the way JJS translates ESM and CommonJS package names to an absolute module
+ * file name. The pmap format is json and borrows from source maps and package.json
+ * syntax.
+ *
+ * Here is a general example.
+ *
+ * {
+ *   "packages": {
+ *     "a": "./index.js",
+ *     "b": {
+ *       "main": "./index.js"
+ *     },
+ *     "c": {
+ *       "module": "./index.mjs",
+ *       "commonjs": "./index.cjs"
+ *     },
+ *     "d": {
+ *       "path": "./path"
+ *     },
+ *     "@jjs/subpath": {
+ *       "main": "index.js",
+ *       "path": "./jjs_subpath"
+ *     }
+ *   }
+ * }
+ *
+ * When the pmap is set, a root directory is set. At resolution, the package name and
+ * commonjs or module is specified. The result is an absolute path. Here are examples
+ * of how a root of /home/jjs would be resolved:
+ *
+ * resolve ("a") -> /home/jjs/index.js
+ * resolve ("b") -> /home/jjs/index.js
+ * resolve ("c", "module") -> /home/jjs/index.mjs
+ * resolve ("c", "commonjs") -> /home/jjs/index.cjs
+ * resolve ("d/file.js") -> /home/jjs/path/file.js
+ * resolve ("@jjs/subpath") -> /home/jjs/subpath/index.js
+ * resolve ("@jjs/subpath/specific.js") -> /home/jjs/subpath/specific.js
+ *
+ * With pmaps, most of the common package patterns are supported in a relatively
+ * simple format.
+ *
+ * If a pmap has already been set in the current context, it will be replaced
+ * and cleaned up if and only if the filename can be loaded and the pmap validated.
+ * Otherwise, on error, the current pmap will remain unchanged.
+ *
+ * @param pmap pmap format JS object
+ * @param pmap_o pmap reference ownership
+ * @param filename JSON pmap file to load
+ * @param filename_o filename reference ownership
+ *
+ * @return on success, undefined is returned. on failure, an exception is thrown. return
+ * value must be freed with jjs_value_free.
+ */
+jjs_value_t
+jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, jjs_value_ownership_t dirname_o)
+{
+  jjs_assert_api_enabled ();
+#if JJS_ANNEX_PMAP
+  jjs_value_t result = validate_pmap (pmap);
+
+  if (jjs_value_is_exception (result))
+  {
+    JJS_DISOWN (pmap, pmap_o);
+    JJS_DISOWN (dirname, dirname_o);
+    return result;
+  }
+
+  jjs_value_free (result);
+
+  if (jjs_value_is_undefined (dirname))
+  {
+    JJS_DISOWN (dirname, dirname_o);
+    dirname = jjs_platform_cwd ();
+  }
+  else if (!jjs_value_is_string (dirname))
+  {
+    JJS_DISOWN (pmap, pmap_o);
+    JJS_DISOWN (dirname, dirname_o);
+    return jjs_throw_sz (JJS_ERROR_TYPE, "");
+  }
+  else
+  {
+    dirname = jjs_platform_realpath (dirname, dirname_o);
+  }
+
+  if (jjs_value_is_exception (dirname))
+  {
+    JJS_DISOWN (pmap, pmap_o);
+    return dirname;
+  }
+
+  // set the context pmap variables
+  jjs_value_free (JJS_CONTEXT (pmap));
+  JJS_CONTEXT (pmap) = pmap_o == JJS_MOVE ? pmap : jjs_value_copy (pmap);
+
+  jjs_value_free (JJS_CONTEXT (pmap_root));
+  JJS_CONTEXT (pmap_root) = dirname;
+
+  return jjs_undefined ();
+#else /* !JJS_ANNEX_PMAP */
+  JJS_UNUSED_ALL (filename, filename_o, dirname, dirname_o);
+  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
+#endif /* JJS_ANNEX_PMAP */
+} /* jjs_pmap */
 
 /**
  * Load a pmap (Package Map) from a file.
@@ -46,125 +155,51 @@ static jjs_value_t expect_path_like_string (ecma_value_t value);
  * Otherwise, on error, the current pmap will remain unchanged.
  *
  * @param filename JSON pmap file to load
- * @return on success, true is returned. on failure, an exception is thrown. return
+ * @param filename_o filename reference ownership
+ * @return on success, undefined is returned. on failure, an exception is thrown. return
  * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_pmap_from_file (jjs_value_t filename)
+jjs_pmap_from_file (jjs_value_t filename, jjs_value_ownership_t filename_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_PMAP
-  // get filename and dirname
-  jjs_value_t normalized = annex_path_normalize (filename);
+  // TODO: dirname does not work with relative paths, use realpath for now
+  jjs_value_t resolved_filename = jjs_platform_realpath (filename, filename_o);
 
-  if (!jjs_value_is_string (normalized))
+  if (jjs_value_is_exception (resolved_filename))
   {
-    jjs_value_free (normalized);
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid filename");
+    return resolved_filename;
   }
 
-  jjs_value_t root_path = annex_path_dirname (normalized);
+  jjs_value_t dirname = annex_path_dirname (resolved_filename);
 
-  if (!jjs_value_is_string (root_path))
+  if (ecma_is_value_empty (dirname))
   {
-    jjs_value_free (normalized);
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to get dirname from normalized filename");
+    jjs_value_free (dirname);
+    dirname = ecma_string_ascii_sz (".");
   }
 
-  jjs_platform_buffer_t buffer;
-  jjs_value_t read_file_result = jjsp_read_file_buffer (normalized, &buffer);
-
-  jjs_value_free (normalized);
-
-  if (jjs_value_is_exception (read_file_result))
+  if (jjs_value_is_exception (dirname))
   {
-    jjs_value_free (root_path);
-    return read_file_result;
+    jjs_value_free (resolved_filename);
+    return dirname;
   }
 
-  jjs_value_free (read_file_result);
+  jjs_value_t pmap = jjs_json_parse_file (resolved_filename, JJS_MOVE);
 
-  // set pmap variables from JSON source
-  jjs_value_t result = set_pmap_from_json (buffer.data_p, buffer.length, root_path);
+  if (jjs_value_is_exception (pmap))
+  {
+    jjs_value_free (dirname);
+    return pmap;
+  }
 
-  buffer.free (&buffer);
-  jjs_value_free (root_path);
-
-  return result;
+  return jjs_pmap (pmap, JJS_MOVE, dirname, JJS_MOVE);
 #else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED (filename);
+  JJS_UNUSED_ALL (filename, filename_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_from_file */
-
-/**
- * Load a pmap (Package Map) from a file.
- *
- * @see jjs_pmap_from_file
- *
- * @param filename_sz filename as a null-terminated cstring
- * @return on success, true is returned. on failure, an exception is thrown. return
- * value must be freed with jjs_value_free.
- */
-jjs_value_t
-jjs_pmap_from_file_sz (const char* filename_sz)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_PMAP
-  jjs_value_t filename = annex_util_create_string_utf8_sz (filename_sz);
-
-  if (jjs_value_is_exception (filename))
-  {
-    jjs_value_free (filename);
-    filename = ECMA_VALUE_UNDEFINED;
-  }
-
-  jjs_value_t result = jjs_pmap_from_file (filename);
-
-  jjs_value_free (filename);
-
-  return result;
-#else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED (filename_sz);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_ANNEX_PMAP */
-} /* jjs_pmap_from_file_sz */
-
-/**
- * Load a pmap (Package Map) from a JSON string.
- *
- * The pmap root must be specified by the caller.
- *
- * @param json_string JSON pmap string
- * @param root pmap root directory
- * @return on success, true is returned. on failure, an exception is thrown. return
- *         value must be freed with jjs_value_free.
- */
-jjs_value_t
-jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_PMAP
-  if (!jjs_value_is_string (json_string))
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "json_string must be a string");
-  }
-
-  ecma_string_t* source_p = ecma_get_string_from_value (json_string);
-
-  ECMA_STRING_TO_UTF8_STRING (source_p, json_string_p, json_string_size);
-
-  jjs_value_t result = set_pmap_from_json (json_string_p, json_string_size, root);
-
-  ECMA_FINALIZE_UTF8_STRING (json_string_p, json_string_size);
-
-  return result;
-#else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED (json_string);
-  JJS_UNUSED (root);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_ANNEX_PMAP */
-} /* jjs_pmap_from_json */
 
 /**
  * Resolve the absolute filename of a package specifier against the
@@ -186,56 +221,23 @@ jjs_pmap_from_json (jjs_value_t json_string, jjs_value_t root)
  * the nominal use case, a module system should be specified.
  *
  * @param specifier package name to resolve
+ * @param specifier_o specifier reference ownership
  * @param module_type the module system to resolve against
  * @return absolute file path to the module. on error, an exception will be
  * thrown. return value must be freed with jjs_value_free().
  */
-jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type)
+jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_PMAP
-  return jjs_annex_pmap_resolve (specifier, module_type);
+  jjs_value_t result = jjs_annex_pmap_resolve (specifier, module_type);
+  JJS_DISOWN (specifier, specifier_o);
+  return result;
 #else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED (specifier);
-  JJS_UNUSED (module_type);
+  JJS_UNUSED_ALL (specifier, specifier_o, module_type);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_resolve */
-
-/**
- * Resolve the absolute filename of a package specifier against the
- * currently set pmap and a module system.
- *
- * @see jjs_pmap_resolve
- *
- * @param specifier package name to resolve
- * @param module_type the module system to resolve against
- * @return absolute file path to the module. on error, an exception will be
- * thrown. return value must be freed with jjs_value_free().
- */
-jjs_value_t jjs_pmap_resolve_sz (const char* specifier_sz, jjs_module_type_t module_type)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_PMAP
-  jjs_value_t specifier = annex_util_create_string_utf8_sz (specifier_sz);
-
-  if (jjs_value_is_exception (specifier))
-  {
-    jjs_value_free (specifier);
-    specifier = ECMA_VALUE_UNDEFINED;
-  }
-
-  jjs_value_t result = jjs_pmap_resolve (specifier, module_type);
-
-  jjs_value_free (specifier);
-
-  return result;
-#else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED (specifier_sz);
-  JJS_UNUSED (module_type);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_ANNEX_PMAP */
-} /* jjs_pmap_resolve_sz */
 
 #if JJS_ANNEX_PMAP
 
@@ -575,43 +577,6 @@ static jjs_value_t validate_pmap (jjs_value_t pmap)
 
   return ECMA_VALUE_TRUE;
 } /* validate_pmap */
-
-/**
- * Set the pmap context variables from a JSON string.
- */
-static jjs_value_t
-set_pmap_from_json (const jjs_char_t* json_string_p, jjs_size_t json_string_size, jjs_value_t root)
-{
-  if (!jjs_value_is_string (root))
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "pmap root must be a string");
-  }
-
-  // parse JSON
-  jjs_value_t pmap = jjs_json_parse (json_string_p, json_string_size);
-
-  if (jjs_value_is_exception (pmap))
-  {
-    return pmap;
-  }
-
-  // validate pmap
-  jjs_value_t result = validate_pmap (pmap);
-
-  if (jjs_value_is_exception (result))
-  {
-    ecma_free_value (pmap);
-    return result;
-  }
-
-  // set the context pmap variables
-  jjs_value_free (JJS_CONTEXT (pmap));
-  JJS_CONTEXT (pmap) = pmap;
-  jjs_value_free (JJS_CONTEXT (pmap_root));
-  JJS_CONTEXT (pmap_root) = jjs_value_copy (root);
-
-  return ECMA_VALUE_TRUE;
-} /* set_pmap_from_json */
 
 /**
  * Call string.lastIndexOf() with the given arguments.
