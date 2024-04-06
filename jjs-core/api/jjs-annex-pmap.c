@@ -137,7 +137,7 @@ jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, j
 
   return jjs_undefined ();
 #else /* !JJS_ANNEX_PMAP */
-  JJS_UNUSED_ALL (filename, filename_o, dirname, dirname_o);
+  JJS_UNUSED_ALL (pmap, pmap_o, dirname, dirname_o);
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap */
