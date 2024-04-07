@@ -166,6 +166,44 @@ test_init_options_external_heap_when_heap_static (void)
   }
 }
 
+static bool unhandled_rejection_called = false;
+
+static void unhandled_rejection (jjs_value_t promise, jjs_value_t reason, void *user_p)
+{
+  unhandled_rejection_called = true;
+
+  TEST_ASSERT (jjs_value_is_promise (promise));
+  TEST_ASSERT (jjs_value_is_error (reason));
+  TEST_ASSERT (((uintptr_t) user_p) == 1);
+}
+
+static void
+test_init_unhandled_rejection_handler (void)
+{
+  jjs_context_options_t options = jjs_context_options();
+
+  options.unhandled_rejection_cb = unhandled_rejection;
+  options.unhandled_rejection_user_p = (void*) (uintptr_t) 1;
+
+  jjs_init (&options);
+
+  jjs_esm_source_t source = {
+    .source_sz = "import('blah')",
+  };
+
+  jjs_value_t result = jjs_esm_evaluate_source (&source, JJS_MOVE);
+  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_value_free (result);
+
+  result = jjs_run_jobs();
+  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_value_free (result);
+
+  TEST_ASSERT (unhandled_rejection_called);
+
+  jjs_cleanup ();
+}
+
 int
 main (void)
 {
@@ -179,6 +217,8 @@ main (void)
   test_init_options_external_heap_when_heap_static ();
   test_init_options_stack_limit ();
   test_init_options_stack_limit_when_stack_static ();
+
+  test_init_unhandled_rejection_handler ();
 
   return 0;
 } /* main */

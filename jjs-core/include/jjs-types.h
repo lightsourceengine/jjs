@@ -30,6 +30,11 @@ JJS_C_API_BEGIN
  */
 
 /**
+ * Description of a JJS value.
+ */
+typedef uint32_t jjs_value_t;
+
+/**
  * Error codes that can be passed by the engine when calling jjs_platform_fatal.
  */
 typedef enum
@@ -260,6 +265,11 @@ typedef enum
 typedef void (*jjs_context_heap_free_cb_t) (void* context_heap_p, void* user_p);
 
 /**
+ * Callback for handling an unhandled promise rejection.
+ */
+typedef void (*jjs_context_unhandled_rejection_cb_t) (jjs_value_t promise, jjs_value_t reason, void *user_p);
+
+/**
  * Settings for an externally allocated heap.
  */
 typedef struct
@@ -307,6 +317,24 @@ typedef struct
    * Context configuration flags. Bits enumerated in jjs_context_flag_t.
    */
   uint32_t context_flags;
+
+  /**
+   * Unhandled rejection callback.
+   *
+   * An unhandled rejection can be received via jjs_promise_on_event; however, enabling that
+   * enables all promise events. There is only one on_event listener and that is for
+   * user code. And, the on_event is a compile time switch.
+   *
+   * This function is exclusively for listening to the unhandled rejection event, it's always
+   * built and can be dynamically configured by the user. If not set, the default behavior is
+   * to log the unhandled rejection reason by logging to error.
+   */
+  jjs_context_unhandled_rejection_cb_t unhandled_rejection_cb;
+
+  /**
+   * User defined token passed to unhandled_rejection_cb. Default: NULL
+   */
+  void* unhandled_rejection_user_p;
 
   /**
    * Externally allocated heap configuration.
@@ -517,11 +545,6 @@ typedef uint32_t jjs_size_t;
  * Length type of JJS.
  */
 typedef uint32_t jjs_length_t;
-
-/**
- * Description of a JJS value.
- */
-typedef uint32_t jjs_value_t;
 
 /**
  * Option bits for jjs_parse_options_t.
@@ -800,11 +823,6 @@ typedef struct
    */
   size_t bytes_needed;
 } jjs_context_data_manager_t;
-
-/**
- * Function type for allocating buffer for JJS context.
- */
-typedef void *(*jjs_context_alloc_cb_t) (size_t size, void *cb_data_p);
 
 /**
  * Type information of a native pointer.

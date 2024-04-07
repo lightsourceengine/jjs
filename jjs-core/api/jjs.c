@@ -4958,6 +4958,77 @@ jjs_format_int (int num, uint8_t width, char padding, char *buffer_p)
   return cursor_p;
 } /* jjs_format_int */
 
+static void
+jjs_log_value_internal (jjs_log_level_t level, jjs_value_t value, jjs_value_ownership_t value_o)
+{
+  if (jjs_value_is_exception (value))
+  {
+    JJS_DISOWN (value, value_o);
+    return;
+  }
+
+  jjs_value_t as_string = jjs_value_to_string (value);
+
+  if (jjs_value_is_exception (as_string))
+  {
+    JJS_DISOWN (value, value_o);
+    jjs_log (level, "Failed toString() on exception value.");
+    return;
+  }
+
+  char buffer[2048];
+  jjs_size_t c = jjs_string_to_buffer (as_string,
+                                       JJS_ENCODING_UTF8,
+                                       (jjs_char_t *) buffer,
+                                       (sizeof (buffer) / sizeof (buffer[0])) - 2);
+
+  buffer[c] = '\n';
+  buffer[c + 1] = '\0';
+  jjs_log_string (buffer);
+
+  if (jjs_value_is_error (value))
+  {
+    // TODO: print cause and AggregateError errors
+
+    jjs_value_t backtrace_val = jjs_object_get_sz (value, "stack");
+
+    if (jjs_value_is_array (backtrace_val))
+    {
+      uint32_t length = jjs_array_length (backtrace_val);
+
+      for (uint32_t i = 0; i < length; i++)
+      {
+        jjs_value_t item_val = jjs_object_get_index (backtrace_val, i);
+
+        if (jjs_value_is_string (item_val))
+        {
+          c = jjs_string_to_buffer (item_val,
+                                    JJS_ENCODING_UTF8,
+                                    (jjs_char_t *) buffer,
+                                    (sizeof (buffer) / sizeof (buffer[0])) - 1);
+          buffer[c] = '\0';
+
+          if (i == length - 1)
+          {
+            jjs_log (level, "    at %s", buffer);
+          }
+          else
+          {
+            jjs_log (level, "    at %s\n", buffer);
+          }
+        }
+
+        jjs_value_free (item_val);
+      }
+    }
+
+    jjs_value_free (backtrace_val);
+  }
+
+  jjs_value_free (as_string);
+  JJS_DISOWN (value, value_o);
+} /* jjs_log_value_internal */
+
 /**
  * Log a zero-terminated formatted message with the specified log level.
  *
@@ -5088,6 +5159,117 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
 
   va_end (vl);
 } /* jjs_log */
+
+static void
+fmt_buffer_flush (char *buffer_p, jjs_size_t *buffer_index_p)
+{
+  if (*buffer_index_p > 0)
+  {
+    buffer_p[*buffer_index_p] = '\0';
+    jjs_log_string (buffer_p);
+    *buffer_index_p = 0;
+  }
+}
+
+static void
+fmt_buffer_write (char c, char *buffer_p, jjs_size_t *buffer_index_p)
+{
+  if (*buffer_index_p == JJS_LOG_BUFFER_SIZE - 1)
+  {
+    fmt_buffer_flush (buffer_p, buffer_index_p);
+  }
+
+  buffer_p[*buffer_index_p] = c;
+  *buffer_index_p = *buffer_index_p + 1;
+}
+
+/**
+ * Log JS values in a fmt-like format.
+ *
+ * Only the {} marker is supported and the values can only be JS values.
+ *
+ * In C, va args do not report size and going out of bounds is undefined. printf relies on the
+ * compiler to check args match the format string needs. jjs_log relies on this compiler check
+ * and it cannot be extended to support JS values. The safe choice is to take a user defined
+ * array of substitutions, rather than use va args.
+ *
+ * If the number {} markers do not match the substitution array length, an undefined will be
+ * substituted or the extra substitutions will not be printed.
+ *
+ * jjs_log_fmt macro is available to hide the creation of a temporary values array, giving a
+ * var args like experience.
+ *
+ * @param level log level. if greater than the current log level, the message will not be printed
+ * @param format_p format string. only {} substitutions are supported.
+ * @param values list of values. if values_length == 0, this can be NULL.
+ * @param values_length value count. if < number of {}, undefined will be substituted. if > {}, extra values will not be
+ * printed
+ */
+void
+jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length)
+{
+  if (level > jjs_jrt_get_log_level ())
+  {
+    return;
+  }
+
+  jjs_size_t values_index = 0;
+  char buffer_p[JJS_LOG_BUFFER_SIZE];
+  uint32_t buffer_index = 0;
+  const char *cursor_p = format_p;
+  bool found_left_brace = false;
+
+  while (*cursor_p != '\0')
+  {
+    if (*cursor_p == '{')
+    {
+      if (found_left_brace)
+      {
+        fmt_buffer_write ('{', buffer_p, &buffer_index);
+      }
+      else
+      {
+        found_left_brace = true;
+      }
+    }
+    else if (found_left_brace && *cursor_p == '}')
+    {
+      cursor_p++;
+      found_left_brace = false;
+      fmt_buffer_flush (buffer_p, &buffer_index);
+
+      // TODO: log_value uses jjs_log. i think this stuff can be made more efficient, but this works for now
+      jjs_value_t value = values_index < values_length ? values[values_index++] : jjs_undefined ();
+
+      if (jjs_value_is_symbol (value))
+      {
+        jjs_log_value_internal (level, jjs_symbol_descriptive_string (value), JJS_MOVE);
+      }
+      else if (jjs_value_is_exception (value))
+      {
+        jjs_log_value_internal (level, jjs_exception_value (value, false), JJS_MOVE);
+      }
+      else
+      {
+        jjs_log_value_internal (level, value, JJS_KEEP);
+      }
+    }
+    else
+    {
+      if (found_left_brace)
+      {
+        fmt_buffer_write ('{', buffer_p, &buffer_index);
+        found_left_brace = false;
+      }
+
+      fmt_buffer_write (*cursor_p, buffer_p, &buffer_index);
+    }
+
+    cursor_p++;
+  }
+
+  fmt_buffer_flush (buffer_p, &buffer_index);
+} /* jjs_log_fmt */
 
 /**
  * Allocate memory on the engine's heap.

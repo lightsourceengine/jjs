@@ -214,19 +214,22 @@ ecma_reject_promise (ecma_value_t promise, /**< promise */
   /* Fulfill reactions will never be triggered. */
   ecma_promise_trigger_reactions (reactions, reason, true);
 
-#if JJS_PROMISE_CALLBACK
   if (reactions->item_count == 0)
   {
     ((ecma_extended_object_t *) obj_p)->u.cls.u1.promise_flags |= ECMA_PROMISE_UNHANDLED_REJECT;
 
+#if JJS_PROMISE_CALLBACK
     if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
     {
       JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
       JJS_CONTEXT (promise_callback)
       (JJS_PROMISE_EVENT_REJECT_WITHOUT_HANDLER, promise, reason, JJS_CONTEXT (promise_callback_user_p));
     }
-  }
 #endif /* JJS_PROMISE_CALLBACK */
+
+    JJS_ASSERT (JJS_CONTEXT (unhandled_rejection_cb) != NULL);
+    JJS_CONTEXT (unhandled_rejection_cb) (promise, reason, JJS_CONTEXT (unhandled_rejection_user_p));
+  }
 
   promise_p->reactions = ecma_new_collection ();
 
@@ -1188,19 +1191,19 @@ ecma_promise_async_then (ecma_value_t promise, /**< promise object */
   ecma_enqueue_promise_async_reaction_job (executable_object, value, !(flags & ECMA_PROMISE_IS_FULFILLED));
   ecma_free_value (value);
 
-#if JJS_PROMISE_CALLBACK
+
   if (ecma_promise_get_flags (promise_obj_p) & ECMA_PROMISE_UNHANDLED_REJECT)
   {
     ((ecma_extended_object_t *) promise_obj_p)->u.cls.u1.promise_flags &= (uint8_t) ~ECMA_PROMISE_UNHANDLED_REJECT;
-
+#if JJS_PROMISE_CALLBACK
     if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
     {
       JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
       JJS_CONTEXT (promise_callback)
       (JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED, promise, ECMA_VALUE_UNDEFINED, JJS_CONTEXT (promise_callback_user_p));
     }
-  }
 #endif /* JJS_PROMISE_CALLBACK */
+  }
 } /* ecma_promise_async_then */
 
 /**
@@ -1342,11 +1345,11 @@ ecma_promise_perform_then (ecma_value_t promise, /**< the promise which call 'th
     ecma_enqueue_promise_reaction_job (ecma_make_object_value (result_capability_obj_p), on_rejected, reason);
     ecma_free_value (reason);
 
-#if JJS_PROMISE_CALLBACK
+
     if (ecma_promise_get_flags (promise_obj_p) & ECMA_PROMISE_UNHANDLED_REJECT)
     {
       promise_p->header.u.cls.u1.promise_flags &= (uint8_t) ~ECMA_PROMISE_UNHANDLED_REJECT;
-
+#if JJS_PROMISE_CALLBACK
       if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
       {
         JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
@@ -1356,8 +1359,8 @@ ecma_promise_perform_then (ecma_value_t promise, /**< the promise which call 'th
          ECMA_VALUE_UNDEFINED,
          JJS_CONTEXT (promise_callback_user_p));
       }
-    }
 #endif /* JJS_PROMISE_CALLBACK */
+    }
   }
 
   /* 10. */

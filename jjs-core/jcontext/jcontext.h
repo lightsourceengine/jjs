@@ -72,12 +72,17 @@ typedef struct jjs_context_data_header
 struct jjs_context_t
 {
   uint32_t context_flags; /**< context flags */
+
+  ecma_global_object_t *global_object_p; /**< current global object */
+
   jmem_heap_t* heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
+  jjs_context_heap_free_cb_t heap_free_cb; /**< called when an external heap pointer should be free'd */
+  void* heap_free_user_p; /**< user defined token to pass to heap_free_cb */
 
   jjs_platform_t platform_api; /**< platform api access */
 
-  jjs_context_heap_free_cb_t heap_free_cb; /**< called when an external heap pointer should be free'd */
-  void* heap_free_user_p; /**< user defined token to pass to heap_free_cb */
+  jjs_context_unhandled_rejection_cb_t unhandled_rejection_cb; /**< called when a promise rejection has no handler. cannot be NULL. */
+  void *unhandled_rejection_user_p; /**< user defined token passed to unhandled_rejection_cb */
 
   uint32_t vm_heap_size; /**< size of vm heap */
   uint32_t vm_stack_limit; /**< vm stack limit. if 0, no stack limit checks are performed. */
@@ -85,7 +90,6 @@ struct jjs_context_t
   uint32_t gc_mark_limit; /**< gc mark recursion depth */
   uint32_t gc_new_objects_fraction; /**< number of new objects before triggering gc */
 
-  ecma_global_object_t *global_object_p; /**< current global object */
   jmem_heap_free_t *jmem_heap_list_skip_p; /**< improves deallocation performance */
   jmem_pools_chunk_t *jmem_free_8_byte_chunk_p; /**< list of free eight byte pool chunks */
   uint8_t* jmem_area_end; /**< precomputed address of end of heap; only for pointer validation */

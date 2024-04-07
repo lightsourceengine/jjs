@@ -32,6 +32,8 @@
 uint8_t jjs_static_heap [JJS_DEFAULT_VM_HEAP_SIZE * 1024] JJS_ATTR_ALIGNED (JMEM_ALIGNMENT) JJS_ATTR_STATIC_HEAP;
 #endif /* JJS_VM_HEAP_STATIC */
 
+static void unhandled_rejection_default (jjs_value_t promise, jjs_value_t reason, void *user_p);
+
 /*
  * Setup the global context object.
  *
@@ -146,6 +148,16 @@ jjs_context_init (const jjs_context_options_t* options_p)
 #endif /* JJS_VM_HEAP_STATIC */
   JJS_CONTEXT (heap_p) = block;
 
+  if (options_p->unhandled_rejection_cb)
+  {
+    JJS_CONTEXT (unhandled_rejection_cb) = options_p->unhandled_rejection_cb;
+    JJS_CONTEXT (unhandled_rejection_user_p) = options_p->unhandled_rejection_user_p;
+  }
+  else
+  {
+    JJS_CONTEXT (unhandled_rejection_cb) = &unhandled_rejection_default;
+  }
+
   context_flags |= ECMA_STATUS_CONTEXT_INITIALIZED;
   JJS_CONTEXT (context_flags) = context_flags;
   JJS_CONTEXT (platform_api) = options_p->platform;
@@ -175,4 +187,16 @@ jjs_context_cleanup (void)
   }
 #endif /* JJS_VM_HEAP_STATIC */
   memset (&JJS_CONTEXT_STRUCT, 0, sizeof (JJS_CONTEXT_STRUCT));
+}
+
+/**
+ * Default implementation of unhandled rejection callback.
+ */
+static void
+unhandled_rejection_default (jjs_value_t promise, jjs_value_t reason, void *user_p)
+{
+  JJS_UNUSED_ALL (promise, reason, user_p);
+#if JJS_LOGGING
+  jjs_log_fmt (JJS_LOG_LEVEL_ERROR, "Uncaught:\n{}\n", reason);
+#endif
 }
