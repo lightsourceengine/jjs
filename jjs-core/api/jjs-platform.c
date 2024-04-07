@@ -43,7 +43,7 @@ static const char* const jjs_arch_identifier_p =
 "ia32"
 #elif defined(JJS_ARCH_IS_ARM)
 "arm"
-#elif defined(JJS_ARCH_IS_X64)
+#elif defined(JJS_ARCH_IS_ARM64)
 "arm64"
 #elif defined(JJS_ARCH_IS_X64)
 "x64"
