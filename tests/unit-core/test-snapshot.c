@@ -248,12 +248,6 @@ main (void)
 {
   TEST_INIT ();
 
-  // snapshots do not work with line info on
-  if (jjs_feature_enabled (JJS_FEATURE_LINE_INFO))
-  {
-    return 0;
-  }
-
   /* Static snapshot */
   if (jjs_feature_enabled (JJS_FEATURE_SNAPSHOT_SAVE) && jjs_feature_enabled (JJS_FEATURE_SNAPSHOT_EXEC))
   {

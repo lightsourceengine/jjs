@@ -901,9 +901,9 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     total_size += sizeof (ecma_value_t);
   }
 
-#if JJS_LINE_INFO
+  /* space for line info block */
   total_size += sizeof (ecma_value_t);
-#endif /* JJS_LINE_INFO */
+
   uint8_t extended_info = 0;
 
   if (context_p->argument_length != UINT16_MAX)
@@ -1074,7 +1074,7 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   compiled_code_p->status_flags |= function_type;
 
 #if JJS_LINE_INFO
-  compiled_code_p->status_flags |= CBC_CODE_FLAGS_HAS_LINE_INFO;
+  compiled_code_p->status_flags |= CBC_CODE_FLAGS_USING_LINE_INFO;
 #endif /* JJS_LINE_INFO */
 
   literal_pool_p = ((ecma_value_t *) byte_code_p) - context_p->register_count;
@@ -1334,13 +1334,14 @@ parser_post_processing (parser_context_t *context_p) /**< context */
 
 #if JJS_LINE_INFO
   ECMA_SET_INTERNAL_VALUE_POINTER (base_p[-1], line_info_p);
+#else /* !JJS_LINE_INFO */
+  base_p[-1] = JMEM_CP_NULL;
 #endif /* JJS_LINE_INFO */
 
   if (extended_info != 0)
   {
-#if JJS_LINE_INFO
+    /* adjust for line info block */
     base_p--;
-#endif /* JJS_LINE_INFO */
 
     uint8_t *extended_info_p = ((uint8_t *) base_p) - 1;
 

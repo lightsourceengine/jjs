@@ -829,7 +829,7 @@ typedef enum
   CBC_CODE_FLAGS_LEXICAL_ENV_NOT_NEEDED = (1u << 4), /**< no need to create a lexical environment */
   CBC_CODE_FLAGS_HAS_EXTENDED_INFO = (1u << 5), /**< this function has extended info block */
   CBC_CODE_FLAGS_HAS_TAGGED_LITERALS = (1u << 6), /**< this function has tagged template literal list */
-  CBC_CODE_FLAGS_HAS_LINE_INFO = (1u << 7), /**< this function has line info block */
+  CBC_CODE_FLAGS_USING_LINE_INFO = (1u << 7), /**< this function is using the line info block */
   CBC_CODE_FLAGS_STATIC_FUNCTION = (1u << 8), /**< this function is a static snapshot function */
   CBC_CODE_FLAGS_DEBUGGER_IGNORE = (1u << 9), /**< this function should be ignored by debugger */
   CBC_CODE_FLAGS_LEXICAL_BLOCK_NEEDED = (1u << 10), /**< compiled code needs a lexical block */

@@ -92,7 +92,7 @@ vm_get_backtrace (uint32_t max_depth) /**< maximum backtrace depth, 0 = unlimite
       ecma_stringbuilder_append_byte (&builder, LIT_CHAR_COLON);
     }
 
-    if (bytecode_header_p->status_flags & CBC_CODE_FLAGS_HAS_LINE_INFO)
+    if (bytecode_header_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO)
     {
       jjs_frame_location_t location;
       ecma_line_info_get (ecma_compiled_code_get_line_info (bytecode_header_p),

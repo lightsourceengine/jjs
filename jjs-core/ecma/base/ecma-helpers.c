@@ -1537,7 +1537,7 @@ ecma_bytecode_deref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
     }
 
 #if JJS_LINE_INFO
-    if (bytecode_p->status_flags & CBC_CODE_FLAGS_HAS_LINE_INFO)
+    if (bytecode_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO)
     {
       ecma_line_info_free (ecma_compiled_code_get_line_info (bytecode_p));
     }
@@ -1735,7 +1735,7 @@ uint8_t *
 ecma_compiled_code_get_line_info (const ecma_compiled_code_t *bytecode_header_p) /**< compiled code */
 {
   JJS_ASSERT (bytecode_header_p != NULL);
-  JJS_ASSERT (bytecode_header_p->status_flags & CBC_CODE_FLAGS_HAS_LINE_INFO);
+  JJS_ASSERT (bytecode_header_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO);
 
   ecma_value_t *base_p = ecma_compiled_code_resolve_arguments_start (bytecode_header_p);
 

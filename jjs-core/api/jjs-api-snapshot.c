@@ -245,8 +245,8 @@ snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< co
   uint32_t literal_end;
 
 #if JJS_LINE_INFO
-  /* TODO: support snapshots. */
-  ((ecma_compiled_code_t *) buffer_p)->status_flags &= (uint16_t) ~CBC_CODE_FLAGS_HAS_LINE_INFO;
+  /* disable line info in the snapshot, but the line info slot space will remain */
+  copied_code_p->status_flags &= (uint16_t) ~CBC_CODE_FLAGS_USING_LINE_INFO;
 #endif /* JJS_LINE_INFO */
 
   if (compiled_code_p->status_flags & CBC_CODE_FLAGS_UINT16_ARGUMENTS)
@@ -636,7 +636,11 @@ snapshot_load_compiled_code (const uint8_t *base_addr_p, /**< base address of th
       extra_bytes += (uint32_t) sizeof (ecma_value_t);
     }
 
+    /* adjust for line info block */
+    extra_bytes += (uint32_t) sizeof (ecma_value_t);
+
 #if JJS_SOURCE_NAME
+    /* TODO: what is this? i don't see where this is being set in parser. */
     /* source name */
     extra_bytes += (uint32_t) sizeof (ecma_value_t);
 #endif /* JJS_SOURCE_NAME */
@@ -737,16 +741,6 @@ jjs_generate_snapshot (jjs_value_t compiled_code, /**< parsed script or function
                          size_t buffer_size) /**< the buffer's size */
 {
 #if JJS_SNAPSHOT_SAVE
-  // if JJS_LINE_INFO is ON, a bad snapshot will be generated. In some cases, the snapshot
-  // will load and execute just fine. However, if anything related to Function is done, such
-  // as bind, apply, toString, etc, the execution will assert or panic. Also, function length
-  // is not correct. It appears the JJS_LINE_INFO is another feature not implemented in snapshots.
-  // When support is implemented, this feature can be re-enabled.
-  if (jjs_feature_enabled (JJS_FEATURE_LINE_INFO))
-  {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "snapshots cannot be generated with JJS_LINE_INFO enabled");
-  }
-
   uint32_t allowed_options = JJS_SNAPSHOT_SAVE_STATIC;
 
   if ((generate_snapshot_opts & ~allowed_options) != 0)

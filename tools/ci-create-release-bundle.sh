@@ -41,13 +41,13 @@ TAG="jjs-$(./tools/version.py)-${TAG}"
   --clean \
   "$@"
 
-# jjs-snapshot must be a separate build because line info must be OFF
+# jjs-snapshot must be a separate build because jjs-pack, mem-stats and opcodes are not needed
 ./tools/build.py --builddir build/cmdline-snapshot \
   --default-vm-heap-size 8192 \
   --vm-heap-static ON \
   --jjs-cmdline OFF \
   --jjs-cmdline-snapshot ON \
-  --line-info OFF --clean \
+  --clean \
   "$@"
 
 cd build

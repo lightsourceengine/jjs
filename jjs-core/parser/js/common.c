@@ -441,10 +441,8 @@ util_print_cbc (ecma_compiled_code_t *compiled_code_p) /**< compiled code */
     size -= sizeof (ecma_value_t);
   }
 
-  if (compiled_code_p->status_flags & CBC_CODE_FLAGS_HAS_LINE_INFO)
-  {
-    size -= sizeof (ecma_value_t);
-  }
+  /* adjust for line info block */
+  size -= sizeof (ecma_value_t);
 
   byte_code_end_p = ((uint8_t *) compiled_code_p) + size;
   byte_code_p = byte_code_start_p;

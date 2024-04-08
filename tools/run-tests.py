@@ -55,8 +55,6 @@ OPTIONS_SNAPSHOT = [
     '--snapshot-save=on',
     '--snapshot-exec=on',
     '--jjs-cmdline-snapshot=on',
-    # must be off for snapshots to save
-    '--line-info=off',
 ]
 OPTIONS_UNITTESTS = [
     # enable unittests
@@ -74,8 +72,6 @@ OPTIONS_UNITTESTS = [
     '--promise-callback=on',
     '--jjs-ext=on',
     '--jjs-ext-debugger=on',
-    # required for backtrace tests. however, snapshot tests create snapshots which cannot
-    # be run with line info on. test gap: snapshot tests not run
     '--line-info=on',
 ]
 OPTIONS_PROMISE_CALLBACK = ['--promise-callback=on']

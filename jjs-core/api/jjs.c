@@ -5395,7 +5395,7 @@ jjs_frame_location (jjs_frame_t *frame_p) /**< frame pointer */
     vm_frame_ctx_t *context_p = frame_p->context_p;
     const ecma_compiled_code_t *bytecode_header_p = context_p->shared_p->bytecode_header_p;
 
-    if (!(bytecode_header_p->status_flags & CBC_CODE_FLAGS_HAS_LINE_INFO))
+    if (!(bytecode_header_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO))
     {
       return NULL;
     }

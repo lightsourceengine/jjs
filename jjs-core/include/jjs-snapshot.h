@@ -27,7 +27,7 @@ JJS_C_API_BEGIN
 /**
  * JJS snapshot format version.
  */
-#define JJS_SNAPSHOT_VERSION (70u)
+#define JJS_SNAPSHOT_VERSION (71u)
 
 /**
  * Flags for jjs_generate_snapshot and jjs_generate_function_snapshot.
