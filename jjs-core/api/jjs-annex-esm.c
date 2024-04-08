@@ -43,6 +43,7 @@ typedef enum
   ESM_RUN_RESULT_NONE,
 } esm_result_type_t;
 
+static JJS_HANDLER (esm_resolve_handler);
 static jjs_value_t esm_read (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path);
 static jjs_value_t esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t result_type);
@@ -545,6 +546,17 @@ jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_object, 
   jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_FILENAME);
   jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_DIRNAME);
 
+  jjs_value_t resolve = jjs_function_external (esm_resolve_handler);
+  jjs_value_t dirname = ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME);
+  jjs_value_t path = ecma_make_magic_string_value(LIT_MAGIC_STRING_PATH);
+
+  jjs_object_set_internal (resolve, path, dirname);
+  ecma_set_m (meta_object, LIT_MAGIC_STRING_RESOLVE, resolve);
+
+  jjs_value_free (path);
+  jjs_value_free (dirname);
+  jjs_value_free (resolve);
+
   ecma_value_t extension = ecma_find_own_m (module, LIT_MAGIC_STRING_EXTENSION);
 
   if (extension != ECMA_VALUE_NOT_FOUND)
@@ -559,6 +571,48 @@ jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_object, 
 } /* jjs_module_default_import_meta */
 
 #if JJS_ANNEX_ESM
+
+static JJS_HANDLER (esm_resolve_handler)
+{
+  jjs_value_t specifier = args_count > 0 ? args_p[0] : jjs_undefined ();
+
+  if (!jjs_value_is_string (specifier))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid argument");
+  }
+
+#if JJS_ANNEX_VMOD
+  if (jjs_vmod_exists (specifier, JJS_KEEP))
+  {
+    return ecma_copy_value (specifier);
+  }
+#endif
+
+  ecma_value_t referrer_path = annex_util_get_internal_m (call_info_p->function, LIT_MAGIC_STRING_PATH);
+
+  if (!jjs_value_is_string (referrer_path))
+  {
+    jjs_value_free (referrer_path);
+    return jjs_throw_sz (JJS_ERROR_COMMON, "resolve is missing referrer path");
+  }
+
+  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_MODULE);
+  jjs_value_t result;
+
+  if (jjs_value_is_exception (resolved.result))
+  {
+    result = jjs_value_copy (resolved.result);
+  }
+  else
+  {
+    result = jjs_value_copy (resolved.path);
+  }
+
+  jjs_value_free (referrer_path);
+  jjs_annex_module_resolve_free (&resolved);
+
+  return result;
+}
 
 static jjs_value_t
 esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
@@ -829,7 +883,9 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
 
   if (jjs_value_is_exception (resolved.result))
   {
-    return resolved.result;
+    jjs_value_t resolved_exception = jjs_value_copy (resolved.result);
+    jjs_annex_module_resolve_free (&resolved);
+    return resolved_exception;
   }
 
   ecma_value_t cached_module = ecma_find_own_v (esm_cache, resolved.path);

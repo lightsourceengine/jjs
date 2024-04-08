@@ -13,15 +13,50 @@
  * limitations under the License.
  */
 
-const { dirname, filename, url } = import.meta;
+const { assertThrows, assertEquals } = require('../lib/assert.js');
+const { test, runAllTests } = require('../lib/test.cjs');
+const { dirname, filename, url, resolve } = import.meta;
 
-assert(typeof dirname === 'string', 'expected import.meta.dirname to be a string');
-assert(dirname.endsWith('jjs'), 'expected import.meta.dirname basename to be this directory');
+test('import.meta.dirname should be a string dirname of this file', () => {
+  assert(typeof dirname === 'string', 'expected import.meta.dirname to be a string');
+  assert(dirname.endsWith('jjs'), 'expected import.meta.dirname basename to be this directory');
+});
 
-assert(typeof filename === 'string', 'expected import.meta.filename to be a string');
-assert(filename.startsWith(dirname), 'expected import.meta.filename to start with dirname');
-assert(filename.endsWith('module-import-meta.mjs'), 'expected import.meta.filename file to be this filename');
+test('import.meta.filename should be a string filename of this file', () => {
+  assert(typeof filename === 'string', 'expected import.meta.filename to be a string');
+  assert(filename.startsWith(dirname), 'expected import.meta.filename to start with dirname');
+  assert(filename.endsWith('module-import-meta.mjs'), 'expected import.meta.filename file to be this filename');
+});
 
-assert(typeof url === 'string', 'expected import.meta.url to be a string');
-assert(url.startsWith('file:'), 'expected import.meta.url to start with file: protocol');
-assert(url.endsWith('module-import-meta.mjs'), 'expected import.meta.url to end with this filename');
+test('import.meta.url should be a string file url for this file', () => {
+  assert(typeof url === 'string', 'expected import.meta.url to be a string');
+  assert(url.startsWith('file:'), 'expected import.meta.url to start with file: protocol');
+  assert(url.endsWith('module-import-meta.mjs'), 'expected import.meta.url to end with this filename');
+});
+
+test('import.meta.resolve should be a function', () => {
+  assert(typeof resolve === 'function', 'expected import.meta.resolve to be a function');
+});
+
+test('import.meta.resolve should return the full filename for the relative path to this file', () => {
+  assertEquals(resolve('./module-import-meta.mjs'), filename);
+});
+
+test('import.meta.resolve should return package name for registered vmod package', () => {
+  vmod('pkg', { exports: 5 });
+  assertEquals(resolve('pkg'), 'pkg');
+});
+
+test('import.meta.resolve should throw Error when relative filename does not exist', () => {
+  assertThrows(Error, () => { resolve('./index.js') });
+});
+
+test('import.meta.resolve should throw Error when package name does not exist', () => {
+  assertThrows(Error, () => { resolve('not-a-package') });
+});
+
+test('import.meta.resolve should throw TypeError given no arguments', () => {
+  assertThrows(TypeError, resolve);
+});
+
+runAllTests();

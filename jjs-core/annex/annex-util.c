@@ -209,6 +209,38 @@ ecma_has_own_v (ecma_value_t object, ecma_value_t key)
 } /* ecma_has_own_v */
 
 /**
+ * Add a value to an objects internal property map.
+ *
+ * @param object target
+ * @param key magic string id
+ * @param value JS value to set
+ */
+void annex_util_set_internal_m (jjs_value_t object, lit_magic_string_id_t key, jjs_value_t value)
+{
+  jjs_object_set_internal (object, ecma_make_magic_string_value (key), value);
+}
+
+/**
+ * Get a value from an object's internal property map.
+ *
+ * @param object target
+ * @param key magic string id
+ * @return the requested value. if the value is not found, undefined is returned. the return
+ * value must be free'd
+ */
+ecma_value_t annex_util_get_internal_m (ecma_value_t object, lit_magic_string_id_t key)
+{
+  jjs_value_t value = jjs_object_get_internal (object, ecma_make_magic_string_value (key));
+
+  if (jjs_value_is_exception (value))
+  {
+    jjs_value_free (value);
+    return ECMA_VALUE_UNDEFINED;
+  }
+
+  return value;
+}
+/**
  * Create a JS string from a UTF-8 encoded, null-terminated string.
  *
  * @param str_p cstring value. if NULL or empty, an empty string will be returned.

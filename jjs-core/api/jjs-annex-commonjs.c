@@ -75,21 +75,14 @@ jjs_commonjs_require_sz (const char *specifier_p)
 #if JJS_ANNEX_COMMONJS
 
 static jjs_value_t create_require_from_directory (jjs_value_t referrer_path);
-static void referrer_path_free (void *native_p, const jjs_object_native_info_t *info_p);
 static ecma_value_t create_module (ecma_value_t filename);
 static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecma_value_t format);
 static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_value_t source);
 static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma_value_t source);
 static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_value_t fn);
 static ecma_value_t require_impl (ecma_value_t specifier, ecma_value_t referrer_path);
-static JJS_HANDLER(require_handler);
-static JJS_HANDLER(resolve_handler);
-
-static jjs_object_native_info_t referrer_path_id = {
-  .free_cb = referrer_path_free,
-  .number_of_references = 0,
-  .offset_of_references = 0,
-};
+static JJS_HANDLER (require_handler);
+static JJS_HANDLER (resolve_handler);
 
 /**
  * Create a require function for a module filename.
@@ -167,69 +160,30 @@ jjs_annex_require (jjs_value_t specifier, jjs_value_t referrer_path)
  */
 static jjs_value_t create_require_from_directory (jjs_value_t referrer_path)
 {
-  bool create_native_pointer_result;
   ecma_global_object_t* global_p = ecma_get_global_object ();
-  ecma_object_t* require_p = ecma_op_create_external_function_object (require_handler);
-  ecma_object_t* resolve_p = ecma_op_create_external_function_object (resolve_handler);
-  ecma_value_t require = ecma_make_object_value (require_p);
+  ecma_value_t require = ecma_make_object_value (ecma_op_create_external_function_object (require_handler));
+  ecma_value_t resolve = ecma_make_object_value (ecma_op_create_external_function_object (resolve_handler));
 
-  // put referrer path in native slot of require and resolve
-  create_native_pointer_result = ecma_create_native_pointer_property (
-    require_p, (void*)(uintptr_t)ecma_copy_value (referrer_path), &referrer_path_id);
-
-  JJS_ASSERT (create_native_pointer_result);
-
-  create_native_pointer_result = ecma_create_native_pointer_property (
-    resolve_p, (void*)(uintptr_t)ecma_copy_value (referrer_path), &referrer_path_id);
-
-  JJS_ASSERT (create_native_pointer_result);
+  // put path in internal slot
+  annex_util_set_internal_m (require, LIT_MAGIC_STRING_PATH, referrer_path);
+  annex_util_set_internal_m (resolve, LIT_MAGIC_STRING_PATH, referrer_path);
 
   // set require.resolve
-  ecma_set_m (require, LIT_MAGIC_STRING_RESOLVE, ecma_make_object_value (resolve_p));
+  ecma_set_m (require, LIT_MAGIC_STRING_RESOLVE, resolve);
 
   // set require.cache
   ecma_set_m (require, LIT_MAGIC_STRING_CACHE, global_p->commonjs_cache);
 
   // cleanup
-  ecma_deref_object (resolve_p);
+  ecma_free_value(resolve);
 
   return require;
 } /* create_require_from_directory */
 
 /**
- * Free the native pointer stored in the require or resolve function object.
- */
-static void referrer_path_free (void *native_p, const jjs_object_native_info_t *info_p)
-{
-  (void) info_p;
-  ecma_free_value ((ecma_value_t)(uintptr_t)native_p);
-} /* referrer_path_free */
-
-/**
- * Get the referrer path from the require or resolve function object.
- *
- * @param target require or resolve function object
- * @return directory path or exception on error. return value must be freed.
- */
-static ecma_value_t get_referrer_path (ecma_value_t target)
-{
-  ecma_native_pointer_t* native_wrap_p = ecma_get_native_pointer_value (
-    ecma_get_object_from_value (target), &referrer_path_id);
-
-  JJS_ASSERT (native_wrap_p != NULL && native_wrap_p->native_p != NULL);
-
-  if (native_wrap_p == NULL || native_wrap_p->native_p == NULL)
-  {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid native pointer");
-  }
-
-  return ecma_copy_value ((ecma_value_t)(uintptr_t)native_wrap_p->native_p);
-} /* get_referrer_path */
-
-/**
  * Binding for the javascript resolve() function.
  */
-static JJS_HANDLER(resolve_handler)
+static JJS_HANDLER (resolve_handler)
 {
   ecma_value_t request = args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED;
 
@@ -245,11 +199,12 @@ static JJS_HANDLER(resolve_handler)
   }
 #endif
 
-  ecma_value_t referrer_path = get_referrer_path (call_info_p->function);
+  ecma_value_t referrer_path = annex_util_get_internal_m (call_info_p->function, LIT_MAGIC_STRING_PATH);
 
-  if (ecma_is_value_exception (referrer_path))
+  if (!jjs_value_is_string (referrer_path))
   {
-    return referrer_path;
+    jjs_value_free (referrer_path);
+    return jjs_throw_sz (JJS_ERROR_COMMON, "resolve is missing referrer path");
   }
 
   jjs_annex_module_resolve_t result = jjs_annex_module_resolve (request, referrer_path, JJS_MODULE_TYPE_COMMONJS);
@@ -275,14 +230,17 @@ static JJS_HANDLER(resolve_handler)
 static JJS_HANDLER (require_handler)
 {
   ecma_value_t specifier = args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED;
-  ecma_value_t referrer_path = get_referrer_path (call_info_p->function);
+  ecma_value_t referrer_path = annex_util_get_internal_m (call_info_p->function, LIT_MAGIC_STRING_PATH);
+  jjs_value_t result;
 
-  if (ecma_is_value_exception (referrer_path))
+  if (jjs_value_is_string (referrer_path))
   {
-    return referrer_path;
+    result = require_impl (specifier, referrer_path);
   }
-
-  jjs_value_t result = require_impl (specifier, referrer_path);
+  else
+  {
+    result = jjs_throw_sz (JJS_ERROR_COMMON, "require is missing referrer path");
+  }
 
   jjs_value_free (referrer_path);
 
