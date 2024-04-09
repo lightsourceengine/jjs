@@ -62,6 +62,46 @@ typedef enum
 } jjs_encoding_t;
 
 /**
+ * OS identifiers.
+ *
+ * Derived from node's process.platform.
+ */
+typedef enum
+{
+  JJS_PLATFORM_OS_UNKNOWN,
+  JJS_PLATFORM_OS_AIX,
+  JJS_PLATFORM_OS_DARWIN,
+  JJS_PLATFORM_OS_FREEBSD,
+  JJS_PLATFORM_OS_LINUX,
+  JJS_PLATFORM_OS_OPENBSD,
+  JJS_PLATFORM_OS_SUNOS,
+  JJS_PLATFORM_OS_WIN32,
+
+} jjs_platform_os_t;
+
+/**
+ * CPU architecture identifiers
+ *
+ * Derived from node's process.arch.
+ */
+typedef enum
+{
+  JJS_PLATFORM_ARCH_UNKNOWN,
+  JJS_PLATFORM_ARCH_ARM,
+  JJS_PLATFORM_ARCH_ARM64,
+  JJS_PLATFORM_ARCH_IA32,
+  JJS_PLATFORM_ARCH_LOONG64,
+  JJS_PLATFORM_ARCH_MIPS,
+  JJS_PLATFORM_ARCH_MIPSEL,
+  JJS_PLATFORM_ARCH_PPC,
+  JJS_PLATFORM_ARCH_PPC64,
+  JJS_PLATFORM_ARCH_RISCV64,
+  JJS_PLATFORM_ARCH_S390,
+  JJS_PLATFORM_ARCH_S390X,
+  JJS_PLATFORM_ARCH_X64,
+} jjs_platform_arch_t;
+
+/**
  * Status code for platform api calls.
  */
 typedef enum
@@ -108,32 +148,6 @@ typedef jjs_platform_status_t (*jjs_platform_path_realpath_fn_t) (const uint8_t*
  */
 typedef struct
 {
-  /**
-   * Get the system os platform identifier.
-   * 
-   * JJS determines the platform identifier based on compiler flags with 'unknown'
-   * as a fallback. Node's platform identifiers are used as a baseline. Here are
-   * the possible values JJS can produce:
-   * 
-   * [ aix, darwin, freebsd, linux, openbsd, sunos, win32, unknown ]
-   *
-   * The identifier picker can be overridden at compile time by defining JJS_PLATFORM_OS.
-   */
-  char os_sz[16];
-
-  /**
-   * Get the system arch platform identifier.
-   *
-   * JJS determines the platform identifier based on compiler flags with 'unknown'
-   * as a fallback. Node's platform identifiers are used as a baseline. Here are
-   * the possible values JJS can produce:
-   *
-   * [ arm, arm64, ia32, loong64, mips, mipsel, ppc, ppc64, riscv64, s390, s390x, x64, unknown ]
-   *
-   * The identifier picker can be overridden at compile time by defining JJS_PLATFORM_ARCH.
-   */
-  char arch_sz[16];
-
   /**
    * Engine calls this platform function when the process experiences a fatal failure
    * which it cannot recover.

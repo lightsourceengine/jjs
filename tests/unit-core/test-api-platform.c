@@ -22,9 +22,14 @@
 static void
 test_platform_after_init (void)
 {
+  TEST_ASSERT (jjs_platform_os_type () != JJS_PLATFORM_OS_UNKNOWN);
+  TEST_ASSERT (jjs_platform_arch_type () != JJS_PLATFORM_ARCH_UNKNOWN);
+
   jjs_init_default ();
 
+  TEST_ASSERT (jjs_platform_os () != JJS_PLATFORM_OS_UNKNOWN);
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_os ())));
+  TEST_ASSERT (jjs_platform_arch () != JJS_PLATFORM_ARCH_UNKNOWN);
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_arch ())));
   TEST_ASSERT (jjs_platform_has_cwd ());
   TEST_ASSERT (jjs_platform_has_realpath ());
@@ -32,64 +37,6 @@ test_platform_after_init (void)
 
   free_values ();
   jjs_cleanup ();
-}
-
-static void
-test_platform_os_override (void)
-{
-  static const char* TEST_OS = "override_os";
-  jjs_context_options_t options = jjs_context_options ();
-
-  jjs_platform_set_os_sz (&options.platform, TEST_OS);
-
-  jjs_init (&options);
-
-  TEST_ASSERT (strict_equals_cstr (push (jjs_platform_os ()), TEST_OS));
-
-  free_values ();
-  jjs_cleanup ();
-}
-
-static void
-test_platform_arch_override (void)
-{
-  static const char* TEST_ARCH = "override_arch";
-  jjs_context_options_t options = jjs_context_options ();
-
-  jjs_platform_set_arch_sz (&options.platform, TEST_ARCH);
-
-  jjs_init (&options);
-
-  TEST_ASSERT (strict_equals_cstr (push (jjs_platform_arch ()), TEST_ARCH));
-
-  free_values ();
-  jjs_cleanup ();
-}
-
-static void
-test_platform_set_os_sz (void)
-{
-  const char* OVERRIDE = "test";
-  jjs_platform_t platform = {0};
-
-  TEST_ASSERT (jjs_platform_set_os_sz (&platform, OVERRIDE));
-  TEST_ASSERT (strcmp (OVERRIDE, &platform.os_sz[0]) == 0);
-  TEST_ASSERT (jjs_platform_set_os_sz (&platform, NULL) == false);
-  TEST_ASSERT (jjs_platform_set_os_sz (&platform, "") == false);
-  TEST_ASSERT (jjs_platform_set_os_sz (&platform, "012345678901234567890") == false);
-}
-
-static void
-test_platform_set_arch_sz (void)
-{
-  const char* OVERRIDE = "test";
-  jjs_platform_t platform = {0};
-
-  TEST_ASSERT (jjs_platform_set_arch_sz (&platform, OVERRIDE));
-  TEST_ASSERT (strcmp (OVERRIDE, &platform.arch_sz[0]) == 0);
-  TEST_ASSERT (jjs_platform_set_arch_sz (&platform, NULL) == false);
-  TEST_ASSERT (jjs_platform_set_arch_sz (&platform, "") == false);
-  TEST_ASSERT (jjs_platform_set_arch_sz (&platform, "012345678901234567890") == false);
 }
 
 static void
@@ -213,12 +160,6 @@ int
 main (void)
 {
   test_platform_after_init ();
-
-  test_platform_set_arch_sz ();
-  test_platform_set_os_sz ();
-
-  test_platform_os_override ();
-  test_platform_arch_override ();
 
   test_platform_cwd ();
   test_platform_cwd_not_set ();

@@ -80,11 +80,11 @@ install_system_info_props (ecma_object_t* global_p)
   // TODO: these need to move to an official global api
   ecma_value_t global = ecma_make_object_value (global_p);
 
-  ecma_value_t platform = annex_util_create_string_utf8_sz (&JJS_CONTEXT (platform_api).os_sz[0]);
+  ecma_value_t platform = jjs_platform_os ();
   annex_util_define_ro_value_sz (global, "@platform", platform);
   ecma_free_value (platform);
 
-  ecma_value_t arch = annex_util_create_string_utf8_sz (&JJS_CONTEXT (platform_api).arch_sz[0]);
+  ecma_value_t arch = jjs_platform_arch ();
   annex_util_define_ro_value_sz (global, "@arch", arch);
   ecma_free_value (arch);
 } /* install_system_info_props */

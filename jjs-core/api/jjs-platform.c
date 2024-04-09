@@ -21,40 +21,6 @@
 #include "jjs-platform.h"
 #include "jjs-compiler.h"
 
-static const char* const jjs_os_identifier_p =
-#ifndef JJS_PLATFORM_OS
-#if defined (JJS_OS_IS_WINDOWS)
-"win32"
-#elif defined (JJS_OS_IS_AIX)
-"aix"
-#elif defined (JJS_OS_IS_LINUX)
-"linux"
-#elif defined (JJS_OS_IS_MACOS)
-"darwin"
-#else
-"unknown"
-#endif
-#endif /* JJS_PLATFORM_OS */
-;
-
-static const char* const jjs_arch_identifier_p =
-#ifndef JJS_PLATFORM_ARCH
-#if defined(JJS_ARCH_IS_X32)
-"ia32"
-#elif defined(JJS_ARCH_IS_ARM)
-"arm"
-#elif defined(JJS_ARCH_IS_ARM64)
-"arm64"
-#elif defined(JJS_ARCH_IS_X64)
-"x64"
-#else
-"unknown"
-#endif
-#endif /* JJS_PLATFORM_ARCH */
-;
-
-static bool jjsp_set_string (const char* value_p, char* dest_p, uint32_t dest_len);
-
 /**
  * Gets the current working directory.
  *
@@ -254,44 +220,147 @@ bool jjs_platform_has_read_file (void)
 } /* jjs_platform_has_read_file */
 
 /**
- * Get the platform's os identifier.
+ * Get the OS identifier as a JS string.
  *
- * The JJS engine can produce the following identifiers (similar
- * to NodeJS's process.platform):
+ * Possible values: [ aix, darwin, freebsd, linux, openbsd, sunos, win32, unknown ]
  *
- * [ aix, darwin, freebsd, linux, openbsd, sunos, win32, unknown ]
- *
- * However, the user can override the os through jjs_init, so os can be
- * any string < 16 bytes long.
+ * @see jjs_platform_os_type
  *
  * @return string os identifier.
  */
 jjs_value_t
 jjs_platform_os (void)
 {
-  jjs_assert_api_enabled();
-  return jjs_string_utf8_sz (&JJS_CONTEXT (platform_api).os_sz[0]);
+  jjs_assert_api_enabled ();
+
+  lit_magic_string_id_t id;
+
+  switch (jjs_platform_os_type ())
+  {
+    case JJS_PLATFORM_OS_AIX:
+      id = LIT_MAGIC_STRING_OS_AIX;
+      break;
+    case JJS_PLATFORM_OS_DARWIN:
+      id = LIT_MAGIC_STRING_OS_DARWIN;
+      break;
+    case JJS_PLATFORM_OS_FREEBSD:
+      id = LIT_MAGIC_STRING_OS_FREEBSD;
+      break;
+    case JJS_PLATFORM_OS_LINUX:
+      id = LIT_MAGIC_STRING_OS_LINUX;
+      break;
+    case JJS_PLATFORM_OS_OPENBSD:
+      id = LIT_MAGIC_STRING_OS_OPENBSD;
+      break;
+    case JJS_PLATFORM_OS_SUNOS:
+      id = LIT_MAGIC_STRING_OS_SUNOS;
+      break;
+    case JJS_PLATFORM_OS_WIN32:
+      id = LIT_MAGIC_STRING_OS_WIN32;
+      break;
+    case JJS_PLATFORM_OS_UNKNOWN:
+    default:
+      id = LIT_MAGIC_STRING_UNKNOWN;
+      break;
+  }
+
+  return ecma_make_magic_string_value (id);
 } /* jjs_platform_os */
+
+/**
+ * Get the OS identifier of the system.
+ *
+ * The value is determined based on compiler flags in jjs-compiler.h. The
+ * set of identifiers is based on node's process.platform.
+ *
+ * This method can be called before context initialization.
+ *
+ * @return os type
+ */
+jjs_platform_os_t
+jjs_platform_os_type (void)
+{
+  return JJS_PLATFORM_OS_TYPE;
+} /* jjs_platform_os_type */
 
 /**
  * Get the platform's arch identifier.
  *
- * The JJS engine can produce the following identifiers (similar
- * to NodeJS's process.arch):
+ * Possible values: [ arm, arm64, ia32, loong64, mips, mipsel, ppc, ppc64, riscv64, s390, s390x, x64, unknown ]
  *
- * [ arm, arm64, ia32, loong64, mips, mipsel, ppc, ppc64, riscv64, s390, s390x, x64, unknown ]
- *
- * However, the user can override the arch through jjs_init, so arch can be
- * any string < 16 bytes long.
+ * @see jjs_platform_os_type
  *
  * @return string arch identifier.
  */
 jjs_value_t
 jjs_platform_arch (void)
 {
-  jjs_assert_api_enabled();
-  return jjs_string_utf8_sz (&JJS_CONTEXT (platform_api).arch_sz[0]);
+  jjs_assert_api_enabled ();
+
+  lit_magic_string_id_t id;
+  
+  switch (jjs_platform_arch_type ())
+  {
+    case JJS_PLATFORM_ARCH_ARM:
+      id = LIT_MAGIC_STRING_ARCH_ARM;
+      break;
+    case JJS_PLATFORM_ARCH_ARM64:
+      id = LIT_MAGIC_STRING_ARCH_ARM64;
+      break;
+    case JJS_PLATFORM_ARCH_IA32:
+      id = LIT_MAGIC_STRING_ARCH_IA32;
+      break;
+    case JJS_PLATFORM_ARCH_LOONG64:
+      id = LIT_MAGIC_STRING_ARCH_LOONG64;
+      break;
+    case JJS_PLATFORM_ARCH_MIPS:
+      id = LIT_MAGIC_STRING_ARCH_MIPS;
+      break;
+    case JJS_PLATFORM_ARCH_MIPSEL:
+      id = LIT_MAGIC_STRING_ARCH_MIPSEL;
+      break;
+    case JJS_PLATFORM_ARCH_PPC:
+      id = LIT_MAGIC_STRING_ARCH_PPC;
+      break;
+    case JJS_PLATFORM_ARCH_PPC64:
+      id = LIT_MAGIC_STRING_ARCH_PPC64;
+      break;
+    case JJS_PLATFORM_ARCH_RISCV64:
+      id = LIT_MAGIC_STRING_ARCH_RISCV64;
+      break;
+    case JJS_PLATFORM_ARCH_S390:
+      id = LIT_MAGIC_STRING_ARCH_S390;
+      break;
+    case JJS_PLATFORM_ARCH_S390X:
+      id = LIT_MAGIC_STRING_ARCH_S390X;
+      break;
+    case JJS_PLATFORM_ARCH_X64:
+      id = LIT_MAGIC_STRING_ARCH_X64;
+      break;
+    case JJS_PLATFORM_ARCH_UNKNOWN:
+    default:
+      id = LIT_MAGIC_STRING_UNKNOWN;
+      break;
+  }
+  
+  return ecma_make_magic_string_value (id);
 } /* jjs_platform_arch */
+
+/**
+ * Get the CPU architecture of the system.
+ *
+ * The value is determined based on compiler flags in jjs-compiler.h. The
+ * set of identifiers is based on node's process.arch.
+ *
+ * This method can be called before context initialization.
+ *
+ * @return arch type
+ */
+jjs_platform_arch_t
+jjs_platform_arch_type (void)
+{
+  return JJS_PLATFORM_ARCH_TYPE;
+} /* jjs_platform_arch_type */
 
 /**
  * Immediately terminate the process due to an unrecoverable condition. It is
@@ -313,32 +382,6 @@ jjs_platform_fatal (jjs_fatal_code_t code)
 
   fatal_fn (code);
 } /* jjs_platform_fatal */
-
-/**
- * Helper function to set platform arch string. Should only be used at context initialization time.
- *
- * @param platform_p platform object
- * @param value_p string value. strlen(value_p) should be > 0 && < 16
- * @return true if string successfully set, false on error
- */
-bool
-jjs_platform_set_arch_sz (jjs_platform_t *platform_p, const char *value_p)
-{
-  return jjsp_set_string (value_p, &platform_p->arch_sz[0], (uint32_t) sizeof (platform_p->arch_sz));
-} /* jjs_platform_set_arch_sz */
-
-/**
- * Helper function to set platform os string. Should only be used at context initialization time.
- *
- * @param platform_p platform object
- * @param value_p string value. strlen(value_p) should be > 0 && < 16
- * @return true if string successfully set, false on error
- */
-bool
-jjs_platform_set_os_sz (jjs_platform_t *platform_p, const char *value_p)
-{
-  return jjsp_set_string (value_p, &platform_p->os_sz[0], (uint32_t) sizeof (platform_p->os_sz));
-} /* jjs_platform_set_os_sz */
 
 /**
  * Helper function to deal with cesu8 strings in platform api implementations.
@@ -421,9 +464,6 @@ jjs_platform_t
 jjsp_defaults (void)
 {
   jjs_platform_t platform;
-
-  jjs_platform_set_os_sz (&platform, jjs_os_identifier_p);
-  jjs_platform_set_arch_sz (&platform, jjs_arch_identifier_p);
 
   platform.path_cwd = jjsp_cwd;
   platform.fatal = jjsp_fatal;
@@ -514,21 +554,6 @@ jjsp_read_file (jjs_value_t path, jjs_encoding_t encoding)
 
   return result;
 }
-
-static bool
-jjsp_set_string (const char* value_p, char* dest_p, uint32_t dest_len)
-{
-  // TODO: context check
-  size_t len = (uint32_t) (value_p ? strlen (value_p) : 0);
-
-  if (len > 0 && len < dest_len - 1)
-  {
-    memcpy (dest_p, value_p, len + 1);
-    return true;
-  }
-
-  return false;
-} /* jjsp_set_string */
 
 void
 jjsp_buffer_free (jjs_platform_buffer_t* buffer_p)

@@ -1260,12 +1260,12 @@ jjs_value_t jjs_platform_read_file_sz (const char* path_p, const jjs_platform_re
 bool jjs_platform_has_read_file (void);
 
 jjs_value_t jjs_platform_os (void);
+jjs_platform_os_t JJS_ATTR_CONST jjs_platform_os_type (void);
 jjs_value_t jjs_platform_arch (void);
+jjs_platform_arch_t JJS_ATTR_CONST jjs_platform_arch_type (void);
 
 void jjs_platform_fatal (jjs_fatal_code_t code);
 
-bool jjs_platform_set_arch_sz (jjs_platform_t* platform_p, const char *value_p);
-bool jjs_platform_set_os_sz (jjs_platform_t* platform_p, const char *value_p);
 bool jjs_platform_convert_cesu8 (const jjs_char_t *cesu8,
                                  jjs_size_t cesu8_size,
                                  jjs_encoding_t encoding,
