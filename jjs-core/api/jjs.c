@@ -4837,21 +4837,18 @@ jjs_log_set_level (jjs_log_level_t level)
  * @param str_p: message
  */
 static void
-jjs_log_string (const char *str_p)
+jjs_log_string (const char *str_p, jjs_size_t size)
 {
   jjs_platform_io_log_fn_t log = JJS_CONTEXT (platform_api).io_log;
 
   if (log) {
-    log (str_p);
+    log ((const uint8_t *) str_p, size);
   }
 
 #if JJS_DEBUGGER
   if (jjs_debugger_is_connected ())
   {
-    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT,
-                                JJS_DEBUGGER_OUTPUT_LOG,
-                                (const uint8_t *) str_p,
-                                strlen (str_p));
+    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, (const uint8_t *) str_p, size);
   }
 #endif /* JJS_DEBUGGER */
 } /* jjs_log_string */
@@ -4871,16 +4868,14 @@ jjs_log_string_fixed (const char *str_p, size_t size, char *buffer_p)
   while (size > batch_size)
   {
     memcpy (buffer_p, str_p, batch_size);
-    buffer_p[batch_size] = '\0';
-    jjs_log_string (buffer_p);
+    jjs_log_string (buffer_p, batch_size);
 
     str_p += batch_size;
     size -= batch_size;
   }
 
   memcpy (buffer_p, str_p, size);
-  buffer_p[size] = '\0';
-  jjs_log_string (buffer_p);
+  jjs_log_string (buffer_p, (jjs_size_t) size);
 } /* jjs_log_string_fixed */
 
 /**
@@ -4958,77 +4953,6 @@ jjs_format_int (int num, uint8_t width, char padding, char *buffer_p)
   return cursor_p;
 } /* jjs_format_int */
 
-static void
-jjs_log_value_internal (jjs_log_level_t level, jjs_value_t value, jjs_value_ownership_t value_o)
-{
-  if (jjs_value_is_exception (value))
-  {
-    JJS_DISOWN (value, value_o);
-    return;
-  }
-
-  jjs_value_t as_string = jjs_value_to_string (value);
-
-  if (jjs_value_is_exception (as_string))
-  {
-    JJS_DISOWN (value, value_o);
-    jjs_log (level, "Failed toString() on exception value.");
-    return;
-  }
-
-  char buffer[2048];
-  jjs_size_t c = jjs_string_to_buffer (as_string,
-                                       JJS_ENCODING_UTF8,
-                                       (jjs_char_t *) buffer,
-                                       (sizeof (buffer) / sizeof (buffer[0])) - 2);
-
-  buffer[c] = '\n';
-  buffer[c + 1] = '\0';
-  jjs_log_string (buffer);
-
-  if (jjs_value_is_error (value))
-  {
-    // TODO: print cause and AggregateError errors
-
-    jjs_value_t backtrace_val = jjs_object_get_sz (value, "stack");
-
-    if (jjs_value_is_array (backtrace_val))
-    {
-      uint32_t length = jjs_array_length (backtrace_val);
-
-      for (uint32_t i = 0; i < length; i++)
-      {
-        jjs_value_t item_val = jjs_object_get_index (backtrace_val, i);
-
-        if (jjs_value_is_string (item_val))
-        {
-          c = jjs_string_to_buffer (item_val,
-                                    JJS_ENCODING_UTF8,
-                                    (jjs_char_t *) buffer,
-                                    (sizeof (buffer) / sizeof (buffer[0])) - 1);
-          buffer[c] = '\0';
-
-          if (i == length - 1)
-          {
-            jjs_log (level, "    at %s", buffer);
-          }
-          else
-          {
-            jjs_log (level, "    at %s\n", buffer);
-          }
-        }
-
-        jjs_value_free (item_val);
-      }
-    }
-
-    jjs_value_free (backtrace_val);
-  }
-
-  jjs_value_free (as_string);
-  JJS_DISOWN (value, value_o);
-} /* jjs_log_value_internal */
-
 /**
  * Log a zero-terminated formatted message with the specified log level.
  *
@@ -5063,7 +4987,7 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
     if (*cursor_p == '%' || buffer_index > JJS_LOG_BUFFER_SIZE - 2)
     {
       buffer_p[buffer_index] = '\0';
-      jjs_log_string (buffer_p);
+      jjs_log_string (buffer_p, buffer_index);
       buffer_index = 0;
     }
 
@@ -5115,7 +5039,7 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
 
         if (precision == 0)
         {
-          jjs_log_string (str_p);
+          jjs_log_string (str_p, (jjs_size_t) strlen (str_p));
           break;
         }
 
@@ -5130,17 +5054,20 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
       }
       case 'd':
       {
-        jjs_log_string (jjs_format_int (va_arg (vl, int), width, padding, buffer_p));
+        char *f = jjs_format_int (va_arg (vl, int), width, padding, buffer_p);
+        jjs_log_string (f, (jjs_size_t) strlen (f));
         break;
       }
       case 'u':
       {
-        jjs_log_string (jjs_format_unsigned (va_arg (vl, unsigned int), width, padding, 10, buffer_p));
+        char *f = jjs_format_unsigned (va_arg (vl, unsigned int), width, padding, 10, buffer_p);
+        jjs_log_string (f, (jjs_size_t) strlen (f));
         break;
       }
       case 'x':
       {
-        jjs_log_string (jjs_format_unsigned (va_arg (vl, unsigned int), width, padding, 16, buffer_p));
+        char *f = jjs_format_unsigned (va_arg (vl, unsigned int), width, padding, 16, buffer_p);
+        jjs_log_string (f, (jjs_size_t) strlen (f));
         break;
       }
       default:
@@ -5153,34 +5080,31 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
 
   if (buffer_index > 0)
   {
-    buffer_p[buffer_index] = '\0';
-    jjs_log_string (buffer_p);
+    jjs_log_string (buffer_p, buffer_index);
   }
 
   va_end (vl);
 } /* jjs_log */
 
+/**
+ * Stream write implementation that writes bytes to the platform log function and/or the debugger.
+ */
 static void
-fmt_buffer_flush (char *buffer_p, jjs_size_t *buffer_index_p)
+fmt_stream_write_io_log (const jjs_fmt_stream_t *self_p, const uint8_t *data_p, uint32_t data_size)
 {
-  if (*buffer_index_p > 0)
-  {
-    buffer_p[*buffer_index_p] = '\0';
-    jjs_log_string (buffer_p);
-    *buffer_index_p = 0;
-  }
-}
+  JJS_UNUSED (self_p);
 
-static void
-fmt_buffer_write (char c, char *buffer_p, jjs_size_t *buffer_index_p)
-{
-  if (*buffer_index_p == JJS_LOG_BUFFER_SIZE - 1)
+  if (JJS_CONTEXT (platform_api).io_log)
   {
-    fmt_buffer_flush (buffer_p, buffer_index_p);
+    JJS_CONTEXT (platform_api).io_log (data_p, data_size);
   }
 
-  buffer_p[*buffer_index_p] = c;
-  *buffer_index_p = *buffer_index_p + 1;
+#if JJS_DEBUGGER
+  if (jjs_debugger_is_connected ())
+  {
+    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, data_p, data_size);
+  }
+#endif /* JJS_DEBUGGER */
 }
 
 /**
@@ -5208,67 +5132,27 @@ fmt_buffer_write (char c, char *buffer_p, jjs_size_t *buffer_index_p)
 void
 jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length)
 {
-  if (level > jjs_jrt_get_log_level ())
+  JJS_ASSERT (format_p);
+
+#if JJS_DEBUGGER
+  bool is_debugger_connected = jjs_debugger_is_connected ();
+#else /* !JJS_DEBUGGER */
+  bool is_debugger_connected = false;
+#endif /* JJS_DEBUGGER */
+
+  if (level > jjs_jrt_get_log_level () || (JJS_CONTEXT (platform_api).io_log == NULL && !is_debugger_connected)
+      || format_p == NULL)
   {
     return;
   }
 
-  jjs_size_t values_index = 0;
-  char buffer_p[JJS_LOG_BUFFER_SIZE];
-  uint32_t buffer_index = 0;
-  const char *cursor_p = format_p;
-  bool found_left_brace = false;
+  jjs_fmt_stream_t stream = {
+    .write = fmt_stream_write_io_log,
+    .encoding = JJS_ENCODING_UTF8,
+    .state_p = NULL,
+  };
 
-  while (*cursor_p != '\0')
-  {
-    if (*cursor_p == '{')
-    {
-      if (found_left_brace)
-      {
-        fmt_buffer_write ('{', buffer_p, &buffer_index);
-      }
-      else
-      {
-        found_left_brace = true;
-      }
-    }
-    else if (found_left_brace && *cursor_p == '}')
-    {
-      cursor_p++;
-      found_left_brace = false;
-      fmt_buffer_flush (buffer_p, &buffer_index);
-
-      // TODO: log_value uses jjs_log. i think this stuff can be made more efficient, but this works for now
-      jjs_value_t value = values_index < values_length ? values[values_index++] : jjs_undefined ();
-
-      if (jjs_value_is_symbol (value))
-      {
-        jjs_log_value_internal (level, jjs_symbol_descriptive_string (value), JJS_MOVE);
-      }
-      else if (jjs_value_is_exception (value))
-      {
-        jjs_log_value_internal (level, jjs_exception_value (value, false), JJS_MOVE);
-      }
-      else
-      {
-        jjs_log_value_internal (level, value, JJS_KEEP);
-      }
-    }
-    else
-    {
-      if (found_left_brace)
-      {
-        fmt_buffer_write ('{', buffer_p, &buffer_index);
-        found_left_brace = false;
-      }
-
-      fmt_buffer_write (*cursor_p, buffer_p, &buffer_index);
-    }
-
-    cursor_p++;
-  }
-
-  fmt_buffer_flush (buffer_p, &buffer_index);
+  jjs_fmt_v (&stream, format_p, values, values_length);
 } /* jjs_log_fmt */
 
 /**
@@ -7303,6 +7187,381 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_CONTAINER */
 } /* jjs_container_op */
+
+/**
+ * Write a JS string to a fmt stream.
+ */
+static void
+fmt_write_string (const jjs_fmt_stream_t *stream_p, jjs_value_t value, jjs_value_ownership_t value_o)
+{
+  if (!ecma_is_value_string (value))
+  {
+    JJS_DISOWN (value, value_o);
+    stream_p->write (stream_p, (const jjs_char_t *) "undefined", 9);
+    return;
+  }
+
+  ecma_string_t *string_p = ecma_get_string_from_value (value);
+
+  ECMA_STRING_TO_UTF8_STRING (string_p, string_bytes_p, string_bytes_len);
+
+  if (ecma_string_get_length (string_p) == string_bytes_len || stream_p->encoding == JJS_ENCODING_CESU8)
+  {
+    stream_p->write (stream_p, string_bytes_p, string_bytes_len);
+  }
+  else if (stream_p->encoding == JJS_ENCODING_UTF8)
+  {
+    const lit_utf8_byte_t *cesu8_cursor_p = string_bytes_p;
+    const lit_utf8_byte_t *cesu8_end_p = string_bytes_p + string_bytes_len;
+    lit_utf8_byte_t utf8_buf_p[4];
+    lit_code_point_t cp;
+    lit_utf8_size_t read_size;
+    lit_utf8_size_t encoded_size;
+
+    while (cesu8_cursor_p < cesu8_end_p)
+    {
+      read_size = lit_read_code_point_from_cesu8 (cesu8_cursor_p, cesu8_end_p, &cp);
+      encoded_size = (cp >= LIT_UTF16_FIRST_SURROGATE_CODE_POINT) ? 4 : read_size;
+
+      if (cp >= LIT_UTF16_FIRST_SURROGATE_CODE_POINT)
+      {
+        stream_p->write (stream_p, utf8_buf_p, lit_code_point_to_utf8 (cp, utf8_buf_p));
+      }
+      else
+      {
+        stream_p->write (stream_p, cesu8_cursor_p, encoded_size);
+      }
+
+      cesu8_cursor_p += read_size;
+    }
+
+    JJS_ASSERT (cesu8_cursor_p <= cesu8_end_p);
+  }
+  else
+  {
+    JJS_ASSERT (stream_p->encoding == JJS_ENCODING_UTF8 || stream_p->encoding == JJS_ENCODING_CESU8);
+    goto done;
+  }
+
+done:
+  ECMA_FINALIZE_UTF8_STRING (string_bytes_p, string_bytes_len);
+
+  JJS_DISOWN (value, value_o);
+} /* fmt_write_string */
+
+/**
+ * Write a JS value to a fmt stream.
+ */
+static void
+fmt_write_value (const jjs_fmt_stream_t *stream_p, jjs_value_t value, jjs_value_ownership_t value_o)
+{
+  if (jjs_value_is_exception (value))
+  {
+    fmt_write_string (stream_p, jjs_undefined (), JJS_MOVE);
+    goto done;
+  }
+
+  if (jjs_value_is_symbol (value))
+  {
+    fmt_write_string (stream_p, jjs_symbol_descriptive_string (value), JJS_MOVE);
+    goto done;
+  }
+
+  if (jjs_value_is_string (value))
+  {
+    fmt_write_string (stream_p, value, JJS_KEEP);
+    goto done;
+  }
+
+  if (jjs_value_is_array (value))
+  {
+    static const uint8_t LBRACKET = '[';
+    static const uint8_t RBRACKET = ']';
+
+    stream_p->write (stream_p, &LBRACKET, 1);
+    fmt_write_string (stream_p, jjs_value_to_string (value), JJS_MOVE);
+    stream_p->write (stream_p, &RBRACKET, 1);
+    goto done;
+  }
+
+  fmt_write_string (stream_p, jjs_value_to_string (value), JJS_MOVE);
+
+  if (jjs_value_is_error (value))
+  {
+    /* TODO: print cause and AggregateError errors */
+    ecma_value_t stack = ecma_make_magic_string_value (LIT_MAGIC_STRING_STACK);
+    jjs_value_t backtrace_val = jjs_object_get (value, stack);
+
+    ecma_fast_free_value (stack);
+
+    if (jjs_value_is_array (backtrace_val))
+    {
+      uint32_t length = jjs_array_length (backtrace_val);
+
+      for (uint32_t i = 0; i < length; i++)
+      {
+        jjs_value_t item_val = jjs_object_get_index (backtrace_val, i);
+
+        if (jjs_value_is_string (item_val))
+        {
+          fmt_write_string (stream_p, item_val, JJS_KEEP);
+
+          if (i != length - 1)
+          {
+            static const uint8_t NEWLINE = '\n';
+            stream_p->write (stream_p, &NEWLINE, 1);
+          }
+        }
+
+        jjs_value_free (item_val);
+      }
+    }
+
+    jjs_value_free (backtrace_val);
+  }
+
+done:
+  JJS_DISOWN (value, value_o);
+} /* fmt_write_value */
+
+/**
+ * Formats a string using fmt substitution identifiers and writes the result to the
+ * given stream. The usage is intended for logging, exception messages and general
+ * debugging.
+ *
+ * {} is the only supported substitution identifier and the only substitution type is
+ * any JS value. This function does not format C primitives or structs.
+ *
+ * The compiler does not validate {} and given value array size. If there are more
+ * occurrences of {} than values, undefined will be substituted. If there are
+ * fewer occurrences of {} than values, the extra values will be ignored.
+ *
+ * Each substitution values is to toString()'d with the following exceptions:
+ * - Symbol: description is used
+ * - Error: Error class + message is printed and stack trace, if available, is
+ *          printed on subsequent lines
+ * - Array: toString() already prints the contents of the array delimited by ,
+ * - If an exception is thrown while attempting to toString, the substitution
+ *   values will be undefined.
+ *
+ * stream_p write will receive characters in arbitrary batches.
+ */
+void
+jjs_fmt_v (const jjs_fmt_stream_t *stream_p, /**< target stream object */
+           const char *format_p, /**< format string */
+           const jjs_value_t *values_p, /**< list of JS values for substitution */
+           jjs_size_t values_length) /**< number of values */
+{
+  jjs_size_t values_index = 0;
+  const char *cursor_p = format_p;
+  bool found_left_brace = false;
+
+  while (*cursor_p != '\0')
+  {
+    if (*cursor_p == '{')
+    {
+      if (found_left_brace)
+      {
+        stream_p->write (stream_p, (const uint8_t *) cursor_p, 1);
+      }
+      else
+      {
+        found_left_brace = true;
+      }
+    }
+    else if (found_left_brace && *cursor_p == '}')
+    {
+      jjs_value_t value = values_index < values_length ? values_p[values_index++] : jjs_undefined ();
+
+      if (jjs_value_is_exception (value))
+      {
+        fmt_write_value (stream_p, jjs_exception_value (value, false), JJS_MOVE);
+      }
+      else
+      {
+        fmt_write_value (stream_p, value, JJS_KEEP);
+      }
+
+      found_left_brace = false;
+    }
+    else
+    {
+      if (found_left_brace)
+      {
+        stream_p->write (stream_p, (const uint8_t *) (cursor_p - 1), 1);
+        found_left_brace = false;
+      }
+
+      stream_p->write (stream_p, (const uint8_t *) cursor_p, 1);
+    }
+
+    cursor_p++;
+  }
+} /* jjs_fmt_v */
+
+/**
+ * Stream implementation that writes to an ecma string builder. Supports CESU8 encoding only.
+ */
+static void
+fmt_stringbuilder_stream_write (const jjs_fmt_stream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
+{
+  ecma_stringbuilder_t *builder = self_p->state_p;
+
+  /* user of this stream is using CESU8, so we can just copy to the builder */
+  ecma_stringbuilder_append_raw (builder, buffer_p, size);
+} /* fmt_stringbuilder_stream_write */
+
+/**
+ * Simple buffer object for in-memory buffer stream.
+ */
+typedef struct
+{
+  uint8_t *buffer;
+  jjs_size_t buffer_index;
+  jjs_size_t buffer_size;
+} fmt_buffer_t;
+
+/**
+ * Stream implementation that writes to an in-memory buffer. Supports UTF8 and CESU8 encodings.
+ */
+static void
+fmt_buffer_stream_write (const jjs_fmt_stream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
+{
+  fmt_buffer_t *target_p = self_p->state_p;
+
+  if (target_p->buffer_index < target_p->buffer_size)
+  {
+    if (target_p->buffer_index + size < target_p->buffer_size)
+    {
+      memcpy (target_p->buffer + target_p->buffer_index, buffer_p, size);
+      target_p->buffer_index += size;
+    }
+    else
+    {
+      jjs_size_t write_size = target_p->buffer_size - target_p->buffer_index;
+      memcpy (target_p->buffer + target_p->buffer_index, buffer_p, write_size);
+      target_p->buffer_index += write_size;
+    }
+  }
+} /* fmt_buffer_stream_write */
+
+/**
+ * Formats to a JS string.
+ *
+ * @see jjs_fmt_v
+ *
+ * @return JS string. must be released with jjs_value_free
+ */
+jjs_value_t
+jjs_fmt_to_string_v (const char *format_p, /**< format string */
+                     const jjs_value_t *values_p, /**< substitution values */
+                     jjs_size_t values_length) /**< number of substitution values */
+{
+  JJS_ASSERT (format_p != NULL);
+
+  if (format_p == NULL || values_length == 0)
+  {
+    return jjs_string_utf8_sz (format_p);
+  }
+
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+
+  jjs_fmt_stream_t writer = {
+    .write = fmt_stringbuilder_stream_write,
+    .state_p = &builder,
+    .encoding = JJS_ENCODING_CESU8,
+  };
+
+  jjs_fmt_v (&writer, format_p, values_p, values_length);
+
+  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+} /* jjs_fmt_to_string_v */
+
+/**
+ * Formats to a native character buffer.
+ *
+ * @see jjs_fmt_v
+ *
+ * @return the number of bytes written to buffer_p; if there is a problem 0 is returned.
+ */
+jjs_size_t
+jjs_fmt_to_buffer_v (jjs_char_t *buffer_p, /**< target buffer */
+                     jjs_size_t buffer_size, /**< target buffer size */
+                     jjs_encoding_t encoding, /**< encoding used to write character to buffer */
+                     const char *format_p, /**< format string */
+                     const jjs_value_t *values_p, /**< substitution values */
+                     jjs_size_t values_length) /**< number of substitution values */
+{
+  JJS_ASSERT (buffer_p != NULL);
+  JJS_ASSERT (format_p != NULL);
+
+  if (buffer_p == NULL || buffer_size == 0 || format_p == NULL || values_length == 0)
+  {
+    return 0;
+  }
+
+  fmt_buffer_t target = {
+    .buffer = buffer_p,
+    .buffer_size = buffer_size,
+    .buffer_index = 0,
+  };
+
+  jjs_fmt_stream_t writer = {
+    .write = fmt_buffer_stream_write,
+    .state_p = &target,
+    .encoding = encoding,
+  };
+
+  jjs_fmt_v (&writer, format_p, values_p, values_length);
+
+  return target.buffer_index;
+} /* jjs_fmt_to_buffer_v */
+
+/**
+ * Join JS values with a delimiter.
+ *
+ * This function is not equivalent to String.prototype.join. This function just
+ * toString's the values and merges the result with the delimiter. No care is taken
+ * for empty strings of undefined.
+ *
+ * @see jjs_fmt_v
+ *
+ * @return JS string (empty string if something goes wrong). value must be
+ * released with jjs_value_free
+ */
+jjs_value_t
+jjs_fmt_join_v (jjs_value_t delimiter, /**< string delimiter */
+                jjs_value_ownership_t delimiter_o, /**< delimiter reference ownership */
+                const jjs_value_t *values_p, /**< substitution values */
+                jjs_size_t values_length) /**< number of substitution values */
+{
+  if (!jjs_value_is_string (delimiter) || values_length == 0)
+  {
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
+  }
+
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+
+  jjs_fmt_stream_t writer = {
+    .write = fmt_stringbuilder_stream_write,
+    .state_p = &builder,
+    .encoding = JJS_ENCODING_CESU8,
+  };
+
+  for (jjs_size_t i = 0; i < values_length; i++)
+  {
+    fmt_write_value (&writer, values_p[i], JJS_KEEP);
+
+    if (i < values_length - 1)
+    {
+      fmt_write_value (&writer, delimiter, JJS_KEEP);
+    }
+  }
+
+  JJS_DISOWN (delimiter, delimiter_o);
+
+  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+} /* jjs_fmt_join_v */
 
 /**
  * @}

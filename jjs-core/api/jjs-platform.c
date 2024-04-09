@@ -659,10 +659,10 @@ jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move)
 } /* jjsp_buffer_to_string */
 
 void
-jjsp_io_log (const char* message_p)
+jjsp_io_log (const uint8_t* data_p, uint32_t data_size)
 {
-  fputs (message_p, stderr);
-} /* jjsp_log */
+  fwrite (data_p, 1, data_size, stderr);
+} /* jjsp_io_log */
 
 void
 jjsp_fatal (jjs_fatal_code_t code)

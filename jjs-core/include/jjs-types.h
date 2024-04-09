@@ -88,7 +88,7 @@ typedef struct jjs_platform_buffer_t
 typedef jjs_platform_status_t (*jjs_platform_cwd_fn_t) (jjs_platform_buffer_t*);
 typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
 
-typedef void (*jjs_platform_io_log_fn_t) (const char*);
+typedef void (*jjs_platform_io_log_fn_t) (const uint8_t*, uint32_t);
 
 typedef jjs_platform_status_t (*jjs_platform_fs_read_file_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
 
@@ -1324,6 +1324,31 @@ typedef struct
  * Used by api to test values for a user supplied condition.
  */
 typedef bool (*jjs_value_condition_fn_t)(jjs_value_t);
+
+/**
+ * Stream object to pass to fmt methods.
+ *
+ * You can implement an instance to direct stream writes to go to a specific place.
+ */
+typedef struct jjs_fmt_stream_s
+{
+  /**
+   * Write bytes to the stream.
+   *
+   * This function is required to be implemented.
+   */
+  void (*write)(const struct jjs_fmt_stream_s*, const uint8_t*, jjs_size_t);
+
+  /**
+   * State of the stream. Stream instance decides how and if this is used.
+   */
+  void* state_p;
+
+  /**
+   * Encoding to use to write the stream. Stream instance defines which encoding are supported.
+   */
+  jjs_encoding_t encoding;
+} jjs_fmt_stream_t;
 
 /**
  * @}

@@ -1065,26 +1065,6 @@ main (void)
 
   jjs_value_free (args[1]);
 
-  // fmt logging
-
-  jjs_value_t logging_values [] = {
-    jjs_string_sz ("test"),
-    jjs_number (1),
-    jjs_array (1),
-  };
-
-  jjs_log_fmt_v (JJS_LOG_LEVEL_TRACE, "{}{}\n", logging_values, JJS_ARRAY_SIZE (logging_values));
-  jjs_log_fmt_v (JJS_LOG_LEVEL_TRACE, "{}{}{}\n", logging_values, JJS_ARRAY_SIZE (logging_values));
-  jjs_log_fmt_v (JJS_LOG_LEVEL_TRACE, "{}{}{}{}\n", logging_values, JJS_ARRAY_SIZE (logging_values));
-
-  jjs_log_fmt (JJS_LOG_LEVEL_TRACE, "{}{}\n", logging_values[0], logging_values[1]);
-  jjs_log_fmt (JJS_LOG_LEVEL_TRACE, "{}{}{}\n", logging_values[0], logging_values[1], logging_values[2]);
-  jjs_log_fmt (JJS_LOG_LEVEL_TRACE, "{}{}{}{}\n", logging_values[0], logging_values[1], logging_values[2]);
-
-  jjs_value_free (logging_values[0]);
-  jjs_value_free (logging_values[1]);
-  jjs_value_free (logging_values[2]);
-
   jjs_cleanup ();
 
   return 0;

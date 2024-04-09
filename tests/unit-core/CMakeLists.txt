@@ -29,6 +29,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-api-binary-operations-comparisons.c
   test-api-binary-operations-instanceof.c
   test-api-errortype.c
+  test-api-fmt.c
   test-api-functiontype.c
   test-api-init.c
   test-api-iteratortype.c

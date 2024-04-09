@@ -35,7 +35,7 @@ bool jjsp_path_is_separator (lit_utf8_byte_t ch);
 void JJS_ATTR_NORETURN jjsp_fatal (jjs_fatal_code_t code);
 jjs_platform_status_t jjsp_cwd (jjs_platform_buffer_t* buffer_p);
 
-void jjsp_io_log (const char* message_p);
+void jjsp_io_log (const uint8_t* data_p, uint32_t data_size);
 
 jjs_platform_status_t jjsp_time_sleep (uint32_t sleep_time_ms);
 jjs_platform_status_t jjsp_time_local_tza (double unix_ms, int32_t* out_p);

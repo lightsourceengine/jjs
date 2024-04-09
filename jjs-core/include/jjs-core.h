@@ -64,10 +64,35 @@ void jjs_heap_gc (jjs_gc_mode_t mode);
 
 bool jjs_foreach_live_object (jjs_foreach_live_object_cb_t callback, void *user_data);
 bool jjs_foreach_live_object_with_info (const jjs_object_native_info_t *native_info_p,
-                                          jjs_foreach_live_object_with_info_cb_t callback,
-                                          void *user_data_p);
+                                        jjs_foreach_live_object_with_info_cb_t callback,
+                                        void *user_data_p);
 /**
  * jjs-api-general-heap @}
+ */
+
+/**
+ * @defgroup jjs-api-general-fmt fmt helper functions
+ * @{
+ */
+
+void jjs_fmt_v (const jjs_fmt_stream_t *stream_p,
+                const char *format_p,
+                const jjs_value_t *values_p,
+                jjs_size_t values_length);
+jjs_value_t jjs_fmt_to_string_v (const char *format_p, const jjs_value_t *values_p, jjs_size_t values_length);
+jjs_size_t jjs_fmt_to_buffer_v (jjs_char_t *buffer_p,
+                                jjs_size_t buffer_size,
+                                jjs_encoding_t encoding,
+                                const char *format_p,
+                                const jjs_value_t *values_p,
+                                jjs_size_t values_length);
+jjs_value_t jjs_fmt_join_v (jjs_value_t delimiter,
+                            jjs_value_ownership_t delimiter_o,
+                            const jjs_value_t *values_p,
+                            jjs_size_t values_length);
+
+/**
+ * jjs-api-general-fmt @}
  */
 
 /**
@@ -77,19 +102,7 @@ bool jjs_foreach_live_object_with_info (const jjs_object_native_info_t *native_i
 
 void JJS_ATTR_FORMAT (printf, 2, 3) jjs_log (jjs_log_level_t level, const char *format_p, ...);
 void jjs_log_set_level (jjs_log_level_t level);
-
 void jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length);
-
-/**
- * Helper macro that provides a va args like interface to jjs_log_fmt_v. It hides the creation of a
- * temporary stack array of JS value substitutions to pass to jjs_log_fmt_v.
- */
-#define jjs_log_fmt(LEVEL, FORMAT, ...)                                                         \
-  do                                                                                            \
-  {                                                                                             \
-    jjs_value_t args__[] = { __VA_ARGS__ };                                                     \
-    jjs_log_fmt_v (LEVEL, FORMAT, args__, (jjs_size_t) (sizeof (args__) / sizeof (args__[0]))); \
-  } while (false)
 
 bool jjs_validate_string (const jjs_char_t *buffer_p, jjs_size_t buffer_size, jjs_encoding_t encoding);
 bool JJS_ATTR_CONST jjs_feature_enabled (const jjs_feature_t feature);
@@ -1397,6 +1410,16 @@ jjs_value_t jjs_realm_set_this (jjs_value_t realm, jjs_value_t this_value);
 /**
  * jjs-api @}
  */
+
+/**
+ * Helper macro for using jjs_log_fmt_v.
+ */
+#define jjs_log_fmt(LEVEL, FORMAT, ...)                                                         \
+  do                                                                                            \
+  {                                                                                             \
+    jjs_value_t args__[] = { __VA_ARGS__ };                                                     \
+    jjs_log_fmt_v (LEVEL, FORMAT, args__, (jjs_size_t) (sizeof (args__) / sizeof (args__[0]))); \
+  } while (false)
 
 JJS_C_API_END
 
