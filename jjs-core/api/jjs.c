@@ -4868,7 +4868,7 @@ jjs_log_string_fixed (const char *str_p, size_t size, char *buffer_p)
   while (size > batch_size)
   {
     memcpy (buffer_p, str_p, batch_size);
-    jjs_log_string (buffer_p, batch_size);
+    jjs_log_string (buffer_p, (jjs_size_t) batch_size);
 
     str_p += batch_size;
     size -= batch_size;
