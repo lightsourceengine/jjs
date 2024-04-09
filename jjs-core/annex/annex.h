@@ -62,12 +62,17 @@ ecma_value_t annex_util_get_internal_m (ecma_value_t object, lit_magic_string_id
 void annex_util_define_function (ecma_object_t* global_p,
                                  lit_magic_string_id_t name_id,
                                  ecma_native_handler_t handler_p);
-void annex_util_define_value (ecma_object_t* global_p,
+void annex_util_define_value (ecma_object_t* object_p,
                               lit_magic_string_id_t name_id,
-                              ecma_value_t value);
+                              ecma_value_t value,
+                              jjs_value_ownership_t value_o);
+void annex_util_define_ro_value (ecma_object_t* object_p,
+                                 lit_magic_string_id_t name_id,
+                                 ecma_value_t value,
+                                 jjs_value_ownership_t value_o);
+
 bool annex_util_is_valid_package_name (ecma_value_t name);
 jjs_value_t annex_util_create_string_utf8_sz (const char* str_p);
-void annex_util_define_ro_value_sz (ecma_value_t object, const char* key, ecma_value_t value);
 
 #define JJS_DISOWN(VALUE, VALUE_OWNERSHIP) if ((VALUE_OWNERSHIP) == JJS_MOVE) jjs_value_free (VALUE)
 

@@ -152,7 +152,6 @@ main_register_jjs_test_object (void)
 
   object_set_sz (pmap, "resolve", pmap_resolve);
   object_set_sz (jjs, "pmap", pmap);
-  object_set_sz (jjs, "os", os);
 
   jjs_value_free (pmap);
   jjs_value_free (pmap_resolve);

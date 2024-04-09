@@ -49,20 +49,12 @@ static JJS_HANDLER (jjs_pack_path_env)
   return jjs_string ((const jjs_char_t*) value, (jjs_size_t) strlen (value), JJS_ENCODING_UTF8);
 } /* jjs_pack_path_env */
 
-static JJS_HANDLER (jjs_pack_path_cwd)
-{
-  JJS_HANDLER_HEADER ();
-  return jjs_platform_cwd ();
-} /* jjs_pack_path_cwd */
-
 static JJS_HANDLER (jjs_pack_lib_path_vmod_callback)
 {
   JJS_HANDLER_HEADER ();
   jjs_value_t bindings = jjs_bindings ();
 
   jjs_bindings_function (bindings, "env", &jjs_pack_path_env);
-  jjs_bindings_function (bindings, "cwd", &jjs_pack_path_cwd);
-  jjs_bindings_value (bindings, "os", jjs_platform_os (), JJS_MOVE);
 
   return jjs_pack_lib_read_exports (jjs_pack_path_snapshot,
                                     jjs_pack_path_snapshot_len,

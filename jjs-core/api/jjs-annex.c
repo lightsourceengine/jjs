@@ -68,28 +68,6 @@ static void module_on_init_scope (ecma_module_t* module_p)
 #endif /* JJS_MODULE_SYSTEM */
 
 /**
- * Add system information properties to the realm / global object.
- *
- * System info properties are "hidden" in the global object and prefixed with \@.
- *
- * @param global_p target realm
- */
-static void
-install_system_info_props (ecma_object_t* global_p)
-{
-  // TODO: these need to move to an official global api
-  ecma_value_t global = ecma_make_object_value (global_p);
-
-  ecma_value_t platform = jjs_platform_os ();
-  annex_util_define_ro_value_sz (global, "@platform", platform);
-  ecma_free_value (platform);
-
-  ecma_value_t arch = jjs_platform_arch ();
-  annex_util_define_ro_value_sz (global, "@arch", arch);
-  ecma_free_value (arch);
-} /* install_system_info_props */
-
-/**
  * Initialize context for annex apis.
  */
 void jjs_annex_init (void)
@@ -130,13 +108,10 @@ void jjs_annex_init (void)
  */
 void jjs_annex_init_realm (ecma_global_object_t* global_p)
 {
-  // note: system info has no home, they are being put into the realm for now so packs can get this info.
-  install_system_info_props ((ecma_object_t*) global_p);
+  ecma_object_t* global_object_p = (ecma_object_t*) global_p;
 
 #if JJS_ANNEX_QUEUE_MICROTASK
-  annex_util_define_function ((ecma_object_t*)global_p,
-                              LIT_MAGIC_STRING_QUEUE_MICROTASK,
-                              queue_microtask_handler);
+  annex_util_define_function (global_object_p, LIT_MAGIC_STRING_QUEUE_MICROTASK, queue_microtask_handler);
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 #if JJS_ANNEX_COMMONJS
@@ -151,9 +126,7 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
     jjs_fatal (JJS_FATAL_FAILED_ASSERTION);
   }
 
-  annex_util_define_value ((ecma_object_t*)global_p, LIT_MAGIC_STRING_REQUIRE, fn);
-
-  ecma_free_value (fn);
+  annex_util_define_value (global_object_p, LIT_MAGIC_STRING_REQUIRE, fn, JJS_MOVE);
 #endif /* JJS_ANNEX_COMMONJS */
 
 #if JJS_ANNEX_ESM
@@ -165,7 +138,7 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
   global_p->vmod_cache = ecma_create_object_with_null_proto ();
   ecma_free_value (global_p->vmod_cache);
 
-  jjs_annex_vmod_init_realm (ecma_make_object_value((ecma_object_t*) global_p));
+  jjs_annex_vmod_init_realm (ecma_make_object_value (global_object_p));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_annex_init_realm */
 

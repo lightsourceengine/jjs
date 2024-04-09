@@ -39,14 +39,22 @@ const StringPrototypeReplace = String.prototype.replace;
 const StringPrototypeSlice = String.prototype.slice;
 const StringPrototypeToLowerCase = String.prototype.toLowerCase;
 
-const { cwd, env, os } = module.bindings;
-const isWindows = os === 'win32';
+const { env } = module.bindings;
+const isWindows = jjs.os === 'win32';
 
 class ERR_INVALID_ARG_TYPE extends TypeError {
   constructor(name, expected, actual) {
     super(`The "${name}" argument must be of type ${expected}. Received ${typeof actual}`);
     this.code = 'ERR_INVALID_ARG_TYPE';
   }
+}
+
+function cwd () {
+  if (!jjs.cwd)
+  {
+    throw Error('jjs.cwd is not available');
+  }
+  return jjs.cwd()
 }
 
 function validateObject(value, name, options = undefined) {

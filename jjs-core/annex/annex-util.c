@@ -19,9 +19,14 @@
 
 #include "annex.h"
 
-#define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE                                                  \
-  (JJS_PROP_IS_CONFIGURABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED \
+#define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE                                                        \
+  (JJS_PROP_IS_CONFIGURABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED       \
    | JJS_PROP_IS_CONFIGURABLE | JJS_PROP_IS_ENUMERABLE | JJS_PROP_IS_WRITABLE | JJS_PROP_IS_VALUE_DEFINED)
+
+#define JJS_CONFIGURABLE_ENUMERABLE_READONLY_VALUE                                  \
+  (JJS_PROP_IS_CONFIGURABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED                \
+   | JJS_PROP_IS_CONFIGURABLE | JJS_PROP_IS_ENUMERABLE | JJS_PROP_IS_VALUE_DEFINED)
+
 #define NPM_PACKAGE_NAME_LENGTH_LIMIT 214
 
 /**
@@ -38,9 +43,7 @@ annex_util_define_function (ecma_object_t* object_p,
 {
   ecma_value_t fn = ecma_make_object_value (ecma_op_create_external_function_object (handler_p));
 
-  annex_util_define_value (object_p, name_id, fn);
-
-  ecma_free_value (fn);
+  annex_util_define_value (object_p, name_id, fn, JJS_MOVE);
 } /* annex_util_define_function */
 
 /**
@@ -49,11 +52,13 @@ annex_util_define_function (ecma_object_t* object_p,
  * @param object_p target object
  * @param name_id magic string id of the property name
  * @param value property value
+ * @param value_o value reference ownership
  */
 void
 annex_util_define_value (ecma_object_t* object_p,
                          lit_magic_string_id_t name_id,
-                         ecma_value_t value)
+                         ecma_value_t value,
+                         jjs_value_ownership_t value_o)
 {
   ecma_property_descriptor_t prop_desc = {
     .flags = JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE,
@@ -66,7 +71,38 @@ annex_util_define_value (ecma_object_t* object_p,
     &prop_desc);
 
   ecma_free_value (result);
+
+  JJS_DISOWN (value, value_o);
 } /* annex_util_define_value */
+
+/**
+ * Define a readonly value property on an object.
+ *
+ * @param object_p target object
+ * @param name_id magic string id of the property name
+ * @param value property value
+ * @param value_o value reference ownership
+ */
+void
+annex_util_define_ro_value (ecma_object_t* object_p,
+                            lit_magic_string_id_t name_id,
+                            ecma_value_t value,
+                            jjs_value_ownership_t value_o)
+{
+  ecma_property_descriptor_t prop_desc = {
+    .flags = JJS_CONFIGURABLE_ENUMERABLE_READONLY_VALUE,
+    .value = value,
+  };
+
+  ecma_value_t result = ecma_op_object_define_own_property (
+    object_p,
+    ecma_get_magic_string (name_id),
+    &prop_desc);
+
+  ecma_free_value (result);
+
+  JJS_DISOWN (value, value_o);
+} /* annex_util_define_value_ro */
 
 /**
  * Set a property on an object with a magic string as the key.
@@ -335,25 +371,3 @@ done:
   ECMA_FINALIZE_UTF8_STRING (name_bytes_p, name_bytes_len);
   return result;
 } /* annex_util_is_valid_package_name */
-
-/**
- * Defines a read only, non-enumerable, non-configurable value property on the passed
- * in object.
- *
- * @param object target object
- * @param key property key
- * @param value property value
- */
-void
-annex_util_define_ro_value_sz (ecma_value_t object, const char* key, ecma_value_t value)
-{
-  jjs_property_descriptor_t prop = {
-    .flags = JJS_PROP_IS_VALUE_DEFINED,
-    .value = value,
-  };
-  ecma_value_t name = ecma_string_ascii_sz (key);
-  jjs_value_t result = jjs_object_define_own_prop (object, name, &prop);
-  JJS_ASSERT (jjs_value_is_true (result));
-  jjs_value_free (result);
-  ecma_free_value (name);
-} /* annex_util_define_ro_value_sz */

@@ -19,7 +19,7 @@ import { pathToFileURL } from 'jjs:url';
 
 const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
-const isWindows = $jjs.os === 'win32';
+const isWindows = jjs.os === 'win32';
 
 test('pathToFileURL() should create a file url from relative path', () => {
   const fileURL = pathToFileURL('test/').href;

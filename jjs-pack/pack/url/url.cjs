@@ -24,7 +24,7 @@ const SymbolReplace = RegExp.prototype[replace];
 const RegExpPrototypeSymbolReplace = (self, ...args) => SymbolReplace.call(self, ...args)
 
 const FORWARD_SLASH = /\//g;
-const isWindows = module.bindings.os === 'win32';
+const isWindows = jjs.os === 'win32';
 let resolve;
 let sep = isWindows ? '\\' : '/';
 

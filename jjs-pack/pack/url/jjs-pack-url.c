@@ -27,13 +27,9 @@ jjs_value_t
 jjs_pack_url_init (void)
 {
 #if JJS_PACK_URL
-  jjs_value_t bindings = jjs_bindings ();
-
-  jjs_bindings_value (bindings, "os", jjs_platform_os (), JJS_MOVE);
-
   jjs_value_t exports = jjs_pack_lib_read_exports (jjs_pack_url_snapshot,
                                                    jjs_pack_url_snapshot_len,
-                                                   bindings,
+                                                   jjs_undefined(),
                                                    JJS_MOVE,
                                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
   return jjs_vmod_sz ("jjs:url", exports, JJS_MOVE);

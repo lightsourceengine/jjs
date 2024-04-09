@@ -270,7 +270,8 @@ typedef enum
   JJS_CONTEXT_FLAG_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
   JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
   JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
-  JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP = (1u << 3),
+  JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP = (1u << 3), /**< */
+  JJS_CONTEXT_FLAG_EXPOSE_GC = (1u << 4), /**< add gc function to global jjs object */
 } jjs_context_flag_t;
 
 /**
