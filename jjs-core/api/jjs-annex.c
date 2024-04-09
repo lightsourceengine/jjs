@@ -108,7 +108,11 @@ void jjs_annex_init (void)
  */
 void jjs_annex_init_realm (ecma_global_object_t* global_p)
 {
+#if JJS_ANNEX_QUEUE_MICROTASK || JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM || JJS_ANNEX_VMOD
   ecma_object_t* global_object_p = (ecma_object_t*) global_p;
+#else /* !(JJS_ANNEX_QUEUE_MICROTASK || JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM || JJS_ANNEX_VMOD) */
+  JJS_UNUSED (global_p);
+#endif /* JJS_ANNEX_QUEUE_MICROTASK || JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM || JJS_ANNEX_VMOD */
 
 #if JJS_ANNEX_QUEUE_MICROTASK
   annex_util_define_function (global_object_p, LIT_MAGIC_STRING_QUEUE_MICROTASK, queue_microtask_handler);
