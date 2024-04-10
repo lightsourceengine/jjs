@@ -21,6 +21,7 @@
 #include "jcontext.h"
 #include "jjs-platform.h"
 #include "jjs-compiler.h"
+#include "jjs-stream.h"
 
 /**
  * Gets the current working directory.
@@ -208,6 +209,79 @@ bool jjs_platform_has_read_file (void)
   jjs_assert_api_enabled();
   return (JJS_CONTEXT (platform_api).fs_read_file != NULL);
 } /* jjs_platform_has_read_file */
+
+/**
+ * Write a string to the platform stdout write stream.
+ *
+ * If the value is not a string or the platform does not have stdout stream installed,
+ * this function does nothing.
+ *
+ * @param value JS string value
+ * @param value_o value reference ownership
+ */
+void jjs_platform_stdout_write (jjs_value_t value, jjs_value_ownership_t value_o)
+{
+  jjs_assert_api_enabled();
+  jjs_stream_write_string (JJS_STDOUT, value, value_o);
+} /* jjs_platform_stdout_write */
+
+/**
+ * Flush the platform stdout write stream.
+ *
+ * If the platform does not have stdout stream installed, this function does nothing.
+ */
+void jjs_platform_stdout_flush (void)
+{
+  jjs_assert_api_enabled();
+  jjs_stream_flush (JJS_STDOUT);
+} /* jjs_platform_stdout_flush */
+
+/**
+ * Checks if the platform has stdout stream installed.
+ *
+ * @return boolean status
+ */
+bool jjs_platform_has_stdout (void)
+{
+  jjs_assert_api_enabled();
+  return jjs_stream_is_installed (JJS_STDOUT);
+}
+
+/**
+ * Write a string to the platform stderr write stream.
+ *
+ * If the value is not a string or the platform does not have stderr stream installed,
+ * this function does nothing.
+ *
+ * @param value JS string value
+ * @param value_o value reference ownership
+ */
+void jjs_platform_stderr_write (jjs_value_t value, jjs_value_ownership_t value_o)
+{
+  jjs_stream_write_string (JJS_STDERR, value, value_o);
+}
+
+/**
+ * Flush the platform stderr write stream.
+ *
+ * If the platform does not have stderr stream installed, this function does nothing.
+ */
+void jjs_platform_stderr_flush (void)
+{
+  jjs_assert_api_enabled();
+  jjs_stream_flush (JJS_STDERR);
+}
+
+/**
+ * Checks if the platform has stderr stream installed.
+ *
+ * @return boolean status
+ */
+bool jjs_platform_has_stderr (void)
+{
+  jjs_assert_api_enabled();
+  return jjs_stream_is_installed (JJS_STDERR);
+}
 
 /**
  * Get the OS identifier as a JS string.

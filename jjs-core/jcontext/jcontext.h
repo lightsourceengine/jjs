@@ -75,11 +75,13 @@ struct jjs_context_t
 
   ecma_global_object_t *global_object_p; /**< current global object */
 
-  jmem_heap_t* heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
+  jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
   jjs_context_heap_free_cb_t heap_free_cb; /**< called when an external heap pointer should be free'd */
-  void* heap_free_user_p; /**< user defined token to pass to heap_free_cb */
+  void *heap_free_user_p; /**< user defined token to pass to heap_free_cb */
 
   jjs_platform_t platform_api; /**< platform api access */
+  jjs_platform_io_stream_t *streams[2]; /**< installed platform io streams. validated at context init.
+                                           * indexes at jjs_platform_io_stream_id_t */
 
   jjs_context_unhandled_rejection_cb_t unhandled_rejection_cb; /**< called when a promise rejection has no handler. cannot be NULL. */
   void *unhandled_rejection_user_p; /**< user defined token passed to unhandled_rejection_cb */

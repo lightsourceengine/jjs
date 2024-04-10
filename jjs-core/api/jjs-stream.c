@@ -131,7 +131,7 @@ wstream_memory_write (const jjs_wstream_t *self_p, const uint8_t *buffer_p, jjs_
  * @return true: success, false: error
  */
 bool
-jjs_wstream_new (jjs_std_stream_id_t id, jjs_value_t* out)
+jjs_wstream_new (jjs_platform_io_stream_id_t id, jjs_value_t *out)
 {
   jjs_wstream_t wstream;
 
@@ -187,30 +187,25 @@ jjs_wstream_from_buffer (jjs_wstream_buffer_state_t * buffer_p, /**< buffer to w
  *
  * @return true: initialized, false: failed
  */
-bool jjs_wstream_from_id (jjs_std_stream_id_t id, jjs_wstream_t* out)
+bool
+jjs_wstream_from_id (jjs_platform_io_stream_id_t id, jjs_wstream_t *out)
 {
-  if (JJS_CONTEXT (platform_api).io_write)
+  if (jjs_stream_is_installed (id))
   {
     switch (id)
     {
       case JJS_STDOUT:
       {
-        if (JJS_CONTEXT (platform_api).io_stdout)
-        {
-          out->write = wstream_io_write;
-          out->encoding = JJS_CONTEXT (platform_api).io_stdout_encoding;
-          out->state_p = JJS_CONTEXT (platform_api).io_stdout;
-          return true;
-        }
+        out->write = wstream_io_write;
+        out->encoding = JJS_CONTEXT (platform_api).io_stdout_encoding;
+        out->state_p = JJS_CONTEXT (platform_api).io_stdout;
+        return true;
       }
       case JJS_STDERR:
       {
-        if (JJS_CONTEXT (platform_api).io_stderr)
-        {
-          out->write = wstream_io_write;
-          out->encoding = JJS_CONTEXT (platform_api).io_stderr_encoding;
-          out->state_p = JJS_CONTEXT (platform_api).io_stderr;
-        }
+        out->write = wstream_io_write;
+        out->encoding = JJS_CONTEXT (platform_api).io_stderr_encoding;
+        out->state_p = JJS_CONTEXT (platform_api).io_stderr;
         return true;
       }
       default:
@@ -361,3 +356,53 @@ done:
 
   JJS_DISOWN (value, value_o);
 } /* jjs_wstream_write_string */
+
+/**
+ * Checks if a platform IO stream is installed, meaning the platform io_stdout and at least
+ * io_write is set.
+ *
+ * @return boolean status
+ */
+bool
+jjs_stream_is_installed (jjs_platform_io_stream_id_t id) /**< platform stream id */
+{
+  JJS_ASSERT (id == JJS_STDOUT || id == JJS_STDERR);
+  return JJS_CONTEXT (streams)[id] != NULL;
+}
+
+/**
+ * Call flush on the given platform stream. If flush is not available or the stream is not installed, this
+ * function does nothing.
+ */
+void
+jjs_stream_flush (jjs_platform_io_stream_id_t id) /**< platform stream id */
+{
+  if (JJS_CONTEXT (platform_api).io_flush && jjs_stream_is_installed (id))
+  {
+    JJS_CONTEXT (platform_api).io_flush (JJS_CONTEXT (streams)[id]);
+  }
+}
+
+/**
+ * Write a string to the platform streams writable stream.
+ *
+ * If the value is not a string or the stream is not installed, this function does nothing.
+ *
+ * @param id platform stream id
+ * @param value string JS value
+ * @param value_o value reference ownership
+ */
+void
+jjs_stream_write_string (jjs_platform_io_stream_id_t id, jjs_value_t value, jjs_value_t value_o)
+{
+  jjs_wstream_t wstream;
+
+  if (jjs_value_is_string (value) && jjs_wstream_from_id (id, &wstream))
+  {
+    jjs_wstream_write_string (&wstream, value, value_o);
+  }
+  else
+  {
+    JJS_DISOWN (value, value_o);
+  }
+}

@@ -35,17 +35,21 @@ typedef struct
  */
 typedef enum
 {
-  JJS_STDOUT, /**< platform io_stdout from context */
-  JJS_STDERR, /**< platform io_stderr from context */
-} jjs_std_stream_id_t;
+  JJS_STDOUT = 0, /**< platform io_stdout from context */
+  JJS_STDERR = 1, /**< platform io_stderr from context */
+} jjs_platform_io_stream_id_t;
 
-bool jjs_wstream_new (jjs_std_stream_id_t id, jjs_value_t* out);
+bool jjs_wstream_new (jjs_platform_io_stream_id_t id, jjs_value_t* out);
 
 bool jjs_wstream_from_buffer (jjs_wstream_buffer_state_t* buffer_p, jjs_encoding_t encoding, jjs_wstream_t* out);
-bool jjs_wstream_from_id (jjs_std_stream_id_t id, jjs_wstream_t* out);
+bool jjs_wstream_from_id (jjs_platform_io_stream_id_t id, jjs_wstream_t* out);
 bool jjs_wstream_from_stringbuilder (struct ecma_stringbuilder_t* builder, jjs_wstream_t* out);
 bool jjs_wstream_log (jjs_wstream_t* out);
 
 void jjs_wstream_write_string (const jjs_wstream_t* stream_p, jjs_value_t value, jjs_value_t value_o);
+
+bool jjs_stream_is_installed (jjs_platform_io_stream_id_t id);
+void jjs_stream_flush (jjs_platform_io_stream_id_t id);
+void jjs_stream_write_string (jjs_platform_io_stream_id_t id, jjs_value_t value, jjs_value_t value_o);
 
 #endif /* JJS_STREAM_H */

@@ -1252,12 +1252,22 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t modu
 
 jjs_value_t jjs_platform_cwd (void);
 bool jjs_platform_has_cwd (void);
+
 jjs_value_t jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o);
 jjs_value_t jjs_platform_realpath_sz (const char* path_p);
 bool jjs_platform_has_realpath (void);
+
 jjs_value_t jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts);
 jjs_value_t jjs_platform_read_file_sz (const char* path_p, const jjs_platform_read_file_options_t* opts);
 bool jjs_platform_has_read_file (void);
+
+void jjs_platform_stdout_write (jjs_value_t value, jjs_value_ownership_t value_o);
+void jjs_platform_stdout_flush (void);
+bool jjs_platform_has_stdout (void);
+
+void jjs_platform_stderr_write (jjs_value_t value, jjs_value_ownership_t value_o);
+void jjs_platform_stderr_flush (void);
+bool jjs_platform_has_stderr (void);
 
 jjs_value_t jjs_platform_os (void);
 jjs_platform_os_t JJS_ATTR_CONST jjs_platform_os_type (void);

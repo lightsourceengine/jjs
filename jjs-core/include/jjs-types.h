@@ -316,6 +316,8 @@ typedef enum
   JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP, /**< platform.time_sleep function is required by the engine */
   JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA, /**< platform.time_local_tza function is required by the engine */
   JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS, /**< platform.time_now_ms function is required by the engine */
+  JJS_CONTEXT_STATUS_STDOUT_INVALID_ENCODING, /**< platform.io_stdout was set with an unsupported platform.io_stdout_encoding value */
+  JJS_CONTEXT_STATUS_STDERR_INVALID_ENCODING, /**< platform.io_stderr was set with an unsupported platform.io_stderr_encoding value */
 } jjs_context_status_t;
 
 /**

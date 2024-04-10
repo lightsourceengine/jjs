@@ -19,13 +19,15 @@
 #define TEST_COMMON_IMPLEMENTATION
 #include "test-common.h"
 
+static const char* TEST_FILE = "./unit-fixtures/modules/a.mjs";
+
 static void
 test_platform_after_init (void)
 {
   TEST_ASSERT (jjs_platform_os_type () != JJS_PLATFORM_OS_UNKNOWN);
   TEST_ASSERT (jjs_platform_arch_type () != JJS_PLATFORM_ARCH_UNKNOWN);
 
-  jjs_init_default ();
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   TEST_ASSERT (jjs_platform_os () != JJS_PLATFORM_OS_UNKNOWN);
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_os ())));
@@ -42,7 +44,7 @@ test_platform_after_init (void)
 static void
 test_platform_cwd (void)
 {
-  jjs_init_default ();
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
 
   TEST_ASSERT (jjs_platform_has_cwd ());
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_cwd ())));
@@ -58,7 +60,7 @@ test_platform_cwd_not_set (void)
 
   options.platform.path_cwd = NULL;
 
-  jjs_init (&options);
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
 
   TEST_ASSERT (!jjs_platform_has_cwd ());
   TEST_ASSERT (jjs_value_is_exception (push (jjs_platform_cwd ())));
@@ -70,11 +72,57 @@ test_platform_cwd_not_set (void)
 static void
 test_platform_realpath (void)
 {
-  jjs_init_default ();
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  jjs_value_t path;
 
   TEST_ASSERT (jjs_platform_has_realpath ());
-  jjs_value_t path = push (jjs_platform_realpath (jjs_string_utf8_sz ("."), JJS_MOVE));
+
+  path = push (jjs_platform_realpath (jjs_string_utf8_sz ("."), JJS_MOVE));
   TEST_ASSERT (jjs_value_is_string (path));
+
+  path = push (jjs_platform_realpath (jjs_string_utf8_sz (TEST_FILE), JJS_MOVE));
+  TEST_ASSERT (jjs_value_is_string (path));
+
+  path = push (jjs_platform_realpath (jjs_string_utf8_sz ("does not exit"), JJS_MOVE));
+  TEST_ASSERT (jjs_value_is_exception (path));
+
+  path = push (jjs_platform_realpath (jjs_null (), JJS_MOVE));
+  TEST_ASSERT (jjs_value_is_exception (path));
+
+  free_values ();
+  jjs_cleanup ();
+}
+
+static void
+test_platform_read_file (void)
+{
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+
+  TEST_ASSERT (jjs_platform_has_read_file ());
+
+  jjs_value_t contents;
+
+  jjs_platform_read_file_options_t options = { 0 };
+
+  options.encoding = JJS_ENCODING_UTF8;
+  contents = push (jjs_platform_read_file (jjs_string_utf8_sz (TEST_FILE), JJS_MOVE, &options));
+  TEST_ASSERT (jjs_value_is_string (contents));
+
+  options.encoding = JJS_ENCODING_CESU8;
+  contents = push (jjs_platform_read_file (jjs_string_utf8_sz (TEST_FILE), JJS_MOVE, &options));
+  TEST_ASSERT (jjs_value_is_string (contents));
+
+  options.encoding = JJS_ENCODING_NONE;
+  contents = push (jjs_platform_read_file (jjs_string_utf8_sz (TEST_FILE), JJS_MOVE, &options));
+  TEST_ASSERT (jjs_value_is_arraybuffer (contents));
+
+  options.encoding = JJS_ENCODING_NONE;
+  contents = push (jjs_platform_read_file (jjs_string_utf8_sz ("file not found"), JJS_MOVE, &options));
+  TEST_ASSERT (jjs_value_is_exception (contents));
+
+  options.encoding = JJS_ENCODING_NONE;
+  contents = push (jjs_platform_read_file (jjs_null (), JJS_MOVE, &options));
+  TEST_ASSERT (jjs_value_is_exception (contents));
 
   free_values ();
   jjs_cleanup ();
@@ -87,7 +135,7 @@ test_platform_realpath_not_set (void)
 
   options.platform.path_realpath = NULL;
 
-  jjs_init (&options);
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
 
   TEST_ASSERT (!jjs_platform_has_realpath ());
   jjs_value_t path = push (jjs_platform_realpath (jjs_string_utf8_sz ("."), JJS_MOVE));
@@ -98,10 +146,92 @@ test_platform_realpath_not_set (void)
 }
 
 static void
+test_platform_read_file_not_set (void)
+{
+  jjs_context_options_t options = jjs_context_options ();
+
+  options.platform.fs_read_file = NULL;
+
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+
+  TEST_ASSERT (!jjs_platform_has_read_file ());
+  jjs_value_t path = push (jjs_platform_read_file (jjs_string_utf8_sz (TEST_FILE), JJS_MOVE, NULL));
+  TEST_ASSERT (jjs_value_is_exception (path));
+
+  free_values ();
+  jjs_cleanup ();
+}
+
+static void
+test_platform_stream (void)
+{
+  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+
+  TEST_ASSERT (jjs_platform_has_stdout () == true);
+
+  jjs_platform_stdout_write (jjs_string_sz ("hello\n"), JJS_MOVE);
+  jjs_platform_stdout_flush ();
+
+  TEST_ASSERT (jjs_platform_has_stderr () == true);
+
+  jjs_platform_stderr_write (jjs_string_sz ("hello\n"), JJS_MOVE);
+  jjs_platform_stderr_flush ();
+
+  jjs_cleanup ();
+}
+
+static void
+test_platform_stream_requirements (void)
+{
+  jjs_context_options_t options;
+
+  /* invalid default encoding */
+  options = jjs_context_options ();
+  options.platform.io_stdout_encoding = JJS_ENCODING_UTF16;
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_STDOUT_INVALID_ENCODING);
+
+  options = jjs_context_options ();
+  options.platform.io_stderr_encoding = JJS_ENCODING_UTF16;
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_STDERR_INVALID_ENCODING);
+
+  /* streams without write function */
+  options = jjs_context_options ();
+  options.platform.io_write = NULL;
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_platform_has_stdout () == false);
+  TEST_ASSERT (jjs_platform_has_stderr () == false);
+  jjs_cleanup();
+
+  /* no streams */
+  options = jjs_context_options ();
+  options.platform.io_stdout = NULL;
+  options.platform.io_stderr = NULL;
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_platform_has_stdout () == false);
+  TEST_ASSERT (jjs_platform_has_stderr () == false);
+  jjs_cleanup();
+
+  /* default init */
+  options = jjs_context_options ();
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_platform_has_stdout () == true);
+  TEST_ASSERT (jjs_platform_has_stderr () == true);
+  jjs_cleanup();
+
+  /* no flush */
+  options = jjs_context_options ();
+  options.platform.io_flush = NULL;
+  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_platform_has_stdout () == true);
+  TEST_ASSERT (jjs_platform_has_stderr () == true);
+  jjs_cleanup();
+}
+
+static void
 test_platform_debugger_requirements (void)
 {
 #if JJS_DEBUGGER
-  jjs_context_options_t options = jjs_context_options();
+  jjs_context_options_t options = jjs_context_options ();
 
   options.platform.time_sleep = NULL;
 
@@ -172,10 +302,16 @@ main (void)
   test_platform_realpath ();
   test_platform_realpath_not_set ();
 
+  test_platform_read_file ();
+  test_platform_read_file_not_set ();
+
+  test_platform_stream ();
+
   test_platform_api_exists ();
 
   test_platform_date_requirements ();
   test_platform_debugger_requirements ();
+  test_platform_stream_requirements ();
 
   return 0;
 } /* main */

@@ -16,6 +16,7 @@
 #include "jjs-context-init.h"
 
 #include "jcontext.h"
+#include "jjs-stream.h"
 
 /**
  * Computes the gc_limit when JJS_DEFAULT_GC_LIMIT is 0.
@@ -33,6 +34,8 @@ uint8_t jjs_static_heap [JJS_DEFAULT_VM_HEAP_SIZE * 1024] JJS_ATTR_ALIGNED (JMEM
 #endif /* JJS_VM_HEAP_STATIC */
 
 static void unhandled_rejection_default (jjs_value_t promise, jjs_value_t reason, void *user_p);
+static bool
+check_stream_encoding (void* stream_p, jjs_encoding_t default_encoding);
 
 /*
  * Setup the global context object.
@@ -74,6 +77,16 @@ jjs_context_init (const jjs_context_options_t* options_p)
   if (options_p->platform.fatal == NULL)
   {
     return JJS_CONTEXT_STATUS_REQUIRES_FATAL;
+  }
+
+  if (!check_stream_encoding (options_p->platform.io_stdout, options_p->platform.io_stdout_encoding))
+  {
+    return JJS_CONTEXT_STATUS_STDOUT_INVALID_ENCODING;
+  }
+
+  if (!check_stream_encoding (options_p->platform.io_stderr, options_p->platform.io_stderr_encoding))
+  {
+    return JJS_CONTEXT_STATUS_STDERR_INVALID_ENCODING;
   }
 
 #if JJS_DEBUGGER
@@ -162,6 +175,20 @@ jjs_context_init (const jjs_context_options_t* options_p)
   JJS_CONTEXT (context_flags) = context_flags;
   JJS_CONTEXT (platform_api) = options_p->platform;
 
+  /* install streams iff they are non-null and a write function exists */
+  if (options_p->platform.io_write)
+  {
+    if (options_p->platform.io_stdout)
+    {
+      JJS_CONTEXT (streams)[JJS_STDOUT] = options_p->platform.io_stdout;
+    }
+
+    if (options_p->platform.io_stderr)
+    {
+      JJS_CONTEXT (streams)[JJS_STDERR] = options_p->platform.io_stderr;
+    }
+  }
+
   return JJS_CONTEXT_STATUS_OK;
 }
 
@@ -199,4 +226,15 @@ unhandled_rejection_default (jjs_value_t promise, jjs_value_t reason, void *user
 #if JJS_LOGGING
   jjs_log_fmt (JJS_LOG_LEVEL_ERROR, "Uncaught:\n{}\n", reason);
 #endif
+}
+
+static bool
+check_stream_encoding (void* stream_p, jjs_encoding_t default_encoding)
+{
+  if (stream_p != NULL)
+  {
+    return (default_encoding == JJS_ENCODING_ASCII || default_encoding == JJS_ENCODING_UTF8 || default_encoding == JJS_ENCODING_CESU8);
+  }
+
+  return true;
 }
