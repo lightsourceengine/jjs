@@ -19,8 +19,22 @@
 #include "jjs.h"
 #include "ecma-globals.h"
 
+typedef struct
+{
+  const char* name_sz;
+  uint32_t value;
+} jjs_util_option_pair_t;
+
 jjs_value_t jjs_return (jjs_value_t value);
-bool jjs_util_parse_encoding (jjs_value_t value, jjs_encoding_t* out_p);
+
+bool jjs_util_map_option (jjs_value_t option,
+                          jjs_value_ownership_t option_o,
+                          jjs_value_t key,
+                          jjs_value_t key_o,
+                          const jjs_util_option_pair_t* option_mappings_p,
+                          jjs_size_t len,
+                          uint32_t default_mapped_value,
+                          uint32_t* out_p);
 
 /**
  * Assert that it is correct to call API in current state.

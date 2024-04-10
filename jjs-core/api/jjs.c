@@ -4845,9 +4845,11 @@ jjs_log_set_level (jjs_log_level_t level)
 static void
 jjs_log_string (const char *str_p, jjs_size_t size)
 {
-  // TODO: ascii?
+  /* TODO: logging does not specify encoding. use stderr encoding for now. */
   if (JJS_CONTEXT (platform_api).io_write && JJS_CONTEXT (platform_api).io_stderr) {
-    JJS_CONTEXT (platform_api).io_write (JJS_CONTEXT (platform_api).io_stderr, (const uint8_t *) str_p, size, JJS_ENCODING_UTF8);
+    JJS_CONTEXT (platform_api).io_write (JJS_CONTEXT (platform_api).io_stderr,
+                                         (const uint8_t *) str_p, size,
+                                         JJS_CONTEXT (platform_api).io_stderr_encoding);
   }
 
 #if JJS_DEBUGGER
@@ -5091,27 +5093,6 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
   va_end (vl);
 } /* jjs_log */
 
-///**
-// * Stream write implementation that writes bytes to the platform log function and/or the debugger.
-// */
-//static void
-//fmt_stream_write_io_log (const jjs_fmt_stream_t *self_p, const uint8_t *data_p, uint32_t data_size)
-//{
-//  JJS_UNUSED (self_p);
-//
-//  if (JJS_CONTEXT (platform_api).io_write)
-//  {
-//    JJS_CONTEXT (platform_api).io_write (JJS_CONTEXT (platform_api).io_stderr, data_p, data_size);
-//  }
-//
-//#if JJS_DEBUGGER
-//  if (jjs_debugger_is_connected ())
-//  {
-//    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, data_p, data_size);
-//  }
-//#endif /* JJS_DEBUGGER */
-//}
-
 /**
  * Log JS values in a fmt-like format.
  *
@@ -5139,23 +5120,14 @@ jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *v
 {
   JJS_ASSERT (format_p);
 
-#if JJS_DEBUGGER
-  bool is_debugger_connected = jjs_debugger_is_connected ();
-#else /* !JJS_DEBUGGER */
-  bool is_debugger_connected = false;
-#endif /* JJS_DEBUGGER */
-
-  // TODO: these checks are not correct
-  if (level > jjs_jrt_get_log_level ()
-      || (JJS_CONTEXT (platform_api).io_stderr == NULL && !is_debugger_connected)
-      || format_p == NULL)
+  if (level > jjs_jrt_get_log_level ())
   {
     return;
   }
 
   jjs_wstream_t wstream;
 
-  if (!jjs_wstream_from_id (JJS_STDERR, &wstream))
+  if (!jjs_wstream_log (&wstream))
   {
     return;
   }
@@ -7427,7 +7399,7 @@ jjs_fmt_to_buffer_v (jjs_char_t *buffer_p, /**< target buffer */
   }
 
   jjs_wstream_t wstream;
-  jjs_wstream_buffer_t target = {
+  jjs_wstream_buffer_state_t target = {
     .buffer = buffer_p,
     .buffer_size = buffer_size,
     .buffer_index = 0,

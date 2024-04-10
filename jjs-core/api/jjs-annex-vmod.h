@@ -26,7 +26,7 @@ typedef enum jjs_annex_vmod_format_t
   JJS_ANNEX_VMOD_FORMAT_UNKNOWN,
 } jjs_annex_vmod_format_t;
 
-void jjs_annex_vmod_init_realm (ecma_value_t realm);
+ecma_value_t jjs_annex_vmod_create_api (void);
 bool jjs_annex_vmod_exists (ecma_value_t name);
 jjs_value_t jjs_annex_vmod_resolve (jjs_value_t name);
 

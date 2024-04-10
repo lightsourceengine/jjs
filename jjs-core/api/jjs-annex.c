@@ -141,8 +141,6 @@ void jjs_annex_init_realm (ecma_global_object_t* global_p)
 #if JJS_ANNEX_VMOD
   global_p->vmod_cache = ecma_create_object_with_null_proto ();
   ecma_free_value (global_p->vmod_cache);
-
-  jjs_annex_vmod_init_realm (ecma_make_object_value (global_object_p));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_annex_init_realm */
 

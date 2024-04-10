@@ -18,10 +18,19 @@
 #include "jjs-annex.h"
 #include "jjs-stream.h"
 #include "jjs-util.h"
-#include "jjs.h"
+#if JJS_ANNEX_VMOD
+#include "jjs-annex-vmod.h"
+#endif /* JJS_ANNEX_VMOD */
 
 #include "annex.h"
 #include "jcontext.h"
+
+static jjs_util_option_pair_t READ_FILE_ENCODING_OPTION_MAP[] = {
+  { "none", JJS_ENCODING_NONE },  { "utf8", JJS_ENCODING_UTF8 },   { "utf-8", JJS_ENCODING_UTF8 },
+  { "cesu8", JJS_ENCODING_UTF8 }, { "cesu-8", JJS_ENCODING_UTF8 },
+};
+static jjs_size_t READ_FILE_ENCODING_OPTION_MAP_LEN =
+  sizeof (READ_FILE_ENCODING_OPTION_MAP) / sizeof (READ_FILE_ENCODING_OPTION_MAP[0]);
 
 /** jjs.cwd handler */
 static JJS_HANDLER (jjs_api_cwd_handler)
@@ -55,40 +64,29 @@ static JJS_HANDLER (jjs_api_read_file_handler)
 {
   JJS_UNUSED_ALL (call_info_p);
 
-  jjs_value_t encoding_value;
+  uint32_t raw_encoding;
 
-  if (args_count > 1)
+  bool result = jjs_util_map_option (args_count > 1 ? args_p[1] : jjs_undefined (),
+                                     JJS_KEEP,
+                                     jjs_string_sz ("encoding"),
+                                     JJS_MOVE,
+                                     READ_FILE_ENCODING_OPTION_MAP,
+                                     READ_FILE_ENCODING_OPTION_MAP_LEN,
+                                     JJS_ENCODING_NONE,
+                                     &raw_encoding);
+
+  if (result)
   {
-    if (jjs_value_is_string (args_p[1]))
-    {
-      encoding_value = jjs_value_copy (args_p[1]);
-    }
-    else if (jjs_value_is_object (args_p[1]))
-    {
-      encoding_value = jjs_object_get_sz (args_p[1], "encoding");
-    }
-    else if (jjs_value_is_undefined (args_p[1]))
-    {
-      encoding_value = ECMA_VALUE_UNDEFINED;
-    }
-    else
-    {
-      encoding_value = ECMA_VALUE_EMPTY;
-    }
+    jjs_platform_read_file_options_t options = {
+      .encoding = (jjs_encoding_t) raw_encoding,
+    };
+
+    return jjs_platform_read_file (args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP, &options);
   }
   else
   {
-    encoding_value = ECMA_VALUE_UNDEFINED;
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid encoding in argument 2");
   }
-
-  jjs_platform_read_file_options_t options = { 0 };
-
-  if (!jjs_util_parse_encoding (encoding_value, &options.encoding))
-  {
-    jjs_throw_sz (JJS_ERROR_TYPE, "readFile got invalid encoding in argument 2");
-  }
-
-  return jjs_platform_read_file (args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP, &options);
 } /* jjs_api_read_file_handler */
 
 void
@@ -116,7 +114,15 @@ jjs_api_object_init (ecma_value_t realm)
     annex_util_define_function (jjs_p, LIT_MAGIC_STRING_READ_FILE, jjs_api_read_file_handler);
   }
 
-  if ((JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_EXPOSE_GC) != 0)
+#if JJS_ANNEX_PMAP
+  annex_util_define_ro_value(jjs_p, LIT_MAGIC_STRING_PMAP, jjs_annex_pmap_create_api (), JJS_MOVE);
+#endif /* JJS_ANNEX_PMAP */
+
+#if JJS_ANNEX_VMOD
+  annex_util_define_ro_value(jjs_p, LIT_MAGIC_STRING_VMOD, jjs_annex_vmod_create_api (), JJS_MOVE);
+#endif /* JJS_ANNEX_VMOD */
+
+  if ((JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_HIDE_JJS_GC) == 0)
   {
     annex_util_define_function (jjs_p, LIT_MAGIC_STRING_GC, jjs_api_gc_handler);
   }
@@ -135,5 +141,5 @@ jjs_api_object_init (ecma_value_t realm)
     annex_util_define_value (jjs_p, LIT_MAGIC_STRING_STDERR, stream, JJS_MOVE);
   }
 
-  annex_util_define_value (ecma_get_object_from_value (realm), LIT_MAGIC_STRING_JJS, jjs, JJS_MOVE);
+  annex_util_define_ro_value (ecma_get_object_from_value (realm), LIT_MAGIC_STRING_JJS, jjs, JJS_MOVE);
 } /* jjs_api_object_init */

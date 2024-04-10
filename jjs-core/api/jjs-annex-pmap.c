@@ -20,6 +20,7 @@
 
 #include "ecma-builtin-helpers.h"
 #include "ecma-helpers.h"
+#include "ecma-objects-general.h"
 
 #include "annex.h"
 #include "jcontext.h"
@@ -256,13 +257,59 @@ jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t speci
  *
  * @see jjs_pmap_resolve
  */
-jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t module_type)
+jjs_value_t
+jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t module_type)
 {
   jjs_assert_api_enabled ();
   return jjs_pmap_resolve (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE, module_type);
 } /* jjs_pmap_resolve_sz */
 
 #if JJS_ANNEX_PMAP
+
+static jjs_util_option_pair_t PMAP_RESOLVE_TYPE_OPTION_MAP[] = {
+  { "none", JJS_MODULE_TYPE_NONE },
+  { "module", JJS_MODULE_TYPE_MODULE },
+  { "commonjs", JJS_MODULE_TYPE_COMMONJS },
+};
+static jjs_size_t PMAP_RESOLVE_TYPE_OPTION_MAP_LEN =
+  sizeof (PMAP_RESOLVE_TYPE_OPTION_MAP) / sizeof (PMAP_RESOLVE_TYPE_OPTION_MAP[0]);
+
+static JJS_HANDLER (jjs_pmap_resolve_handler)
+{
+  JJS_UNUSED_ALL (call_info_p);
+
+  uint32_t raw_type;
+  bool result = jjs_util_map_option (args_count > 1 ? args_p[1] : jjs_undefined (),
+                                     JJS_KEEP,
+                                     jjs_string_sz ("type"),
+                                     JJS_MOVE,
+                                     PMAP_RESOLVE_TYPE_OPTION_MAP,
+                                     PMAP_RESOLVE_TYPE_OPTION_MAP_LEN,
+                                     JJS_MODULE_TYPE_NONE,
+                                     &raw_type);
+
+  if (result)
+  {
+    return jjs_annex_pmap_resolve (args_count > 0 ? args_p[0] : jjs_undefined (), (jjs_module_type_t) raw_type);
+  }
+  else
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid module type in argument 2");
+  }
+}
+
+/**
+ * Create the pmap api to expose to JS.
+ */
+ecma_value_t
+jjs_annex_pmap_create_api (void)
+{
+  ecma_object_t* pmap_p = ecma_op_create_object_object_noarg ();
+
+  annex_util_define_function (pmap_p, LIT_MAGIC_STRING_RESOLVE, jjs_pmap_resolve_handler);
+
+  return ecma_make_object_value (pmap_p);
+}
 
 /**
  * Resolve a specifier or request against the current pmap (package map).
@@ -271,7 +318,8 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t modu
  * @param module_type ESM or CommonJS
  * @return absolute filename or exception if specifier could not be resolved
  */
-jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type)
+jjs_value_t
+jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type)
 {
   jjs_assert_api_enabled ();
 

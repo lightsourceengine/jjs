@@ -82,30 +82,19 @@ jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o)
 
   if (realpath_fn == NULL)
   {
-    if (path_o == JJS_MOVE)
-    {
-      jjs_value_free (path);
-    }
-
+    JJS_DISOWN (path, path_o);
     return jjs_throw_sz (JJS_ERROR_COMMON, "platform api 'path_realpath' not installed");
   }
 
   if (!jjs_value_is_string (path))
   {
-    if (path_o == JJS_MOVE)
-    {
-      jjs_value_free (path);
-    }
-
+    JJS_DISOWN (path, path_o);
     return jjs_throw_sz (JJS_ERROR_TYPE, "expected path to be a string");
   }
 
   ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value(path), path_bytes_p, path_bytes_len);
 
-  if (path_o == JJS_MOVE)
-  {
-    jjs_value_free (path);
-  }
+  JJS_DISOWN (path, path_o);
 
   jjs_platform_buffer_t buffer;
   jjs_platform_status_t status = realpath_fn (path_bytes_p, path_bytes_len, &buffer);

@@ -218,27 +218,20 @@ jjs_vmod_remove_sz (const char *name)
 
 #if JJS_ANNEX_VMOD
 
-void
-jjs_annex_vmod_init_realm (ecma_value_t realm)
+/**
+ * Create the vmod api to expose to JS.
+ */
+ecma_value_t
+jjs_annex_vmod_create_api (void)
 {
-  jjs_value_t vmod = jjs_function_external (annex_vmod_handler);
-  jjs_value_t vmod_resolve = jjs_function_external (annex_vmod_resolve_handler);
-  jjs_value_t vmod_exists = jjs_function_external (annex_vmod_exists_handler);
-  jjs_value_t vmod_remove = jjs_function_external (annex_vmod_remove_handler);
+  ecma_object_t* vmod_p = ecma_op_create_external_function_object (annex_vmod_handler);
 
-  ecma_set_m (vmod, LIT_MAGIC_STRING_EXISTS, vmod_exists);
-  ecma_set_m (vmod, LIT_MAGIC_STRING_RESOLVE, vmod_resolve);
-  ecma_set_m (vmod, LIT_MAGIC_STRING_REMOVE, vmod_remove);
+  annex_util_define_function (vmod_p, LIT_MAGIC_STRING_EXISTS, annex_vmod_exists_handler);
+  annex_util_define_function (vmod_p, LIT_MAGIC_STRING_RESOLVE, annex_vmod_resolve_handler);
+  annex_util_define_function (vmod_p, LIT_MAGIC_STRING_REMOVE, annex_vmod_remove_handler);
 
-  ecma_value_t key = ecma_make_magic_string_value(LIT_MAGIC_STRING_VMOD);
-  ecma_set_v (realm, key, vmod);
-  ecma_free_value (key);
-
-  jjs_value_free (vmod_exists);
-  jjs_value_free (vmod_resolve);
-  jjs_value_free (vmod_remove);
-  jjs_value_free (vmod);
-} /* jjs_annex_vmod_init_realm */
+  return ecma_make_object_value (vmod_p);
+} /* jjs_annex_vmod_create_api */
 
 jjs_value_t
 jjs_annex_vmod_resolve (jjs_value_t name)

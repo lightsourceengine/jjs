@@ -56,6 +56,7 @@ typedef enum
 typedef enum
 {
   JJS_ENCODING_NONE, /**< indicates no encoding selected. api dependent on how this is interpreted. */
+  JJS_ENCODING_ASCII, /**< ascii encoding. codepoints out of ascii range are represented with '?' */
   JJS_ENCODING_CESU8, /**< cesu-8 encoding */
   JJS_ENCODING_UTF8, /**< utf-8 encoding */
   JJS_ENCODING_UTF16, /**< utf-16 encoding (endianness of platform) */
@@ -327,7 +328,7 @@ typedef enum
   JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
   JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
   JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP = (1u << 3), /**< */
-  JJS_CONTEXT_FLAG_EXPOSE_GC = (1u << 4), /**< add gc function to global jjs object */
+  JJS_CONTEXT_FLAG_HIDE_JJS_GC = (1u << 4), /**< remove jjs.gc function */
 } jjs_context_flag_t;
 
 /**

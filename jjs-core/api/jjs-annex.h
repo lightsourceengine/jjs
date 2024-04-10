@@ -26,6 +26,8 @@ void jjs_annex_finalize (void);
 
 jjs_value_t jjs_annex_require (jjs_value_t specifier, jjs_value_t referrer_path);
 jjs_value_t jjs_annex_create_require (jjs_value_t referrer);
+
+ecma_value_t jjs_annex_pmap_create_api (void);
 jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type);
 
 JJS_HANDLER(queue_microtask_handler);

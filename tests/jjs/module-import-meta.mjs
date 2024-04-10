@@ -43,7 +43,7 @@ test('import.meta.resolve should return the full filename for the relative path 
 });
 
 test('import.meta.resolve should return package name for registered vmod package', () => {
-  vmod('pkg', { exports: 5 });
+  jjs.vmod('pkg', { exports: 5 });
   assertEquals(resolve('pkg'), 'pkg');
 });
 
