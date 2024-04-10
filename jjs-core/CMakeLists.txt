@@ -54,7 +54,8 @@ set(JJS_DEFAULT_VM_HEAP_SIZE      "(1024)"     CACHE STRING "Size of memory heap
 set(JJS_DEFAULT_VM_STACK_LIMIT    "(0)"        CACHE STRING "Maximum stack usage size, in kilobytes. WARNING: does not work across all configurations!")
 
 set(JJS_PLATFORM_API_FS_READ_FILE   ON         CACHE BOOL   "Enable default platform.fs.read_file implementation?")
-set(JJS_PLATFORM_API_IO_LOG         ON         CACHE BOOL   "Enable default platform.io.log implementation?")
+set(JJS_PLATFORM_API_IO_WRITE       ON         CACHE BOOL   "Enable default platform.io.write implementation?")
+set(JJS_PLATFORM_API_IO_FLUSH       ON         CACHE BOOL   "Enable default platform.io.flush implementation?")
 set(JJS_PLATFORM_API_PATH_CWD       ON         CACHE BOOL   "Enable default platform.path.cwd implementation?")
 set(JJS_PLATFORM_API_PATH_REALPATH  ON         CACHE BOOL   "Enable default platform.path.realpath implementation?")
 set(JJS_PLATFORM_API_TIME_LOCAL_TZA ON         CACHE BOOL   "Enable default platform.time.local_tza implementation?")
@@ -117,7 +118,8 @@ message(STATUS "JJS_VM_STACK_STATIC             " ${JJS_VM_STACK_STATIC})
 message(STATUS "JJS_DEFAULT_VM_HEAP_SIZE        " ${JJS_DEFAULT_VM_HEAP_SIZE})
 message(STATUS "JJS_DEFAULT_VM_STACK_LIMIT      " ${JJS_DEFAULT_VM_STACK_LIMIT})
 message(STATUS "JJS_PLATFORM_API_FS_READ_FILE   " ${JJS_PLATFORM_API_FS_READ_FILE})
-message(STATUS "JJS_PLATFORM_API_IO_LOG         " ${JJS_PLATFORM_API_IO_LOG})
+message(STATUS "JJS_PLATFORM_API_IO_WRITE       " ${JJS_PLATFORM_API_IO_WRITE})
+message(STATUS "JJS_PLATFORM_API_IO_FLUSH       " ${JJS_PLATFORM_API_IO_FLUSH})
 message(STATUS "JJS_PLATFORM_API_PATH_CWD       " ${JJS_PLATFORM_API_PATH_CWD})
 message(STATUS "JJS_PLATFORM_API_PATH_REALPATH  " ${JJS_PLATFORM_API_PATH_REALPATH})
 message(STATUS "JJS_PLATFORM_API_TIME_LOCAL_TZA " ${JJS_PLATFORM_API_TIME_LOCAL_TZA})
@@ -159,6 +161,8 @@ set(SOURCE_CORE_FILES
   api/jjs-annex-pmap.c
   api/jjs-annex-task.c
   api/jjs-annex-vmod.c
+  api/jjs-api-object.c
+  api/jjs-api-snapshot.c
   api/jjs-context-init.c
   api/jjs-debugger-transport.c
   api/jjs-debugger.c
@@ -166,7 +170,8 @@ set(SOURCE_CORE_FILES
   api/jjs-platform.c
   api/jjs-platform-win.c
   api/jjs-platform-unix.c
-  api/jjs-api-snapshot.c
+  api/jjs-stream.c
+  api/jjs-util.c
   api/jjs.c
   debugger/debugger.c
   ecma/base/ecma-alloc.c
@@ -378,8 +383,11 @@ if(JJS_AMALGAM)
     api/jjs-annex.h
     api/jjs-annex-module-util.h
     api/jjs-annex-vmod.h
+    api/jjs-api-object.h
     api/jjs-api-snapshot.h
     api/jjs-platform.h
+    api/jjs-stream.h
+    api/jjs-util.h
     debugger/debugger.h
     ecma/base/ecma-alloc.h
     ecma/base/ecma-error-messages.inc.h
@@ -664,7 +672,8 @@ set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_STACK_LIMIT=${JJS_DEFAULT_VM_STACK
 
 # platform apis
 jjs_add_define01(JJS_PLATFORM_API_FS_READ_FILE)
-jjs_add_define01(JJS_PLATFORM_API_IO_LOG)
+jjs_add_define01(JJS_PLATFORM_API_IO_WRITE)
+jjs_add_define01(JJS_PLATFORM_API_IO_FLUSH)
 jjs_add_define01(JJS_PLATFORM_API_PATH_CWD)
 jjs_add_define01(JJS_PLATFORM_API_PATH_REALPATH)
 jjs_add_define01(JJS_PLATFORM_API_TIME_LOCAL_TZA)

@@ -135,6 +135,7 @@ jjsp_time_now_ms (double* out_p)
 
 #if JJS_PLATFORM_API_PATH_REALPATH
 
+#include <unistd.h>
 #include <stdlib.h>
 
 jjs_platform_status_t

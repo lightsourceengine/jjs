@@ -588,13 +588,22 @@
  */
 
 /**
- * platform.io.log
+ * platform.io.write
  *
  * Default: 1
  */
-#ifndef JJS_PLATFORM_API_IO_LOG
-#define JJS_PLATFORM_API_IO_LOG 1
-#endif /* JJS_PLATFORM_API_IO_LOG */
+#ifndef JJS_PLATFORM_API_IO_WRITE
+#define JJS_PLATFORM_API_IO_WRITE 1
+#endif /* JJS_PLATFORM_API_IO_WRITE */
+
+/**
+ * platform.io.flush
+ *
+ * Default: 1
+ */
+#ifndef JJS_PLATFORM_API_IO_FLUSH
+#define JJS_PLATFORM_API_IO_FLUSH 1
+#endif /* JJS_PLATFORM_API_IO_FLUSH */
 
 /**
  * platform.fs.read_file
@@ -846,9 +855,12 @@
 /**
  * Platform API validation
  */
-#if (JJS_PLATFORM_API_IO_LOG != 0) && (JJS_PLATFORM_API_IO_LOG != 1)
-#error "Invalid value for 'JJS_PLATFORM_API_IO_LOG' macro."
-#endif /* (JJS_PLATFORM_API_IO_LOG != 0) && (JJS_PLATFORM_API_IO_LOG != 1) */
+#if (JJS_PLATFORM_API_IO_WRITE != 0) && (JJS_PLATFORM_API_IO_WRITE != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_IO_WRITE' macro."
+#endif /* (JJS_PLATFORM_API_IO_WRITE != 0) && (JJS_PLATFORM_API_IO_WRITE != 1) */
+#if (JJS_PLATFORM_API_IO_FLUSH != 0) && (JJS_PLATFORM_API_IO_FLUSH != 1)
+#error "Invalid value for 'JJS_PLATFORM_API_IO_FLUSH' macro."
+#endif /* (JJS_PLATFORM_API_IO_FLUSH != 0) && (JJS_PLATFORM_API_IO_FLUSH != 1) */
 #if (JJS_PLATFORM_API_TIME_LOCAL_TZA != 0) && (JJS_PLATFORM_API_TIME_LOCAL_TZA != 1)
 #error "Invalid value for 'JJS_PLATFORM_API_TIME_LOCAL_TZA' macro."
 #endif /* (JJS_PLATFORM_API_TIME_LOCAL_TZA != 0) && (JJS_PLATFORM_API_TIME_LOCAL_TZA != 1) */

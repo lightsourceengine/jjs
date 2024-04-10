@@ -74,6 +74,4 @@ void annex_util_define_ro_value (ecma_object_t* object_p,
 bool annex_util_is_valid_package_name (ecma_value_t name);
 jjs_value_t annex_util_create_string_utf8_sz (const char* str_p);
 
-#define JJS_DISOWN(VALUE, VALUE_OWNERSHIP) if ((VALUE_OWNERSHIP) == JJS_MOVE) jjs_value_free (VALUE)
-
 #endif /* !ANNEX_H */

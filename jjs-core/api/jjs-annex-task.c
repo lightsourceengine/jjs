@@ -15,6 +15,7 @@
 
 #include "jjs-core.h"
 #include "jjs-annex.h"
+#include "jjs-util.h"
 
 #include "jcontext.h"
 

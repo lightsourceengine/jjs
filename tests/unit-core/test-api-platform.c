@@ -153,7 +153,12 @@ test_platform_api_exists (void)
 
   TEST_ASSERT (options.platform.fs_read_file != NULL);
 
-  TEST_ASSERT (options.platform.io_log != NULL);
+  TEST_ASSERT (options.platform.io_flush != NULL);
+  TEST_ASSERT (options.platform.io_write != NULL);
+  TEST_ASSERT (options.platform.io_stdout != NULL);
+  TEST_ASSERT (options.platform.io_stdout_encoding != JJS_ENCODING_NONE);
+  TEST_ASSERT (options.platform.io_stderr != NULL);
+  TEST_ASSERT (options.platform.io_stderr_encoding != JJS_ENCODING_NONE);
 }
 
 int

@@ -31,6 +31,14 @@
  */
 #define JJS_API_PATCH_VERSION 0
 
+#define JJS_STRINGIFY(X) #X
+#define JJS_STRINGIFY2(X) JJS_STRINGIFY (X)
+
+/**
+ * Patch version string in dot separated semver format.
+ */
+#define JJS_API_VERSION_STRING JJS_STRINGIFY2 (JJS_API_MAJOR_VERSION) "." JJS_STRINGIFY2 (JJS_API_MINOR_VERSION) "." JJS_STRINGIFY2 (JJS_API_PATCH_VERSION)
+
 #include "jjs-core.h"
 #include "jjs-debugger.h"
 #include "jjs-snapshot.h"

@@ -20,9 +20,12 @@
 #include <stdio.h>
 
 #include "jjs-annex.h"
+#include "jjs-api-object.h"
 #include "jjs-context-init.h"
 #include "jjs-debugger-transport.h"
 #include "jjs-platform.h"
+#include "jjs-util.h"
+#include "jjs-stream.h"
 
 #include "ecma-alloc.h"
 #include "ecma-array-object.h"
@@ -100,14 +103,6 @@ JJS_STATIC_ASSERT (((NUMBER_ARITHMETIC_SUBTRACTION + ECMA_NUMBER_ARITHMETIC_OP_A
 #if !JJS_PARSER && !JJS_SNAPSHOT_EXEC
 #error "JJS_SNAPSHOT_EXEC must be enabled if JJS_PARSER is disabled!"
 #endif /* !JJS_PARSER && !JJS_SNAPSHOT_EXEC */
-
-static void jjs_init_realm (ecma_value_t global);
-
-#define STR2(S) #S
-#define STR(S) STR2(S)
-static const char* JJS_VERSION = STR (JJS_API_MAJOR_VERSION) "." STR (JJS_API_MINOR_VERSION) "." STR (JJS_API_PATCH_VERSION);
-#undef STR
-#undef STR2
 
 /** \addtogroup jjs JJS engine interface
  * @{
@@ -198,7 +193,7 @@ jjs_init (const jjs_context_options_t * opts)
   jjs_api_enable ();
   jmem_init ();
   ecma_init ();
-  jjs_init_realm (ecma_make_object_value (ecma_builtin_get_global ()));
+  jjs_api_object_init (ecma_make_object_value (ecma_builtin_get_global ()));
   jjs_annex_init ();
   jjs_annex_init_realm (JJS_CONTEXT (global_object_p));
 
@@ -273,151 +268,6 @@ jjs_cleanup (void)
 
   jjs_context_cleanup ();
 } /* jjs_cleanup */
-
-/** jjs.cwd handler */
-static JJS_HANDLER (jjs_api_cwd_handler)
-{
-  JJS_UNUSED_ALL (call_info_p, args_count, args_p);
-  return jjs_platform_cwd ();
-} /* jjs_api_cwd_handler */
-
-/** jjs.realpath handler */
-static JJS_HANDLER (jjs_api_realpath_handler)
-{
-  JJS_UNUSED_ALL (call_info_p);
-  return jjs_platform_realpath (args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP);
-} /* jjs_api_realpath_handler */
-
-/** jjs.gc handler */
-static JJS_HANDLER (jjs_api_gc_handler)
-{
-  JJS_UNUSED_ALL (call_info_p);
-
-  jjs_gc_mode_t mode =
-    ((args_count > 0 && jjs_value_to_boolean (args_p[0])) ? JJS_GC_PRESSURE_HIGH : JJS_GC_PRESSURE_LOW);
-
-  jjs_heap_gc (mode);
-
-  return ECMA_VALUE_UNDEFINED;
-} /* jjs_api_gc_handler */
-
-/** jjs.readFile handler */
-static JJS_HANDLER (jjs_api_read_file_handler)
-{
-  JJS_UNUSED_ALL (call_info_p, args_count, args_p);
-
-  jjs_platform_read_file_options_t options = {
-    .encoding = JJS_ENCODING_NONE,
-  };
-
-  /* extract encoding: string or { encoding: string } */
-  jjs_value_t encoding;
-
-  if (args_count > 1)
-  {
-    if (jjs_value_is_string (args_p[1]))
-    {
-      encoding = jjs_value_copy (args_p[1]);
-    }
-    else if (jjs_value_is_object (args_p[1]))
-    {
-      encoding = jjs_object_get_sz (args_p[1], "encoding");
-    }
-    else if (jjs_value_is_undefined(args_p[1]))
-    {
-      encoding = ECMA_VALUE_UNDEFINED;
-    }
-    else
-    {
-      return jjs_throw_sz (JJS_ERROR_TYPE, "readFile expects encoding string or options object for argument 2");
-    }
-  }
-  else
-  {
-    encoding = ECMA_VALUE_UNDEFINED;
-  }
-
-  /* encoding == encoding type */
-  char buffer[8];
-
-  if (jjs_value_is_string (encoding))
-  {
-    static const jjs_size_t size = (jjs_size_t) (sizeof (buffer) / sizeof (buffer[0]));
-    jjs_value_t w = jjs_string_to_buffer (encoding, JJS_ENCODING_UTF8, (lit_utf8_byte_t*) &buffer[0], size - 1);
-
-    JJS_ASSERT(w < size);
-    buffer[w] = '\0';
-
-    lit_utf8_byte_t* cursor_p = (lit_utf8_byte_t*) buffer;
-    lit_utf8_byte_t c;
-
-    while (*cursor_p != '\0')
-    {
-      c = *cursor_p;
-
-      if (c <= LIT_UTF8_1_BYTE_CODE_POINT_MAX)
-      {
-        *cursor_p += (lit_utf8_byte_t) lit_char_to_lower_case (c, NULL);
-      }
-
-      cursor_p++;
-    }
-
-    if (strcmp (buffer, "utf8") == 0 || strcmp (buffer, "utf-8") == 0)
-    {
-      options.encoding = JJS_ENCODING_UTF8;
-    }
-    else if (strcmp (buffer, "cesu8") == 0)
-    {
-      options.encoding = JJS_ENCODING_CESU8;
-    }
-    else if (strcmp (buffer, "none") != 0)
-    {
-      jjs_value_free (encoding);
-      return jjs_throw_sz (JJS_ERROR_TYPE, "invalid readFile encoding");
-    }
-  }
-
-  jjs_value_free (encoding);
-
-  return jjs_platform_read_file (args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP, &options);
-} /* jjs_api_read_file_handler */
-
-/** Initialize realm with global jjs object. */
-static void
-jjs_init_realm (ecma_value_t global)
-{
-  jjs_value_t jjs = jjs_object ();
-  ecma_object_t* jjs_p = ecma_get_object_from_value (jjs);
-
-  annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_VERSION, ecma_string_ascii_sz (JJS_VERSION), JJS_MOVE);
-  annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_OS, jjs_platform_os (), JJS_MOVE);
-  annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_ARCH, jjs_platform_arch (), JJS_MOVE);
-
-  if (jjs_platform_has_cwd ())
-  {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_CWD, jjs_api_cwd_handler);
-  }
-
-  if (jjs_platform_has_realpath ())
-  {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_REALPATH, jjs_api_realpath_handler);
-  }
-
-  if (jjs_platform_has_read_file ())
-  {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_READ_FILE, jjs_api_read_file_handler);
-  }
-
-  if ((JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_EXPOSE_GC) != 0)
-  {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_GC, jjs_api_gc_handler);
-  }
-
-  ecma_set_m (global, LIT_MAGIC_STRING_JJS, jjs);
-
-  jjs_value_free (jjs);
-} /* jjs_init_realm */
 
 /**
  * Retrieve a context data item, or create a new one.
@@ -2759,7 +2609,7 @@ jjs_realm (void)
   ecma_global_object_t *global_object_p = ecma_builtin_create_global_object ();
   ecma_value_t global = ecma_make_object_value ((ecma_object_t *) global_object_p);
 
-  jjs_init_realm (global);
+  jjs_api_object_init (global);
   jjs_annex_init_realm (global_object_p);
 
   return global;
@@ -4995,10 +4845,9 @@ jjs_log_set_level (jjs_log_level_t level)
 static void
 jjs_log_string (const char *str_p, jjs_size_t size)
 {
-  jjs_platform_io_log_fn_t log = JJS_CONTEXT (platform_api).io_log;
-
-  if (log) {
-    log ((const uint8_t *) str_p, size);
+  // TODO: ascii?
+  if (JJS_CONTEXT (platform_api).io_write && JJS_CONTEXT (platform_api).io_stderr) {
+    JJS_CONTEXT (platform_api).io_write (JJS_CONTEXT (platform_api).io_stderr, (const uint8_t *) str_p, size, JJS_ENCODING_UTF8);
   }
 
 #if JJS_DEBUGGER
@@ -5242,26 +5091,26 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
   va_end (vl);
 } /* jjs_log */
 
-/**
- * Stream write implementation that writes bytes to the platform log function and/or the debugger.
- */
-static void
-fmt_stream_write_io_log (const jjs_fmt_stream_t *self_p, const uint8_t *data_p, uint32_t data_size)
-{
-  JJS_UNUSED (self_p);
-
-  if (JJS_CONTEXT (platform_api).io_log)
-  {
-    JJS_CONTEXT (platform_api).io_log (data_p, data_size);
-  }
-
-#if JJS_DEBUGGER
-  if (jjs_debugger_is_connected ())
-  {
-    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, data_p, data_size);
-  }
-#endif /* JJS_DEBUGGER */
-}
+///**
+// * Stream write implementation that writes bytes to the platform log function and/or the debugger.
+// */
+//static void
+//fmt_stream_write_io_log (const jjs_fmt_stream_t *self_p, const uint8_t *data_p, uint32_t data_size)
+//{
+//  JJS_UNUSED (self_p);
+//
+//  if (JJS_CONTEXT (platform_api).io_write)
+//  {
+//    JJS_CONTEXT (platform_api).io_write (JJS_CONTEXT (platform_api).io_stderr, data_p, data_size);
+//  }
+//
+//#if JJS_DEBUGGER
+//  if (jjs_debugger_is_connected ())
+//  {
+//    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, data_p, data_size);
+//  }
+//#endif /* JJS_DEBUGGER */
+//}
 
 /**
  * Log JS values in a fmt-like format.
@@ -5296,19 +5145,22 @@ jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *v
   bool is_debugger_connected = false;
 #endif /* JJS_DEBUGGER */
 
-  if (level > jjs_jrt_get_log_level () || (JJS_CONTEXT (platform_api).io_log == NULL && !is_debugger_connected)
+  // TODO: these checks are not correct
+  if (level > jjs_jrt_get_log_level ()
+      || (JJS_CONTEXT (platform_api).io_stderr == NULL && !is_debugger_connected)
       || format_p == NULL)
   {
     return;
   }
 
-  jjs_fmt_stream_t stream = {
-    .write = fmt_stream_write_io_log,
-    .encoding = JJS_ENCODING_UTF8,
-    .state_p = NULL,
-  };
+  jjs_wstream_t wstream;
 
-  jjs_fmt_v (&stream, format_p, values, values_length);
+  if (!jjs_wstream_from_id (JJS_STDERR, &wstream))
+  {
+    return;
+  }
+
+  jjs_fmt_v (&wstream, format_p, values, values_length);
 } /* jjs_log_fmt */
 
 /**
@@ -7348,84 +7200,40 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
  * Write a JS string to a fmt stream.
  */
 static void
-fmt_write_string (const jjs_fmt_stream_t *stream_p, jjs_value_t value, jjs_value_ownership_t value_o)
+fmt_write_string (const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_value_ownership_t value_o)
 {
-  if (!ecma_is_value_string (value))
+  if (ecma_is_value_string (value))
   {
-    JJS_DISOWN (value, value_o);
-    stream_p->write (stream_p, (const jjs_char_t *) "undefined", 9);
-    return;
-  }
-
-  ecma_string_t *string_p = ecma_get_string_from_value (value);
-
-  ECMA_STRING_TO_UTF8_STRING (string_p, string_bytes_p, string_bytes_len);
-
-  if (ecma_string_get_length (string_p) == string_bytes_len || stream_p->encoding == JJS_ENCODING_CESU8)
-  {
-    stream_p->write (stream_p, string_bytes_p, string_bytes_len);
-  }
-  else if (stream_p->encoding == JJS_ENCODING_UTF8)
-  {
-    const lit_utf8_byte_t *cesu8_cursor_p = string_bytes_p;
-    const lit_utf8_byte_t *cesu8_end_p = string_bytes_p + string_bytes_len;
-    lit_utf8_byte_t utf8_buf_p[4];
-    lit_code_point_t cp;
-    lit_utf8_size_t read_size;
-    lit_utf8_size_t encoded_size;
-
-    while (cesu8_cursor_p < cesu8_end_p)
-    {
-      read_size = lit_read_code_point_from_cesu8 (cesu8_cursor_p, cesu8_end_p, &cp);
-      encoded_size = (cp >= LIT_UTF16_FIRST_SURROGATE_CODE_POINT) ? 4 : read_size;
-
-      if (cp >= LIT_UTF16_FIRST_SURROGATE_CODE_POINT)
-      {
-        stream_p->write (stream_p, utf8_buf_p, lit_code_point_to_utf8 (cp, utf8_buf_p));
-      }
-      else
-      {
-        stream_p->write (stream_p, cesu8_cursor_p, encoded_size);
-      }
-
-      cesu8_cursor_p += read_size;
-    }
-
-    JJS_ASSERT (cesu8_cursor_p <= cesu8_end_p);
+    jjs_wstream_write_string (wstream_p, value, value_o);
   }
   else
   {
-    JJS_ASSERT (stream_p->encoding == JJS_ENCODING_UTF8 || stream_p->encoding == JJS_ENCODING_CESU8);
-    goto done;
+    JJS_DISOWN (value, value_o);
+    wstream_p->write (wstream_p, (const jjs_char_t *) "undefined", 9);
   }
-
-done:
-  ECMA_FINALIZE_UTF8_STRING (string_bytes_p, string_bytes_len);
-
-  JJS_DISOWN (value, value_o);
 } /* fmt_write_string */
 
 /**
  * Write a JS value to a fmt stream.
  */
 static void
-fmt_write_value (const jjs_fmt_stream_t *stream_p, jjs_value_t value, jjs_value_ownership_t value_o)
+fmt_write_value (const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_value_ownership_t value_o)
 {
   if (jjs_value_is_exception (value))
   {
-    fmt_write_string (stream_p, jjs_undefined (), JJS_MOVE);
+    fmt_write_string (wstream_p, jjs_undefined (), JJS_MOVE);
     goto done;
   }
 
   if (jjs_value_is_symbol (value))
   {
-    fmt_write_string (stream_p, jjs_symbol_descriptive_string (value), JJS_MOVE);
+    fmt_write_string (wstream_p, jjs_symbol_descriptive_string (value), JJS_MOVE);
     goto done;
   }
 
   if (jjs_value_is_string (value))
   {
-    fmt_write_string (stream_p, value, JJS_KEEP);
+    fmt_write_string (wstream_p, value, JJS_KEEP);
     goto done;
   }
 
@@ -7434,13 +7242,13 @@ fmt_write_value (const jjs_fmt_stream_t *stream_p, jjs_value_t value, jjs_value_
     static const uint8_t LBRACKET = '[';
     static const uint8_t RBRACKET = ']';
 
-    stream_p->write (stream_p, &LBRACKET, 1);
-    fmt_write_string (stream_p, jjs_value_to_string (value), JJS_MOVE);
-    stream_p->write (stream_p, &RBRACKET, 1);
+    wstream_p->write (wstream_p, &LBRACKET, 1);
+    fmt_write_string (wstream_p, jjs_value_to_string (value), JJS_MOVE);
+    wstream_p->write (wstream_p, &RBRACKET, 1);
     goto done;
   }
 
-  fmt_write_string (stream_p, jjs_value_to_string (value), JJS_MOVE);
+  fmt_write_string (wstream_p, jjs_value_to_string (value), JJS_MOVE);
 
   if (jjs_value_is_error (value))
   {
@@ -7460,12 +7268,12 @@ fmt_write_value (const jjs_fmt_stream_t *stream_p, jjs_value_t value, jjs_value_
 
         if (jjs_value_is_string (item_val))
         {
-          fmt_write_string (stream_p, item_val, JJS_KEEP);
+          fmt_write_string (wstream_p, item_val, JJS_KEEP);
 
           if (i != length - 1)
           {
             static const uint8_t NEWLINE = '\n';
-            stream_p->write (stream_p, &NEWLINE, 1);
+            wstream_p->write (wstream_p, &NEWLINE, 1);
           }
         }
 
@@ -7500,14 +7308,21 @@ done:
  * - If an exception is thrown while attempting to toString, the substitution
  *   values will be undefined.
  *
- * stream_p write will receive characters in arbitrary batches.
+ * wstream_p write will receive characters in arbitrary batches.
  */
 void
-jjs_fmt_v (const jjs_fmt_stream_t *stream_p, /**< target stream object */
+jjs_fmt_v (const jjs_wstream_t *wstream_p, /**< target stream object */
            const char *format_p, /**< format string */
            const jjs_value_t *values_p, /**< list of JS values for substitution */
            jjs_size_t values_length) /**< number of values */
 {
+  JJS_ASSERT (wstream_p != NULL);
+
+  if (wstream_p == NULL)
+  {
+    return;
+  }
+
   jjs_size_t values_index = 0;
   const char *cursor_p = format_p;
   bool found_left_brace = false;
@@ -7518,7 +7333,7 @@ jjs_fmt_v (const jjs_fmt_stream_t *stream_p, /**< target stream object */
     {
       if (found_left_brace)
       {
-        stream_p->write (stream_p, (const uint8_t *) cursor_p, 1);
+        wstream_p->write (wstream_p, (const uint8_t *) cursor_p, 1);
       }
       else
       {
@@ -7531,11 +7346,11 @@ jjs_fmt_v (const jjs_fmt_stream_t *stream_p, /**< target stream object */
 
       if (jjs_value_is_exception (value))
       {
-        fmt_write_value (stream_p, jjs_exception_value (value, false), JJS_MOVE);
+        fmt_write_value (wstream_p, jjs_exception_value (value, false), JJS_MOVE);
       }
       else
       {
-        fmt_write_value (stream_p, value, JJS_KEEP);
+        fmt_write_value (wstream_p, value, JJS_KEEP);
       }
 
       found_left_brace = false;
@@ -7544,62 +7359,16 @@ jjs_fmt_v (const jjs_fmt_stream_t *stream_p, /**< target stream object */
     {
       if (found_left_brace)
       {
-        stream_p->write (stream_p, (const uint8_t *) (cursor_p - 1), 1);
+        wstream_p->write (wstream_p, (const uint8_t *) (cursor_p - 1), 1);
         found_left_brace = false;
       }
 
-      stream_p->write (stream_p, (const uint8_t *) cursor_p, 1);
+      wstream_p->write (wstream_p, (const uint8_t *) cursor_p, 1);
     }
 
     cursor_p++;
   }
 } /* jjs_fmt_v */
-
-/**
- * Stream implementation that writes to an ecma string builder. Supports CESU8 encoding only.
- */
-static void
-fmt_stringbuilder_stream_write (const jjs_fmt_stream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
-{
-  ecma_stringbuilder_t *builder = self_p->state_p;
-
-  /* user of this stream is using CESU8, so we can just copy to the builder */
-  ecma_stringbuilder_append_raw (builder, buffer_p, size);
-} /* fmt_stringbuilder_stream_write */
-
-/**
- * Simple buffer object for in-memory buffer stream.
- */
-typedef struct
-{
-  uint8_t *buffer;
-  jjs_size_t buffer_index;
-  jjs_size_t buffer_size;
-} fmt_buffer_t;
-
-/**
- * Stream implementation that writes to an in-memory buffer. Supports UTF8 and CESU8 encodings.
- */
-static void
-fmt_buffer_stream_write (const jjs_fmt_stream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
-{
-  fmt_buffer_t *target_p = self_p->state_p;
-
-  if (target_p->buffer_index < target_p->buffer_size)
-  {
-    if (target_p->buffer_index + size < target_p->buffer_size)
-    {
-      memcpy (target_p->buffer + target_p->buffer_index, buffer_p, size);
-      target_p->buffer_index += size;
-    }
-    else
-    {
-      jjs_size_t write_size = target_p->buffer_size - target_p->buffer_index;
-      memcpy (target_p->buffer + target_p->buffer_index, buffer_p, write_size);
-      target_p->buffer_index += write_size;
-    }
-  }
-} /* fmt_buffer_stream_write */
 
 /**
  * Formats to a JS string.
@@ -7621,14 +7390,15 @@ jjs_fmt_to_string_v (const char *format_p, /**< format string */
   }
 
   ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  jjs_wstream_t wstream;
 
-  jjs_fmt_stream_t writer = {
-    .write = fmt_stringbuilder_stream_write,
-    .state_p = &builder,
-    .encoding = JJS_ENCODING_CESU8,
-  };
+  if (!jjs_wstream_from_stringbuilder (&builder, &wstream))
+  {
+    ecma_stringbuilder_destroy (&builder);
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
+  }
 
-  jjs_fmt_v (&writer, format_p, values_p, values_length);
+  jjs_fmt_v (&wstream, format_p, values_p, values_length);
 
   return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_to_string_v */
@@ -7656,19 +7426,19 @@ jjs_fmt_to_buffer_v (jjs_char_t *buffer_p, /**< target buffer */
     return 0;
   }
 
-  fmt_buffer_t target = {
+  jjs_wstream_t wstream;
+  jjs_wstream_buffer_t target = {
     .buffer = buffer_p,
     .buffer_size = buffer_size,
     .buffer_index = 0,
   };
 
-  jjs_fmt_stream_t writer = {
-    .write = fmt_buffer_stream_write,
-    .state_p = &target,
-    .encoding = encoding,
-  };
+  if (!jjs_wstream_from_buffer (&target, encoding, &wstream))
+  {
+    return 0;
+  }
 
-  jjs_fmt_v (&writer, format_p, values_p, values_length);
+  jjs_fmt_v (&wstream, format_p, values_p, values_length);
 
   return target.buffer_index;
 } /* jjs_fmt_to_buffer_v */
@@ -7697,20 +7467,21 @@ jjs_fmt_join_v (jjs_value_t delimiter, /**< string delimiter */
   }
 
   ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  jjs_wstream_t wstream;
 
-  jjs_fmt_stream_t writer = {
-    .write = fmt_stringbuilder_stream_write,
-    .state_p = &builder,
-    .encoding = JJS_ENCODING_CESU8,
-  };
+  if (!jjs_wstream_from_stringbuilder (&builder, &wstream))
+  {
+    ecma_stringbuilder_destroy (&builder);
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
+  }
 
   for (jjs_size_t i = 0; i < values_length; i++)
   {
-    fmt_write_value (&writer, values_p[i], JJS_KEEP);
+    fmt_write_value (&wstream, values_p[i], JJS_KEEP);
 
     if (i < values_length - 1)
     {
-      fmt_write_value (&writer, delimiter, JJS_KEEP);
+      fmt_write_value (&wstream, delimiter, JJS_KEEP);
     }
   }
 

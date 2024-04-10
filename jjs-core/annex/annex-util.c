@@ -18,6 +18,7 @@
 #include "ecma-function-object.h"
 
 #include "annex.h"
+#include "jjs-util.h"
 
 #define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE                                                        \
   (JJS_PROP_IS_CONFIGURABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED       \

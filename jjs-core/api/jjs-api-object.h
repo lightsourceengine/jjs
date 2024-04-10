@@ -13,21 +13,11 @@
  * limitations under the License.
  */
 
-#ifndef JJS_ANNEX_H
-#define JJS_ANNEX_H
+#ifndef JJS_API_OBJECT_H
+#define JJS_API_OBJECT_H
 
-#include "ecma-builtins.h"
+#include "ecma-globals.h"
 
-#define JJS_HANDLER(NAME) jjs_value_t NAME (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], uint32_t args_count)
+void jjs_api_object_init (ecma_value_t realm);
 
-void jjs_annex_init (void);
-void jjs_annex_init_realm (ecma_global_object_t* global_p);
-void jjs_annex_finalize (void);
-
-jjs_value_t jjs_annex_require (jjs_value_t specifier, jjs_value_t referrer_path);
-jjs_value_t jjs_annex_create_require (jjs_value_t referrer);
-jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type);
-
-JJS_HANDLER(queue_microtask_handler);
-
-#endif // JJS_ANNEX_H
+#endif /* JJS_API_OBJECT_H */

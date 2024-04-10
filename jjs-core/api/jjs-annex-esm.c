@@ -17,6 +17,7 @@
 #include "jjs-annex-vmod.h"
 #include "jjs-annex.h"
 #include "jjs-platform.h"
+#include "jjs-util.h"
 
 #include "annex.h"
 #include "jcontext.h"

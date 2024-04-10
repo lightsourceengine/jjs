@@ -18,6 +18,7 @@
 #include "jjs-annex-module-util.h"
 
 #include "jjs-snapshot.h"
+#include "jjs-util.h"
 #include "jjs-annex-vmod.h"
 
 #include "annex.h"

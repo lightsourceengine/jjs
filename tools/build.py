@@ -163,16 +163,16 @@ def get_arguments():
     coregrp.add_argument('--vm-stack-static', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable a compile time fixed vm stack limit of JJS_DEFAULT_VM_STACK_LIMIT (%(choices)s)')
 
-    coregrp.add_argument('--platform-api-io-log', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='enable default implementation of platform.io.log (%(choices)s)')
+    coregrp.add_argument('--platform-api-io-write', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.io.write (%(choices)s)')
+    coregrp.add_argument('--platform-api-io-flush', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help='enable default implementation of platform.io.flush (%(choices)s)')
     coregrp.add_argument('--platform-api-fs-read-file', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable default implementation of platform.fs.read_file (%(choices)s)')
     coregrp.add_argument('--platform-api-path-cwd', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable default implementation of platform.path.cwd (%(choices)s)')
     coregrp.add_argument('--platform-api-path-realpath', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable default implementation of platform.path.realpath (%(choices)s)')
-    coregrp.add_argument('--platform-api-time-hrtime', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='enable default implementation of platform.time.hrtime (%(choices)s)')
     coregrp.add_argument('--platform-api-time-now-ms', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable default implementation of platform.time.now_ms (%(choices)s)')
     coregrp.add_argument('--platform-api-time-local-tza', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -248,6 +248,16 @@ def generate_build_options(arguments):
     build_options_append('JJS_VM_THROW', arguments.vm_throw)
     build_options_append('JJS_VM_HEAP_STATIC', arguments.vm_heap_static)
     build_options_append('JJS_VM_STACK_STATIC', arguments.vm_stack_static)
+
+    # platform api options
+    build_options_append('JJS_PLATFORM_API_IO_WRITE', arguments.platform_api_io_write)
+    build_options_append('JJS_PLATFORM_API_IO_FLUSH', arguments.platform_api_io_flush)
+    build_options_append('JJS_PLATFORM_API_FS_READ_FILE', arguments.platform_api_fs_read_file)
+    build_options_append('JJS_PLATFORM_API_PATH_CWD', arguments.platform_api_path_cwd)
+    build_options_append('JJS_PLATFORM_API_PATH_REALPATH', arguments.platform_api_path_realpath)
+    build_options_append('JJS_PLATFORM_API_TIME_NOW_MS', arguments.platform_api_time_now_ms)
+    build_options_append('JJS_PLATFORM_API_TIME_LOCAL_TZA', arguments.platform_api_time_local_tza)
+    build_options_append('JJS_PLATFORM_API_TIME_SLEEP', arguments.platform_api_time_sleep)
 
     # jjs-main options
     build_options_append('JJS_CMDLINE_LINK_MAP', arguments.link_map)

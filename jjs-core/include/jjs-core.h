@@ -75,7 +75,7 @@ bool jjs_foreach_live_object_with_info (const jjs_object_native_info_t *native_i
  * @{
  */
 
-void jjs_fmt_v (const jjs_fmt_stream_t *stream_p,
+void jjs_fmt_v (const jjs_wstream_t *wstream_p,
                 const char *format_p,
                 const jjs_value_t *values_p,
                 jjs_size_t values_length);

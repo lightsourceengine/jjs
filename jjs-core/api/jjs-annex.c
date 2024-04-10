@@ -171,19 +171,3 @@ void jjs_annex_finalize (void)
   jjs_value_free (JJS_CONTEXT (commonjs_args));
 #endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_annex_finalize */
-
-/**
- * Create an API compatible return value.
- *
- * @return return value for JJS API functions
- */
-jjs_value_t
-jjs_return (const jjs_value_t value) /**< return value */
-{
-  if (ECMA_IS_VALUE_ERROR (value))
-  {
-    return ecma_create_exception_from_context ();
-  }
-
-  return value;
-} /* jjs_return */

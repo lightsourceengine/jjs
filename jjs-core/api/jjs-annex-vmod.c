@@ -16,6 +16,7 @@
 
 #include "jjs-annex.h"
 #include "jjs-core.h"
+#include "jjs-util.h"
 
 #include "ecma-function-object.h"
 

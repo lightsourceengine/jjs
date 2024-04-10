@@ -15,6 +15,7 @@
 
 #include "jjs-annex.h"
 #include "jjs-core.h"
+#include "jjs-util.h"
 
 #include "annex.h"
 #include "jcontext.h"
@@ -463,20 +464,47 @@ void jjs_platform_convert_cesu8_free (void* converted)
 jjs_platform_t
 jjsp_defaults (void)
 {
-  jjs_platform_t platform;
+  jjs_platform_t platform = {0};
 
-  platform.path_cwd = jjsp_cwd;
   platform.fatal = jjsp_fatal;
 
-  platform.io_log = jjsp_io_log;
+#if JJS_PLATFORM_API_IO_WRITE
+  platform.io_write = jjsp_io_write;
+#endif /* JJS_PLATFORM_API_IO_WRITE */
 
+#if JJS_PLATFORM_API_IO_FLUSH
+  platform.io_flush = jjsp_io_flush;
+#endif /* JJS_PLATFORM_API_IO_FLUSH */
+
+  platform.io_stdout = stdout;
+  platform.io_stdout_encoding = JJS_ENCODING_UTF8;
+
+  platform.io_stderr = stderr;
+  platform.io_stderr_encoding = JJS_ENCODING_UTF8;
+
+#if JJS_PLATFORM_API_TIME_LOCAL_TZA
   platform.time_local_tza = jjsp_time_local_tza;
+#endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
+
+#if JJS_PLATFORM_API_TIME_NOW_MS
   platform.time_now_ms = jjsp_time_now_ms;
+#endif /* JJS_PLATFORM_API_TIME_NOW_MS */
+
+#if JJS_PLATFORM_API_TIME_SLEEP
   platform.time_sleep = jjsp_time_sleep;
+#endif /* JJS_PLATFORM_API_TIME_SLEEP */
 
-  platform.path_realpath = jjsp_path_realpath;
-
+#if JJS_PLATFORM_API_FS_READ_FILE
   platform.fs_read_file = jjsp_fs_read_file;
+#endif /* JJS_PLATFORM_API_FS_READ_FILE */
+
+#if JJS_PLATFORM_API_PATH_CWD
+  platform.path_cwd = jjsp_cwd;
+#endif /* JJS_PLATFORM_API_PATH_CWD */
+
+#if JJS_PLATFORM_API_PATH_REALPATH
+  platform.path_realpath = jjsp_path_realpath;
+#endif /* JJS_PLATFORM_API_PATH_REALPATH */
 
   return platform;
 } /* jjsp_defaults */
@@ -684,10 +712,20 @@ jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move)
 } /* jjsp_buffer_to_string */
 
 void
-jjsp_io_log (const uint8_t* data_p, uint32_t data_size)
+jjsp_io_write (void* target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding)
 {
-  fwrite (data_p, 1, data_size, stderr);
-} /* jjsp_io_log */
+  // TODO: check encoding?
+  JJS_UNUSED (encoding);
+  JJS_ASSERT (target_p != NULL);
+  fwrite (data_p, 1, data_size, target_p);
+} /* jjsp_io_write */
+
+void
+jjsp_io_flush (void* target_p)
+{
+  JJS_ASSERT (target_p != NULL);
+  fflush (target_p);
+} /* jjsp_io_write */
 
 void
 jjsp_fatal (jjs_fatal_code_t code)

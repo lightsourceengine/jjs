@@ -128,7 +128,9 @@ typedef struct jjs_platform_buffer_t
 typedef jjs_platform_status_t (*jjs_platform_cwd_fn_t) (jjs_platform_buffer_t*);
 typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
 
-typedef void (*jjs_platform_io_log_fn_t) (const uint8_t*, uint32_t);
+typedef void* jjs_platform_io_stream_t;
+typedef void (*jjs_platform_io_write_fn_t) (void*, const uint8_t*, uint32_t, jjs_encoding_t);
+typedef void (*jjs_platform_io_flush_fn_t) (void*);
 
 typedef jjs_platform_status_t (*jjs_platform_fs_read_file_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
 
@@ -174,20 +176,74 @@ typedef struct
   jjs_platform_cwd_fn_t path_cwd;
 
   /**
-   * Display or log a debug/error message.
+   * Writes bytes to an output stream.
    *
-   * The message is passed as a zero-terminated string. Messages may be logged in parts, which
-   * will result in multiple calls to this functions. The implementation should consider
-   * this before appending or prepending strings to the argument.
+   * The first parameter is the stream, which will always be io_stdout or io_stderr. The
+   * implementation of write must be compatible with those streams. By default, the standard
+   * stdout and stderr FILE* are set for the streams. If your write does not support FILE*,
+   * then you need to update io_stdout and io_stderr with compatible values.
    *
-   * This platform function is called with messages coming from the JJS engine as
-   * the result of some abnormal operation or describing its internal operations
-   * (e.g., data structure dumps or tracing info).
-   *
-   * The implementation can decide whether error and debug messages are logged to
-   * the console, or saved to a database or to a file.
+   * The data buffer passed is just bytes with an encoding type. The encoding type could be
+   * anything the engine supports, but in practice, it will always be the default encoding
+   * type of the stream.
    */
-  jjs_platform_io_log_fn_t io_log;
+  jjs_platform_io_write_fn_t io_write;
+
+  /**
+   * Flush a stream.
+   *
+   * The engine will call this at jjs_cleanup or before an assertion / fatal error. Like
+   * io_write, the passed in stream is always io_stdout or io_stderr. The flush function
+   * must be compatible with those fields.
+   *
+   * The default implementation uses fflush, so io_stdout and io_stderr are expected to
+   * be compatible FILE* (stdout and stderr by default).
+   */
+  jjs_platform_io_flush_fn_t io_flush;
+
+  /**
+   * Stream the engine uses when it wants to write to stdout.
+   *
+   * The value is opaque, but must be compatible with the io_write function. With the
+   * default io_write, this value can be set to a FILE*. If you wanted this stream to
+   * go to a file and you want to use the default io_write, it can be replaced with a
+   * pointer from fopen.
+   */
+  jjs_platform_io_stream_t io_stdout;
+
+  /**
+   * Default encoding to use when writing a JS string to the stdout stream.
+   *
+   * Internally, the JS engine uses CESU8, a compact replacement for UTF16. The encoding is
+   * not too different from UTF8, but it is not common. The engine will convert the bytes
+   * to the stream's default encoding.
+   *
+   * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
+   * ASCII (non-ASCII codepoints will be converted to ?).
+   */
+  jjs_encoding_t io_stdout_encoding;
+
+  /**
+   * Stream the engine uses when it wants to write to stderr.
+   *
+   * The value is opaque, but must be compatible with the io_write function. With the
+   * default io_write, this value can be set to a FILE*. If you wanted this stream to
+   * go to a file and you want to use the default io_write, it can be replaced with a
+   * pointer from fopen.
+   */
+  jjs_platform_io_stream_t io_stderr;
+
+  /**
+   * Default encoding to use when writing a JS string to the stderr stream.
+   *
+   * Internally, the JS engine uses CESU8, a compact replacement for UTF16. The encoding is
+   * not too different from UTF8, but it is not common. The engine will convert the bytes
+   * to the stream's default encoding.
+   *
+   * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
+   * ASCII (non-ASCII codepoints will be converted to ?).
+   */
+  jjs_encoding_t io_stderr_encoding;
 
   /**
    * Get local time zone adjustment in milliseconds for the given input time.
@@ -1345,14 +1401,14 @@ typedef bool (*jjs_value_condition_fn_t)(jjs_value_t);
  *
  * You can implement an instance to direct stream writes to go to a specific place.
  */
-typedef struct jjs_fmt_stream_s
+typedef struct jjs_wstream_s
 {
   /**
    * Write bytes to the stream.
    *
    * This function is required to be implemented.
    */
-  void (*write)(const struct jjs_fmt_stream_s*, const uint8_t*, jjs_size_t);
+  void (*write)(const struct jjs_wstream_s*, const uint8_t*, jjs_size_t);
 
   /**
    * State of the stream. Stream instance decides how and if this is used.
@@ -1363,7 +1419,7 @@ typedef struct jjs_fmt_stream_s
    * Encoding to use to write the stream. Stream instance defines which encoding are supported.
    */
   jjs_encoding_t encoding;
-} jjs_fmt_stream_t;
+} jjs_wstream_t;
 
 /**
  * @}
