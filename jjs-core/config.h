@@ -591,7 +591,7 @@
  * are used for temporary memory.
  */
 #ifndef JJS_SCRATCH_ARENA_SIZE
-#define JJS_SCRATCH_ARENA_SIZE 16384
+#define JJS_SCRATCH_ARENA_SIZE 16
 #endif /* JJS_SCRATCH_ARENA_SIZE */
 
 /**
