@@ -38,8 +38,12 @@ test('import.meta.resolve should be a function', () => {
   assert(typeof resolve === 'function', 'expected import.meta.resolve to be a function');
 });
 
-test('import.meta.resolve should return the full filename for the relative path to this file', () => {
-  assertEquals(resolve('./module-import-meta.mjs'), filename);
+test('import.meta.resolve should return the file url for the relative path to this file', () => {
+  assertEquals(resolve('./module-import-meta.mjs'), url);
+});
+
+test('import.meta.resolve with path option should return the full filename for the relative path to this file', () => {
+  assertEquals(resolve('./module-import-meta.mjs', { path: true }), filename);
 });
 
 test('import.meta.resolve should return package name for registered vmod package', () => {

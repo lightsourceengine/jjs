@@ -613,7 +613,27 @@ static JJS_HANDLER (esm_resolve_handler)
   }
   else
   {
-    result = jjs_value_copy (resolved.path);
+    /* options = { path: boolean }. if path truthy, return file path; otherwise, return file url */
+    jjs_value_t options = args_count > 1 ? args_p[1] : jjs_undefined ();
+    ecma_value_t options_path = ecma_find_own_m (options, LIT_MAGIC_STRING_PATH);
+    bool use_path = ecma_is_value_found (options_path) ? ecma_op_to_boolean (options_path) : false;
+
+    ecma_free_value (options_path);
+
+    if (use_path)
+    {
+      result = jjs_value_copy (resolved.path);
+    }
+    else
+    {
+      result = annex_path_to_file_url (resolved.path);
+
+      if (!jjs_value_is_string (result))
+      {
+        ecma_free_value(result);
+        result = jjs_throw_sz (JJS_ERROR_COMMON, "Failed to convert path to url.");
+      }
+    }
   }
 
   jjs_value_free (referrer_path);
