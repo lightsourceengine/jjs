@@ -177,7 +177,7 @@ jjs_util_arena_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
  * no more room, the allocation fails. free() does nothing. All memory is "freed" when reset is called
  * to rewind the arena buffer pointer to the beginning.
  */
-bool
+static bool
 jjs_util_arena_allocator_init (void* block_p, jjs_size_t block_size, jjs_allocator_t* allocator_p)
 {
   jjs_util_arena_allocator_header_t* header = block_p;
@@ -199,7 +199,7 @@ jjs_util_arena_allocator_init (void* block_p, jjs_size_t block_size, jjs_allocat
 /**
  * Drop all arena allocations.
  */
-void
+static void
 jjs_util_arena_allocator_reset (jjs_allocator_t* allocator_p)
 {
   jjs_util_arena_allocator_header_t* header = allocator_p->internal[0];
@@ -261,7 +261,7 @@ jjs_util_compound_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t siz
  * used for the scratch allocator. Right now, the usage is maybe 1-3 allocations before the
  * scratch allocator is reset, so the extra memory is not an issue.
  */
-jjs_allocator_t
+static jjs_allocator_t
 jjs_util_compound_allocator (jjs_allocator_t* arena, jjs_allocator_t* fallback)
 {
   if (arena == NULL)
@@ -524,7 +524,7 @@ jjs_util_convert (jjs_allocator_t* allocator,
 
           if (add_null_terminator)
           {
-            utf16le[allocated_size / 2] = L'\0';
+            utf16le[source_size] = L'\0';
           }
 
           *dest_p = utf16le;
