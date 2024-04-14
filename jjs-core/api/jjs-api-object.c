@@ -94,35 +94,42 @@ jjs_api_object_init (ecma_value_t realm)
 {
   jjs_value_t jjs = jjs_object ();
   ecma_object_t* jjs_p = ecma_get_object_from_value (jjs);
+  uint32_t exclusions = JJS_CONTEXT (jjs_namespace_exclusions);
 
   annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_VERSION, jjs_string_sz (JJS_API_VERSION_STRING), JJS_MOVE);
   annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_OS, jjs_platform_os (), JJS_MOVE);
   annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_ARCH, jjs_platform_arch (), JJS_MOVE);
 
-  if (jjs_platform_has_cwd ())
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_CWD) == 0 && jjs_platform_has_cwd ())
   {
     annex_util_define_function (jjs_p, LIT_MAGIC_STRING_CWD, jjs_api_cwd_handler);
   }
 
-  if (jjs_platform_has_realpath ())
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_REALPATH) == 0 && jjs_platform_has_realpath ())
   {
     annex_util_define_function (jjs_p, LIT_MAGIC_STRING_REALPATH, jjs_api_realpath_handler);
   }
 
-  if (jjs_platform_has_read_file ())
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_READ_FILE) == 0 && jjs_platform_has_read_file ())
   {
     annex_util_define_function (jjs_p, LIT_MAGIC_STRING_READ_FILE, jjs_api_read_file_handler);
   }
 
 #if JJS_ANNEX_PMAP
-  annex_util_define_ro_value(jjs_p, LIT_MAGIC_STRING_PMAP, jjs_annex_pmap_create_api (), JJS_MOVE);
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_PMAP) == 0)
+  {
+    annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_PMAP, jjs_annex_pmap_create_api (), JJS_MOVE);
+  }
 #endif /* JJS_ANNEX_PMAP */
 
 #if JJS_ANNEX_VMOD
-  annex_util_define_ro_value(jjs_p, LIT_MAGIC_STRING_VMOD, jjs_annex_vmod_create_api (), JJS_MOVE);
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_VMOD) == 0)
+  {
+    annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_VMOD, jjs_annex_vmod_create_api (), JJS_MOVE);
+  }
 #endif /* JJS_ANNEX_VMOD */
 
-  if ((JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_HIDE_JJS_GC) == 0)
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_GC) == 0)
   {
     annex_util_define_function (jjs_p, LIT_MAGIC_STRING_GC, jjs_api_gc_handler);
   }
@@ -130,13 +137,13 @@ jjs_api_object_init (ecma_value_t realm)
   jjs_value_t stream;
 
   /* stdout */
-  if (jjs_wstream_new (JJS_STDOUT, &stream))
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_STDOUT) == 0 && jjs_wstream_new (JJS_STDOUT, &stream))
   {
     annex_util_define_value (jjs_p, LIT_MAGIC_STRING_STDOUT, stream, JJS_MOVE);
   }
 
   /* stderr */
-  if (jjs_wstream_new (JJS_STDERR, &stream))
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_STDERR) == 0 && jjs_wstream_new (JJS_STDERR, &stream))
   {
     annex_util_define_value (jjs_p, LIT_MAGIC_STRING_STDERR, stream, JJS_MOVE);
   }

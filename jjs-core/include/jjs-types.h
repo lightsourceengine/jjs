@@ -420,8 +420,7 @@ typedef enum
   JJS_CONTEXT_FLAG_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
   JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
   JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
-  JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP = (1u << 3), /**< */
-  JJS_CONTEXT_FLAG_HIDE_JJS_GC = (1u << 4), /**< remove jjs.gc function */
+  JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP = (1u << 3), /**< enable an external, pre allocated heap */
 } jjs_context_flag_t;
 
 /**
@@ -471,6 +470,21 @@ typedef struct
 } jjs_external_heap_options_t;
 
 /**
+ * Set of exclusions for the javascript jjs namespace.
+ */
+typedef enum
+{
+  JJS_NAMESPACE_EXCLUSION_READ_FILE = 1 << 0, /**< exclude jjs.readFile() */
+  JJS_NAMESPACE_EXCLUSION_CWD = 1 << 1, /**< exclude jjs.cwd() */
+  JJS_NAMESPACE_EXCLUSION_REALPATH = 1 << 2, /**< exclude jjs.realpath() */
+  JJS_NAMESPACE_EXCLUSION_GC = 1 << 3, /**< exclude jjs.gc() */
+  JJS_NAMESPACE_EXCLUSION_VMOD = 1 << 4, /**< exclude jjs.vmod */
+  JJS_NAMESPACE_EXCLUSION_PMAP = 1 << 5, /**< exclude jjs.pmap */
+  JJS_NAMESPACE_EXCLUSION_STDOUT = 1 << 6, /**< exclude jjs.stdout */
+  JJS_NAMESPACE_EXCLUSION_STDERR = 1 << 7, /**< exclude jjs.stderr */
+} jjs_namespace_exclusion_t;
+
+/**
  * Context initialization settings.
  *
  * Use jjs_context_options_init() to initialize this structure, as that function fills
@@ -482,6 +496,17 @@ typedef struct
    * Context configuration flags. Bits enumerated in jjs_context_flag_t.
    */
   uint32_t context_flags;
+
+  /**
+   * Control which apis are exposed to scripts in the javascript jjs object (globalThis.jjs).
+   *
+   * The exclusions here are limited to the jjs namespace. The native apis are not affected
+   * by these exclusions. But, if a feature is disabled at the native layer, the feature
+   * is automatically excluded from the jjs namespace. For example, if the context has no
+   * platform read file function, readFile will not be added to the jjs namespace regardless
+   * of the exclusion settings.
+   */
+  uint32_t jjs_namespace_exclusions;
 
   /**
    * Unhandled rejection callback.

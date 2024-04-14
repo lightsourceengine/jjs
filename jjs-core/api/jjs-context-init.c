@@ -144,6 +144,9 @@ jjs_context_init (const jjs_context_options_t* options_p)
   }
 #endif /* JJS_VM_HEAP_STATIC */
 
+  /* javascript jjs namespace exclusions */
+  JJS_CONTEXT (jjs_namespace_exclusions) = options_p->jjs_namespace_exclusions;
+
   /* allocators */
   if (!jjs_util_context_allocator_init (&options_p->scratch_allocator))
   {
