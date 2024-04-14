@@ -291,6 +291,65 @@ test_platform_api_exists (void)
   TEST_ASSERT (options.platform.io_stderr_encoding != JJS_ENCODING_NONE);
 }
 
+static void
+test_jjs_namespace (void)
+{
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  jjs_value_t global = push (jjs_current_realm ());
+  jjs_value_t jjs = push (jjs_object_get_sz (global, "jjs"));
+  
+  TEST_ASSERT (jjs_value_is_object (jjs));
+  TEST_ASSERT (jjs_value_is_string (push (jjs_object_get_sz (jjs, "version"))));
+  TEST_ASSERT (jjs_value_is_string (push (jjs_object_get_sz (jjs, "os"))));
+  TEST_ASSERT (jjs_value_is_string (push (jjs_object_get_sz (jjs, "arch"))));
+  TEST_ASSERT (jjs_value_is_object (push (jjs_object_get_sz (jjs, "stdout"))));
+  TEST_ASSERT (jjs_value_is_object (push (jjs_object_get_sz (jjs, "stderr"))));
+  TEST_ASSERT (jjs_value_is_object (push (jjs_object_get_sz (jjs, "pmap"))));
+  TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "vmod"))));
+  TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "readFile"))));
+  TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "realpath"))));
+  TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "cwd"))));
+  TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "gc"))));
+
+  free_values ();
+  jjs_cleanup ();
+}
+
+static void
+check_jjs_namespace_exclusion (jjs_namespace_exclusion_t exclusion, const char* api_name_sz)
+{
+  jjs_context_options_t options = jjs_context_options ();
+
+  options.jjs_namespace_exclusions = exclusion;
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  jjs_value_t global = push (jjs_current_realm ());
+  jjs_value_t jjs = push (jjs_object_get_sz (global, "jjs"));
+
+  /* sanity check that jjs object exists and basics are populated */
+  TEST_ASSERT (jjs_value_is_object (jjs));
+  TEST_ASSERT (jjs_value_is_string (push (jjs_object_get_sz (jjs, "version"))));
+  TEST_ASSERT (jjs_value_is_string (push (jjs_object_get_sz (jjs, "os"))));
+  TEST_ASSERT (jjs_value_is_string (push (jjs_object_get_sz (jjs, "arch"))));
+
+  TEST_ASSERT (jjs_value_is_false (push (jjs_object_has_sz (jjs, api_name_sz))));
+
+  free_values ();
+  jjs_cleanup ();
+}
+
+static void
+test_jjs_namespace_exclusions (void)
+{
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_READ_FILE, "readFile");
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_STDOUT, "stdout");
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_STDERR, "stderr");
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_PMAP, "pmap");
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_VMOD, "vmod");
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_REALPATH, "realpath");
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_CWD, "cwd");
+  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_GC, "gc");
+}
+
 int
 main (void)
 {
@@ -312,6 +371,9 @@ main (void)
   test_platform_date_requirements ();
   test_platform_debugger_requirements ();
   test_platform_stream_requirements ();
+
+  test_jjs_namespace ();
+  test_jjs_namespace_exclusions ();
 
   return 0;
 } /* main */
