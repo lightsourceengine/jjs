@@ -16,7 +16,6 @@
 #include "jjs-annex-module-util.h"
 #include "jjs-annex-vmod.h"
 #include "jjs-annex.h"
-#include "jjs-platform.h"
 #include "jjs-util.h"
 
 #include "annex.h"
@@ -181,11 +180,19 @@ jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p,
 
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_SNAPSHOT))
   {
-    source = jjsp_read_file (path, JJS_ENCODING_NONE);
+    jjs_platform_read_file_options_t options = {
+      .encoding = JJS_ENCODING_NONE,
+    };
+
+    source = jjs_platform_read_file (path, JJS_KEEP, &options);
   }
   else if (!ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_NONE))
   {
-    source = jjsp_read_file (path, JJS_ENCODING_UTF8);
+    jjs_platform_read_file_options_t options = {
+      .encoding = JJS_ENCODING_UTF8,
+    };
+
+    source = jjs_platform_read_file (path, JJS_KEEP, &options);
   }
   else
   {

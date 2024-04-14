@@ -164,11 +164,28 @@ jjs_context_options_init (jjs_context_options_t * opts)
   opts->gc_limit_kb = JJS_DEFAULT_GC_LIMIT;
   opts->gc_mark_limit = JJS_DEFAULT_GC_MARK_LIMIT;
   opts->gc_new_objects_fraction = JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION;
+  opts->scratch_allocator = jjs_util_system_allocator();
 
   opts->platform = jjsp_defaults ();
 
   return opts;
 } /* jjs_context_options */
+
+/**
+ * Configure an allocator that uses stdlib's malloc and free.
+ */
+jjs_allocator_t jjs_context_system_allocator (void)
+{
+  return jjs_util_system_allocator ();
+} /* jjs_context_system_allocator */
+
+/**
+ * Configure an allocator that uses vm heap alloc and free.
+ */
+jjs_allocator_t jjs_context_vm_allocator (void)
+{
+  return jjs_util_vm_allocator ();
+} /* jjs_context_vm_allocator */
 
 /**
  * Start JJS with context options.
@@ -180,12 +197,12 @@ jjs_context_options_init (jjs_context_options_t * opts)
  * @param opts context options. if NULL, (compile time set) default context options are used
  * @return JJS_CONTEXT_STATUS_OK or an error code on failure
  */
-jjs_context_status_t
+jjs_status_t
 jjs_init (const jjs_context_options_t * opts)
 {
-  jjs_context_status_t status = jjs_context_init (opts);
+  jjs_status_t status = jjs_context_init (opts);
 
-  if (status != JJS_CONTEXT_STATUS_OK)
+  if (status != JJS_STATUS_OK)
   {
     return status;
   }
@@ -197,7 +214,7 @@ jjs_init (const jjs_context_options_t * opts)
   jjs_annex_init ();
   jjs_annex_init_realm (JJS_CONTEXT (global_object_p));
 
-  return JJS_CONTEXT_STATUS_OK;
+  return JJS_STATUS_OK;
 } /* jjs_init */
 
 /**
@@ -205,13 +222,13 @@ jjs_init (const jjs_context_options_t * opts)
  *
  * @return JJS_CONTEXT_STATUS_OK or an error code on failure
  */
-jjs_context_status_t
+jjs_status_t
 jjs_init_default (void)
 {
   return jjs_init (NULL);
 } /* jjs_init_default */
 
-jjs_context_status_t
+jjs_status_t
 jjs_init_with_flags (uint32_t context_flags)
 {
   jjs_context_options_t opts = jjs_context_options ();

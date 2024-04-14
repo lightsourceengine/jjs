@@ -277,9 +277,9 @@ ecma_date_local_time_zone_adjustment (ecma_number_t time) /**< time value */
 {
   JJS_ASSERT (JJS_CONTEXT (platform_api).time_local_tza != NULL);
   int32_t tza;
-  jjs_platform_status_t status = JJS_CONTEXT (platform_api).time_local_tza (time, &tza);
+  jjs_status_t status = JJS_CONTEXT (platform_api).time_local_tza (time, &tza);
 
-  return (status == JJS_PLATFORM_STATUS_OK) ? tza : 0;
+  return (status == JJS_STATUS_OK) ? tza : 0;
 } /* ecma_date_local_time_zone_adjustment */
 
 /**

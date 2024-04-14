@@ -139,7 +139,7 @@ test_fmt_logging (void)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   test_fmt_to_string ();
   test_fmt_to_buffer ();

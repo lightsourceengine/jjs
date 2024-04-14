@@ -80,7 +80,7 @@ int
 main (void)
 {
   TEST_INIT ();
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_value_t error_value = jjs_object_property_names (jjs_undefined (), JJS_PROPERTY_FILTER_ALL);
   TEST_ASSERT (jjs_value_is_exception (error_value) && jjs_error_type (error_value) == JJS_ERROR_TYPE);

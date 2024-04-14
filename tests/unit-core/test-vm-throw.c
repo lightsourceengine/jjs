@@ -142,7 +142,7 @@ main (void)
     return 0;
   }
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_on_throw (vm_throw_callback, (void *) &mode);
 

@@ -21,29 +21,32 @@
 
 jjs_platform_t jjsp_defaults (void);
 
-jjs_value_t jjsp_read_file (jjs_value_t path, jjs_encoding_t encoding);
-jjs_value_t jjsp_read_file_buffer (jjs_value_t path, jjs_platform_buffer_t* buffer_p);
-
-void jjsp_buffer_free (jjs_platform_buffer_t* buffer_p);
-char* jjsp_cesu8_to_utf8_sz (const uint8_t* cesu8_p, uint32_t cesu8_size, bool is_null_terminated, lit_utf8_size_t* out_size);
-ecma_char_t* jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size, bool is_null_terminated, lit_utf8_size_t* out_size);
-ecma_value_t jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move);
+/* platform api implementation helpers */
 
 bool jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index);
 bool jjsp_path_is_separator (lit_utf8_byte_t ch);
 
-void JJS_ATTR_NORETURN jjsp_fatal (jjs_fatal_code_t code);
-jjs_platform_status_t jjsp_cwd (jjs_platform_buffer_t* buffer_p);
+jjs_status_t jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, jjs_allocator_t* allocator, jjs_size_t size);
+jjs_platform_buffer_t
+jjs_platform_buffer (void* data_p, jjs_size_t data_size, jjs_allocator_t* allocator);
+void jjs_platform_buffer_view_from_buffer (jjs_platform_buffer_view_t* self_p, jjs_platform_buffer_t* source_p, jjs_encoding_t encoding);
+jjs_status_t jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p, jjs_allocator_t* allocator, jjs_size_t size, jjs_encoding_t encoding);
 
-void jjsp_io_write (void* target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding);
-void jjsp_io_flush (void* target_p);
+/* platform api implementations */
 
-jjs_platform_status_t jjsp_time_sleep (uint32_t sleep_time_ms);
-jjs_platform_status_t jjsp_time_local_tza (double unix_ms, int32_t* out_p);
-jjs_platform_status_t jjsp_time_now_ms (double* out_p);
+void JJS_ATTR_NORETURN jjsp_fatal_impl (jjs_fatal_code_t code);
 
-jjs_platform_status_t jjsp_path_realpath (const uint8_t* utf8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);
+void jjsp_io_write_impl (void* target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding);
+void jjsp_io_flush_impl (void* target_p);
 
-jjs_platform_status_t jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p);
+jjs_status_t jjsp_time_sleep_impl (uint32_t sleep_time_ms);
+jjs_status_t jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p);
+jjs_status_t jjsp_time_now_ms_impl (double* out_p);
+
+jjs_status_t jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p);
+jjs_status_t jjsp_path_realpath_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_view_t* buffer_view_p);
+
+jjs_status_t
+jjsp_fs_read_file_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p);
 
 #endif /* JJS_PLATFORM_H */

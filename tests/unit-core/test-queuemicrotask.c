@@ -45,7 +45,7 @@ main (void)
   jjs_value_t result;
   jjs_value_t callback;
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   callback = jjs_function_external (simple_callback);
   result = jjs_queue_microtask (callback);

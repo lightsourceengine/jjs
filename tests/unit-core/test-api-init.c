@@ -53,14 +53,14 @@ test_context_options_init (void)
 static void
 test_init_default (void)
 {
-  TEST_ASSERT (jjs_init_default() == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default() == JJS_STATUS_OK);
   jjs_cleanup ();
 }
 
 static void
 test_init_options_null (void)
 {
-  TEST_ASSERT (jjs_init (NULL) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (NULL) == JJS_STATUS_OK);
   jjs_cleanup ();
 }
 
@@ -73,7 +73,7 @@ test_init_options_stack_limit (void)
 
     opts.vm_stack_limit_kb = 96;
 
-    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init (&opts) == JJS_STATUS_OK);
     jjs_cleanup ();
   }
 }
@@ -87,7 +87,7 @@ test_init_options_stack_limit_when_stack_static (void)
 
     opts.vm_stack_limit_kb += 10;
 
-    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT);
+    TEST_ASSERT (jjs_init (&opts) == JJS_STATUS_CONTEXT_IMMUTABLE_STACK_LIMIT);
   }
 }
 
@@ -118,7 +118,7 @@ test_init_options_external_heap (void)
     opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
     opts.external_heap = external_heap_options;
 
-    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init (&opts) == JJS_STATUS_OK);
 
     jjs_cleanup ();
     free (external_heap_options.buffer_p);
@@ -140,7 +140,7 @@ test_init_options_external_heap_invalid (void)
     opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
     opts.external_heap = external_heap_options;
 
-    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP);
+    TEST_ASSERT (jjs_init (&opts) == JJS_STATUS_CONTEXT_INVALID_EXTERNAL_HEAP);
   }
 }
 
@@ -160,7 +160,7 @@ test_init_options_external_heap_when_heap_static (void)
     opts.context_flags = JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP;
     opts.external_heap = external_heap_options;
 
-    TEST_ASSERT (jjs_init (&opts) == JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE);
+    TEST_ASSERT (jjs_init (&opts) == JJS_STATUS_CONTEXT_IMMUTABLE_HEAP_SIZE);
 
     free (external_heap_options.buffer_p);
   }

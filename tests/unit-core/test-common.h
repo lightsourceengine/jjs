@@ -104,7 +104,7 @@
  * layers that need the context to be setup.
  */
 #define TEST_CONTEXT_INIT() \
-  TEST_ASSERT (jjs_context_init (NULL) == JJS_CONTEXT_STATUS_OK)
+  TEST_ASSERT (jjs_context_init (NULL) == JJS_STATUS_OK)
 
 /**
  * Cleanup a test environment that called TEST_CONTEXT_INIT() to start.

@@ -565,7 +565,7 @@ test_detached_arraybuffer (void)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   if (!jjs_feature_enabled (JJS_FEATURE_TYPEDARRAY))
   {

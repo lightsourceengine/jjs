@@ -95,7 +95,7 @@ run_module (const char *source_p, /* source code */
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   if (!jjs_feature_enabled (JJS_FEATURE_MODULE))
   {

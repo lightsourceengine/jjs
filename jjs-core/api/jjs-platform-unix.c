@@ -13,38 +13,65 @@
  * limitations under the License.
  */
 
-#include "jjs-platform.h"
 #include "jjs-compiler.h"
+#include "jjs-platform.h"
+
 #include "jcontext.h"
 
 #ifdef JJS_OS_IS_UNIX
 
+#include <stdlib.h>
+
+static void
+stdlib_free (jjs_platform_buffer_t* self_p)
+{
+  if (self_p->data_p)
+  {
+    free (self_p->data_p);
+    self_p->data_p = NULL;
+    self_p->data_size = 0;
+  }
+}
+
+static void
+jjsp_buffer_view_from_stdlib_alloc (void* buffer,
+                                    jjs_size_t buffer_size,
+                                    jjs_encoding_t encoding,
+                                    jjs_platform_buffer_view_t* buffer_view_p)
+{
+  jjs_platform_buffer_t source = jjs_platform_buffer (buffer, buffer_size, NULL);
+
+  source.free = stdlib_free;
+
+  jjs_platform_buffer_view_from_buffer (buffer_view_p, &source, encoding);
+}
+
 #if JJS_PLATFORM_API_PATH_CWD
 #include <unistd.h>
 
-jjs_platform_status_t
-jjsp_cwd (jjs_platform_buffer_t* buffer_p)
+jjs_status_t
+jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
 {
+  JJS_UNUSED (allocator);
   char* path_p = getcwd (NULL, 0);
 
   if (path_p == NULL)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_CWD_ERR;
   }
 
-  uint32_t path_len = (uint32_t) strlen (path_p);
+  lit_utf8_byte_t* utf8_p = (lit_utf8_byte_t*) path_p;
+  jjs_size_t len = (uint32_t) strlen (path_p);
 
-  // no trailing slash
-  if (path_len > 1 && jjsp_path_is_separator ((lit_utf8_byte_t) path_p[path_len - 1])) {
-    path_len -= 1;
+  /* no trailing slash */
+  if (len > 1 && jjsp_path_is_separator (utf8_p[len - 1]))
+  {
+    len -= 1;
   }
 
-  buffer_p->data_p = path_p;
-  buffer_p->length = path_len;
-  buffer_p->free = jjsp_buffer_free;
-  buffer_p->encoding = JJS_ENCODING_UTF8;
+  jjsp_buffer_view_from_stdlib_alloc (path_p, len, JJS_ENCODING_UTF8, buffer_view_p);
 
-  return JJS_PLATFORM_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 #endif /* JJS_PLATFORM_API_PATH_CWD */
 
@@ -53,8 +80,8 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 #include <time.h>
 #include <errno.h>
 
-jjs_platform_status_t
-jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
+jjs_status_t
+jjsp_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   struct timespec timeout;
   int rc;
@@ -69,7 +96,7 @@ jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
   }
   while (rc == -1 && errno == EINTR);
 
-  return JJS_PLATFORM_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_SLEEP */
@@ -78,8 +105,8 @@ jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 
 #include <time.h>
 
-jjs_platform_status_t
-jjsp_time_local_tza (double unix_ms, int32_t* out_p)
+jjs_status_t
+jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
 {
   time_t time = (time_t) unix_ms / 1000;
 
@@ -104,7 +131,7 @@ jjsp_time_local_tza (double unix_ms, int32_t* out_p)
   *out_p =  (int32_t) difftime (local, gmt) * 1000;
 #endif /* HAVE_TM_GMTOFF */
 
-  return JJS_PLATFORM_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
@@ -114,20 +141,20 @@ jjsp_time_local_tza (double unix_ms, int32_t* out_p)
 #include <time.h>
 #include <sys/time.h>
 
-jjs_platform_status_t
-jjsp_time_now_ms (double* out_p)
+jjs_status_t
+jjsp_time_now_ms_impl (double* out_p)
 {
   struct timeval tv;
 
   if (gettimeofday (&tv, NULL) != 0)
   {
     *out_p = 0;
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_TIME_API_ERR;
   }
   else
   {
     *out_p = ((double) tv.tv_sec) * 1000.0 + ((double) tv.tv_usec) / 1000.0;
-    return JJS_PLATFORM_STATUS_OK;
+    return JJS_STATUS_OK;
   }
 }
 
@@ -138,24 +165,30 @@ jjsp_time_now_ms (double* out_p)
 #include <unistd.h>
 #include <stdlib.h>
 
-jjs_platform_status_t
-jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+jjs_status_t
+jjsp_path_realpath_impl (jjs_allocator_t* allocator,
+                         jjs_platform_path_t* path_p,
+                         jjs_platform_buffer_view_t* buffer_view_p)
 {
-  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size, true, NULL);
+  JJS_UNUSED (allocator);
+  jjs_status_t status;
+  jjs_platform_buffer_view_t path_view_p;
 
-  if (path_p == NULL)
+  status = path_p->convert (path_p, JJS_ENCODING_UTF8, JJS_PATH_FLAG_NULL_TERMINATE, &path_view_p);
+
+  if (status != JJS_STATUS_OK)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return status;
   }
 
   char* data_p;
 
-#if defined (HAVE_CANONICALIZE_FILE_NAME)
-  data_p = canonicalize_file_name (path_p);
-#elif (defined (JJS_OS_IS_MACOS) && defined (__clang__))
-  data_p = realpath (path_p, NULL);
-#elif (defined (_POSIX_VERSION) && _POSIX_VERSION >= 200809L)
-  data_p = realpath (path_p, NULL);
+#if defined(HAVE_CANONICALIZE_FILE_NAME)
+  data_p = canonicalize_file_name ((const char*) path_view_p.data_p);
+#elif (defined(JJS_OS_IS_MACOS) && defined(__clang__))
+  data_p = realpath ((const char*) path_view_p.data_p, NULL);
+#elif (defined(_POSIX_VERSION) && _POSIX_VERSION >= 200809L)
+  data_p = realpath ((const char*) path_view_p.data_p, NULL);
 #else
   /*
    * Problem:
@@ -205,22 +238,19 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
    * - https://github.com/gcc-mirror/gcc/blob/master/libiberty/lrealpath.c
    */
 
-  #error "compiler does not have a known, working realpath"
+#error "compiler does not have a known, working realpath"
 #endif
 
-  free (path_p);
+  path_view_p.free (&path_view_p);
 
   if (data_p == NULL)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_REALPATH_ERR;
   }
 
-  buffer_p->data_p = data_p;
-  buffer_p->encoding = JJS_ENCODING_UTF8;
-  buffer_p->length = (uint32_t) strlen (data_p);
-  buffer_p->free = jjsp_buffer_free;
+  jjsp_buffer_view_from_stdlib_alloc (data_p, (uint32_t) strlen (data_p), JJS_ENCODING_UTF8, buffer_view_p);
 
-  return JJS_PLATFORM_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_PATH_REALPATH */
@@ -230,28 +260,30 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 #include <stdlib.h>
 #include <stdio.h>
 
-jjs_platform_status_t
-jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+jjs_status_t
+jjsp_fs_read_file_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
 {
-  jjs_platform_status_t status;
-  char* path_p = jjsp_cesu8_to_utf8_sz (cesu8_p, size, true, NULL);
+  jjs_status_t status;
+  jjs_platform_buffer_view_t path_view_p;
 
-  if (path_p == NULL)
+  status = path_p->convert (path_p, JJS_ENCODING_UTF8, JJS_PATH_FLAG_NULL_TERMINATE, &path_view_p);
+
+  if (status != JJS_STATUS_OK)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return status;
   }
 
-  FILE* file_p = fopen (path_p, "rb");
-  free (path_p);
+  FILE* file_p = fopen ((const char*) path_view_p.data_p, "rb");
+  path_view_p.free (&path_view_p);
 
   if (!file_p)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_FILE_OPEN_ERR;
   }
 
   if (ftell (file_p) != 0)
   {
-    status = JJS_PLATFORM_STATUS_ERR;
+    status = JJS_STATUS_PLATFORM_FILE_SEEK_ERR;
     goto done;
   }
 
@@ -259,7 +291,7 @@ jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t*
 
   if (err != 0)
   {
-    status = JJS_PLATFORM_STATUS_ERR;
+    status = JJS_STATUS_PLATFORM_FILE_SEEK_ERR;
     goto done;
   }
 
@@ -267,7 +299,7 @@ jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t*
 
   if (file_size <= 0 || file_size > INT32_MAX)
   {
-    status = JJS_PLATFORM_STATUS_ERR;
+    status = JJS_STATUS_PLATFORM_FILE_SIZE_TOO_BIG;
     goto done;
   }
 
@@ -275,33 +307,27 @@ jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t*
 
   if (err != 0)
   {
-    status = JJS_PLATFORM_STATUS_ERR;
+    status = JJS_STATUS_PLATFORM_FILE_SEEK_ERR;
     goto done;
   }
 
-  void* data_p = malloc ((size_t) file_size);
+  status = jjs_platform_buffer_new (out_p, allocator, (jjs_size_t) file_size);
 
-  if (data_p == NULL)
+  if (status != JJS_STATUS_OK)
   {
-    status = JJS_PLATFORM_STATUS_ERR;
     goto done;
   }
 
-  size_t num_read = fread (data_p, (size_t) file_size, 1, file_p);
+  size_t num_read = fread (out_p->data_p, (size_t) file_size, 1, file_p);
 
   if (num_read != 1)
   {
-    free (data_p);
-    status = JJS_PLATFORM_STATUS_ERR;
+    out_p->free (out_p);
+    status = JJS_STATUS_PLATFORM_FILE_READ_ERR;
     goto done;
   }
 
-  buffer_p->data_p = data_p;
-  buffer_p->length = (uint32_t) file_size;
-  buffer_p->encoding = JJS_ENCODING_NONE;
-  buffer_p->free = jjsp_buffer_free;
-
-  status = JJS_PLATFORM_STATUS_OK;
+  status = JJS_STATUS_OK;
 
 done:
   fclose (file_p);
@@ -313,7 +339,7 @@ done:
 bool
 jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index)
 {
-  if (size == 0 || !jjsp_path_is_separator(*str_p))
+  if (size == 0 || !jjsp_path_is_separator (*str_p))
   {
     return false;
   }

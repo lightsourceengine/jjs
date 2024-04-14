@@ -45,7 +45,7 @@ int
 main (void)
 {
   TEST_INIT ();
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_value_t pp_string = jjs_string_sz ("pp");
   jjs_value_t qq_string = jjs_string_sz ("qq");

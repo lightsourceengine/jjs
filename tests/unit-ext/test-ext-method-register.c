@@ -60,7 +60,7 @@ freeze_property (jjs_value_t target_obj, /**< target object */
 static void
 test_simple_registration (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_value_t target_object = jjs_object ();
 
@@ -160,7 +160,7 @@ test_simple_registration (void)
 static void
 test_error_setvalue (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   const char *target_prop = "test_err";
   jjs_value_t global_obj = jjs_current_realm ();
@@ -186,7 +186,7 @@ test_error_setvalue (void)
 static void
 test_error_single_function (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   const char *target_prop = "test_err";
   jjs_value_t target_object = jjs_object ();
@@ -215,7 +215,7 @@ test_error_single_function (void)
 static void
 test_error_multiple_functions (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   const char *prop_ok = "prop_ok";
   const char *prop_err = "prop_err";

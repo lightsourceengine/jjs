@@ -54,7 +54,7 @@ test_function_snapshot (void)
 
   const jjs_char_t code_to_snapshot[] = "return a + b";
 
-  TEST_ASSERT(jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT(jjs_init_default () == JJS_STATUS_OK);
 
   jjs_parse_options_t parse_options;
   parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
@@ -75,7 +75,7 @@ test_function_snapshot (void)
 
   jjs_cleanup ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_value_t function_obj = jjs_exec_snapshot (function_snapshot_buffer,
                                                     function_snapshot_size,
@@ -109,7 +109,7 @@ test_function_snapshot (void)
 static void
 arguments_test_exec_snapshot (uint32_t *snapshot_p, size_t snapshot_size, uint32_t exec_snapshot_flags)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
   jjs_value_t res = jjs_exec_snapshot (snapshot_p, snapshot_size, 0, exec_snapshot_flags, NULL);
   TEST_ASSERT (!jjs_value_is_exception (res));
   TEST_ASSERT (jjs_value_is_number (res));
@@ -134,7 +134,7 @@ test_function_arguments_snapshot (void)
                                                                  "  return a + b + c;"
                                                                  "}"
                                                                  "f(3,4,5);");
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
     jjs_value_t parse_result = jjs_parse (code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (parse_result));
@@ -160,7 +160,7 @@ test_exec_snapshot (uint32_t *snapshot_p, size_t snapshot_size, uint32_t exec_sn
 {
   char string_data[32];
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_register_magic_strings (magic_strings,
                                 sizeof (magic_string_lengths) / sizeof (jjs_length_t),
@@ -189,7 +189,7 @@ test_snapshot_with_user (void)
 
     const jjs_char_t code_to_snapshot[] = TEST_STRING_LITERAL ("function f() {}\n"
                                                                  "f");
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
     jjs_value_t parse_result = jjs_parse (code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (parse_result));
@@ -258,7 +258,7 @@ main (void)
                                                                  "};"
                                                                  "func('string', 'from');");
 
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
     jjs_register_magic_strings (magic_strings,
                                   sizeof (magic_string_lengths) / sizeof (jjs_length_t),
                                   magic_string_lengths);
@@ -295,7 +295,7 @@ main (void)
 
     const jjs_char_t code_to_snapshot1[] = "var a = 'hello'; 123";
 
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
     jjs_value_t parse_result = jjs_parse (code_to_snapshot1, sizeof (code_to_snapshot1) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (parse_result));
@@ -312,7 +312,7 @@ main (void)
 
     const jjs_char_t code_to_snapshot2[] = "var b = 'hello'; 456";
 
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
     parse_result = jjs_parse (code_to_snapshot2, sizeof (code_to_snapshot2) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (parse_result));
@@ -327,7 +327,7 @@ main (void)
 
     jjs_cleanup ();
 
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
     const char *error_p;
     const uint32_t *snapshot_buffers[2];
@@ -353,7 +353,7 @@ main (void)
     TEST_ASSERT (0 == memcmp (snapshot_buffer_0_bck, snapshot_buffer_0, SNAPSHOT_BUFFER_SIZE));
     TEST_ASSERT (0 == memcmp (snapshot_buffer_1_bck, snapshot_buffer_1, SNAPSHOT_BUFFER_SIZE));
 
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
     jjs_value_t res = jjs_exec_snapshot (merged_snapshot_buffer, merged_size, 0, 0, NULL);
     TEST_ASSERT (!jjs_value_is_exception (res));
@@ -372,7 +372,7 @@ main (void)
   if (jjs_feature_enabled (JJS_FEATURE_SNAPSHOT_SAVE))
   {
     /* C format generation */
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
     static jjs_char_t literal_buffer_c[LITERAL_BUFFER_SIZE];
     static uint32_t literal_snapshot_buffer[SNAPSHOT_BUFFER_SIZE];

@@ -103,43 +103,144 @@ typedef enum
 } jjs_platform_arch_t;
 
 /**
- * Status code for platform api calls.
+ * Status codes for JJS apis.
  */
 typedef enum
 {
-  JJS_PLATFORM_STATUS_OK,
-  JJS_PLATFORM_STATUS_ERR,
-} jjs_platform_status_t;
+  JJS_STATUS_OK = 0, /**< */
+
+  /* general errors */
+  JJS_STATUS_BAD_ALLOC, /**< */
+  JJS_STATUS_UNSUPPORTED_ENCODING, /**< */
+  JJS_STATUS_MALFORMED_CESU8, /**< */
+  JJS_STATUS_CONTEXT_CHAOS, /**< engine is in a horrible state */
+
+  /* platform api errors */
+  JJS_STATUS_PLATFORM_CWD_ERR, /**< */
+  JJS_STATUS_PLATFORM_TIME_API_ERR, /**< */
+  JJS_STATUS_PLATFORM_REALPATH_ERR, /**< */
+  JJS_STATUS_PLATFORM_FILE_READ_ERR, /**< */
+  JJS_STATUS_PLATFORM_FILE_SIZE_TOO_BIG, /**< */
+  JJS_STATUS_PLATFORM_FILE_SEEK_ERR, /**< */
+  JJS_STATUS_PLATFORM_FILE_OPEN_ERR, /**< */
+
+  /* context initialization errors */
+  JJS_STATUS_CONTEXT_ALREADY_INITIALIZED, /**< context already in an initialized state */
+  JJS_STATUS_CONTEXT_INVALID_EXTERNAL_HEAP, /**< external heap is invalid or not aligned */
+  JJS_STATUS_CONTEXT_IMMUTABLE_HEAP_SIZE, /**< heap size was configured at compile time and cannot be changed  */
+  JJS_STATUS_CONTEXT_IMMUTABLE_STACK_LIMIT, /**< stack limit was configured at compile time and cannot be changed  */
+  JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING, /**< platform.io_stdout was set with an unsupported platform.io_stdout_encoding value */
+  JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING, /**< platform.io_stderr was set with an unsupported platform.io_stderr_encoding value */
+  JJS_STATUS_CONTEXT_REQUIRES_API_FATAL, /**< platform.fatal function is required by the engine */
+  JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP, /**< platform.time_sleep function is required by the engine */
+  JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA, /**< platform.time_local_tza function is required by the engine */
+  JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS, /**< platform.time_now_ms function is required by the engine */
+} jjs_status_t;
 
 /**
- * Buffer object used by platform api.
+ * Memory allocator interface.
  *
- * The structure of the buffer object is generic. It is up to the platform api that is using it
- * to define the data type, how to free and whether to use encoding.
+ * The interface supports malloc/free and jjs_heap_alloc/jjs_heap_free, which
+ * require the allocated pointer + size.
  */
-typedef struct jjs_platform_buffer_t
+typedef struct jjs_allocator_s
 {
-  void* data_p; /**< pointer to the buffer data, type is chosen by the platform api using jjs_platform_buffer_t */
-  uint32_t length; /**< size of the buffer data in bytes */
-  jjs_encoding_t encoding; /**< encoding type of the data */
-  void (*free) (struct jjs_platform_buffer_t*); /**< when done, this function should be called to release buffer memory */
+  void* (*alloc)(struct jjs_allocator_s*, uint32_t); /**< alloc a new block. returns NULL on failure. */
+  void (*free)(struct jjs_allocator_s*, void*, uint32_t); /**< free a block. NULL block is a no-op. */
+  void* internal[4]; /**< reserved data for allocator implementations */
+} jjs_allocator_t;
+
+/**
+ * Buffer object used by platform api functions.
+ *
+ * The buffer object contains the pointer to the buffer, size and free information. The default
+ * free method will call the allocator free method with the buffer pointer.
+ */
+typedef struct jjs_platform_buffer_s
+{
+  void* data_p; /**< pointer to allocated data */
+  uint32_t data_size; /**< size of buffer in bytes */
+  void (*free)(struct jjs_platform_buffer_s*); /**< free the contents (allocation) of this buffer */
+  jjs_allocator_t* allocator; /**< allocator responsible for freeing data_p */
 } jjs_platform_buffer_t;
 
-// Platform API Signatures
-typedef jjs_platform_status_t (*jjs_platform_cwd_fn_t) (jjs_platform_buffer_t*);
+/**
+ * Buffer view object used by platform api functions.
+ *
+ * The buffer view is to deal with path adjustments after calling platform specific apis. We may
+ * need to cut off the prefix or remove trailing slashes or things like dirname. The underlying
+ * allocation information needs to be kept around to free, but pointer and size needs to be
+ * massaged. Its similar to the relationship between JS TypedArray/DataView and ArrayBuffer.
+ *
+ * The default free method will call free on the source buffer.
+ */
+typedef struct jjs_platform_buffer_view_s
+{
+  void* data_p; /**< pointer to start of buffer. may point to source->data_p or a pointer withn the source buffer. */
+  uint32_t data_size; /**< size of buffer in bytes */
+  jjs_encoding_t encoding; /**< encoding of data. may not be applicable to all views. */
+  jjs_platform_buffer_t source; /**< source buffer. view owns the allocation for this buffer. */
+  void (*free)(struct jjs_platform_buffer_view_s*); /**< free the contents (allocation) of this buffer view */
+} jjs_platform_buffer_view_t;
+
+/**
+ * Flags for path conversion.
+ */
+typedef enum
+{
+  JJS_PATH_FLAG_NULL_TERMINATE = 1 << 1, /**< add a null terminator */
+  JJS_PATH_FLAG_LONG_FILENAME_PREFIX = 1 << 2, /**< add a windows long pathname prefix  */
+} jjs_platform_path_flag_t;
+
+/**
+ * Path object passed to platform api functions
+ *
+ * The path includes the path, size in bytes and encoding. Due to how the engine represents the
+ * string internally, the encoding will be CESU8 or ASCII. The path is NOT null terminated.
+ *
+ * The ECMA spec calls for internal string representation as UTF16. CESU8 is a replacement for
+ * UTF16 in embedded environments. The engine uses CESU8 internally. Although it is similar to
+ * UTF8, CESU8 is not common.
+ *
+ * Whether it is the null terminator, windows long name prefix or the encoding, the path name
+ * will have to be copied to a workable format. The convert() method will handle the common
+ * conversion cases. If convert() does not work, you can just use the path + size in the
+ * path object and do conversion yourself.
+ */
+typedef struct jjs_platform_path_s
+{
+  /* public fields */
+  const uint8_t* path_p; /**< path from the engine. must not be modified. */
+  uint32_t path_size; /**< size of path in bytes */
+  jjs_encoding_t encoding; /**< encoding of path. CESU8 or ASCII. */
+
+  /* public api */
+  jjs_status_t (*convert)(struct jjs_platform_path_s*, jjs_encoding_t, uint32_t, jjs_platform_buffer_view_t* out_p); /**< converts path to a new encoding and/or format. jjs_platform_path owns the returned buffer. */
+
+  /* private fields */
+  jjs_allocator_t* allocator; /**< allocator used by convert */
+} jjs_platform_path_t;
+
+/* Platform API Signatures */
+
 typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
 
+/* io */
 typedef void* jjs_platform_io_stream_t;
 typedef void (*jjs_platform_io_write_fn_t) (void*, const uint8_t*, uint32_t, jjs_encoding_t);
 typedef void (*jjs_platform_io_flush_fn_t) (void*);
 
-typedef jjs_platform_status_t (*jjs_platform_fs_read_file_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
+/* fs */
+typedef jjs_status_t (*jjs_platform_fs_read_file_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_t*);
 
-typedef jjs_platform_status_t (*jjs_platform_time_sleep_fn_t) (uint32_t);
-typedef jjs_platform_status_t (*jjs_platform_time_local_tza_fn_t) (double, int32_t*);
-typedef jjs_platform_status_t (*jjs_platform_time_now_ms_fn_t) (double*);
+/* time */
+typedef jjs_status_t (*jjs_platform_time_sleep_fn_t) (uint32_t);
+typedef jjs_status_t (*jjs_platform_time_local_tza_fn_t) (double, int32_t*);
+typedef jjs_status_t (*jjs_platform_time_now_ms_fn_t) (double*);
 
-typedef jjs_platform_status_t (*jjs_platform_path_realpath_fn_t) (const uint8_t*, uint32_t, jjs_platform_buffer_t*);
+/* path */
+typedef jjs_status_t (*jjs_platform_cwd_fn_t) (jjs_allocator_t* allocator, jjs_platform_buffer_view_t*);
+typedef jjs_status_t (*jjs_platform_path_realpath_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_view_t*);
 
 /**
  * Contains platform specific data and functions used internally by JJS. The
@@ -164,15 +265,11 @@ typedef struct
   /**
    * Get the current working directory of the process.
    *
-   * The return values is a jjs_platform_status_t code. If OK, the pointer to a jjs_platform_buffer_t
-   * is populated. The implementation will set the data pointer, length and provide a free function
-   * that should be called to cleanup the buffer resources. If the implementation does not have a
-   * need for a free operation, a dummy free function should be set. The returned buffer also
-   * can have a UTF8 or UTF16 encoding. The caller must honor the encoding when converting the
-   * buffer to string.
+   * The implementation is passed an allocator and a buffer view. The buffer view is
+   * a container the implementation should fill in. The implementation is expected to
+   * use the allocator to allocate the buffer.
    *
-   * This platform function is required for commonjs and esm modules to construct paths
-   * from relative specifiers.
+   * On success, JJS_STATUS_OK should be returned.
    */
   jjs_platform_cwd_fn_t path_cwd;
 
@@ -275,50 +372,44 @@ typedef struct
   /**
    * Returns an absolute path with symlinks resolved to their real path names.
    *
-   * The input path must be encoded in CESU8.
+   * The implementation will be passed a path object, allocator and buffer view.
+   *
+   * The path object will be encoded in CESU8 or ASCII and will NOT be null
+   * terminated. The path object has a convert method to handle converting
+   * the path to a platform friendly path string format.
+   *
+   * The allocator should be used to allocate the buffer in buffer view.
+   *
+   * Buffer view is a container that the implementation should fill out.
    *
    * The implementation should use realpath or GetFinalPathNameByHandle
-   * (on windows). The primary use case for resolving module path names
-   * so that they can be consistent cache keys, preventing modules from being
-   * reloaded.
+   * or whatever the platform has to get an absolute path without symlinks.
+   * The primary use case for resolving module path names so that they can
+   * be consistent cache keys, preventing modules from being reloaded.
    */
   jjs_platform_path_realpath_fn_t path_realpath;
 
   /**
-   * Reads the entire contents of a file into a (system) memory buffer. This
-   * read is intended for JS source files, JSON files and snapshot. It is not
-   * intended to be a general purpose read.
+   * Reads the entire contents of a file.
    *
-   * The input path must be encoded in CESU8.
+   * The input path will be encoded in CESU8 or ASCII and will NOT be null
+   * terminated. The path object has a convert method to handle converting
+   * the path to a platform friendly path string format. If the implementation
+   * call convert, the implementation is responsible for calling the view's
+   * free() method.
    *
-   * The returned buffer will have a NONE encoding. On success, the caller must
-   * call the buffer's free function to cleanup memory.
+   * The allocator should be used to allocate the file buffer.
    *
-   * The intent is to put the file contents in system memory, but the implementation
-   * can decide to use vm memory or static memory. In that case, the implementation
-   * should provide an appropriate buffer free function.
+   * The passed in jjs_platform_buffer_t is a container object that the
+   * implementation must fill in with the buffer pointer, size and information
+   * about how to free the buffer. The caller will need to read the buffer
+   * and will call the free method when it is done.
+   *
+   * If the implementation really wants to use it's own allocation strategy,
+   * it can set jjs_platform_buffer_t free and allocator appropriately.
    */
   jjs_platform_fs_read_file_fn_t fs_read_file;
 } jjs_platform_t;
-
-/**
- * Status values returned by jjs_init functions.
- */
-typedef enum
-{
-  JJS_CONTEXT_STATUS_OK = 0, /**< context successfully initialized */
-  JJS_CONTEXT_STATUS_ALREADY_INITIALIZED, /**< context already in an initialized state */
-  JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP, /**< external heap is invalid or not aligned */
-  JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE, /**< heap size was configured at compile time and cannot be changed  */
-  JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT, /**< stack limit was configured at compile time and cannot be changed  */
-  JJS_CONTEXT_STATUS_CHAOS, /**< context is in a horrible state */
-  JJS_CONTEXT_STATUS_REQUIRES_FATAL, /**< platform.fatal function is required by the engine */
-  JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP, /**< platform.time_sleep function is required by the engine */
-  JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA, /**< platform.time_local_tza function is required by the engine */
-  JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS, /**< platform.time_now_ms function is required by the engine */
-  JJS_CONTEXT_STATUS_STDOUT_INVALID_ENCODING, /**< platform.io_stdout was set with an unsupported platform.io_stdout_encoding value */
-  JJS_CONTEXT_STATUS_STDERR_INVALID_ENCODING, /**< platform.io_stderr was set with an unsupported platform.io_stderr_encoding value */
-} jjs_context_status_t;
 
 /**
  * JJS init flags.
@@ -484,6 +575,23 @@ typedef struct
    * platform is used by JJS.
    */
   jjs_platform_t platform;
+
+  /**
+   * Fallback scratch buffer allocator.
+   *
+   * The engine has an internal arena allocator for temporary allocations for paths, loading
+   * source files or snapshots or json and other optimizations. If the arena buffer is too
+   * small or gets exhausted, this fallback is used. The fallback should be the vm or system
+   * allocator.
+   *
+   * The arena allocator buffer size can be set with JJS_SCRATCH_ARENA_SIZE. If 0, the scratch
+   * arena allocator is disabled and the fallback allocator is used exclusively.
+   *
+   * By default, the system allocator is used. You can set this to the vm heap
+   * allocator or use your own allocator.
+   */
+  jjs_allocator_t scratch_allocator;
+
 } jjs_context_options_t;
 
 /**

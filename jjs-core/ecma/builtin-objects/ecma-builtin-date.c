@@ -694,9 +694,9 @@ ecma_builtin_date_now_helper (void)
 {
   JJS_ASSERT (JJS_CONTEXT (platform_api).time_now_ms != NULL);
   double unix_timestamp_ms;
-  jjs_platform_status_t status = JJS_CONTEXT (platform_api).time_now_ms (&unix_timestamp_ms);
+  jjs_status_t status = JJS_CONTEXT (platform_api).time_now_ms (&unix_timestamp_ms);
 
-  return (status == JJS_PLATFORM_STATUS_OK) ? floor (DOUBLE_TO_ECMA_NUMBER_T (unix_timestamp_ms)) : 0;
+  return (status == JJS_STATUS_OK) ? floor (DOUBLE_TO_ECMA_NUMBER_T (unix_timestamp_ms)) : 0;
 } /* ecma_builtin_date_now_helper */
 
 /**

@@ -72,7 +72,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   const jjs_char_t proxy_object[] = "new Proxy({}, {})";
   const jjs_char_t typedarray_object[] = "new Uint8Array()";

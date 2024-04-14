@@ -233,6 +233,14 @@ struct jjs_context_t
    * * Any other valid function object pointer: the current "new.target" is valid and it is constructor call.
    */
   ecma_object_t *current_new_target_p;
+
+  jjs_allocator_t scratch_allocator; /**< scratch allocator the system uses (compound allocator: arena + fallback) */
+  jjs_allocator_t fallback_scratch_allocator; /**< fallback scratch allocator from context options. */
+
+#if JJS_SCRATCH_ARENA_SIZE > 0
+  jjs_allocator_t scratch_arena_allocator; /**< scratch arena allocator */
+  uint8_t scratch_arena_block[JJS_SCRATCH_ARENA_SIZE * 1024]; /**< memory block for scratch arena allocator */
+#endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
 };
 
 /**

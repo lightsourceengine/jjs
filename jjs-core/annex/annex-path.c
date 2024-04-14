@@ -145,31 +145,20 @@ annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize)
 ecma_value_t
 annex_path_normalize (ecma_value_t path)
 {
-  if (!ecma_is_value_string (path))
+  if (!ecma_is_value_string (path) || jjs_string_length (path) == 0)
   {
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_string_t* path_p = ecma_get_string_from_value (path);
+  jjs_value_t result = jjs_platform_realpath (path, JJS_KEEP);
 
-  if (ecma_string_get_length (path_p) == 0)
+  if (!jjs_value_is_string (result))
   {
-    return ECMA_VALUE_EMPTY;
+    jjs_value_free (result);
+    result = ECMA_VALUE_EMPTY;
   }
 
-  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
-
-  jjs_platform_buffer_t buffer;
-  jjs_platform_status_t status = JJS_CONTEXT (platform_api).path_realpath (path_bytes_p, path_bytes_len, &buffer);
-
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
-
-  if (status == JJS_PLATFORM_STATUS_ERR)
-  {
-    return ECMA_VALUE_EMPTY;
-  }
-
-  return jjsp_buffer_to_string_value (&buffer, true);
+  return result;
 } /* annex_path_normalize */
 
 /**
@@ -178,16 +167,15 @@ annex_path_normalize (ecma_value_t path)
 ecma_value_t
 annex_path_cwd (void)
 {
-  jjs_platform_cwd_fn_t cwd = JJS_CONTEXT (platform_api).path_cwd;
-  jjs_platform_buffer_t buffer;
-  jjs_platform_status_t status = cwd ? cwd (&buffer) : JJS_PLATFORM_STATUS_ERR;
+  jjs_value_t cwd = jjs_platform_cwd ();
 
-  if (status != JJS_PLATFORM_STATUS_OK)
+  if (!jjs_value_is_string (cwd))
   {
-    return ECMA_VALUE_EMPTY;
+    jjs_value_free (cwd);
+    cwd = ECMA_VALUE_EMPTY;
   }
 
-  return jjsp_buffer_to_string_value (&buffer, true);
+  return cwd;
 } /* annex_path_cwd */
 
 /**

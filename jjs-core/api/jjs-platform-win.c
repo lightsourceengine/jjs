@@ -23,24 +23,27 @@
 
 #include <windows.h>
 
-jjs_platform_status_t
-jjsp_cwd (jjs_platform_buffer_t* buffer_p)
+jjs_status_t
+jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
 {
   WCHAR* p;
   DWORD n;
   DWORD t = GetCurrentDirectoryW (0, NULL);
+  jjs_size_t allocated_size;
 
   for (;;) {
     if (t == 0)
     {
-      return JJS_PLATFORM_STATUS_ERR;
+      return JJS_STATUS_PLATFORM_CWD_ERR;
     }
 
     /* |t| is the size of the buffer _including_ nul. */
-    p = malloc (t * sizeof (*p));
+    allocated_size = (jjs_size_t) (t * sizeof (*p));
+    p = allocator->alloc (allocator, allocated_size);
+
     if (p == NULL)
     {
-      return JJS_PLATFORM_STATUS_ERR;
+      return JJS_STATUS_PLATFORM_CWD_ERR;
     }
 
     /* |n| is the size of the buffer _excluding_ nul but _only on success_.
@@ -57,9 +60,11 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
       }
     }
 
-    free (p);
+    allocator->free (allocator, p, allocated_size);
     t = n;
   }
+
+  jjs_size_t size = allocated_size;
 
   /* The returned directory should not have a trailing slash, unless it points
    * at a drive root, like c:\. Remove it if needed.
@@ -69,14 +74,17 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
   {
     p[t] = L'\0';
     n = t;
+    size -= (1 * sizeof (ecma_char_t));
   }
 
-  buffer_p->data_p = p;
-  buffer_p->length = n * sizeof (WCHAR);
-  buffer_p->encoding = JJS_ENCODING_UTF16;
-  buffer_p->free = jjsp_buffer_free;
+  size -= (1 * sizeof (ecma_char_t));
 
-  return JJS_PLATFORM_STATUS_OK;
+  jjs_platform_buffer_t source = jjs_platform_buffer (p, allocated_size, allocator);
+
+  jjs_platform_buffer_view_from_buffer (buffer_view_p, &source, JJS_ENCODING_UTF16);
+  buffer_view_p->data_size = size;
+
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_PATH_CWD */
@@ -84,12 +92,12 @@ jjsp_cwd (jjs_platform_buffer_t* buffer_p)
 #if JJS_PLATFORM_API_TIME_SLEEP
 #include <windows.h>
 
-jjs_platform_status_t
-jjsp_time_sleep (uint32_t sleep_time_ms) /**< milliseconds to sleep */
+jjs_status_t
+jjsp_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   Sleep (sleep_time_ms);
 
-  return JJS_PLATFORM_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_SLEEP */
@@ -127,8 +135,8 @@ filetime_to_unix_time (LPFILETIME ft_p)
   return (((double) date.QuadPart - (double) UNIX_EPOCH_IN_TICKS) / (double) TICKS_PER_MS);
 }
 
-jjs_platform_status_t
-jjsp_time_local_tza (double unix_ms, int32_t* out_p)
+jjs_status_t
+jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
 {
   FILETIME utc;
   FILETIME local;
@@ -143,12 +151,12 @@ jjsp_time_local_tza (double unix_ms, int32_t* out_p)
     double unix_local = filetime_to_unix_time (&local);
     *out_p = (int32_t) (unix_local - unix_ms);
 
-    return JJS_PLATFORM_STATUS_OK;
+    return JJS_STATUS_OK;
   }
 
   *out_p = 0;
 
-  return JJS_PLATFORM_STATUS_ERR;
+  return JJS_STATUS_PLATFORM_TIME_API_ERR;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
@@ -157,8 +165,8 @@ jjsp_time_local_tza (double unix_ms, int32_t* out_p)
 
 #include <windows.h>
 
-jjs_platform_status_t
-jjsp_time_now_ms (double* out_p)
+jjs_status_t
+jjsp_time_now_ms_impl (double* out_p)
 {
   // Based on https://doxygen.postgresql.org/gettimeofday_8c_source.html
   static const uint64_t epoch = (uint64_t) 116444736000000000ULL;
@@ -174,7 +182,7 @@ jjsp_time_now_ms (double* out_p)
 
   *out_p = ((double) tv_sec) * 1000.0 + ((double) tv_usec) / 1000.0;
 
-  return JJS_PLATFORM_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_TIME_NOW_MS */
@@ -183,62 +191,36 @@ jjsp_time_now_ms (double* out_p)
 
 #include <windows.h>
 
-static lit_utf8_size_t
-jjsp_remove_long_path_prefixes (ecma_char_t *path_p, lit_utf8_size_t len)
+static const WCHAR LONG_PATH_PREFIX[] = L"\\\\?\\";
+static const WCHAR LONG_PATH_PREFIX_LEN = 4;
+
+static const WCHAR UNC_PATH_PREFIX[] = L"\\\\?\\UNC\\";
+static const WCHAR UNC_PATH_PREFIX_LEN = 8;
+
+jjs_status_t
+jjsp_path_realpath_impl (jjs_allocator_t* allocator,
+                         jjs_platform_path_t* path_p,
+                         jjs_platform_buffer_view_t* buffer_view_p)
 {
-  static const WCHAR LONG_PATH_PREFIX[] = L"\\\\?\\";
-  static const WCHAR LONG_PATH_PREFIX_LEN = 4;
+  jjs_status_t status;
+  jjs_platform_buffer_view_t path_view;
 
-  static const WCHAR UNC_PATH_PREFIX[] = L"\\\\?\\UNC\\";
-  static const WCHAR UNC_PATH_PREFIX_LEN = 8;
+  status = path_p->convert (path_p, JJS_ENCODING_UTF16, JJS_PATH_FLAG_NULL_TERMINATE, &path_view);
 
-  ecma_char_t *copy_point_p;
-  lit_utf8_size_t copy_len;
-  lit_utf8_size_t i;
-
-  if (wcsncmp (path_p, UNC_PATH_PREFIX, UNC_PATH_PREFIX_LEN) == 0)
+  if (status != JJS_STATUS_OK)
   {
-    copy_point_p = path_p + 6;
-    *copy_point_p = L'\\';
-    copy_len = len - 6;
-  }
-  else if (wcsncmp (path_p, LONG_PATH_PREFIX, LONG_PATH_PREFIX_LEN) == 0)
-  {
-    copy_point_p = path_p + 4;
-    copy_len = len - 4;
-  }
-  else
-  {
-    return len;
+    return status;
   }
 
-  for (i = 0; i < copy_len; i++)
-  {
-    path_p[i] = copy_point_p[i];
-  }
+  ecma_char_t* wpath_p = (ecma_char_t*) path_view.data_p;
 
-  path_p[i] = L'\0';
+  HANDLE file = CreateFileW (wpath_p, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, NULL);
 
-  return copy_len;
-}
-
-jjs_platform_status_t
-jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
-{
-  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size, true, NULL);
-
-  if (path_p == NULL)
-  {
-    return JJS_PLATFORM_STATUS_ERR;
-  }
-
-  HANDLE file = CreateFileW (path_p, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, NULL);
-
-  free (path_p);
+  path_view.free (&path_view);
 
   if (file == INVALID_HANDLE_VALUE)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_FILE_OPEN_ERR;
   }
 
   DWORD length = GetFinalPathNameByHandleW (file, NULL, 0, VOLUME_NAME_DOS);
@@ -246,30 +228,50 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
   if (length <= 0)
   {
     CloseHandle(file);
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_REALPATH_ERR;
   }
 
   // length includes null terminator
-  ecma_char_t* data_p = malloc (((size_t) length) * sizeof (ecma_char_t));
+  jjs_size_t allocated_size = ((size_t) length) * sizeof (ecma_char_t);
+  ecma_char_t* data_p = allocator->alloc (allocator, allocated_size);
 
   if (GetFinalPathNameByHandleW (file, data_p, length, VOLUME_NAME_DOS) <= 0)
   {
-    free (data_p);
+    allocator->free (allocator, data_p, allocated_size);
     CloseHandle(file);
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_REALPATH_ERR;
   }
 
   CloseHandle(file);
 
-  // length includes null terminator
-  lit_utf8_size_t data_len = jjsp_remove_long_path_prefixes (data_p, (lit_utf8_size_t) (length - 1));
+  jjs_platform_buffer_t source = jjs_platform_buffer (data_p, allocated_size, allocator);
 
-  buffer_p->data_p = data_p;
-  buffer_p->length = data_len * ((uint32_t) sizeof (ecma_char_t));
-  buffer_p->encoding = JJS_ENCODING_UTF16;
-  buffer_p->free = jjsp_buffer_free;
+  jjs_platform_buffer_view_from_buffer (buffer_view_p, &source, JJS_ENCODING_UTF16);
 
-  return JJS_PLATFORM_STATUS_OK;
+  ecma_char_t* p = (ecma_char_t*) buffer_view_p->data_p;
+
+  /* convert UNC path to long path */
+  if (wcsncmp(buffer_view_p->data_p,
+               UNC_PATH_PREFIX,
+               UNC_PATH_PREFIX_LEN) == 0) {
+    p += 6;
+    *p = L'\\';
+    buffer_view_p->data_p = p;
+    buffer_view_p->data_size -= (6 * sizeof (ecma_char_t));
+  } else if (wcsncmp(buffer_view_p->data_p,
+                    LONG_PATH_PREFIX,
+                    LONG_PATH_PREFIX_LEN) == 0) {
+    p += 4;
+    buffer_view_p->data_p = p;
+    buffer_view_p->data_size -= (4 * sizeof (ecma_char_t));
+  } else {
+    /* Is this an error case? */
+  }
+
+  /* length includes null terminator */
+  buffer_view_p->data_size -= (1 * sizeof (ecma_char_t));
+
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_PATH_REALPATH */
@@ -278,23 +280,28 @@ jjsp_path_realpath (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t
 
 #include <windows.h>
 
-jjs_platform_status_t
-jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t* buffer_p)
+jjs_status_t
+jjsp_fs_read_file_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
 {
-  ecma_char_t* path_p = jjsp_cesu8_to_utf16_sz (cesu8_p, size, true, NULL);
+  jjs_status_t status;
+  jjs_platform_buffer_view_t path_view;
 
-  if (path_p == NULL)
+  status = path_p->convert (path_p, JJS_ENCODING_UTF16, JJS_PATH_FLAG_NULL_TERMINATE, &path_view);
+
+  if (status != JJS_STATUS_OK)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return status;
   }
 
-  HANDLE file = CreateFileW (path_p, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  ecma_char_t* wpath_p = (ecma_char_t*) path_view.data_p;
 
-  free (path_p);
+  HANDLE file = CreateFileW (wpath_p, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  path_view.free (&path_view);
 
   if (file == INVALID_HANDLE_VALUE)
   {
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_FILE_OPEN_ERR;
   }
 
   LARGE_INTEGER file_size_result;
@@ -302,31 +309,27 @@ jjsp_fs_read_file (const uint8_t* cesu8_p, uint32_t size, jjs_platform_buffer_t*
   if (GetFileSizeEx (file, &file_size_result) != TRUE || file_size_result.QuadPart > INT_MAX)
   {
     CloseHandle (file);
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_FILE_SEEK_ERR;
   }
 
   uint32_t file_size = (uint32_t) file_size_result.QuadPart;
-  void* data_p = malloc (file_size);
 
-  if (data_p == NULL)
+  status = jjs_platform_buffer_new (out_p, allocator, (jjs_size_t) file_size);
+
+  if (status != JJS_STATUS_OK)
   {
     CloseHandle (file);
-    return JJS_PLATFORM_STATUS_ERR;
+    return status;
   }
 
-  if (ReadFile (file, data_p, (DWORD) file_size, NULL, NULL) != TRUE)
+  if (ReadFile (file, out_p->data_p, (DWORD) file_size, NULL, NULL) != TRUE)
   {
-    free (data_p);
+    out_p->free (out_p);
     CloseHandle (file);
-    return JJS_PLATFORM_STATUS_ERR;
+    return JJS_STATUS_PLATFORM_FILE_READ_ERR;
   }
 
-  buffer_p->data_p = data_p;
-  buffer_p->length = file_size;
-  buffer_p->encoding = JJS_ENCODING_NONE;
-  buffer_p->free = jjsp_buffer_free;
-
-  return JJS_PLATFORM_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 
 #endif /* JJS_PLATFORM_API_FS_READ_FILE */

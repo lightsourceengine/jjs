@@ -49,7 +49,7 @@ static const jjs_object_native_info_t native_info = {
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_value_t obj = jjs_object ();
 

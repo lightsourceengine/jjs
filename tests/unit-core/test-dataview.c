@@ -29,7 +29,7 @@ main (void)
   /* DataView builtin requires the TypedArray builtin */
   TEST_ASSERT (jjs_feature_enabled (JJS_FEATURE_TYPEDARRAY));
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   /* Test accessors */
   jjs_value_t arraybuffer = jjs_arraybuffer (16);

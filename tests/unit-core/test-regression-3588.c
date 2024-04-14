@@ -36,7 +36,7 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   {
     jjs_value_t global_obj_val = jjs_current_realm ();

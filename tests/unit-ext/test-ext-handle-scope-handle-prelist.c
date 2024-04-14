@@ -81,7 +81,7 @@ test_handle_scope_val (void)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   native_free_cb_call_count = 0;
   test_handle_scope_val ();

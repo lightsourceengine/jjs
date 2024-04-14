@@ -21,7 +21,7 @@ int
 main (void)
 {
   TEST_INIT ();
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   jjs_value_t undefined_this_arg = jjs_undefined ();
   char pattern2[] = "\\u{61}.\\u{62}";

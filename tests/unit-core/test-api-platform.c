@@ -27,7 +27,7 @@ test_platform_after_init (void)
   TEST_ASSERT (jjs_platform_os_type () != JJS_PLATFORM_OS_UNKNOWN);
   TEST_ASSERT (jjs_platform_arch_type () != JJS_PLATFORM_ARCH_UNKNOWN);
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   TEST_ASSERT (jjs_platform_os () != JJS_PLATFORM_OS_UNKNOWN);
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_os ())));
@@ -44,7 +44,7 @@ test_platform_after_init (void)
 static void
 test_platform_cwd (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   TEST_ASSERT (jjs_platform_has_cwd ());
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_cwd ())));
@@ -60,7 +60,7 @@ test_platform_cwd_not_set (void)
 
   options.platform.path_cwd = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
 
   TEST_ASSERT (!jjs_platform_has_cwd ());
   TEST_ASSERT (jjs_value_is_exception (push (jjs_platform_cwd ())));
@@ -72,7 +72,7 @@ test_platform_cwd_not_set (void)
 static void
 test_platform_realpath (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
   jjs_value_t path;
 
   TEST_ASSERT (jjs_platform_has_realpath ());
@@ -96,7 +96,7 @@ test_platform_realpath (void)
 static void
 test_platform_read_file (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   TEST_ASSERT (jjs_platform_has_read_file ());
 
@@ -135,7 +135,7 @@ test_platform_realpath_not_set (void)
 
   options.platform.path_realpath = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
 
   TEST_ASSERT (!jjs_platform_has_realpath ());
   jjs_value_t path = push (jjs_platform_realpath (jjs_string_utf8_sz ("."), JJS_MOVE));
@@ -152,7 +152,7 @@ test_platform_read_file_not_set (void)
 
   options.platform.fs_read_file = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
 
   TEST_ASSERT (!jjs_platform_has_read_file ());
   jjs_value_t path = push (jjs_platform_read_file (jjs_string_utf8_sz (TEST_FILE), JJS_MOVE, NULL));
@@ -165,7 +165,7 @@ test_platform_read_file_not_set (void)
 static void
 test_platform_stream (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   TEST_ASSERT (jjs_platform_has_stdout () == true);
 
@@ -188,16 +188,16 @@ test_platform_stream_requirements (void)
   /* invalid default encoding */
   options = jjs_context_options ();
   options.platform.io_stdout_encoding = JJS_ENCODING_UTF16;
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_STDOUT_INVALID_ENCODING);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING);
 
   options = jjs_context_options ();
   options.platform.io_stderr_encoding = JJS_ENCODING_UTF16;
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_STDERR_INVALID_ENCODING);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING);
 
   /* streams without write function */
   options = jjs_context_options ();
   options.platform.io_write = NULL;
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == false);
   TEST_ASSERT (jjs_platform_has_stderr () == false);
   jjs_cleanup();
@@ -206,14 +206,14 @@ test_platform_stream_requirements (void)
   options = jjs_context_options ();
   options.platform.io_stdout = NULL;
   options.platform.io_stderr = NULL;
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == false);
   TEST_ASSERT (jjs_platform_has_stderr () == false);
   jjs_cleanup();
 
   /* default init */
   options = jjs_context_options ();
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == true);
   TEST_ASSERT (jjs_platform_has_stderr () == true);
   jjs_cleanup();
@@ -221,7 +221,7 @@ test_platform_stream_requirements (void)
   /* no flush */
   options = jjs_context_options ();
   options.platform.io_flush = NULL;
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == true);
   TEST_ASSERT (jjs_platform_has_stderr () == true);
   jjs_cleanup();
@@ -235,7 +235,7 @@ test_platform_debugger_requirements (void)
 
   options.platform.time_sleep = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP);
 #endif
 }
 
@@ -248,14 +248,14 @@ test_platform_date_requirements (void)
   TEST_ASSERT (options.platform.time_local_tza != NULL);
   options.platform.time_local_tza = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA);
 
   options = jjs_context_options ();
 
   TEST_ASSERT (options.platform.time_now_ms != NULL);
   options.platform.time_now_ms = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS);
+  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS);
 #endif
 }
 
@@ -267,14 +267,14 @@ test_platform_api_exists (void)
   int32_t tza;
 
   TEST_ASSERT (options.platform.time_now_ms != NULL);
-  TEST_ASSERT (JJS_PLATFORM_STATUS_OK == options.platform.time_now_ms (&unix_timestamp_ms));
+  TEST_ASSERT (JJS_STATUS_OK == options.platform.time_now_ms (&unix_timestamp_ms));
   TEST_ASSERT (unix_timestamp_ms > 0);
 
   TEST_ASSERT (options.platform.time_local_tza != NULL);
-  TEST_ASSERT (JJS_PLATFORM_STATUS_OK == options.platform.time_local_tza (unix_timestamp_ms, &tza));
+  TEST_ASSERT (JJS_STATUS_OK == options.platform.time_local_tza (unix_timestamp_ms, &tza));
 
   TEST_ASSERT (options.platform.time_sleep != NULL);
-  TEST_ASSERT (JJS_PLATFORM_STATUS_OK == options.platform.time_sleep (1));
+  TEST_ASSERT (JJS_STATUS_OK == options.platform.time_sleep (1));
 
   TEST_ASSERT (options.platform.fatal != NULL);
 

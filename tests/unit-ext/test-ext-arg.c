@@ -830,7 +830,7 @@ register_js_function (const char *name_p, /**< name of the function */
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   test_utf8_string ();
 

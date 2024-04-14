@@ -28,7 +28,7 @@ main (void)
                                                           "var b = 'world';"
                                                           "var c = a + ' ' + b;");
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
   jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
   TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
 

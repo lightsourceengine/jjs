@@ -37,10 +37,12 @@ JJS_C_API_BEGIN
 
 jjs_context_options_t jjs_context_options (void);
 jjs_context_options_t *jjs_context_options_init (jjs_context_options_t * opts);
+jjs_allocator_t jjs_context_system_allocator (void);
+jjs_allocator_t jjs_context_vm_allocator (void);
 
-jjs_context_status_t jjs_init (const jjs_context_options_t * opts);
-jjs_context_status_t jjs_init_default (void);
-jjs_context_status_t jjs_init_with_flags (uint32_t context_flags);
+jjs_status_t jjs_init (const jjs_context_options_t * opts);
+jjs_status_t jjs_init_default (void);
+jjs_status_t jjs_init_with_flags (uint32_t context_flags);
 
 void jjs_cleanup (void);
 
@@ -1275,14 +1277,6 @@ jjs_value_t jjs_platform_arch (void);
 jjs_platform_arch_t JJS_ATTR_CONST jjs_platform_arch_type (void);
 
 void jjs_platform_fatal (jjs_fatal_code_t code);
-
-bool jjs_platform_convert_cesu8 (const jjs_char_t *cesu8,
-                                 jjs_size_t cesu8_size,
-                                 jjs_encoding_t encoding,
-                                 bool with_null_terminator,
-                                 void **out_pp,
-                                 jjs_size_t *out_len_p);
-void jjs_platform_convert_cesu8_free (void *converted);
 
 /**
  * jjs-platform-ops @}

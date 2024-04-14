@@ -66,7 +66,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   /* Next test. */
   const char *source_p = "({ value:'X', writable:true, enumerable:true, configurable:true })";

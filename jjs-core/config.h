@@ -579,6 +579,22 @@
 #endif /* JJS_DEFAULT_MAX_GC_LIMIT */
 
 /**
+ * Scratch arena buffer size in kilobytes.
+ *
+ * The engine needs to allocate temporary memory for performance algorithms, paths, json
+ * & source code file reads and other things. In almost all cases, the temporary memory might
+ * live for the scope of a method. With the system and vm allocators, this can contribute
+ * to fragmentation. With the vm allocator, the arena will be faster, as it will not hit gc
+ * or add gc objects to the vm. The performance of the arena vs malloc/free will be negligible.
+ *
+ * If JJS_SCRATCH_ARENA_SIZE is 0, the scratch arena is disabled and system or vm allocations
+ * are used for temporary memory.
+ */
+#ifndef JJS_SCRATCH_ARENA_SIZE
+#define JJS_SCRATCH_ARENA_SIZE 16384
+#endif /* JJS_SCRATCH_ARENA_SIZE */
+
+/**
  * Platform API
  *
  * Include or exclude a platform api implementation. Some platform apis are

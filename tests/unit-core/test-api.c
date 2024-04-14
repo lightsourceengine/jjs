@@ -365,7 +365,7 @@ main (void)
   double number_val;
   char buffer[32];
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
   TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
@@ -833,7 +833,7 @@ main (void)
 
   /* Test: jjs_exception_value */
   {
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
     jjs_value_t num_val = jjs_number (123);
     num_val = jjs_throw_value (num_val, true);
     TEST_ASSERT (jjs_value_is_exception (num_val));
@@ -851,7 +851,7 @@ main (void)
   }
 
   {
-    TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
     const jjs_char_t scoped_src_p[] = "let a; this.b = 5";
     jjs_value_t parse_result = jjs_parse (scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (parse_result));
@@ -982,7 +982,7 @@ main (void)
   /* Test: parser error location */
   if (jjs_feature_enabled (JJS_FEATURE_ERROR_MESSAGES))
   {
-    TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
+    TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_STATUS_OK);
 
     test_syntax_error ("b = 'hello';\nvar a = (;",
                        NULL,
@@ -1016,7 +1016,7 @@ main (void)
   }
 
   /* External Magic String */
-  TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_STATUS_OK);
 
   uint32_t num_magic_string_items = (uint32_t) (sizeof (magic_string_items) / sizeof (jjs_char_t *));
   jjs_register_magic_strings (magic_string_items, num_magic_string_items, magic_string_lengths);

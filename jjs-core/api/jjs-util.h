@@ -30,11 +30,32 @@ jjs_value_t jjs_return (jjs_value_t value);
 bool jjs_util_map_option (jjs_value_t option,
                           jjs_value_ownership_t option_o,
                           jjs_value_t key,
-                          jjs_value_t key_o,
+                          jjs_value_ownership_t key_o,
                           const jjs_util_option_pair_t* option_mappings_p,
                           jjs_size_t len,
                           uint32_t default_mapped_value,
                           uint32_t* out_p);
+
+jjs_allocator_t jjs_util_system_allocator (void);
+jjs_allocator_t jjs_util_vm_allocator (void);
+jjs_allocator_t jjs_util_arraybuffer_allocator (void);
+jjs_value_t jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator);
+
+bool jjs_util_context_allocator_init (const jjs_allocator_t* fallback_allocator);
+
+jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (void);
+void jjs_util_context_release_scratch_allocator (void);
+
+jjs_status_t
+jjs_util_convert (jjs_allocator_t* allocator,
+                  const uint8_t* source_p,
+                  jjs_size_t source_size,
+                  jjs_encoding_t source_encoding,
+                  void** dest_p,
+                  jjs_size_t *dest_size,
+                  jjs_encoding_t dest_encoding,
+                  bool add_null_terminator,
+                  bool add_windows_long_filename_prefix);
 
 /**
  * Assert that it is correct to call API in current state.

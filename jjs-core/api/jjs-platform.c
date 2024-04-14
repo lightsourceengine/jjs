@@ -13,15 +13,26 @@
  * limitations under the License.
  */
 
+#include "jjs-platform.h"
+
 #include "jjs-annex.h"
+#include "jjs-compiler.h"
 #include "jjs-core.h"
+#include "jjs-stream.h"
 #include "jjs-util.h"
 
 #include "annex.h"
 #include "jcontext.h"
-#include "jjs-platform.h"
-#include "jjs-compiler.h"
-#include "jjs-stream.h"
+
+static jjs_value_t jjsp_read_file_buffer (jjs_value_t path,
+                                          jjs_allocator_t* path_allocator,
+                                          jjs_allocator_t* buffer_allocator,
+                                          jjs_platform_buffer_t* buffer_p);
+static jjs_value_t jjsp_read_file (jjs_value_t path, jjs_encoding_t encoding);
+static jjs_platform_path_t
+jjs_platform_create_path (jjs_allocator_t* allocator, const uint8_t* path_p, jjs_size_t size, jjs_encoding_t encoding);
+static ecma_value_t jjsp_buffer_view_to_string_value (jjs_platform_buffer_view_t* buffer_p, bool move);
+static void jjs_platform_buffer_view_free (jjs_platform_buffer_view_t* self_p);
 
 /**
  * Gets the current working directory.
@@ -44,11 +55,16 @@ jjs_platform_cwd (void)
     return jjs_throw_sz (JJS_ERROR_COMMON, "platform cwd api not installed");
   }
 
-  jjs_platform_buffer_t buffer;
+  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator ();
 
-  if (cwd (&buffer) == JJS_PLATFORM_STATUS_OK)
+  jjs_platform_buffer_view_t buffer = {
+    .free = jjs_platform_buffer_view_free,
+    .source = jjs_platform_buffer (NULL, 0, allocator),
+  };
+
+  if (cwd (allocator, &buffer) == JJS_STATUS_OK)
   {
-    ecma_value_t result = jjsp_buffer_to_string_value (&buffer, true);
+    ecma_value_t result = jjsp_buffer_view_to_string_value (&buffer, true);
 
     if (jjs_value_is_string (result))
     {
@@ -93,17 +109,23 @@ jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o)
     return jjs_throw_sz (JJS_ERROR_TYPE, "expected path to be a string");
   }
 
-  ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value(path), path_bytes_p, path_bytes_len);
+  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator ();
 
-  JJS_DISOWN (path, path_o);
+  ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value (path), path_bytes_p, path_bytes_len);
 
-  jjs_platform_buffer_t buffer;
-  jjs_platform_status_t status = realpath_fn (path_bytes_p, path_bytes_len, &buffer);
+  jjs_platform_path_t p = jjs_platform_create_path (
+    allocator,
+    path_bytes_p,
+    path_bytes_len,
+    ecma_string_get_length (ecma_get_string_from_value (path)) == path_bytes_len ? JJS_ENCODING_ASCII
+                                                                                 : JJS_ENCODING_CESU8);
+  jjs_platform_buffer_view_t buffer;
+  jjs_status_t status = realpath_fn (allocator, &p, &buffer);
   jjs_value_t result;
 
-  if (status == JJS_PLATFORM_STATUS_OK)
+  if (status == JJS_STATUS_OK)
   {
-    result = jjsp_buffer_to_string_value (&buffer, true);
+    result = jjsp_buffer_view_to_string_value (&buffer, true);
   }
   else
   {
@@ -111,6 +133,9 @@ jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o)
   }
 
   ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+
+  jjs_util_context_release_scratch_allocator ();
+  JJS_DISOWN (path, path_o);
 
   return result;
 } /* jjs_platform_realpath */
@@ -241,11 +266,12 @@ void jjs_platform_stdout_flush (void)
  *
  * @return boolean status
  */
-bool jjs_platform_has_stdout (void)
+bool
+jjs_platform_has_stdout (void)
 {
-  jjs_assert_api_enabled();
+  jjs_assert_api_enabled ();
   return jjs_stream_is_installed (JJS_STDOUT);
-}
+} /* jjs_platform_has_stdout */
 
 /**
  * Write a string to the platform stderr write stream.
@@ -256,32 +282,36 @@ bool jjs_platform_has_stdout (void)
  * @param value JS string value
  * @param value_o value reference ownership
  */
-void jjs_platform_stderr_write (jjs_value_t value, jjs_value_ownership_t value_o)
+void
+jjs_platform_stderr_write (jjs_value_t value, jjs_value_ownership_t value_o)
 {
+  jjs_assert_api_enabled ();
   jjs_stream_write_string (JJS_STDERR, value, value_o);
-}
+} /* jjs_platform_stderr_write */
 
 /**
  * Flush the platform stderr write stream.
  *
  * If the platform does not have stderr stream installed, this function does nothing.
  */
-void jjs_platform_stderr_flush (void)
+void
+jjs_platform_stderr_flush (void)
 {
-  jjs_assert_api_enabled();
+  jjs_assert_api_enabled ();
   jjs_stream_flush (JJS_STDERR);
-}
+} /* jjs_platform_stderr_flush */
 
 /**
  * Checks if the platform has stderr stream installed.
  *
  * @return boolean status
  */
-bool jjs_platform_has_stderr (void)
+bool
+jjs_platform_has_stderr (void)
 {
-  jjs_assert_api_enabled();
+  jjs_assert_api_enabled ();
   return jjs_stream_is_installed (JJS_STDERR);
-}
+} /* jjs_platform_has_stderr */
 
 /**
  * Get the OS identifier as a JS string.
@@ -441,102 +471,113 @@ jjs_platform_fatal (jjs_fatal_code_t code)
 
   if (!fatal_fn)
   {
-    fatal_fn = jjsp_fatal;
+    fatal_fn = jjsp_fatal_impl;
   }
 
   fatal_fn (code);
-} /* jjs_platform_fatal */
+}
 
-/**
- * Helper function to deal with cesu8 strings in platform api implementations.
- *
- * @param cesu8 bytes encoded in CESU8
- * @param cesu8_size number of bytes in cesu8 buffer
- * @param encoding encoding to convert to
- * @param with_null_terminator append a null terminator to output buffer
- * @param out_pp pointer to newly allocated buffer in target encoding format. for cesu8 or utf8, buffer is
- *               uint8_t. for utf16, buffer is uint16_t.
- * @param out_len_p number of elements (not byte size) in output buffer
- * @return true: conversion successful. caller must free out buffer with jjs_platform_convert_cesu8_free.
- *         false: conversion failed
- */
-bool jjs_platform_convert_cesu8 (const jjs_char_t *cesu8,
-                                 jjs_size_t cesu8_size,
-                                 jjs_encoding_t encoding,
-                                 bool with_null_terminator,
-                                 void **out_pp,
-                                 jjs_size_t *out_len_p)
+static void
+jjs_platform_buffer_view_free (jjs_platform_buffer_view_t* self_p)
 {
-  switch (encoding)
+  self_p->source.free (&self_p->source);
+  self_p->data_p = NULL;
+  self_p->data_size = 0;
+  self_p->encoding = JJS_ENCODING_NONE;
+}
+
+static void
+jjs_platform_buffer_free (jjs_platform_buffer_t* buffer_p)
+{
+  if (buffer_p && buffer_p->allocator)
   {
-    case JJS_ENCODING_UTF8:
-    {
-      char* buffer_p = jjsp_cesu8_to_utf8_sz (cesu8, cesu8_size, with_null_terminator, out_len_p);
-
-      if (!buffer_p)
-      {
-        return false;
-      }
-
-      *out_pp = buffer_p;
-      return true;
-    }
-    case JJS_ENCODING_CESU8:
-    {
-      uint8_t* buffer_p = malloc (cesu8_size + (with_null_terminator ? 1 : 0));
-
-      if (!buffer_p)
-      {
-        return false;
-      }
-
-      memcpy (buffer_p, cesu8, cesu8_size);
-
-      if (with_null_terminator)
-      {
-        buffer_p[cesu8_size] = '\0';
-      }
-
-      *out_pp = buffer_p;
-      return true;
-    }
-    case JJS_ENCODING_UTF16:
-    {
-      uint16_t *buffer_p = jjsp_cesu8_to_utf16_sz (cesu8, cesu8_size, with_null_terminator, out_len_p);
-
-      if (!buffer_p)
-      {
-        return false;
-      }
-
-      *out_pp = buffer_p;
-      return true;
-    }
-    default:
-    {
-      return false;
-    }
+    buffer_p->allocator->free (buffer_p->allocator, buffer_p->data_p, buffer_p->data_size);
+    buffer_p->data_p = NULL;
+    buffer_p->data_size = 0;
+    buffer_p->allocator = NULL;
   }
-} /* jjs_platform_convert_cesu8 */
+}
 
-void jjs_platform_convert_cesu8_free (void* converted)
+void
+jjs_platform_buffer_view_from_buffer (jjs_platform_buffer_view_t* self_p, jjs_platform_buffer_t* source_p, jjs_encoding_t encoding)
 {
-  free (converted);
-} /* jjs_platform_convert_cesu8_free */
+  self_p->data_p = source_p->data_p;
+  self_p->data_size = source_p->data_size;
+  self_p->encoding = encoding;
+  self_p->source = *source_p;
+  self_p->free = jjs_platform_buffer_view_free;
+}
+
+jjs_status_t
+jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p,
+                                jjs_allocator_t* allocator,
+                                jjs_size_t size,
+                                jjs_encoding_t encoding)
+{
+  jjs_status_t status = jjs_platform_buffer_new (&self_p->source, allocator, size);
+
+  if (status != JJS_STATUS_OK)
+  {
+    return status;
+  }
+
+  self_p->data_p = self_p->source.data_p;
+  self_p->data_size = self_p->source.data_size;
+  self_p->encoding = encoding;
+
+  *self_p = (jjs_platform_buffer_view_t) {
+    .data_p = self_p->source.data_p,
+    .data_size = self_p->source.data_size,
+    .free = jjs_platform_buffer_view_free,
+  };
+
+  return JJS_STATUS_OK;
+}
+
+jjs_status_t
+jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, jjs_allocator_t* allocator, jjs_size_t size)
+{
+  void* p = allocator->alloc (allocator, size);
+
+  if (p == NULL)
+  {
+    return JJS_STATUS_BAD_ALLOC;
+  }
+
+  *self_p = (jjs_platform_buffer_t) {
+    .data_p = p,
+    .data_size = size,
+    .allocator = allocator,
+    .free = jjs_platform_buffer_free,
+  };
+
+  return JJS_STATUS_OK;
+}
+
+jjs_platform_buffer_t
+jjs_platform_buffer (void* data_p, jjs_size_t data_size, jjs_allocator_t* allocator)
+{
+  return (jjs_platform_buffer_t) {
+    .data_p = data_p,
+    .data_size = data_size,
+    .allocator = allocator,
+    .free = jjs_platform_buffer_free,
+  };
+}
 
 jjs_platform_t
 jjsp_defaults (void)
 {
   jjs_platform_t platform = {0};
 
-  platform.fatal = jjsp_fatal;
+  platform.fatal = jjsp_fatal_impl;
 
 #if JJS_PLATFORM_API_IO_WRITE
-  platform.io_write = jjsp_io_write;
+  platform.io_write = jjsp_io_write_impl;
 #endif /* JJS_PLATFORM_API_IO_WRITE */
 
 #if JJS_PLATFORM_API_IO_FLUSH
-  platform.io_flush = jjsp_io_flush;
+  platform.io_flush = jjsp_io_flush_impl;
 #endif /* JJS_PLATFORM_API_IO_FLUSH */
 
   platform.io_stdout = stdout;
@@ -546,34 +587,37 @@ jjsp_defaults (void)
   platform.io_stderr_encoding = JJS_ENCODING_UTF8;
 
 #if JJS_PLATFORM_API_TIME_LOCAL_TZA
-  platform.time_local_tza = jjsp_time_local_tza;
+  platform.time_local_tza = jjsp_time_local_tza_impl;
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
 
 #if JJS_PLATFORM_API_TIME_NOW_MS
-  platform.time_now_ms = jjsp_time_now_ms;
+  platform.time_now_ms = jjsp_time_now_ms_impl;
 #endif /* JJS_PLATFORM_API_TIME_NOW_MS */
 
 #if JJS_PLATFORM_API_TIME_SLEEP
-  platform.time_sleep = jjsp_time_sleep;
+  platform.time_sleep = jjsp_time_sleep_impl;
 #endif /* JJS_PLATFORM_API_TIME_SLEEP */
 
 #if JJS_PLATFORM_API_FS_READ_FILE
-  platform.fs_read_file = jjsp_fs_read_file;
+  platform.fs_read_file = jjsp_fs_read_file_impl;
 #endif /* JJS_PLATFORM_API_FS_READ_FILE */
 
 #if JJS_PLATFORM_API_PATH_CWD
-  platform.path_cwd = jjsp_cwd;
+  platform.path_cwd = jjsp_cwd_impl;
 #endif /* JJS_PLATFORM_API_PATH_CWD */
 
 #if JJS_PLATFORM_API_PATH_REALPATH
-  platform.path_realpath = jjsp_path_realpath;
+  platform.path_realpath = jjsp_path_realpath_impl;
 #endif /* JJS_PLATFORM_API_PATH_REALPATH */
 
   return platform;
-} /* jjsp_defaults */
+}
 
-jjs_value_t
-jjsp_read_file_buffer (jjs_value_t path, jjs_platform_buffer_t* buffer_p)
+static jjs_value_t
+jjsp_read_file_buffer (jjs_value_t path,
+                       jjs_allocator_t* path_allocator,
+                       jjs_allocator_t* buffer_allocator,
+                       jjs_platform_buffer_t* buffer_p)
 {
   jjs_platform_fs_read_file_fn_t read_file = JJS_CONTEXT (platform_api).fs_read_file;
 
@@ -589,11 +633,18 @@ jjsp_read_file_buffer (jjs_value_t path, jjs_platform_buffer_t* buffer_p)
 
   ecma_string_t* path_p = ecma_get_string_from_value (path);
   ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_len);
-  jjs_platform_status_t status = read_file (path_bytes_p, path_len, buffer_p);
+
+  jjs_platform_path_t platform_path =
+    jjs_platform_create_path (path_allocator,
+                              path_bytes_p,
+                              path_len,
+                              ecma_string_get_length (path_p) == path_len ? JJS_ENCODING_ASCII : JJS_ENCODING_CESU8);
+
+  jjs_status_t status = read_file (buffer_allocator, &platform_path, buffer_p);
 
   ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_len);
 
-  if (status != JJS_PLATFORM_STATUS_OK)
+  if (status != JJS_STATUS_OK)
   {
     return jjs_throw_sz (JJS_ERROR_TYPE, "Failed to read source file");
   }
@@ -601,137 +652,55 @@ jjsp_read_file_buffer (jjs_value_t path, jjs_platform_buffer_t* buffer_p)
   return ECMA_VALUE_UNDEFINED;
 }
 
-jjs_value_t
+static jjs_value_t
 jjsp_read_file (jjs_value_t path, jjs_encoding_t encoding)
 {
-  jjs_platform_buffer_t buffer;
-  jjs_value_t result = jjsp_read_file_buffer (path, &buffer);
-
-  if (jjs_value_is_exception (result))
-  {
-    return result;
-  }
-
-  jjs_value_free (result);
+  jjs_value_t result;
 
   if (encoding == JJS_ENCODING_NONE)
   {
-    result = jjs_arraybuffer (buffer.length);
+    jjs_allocator_t* path_allocator = jjs_util_context_acquire_scratch_allocator ();
+    jjs_allocator_t buffer_allocator = jjs_util_arraybuffer_allocator ();
+    jjs_platform_buffer_t buffer = jjs_platform_buffer (NULL, 0, &buffer_allocator);
 
-    if (!jjs_value_is_exception (result))
+    result = jjsp_read_file_buffer (path, path_allocator, &buffer_allocator, &buffer);
+
+    if (jjs_value_is_exception (result))
     {
-      uint8_t* buffer_p = jjs_arraybuffer_data (result);
-      JJS_ASSERT (buffer_p != NULL);
-      memcpy (buffer_p, buffer.data_p, buffer.length);
+      jjs_util_context_release_scratch_allocator ();
+      return result;
     }
+
+    jjs_value_free (result);
+
+    result = jjs_util_arraybuffer_allocator_move (&buffer_allocator);
+    jjs_util_context_release_scratch_allocator ();
   }
   else if (encoding == JJS_ENCODING_UTF8 || encoding == JJS_ENCODING_CESU8)
   {
-    if (!jjs_validate_string (buffer.data_p, buffer.length, encoding))
+    jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator ();
+    jjs_platform_buffer_t buffer = jjs_platform_buffer (NULL, 0, allocator);
+
+    result = jjsp_read_file_buffer (path, allocator, allocator, &buffer);
+
+    if (!jjs_value_is_exception (result))
     {
-      result = jjs_throw_sz (JJS_ERROR_COMMON, "file contents cannot be decoded");
+      if (jjs_validate_string (buffer.data_p, buffer.data_size, encoding))
+      {
+        result = jjs_string (buffer.data_p, buffer.data_size, encoding);
+      }
+      else
+      {
+        result = jjs_throw_sz (JJS_ERROR_COMMON, "file contents cannot be decoded");
+      }
     }
-    else
-    {
-      result = jjs_string (buffer.data_p, buffer.length, encoding);
-    }
+
+    jjs_platform_buffer_free (&buffer);
+    jjs_util_context_release_scratch_allocator ();
   }
   else
   {
     result = jjs_throw_sz (JJS_ERROR_TYPE, "unsupported read file encoding");
-  }
-
-  buffer.free (&buffer);
-
-  return result;
-}
-
-void
-jjsp_buffer_free (jjs_platform_buffer_t* buffer_p)
-{
-  if (buffer_p)
-  {
-    free (buffer_p->data_p);
-    memset (buffer_p, 0, sizeof (jjs_platform_buffer_t));
-  }
-} /* jjsp_buffer_free */
-
-char*
-jjsp_cesu8_to_utf8_sz (const uint8_t* cesu8_p, uint32_t cesu8_size, bool is_null_terminated, lit_utf8_size_t* out_size)
-{
-  if (cesu8_size == 0)
-  {
-    return NULL;
-  }
-
-  lit_utf8_size_t utf8_size = lit_get_utf8_size_of_cesu8_string (cesu8_p, cesu8_size);
-  lit_utf8_byte_t* utf8_p = malloc (utf8_size + (is_null_terminated ? 1 : 0));
-
-  if (utf8_p == NULL)
-  {
-    return NULL;
-  }
-
-  lit_utf8_size_t written = lit_convert_cesu8_string_to_utf8_string (cesu8_p, cesu8_size, utf8_p, utf8_size);
-
-  if (written != utf8_size)
-  {
-    free (utf8_p);
-    return NULL;
-  }
-
-  if (is_null_terminated)
-  {
-    utf8_p[utf8_size] = '\0';
-  }
-
-  if (out_size)
-  {
-    *out_size = utf8_size;
-  }
-
-  return (char*) utf8_p;
-}
-
-ecma_char_t*
-jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size, bool is_null_terminated, lit_utf8_size_t* out_size)
-{
-  lit_utf8_size_t advance;
-  ecma_char_t ch;
-  ecma_char_t* result;
-  ecma_char_t* result_cursor;
-  lit_utf8_size_t result_size = 0;
-  lit_utf8_size_t index = 0;
-
-  while (lit_peek_wchar_from_cesu8 (cesu8_p, cesu8_size, index, &advance, &ch))
-  {
-    result_size++;
-    index += advance;
-  }
-
-  result = result_cursor = malloc ((result_size + (is_null_terminated ? 1 : 0)) * sizeof (ecma_char_t));
-
-  if (result == NULL)
-  {
-    return NULL;
-  }
-
-  index = 0;
-
-  while (lit_peek_wchar_from_cesu8 (cesu8_p, cesu8_size, index, &advance, &ch))
-  {
-    index += advance;
-    *result_cursor++ = ch;
-  }
-
-  if (is_null_terminated)
-  {
-    *result_cursor = L'\0';
-  }
-
-  if (out_size)
-  {
-    *out_size = result_size;
   }
 
   return result;
@@ -744,22 +713,23 @@ jjsp_cesu8_to_utf16_sz (const uint8_t* cesu8_p, uint32_t cesu8_size, bool is_nul
  * @param move if true, this function owns buffer_p and will call buffer_p->free
  * @return on success, ecma string value; on error, ECMA_VALUE_EMPTY. return value must be freed with ecma_free_value.
  */
-ecma_value_t
-jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move)
+static ecma_value_t
+jjsp_buffer_view_to_string_value (jjs_platform_buffer_view_t* buffer_p, bool move)
 {
   ecma_value_t result;
 
   if (buffer_p->encoding == JJS_ENCODING_UTF8)
   {
-    result =
-      ecma_make_string_value (ecma_new_ecma_string_from_utf8 ((const lit_utf8_byte_t*) buffer_p->data_p, buffer_p->length));
+    result = ecma_make_string_value (
+      ecma_new_ecma_string_from_utf8 ((const lit_utf8_byte_t*) buffer_p->data_p, buffer_p->data_size));
   }
   else if (buffer_p->encoding == JJS_ENCODING_UTF16)
   {
-    JJS_ASSERT(buffer_p->length % 2 == 0);
+    JJS_ASSERT (buffer_p->data_size % 2 == 0);
     // buffer.length is in bytes convert to utf16 array size
-    result = ecma_make_string_value (ecma_new_ecma_string_from_utf16 ((const uint16_t*) buffer_p->data_p,
-                                                                      buffer_p->length / (uint32_t) sizeof (ecma_char_t)));
+    result =
+      ecma_make_string_value (ecma_new_ecma_string_from_utf16 ((const uint16_t*) buffer_p->data_p,
+                                                               buffer_p->data_size / (uint32_t) sizeof (ecma_char_t)));
   }
   else
   {
@@ -772,26 +742,66 @@ jjsp_buffer_to_string_value (jjs_platform_buffer_t* buffer_p, bool move)
   }
 
   return result;
-} /* jjsp_buffer_to_string */
+}
 
-void
-jjsp_io_write (void* target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding)
+static jjs_status_t
+jjs_platform_path_convert (jjs_platform_path_t* self_p,
+                           jjs_encoding_t encoding,
+                           uint32_t flags,
+                           jjs_platform_buffer_view_t* buffer_view_p)
 {
-  // TODO: check encoding?
-  JJS_UNUSED (encoding);
-  JJS_ASSERT (target_p != NULL);
-  fwrite (data_p, 1, data_size, target_p);
-} /* jjsp_io_write */
+  void* dest_p;
+  jjs_size_t dest_size;
+
+  jjs_status_t status = jjs_util_convert (self_p->allocator,
+                                          self_p->path_p,
+                                          self_p->path_size,
+                                          self_p->encoding,
+                                          &dest_p,
+                                          &dest_size,
+                                          encoding,
+                                          (flags & JJS_PATH_FLAG_NULL_TERMINATE) != 0,
+                                          false);
+
+  if (status == JJS_STATUS_OK)
+  {
+    jjs_platform_buffer_t buffer = jjs_platform_buffer (dest_p, dest_size, self_p->allocator);
+
+    jjs_platform_buffer_view_from_buffer (buffer_view_p, &buffer, encoding);
+  }
+
+  return status;
+}
+
+static jjs_platform_path_t
+jjs_platform_create_path (jjs_allocator_t* allocator, const uint8_t* path_p, jjs_size_t size, jjs_encoding_t encoding)
+{
+  return (jjs_platform_path_t){
+    .path_p = path_p,
+    .path_size = size,
+    .encoding = encoding,
+    .convert = jjs_platform_path_convert,
+    .allocator = allocator,
+  };
+}
 
 void
-jjsp_io_flush (void* target_p)
+jjsp_io_write_impl (void* target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding)
+{
+  JJS_ASSERT (target_p != NULL);
+  JJS_ASSERT (encoding == JJS_ENCODING_ASCII || encoding == JJS_ENCODING_UTF8);
+  fwrite (data_p, 1, data_size, target_p);
+}
+
+void
+jjsp_io_flush_impl (void* target_p)
 {
   JJS_ASSERT (target_p != NULL);
   fflush (target_p);
-} /* jjsp_io_write */
+}
 
 void
-jjsp_fatal (jjs_fatal_code_t code)
+jjsp_fatal_impl (jjs_fatal_code_t code)
 {
   if (code != 0 && code != JJS_FATAL_OUT_OF_MEMORY)
   {

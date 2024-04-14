@@ -17,6 +17,7 @@
 
 #include "jcontext.h"
 #include "jjs-stream.h"
+#include "jjs-util.h"
 
 /**
  * Computes the gc_limit when JJS_DEFAULT_GC_LIMIT is 0.
@@ -33,9 +34,28 @@
 uint8_t jjs_static_heap [JJS_DEFAULT_VM_HEAP_SIZE * 1024] JJS_ATTR_ALIGNED (JMEM_ALIGNMENT) JJS_ATTR_STATIC_HEAP;
 #endif /* JJS_VM_HEAP_STATIC */
 
-static void unhandled_rejection_default (jjs_value_t promise, jjs_value_t reason, void *user_p);
+/**
+ * Default implementation of unhandled rejection callback.
+ */
+static void
+unhandled_rejection_default (jjs_value_t promise, jjs_value_t reason, void *user_p)
+{
+  JJS_UNUSED_ALL (promise, reason, user_p);
+#if JJS_LOGGING
+  jjs_log_fmt (JJS_LOG_LEVEL_ERROR, "Uncaught:\n{}\n", reason);
+#endif
+}
+
 static bool
-check_stream_encoding (void* stream_p, jjs_encoding_t default_encoding);
+check_stream_encoding (void* stream_p, jjs_encoding_t default_encoding)
+{
+  if (stream_p != NULL)
+  {
+    return (default_encoding == JJS_ENCODING_ASCII || default_encoding == JJS_ENCODING_UTF8 || default_encoding == JJS_ENCODING_CESU8);
+  }
+
+  return true;
+}
 
 /*
  * Setup the global context object.
@@ -44,7 +64,7 @@ check_stream_encoding (void* stream_p, jjs_encoding_t default_encoding);
  * the call. If the tests are not using the full vm, they must call this method to
  * initialize the context.
  */
-jjs_context_status_t
+jjs_status_t
 jjs_context_init (const jjs_context_options_t* options_p)
 {
   jjs_context_options_t default_options;
@@ -56,55 +76,55 @@ jjs_context_init (const jjs_context_options_t* options_p)
 
   if (JJS_CONTEXT (status_flags) & ECMA_STATUS_CONTEXT_INITIALIZED)
   {
-    return JJS_CONTEXT_STATUS_ALREADY_INITIALIZED;
+    return JJS_STATUS_CONTEXT_ALREADY_INITIALIZED;
   }
 
-  // context should be zero'd out at program init or jjs_cleanup
+  /* context should be zero'd out at program init or jjs_cleanup */
   JJS_ASSERT (JJS_CONTEXT (heap_p) == NULL);
 
   if (JJS_CONTEXT (heap_p) != NULL)
   {
-    return JJS_CONTEXT_STATUS_CHAOS;
+    return JJS_STATUS_CONTEXT_CHAOS;
   }
 
   uint32_t context_flags = options_p->context_flags;
 
   if ((context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP) && options_p->external_heap.buffer_p == NULL)
   {
-    return JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP;
+    return JJS_STATUS_CONTEXT_INVALID_EXTERNAL_HEAP;
   }
 
   if (options_p->platform.fatal == NULL)
   {
-    return JJS_CONTEXT_STATUS_REQUIRES_FATAL;
+    return JJS_STATUS_CONTEXT_REQUIRES_API_FATAL;
   }
 
   if (!check_stream_encoding (options_p->platform.io_stdout, options_p->platform.io_stdout_encoding))
   {
-    return JJS_CONTEXT_STATUS_STDOUT_INVALID_ENCODING;
+    return JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING;
   }
 
   if (!check_stream_encoding (options_p->platform.io_stderr, options_p->platform.io_stderr_encoding))
   {
-    return JJS_CONTEXT_STATUS_STDERR_INVALID_ENCODING;
+    return JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING;
   }
 
 #if JJS_DEBUGGER
   if (options_p->platform.time_sleep == NULL)
   {
-    return JJS_CONTEXT_STATUS_REQUIRES_TIME_SLEEP;
+    return JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP;
   }
 #endif
 
 #if JJS_BUILTIN_DATE
   if (options_p->platform.time_local_tza == NULL)
   {
-    return JJS_CONTEXT_STATUS_REQUIRES_TIME_LOCAL_TZA;
+    return JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA;
   }
 
   if (options_p->platform.time_now_ms == NULL)
   {
-    return JJS_CONTEXT_STATUS_REQUIRES_TIME_NOW_MS;
+    return JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS;
   }
 #endif
 
@@ -112,7 +132,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
   // user cannot change the default
   if (options_p->vm_stack_limit_kb != JJS_DEFAULT_VM_STACK_LIMIT)
   {
-    return JJS_CONTEXT_STATUS_IMMUTABLE_STACK_LIMIT;
+    return JJS_STATUS_CONTEXT_IMMUTABLE_STACK_LIMIT;
   }
 #endif /* JJS_VM_STACK_STATIC */
 
@@ -120,16 +140,22 @@ jjs_context_init (const jjs_context_options_t* options_p)
   // user cannot change the default
   if (options_p->vm_heap_size_kb != JJS_DEFAULT_VM_HEAP_SIZE || context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
   {
-    return JJS_CONTEXT_STATUS_IMMUTABLE_HEAP_SIZE;
+    return JJS_STATUS_CONTEXT_IMMUTABLE_HEAP_SIZE;
   }
 #endif /* JJS_VM_HEAP_STATIC */
+
+  /* allocators */
+  if (!jjs_util_context_allocator_init (&options_p->scratch_allocator))
+  {
+    return JJS_STATUS_CONTEXT_CHAOS;
+  }
 
   if (context_flags & JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP)
   {
     // TODO: check alignment
     if (options_p->external_heap.buffer_p == NULL)
     {
-      return JJS_CONTEXT_STATUS_INVALID_EXTERNAL_HEAP;
+      return JJS_STATUS_CONTEXT_INVALID_EXTERNAL_HEAP;
     }
     JJS_CONTEXT (vm_heap_size) = options_p->external_heap.buffer_size_in_bytes;
   }
@@ -189,7 +215,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
     }
   }
 
-  return JJS_CONTEXT_STATUS_OK;
+  return JJS_STATUS_OK;
 }
 
 /**
@@ -214,27 +240,4 @@ jjs_context_cleanup (void)
   }
 #endif /* JJS_VM_HEAP_STATIC */
   memset (&JJS_CONTEXT_STRUCT, 0, sizeof (JJS_CONTEXT_STRUCT));
-}
-
-/**
- * Default implementation of unhandled rejection callback.
- */
-static void
-unhandled_rejection_default (jjs_value_t promise, jjs_value_t reason, void *user_p)
-{
-  JJS_UNUSED_ALL (promise, reason, user_p);
-#if JJS_LOGGING
-  jjs_log_fmt (JJS_LOG_LEVEL_ERROR, "Uncaught:\n{}\n", reason);
-#endif
-}
-
-static bool
-check_stream_encoding (void* stream_p, jjs_encoding_t default_encoding)
-{
-  if (stream_p != NULL)
-  {
-    return (default_encoding == JJS_ENCODING_ASCII || default_encoding == JJS_ENCODING_UTF8 || default_encoding == JJS_ENCODING_CESU8);
-  }
-
-  return true;
 }

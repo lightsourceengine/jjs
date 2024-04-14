@@ -180,7 +180,7 @@ test_promise_from_js (void)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   test_promise_resolve_fail ();
   test_promise_resolve_success ();

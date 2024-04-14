@@ -44,7 +44,7 @@ main (void)
     return 0;
   }
 
-  TEST_ASSERT (jjs_init_default () == JJS_CONTEXT_STATUS_OK);
+  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
 
   int countdown = 6;
   jjs_halt_handler (16, vm_exec_stop_callback, &countdown);

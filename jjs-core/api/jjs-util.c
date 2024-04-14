@@ -15,7 +15,11 @@
 
 #include "jjs-util.h"
 
+#include <stdlib.h>
+
 #include "ecma-helpers.h"
+
+#include "jcontext.h"
 #include "lit-char-helpers.h"
 
 /**
@@ -45,7 +49,7 @@ bool
 jjs_util_map_option (jjs_value_t option,
                      jjs_value_ownership_t option_o,
                      jjs_value_t key,
-                     jjs_value_t key_o,
+                     jjs_value_ownership_t key_o,
                      const jjs_util_option_pair_t* option_mappings_p,
                      jjs_size_t len,
                      uint32_t default_mapped_value,
@@ -130,3 +134,501 @@ jjs_util_map_option (jjs_value_t option,
 
   return false;
 } /* jjs_util_map_option */
+
+typedef struct
+{
+  void* start_p;
+  void* next_p;
+  jjs_size_t remaining;
+  jjs_size_t size;
+} jjs_util_arena_allocator_header_t;
+
+static const jjs_size_t ARENA_HEADER_SIZE = (jjs_size_t) JJS_ALIGNUP (sizeof (jjs_util_arena_allocator_header_t), JMEM_ALIGNMENT);
+
+static void*
+jjs_util_arena_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+{
+  jjs_util_arena_allocator_header_t* header_p = self_p->internal[0];
+  jjs_size_t aligned_size = JJS_ALIGNUP (size, JMEM_ALIGNMENT);
+
+  if (aligned_size == 0 || aligned_size >= header_p->remaining)
+  {
+    return NULL;
+  }
+
+  void* result = header_p->next_p;
+
+  header_p->next_p = ((uint8_t*) result) + aligned_size;
+  header_p->remaining -= aligned_size;
+
+  return result;
+}
+
+static void
+jjs_util_arena_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+{
+  JJS_UNUSED_ALL (self_p, size, p);
+}
+
+/**
+ * Init a new arena allocator.
+ *
+ * The arena implementation is very simple. Allocations follow each other in the buffer. If there is
+ * no more room, the allocation fails. free() does nothing. All memory is "freed" when reset is called
+ * to rewind the arena buffer pointer to the beginning.
+ */
+bool
+jjs_util_arena_allocator_init (void* block_p, jjs_size_t block_size, jjs_allocator_t* allocator_p)
+{
+  jjs_util_arena_allocator_header_t* header = block_p;
+
+  header->start_p = ((uint8_t*) block_p) + ARENA_HEADER_SIZE;
+  header->next_p = header->start_p;
+  header->size = JJS_ALIGNUP (block_size - ARENA_HEADER_SIZE, JMEM_ALIGNMENT);
+  header->remaining = header->size;
+
+  *allocator_p = (jjs_allocator_t){
+    .alloc = jjs_util_arena_allocator_alloc,
+    .free = jjs_util_arena_allocator_free,
+    .internal = { block_p },
+  };
+
+  return true;
+}
+
+/**
+ * Drop all arena allocations.
+ */
+void
+jjs_util_arena_allocator_reset (jjs_allocator_t* allocator_p)
+{
+  jjs_util_arena_allocator_header_t* header = allocator_p->internal[0];
+
+  header->next_p = header->start_p;
+  header->remaining = header->size;
+}
+
+static const jjs_size_t COMPOUND_ALLOCATION_HEADER_SIZE = (jjs_size_t) JJS_ALIGNUP (sizeof (jjs_allocator_t*), JMEM_ALIGNMENT);
+
+static void*
+jjs_util_compound_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+{
+  void* block;
+  jjs_allocator_t* arena = self_p->internal[0];
+
+  block = arena->alloc (arena, COMPOUND_ALLOCATION_HEADER_SIZE + size);
+
+  if (block)
+  {
+    *((jjs_allocator_t**) block) = arena;
+
+    return ((uint8_t*) block) + COMPOUND_ALLOCATION_HEADER_SIZE;
+  }
+
+  jjs_allocator_t* fallback = self_p->internal[1];
+
+  block = fallback->alloc (fallback, COMPOUND_ALLOCATION_HEADER_SIZE + size);
+
+  if (block)
+  {
+    *((jjs_allocator_t**) block) = fallback;
+    return ((uint8_t*) block) + COMPOUND_ALLOCATION_HEADER_SIZE;
+  }
+
+  return NULL;
+}
+
+static void
+jjs_util_compound_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+{
+  jjs_allocator_t* allocator = *((jjs_allocator_t**) (((uint8_t*) p) - COMPOUND_ALLOCATION_HEADER_SIZE));
+
+  if (self_p->internal[1] == allocator)
+  {
+    allocator->free (allocator, ((uint8_t*) p) - COMPOUND_ALLOCATION_HEADER_SIZE, size + COMPOUND_ALLOCATION_HEADER_SIZE);
+  }
+}
+
+/**
+ * Combines an arena allocator with a fallback allocator.
+ *
+ * The allocator tries to alloc to the arena first. If that fails, the fallback allocator
+ * is used. Each allocation has an extra sizeof (uintptr_t) header indicating which
+ * allocator was responsible for the alloc. On free, the pointer is adjusted so the
+ * freeing allocator can be called.
+ *
+ * The header could probably be represented more compactly, but the compound allocator is
+ * used for the scratch allocator. Right now, the usage is maybe 1-3 allocations before the
+ * scratch allocator is reset, so the extra memory is not an issue.
+ */
+jjs_allocator_t
+jjs_util_compound_allocator (jjs_allocator_t* arena, jjs_allocator_t* fallback)
+{
+  if (arena == NULL)
+  {
+    return *fallback;
+  }
+
+  return (jjs_allocator_t){
+    .alloc = jjs_util_compound_allocator_alloc,
+    .free = jjs_util_compound_allocator_free,
+    .internal[0] = arena,
+    .internal[1] = fallback,
+  };
+}
+
+static void*
+jjs_util_system_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+{
+  JJS_UNUSED_ALL (self_p);
+  return malloc (size);
+}
+
+static void
+jjs_util_system_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+{
+  JJS_UNUSED_ALL (self_p, size);
+  free (p);
+}
+
+jjs_allocator_t
+jjs_util_system_allocator (void)
+{
+  return (jjs_allocator_t){
+    .alloc = jjs_util_system_allocator_alloc,
+    .free = jjs_util_system_allocator_free,
+  };
+}
+
+static void*
+jjs_util_vm_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+{
+  JJS_UNUSED_ALL (self_p);
+  return jmem_heap_alloc_block (size);
+}
+
+static void
+jjs_util_vm_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+{
+  JJS_UNUSED_ALL (self_p);
+  jmem_heap_free_block (p, size);
+}
+
+jjs_allocator_t
+jjs_util_vm_allocator (void)
+{
+  return (jjs_allocator_t){
+    .alloc = jjs_util_vm_allocator_alloc,
+    .free = jjs_util_vm_allocator_free,
+  };
+}
+
+static void*
+jjs_util_arraybuffer_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+{
+  if (self_p->internal[0] != NULL)
+  {
+    return NULL;
+  }
+
+  jjs_value_t value = jjs_arraybuffer (size);
+
+  if (jjs_value_is_exception (value))
+  {
+    return false;
+  }
+
+  void* value_data_p = jjs_arraybuffer_data (value);
+
+  if (value_data_p == NULL)
+  {
+    jjs_value_free (value);
+    return false;
+  }
+
+  self_p->internal[0] = value_data_p;
+  self_p->internal[1] = (void*) (uintptr_t) value;
+
+  return value_data_p;
+}
+
+static void
+jjs_util_arraybuffer_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+{
+  JJS_UNUSED_ALL (size);
+
+  if (self_p->internal[0] == p)
+  {
+    jjs_value_free ((jjs_value_t) (uintptr_t) self_p->internal[1]);
+    self_p->internal[0] = self_p->internal[1] = NULL;
+  }
+}
+
+/**
+ * Special allocator for file reads.
+ *
+ * This allocator is for performance. Instead of allocating a buffer, reading file contents to the buffer and
+ * copying the buffer to a JS ArrayBuffer, this allocator will allocate an ArrayBuffer directly and return
+ * its memory pointer. The file contents can be written into this buffer, skipping an extra copy.
+ *
+ * This allocator assumes that the file will be read in one shot.
+ *
+ * jjs_util_arraybuffer_allocator_move() exists to extract the ArrayBuffer from the allocator.
+ */
+jjs_allocator_t
+jjs_util_arraybuffer_allocator (void)
+{
+  return (jjs_allocator_t){
+    .alloc = jjs_util_arraybuffer_allocator_alloc,
+    .free = jjs_util_arraybuffer_allocator_free,
+  };
+}
+
+jjs_value_t
+jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator)
+{
+  if (arraybuffer_allocator->internal[0] != NULL)
+  {
+    jjs_value_t result = (jjs_value_t) (uintptr_t) arraybuffer_allocator->internal[1];
+
+    arraybuffer_allocator->internal[0] = arraybuffer_allocator->internal[1] = NULL;
+
+    return result;
+  }
+
+  return ECMA_VALUE_UNDEFINED;
+}
+
+/**
+ * Initialize the allocators in the context.
+ */
+bool
+jjs_util_context_allocator_init (const jjs_allocator_t* fallback_allocator)
+{
+  jjs_allocator_t* scratch_arena_allocator = NULL;
+
+#if JJS_SCRATCH_ARENA_SIZE > 0
+  if (jjs_util_arena_allocator_init (&JJS_CONTEXT (scratch_arena_block),
+                                     JJS_SCRATCH_ARENA_SIZE * 1024,
+                                     &JJS_CONTEXT (scratch_arena_allocator)))
+  {
+    scratch_arena_allocator = &JJS_CONTEXT (scratch_arena_allocator);
+  }
+  else
+  {
+    return false;
+  }
+#endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
+
+  JJS_CONTEXT (fallback_scratch_allocator) = *fallback_allocator;
+
+  if (scratch_arena_allocator)
+  {
+    JJS_CONTEXT (scratch_allocator) =
+      jjs_util_compound_allocator (scratch_arena_allocator, &JJS_CONTEXT (fallback_scratch_allocator));
+  }
+
+  return true;
+}
+
+/**
+ * Acquire exclusive access to the scratch allocator.
+ */
+jjs_allocator_t*
+jjs_util_context_acquire_scratch_allocator (void)
+{
+  return &JJS_CONTEXT (scratch_allocator);
+}
+
+/**
+ * Release the scratch allocator. If the scratch arena allocator is enabled, all
+ * of its allocations are dropped.
+ */
+void
+jjs_util_context_release_scratch_allocator (void)
+{
+#if JJS_SCRATCH_ARENA_SIZE > 0
+  jjs_util_arena_allocator_reset (&JJS_CONTEXT (scratch_arena_allocator));
+#endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
+}
+
+/**
+ * Convert from one text encoding to another.
+ */
+jjs_status_t
+jjs_util_convert (jjs_allocator_t* allocator,
+                  const uint8_t* source_p,
+                  jjs_size_t source_size,
+                  jjs_encoding_t source_encoding,
+                  void** dest_p,
+                  jjs_size_t* dest_size,
+                  jjs_encoding_t dest_encoding,
+                  bool add_null_terminator,
+                  bool add_windows_long_filename_prefix)
+{
+  JJS_UNUSED_ALL (allocator, source_p, source_size, source_encoding, dest_encoding, dest_p, dest_size);
+  jjs_size_t extra_bytes = 0;
+
+  if (add_null_terminator)
+  {
+    extra_bytes++;
+  }
+
+  if (add_windows_long_filename_prefix)
+  {
+    //    extra_bytes += WINDOWS_LONG_FILENAME_PREFIX_LEN;
+  }
+
+  switch (source_encoding)
+  {
+    case JJS_ENCODING_ASCII:
+    {
+      switch (dest_encoding)
+      {
+        case JJS_ENCODING_UTF8:
+        case JJS_ENCODING_ASCII:
+        {
+          jjs_size_t allocated_size = (source_size + extra_bytes);
+          uint8_t* utf8 = allocator->alloc (allocator, allocated_size);
+
+          if (!utf8)
+          {
+            return JJS_STATUS_BAD_ALLOC;
+          }
+
+          memcpy (utf8, source_p, source_size);
+
+          if (add_null_terminator)
+          {
+            utf8[source_size] = '\0';
+          }
+
+          *dest_p = utf8;
+          *dest_size = allocated_size;
+          return JJS_STATUS_OK;
+        }
+        case JJS_ENCODING_UTF16:
+        {
+          jjs_size_t allocated_size = (source_size + extra_bytes) * sizeof (uint16_t);
+          uint16_t* utf16le = allocator->alloc (allocator, allocated_size);
+
+          if (!utf16le)
+          {
+            return JJS_STATUS_BAD_ALLOC;
+          }
+
+          for (jjs_size_t i = 0; i < source_size; i++)
+          {
+            utf16le[i] = source_p[i];
+          }
+
+          if (add_null_terminator)
+          {
+            utf16le[allocated_size / 2] = L'\0';
+          }
+
+          *dest_p = utf16le;
+          *dest_size = allocated_size;
+          return JJS_STATUS_OK;
+        }
+        default:
+        {
+          break;
+        }
+      }
+      break;
+    }
+    case JJS_ENCODING_CESU8:
+    {
+      switch (dest_encoding)
+      {
+        case JJS_ENCODING_UTF8:
+        {
+          lit_utf8_size_t utf8_size = lit_get_utf8_size_of_cesu8_string (source_p, source_size);
+
+          if (utf8_size == 0)
+          {
+            return JJS_STATUS_MALFORMED_CESU8;
+          }
+
+          lit_utf8_size_t allocated_size = source_size + extra_bytes;
+          lit_utf8_byte_t* utf8_p = allocator->alloc (allocator, allocated_size);
+
+          if (utf8_p == NULL)
+          {
+            return JJS_STATUS_BAD_ALLOC;
+          }
+
+          lit_utf8_size_t written = lit_convert_cesu8_string_to_utf8_string (source_p, source_size, utf8_p, utf8_size);
+
+          if (written != utf8_size)
+          {
+            allocator->free (allocator, utf8_p, allocated_size);
+            return JJS_STATUS_MALFORMED_CESU8;
+          }
+
+          if (add_null_terminator)
+          {
+            utf8_p[utf8_size] = '\0';
+          }
+
+          *dest_p = utf8_p;
+          *dest_size = allocated_size;
+
+          return JJS_STATUS_OK;
+        }
+        case JJS_ENCODING_UTF16:
+        {
+          lit_utf8_size_t advance;
+          ecma_char_t ch;
+          ecma_char_t* result;
+          ecma_char_t* result_cursor;
+          lit_utf8_size_t result_size = 0;
+          lit_utf8_size_t index = 0;
+
+          while (lit_peek_wchar_from_cesu8 (source_p, source_size, index, &advance, &ch))
+          {
+            result_size++;
+            index += advance;
+          }
+
+          jjs_size_t allocated_size = (result_size + extra_bytes) * sizeof (ecma_char_t);
+
+          result = result_cursor = allocator->alloc (allocator, allocated_size);
+
+          if (result == NULL)
+          {
+            return JJS_STATUS_BAD_ALLOC;
+          }
+
+          index = 0;
+
+          while (lit_peek_wchar_from_cesu8 (source_p, source_size, index, &advance, &ch))
+          {
+            index += advance;
+            *result_cursor++ = ch;
+          }
+
+          if (add_null_terminator)
+          {
+            *result_cursor = L'\0';
+          }
+
+          *dest_p = result;
+          *dest_size = allocated_size;
+
+          return JJS_STATUS_OK;
+        }
+        default:
+        {
+          break;
+        }
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  return JJS_STATUS_UNSUPPORTED_ENCODING;
+}
