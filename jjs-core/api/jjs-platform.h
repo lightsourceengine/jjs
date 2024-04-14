@@ -23,6 +23,9 @@ jjs_platform_t jjsp_defaults (void);
 
 /* platform api implementation helpers */
 
+bool jjsp_path_is_relative (const lit_utf8_byte_t* path_p, lit_utf8_size_t size);
+bool jjsp_path_is_absolute (const lit_utf8_byte_t* path_p, lit_utf8_size_t size);
+
 bool jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index);
 bool jjsp_path_is_separator (lit_utf8_byte_t ch);
 

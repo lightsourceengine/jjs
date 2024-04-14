@@ -359,6 +359,29 @@ jjsp_fs_read_file_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p,
 #endif /* JJS_PLATFORM_API_FS_READ_FILE */
 
 bool
+jjsp_path_is_relative (const lit_utf8_byte_t* path_p, lit_utf8_size_t size)
+{
+  if (size > 0 && path_p[0] == '.')
+  {
+    return true;
+  }
+
+  if (size > 1 && isalpha (path_p[0]) && path_p[1] == ':')
+  {
+    return size == 2 || (size > 2 && !jjsp_path_is_separator (path_p[2]));
+  }
+
+  return false;
+}
+
+bool
+jjsp_path_is_absolute (const lit_utf8_byte_t* path_p, lit_utf8_size_t size)
+{
+  return (size > 0 && jjsp_path_is_separator (path_p[0]))
+         || (size > 2 && isalpha (path_p[0]) && path_p[1] == ':' && jjsp_path_is_separator (path_p[2]));
+}
+
+bool
 jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index)
 {
   if (size == 0)

@@ -16,8 +16,8 @@
 #include <ctype.h>
 
 #include "ecma-builtin-helpers.h"
-#include "jcontext.h"
 #include "jjs-platform.h"
+#include "jjs-util.h"
 
 #include "annex.h"
 
@@ -30,9 +30,6 @@
 
 #ifdef _WIN32
 #include <ctype.h>
-#define is_separator(c)                         ((c) == '/' || (c) == '\\')
-#define is_drive_path(BUFFER)                   (isalpha ((BUFFER)[0]) && (BUFFER)[1] == ':' && is_separator ((BUFFER)[2]))
-#define is_absolute(BUFFER)                     (is_separator ((BUFFER)[0]) || is_drive_path (BUFFER))
 #define FILE_URL_ENCODE_PREFIX_WIN              "file:///"
 #define FILE_URL_ENCODE_PREFIX_WIN_LEN          8
 #define FILE_URL_ENCODE_PREFIX_UNC              FILE_URL_PREFIX
@@ -40,8 +37,6 @@
 #define FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE     "file:///C:"
 #define FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE_LEN 10
 #else /* !_WIN32 */
-#define is_separator(c)                ((c) == '/')
-#define is_absolute(BUFFER)            is_separator ((BUFFER)[0])
 #define FILE_URL_ENCODE_PREFIX_NIX     "file://"
 #define FILE_URL_ENCODE_PREFIX_NIX_LEN 7
 #endif /* _WIN32 */
@@ -72,12 +67,14 @@ annex_path_specifier_type (ecma_value_t specifier)
     return ANNEX_SPECIFIER_TYPE_NONE;
   }
 
-  if ((path[0] == '.' && is_separator (path[1])) || (path[0] == '.' && path[1] == '.' && is_separator (path[2])))
+  /* check for relative prefix . or C: , relative paths like file.txt will fallthrough to package type */
+  if (jjsp_path_is_relative (path, FILE_URL_PREFIX_LEN))
   {
     return ANNEX_SPECIFIER_TYPE_RELATIVE;
   }
 
-  if (is_absolute (path))
+  /* check for absolute prefix / or C:/ */
+  if (jjsp_path_is_absolute (path, FILE_URL_PREFIX_LEN))
   {
     return ANNEX_SPECIFIER_TYPE_ABSOLUTE;
   }
@@ -220,13 +217,13 @@ annex_path_dirname (ecma_value_t path)
   }
 
   // remove trailing slashes
-  while (last_index > start_index && jjsp_path_is_separator(path_bytes_p[last_index]))
+  while (last_index > start_index && jjsp_path_is_separator (path_bytes_p[last_index]))
   {
     last_index--;
   }
 
   // move past basename to next slash
-  while (last_index > start_index && !jjsp_path_is_separator(path_bytes_p[last_index]))
+  while (last_index > start_index && !jjsp_path_is_separator (path_bytes_p[last_index]))
   {
     last_index--;
   }
@@ -251,29 +248,6 @@ done:
 } /* annex_path_dirname */
 
 /**
- * Checks if a string ends with a given c-string.
- *
- * @param str string
- * @param search_sz search string
- * @return true if search string found, otherwise, false
- */
-static bool
-ends_with (ecma_value_t str, const char* search_sz)
-{
-  ecma_string_t* path_string_p = ecma_get_string_from_value (str);
-  ecma_value_t search_string = ecma_string_ascii_sz (search_sz);
-
-  ecma_value_t value = ecma_builtin_helper_string_prototype_object_index_of (
-    path_string_p, search_string, ECMA_VALUE_UNDEFINED, ECMA_STRING_ENDS_WITH);
-  bool result = ecma_is_value_true (value);
-
-  ecma_free_value(value);
-  ecma_free_value (search_string);
-
-  return result;
-} /* ends_with */
-
-/**
  * Gets the format of a filename by looking at the file extension.
  *
  * @param path filename to check
@@ -282,21 +256,41 @@ ends_with (ecma_value_t str, const char* search_sz)
 ecma_value_t
 annex_path_format (ecma_value_t path)
 {
-  lit_magic_string_id_t id;
+  static const char* JS = ".js";
+  static const jjs_size_t JS_LEN = 3;
+  static const char* CJS = ".cjs";
+  static const jjs_size_t CJS_LEN = 4;
+  static const char* MJS = ".mjs";
+  static const jjs_size_t MJS_LEN = 4;
+  static const char* SNAPSHOT = ".snapshot";
+  static const jjs_size_t SNAPSHOT_LEN = 9;
 
-  if (ends_with (path, ".js"))
+  if (!ecma_is_value_string (path))
+  {
+    return ecma_make_magic_string_value (LIT_MAGIC_STRING_NONE);
+  }
+
+  lit_magic_string_id_t id;
+  ecma_string_t* path_p = ecma_get_string_from_value (path);
+
+  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+
+  if (path_bytes_len > JS_LEN && memcmp (JS, (path_bytes_p + (path_bytes_len - JS_LEN)), JS_LEN) == 0)
   {
     id = LIT_MAGIC_STRING_JS;
   }
-  else if (ends_with (path, ".cjs"))
+  else if (path_bytes_len > CJS_LEN
+           && memcmp (CJS, (path_bytes_p + (path_bytes_len - CJS_LEN)), CJS_LEN) == 0)
   {
     id = LIT_MAGIC_STRING_COMMONJS;
   }
-  else if (ends_with (path, ".mjs"))
+  else if (path_bytes_len > MJS_LEN
+           && memcmp (MJS, (path_bytes_p + (path_bytes_len - MJS_LEN)), MJS_LEN) == 0)
   {
     id = LIT_MAGIC_STRING_MODULE;
   }
-  else if (ends_with (path, ".snapshot"))
+  else if (path_bytes_len > SNAPSHOT_LEN
+           && memcmp (SNAPSHOT, (path_bytes_p + (path_bytes_len - SNAPSHOT_LEN)), SNAPSHOT_LEN) == 0)
   {
     id = LIT_MAGIC_STRING_SNAPSHOT;
   }
@@ -304,6 +298,8 @@ annex_path_format (ecma_value_t path)
   {
     id = LIT_MAGIC_STRING_NONE;
   }
+
+  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
 
   return ecma_make_magic_string_value (id);
 } /* annex_path_format */
@@ -342,19 +338,19 @@ annex_path_to_file_url (ecma_value_t path)
     prefix = FILE_URL_ENCODE_PREFIX_UNC;
     prefix_len = FILE_URL_ENCODE_PREFIX_UNC_LEN;
   }
-  else if (path_bytes_len > 2 && isalpha (path_bytes_p[0]) && path_bytes_p[1] == ':' && is_separator (path_bytes_p[2]))
+  else if (path_bytes_len > 2 && isalpha (path_bytes_p[0]) && path_bytes_p[1] == ':' && jjsp_path_is_separator (path_bytes_p[2]))
   {
     prefix = FILE_URL_ENCODE_PREFIX_WIN;
     prefix_len = FILE_URL_ENCODE_PREFIX_WIN_LEN;
   }
-  else if (path_bytes_len > 0 && is_separator (path_bytes_p[0]))
+  else if (path_bytes_len > 0 && jjsp_path_is_separator (path_bytes_p[0]))
   {
     // if the path is just a slash, C: is picked. not sure if this is correct
     prefix = FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE;
     prefix_len = FILE_URL_ENCODE_PREFIX_WIN_NO_DRIVE_LEN;
   }
 #else // !_WIN32
-  if (path_bytes_len > 0 && is_separator (path_bytes_p[0]))
+  if (path_bytes_len > 0 && jjsp_path_is_separator (path_bytes_p[0]))
   {
     prefix = FILE_URL_ENCODE_PREFIX_NIX;
     prefix_len = FILE_URL_ENCODE_PREFIX_NIX_LEN;
@@ -418,7 +414,7 @@ annex_path_basename (ecma_value_t path)
 
   for (i = 0; i < path_bytes_len; i++)
   {
-    if (is_separator (path_bytes_p[i]))
+    if (jjsp_path_is_separator (path_bytes_p[i]))
     {
       last_slash_index = i;
     }
@@ -489,12 +485,14 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
                    const lit_utf8_byte_t* prefix,
                    lit_utf8_size_t prefix_len)
 {
-  // maximum size if every character in path gets encoded to %XX format
+  /* maximum size if every character in path gets encoded to %XX format */
   const lit_utf8_size_t encoded_capacity = prefix_len + (path_len * 3);
-  lit_utf8_byte_t* encoded_p = jmem_heap_alloc_block_null_on_error (encoded_capacity);
+  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator ();
+  lit_utf8_byte_t* encoded_p = allocator->alloc (allocator, encoded_capacity);
 
   if (encoded_p == NULL)
   {
+    jjs_util_context_release_scratch_allocator ();
     return ECMA_VALUE_EMPTY;
   }
 
@@ -588,7 +586,8 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
     result = ECMA_VALUE_EMPTY;
   }
 
-  jmem_heap_free_block (encoded_p, encoded_capacity);
+  allocator->free (allocator, encoded_p, encoded_capacity);
+  jjs_util_context_release_scratch_allocator ();
 
   return result;
 } /* annex_encode_path */
