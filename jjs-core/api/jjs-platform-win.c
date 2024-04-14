@@ -104,60 +104,84 @@ jjsp_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 
 #if JJS_PLATFORM_API_TIME_LOCAL_TZA
 
-#include <windows.h>
-
-#define UNIX_EPOCH_IN_TICKS 116444736000000000ull /* difference between 1970 and 1601 */
-#define TICKS_PER_MS        10000ull /* 1 tick is 100 nanoseconds */
-
-static void
-unix_time_to_filetime (double t, LPFILETIME ft_p)
-{
-  // https://support.microsoft.com/en-us/help/167296/how-to-convert-a-unix-time-t-to-a-win32-filetime-or-systemtime
-
-  LONGLONG ll = (LONGLONG) t * (LONGLONG) TICKS_PER_MS + (LONGLONG) UNIX_EPOCH_IN_TICKS;
-
-  /* FILETIME values before the epoch are invalid. */
-  if (ll < 0)
-  {
-    ll = 0;
-  }
-
-  ft_p->dwLowDateTime = (DWORD) ll;
-  ft_p->dwHighDateTime = (DWORD) (ll >> 32);
-}
-
-static double
-filetime_to_unix_time (LPFILETIME ft_p)
-{
-  ULARGE_INTEGER date;
-  date.HighPart = ft_p->dwHighDateTime;
-  date.LowPart = ft_p->dwLowDateTime;
-  return (((double) date.QuadPart - (double) UNIX_EPOCH_IN_TICKS) / (double) TICKS_PER_MS);
-}
+#include <time.h>
 
 jjs_status_t
 jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
 {
-  FILETIME utc;
-  FILETIME local;
-  SYSTEMTIME utc_sys;
-  SYSTEMTIME local_sys;
+  time_t time = (time_t) unix_ms / 1000;
 
-  unix_time_to_filetime (unix_ms, &utc);
+  struct tm gmt_tm;
+  struct tm local_tm;
 
-  if (FileTimeToSystemTime (&utc, &utc_sys) && SystemTimeToTzSpecificLocalTime (NULL, &utc_sys, &local_sys)
-      && SystemTimeToFileTime (&local_sys, &local))
-  {
-    double unix_local = filetime_to_unix_time (&local);
-    *out_p = (int32_t) (unix_local - unix_ms);
+  gmtime_s (&gmt_tm, &time);
+  localtime_s (&local_tm, &time);
 
-    return JJS_STATUS_OK;
-  }
+  time_t gmt = mktime (&gmt_tm);
 
-  *out_p = 0;
+  /* mktime removes the daylight saving time from the result time value, however we want to keep it */
+  local_tm.tm_isdst = 0;
+  time_t local = mktime (&local_tm);
 
-  return JJS_STATUS_PLATFORM_TIME_API_ERR;
+  *out_p =  (int32_t) difftime (local, gmt) * 1000;
+
+  return JJS_STATUS_OK;
 }
+
+//#include <windows.h>
+//
+//#define UNIX_EPOCH_IN_TICKS 116444736000000000ull /* difference between 1970 and 1601 */
+//#define TICKS_PER_MS        10000ull /* 1 tick is 100 nanoseconds */
+//
+//static void
+//unix_time_to_filetime (double t, LPFILETIME ft_p)
+//{
+//  // https://support.microsoft.com/en-us/help/167296/how-to-convert-a-unix-time-t-to-a-win32-filetime-or-systemtime
+//
+//  LONGLONG ll = (LONGLONG) t * (LONGLONG) TICKS_PER_MS + (LONGLONG) UNIX_EPOCH_IN_TICKS;
+//
+//  /* FILETIME values before the epoch are invalid. */
+//  if (ll < 0)
+//  {
+//    ll = 0;
+//  }
+//
+//  ft_p->dwLowDateTime = (DWORD) ll;
+//  ft_p->dwHighDateTime = (DWORD) (ll >> 32);
+//}
+//
+//static double
+//filetime_to_unix_time (LPFILETIME ft_p)
+//{
+//  ULARGE_INTEGER date;
+//  date.HighPart = ft_p->dwHighDateTime;
+//  date.LowPart = ft_p->dwLowDateTime;
+//  return (((double) date.QuadPart - (double) UNIX_EPOCH_IN_TICKS) / (double) TICKS_PER_MS);
+//}
+//
+//jjs_status_t
+//jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
+//{
+//  FILETIME utc;
+//  FILETIME local;
+//  SYSTEMTIME utc_sys;
+//  SYSTEMTIME local_sys;
+//
+//  unix_time_to_filetime (unix_ms, &utc);
+//
+//  if (FileTimeToSystemTime (&utc, &utc_sys) && SystemTimeToTzSpecificLocalTime (NULL, &utc_sys, &local_sys)
+//      && SystemTimeToFileTime (&local_sys, &local))
+//  {
+//    double unix_local = filetime_to_unix_time (&local);
+//    *out_p = (int32_t) (unix_local - unix_ms);
+//
+//    return JJS_STATUS_OK;
+//  }
+//
+//  *out_p = 0;
+//
+//  return JJS_STATUS_PLATFORM_TIME_API_ERR;
+//}
 
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
 

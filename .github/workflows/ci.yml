@@ -86,7 +86,6 @@ jobs:
           fi
 
   ci-windows-x64:
-    # note: Date().getDay() is broken on windows, disable associated tests
     env:
       CMAKE_GENERATOR: Visual Studio 16 2019
       RUN_TEST_BUILD_OPTS: ${{ (contains(matrix.type, 'debug') && '--build-debug') || '' }} --buildoptions=--clean
@@ -106,7 +105,7 @@ jobs:
         run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --buildoption-test
         shell: bash
       - name: JS Tests
-        run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --jjs-tests --skip-list=regression-test-issue-1386.js,date-setters.js
+        run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --jjs-tests
         shell: bash
       - name: Pack(age) Unit Tests
         run: ./tools/run-tests.py -q ${RUN_TEST_BUILD_OPTS} --jjs-pack-tests
