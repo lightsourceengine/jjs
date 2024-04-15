@@ -219,7 +219,7 @@ main (int argc, char **argv)
     {
       as_module = true;
     }
-    else if (strcmp (argv[i], '--help') == 0)
+    else if (strcmp (argv[i], "--help") == 0)
     {
       print_usage ();
       return 1;
