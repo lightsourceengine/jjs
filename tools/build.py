@@ -100,6 +100,8 @@ def get_arguments():
                          help='build snapshot command line tool (%(choices)s)')
     compgrp.add_argument('--jjs-cmdline-test', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('build test version of the jjs command line tool (%(choices)s)'))
+    compgrp.add_argument('--jjs-cmdline-test262', metavar='X', choices=['ON', 'OFF'], type=str.upper,
+                         help=devhelp('build a JJS engine compatible with the python test262 harness (%(choices)s)'))
     compgrp.add_argument('--libfuzzer', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('build JJS with libfuzzer support (%(choices)s)'))
     compgrp.add_argument('--jjs-ext', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -217,6 +219,7 @@ def generate_build_options(arguments):
     build_options_append('JJS_CMDLINE', arguments.jjs_cmdline)
     build_options_append('JJS_CMDLINE_SNAPSHOT', arguments.jjs_cmdline_snapshot)
     build_options_append('JJS_CMDLINE_TEST', arguments.jjs_cmdline_test)
+    build_options_append('JJS_CMDLINE_TEST262', arguments.jjs_cmdline_test262)
     build_options_append('JJS_LIBFUZZER', arguments.libfuzzer)
     build_options_append('JJS_EXT', arguments.jjs_ext)
     build_options_append('JJS_EXT_DEBUGGER', arguments.jjs_ext_debugger)

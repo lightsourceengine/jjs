@@ -96,7 +96,7 @@ JJS_PACK_TESTS_OPTIONS = [
 
 # Test options for test262
 TEST262_TEST_SUITE_OPTIONS = [
-    Options('test262', ['--default-vm-heap-size=20480', '--function-to-string=on']),
+    Options('test262', ['--default-vm-heap-size=20480', '--function-to-string=on', '--jjs-cmdline-test262=on']),
 ]
 
 # Test options for jjs-debugger
@@ -295,6 +295,10 @@ def get_binary_path(build_dir_path):
     executable_extension = '.exe' if sys.platform == 'win32' else ''
     return os.path.join(build_dir_path, 'local', 'bin', 'jjs' + executable_extension)
 
+def get_test262_binary_path(build_dir_path):
+    executable_extension = '.exe' if sys.platform == 'win32' else ''
+    return os.path.join(build_dir_path, 'local', 'bin', 'jjs-test262' + executable_extension)
+
 def hash_binary(bin_path):
     blocksize = 65536
     hasher = hashlib.sha1()
@@ -457,8 +461,7 @@ def run_test262_test_suite(options):
 
         test_cmd = util.get_python_cmd_prefix() + [
             settings.TEST262_RUNNER_SCRIPT,
-            '--engine', get_binary_path(build_dir_path),
-            '--test262-object',
+            '--engine', get_test262_binary_path(build_dir_path),
             '--test-dir', settings.TEST262_TEST_SUITE_DIR,
             '--harness-patch-dir', settings.TEST262_HARNESS_PATCH_DIR,
             '--mode', options.test262,

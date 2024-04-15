@@ -103,3 +103,14 @@ if(JJS_CMDLINE_SNAPSHOT)
       "cmdline-unix.c"
   )
 endif()
+
+if(JJS_CMDLINE_TEST262)
+  jjs_create_executable(
+      "jjs-test262"
+      "main-test262.c"
+      "arguments/cli.c"
+      "cmdline.c"
+      "cmdline-win.c"
+      "cmdline-unix.c"
+  )
+endif()

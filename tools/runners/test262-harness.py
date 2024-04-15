@@ -618,75 +618,45 @@ class TestCase(object):
         return re.sub(r"\{\{(\w+)\}\}", get_parameter, template)
 
     @staticmethod
-    def execute(command):
+    def execute(command, source, cwd):
         if is_windows():
             args = '%s' % command
         else:
             args = command.split(" ")
-        stdout = TempFile(prefix="test262-out-")
-        stderr = TempFile(prefix="test262-err-")
-        try:
-            logging.info("exec: %s", str(args))
-            kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
-            process = subprocess.Popen(
-                args,
-                shell=False,
-                stdout=stdout.file_desc,
-                stderr=stderr.file_desc,
-                **kwargs
-            )
-            timer = threading.Timer(TEST262_CASE_TIMEOUT, process.kill)
-            timer.start()
-            process.communicate()
-            code = process.returncode
-            timer.cancel()
-            out = stdout.read()
-            err = stderr.read()
-        finally:
-            stdout.dispose()
-            stderr.dispose()
+
+        logging.info("exec: %s", str(args))
+        kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
+        process = subprocess.Popen(
+            args,
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            cwd=cwd,
+            **kwargs
+        )
+        timer = threading.Timer(TEST262_CASE_TIMEOUT, process.kill)
+        timer.start()
+        (out, err) = process.communicate(input=source)
+        process.stdin.close()
+        code = process.returncode
+        timer.cancel()
+
         return (code, out, err)
 
-    def run_test_in(self, tmp):
-        tmp.write(self.get_source())
-        tmp.close()
-
+    def run(self):
+        arg = '- '
         if self.is_module():
-            arg = self.module_flag + ' ' + tmp.name
+            arg += (self.module_flag + ' ' + path.basename(self.full_path))
         else:
-            arg = tmp.name
+            arg += path.basename(self.full_path)
 
         command = TestCase.instantiate_template(self.command_template, {
             'path': arg
         })
 
-        (code, out, err) = TestCase.execute(command)
+        (code, out, err) = TestCase.execute(command, self.get_source(), path.dirname(self.full_path))
         return TestResult(code, out, err, self)
-
-    def run(self):
-        if self.has_fixture():
-            backup = os.path.join(os.path.dirname(self.full_path), os.path.basename(self.full_path) + '.bak')
-            os.rename(self.full_path, backup)
-            tmp = TempFile(full_path=self.full_path)
-            if not os.path.exists(self.full_path):
-                raise Exception("Failed to create temporary file: " + self.full_path)
-            if not os.path.exists(backup):
-                raise Exception("Failed to create backup file: " + backup)
-
-            try:
-                result = self.run_test_in(tmp)
-            finally:
-                tmp.dispose()
-                os.rename(backup, self.full_path)
-        else:
-            tmp = TempFile(suffix=".js", prefix="test262-")
-
-            try:
-                result = self.run_test_in(tmp)
-            finally:
-                tmp.dispose()
-
-        return result
 
     def print_source(self):
         print(self.get_source())
@@ -935,31 +905,10 @@ class TestSuite(object):
                 progress.has_run(result)
         else:
             if job_count == 0:
-                job_count = None # uses multiprocessing.cpu_count()
+                job_count = multiprocessing.cpu_count()
 
             pool = multiprocessing.Pool(processes=job_count, initializer=pool_init)
             try:
-                # XXX: Side effect of how modules tests are run.
-                #      Normal test source are read into memory, cat'ed with necessary
-                #      harness/* includes (global helper code). Then, the result is written
-                #      to a temporary file in the os temp directory and then, run.
-                #
-                #      For module tests, the test can import/export it's own file and/or
-                #      FIXTURE files in the same directory. The specifier is always relative.
-                #      The modules cannot run like normal tests. Instead, the original source
-                #      file is backed up. The global + test source is written to the original
-                #      source file. The test is run. Then, the original source file is restored.
-                #
-                #      Tests can run in strict mode only, non-strict mode only, or both. When
-                #      running in both modes with pooling on, the fs modification clash and
-                #      havoc ensues. To support parallel running, the cases are split into
-                #      strict and non-strict cases and run separately.
-                #
-                #      Ideally, this whole temporary file creation should not be a thing. The
-                #      harness/* includes should just be preloaded in the global scope;
-                #      however, the includes have problems when loaded into JJS independently.
-                #      At the very least. the JJS cmdline tool needs to be updated. Preloading
-                #      should be revisited in the future. Copying appears to work for now.
                 def is_strict(c):
                     return c.strict_mode
 
