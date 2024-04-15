@@ -161,7 +161,7 @@ def main(args):
     if args.test262_object:
         command += ' --test262-object'
 
-    kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
+    kwargs = {'errors': 'ignore', 'encoding': 'unicode_escape'}
 
     test262_harness_path = os.path.join(args.test262_harness_dir, 'test262-harness.py')
 
@@ -184,7 +184,7 @@ def main(args):
                             **kwargs)
 
     return_code = 1
-    with open(os.path.join(os.path.dirname(args.engine), 'test262.report'), 'w') as output_file:
+    with open(os.path.join(os.path.dirname(args.engine), 'test262.report'), 'w', encoding='utf-8', errors='replace') as output_file:
         counter = 0
         summary_found = False
         summary_end_found = False

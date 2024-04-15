@@ -79,7 +79,7 @@ def get_tests(test_dir, test_list, skip_list):
 
 
 def execute_test_command(test_cmd, cwd):
-    kwargs = {'encoding': 'utf-8', 'errors': 'replace'}
+    kwargs = {'encoding': 'unicode_escape', 'errors': 'replace'}
     process = subprocess.Popen(test_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                universal_newlines=True, cwd=cwd, **kwargs)
     stdout = process.communicate()[0]

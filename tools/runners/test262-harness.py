@@ -57,6 +57,7 @@ from collections import Counter
 import signal
 import threading
 import multiprocessing
+import codecs
 
 #######################################################################
 # based on _monkeyYaml.py
@@ -410,12 +411,12 @@ class TempFile(object):
                 text=self.text)
 
     def write(self, string):
-        os.write(self.file_desc, string.encode('utf8'))
+        os.write(self.file_desc, string.encode("utf8", errors="ignore"))
 
     def read(self):
         with open(self.name, "rb") as file_desc:
             raw_bytes = file_desc.read()
-            return raw_bytes.decode('utf8', errors='replace')
+            return raw_bytes.decode('utf8', errors='ignore')
 
     def close(self):
         if not self.is_closed:
@@ -502,8 +503,8 @@ class TestCase(object):
         self.name = name
         self.full_path = full_path
         self.strict_mode = strict_mode
-        with open(self.full_path, "r", newline='') as file_desc:
-            self.contents = file_desc.read()
+        with open(self.full_path, "rb") as file_desc:
+            self.contents = file_desc.read().decode("utf8", "ignore")
         test_record = parse_test_record(self.contents, name)
         self.test = test_record["test"]
         del test_record["test"]
@@ -815,8 +816,8 @@ class TestSuite(object):
         if not name in self.include_cache:
             static = path.join(self.lib_root, name)
             if path.exists(static):
-                with open(static) as file_desc:
-                    contents = file_desc.read()
+                with open(static, "rb") as file_desc:
+                    contents = file_desc.read().decode("utf8", "ignore")
                     contents = re.sub(r'\r\n', '\n', contents)
                     self.include_cache[name] = contents + "\n"
             else:
@@ -924,7 +925,7 @@ class TestSuite(object):
             report_error("No tests to run")
         progress = ProgressIndicator(len(cases))
         if logname:
-            self.logf = open(logname, "w")
+            self.logf = open(logname, "w", encoding="utf8", errors="ignore")
 
         if job_count == 1:
             for case in cases:
@@ -1022,6 +1023,8 @@ class TestSuite(object):
 
 
 def main():
+    sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf8', errors='replace', buffering=1)
+    sys.stderr = open(sys.stderr.fileno(), mode='w', encoding='utf8', errors='replace', buffering=1)
     code = 0
     parser = build_options()
     (options, args) = parser.parse_args()

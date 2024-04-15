@@ -285,7 +285,7 @@ def create_binary(job, options):
         subprocess.check_output(build_cmd)
         ret = 0
     except subprocess.CalledProcessError as err:
-        print(err.output.decode("utf8"))
+        print(err.output.decode(errors="ignore"))
         ret = err.returncode
 
     BINARY_CACHE[binary_key] = (ret, build_dir_path)
