@@ -132,10 +132,10 @@ js_262_create_realm (const jjs_call_info_t *call_info_p, const jjs_value_t args_
   return test262_object;
 }
 
-jjs_value_t
+static jjs_value_t
 js_262_gc (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const jjs_length_t args_cnt)
 {
-  (void) call_info_p; /* unused */
+  (void) call_info_p;
 
   jjs_gc_mode_t mode =
     ((args_cnt > 0 && jjs_value_to_boolean (args_p[0])) ? JJS_GC_PRESSURE_HIGH : JJS_GC_PRESSURE_LOW);
