@@ -123,8 +123,8 @@ check_fulfilled(gen.next(), "End", true)
 
 // END
 
-function __checkAsync() {
-  assert(state1 == 10)
-  assert(state2 == 2)
-  assert(successCount == 10)
-}
+queueAsyncAssert(() => {
+  assert(state1 === 10)
+  assert(state2 === 2)
+  assert(successCount === 10)
+});

@@ -160,7 +160,7 @@ f8().then(undefined, function (v) {
 
 // END
 
-function __checkAsync() {
+queueAsyncAssert(() => {
   assert(successCount === 8)
   assert(thenableCounter === 5)
-}
+})

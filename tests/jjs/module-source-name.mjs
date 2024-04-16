@@ -17,11 +17,12 @@ import { getName, getNamePromise } from "./module-source-name-export.mjs";
 assert(getName().endsWith("module-source-name-export.mjs"));
 
 var collector = {};
-getNamePromise(collector).then(() => { collector["end"] = sourceName(); });
+getNamePromise(collector)
+  .then(() => { collector["end"] = sourceName(); })
 
-function __checkAsync() {
+queueAsyncAssert(() => {
   assert(collector["start"].endsWith("module-source-name-export.mjs"));
   assert(collector["middle"].endsWith("module-source-name-export.mjs"));
   assert(collector["end"].endsWith("module-source-name.mjs"));
   assert(Object.keys(collector).length === 3);
-}
+});

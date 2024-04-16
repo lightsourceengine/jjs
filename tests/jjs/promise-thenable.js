@@ -27,6 +27,4 @@ new Promise(function(resolve) {
   resolve(f)
 })
 
-function __checkAsync() {
-  assert(counter == 10)
-}
+queueAsyncAssert(() => assert(counter === 10));

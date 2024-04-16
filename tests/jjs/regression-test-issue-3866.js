@@ -29,6 +29,4 @@ Promise.race().then(function() {}, function() {
   assert (e instanceof TypeError);
 })
 
-function __checkAsync() {
-  assert(called);
-}
+queueAsyncAssert(() => assert(called));

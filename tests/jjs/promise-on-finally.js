@@ -39,13 +39,13 @@ reject.catch(function(e) {
 	order.push(5);
 });
 
-function __checkAsync() {
+queueAsyncAssert(() => {
   assert(order.length === 5);
   for (var i = 0; i < order.length; i++)
   {
     assert(i + 1 === order[i]);
   }
-}
+});
 
 // check length property
 var desc = Object.getOwnPropertyDescriptor(Promise.prototype.finally, "length");

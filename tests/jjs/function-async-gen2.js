@@ -298,7 +298,7 @@ assert(++state === 6)
 
 // END
 
-function __checkAsync() {
+queueAsyncAssert(() => {
   assert(successCount === 26)
   assert(state === 9)
-}
+})

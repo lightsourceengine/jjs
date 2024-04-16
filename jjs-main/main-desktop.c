@@ -29,13 +29,15 @@
 #include "jjs-ext/print.h"
 #include "jjs-ext/properties.h"
 #include "jjs-ext/sources.h"
-#include "jjs-ext/test262.h"
 #include "main-desktop-lib.h"
 #include "cmdline.h"
+
+static jjs_value_t queue_async_assert = 0;
 
 static void
 main_vm_cleanup (void)
 {
+  jjs_value_free (queue_async_assert);
 #if JJS_PACK
   jjs_pack_cleanup ();
 #endif /* JJS_PACK */
@@ -74,6 +76,36 @@ main_init_debugger (main_args_t *arguments_p) /**< main arguments */
   return result;
 } /* main_init_debugger */
 
+static jjs_value_t
+js_queue_async_assert (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], jjs_length_t args_cnt)
+{
+  jjs_value_t callback = args_cnt > 0 ? args_p[0] : jjs_undefined ();
+
+  if (!jjs_value_is_function (callback))
+  {
+    return jjs_throw_sz (JJS_ERROR_TYPE, "queueAsyncAssert expected a function");
+  }
+
+  jjs_value_t key = jjs_string_sz ("queue");
+  jjs_value_t queue = jjs_object_get_internal (call_info_p->function, key);
+
+  if (jjs_value_is_undefined (queue) || jjs_value_is_exception (queue))
+  {
+    jjs_value_free (queue);
+    queue = jjs_array (0);
+    assert (jjs_object_set_internal (call_info_p->function, key, queue));
+  }
+
+  assert (jjs_value_is_array (queue));
+
+  jjs_object_set_index (queue, jjs_array_length (queue), callback);
+
+  jjs_value_free (queue);
+  jjs_value_free (key);
+
+  return jjs_undefined ();
+}
+
 /**
  * Inits the engine and the debugger
  */
@@ -92,14 +124,19 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
     }
   }
 
-  if (arguments_p->option_flags & OPT_FLAG_JJS_TEST_OBJECT)
+  if (arguments_p->option_flags & OPT_FLAG_JJS_TEST)
   {
     main_register_jjs_test_object ();
-  }
+    queue_async_assert = jjs_function_external (js_queue_async_assert);
 
-  if (arguments_p->option_flags & OPT_FLAG_TEST262_OBJECT)
+    jjs_value_t realm = jjs_current_realm ();
+
+    jjs_value_free (jjs_object_set_sz (realm, "queueAsyncAssert", queue_async_assert));
+    jjs_value_free (realm);
+  }
+  else
   {
-    jjsx_test262_register ();
+    queue_async_assert = jjs_undefined ();
   }
 
 #if JJS_PACK
@@ -340,29 +377,44 @@ restart:
 
   jjs_value_free (result);
 
-  if (arguments.exit_cb_name_p != NULL)
+  return_code = JJS_STANDALONE_EXIT_CODE_OK;
+
+  /* process queued async asserts */
+  if (jjs_value_is_function (queue_async_assert))
   {
-    jjs_value_t global = jjs_current_realm ();
-    jjs_value_t callback_fn = jjs_object_get_sz (global, arguments.exit_cb_name_p);
-    jjs_value_free (global);
+    jjs_value_t key = jjs_string_sz ("queue");
+    jjs_value_t queue = jjs_object_get_internal (queue_async_assert, key);
+    jjs_size_t len = jjs_array_length (queue);
 
-    if (jjs_value_is_function (callback_fn))
+    for (jjs_size_t i = 0; i < len; i++)
     {
-      result = jjs_call (callback_fn, jjs_undefined (), NULL, 0);
+      jjs_value_t fn = jjs_object_get_index(queue, i);
+      jjs_value_t async_assert_result;
 
-      if (jjs_value_is_exception (result))
+      if (jjs_value_is_function(fn))
       {
-        jjsx_print_unhandled_exception (result);
-        goto exit;
+        async_assert_result = jjs_call (fn, jjs_undefined(), NULL, 0);
+      }
+      else
+      {
+        async_assert_result = jjs_throw_sz (JJS_ERROR_COMMON, "Unknown object in async assert queue!");
       }
 
-      jjs_value_free (result);
+      jjs_value_free (fn);
+
+      if (jjs_value_is_exception (async_assert_result))
+      {
+        jjsx_print_unhandled_exception (async_assert_result);
+        return_code = 1;
+        break;
+      }
+
+      jjs_value_free (async_assert_result);
     }
 
-    jjs_value_free (callback_fn);
+    jjs_value_free (key);
+    jjs_value_free (queue);
   }
-
-  return_code = JJS_STANDALONE_EXIT_CODE_OK;
 
 exit:
   main_vm_cleanup ();

@@ -126,7 +126,7 @@ def run_normal_tests(args, tests):
     if args.runtime:
         test_cmd.append(args.runtime)
 
-    test_cmd.extend([args.engine, '--call-on-exit', '__checkAsync'])
+    test_cmd.extend([args.engine])
 
     total = len(tests)
     tested = 0
@@ -136,7 +136,7 @@ def run_normal_tests(args, tests):
         test_path = os.path.relpath(test)
         is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
 
-        test_argument = ['--jjs-test-object']
+        test_argument = ['--test']
         if test.endswith('.mjs'):
             test_argument.extend(['-m'])
 
@@ -164,9 +164,7 @@ def run_snapshot_tests(args, tests):
         execute_snapshot_cmd.append(args.runtime)
         generate_snapshot_cmd.append(args.runtime)
 
-    execute_snapshot_cmd.extend([args.engine, '--exec-snapshot', 'js.snapshot'])
-    execute_snapshot_cmd.extend(['--call-on-exit', '__checkAsync'])
-    execute_snapshot_cmd.extend(['--jjs-test-object'])
+    execute_snapshot_cmd.extend([args.engine, '--exec-snapshot', 'js.snapshot', '--test'])
 
     # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
     engine = os.path.splitext(args.engine)

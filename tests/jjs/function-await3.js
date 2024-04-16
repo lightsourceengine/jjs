@@ -64,6 +64,4 @@ async function f5()
 
 f5()
 
-function __checkAsync() {
-  assert(successCount === 4)
-}
+queueAsyncAssert(() => assert(successCount === 4))

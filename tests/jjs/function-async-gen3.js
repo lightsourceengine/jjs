@@ -377,6 +377,4 @@ check_rejected(gen.return(o10), -3.25)
 
 // END
 
-function __checkAsync() {
-  assert(successCount == 41)
-}
+queueAsyncAssert(() => assert(successCount === 41));

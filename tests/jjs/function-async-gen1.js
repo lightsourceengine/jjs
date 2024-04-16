@@ -235,8 +235,8 @@ check_fulfilled(gen.next(), undefined, true)
 
 // END
 
-function __checkAsync() {
+queueAsyncAssert(() => {
   assert(successCount === 32)
   assert(state === 4)
   assert(state2 === 4)
-}
+})

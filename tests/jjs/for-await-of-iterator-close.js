@@ -643,7 +643,7 @@ f12()
 
 // END
 
-function __checkAsync() {
+queueAsyncAssert(() => {
   assert(returnCount2 === 5)
   assert(successCount === 36)
-}
+})

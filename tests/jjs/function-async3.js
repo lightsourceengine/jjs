@@ -27,6 +27,4 @@ var successCount = 0
 var f = proto1.constructor("p", "assert(await p === 'Res'); successCount++")
 f(Promise.resolve("Res"))
 
-function __checkAsync() {
-  assert(successCount === 1)
-}
+queueAsyncAssert(() => assert(successCount === 1))

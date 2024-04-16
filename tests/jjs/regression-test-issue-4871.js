@@ -35,6 +35,4 @@ Promise.all(ps).then(res => {
   assert(false);
 });
 
-function __checkAsync() {
-  assert(resolved);
-}
+queueAsyncAssert(() => assert(resolved));

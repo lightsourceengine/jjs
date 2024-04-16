@@ -32,8 +32,7 @@ typedef enum
   OPT_HELP,
   OPT_VERSION,
   OPT_MEM_STATS,
-  OPT_JJS_TEST_OBJECT,
-  OPT_TEST262_OBJECT,
+  OPT_JJS_TEST,
   OPT_PARSE_ONLY,
   OPT_SHOW_OP,
   OPT_SHOW_RE_OP,
@@ -48,7 +47,6 @@ typedef enum
   OPT_MODULE,
   OPT_LOG_LEVEL,
   OPT_NO_PROMPT,
-  OPT_CALL_ON_EXIT,
   OPT_USE_STDIN,
   OPT_INPUT_TYPE,
   OPT_STDIN_FILENAME,
@@ -61,8 +59,7 @@ static const cli_opt_t main_opts[] = {
   CLI_OPT_DEF (.id = OPT_HELP, .opt = "h", .longopt = "help", .help = "print this help and exit"),
   CLI_OPT_DEF (.id = OPT_VERSION, .opt = "v", .longopt = "version", .help = "print tool and library version and exit"),
   CLI_OPT_DEF (.id = OPT_MEM_STATS, .longopt = "mem-stats", .help = "dump memory statistics"),
-  CLI_OPT_DEF (.id = OPT_JJS_TEST_OBJECT, .longopt = "jjs-test-object", .help = "create a $jjs object for JJS tests"),
-  CLI_OPT_DEF (.id = OPT_TEST262_OBJECT, .longopt = "test262-object", .help = "create test262 object"),
+  CLI_OPT_DEF (.id = OPT_JJS_TEST, .longopt = "test", .help = "add test support to global namespace: $jjs and queueAsyncAssert"),
   CLI_OPT_DEF (.id = OPT_PARSE_ONLY, .longopt = "parse-only", .help = "don't execute JS input"),
   CLI_OPT_DEF (.id = OPT_SHOW_OP, .longopt = "show-opcodes", .help = "dump parser byte-code"),
   CLI_OPT_DEF (.id = OPT_SHOW_RE_OP, .longopt = "show-regexp-opcodes", .help = "dump regexp byte-code"),
@@ -99,10 +96,6 @@ static const cli_opt_t main_opts[] = {
   CLI_OPT_DEF (.id = OPT_MODULE, .opt = "m", .longopt = "module", .meta = "FILE", .help = "execute module file"),
   CLI_OPT_DEF (.id = OPT_LOG_LEVEL, .longopt = "log-level", .meta = "NUM", .help = "set log level (0-3)"),
   CLI_OPT_DEF (.id = OPT_NO_PROMPT, .longopt = "no-prompt", .help = "don't print prompt in REPL mode"),
-  CLI_OPT_DEF (.id = OPT_CALL_ON_EXIT,
-               .longopt = "call-on-exit",
-               .meta = "STRING",
-               .help = "invoke the specified function when the process is just about to exit"),
   CLI_OPT_DEF (.id = OPT_USE_STDIN, .opt = "", .help = "read from standard input"),
   CLI_OPT_DEF (.id = OPT_INPUT_TYPE,
                .longopt = "input-type",
@@ -172,7 +165,6 @@ main_parse_args (int argc, /**< argc */
   arguments_p->debug_serial_config = "/dev/ttyS0,115200,8,N,1";
   arguments_p->debug_port = 5001;
 
-  arguments_p->exit_cb_name_p = NULL;
   arguments_p->init_flags = JJS_CONTEXT_FLAG_NONE;
   arguments_p->option_flags = OPT_FLAG_EMPTY;
 
@@ -212,14 +204,9 @@ main_parse_args (int argc, /**< argc */
         }
         break;
       }
-      case OPT_JJS_TEST_OBJECT:
+      case OPT_JJS_TEST:
       {
-        arguments_p->option_flags |= OPT_FLAG_JJS_TEST_OBJECT;
-        break;
-      }
-      case OPT_TEST262_OBJECT:
-      {
-        arguments_p->option_flags |= OPT_FLAG_TEST262_OBJECT;
+        arguments_p->option_flags |= OPT_FLAG_JJS_TEST;
         break;
       }
       case OPT_PARSE_ONLY:
@@ -234,11 +221,6 @@ main_parse_args (int argc, /**< argc */
           jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
           arguments_p->init_flags |= JJS_CONTEXT_FLAG_SHOW_OPCODES;
         }
-        break;
-      }
-      case OPT_CALL_ON_EXIT:
-      {
-        arguments_p->exit_cb_name_p = cli_consume_string (&cli_state);
         break;
       }
       case OPT_SHOW_RE_OP:

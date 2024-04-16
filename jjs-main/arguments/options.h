@@ -36,8 +36,7 @@ typedef enum
   OPT_FLAG_WAIT_SOURCE = (1 << 2),
   OPT_FLAG_NO_PROMPT = (1 << 3),
   OPT_FLAG_USE_STDIN = (1 << 4),
-  OPT_FLAG_JJS_TEST_OBJECT = (1u << 5),
-  OPT_FLAG_TEST262_OBJECT = (1u << 6),
+  OPT_FLAG_JJS_TEST = (1u << 5),
 } main_option_flags_t;
 
 /**
@@ -83,8 +82,6 @@ typedef struct
   const char *debug_protocol;
   const char *debug_serial_config;
   uint16_t debug_port;
-
-  const char *exit_cb_name_p;
 
   uint16_t option_flags;
   uint32_t init_flags;

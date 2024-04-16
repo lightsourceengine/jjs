@@ -84,8 +84,5 @@ Array.prototype.assertArrayEqual = function(expected) {
   }
 }
 
-let global = new Function('return this;')();
 
-global.__checkAsync = function() {
-  async_queue.assertArrayEqual(async_queue_expected);
-}
+queueAsyncAssert(() => async_queue.assertArrayEqual(async_queue_expected));

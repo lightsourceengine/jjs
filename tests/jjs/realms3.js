@@ -193,6 +193,4 @@ function f6()
 }
 f6()
 
-function __checkAsync() {
-  assert(successCount === 3)
-}
+queueAsyncAssert(() => assert(successCount === 3))

@@ -224,7 +224,7 @@ f3()
 
 // END
 
-function __checkAsync() {
+queueAsyncAssert(() => {
   assert(state2 === 8)
   assert(successCount === 24)
-}
+});

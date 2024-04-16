@@ -39,7 +39,6 @@ set(SOURCE_EXT
   util/print.c
   util/properties.c
   util/sources.c
-  util/test262.c
 )
 
 if (JJS_EXT_DEBUGGER)
