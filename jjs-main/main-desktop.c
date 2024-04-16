@@ -116,6 +116,20 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
 
   jjs_promise_on_event (JJS_PROMISE_EVENT_FILTER_ERROR, jjsx_handler_promise_reject, NULL);
 
+  if (arguments_p->pmap_filename)
+  {
+    jjs_value_t filename = jjs_string_sz (arguments_p->pmap_filename);
+    jjs_value_t result = jjs_pmap (filename, JJS_KEEP, jjs_undefined(), JJS_MOVE);
+
+    if (jjs_value_is_exception (result))
+    {
+      jjs_log_fmt (JJS_LOG_LEVEL_ERROR, "Error loading pmap file: {}\n{}\n", filename, result);
+    }
+
+    jjs_value_free (filename);
+    jjs_value_free (result);
+  }
+
   if (arguments_p->option_flags & OPT_FLAG_DEBUG_SERVER)
   {
     if (!main_init_debugger (arguments_p))
@@ -126,7 +140,6 @@ main_init_engine (main_args_t *arguments_p) /**< main arguments */
 
   if (arguments_p->option_flags & OPT_FLAG_JJS_TEST)
   {
-    main_register_jjs_test_object ();
     queue_async_assert = jjs_function_external (js_queue_async_assert);
 
     jjs_value_t realm = jjs_current_realm ();

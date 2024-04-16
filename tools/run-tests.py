@@ -335,6 +335,7 @@ def iterate_test_runner_jobs(jobs, options):
 
         test_cmd = util.get_python_cmd_prefix()
         test_cmd.extend([settings.TEST_RUNNER_SCRIPT, '--engine', bin_path])
+        test_cmd.extend(['--pmap', settings.JJS_TESTS_PMAP_FILE])
 
         yield job, ret_build, test_cmd
 

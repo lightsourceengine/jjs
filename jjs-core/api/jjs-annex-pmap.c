@@ -20,7 +20,7 @@
 
 #include "ecma-builtin-helpers.h"
 #include "ecma-helpers.h"
-#include "ecma-objects-general.h"
+#include "ecma-function-object.h"
 
 #include "annex.h"
 #include "jcontext.h"
@@ -82,50 +82,97 @@ static jjs_value_t expect_path_like_string (ecma_value_t value);
  * and cleaned up if and only if the filename can be loaded and the pmap validated.
  * Otherwise, on error, the current pmap will remain unchanged.
  *
- * @param pmap pmap format JS object
+ * @param pmap pmap pmap as a plain Object or a string filename of a json file containing a pmap
  * @param pmap_o pmap reference ownership
- * @param filename JSON pmap file to load
- * @param filename_o filename reference ownership
+ * @param root pmap root directory. if undefined and pmap is a filename, dirname(filename) is the root. if undefined
+ * and pmap is an Object, current working directory is used.
+ * @param root_o root reference ownership
  *
  * @return on success, undefined is returned. on failure, an exception is thrown. return
  * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, jjs_value_ownership_t dirname_o)
+jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t root, jjs_value_ownership_t root_o)
 {
   jjs_assert_api_enabled ();
 #if JJS_ANNEX_PMAP
+  if (jjs_value_is_string (pmap))
+  {
+    // TODO: dirname does not work with relative paths, use realpath for now
+    jjs_value_t resolved_filename = jjs_platform_realpath (pmap, pmap_o);
+
+    if (jjs_value_is_exception (resolved_filename))
+    {
+      JJS_DISOWN (root, root_o);
+      return resolved_filename;
+    }
+
+    if (jjs_value_is_undefined (root))
+    {
+      jjs_value_t dirname = annex_path_dirname (resolved_filename);
+
+      if (ecma_is_value_empty (dirname))
+      {
+        jjs_value_free (dirname);
+        dirname = ecma_string_ascii_sz (".");
+      }
+
+      JJS_DISOWN (root, root_o);
+
+      if (jjs_value_is_exception (dirname))
+      {
+        jjs_value_free (resolved_filename);
+        return dirname;
+      }
+
+      root = dirname;
+      root_o = JJS_MOVE;
+    }
+
+    pmap = jjs_json_parse_file (resolved_filename, JJS_MOVE);
+
+    if (jjs_value_is_exception (pmap))
+    {
+      JJS_DISOWN (root, root_o);
+      return pmap;
+    }
+
+    pmap_o = JJS_MOVE;
+  }
+
   jjs_value_t result = validate_pmap (pmap);
 
   if (jjs_value_is_exception (result))
   {
     JJS_DISOWN (pmap, pmap_o);
-    JJS_DISOWN (dirname, dirname_o);
+    JJS_DISOWN (root, root_o);
     return result;
   }
 
   jjs_value_free (result);
 
-  if (jjs_value_is_undefined (dirname))
+  jjs_value_t resolved_root;
+
+  if (jjs_value_is_undefined (root))
   {
-    JJS_DISOWN (dirname, dirname_o);
-    dirname = jjs_platform_cwd ();
+    JJS_DISOWN (root, root_o);
+    resolved_root = jjs_platform_cwd ();
   }
-  else if (!jjs_value_is_string (dirname))
+  else if (!jjs_value_is_string (root))
   {
     JJS_DISOWN (pmap, pmap_o);
-    JJS_DISOWN (dirname, dirname_o);
+    JJS_DISOWN (root, root_o);
     return jjs_throw_sz (JJS_ERROR_TYPE, "");
   }
   else
   {
-    dirname = jjs_platform_realpath (dirname, dirname_o);
+    resolved_root = jjs_platform_realpath (root, root_o);
   }
 
-  if (jjs_value_is_exception (dirname))
+  if (jjs_value_is_exception (resolved_root))
   {
     JJS_DISOWN (pmap, pmap_o);
-    return dirname;
+    return resolved_root;
   }
 
   // set the context pmap variables
@@ -133,7 +180,7 @@ jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, j
   JJS_CONTEXT (pmap) = pmap_o == JJS_MOVE ? pmap : jjs_value_copy (pmap);
 
   jjs_value_free (JJS_CONTEXT (pmap_root));
-  JJS_CONTEXT (pmap_root) = dirname;
+  JJS_CONTEXT (pmap_root) = resolved_root;
 
   return jjs_undefined ();
 #else /* !JJS_ANNEX_PMAP */
@@ -142,76 +189,6 @@ jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, j
   return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap */
-
-/**
- * Load a pmap (Package Map) from a file.
- *
- * The file must exist and be a valid pmap.json file format.
- *
- * The dirname of the file will be used as the pmap root. The pmap root
- * is used when resolving package specifiers with a pmap.
- *
- * If a pmap has already been set in the current context, it will be replaced
- * and cleaned up if and only if the filename can be loaded and the pmap validated.
- * Otherwise, on error, the current pmap will remain unchanged.
- *
- * @param filename JSON pmap file to load
- * @param filename_o filename reference ownership
- * @return on success, undefined is returned. on failure, an exception is thrown. return
- * value must be freed with jjs_value_free.
- */
-jjs_value_t
-jjs_pmap_from_file (jjs_value_t filename, jjs_value_ownership_t filename_o)
-{
-  jjs_assert_api_enabled ();
-#if JJS_ANNEX_PMAP
-  // TODO: dirname does not work with relative paths, use realpath for now
-  jjs_value_t resolved_filename = jjs_platform_realpath (filename, filename_o);
-
-  if (jjs_value_is_exception (resolved_filename))
-  {
-    return resolved_filename;
-  }
-
-  jjs_value_t dirname = annex_path_dirname (resolved_filename);
-
-  if (ecma_is_value_empty (dirname))
-  {
-    jjs_value_free (dirname);
-    dirname = ecma_string_ascii_sz (".");
-  }
-
-  if (jjs_value_is_exception (dirname))
-  {
-    jjs_value_free (resolved_filename);
-    return dirname;
-  }
-
-  jjs_value_t pmap = jjs_json_parse_file (resolved_filename, JJS_MOVE);
-
-  if (jjs_value_is_exception (pmap))
-  {
-    jjs_value_free (dirname);
-    return pmap;
-  }
-
-  return jjs_pmap (pmap, JJS_MOVE, dirname, JJS_MOVE);
-#else /* !JJS_ANNEX_PMAP */
-  JJS_DISOWN (filename, filename_o);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
-#endif /* JJS_ANNEX_PMAP */
-} /* jjs_pmap_from_file */
-
-/**
- * Version of jjs_pmap_from_file that takes a null-terminated string for the filename.
- *
- * @see jjs_pmap_from_file
- */
-jjs_value_t jjs_pmap_from_file_sz (const char* filename_p)
-{
-  jjs_assert_api_enabled ();
-  return jjs_pmap_from_file (annex_util_create_string_utf8_sz (filename_p), JJS_MOVE);
-} /* jjs_pmap_from_file_sz */
 
 /**
  * Resolve the absolute filename of a package specifier against the
@@ -298,13 +275,22 @@ static JJS_HANDLER (jjs_pmap_resolve_handler)
   }
 }
 
+static JJS_HANDLER (jjs_pmap_handler)
+{
+  JJS_UNUSED (call_info_p);
+  jjs_value_t a1 = args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED;
+  jjs_value_t a2 = args_count > 1 ? args_p[1] : ECMA_VALUE_UNDEFINED;
+
+  return jjs_pmap (a1, JJS_KEEP, a2, JJS_KEEP);
+}
+
 /**
  * Create the pmap api to expose to JS.
  */
 ecma_value_t
 jjs_annex_pmap_create_api (void)
 {
-  ecma_object_t* pmap_p = ecma_op_create_object_object_noarg ();
+  ecma_object_t *pmap_p = ecma_op_create_external_function_object (jjs_pmap_handler);
 
   annex_util_define_function (pmap_p, LIT_MAGIC_STRING_RESOLVE, jjs_pmap_resolve_handler);
 

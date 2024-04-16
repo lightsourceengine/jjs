@@ -50,3 +50,5 @@ zig-out/
 # node
 node_modules/
 
+# python
+venv/

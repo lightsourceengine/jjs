@@ -28,8 +28,6 @@
 #define platform_separator            '/'
 #endif
 
-static void object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value);
-
 static const char* DEFAULT_STDIN_FILENAME = "<stdin>";
 
 /**
@@ -50,115 +48,6 @@ cwd_append (jjs_value_t filename)
 
   return full_path;
 } /* cwd_append */
-
-/**
- * Set an object property to a value.
- */
-static void
-object_set_sz (jjs_value_t object, const char* key_sz, jjs_value_t value)
-{
-  jjs_value_t key = jjs_string_utf8_sz (key_sz);
-  jjs_value_free (jjs_object_set (object, key, value));
-  jjs_value_free (key);
-} /* object_set_sz */
-
-/**
- * Performs a strict equals comparison on a JJS value and an UTF8 encoded C-string.
- */
-static bool
-string_strict_equals_sz (jjs_value_t value, const char* string_p)
-{
-  jjs_value_t string = jjs_string_utf8_sz (string_p);
-  jjs_value_t equal_result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, value, string);
-  bool result = jjs_value_is_true (equal_result);
-
-  jjs_value_free (string);
-  jjs_value_free (equal_result);
-
-  return result;
-} /* string_strict_equals_sz */
-
-/**
- * binding for pmap(). can be called with pmap(filename) or pmap(object, dirname)
- */
-static JJS_HANDLER (pmap_handler)
-{
-  (void) call_info_p; /* unused */
-
-  jjs_value_t arg = args_cnt > 0 ? args_p[0] : jjs_undefined ();
-
-  if (jjs_value_is_string (arg))
-  {
-    return jjs_pmap_from_file (arg, JJS_KEEP);
-  }
-  else if (jjs_value_is_object (arg))
-  {
-    return jjs_pmap (arg, JJS_KEEP, args_cnt > 1 ? args_p[1] : jjs_undefined (), JJS_KEEP);
-  }
-
-  return jjs_throw_sz (JJS_ERROR_TYPE, "pmap expects a pmap object or a pmap filename");
-} /* pmap_handler */
-
-/**
- * jjs_pmap_resolve_handler() binding
- */
-static JJS_HANDLER (pmap_resolve_handler)
-{
-  (void) call_info_p; /* unused */
-
-  jjs_value_t value = args_cnt > 1 ? args_p[1] : jjs_undefined ();
-  jjs_module_type_t module_type;
-
-  if (string_strict_equals_sz (value, "commonjs"))
-  {
-    module_type = JJS_MODULE_TYPE_COMMONJS;
-  }
-  else if (string_strict_equals_sz (value, "module"))
-  {
-    module_type = JJS_MODULE_TYPE_MODULE;
-  }
-  else
-  {
-    module_type = JJS_MODULE_TYPE_NONE;
-  }
-
-  return jjs_pmap_resolve (args_cnt > 0 ? args_p[0] : jjs_undefined (), JJS_KEEP, module_type);
-} /* pmap_resolve_handler */
-
-/**
- * Register the $jjs object.
- *
- * This object contains native bindings for the JJS API. It is intended to
- * be used for testing purposes only.
- */
-void
-main_register_jjs_test_object (void)
-{
-  jjs_value_t global = jjs_current_realm ();
-  jjs_value_t jjs = jjs_object ();
-  jjs_value_t jjs_key = jjs_string_utf8_sz ("$jjs");
-  jjs_property_descriptor_t desc = {
-    .flags = JJS_PROP_IS_CONFIGURABLE | JJS_PROP_IS_WRITABLE | JJS_PROP_IS_CONFIGURABLE_DEFINED
-             | JJS_PROP_IS_WRITABLE_DEFINED | JJS_PROP_IS_VALUE_DEFINED,
-    .value = jjs,
-  };
-
-  jjs_value_free (jjs_object_define_own_prop (global, jjs_key, &desc));
-  jjs_value_free (jjs_key);
-
-  jjs_value_t os = jjs_platform_os ();
-  jjs_value_t pmap = jjs_function_external (pmap_handler);
-  jjs_value_t pmap_resolve = jjs_function_external (pmap_resolve_handler);
-
-  object_set_sz (pmap, "resolve", pmap_resolve);
-  object_set_sz (jjs, "pmap", pmap);
-
-  jjs_value_free (pmap);
-  jjs_value_free (pmap_resolve);
-  jjs_value_free (global);
-  jjs_value_free (jjs);
-  jjs_value_free (os);
-} /* main_register_jjs_test_object */
 
 jjs_value_t
 main_exec_stdin (main_input_type_t input_type, const char* filename)

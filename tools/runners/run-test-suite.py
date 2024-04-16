@@ -39,6 +39,7 @@ def get_arguments():
                         help='Directory contains tests to run')
     parser.add_argument('--snapshot', action='store_true',
                         help='Snapshot test')
+    parser.add_argument('--pmap', metavar='FILE', help='JJS engine pmap file')
 
     script_args = parser.parse_args()
     if script_args.skip_list:
@@ -128,6 +129,9 @@ def run_normal_tests(args, tests):
 
     test_cmd.extend([args.engine])
 
+    if args.pmap:
+        test_cmd.extend(['--pmap', args.pmap])
+
     total = len(tests)
     tested = 0
     passed = 0
@@ -165,6 +169,9 @@ def run_snapshot_tests(args, tests):
         generate_snapshot_cmd.append(args.runtime)
 
     execute_snapshot_cmd.extend([args.engine, '--exec-snapshot', 'js.snapshot', '--test'])
+
+    if args.pmap:
+        execute_snapshot_cmd.extend(['--pmap', args.pmap])
 
     # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
     engine = os.path.splitext(args.engine)

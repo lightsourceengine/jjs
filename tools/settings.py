@@ -25,6 +25,7 @@ JJS_PACK_TESTS_DIR = path.join(PROJECT_DIR, 'tests/pack')
 TEST262_TEST_SUITE_DIR = path.join(PROJECT_DIR, 'tests/test262')
 TEST262_HARNESS_PATCH_DIR = path.join(PROJECT_DIR, 'tools/test262-harness-patch')
 SNAPSHOT_TESTS_SKIPLIST = path.join(PROJECT_DIR, 'tests/snapshot-tests-skiplist.txt')
+JJS_TESTS_PMAP_FILE = path.join(JJS_TESTS_DIR, 'fixtures/pmap/pmap.json')
 
 BUILD_SCRIPT = path.join(TOOLS_DIR, 'build.py')
 CPPCHECK_SCRIPT = path.join(TOOLS_DIR, 'check-cppcheck.sh')

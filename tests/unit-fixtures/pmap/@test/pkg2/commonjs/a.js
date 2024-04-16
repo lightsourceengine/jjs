@@ -13,14 +13,4 @@
  * limitations under the License.
  */
 
-#ifndef MAIN_MODULE_H
-#define MAIN_MODULE_H
-
-#include "jjs.h"
-#include "arguments/options.h"
-
-jjs_value_t main_exec_stdin (main_input_type_t input_type, const char* filename);
-
-#define JJS_HANDLER(NAME) jjs_value_t NAME (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], jjs_length_t args_cnt)
-
-#endif /* !MAIN_MODULE_H */
+module.exports = "commonjs.a";

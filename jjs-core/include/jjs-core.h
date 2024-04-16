@@ -1227,9 +1227,7 @@ void jjs_module_on_import (jjs_module_import_cb_t callback, void *user_p);
  * @{
  */
 
-jjs_value_t jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t dirname, jjs_value_ownership_t dirname_o);
-jjs_value_t jjs_pmap_from_file (jjs_value_t filename, jjs_value_ownership_t filename_o);
-jjs_value_t jjs_pmap_from_file_sz (const char* filename_p);
+jjs_value_t jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t root, jjs_value_ownership_t root_o);
 
 jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type);
 jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t module_type);

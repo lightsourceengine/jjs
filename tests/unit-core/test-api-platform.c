@@ -304,7 +304,7 @@ test_jjs_namespace (void)
   TEST_ASSERT (jjs_value_is_string (push (jjs_object_get_sz (jjs, "arch"))));
   TEST_ASSERT (jjs_value_is_object (push (jjs_object_get_sz (jjs, "stdout"))));
   TEST_ASSERT (jjs_value_is_object (push (jjs_object_get_sz (jjs, "stderr"))));
-  TEST_ASSERT (jjs_value_is_object (push (jjs_object_get_sz (jjs, "pmap"))));
+  TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "pmap"))));
   TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "vmod"))));
   TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "readFile"))));
   TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "realpath"))));

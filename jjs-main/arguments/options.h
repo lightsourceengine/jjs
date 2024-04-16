@@ -87,7 +87,9 @@ typedef struct
   uint32_t init_flags;
   uint8_t parse_result;
   main_input_type_t input_type;
-  const char* stdin_filename;
+  const char *stdin_filename;
+
+  const char *pmap_filename;
 } main_args_t;
 
 bool main_parse_args (int argc, char **argv, main_args_t *arguments_p);

@@ -50,6 +50,7 @@ typedef enum
   OPT_USE_STDIN,
   OPT_INPUT_TYPE,
   OPT_STDIN_FILENAME,
+  OPT_PMAP,
 } main_opt_id_t;
 
 /**
@@ -94,6 +95,7 @@ static const cli_opt_t main_opts[] = {
                .meta = "FILE NUM",
                .help = "execute specific function from input snapshot file(s)"),
   CLI_OPT_DEF (.id = OPT_MODULE, .opt = "m", .longopt = "module", .meta = "FILE", .help = "execute module file"),
+  CLI_OPT_DEF (.id = OPT_PMAP, .longopt = "pmap", .meta = "FILE", .help = "set the engine's pmap file"),
   CLI_OPT_DEF (.id = OPT_LOG_LEVEL, .longopt = "log-level", .meta = "NUM", .help = "set log level (0-3)"),
   CLI_OPT_DEF (.id = OPT_NO_PROMPT, .longopt = "no-prompt", .help = "don't print prompt in REPL mode"),
   CLI_OPT_DEF (.id = OPT_USE_STDIN, .opt = "", .help = "read from standard input"),
@@ -345,6 +347,18 @@ main_parse_args (int argc, /**< argc */
         source_p->path_index = path_index;
         source_p->snapshot_index = 0;
 
+        break;
+      }
+      case OPT_PMAP:
+      {
+        const char *pmap_filename = cli_consume_string (&cli_state);
+
+        if (!pmap_filename)
+        {
+          cli_state.error = "--pmap expects a file path to a pmap json file";
+        }
+
+        arguments_p->pmap_filename = pmap_filename;
         break;
       }
       case OPT_LOG_LEVEL:

@@ -13,116 +13,77 @@
  * limitations under the License.
  */
 
-const { assertThrows } = require('../lib/assert.js');
+const { assertThrows, assertEquals } = require('../lib/assert.js');
 const { test, runAllTests } = require('../lib/test.cjs');
 
-const { resolve } = $jjs.pmap;
+const { cwd, realpath, pmap } = jjs;
 
-test('should resolve "pkg" with package main shorthand', () => {
-  pmap({
-    packages: {
-      'pkg': './pkg.cjs'
-    }
-  });
-
-  expectEndsWith(resolve('pkg', 'none'), 'pkg.cjs');
-  expectEndsWith(resolve('pkg', 'commonjs'), 'pkg.cjs');
-  expectEndsWith(resolve('pkg', 'module'), 'pkg.cjs');
+test ('pmap.resolve() should resolve "pkg" path with module', () => {
+  assertEquals(pmap.resolve('pkg', 'module'), resolvePmapPath('./pkg.mjs'));
 });
 
-test('should resolve "pkg" with package main', () => {
-  pmap({
-    packages: {
-      pkg: {
-        main: './pkg.cjs'
-      }
-    }
-  });
-
-  expectEndsWith(resolve('pkg', 'none'), 'pkg.cjs');
-  expectEndsWith(resolve('pkg', 'commonjs'), 'pkg.cjs');
-  expectEndsWith(resolve('pkg', 'module'), 'pkg.cjs');
+test ('pmap.resolve() should resolve "pkg" path with commonjs', () => {
+  assertEquals(pmap.resolve('pkg', 'commonjs'), resolvePmapPath('./pkg.cjs'));
 });
 
-test('should resolve "pkg" with package main and module type', () => {
-  pmap({
-    packages: {
-      pkg: {
-        commonjs: {
-          main: './pkg.cjs'
-        },
-        module: {
-          main: './pkg.mjs'
-        }
-      }
-    }
-  });
-
-  assertThrows(TypeError, () => resolve('pkg', 'none'));
-  expectEndsWith(resolve('pkg', 'commonjs'), 'pkg.cjs');
-  expectEndsWith(resolve('pkg', 'module'), 'pkg.mjs');
+test ('pmap.resolve() should throw Error for "pkg" path with none', () => {
+  assertThrows(Error, () => pmap.resolve('pkg', 'none'));
 });
 
-test('should resolve "pkg" with package main shorthand and module type', () => {
-  pmap({
-    packages: {
-      pkg: {
-        commonjs: './pkg.cjs',
-        module: './pkg.mjs',
-      }
-    }
-  });
-
-  assertThrows(TypeError, () => resolve('pkg', 'none'));
-  expectEndsWith(resolve('pkg', 'commonjs'), 'pkg.cjs');
-  expectEndsWith(resolve('pkg', 'module'), 'pkg.mjs');
+test ('pmap.resolve() should throw Error for "pkg" path with undefined', () => {
+  assertThrows(Error, () => pmap.resolve('pkg'));
 });
 
-test('should resolve "@test/pkg1" with package path', () => {
-  pmap({
-    packages: {
-      '@test/pkg1': {
-        path: './@test/pkg1'
-      }
-    }
-  });
-
-  expectEndsWith(resolve('@test/pkg1/b.cjs', 'none'), 'b.cjs');
-  expectEndsWith(resolve('@test/pkg1/b.cjs', 'commonjs'), 'b.cjs');
-  expectEndsWith(resolve('@test/pkg1/b.cjs', 'module'), 'b.cjs');
+test ('pmap.resolve() should resolve "@test/pkg1" path with module', () => {
+  assertEquals(pmap.resolve('@test/pkg1', 'module'), resolvePmapPath('./@test/pkg1/b.cjs'));
 });
 
-test('should resolve "@test/pkg2" with module system specific package path', () => {
-  pmap({
-    packages: {
-      '@test/pkg2': {
-        commonjs: {
-          path: './@test/pkg2/commonjs'
-        },
-        module: {
-          path: './@test/pkg2/module'
-        }
-      }
-    }
-  });
-
-  assertThrows(TypeError, () => resolve('@test/pkg2/a.js', 'none'));
-  expectEndsWithRegEx(resolve('@test/pkg2/a.js', 'commonjs'), /commonjs[/\\]a\.js$/);
-  expectEndsWithRegEx(resolve('@test/pkg2/a.js', 'module'), /module[/\\]a\.js$/);
+test ('pmap.resolve() should resolve "@test/pkg1" path with commonjs', () => {
+  assertEquals(pmap.resolve('@test/pkg1', 'commonjs'), resolvePmapPath('./@test/pkg1/b.cjs'));
 });
 
-function pmap(obj) {
-  return $jjs.pmap(obj, './fixtures/pmap');
-}
+test ('pmap.resolve() should resolve "@test/pkg1" path with none', () => {
+  assertEquals(pmap.resolve('@test/pkg1', 'none'), resolvePmapPath('./@test/pkg1/b.cjs'));
+});
 
-function expectEndsWith(actual, expected)  {
-  assert(typeof actual === 'string', `expected typeof 'string', actual '${typeof actual}' for '${actual}'`);
-  assert(actual.endsWith(expected), `expected '${actual}' to end with '${expected}'`);
-}
+test ('pmap.resolve() should resolve "@test/pkg1" path with undefined', () => {
+  assertEquals(pmap.resolve('@test/pkg1'), resolvePmapPath('./@test/pkg1/b.cjs'));
+});
 
-function expectEndsWithRegEx(actual, expectedRegEx)  {
-  assert(typeof actual === 'string', `expected typeof 'string', actual '${typeof actual}' for '${actual}'`);
-  assert(expectedRegEx.test(actual), `expected '${actual}' to end with '${expectedRegEx}'`);
+test ('pmap.resolve() should resolve "@test/pkg1/b.cjs" path with module', () => {
+  assertEquals(pmap.resolve('@test/pkg1/b.cjs', 'module'), resolvePmapPath('./@test/pkg1/b.cjs'));
+});
+
+test ('pmap.resolve() should resolve "@test/pkg1/b.cjs" path with commonjs', () => {
+  assertEquals(pmap.resolve('@test/pkg1/b.cjs', 'commonjs'), resolvePmapPath('./@test/pkg1/b.cjs'));
+});
+
+test ('pmap.resolve() should resolve "@test/pkg1/b.cjs" path with none', () => {
+  assertEquals(pmap.resolve('@test/pkg1/b.cjs', 'none'), resolvePmapPath('./@test/pkg1/b.cjs'));
+});
+
+test ('pmap.resolve() should resolve "@test/pkg1/b.cjs" path with undefined', () => {
+  assertEquals(pmap.resolve('@test/pkg1/b.cjs'), resolvePmapPath('./@test/pkg1/b.cjs'));
+});
+
+test ('pmap.resolve() should resolve "@test/pkg2" path with module', () => {
+  assertEquals(pmap.resolve('@test/pkg2', 'module'), resolvePmapPath('./@test/pkg2/module/a.js'));
+});
+
+test ('pmap.resolve() should resolve "@test/pkg2" path with commonjs', () => {
+  assertEquals(pmap.resolve('@test/pkg2', 'commonjs'), resolvePmapPath('./@test/pkg2/commonjs/a.js'));
+});
+
+test ('pmap.resolve() should throw Error for "@test/pkg2" path with none', () => {
+  assertThrows(Error, () => pmap.resolve('@test/pkg2', 'none'));
+});
+
+test ('pmap.resolve() should throw Error for "@test/pkg2" path with undefined', () => {
+  assertThrows(Error, () => pmap.resolve('@test/pkg2'));
+});
+
+function resolvePmapPath (path) {
+  return realpath(cwd() + "/fixtures/pmap/" + path);
 }
 
 runAllTests();

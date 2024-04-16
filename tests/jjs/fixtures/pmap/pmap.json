@@ -5,14 +5,17 @@
       "module": "./pkg.mjs"
     },
     "@test/pkg1": {
-      "path": "./@test/pkg1"
+      "path": "./@test/pkg1",
+      "main": "./@test/pkg1/b.cjs"
     },
     "@test/pkg2": {
       "commonjs": {
-        "path": "./@test/pkg2/commonjs"
+        "path": "./@test/pkg2/commonjs",
+        "main": "./@test/pkg2/commonjs/a.js"
       },
       "module": {
-        "path": "./@test/pkg2/module"
+        "path": "./@test/pkg2/module",
+        "main": "./@test/pkg2/module/a.js"
       }
     }
   }

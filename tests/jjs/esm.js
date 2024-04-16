@@ -15,8 +15,6 @@
 
 const { test, runAllTests } = require('../lib/test.cjs');
 
-$jjs.pmap('./fixtures/pmap/pmap.json');
-
 test('jjs_esm_import() should import module from relative specifier', async () => {
   const { one } = await import('./fixtures/one-export.mjs');
 
