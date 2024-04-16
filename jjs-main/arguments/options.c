@@ -174,6 +174,8 @@ main_parse_args (int argc, /**< argc */
   arguments_p->input_type = INPUT_TYPE_MODULE;
   arguments_p->stdin_filename = NULL;
 
+  arguments_p->pmap_filename = NULL;
+
   cli_state_t cli_state = cli_init (main_opts, argc, argv);
   for (int id = cli_consume_option (&cli_state); id != CLI_OPT_END; id = cli_consume_option (&cli_state))
   {
