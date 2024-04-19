@@ -205,6 +205,8 @@ def get_arguments():
                         help='Run jjs-snapshot-tests')
     parser.add_argument('--jjs-pack-tests', action='store_true',
                         help='Run jjs-pack-tests')
+    parser.add_argument('--jjs-cli-tests', action='store_true',
+                        help='Run jjs-cli-tests')
     parser.add_argument('--test262', default=False, const='default',
                         nargs='?', choices=['default', 'all', 'update'],
                         help='Run test262 - default: all tests except excludelist, ' +
@@ -523,6 +525,110 @@ def run_buildoption_test(options):
 
     return ret
 
+def run_cli_tests(options):
+    job = Options('jjs_cli_tests', ['--lto=off', '--snapshot-exec=on', '--logging=on', '--mem-stats=on', '--show-opcodes=on', '--show-regexp-opcodes=on'])
+    execution_runtime = os.environ.get('RUNTIME')
+
+    ret, build_dir_path = create_binary(job, options)
+
+    suite = [
+        # top level help / version
+        [['--help'], 0],
+        [['-h'], 0],
+        [['--version'], 0],
+        [['-v'], 0],
+        # command: repl
+        [['repl', '--help'], 0],
+        [['repl', '-h'], 0],
+        # command: test
+        [['test', '--help'], 0],
+        [['test', '-h'], 0],
+        # execute test
+        [['test', './cli/test.mjs'], 0],
+        # individual flags
+        [['test', '--pmap', './cli/pmap.json', './cli/test.mjs'], 0],
+        [['test', '--loader', 'module', './cli/test.mjs'], 0],
+        [['test', '--loader', 'commonjs', './cli/test.cjs'], 0],
+        [['test', '--loader', 'xxx', './cli/test.mjs'], 1],
+        [['test', '--cwd', './cli', 'test.mjs'], 0],
+        [['test', '--cwd', 'file-not-found', 'test.mjs'], 1],
+        [['test', '--mem-stats', './cli/test.mjs'], 0],
+        [['test', '--show-opcodes', './cli/test.mjs'], 0],
+        [['test', '--show-regexp-opcodes', './cli/test.mjs'], 0],
+        [['test', '--log-level', '1', './cli/test.mjs'], 0],
+        [['test', '--log-level', 'x', './cli/test.mjs'], 1],
+        # all the flags
+        [['test', '--pmap', 'pmap.json', '--cwd', './cli', '--mem-stats', '--show-opcodes', '--show-regexp-opcodes', '--log-level', '1', 'test.mjs'], 0],
+        # missing FILE
+        [['test'], 1],
+        # args after FILE
+        [['test', './cli/test.mjs', '--log-level', '3'], 1],
+        # command: run
+        [['run', '--help'], 0],
+        [['run', '-h'], 0],
+        # run file
+        [['run', './cli/run.js'], 0],
+        [['run', '--loader', 'module', './cli/run.js'], 0],
+        [['run', '--loader', 'commonjs', './cli/run.js'], 0],
+        [['run', '--loader', 'strict', './cli/run.js'], 0],
+        [['run', '--loader', 'sloppy', './cli/run.js'], 0],
+        [['run', '--loader', 'xxx', './cli/run.js'], 1],
+        # require, import, preload
+        [['run', '--require', './cli/run-a.cjs', './cli/run.js'], 0],
+        [['run', '--require', './cli/run-a.mjs', './cli/run.js'], 1],
+        [['run', '--import', './cli/run-a.mjs', './cli/run.js'], 0],
+        [['run', '--import', './cli/run-a.mjs', '--import', './cli/run-b.mjs', './cli/run.js'], 0],
+        [['run', '--import', './cli/run-a.cjs', '--import', './cli/run-b.cjs', './cli/run.js'], 0],
+        [['run', '--preload', './cli/run-c.js', './cli/run.js'], 0],
+        [['run', '--preload-strict', './cli/run-c.js', './cli/run.js'], 0],
+        [['run', '--preload-sloppy', './cli/run-c.js', './cli/run.js'], 0],
+        [['run', '--require', 'file-not-found', './cli/run.js'], 1],
+        [['run', '--import', 'file-not-found', './cli/run.js'], 1],
+        [['run', '--preload', 'file-not-found', './cli/run.js'], 1],
+        [['run', '--preload-strict', 'file-not-found', './cli/run.js'], 1],
+        [['run', '--preload-sloppy', 'file-not-found', './cli/run.js'], 1],
+        # individual flags
+        [['run', '--pmap', './cli/pmap.json', './cli/run.js'], 0],
+        [['run', '--loader', 'module', './cli/run.js'], 0],
+        [['run', '--loader', 'commonjs', './cli/run.cjs'], 0],
+        [['run', '--loader', 'xxx', './cli/run.js'], 1],
+        [['run', '--cwd', './cli', 'run.js'], 0],
+        [['run', '--cwd', 'file-not-found', 'run.js'], 1],
+        [['run', '--mem-stats', './cli/run.js'], 0],
+        [['run', '--show-opcodes', './cli/run.js'], 0],
+        [['run', '--show-regexp-opcodes', './cli/run.js'], 0],
+        [['run', '--log-level', '1', './cli/run.js'], 0],
+        [['run', '--log-level', 'x', './cli/run.js'], 1],
+    ]
+
+    i = 1
+    suite_success = True
+
+    for test in suite:
+        (commands, expected_return_code) = test
+
+        runnable = ([execution_runtime] if execution_runtime else [])
+        runnable.extend([get_binary_path(build_dir_path)])
+        runnable.extend(commands)
+
+        kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
+        proc = subprocess.Popen(runnable, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=settings.TESTS_DIR, **kwargs) # , env=env
+
+        stdout = proc.communicate()[0]
+        ret = proc.returncode
+        test_passed = (ret == expected_return_code)
+
+        if not options.quiet or not test_passed:
+            util.print_test_result(i, len(suite), test_passed, ('PASS' if test_passed else 'FAIL') + ': jjs ' + ' '.join(commands), '')
+
+        if not test_passed:
+            print(stdout)
+            suite_success = False
+
+        i += 1
+
+    return 0 if suite_success else 1
+
 Check = collections.namedtuple('Check', ['enabled', 'runner', 'arg'])
 
 def main(options):
@@ -542,6 +648,7 @@ def main(options):
         Check(options.test262, run_test262_test_suite, options),
         Check(options.unittests, run_unittests, options),
         Check(options.buildoption_test, run_buildoption_test, options),
+        Check(options.jjs_cli_tests, run_cli_tests, options),
     ]
 
     for check in checks:

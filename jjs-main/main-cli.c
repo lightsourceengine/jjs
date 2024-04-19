@@ -638,7 +638,7 @@ read_common_option (cli_common_options_t *options, int index, int argc, char **a
     }
     else
     {
-      printf ("--pmap arg missing FILE");
+      printf ("--pmap arg missing FILE\n");
       return READ_COMMON_OPTION_ERROR;
     }
   }
@@ -651,7 +651,7 @@ read_common_option (cli_common_options_t *options, int index, int argc, char **a
     }
     else
     {
-      printf ("--cwd arg missing FILE");
+      printf ("--cwd arg missing FILE\n");
       return READ_COMMON_OPTION_ERROR;
     }
   }
@@ -669,13 +669,13 @@ read_common_option (cli_common_options_t *options, int index, int argc, char **a
       }
       else
       {
-        printf ("--log-level expects a number [0,3] got %s", next);
+        printf ("--log-level expects a number [0,3] got %s\n", next);
         return READ_COMMON_OPTION_ERROR;
       }
     }
     else
     {
-      printf ("--log-level arg missing FILE");
+      printf ("--log-level arg missing FILE\n");
       return READ_COMMON_OPTION_ERROR;
     }
   }
@@ -821,7 +821,7 @@ done:
 static int
 run (int argc, char **argv)
 {
-  cli_js_loader_t main_loader = CLI_JS_LOADER_UNKNOWN;
+  cli_js_loader_t main_loader = CLI_JS_LOADER_MODULE;
   int i = 0;
   int exit_code = EXIT_SUCCESS;
   cli_execution_plan_t plan;
@@ -833,7 +833,19 @@ run (int argc, char **argv)
   {
     const char *next = i + 1 < argc ? argv[i + 1] : NULL;
 
-    if (strcmp (argv[i], "--require") == 0)
+    if (strcmp (argv[i], "--loader") == 0)
+    {
+      if (i + 1 < argc)
+      {
+        main_loader = cli_js_loader_from_string (argv[++i]);
+      }
+      else
+      {
+        exit_code = EXIT_FAILURE;
+        goto done;
+      }
+    }
+    else if (strcmp (argv[i], "--require") == 0)
     {
       if (next)
       {
@@ -842,7 +854,7 @@ run (int argc, char **argv)
       }
       else
       {
-        printf ("--require arg missing FILE");
+        printf ("--require arg missing FILE\n");
         exit_code = EXIT_FAILURE;
         goto done;
       }
@@ -856,7 +868,7 @@ run (int argc, char **argv)
       }
       else
       {
-        printf ("--import arg missing FILE");
+        printf ("--import arg missing FILE\n");
         exit_code = EXIT_FAILURE;
         goto done;
       }
@@ -870,7 +882,7 @@ run (int argc, char **argv)
       }
       else
       {
-        printf ("--preload arg missing FILE");
+        printf ("--preload arg missing FILE\n");
         exit_code = EXIT_FAILURE;
         goto done;
       }
@@ -884,7 +896,7 @@ run (int argc, char **argv)
       }
       else
       {
-        printf ("--preload-sloppy arg missing FILE");
+        printf ("--preload-sloppy arg missing FILE\n");
         exit_code = EXIT_FAILURE;
         goto done;
       }
@@ -898,7 +910,7 @@ run (int argc, char **argv)
       }
       else
       {
-        printf ("--preload-snapshot arg missing FILE");
+        printf ("--preload-snapshot arg missing FILE\n");
         exit_code = EXIT_FAILURE;
         goto done;
       }
@@ -926,7 +938,7 @@ run (int argc, char **argv)
         }
         else
         {
-          printf ("FILE must be the last arg of run.");
+          printf ("FILE must be the last arg of run.\n");
           exit_code = EXIT_FAILURE;
           goto done;
         }
@@ -971,7 +983,7 @@ done:
 static int
 test (int argc, char **argv)
 {
-  cli_js_loader_t loader = CLI_JS_LOADER_UNKNOWN;
+  cli_js_loader_t loader = CLI_JS_LOADER_MODULE;
   int i = 0;
   int exit_code = EXIT_SUCCESS;
   bool vm_cleanup = false;
@@ -1017,7 +1029,7 @@ test (int argc, char **argv)
         }
         else
         {
-          printf ("FILE must be the last arg of test.");
+          printf ("FILE must be the last arg of test.\n");
           exit_code = EXIT_FAILURE;
           goto done;
         }
@@ -1089,15 +1101,36 @@ main (int argc, char **argv)
 
   if (strcmp (first, "run") == 0)
   {
-    return run (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
+    int exit_code = run (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
+
+    if (exit_code != EXIT_SUCCESS)
+    {
+      print_command_help (first);
+    }
+
+    return exit_code;
   }
   else if (strcmp (first, "repl") == 0)
   {
-    return repl (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
+    int exit_code = repl (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
+
+    if (exit_code != EXIT_SUCCESS)
+    {
+      print_command_help (first);
+    }
+
+    return exit_code;
   }
   else if (strcmp (first, "test") == 0)
   {
-    return test (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
+    int exit_code = test (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
+
+    if (exit_code != EXIT_SUCCESS)
+    {
+      print_command_help (first);
+    }
+
+    return exit_code;
   }
   else if (strcmp (first, "-v") == 0 || strcmp (first, "--version") == 0)
   {
@@ -1113,6 +1146,6 @@ main (int argc, char **argv)
   {
     printf ("Invalid command: %s\n\n", first);
     print_help ();
-    return 1;
+    return EXIT_FAILURE;
   }
 }

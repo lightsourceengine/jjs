@@ -26,6 +26,8 @@ STATICVM_CPOINTER16=--buildoptions=${COMMON_BUILDOPTIONS},--vm-heap-static=ON,--
 DYNAMICVM_CPOINTER32=--buildoptions=${COMMON_BUILDOPTIONS},--vm-heap-static=OFF,--vm-stack-static=OFF,--cpointer-32bit=ON
 STATICVM_CPOINTER32=--buildoptions=${COMMON_BUILDOPTIONS},--vm-heap-static=ON,--vm-stack-static=ON,--cpointer-32bit=ON
 
+./tools/run-tests.py -q --jjs-cli-tests --buildoptions=${COMMON_BUILDOPTIONS},--mem-stress-test=off ${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}
+
 ./tools/run-tests.py -q --unittests ${BUILD_TYPE} ${DYNAMICVM_CPOINTER16} ${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}
 ./tools/run-tests.py -q --unittests ${BUILD_TYPE} ${DYNAMICVM_CPOINTER32} ${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}
 ./tools/run-tests.py -q --unittests ${BUILD_TYPE} ${STATICVM_CPOINTER16} ${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}

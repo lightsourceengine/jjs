@@ -92,8 +92,6 @@ def get_arguments():
                           help='increase verbosity')
 
     compgrp = parser.add_argument_group('optional components')
-    compgrp.add_argument('--doctests', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help=devhelp('build doctests (%(choices)s)'))
     compgrp.add_argument('--jjs-cmdline', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build jjs command line tool (%(choices)s)')
     compgrp.add_argument('--jjs-cmdline-snapshot', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -152,8 +150,6 @@ def get_arguments():
                          help='enable executing snapshot files (%(choices)s)')
     coregrp.add_argument('--snapshot-save', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable saving snapshot files (%(choices)s)')
-    coregrp.add_argument('--system-allocator', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='enable system allocator (%(choices)s)')
     coregrp.add_argument('--valgrind', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('enable Valgrind support (%(choices)s)'))
     coregrp.add_argument('--vm-exec-stop', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -215,7 +211,6 @@ def generate_build_options(arguments):
     build_options_append('CMAKE_VERBOSE_MAKEFILE', arguments.verbose)
 
     # optional components
-    build_options_append('JJS_DOCTESTS', arguments.doctests)
     build_options_append('JJS_CMDLINE', arguments.jjs_cmdline)
     build_options_append('JJS_CMDLINE_SNAPSHOT', arguments.jjs_cmdline_snapshot)
     build_options_append('JJS_CMDLINE_TEST', arguments.jjs_cmdline_test)
