@@ -13,11 +13,11 @@
 // limitations under the License.
 
 export function getName() {
-  return sourceName();
+  return import.meta.filename;
 }
 
 export function getNamePromise(collector) {
-  return new Promise((resolve) => { collector["start"] = sourceName(); resolve(); })
-    .then(() => { collector["middle"] = sourceName(); });
+  return new Promise((resolve) => { collector["start"] = import.meta.filename; resolve(); })
+    .then(() => { collector["middle"] = import.meta.filename; });
 }
 

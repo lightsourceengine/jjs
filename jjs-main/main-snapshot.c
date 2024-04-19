@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "jjs.h"
 
@@ -752,6 +753,8 @@ main (int argc, /**< number of arguments */
       char **argv) /**< argument list */
 {
   cli_state_t cli_state = cli_init (main_opts, argc, argv);
+
+  srand ((unsigned) time (NULL));
 
   for (int id = cli_consume_option (&cli_state); id != CLI_OPT_END; id = cli_consume_option (&cli_state))
   {

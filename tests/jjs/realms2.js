@@ -17,7 +17,7 @@
 function f1() {
   var ev = createRealm().eval
 
-  gc()
+  jjs.gc()
 
   try {
     ev("5 +")
@@ -39,7 +39,7 @@ function f2() {
 
   str = null
   // No reference to String.prototype
-  gc()
+  jjs.gc()
 
   str = new realm.String("A")
   assert(Object.getPrototypeOf(str).myProperty === "XY")

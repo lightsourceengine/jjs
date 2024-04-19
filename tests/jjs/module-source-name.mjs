@@ -18,7 +18,7 @@ assert(getName().endsWith("module-source-name-export.mjs"));
 
 var collector = {};
 getNamePromise(collector)
-  .then(() => { collector["end"] = sourceName(); })
+  .then(() => { collector["end"] = import.meta.filename; })
 
 queueAsyncAssert(() => {
   assert(collector["start"].endsWith("module-source-name-export.mjs"));

@@ -32,7 +32,9 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static jjs_value_t create_262 (jjs_value_t realm);
 
@@ -207,6 +209,8 @@ main (int argc, char **argv)
   const char *test_filename = NULL;
   bool as_module = false;
   bool from_stdin = false;
+
+  srand ((unsigned) time (NULL));
 
   /* parse arguments */
   for (int i = 0; i < argc; i++)

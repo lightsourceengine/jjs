@@ -26,7 +26,7 @@ assert (weak_ref2.deref() !== not_target_obj);
 assert (weak_ref2.deref() === weak_ref2.deref());
 
 target_obj = undefined;
-gc();
+jjs.gc();
 
 assert (weak_ref.deref() === undefined);
 assert (weak_ref2.deref() === undefined);
@@ -54,16 +54,16 @@ assert(weak_map.get(key_obj_2).deref() === target_obj_2);
 assert(weak_map.get(key_obj_3).deref() === target_obj_3);
 
 key_obj_1 = undefined;
-gc();
+jjs.gc();
 assert(weak_map.get(key_obj_1) === undefined);
 assert(weak_ref_3.deref() === undefined);
 
 key_obj_2 = undefined;
-gc();
+jjs.gc();
 assert(weak_map.get(key_obj_2) === undefined);
 assert(weak_ref_4.deref() === target_obj_2);
 
 target_obj_3 = undefined;
-gc();
+jjs.gc();
 assert(weak_map.get(key_obj_3) !== undefined);
 assert(weak_ref_5.deref() === undefined);

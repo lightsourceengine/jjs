@@ -20,7 +20,7 @@ assert (m1.add (k1) instanceof WeakSet);
 assert (m1.has (k1) === true);
 
 k1 = {};
-gc (); /* This will remove the entry, but there is no way to validate it from js. */
+jjs.gc (); /* This will remove the entry, but there is no way to validate it from js. */
 
 assert (m1.has (k1) === false);
 assert (m1.delete(k1) === false);
@@ -37,23 +37,23 @@ try {
   assert (e instanceof TypeError);
 }
 
-gc ();
+jjs.gc ();
 assert (m1.delete(k1) === true);
-gc ();
+jjs.gc ();
 assert (m1.has (k1) === false);
 k1 = {};
-gc ();
+jjs.gc ();
 
 Object.freeze(k1);
 assert (m1.add (k1) instanceof WeakSet);
 assert (m1.has (k1) === true);
 k1 = {};
-gc ();
+jjs.gc ();
 
 var m2 = new WeakSet();
 
 k1 = {};
-gc ();
+jjs.gc ();
 var k2 = {};
 
 m1.add (k1);
@@ -62,13 +62,13 @@ m2.add (k1);
 m2.add (k2);
 
 m2.delete (k1);
-gc ();
+jjs.gc ();
 k1 = {};
 k2 = {};
-gc ();
+jjs.gc ();
 
 new WeakSet().add(new WeakSet().add(new WeakSet().add(new WeakSet().add(new WeakSet().add(new WeakSet().add(new WeakSet()))))));
-gc();
+jjs.gc();
 
 try {
   WeakSet();
@@ -91,9 +91,9 @@ k2 = {};
 m1 = new WeakSet([k1, k2]);
 assert (m1.has (k1));
 assert (m1.has (k2));
-gc();
+jjs.gc();
 m1 = undefined;
-gc();
+jjs.gc();
 
 m1 = new WeakSet();
 k1 = {};
@@ -102,7 +102,7 @@ m1.add (k1);
 m1.add (k1);
 assert (m1.has (k1));
 k1 = {};
-gc();
+jjs.gc();
 
 m1 = new WeakSet();
 m1.add (k1);
@@ -110,7 +110,7 @@ m1.add (k1);
 m1.add (k1);
 assert (m1.has (k1));
 m1 = new WeakSet();
-gc();
+jjs.gc();
 
 try {
   new WeakSet([1,2,3,4]);
@@ -131,7 +131,7 @@ function createIterable(arr, methods = {}) {
   iterable['throw'] = methods['throw'];
 
   return iterable;
-};
+}
 
 var closed = false;
 var iter = createIterable([1, 2, 3], {

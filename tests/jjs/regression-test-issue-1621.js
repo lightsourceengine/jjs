@@ -13,5 +13,5 @@
 // limitations under the License.
 
 var eval = eval.bind()
-gc();
+jjs.gc();
 eval("1");

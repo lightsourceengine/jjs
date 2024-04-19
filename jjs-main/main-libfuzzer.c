@@ -14,13 +14,14 @@
  */
 
 #include <stdlib.h>
+#include <time.h>
 
 #include "jjs.h"
 
 int
 LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 {
-  srand (0);
+  srand ((unsigned) time (NULL));
   jjs_init_default ();
 
   if (jjs_validate_string ((jjs_char_t *) data, (jjs_size_t) size, JJS_ENCODING_UTF8))

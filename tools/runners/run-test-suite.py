@@ -127,7 +127,7 @@ def run_normal_tests(args, tests):
     if args.runtime:
         test_cmd.append(args.runtime)
 
-    test_cmd.extend([args.engine])
+    test_cmd.extend([args.engine, 'test'])
 
     if args.pmap:
         test_cmd.extend(['--pmap', args.pmap])
@@ -140,9 +140,7 @@ def run_normal_tests(args, tests):
         test_path = os.path.relpath(test)
         is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
 
-        test_argument = ['--test']
-        if test.endswith('.mjs'):
-            test_argument.extend(['-m'])
+        test_argument = ['--loader', 'module' if test.endswith('.mjs') else 'sloppy']
 
         (returncode, stdout) = execute_test_command(test_cmd + test_argument + [test], args.test_dir)
 
@@ -168,10 +166,12 @@ def run_snapshot_tests(args, tests):
         execute_snapshot_cmd.append(args.runtime)
         generate_snapshot_cmd.append(args.runtime)
 
-    execute_snapshot_cmd.extend([args.engine, '--exec-snapshot', 'js.snapshot', '--test'])
+    execute_snapshot_cmd = [args.engine, 'test']
 
     if args.pmap:
         execute_snapshot_cmd.extend(['--pmap', args.pmap])
+
+    execute_snapshot_cmd.extend(['--loader', 'snapshot', 'js.snapshot'])
 
     # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
     engine = os.path.splitext(args.engine)

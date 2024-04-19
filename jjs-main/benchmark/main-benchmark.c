@@ -16,9 +16,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "jjs.h"
-#include "../cmdline.h"
 
 /**
  * Maximum size of source code / snapshots buffer
@@ -225,7 +225,7 @@ stack_usage (uint32_t *stack_top_p, size_t length_in_bytes)
 int
 main (int main_argc, char **main_argv)
 {
-  cmdline_srand_init ();
+  srand ((unsigned) time (NULL));
 
   argc = main_argc;
   argv = main_argv;

@@ -67,13 +67,7 @@ endif()
 if(JJS_CMDLINE)
   jjs_create_executable(
       "jjs"
-      "main-desktop.c"
-      "arguments/options.c"
-      "arguments/cli.c"
-      "main-desktop-lib.c"
-      "cmdline.c"
-      "cmdline-win.c"
-      "cmdline-unix.c"
+      "main-cli.c"
   )
   target_include_directories("jjs" PRIVATE "${INCLUDE_PACK_PUBLIC}")
   target_link_libraries("jjs" jjs-ext)
@@ -84,9 +78,6 @@ if(JJS_CMDLINE_TEST)
       "jjs-test"
       "benchmark/main-benchmark.c"
       "benchmark/stubs.c"
-      "cmdline.c"
-      "cmdline-win.c"
-      "cmdline-unix.c"
   )
   if (JJS_TEST_STACK_MEASURE)
     target_compile_definitions("jjs-test" PRIVATE -DJJS_TEST_STACK_MEASURE=1)
@@ -98,9 +89,6 @@ if(JJS_CMDLINE_SNAPSHOT)
       "jjs-snapshot"
       "main-snapshot.c"
       "arguments/cli.c"
-      "cmdline.c"
-      "cmdline-win.c"
-      "cmdline-unix.c"
   )
 endif()
 
@@ -108,9 +96,5 @@ if(JJS_CMDLINE_TEST262)
   jjs_create_executable(
       "jjs-test262"
       "main-test262.c"
-      "arguments/cli.c"
-      "cmdline.c"
-      "cmdline-win.c"
-      "cmdline-unix.c"
   )
 endif()
