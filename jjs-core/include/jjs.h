@@ -24,7 +24,7 @@
 /**
  * Minor version of JJS API.
  */
-#define JJS_API_MINOR_VERSION 5
+#define JJS_API_MINOR_VERSION 6
 
 /**
  * Patch version of JJS API.
