@@ -262,7 +262,7 @@ cli_execution_plan_run (cli_execution_plan_t *plan)
                                           .user_value = resolved_filename,
                                           .options = JJS_PARSE_HAS_SOURCE_NAME | JJS_PARSE_HAS_USER_VALUE };
 
-          if (plan->executables[i].loader == JJS_PARSE_STRICT_MODE)
+          if (plan->executables[i].loader == CLI_JS_LOADER_STRICT)
           {
             options.options |= JJS_PARSE_STRICT_MODE;
           }
@@ -342,6 +342,12 @@ cli_js_loader_from_string (const char *value)
   {
     return CLI_JS_LOADER_UNKNOWN;
   }
+}
+
+static bool
+set_cwd (const char *cwd)
+{
+  return cwd ? chdir (cwd) == 0 : true;
 }
 
 static jjs_char_t *
@@ -687,6 +693,7 @@ static int
 repl (int argc, char **argv)
 {
   int i = 0;
+  cli_common_options_t options = { 0 };
 
   while (i < argc)
   {
@@ -697,7 +704,6 @@ repl (int argc, char **argv)
     }
     else
     {
-      cli_common_options_t options;
       int offset = read_common_option (&options, i, argc, argv);
 
       if (offset == READ_COMMON_OPTION_ERROR)
@@ -715,6 +721,11 @@ repl (int argc, char **argv)
     }
 
     i++;
+  }
+
+  if (!set_cwd (options.cwd_filename))
+  {
+    return EXIT_FAILURE;
   }
 
   if (jjs_init_default () != JJS_STATUS_OK)
@@ -935,9 +946,10 @@ run (int argc, char **argv)
     goto done;
   }
 
-  if (options.cwd_filename)
+  if (!set_cwd (options.cwd_filename))
   {
-    chdir (options.cwd_filename);
+    exit_code = EXIT_FAILURE;
+    goto done;
   }
 
   if (init_engine (&options))
@@ -1020,6 +1032,12 @@ test (int argc, char **argv)
   }
 
   if (plan.size == 0)
+  {
+    exit_code = EXIT_FAILURE;
+    goto done;
+  }
+
+  if (!set_cwd (options.cwd_filename))
   {
     exit_code = EXIT_FAILURE;
     goto done;
