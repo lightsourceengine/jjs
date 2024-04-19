@@ -353,7 +353,7 @@ set_cwd (const char *cwd)
 static jjs_char_t *
 stdin_readline (jjs_size_t *out_size_p)
 {
-  static const size_t READ_SIZE = 1024;
+  static const jjs_size_t READ_SIZE = 1024;
 
   jjs_size_t capacity = READ_SIZE;
   char *line_p = malloc (capacity);
