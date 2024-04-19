@@ -15,7 +15,7 @@
 
 #include "jjs-debugger-transport.h"
 
-#include "jjs-ext/debugger.h"
+#include "debugger.h"
 #include "jext-common.h"
 
 #if (defined(JJS_DEBUGGER) && (JJS_DEBUGGER == 1)) && !defined _WIN32

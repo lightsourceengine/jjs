@@ -41,10 +41,7 @@ LICENSE = re.compile(
 INCLUDE_DIRS = [
     'cmake',
     'jjs-core',
-    'jjs-ext',
-    'jjs-math',
     'jjs-main',
-    'jjs-port',
     'tests',
     'tools',
 ]

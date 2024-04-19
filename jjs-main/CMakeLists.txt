@@ -65,12 +65,29 @@ endif()
 
 # JJS standalones
 if(JJS_CMDLINE)
+  set(JJS_CMDLINE_SOURCES main-cli.c)
+
+  if (JJS_DEBUGGER)
+    list(APPEND JJS_CMDLINE_SOURCES
+      debugger/debugger-common.c
+      debugger/debugger-rp.c
+      debugger/debugger-serial.c
+      debugger/debugger-sha1.c
+      debugger/debugger-tcp.c
+      debugger/debugger-ws.c
+    )
+  endif()
+
   jjs_create_executable(
-      "jjs"
-      "main-cli.c"
+      jjs
+      ${JJS_CMDLINE_SOURCES}
   )
   target_include_directories("jjs" PRIVATE "${INCLUDE_PACK_PUBLIC}")
-  target_link_libraries("jjs" jjs-ext)
+  target_include_directories("jjs" PRIVATE "debugger")
+
+  if("${PLATFORM}" STREQUAL "WINDOWS")
+    target_link_libraries(jjs ws2_32)
+  endif()
 endif()
 
 if(JJS_CMDLINE_TEST)

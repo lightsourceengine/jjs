@@ -14,7 +14,7 @@
  */
 
 #include "debugger-sha1.h"
-#include "jjs-ext/debugger.h"
+#include "debugger.h"
 #include "jext-common.h"
 
 #if defined(JJS_DEBUGGER) && (JJS_DEBUGGER == 1)

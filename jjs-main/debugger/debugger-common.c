@@ -15,7 +15,7 @@
 
 #include <assert.h>
 
-#include "jjs-ext/debugger.h"
+#include "debugger.h"
 #include "jext-common.h"
 
 /**

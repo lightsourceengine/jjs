@@ -23,13 +23,10 @@ else
 fi
 
 JJS_CORE_DIRS=`find jjs-core -type d`
-JJS_EXT_DIRS=`find jjs-ext -type d`
-JJS_PORT_DIRS=`find jjs-port -type d`
-JJS_MATH_DIRS=`find jjs-math -type d`
 
 
 INCLUDE_DIRS=()
-for DIR in $JJS_CORE_DIRS $JJS_EXT_DIRS $JJS_PORT_DIRS $JJS_MATH_DIRS
+for DIR in $JJS_CORE_DIRS
 do
   INCLUDE_DIRS=("${INCLUDE_DIRS[@]}" "-I$DIR")
 done
@@ -46,4 +43,4 @@ cppcheck -j$CPPCHECK_JOBS --force \
   --exitcode-suppressions=tools/cppcheck/suppressions-list \
   --suppressions-list=tools/cppcheck/suppressions-list \
   "${INCLUDE_DIRS[@]}" \
-  jjs-core jjs-ext jjs-port jjs-math jjs-main tests/unit-*
+  jjs-core jjs-main tests/unit-*

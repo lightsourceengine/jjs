@@ -58,8 +58,6 @@ set(JJS_CMDLINE_TEST          OFF CACHE BOOL "Build JJS test command line tool?"
 set(JJS_CMDLINE_SNAPSHOT      OFF CACHE BOOL "Build JJS snapshot command line tool?")
 set(JJS_CMDLINE_TEST262       OFF CACHE BOOL "Build JJS command line tool for executing test262 tests?")
 set(JJS_LIBFUZZER             OFF CACHE BOOL "Build JJS with libfuzzer support?")
-set(JJS_EXT                   OFF CACHE BOOL "Build jjs-ext?")
-set(JJS_EXT_DEBUGGER          OFF CACHE BOOL "Build jjs-ext debugger support?")
 set(JJS_PACK                  OFF CACHE BOOL "Build jjs-pack?")
 set(JJS_UNITTESTS             OFF CACHE BOOL "Build unit tests?")
 
@@ -75,14 +73,6 @@ if(NOT USING_CLANG)
   set(JJS_LIBFUZZER OFF)
 
   set(JJS_LIBFUZZER_MESSAGE " (FORCED BY COMPILER)")
-endif()
-
-if(JJS_CMDLINE)
-  set(JJS_EXT ON)
-  set(JJS_EXT_MESSAGE " (FORCED BY CMDLINE OR TESTS)")
-
-  set(JJS_EXT_DEBUGGER ON)
-  set(JJS_EXT_DEBUGGER_MESSAGE " (FORCED BY CMDLINE OR TESTS)")
 endif()
 
 if("${PLATFORM}" STREQUAL "DARWIN")
@@ -137,8 +127,6 @@ message(STATUS "JJS_CMDLINE                     " ${JJS_CMDLINE} ${JJS_CMDLINE_M
 message(STATUS "JJS_CMDLINE_TEST                " ${JJS_CMDLINE_TEST} ${JJS_CMDLINE_TEST_MESSAGE})
 message(STATUS "JJS_CMDLINE_SNAPSHOT            " ${JJS_CMDLINE_SNAPSHOT} ${JJS_CMDLINE_SNAPSHOT_MESSAGE})
 message(STATUS "JJS_LIBFUZZER                   " ${JJS_LIBFUZZER} ${JJS_LIBFUZZER_MESSAGE})
-message(STATUS "JJS_EXT                         " ${JJS_EXT} ${JJS_EXT_MESSAGE})
-message(STATUS "JJS_EXT_DEBUGGER                " ${JJS_EXT_DEBUGGER} ${JJS_EXT_DEBUGGER_MESSAGE})
 message(STATUS "JJS_PACK                        " ${JJS_PACK} ${JJS_PACK_MESSAGE})
 message(STATUS "JJS_UNITTESTS                   " ${JJS_UNITTESTS})
 message(STATUS "JJS_EXTERNAL_LINKER_FLAGS       " ${JJS_EXTERNAL_LINKER_FLAGS})
@@ -266,11 +254,6 @@ add_custom_target(amalgam)
 # JJS's core
 add_subdirectory(jjs-core)
 
-# JJS's extension tools
-if(JJS_EXT)
-  add_subdirectory(jjs-ext)
-endif()
-
 # JJS's pack(age) implementation, containing Web API and other JS API that
 # sit at a layer above ECMA and the VM.
 if(JJS_PACK)
@@ -285,7 +268,4 @@ endif()
 # Unittests
 if(JJS_UNITTESTS)
   add_subdirectory(tests/unit-core)
-  if(JJS_EXT)
-    add_subdirectory(tests/unit-ext)
-  endif()
 endif()

@@ -70,8 +70,6 @@ OPTIONS_UNITTESTS = [
     '--vm-throw=on',
     '--mem-stats=on',
     '--promise-callback=on',
-    '--jjs-ext=on',
-    '--jjs-ext-debugger=on',
     '--line-info=on',
 ]
 OPTIONS_PROMISE_CALLBACK = ['--promise-callback=on']
