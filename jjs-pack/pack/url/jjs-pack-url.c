@@ -24,16 +24,17 @@ extern const uint32_t jjs_pack_url_snapshot_len;
 #endif /* JJS_PACK_URL */
 
 jjs_value_t
-jjs_pack_url_init (void)
+jjs_pack_url_init (jjs_context_t *context_p)
 {
 #if JJS_PACK_URL
-  jjs_value_t exports = jjs_pack_lib_read_exports (jjs_pack_url_snapshot,
+  jjs_value_t exports = jjs_pack_lib_read_exports (context_p,
+                                                   jjs_pack_url_snapshot,
                                                    jjs_pack_url_snapshot_len,
-                                                   jjs_undefined(),
+                                                   jjs_undefined (context_p),
                                                    JJS_MOVE,
                                                    JJS_PACK_LIB_EXPORTS_FORMAT_VMOD);
-  return jjs_vmod_sz ("jjs:url", exports, JJS_MOVE);
+  return jjs_vmod_sz (context_p, "jjs:url", exports, JJS_MOVE);
 #else /* !JJS_PACK_URL */
-  return jjs_throw_sz (JJS_ERROR_COMMON, "url pack is not enabled");
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "url pack is not enabled");
 #endif /* JJS_PACK_URL */
 } /* jjs_pack_url_init */

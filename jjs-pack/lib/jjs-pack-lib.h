@@ -24,29 +24,30 @@ typedef enum jjs_pack_lib_exports_format_t
   JJS_PACK_LIB_EXPORTS_FORMAT_OBJECT,
 } jjs_pack_lib_exports_format_t;
 
-jjs_value_t jjs_pack_console_init (void);
-jjs_value_t jjs_pack_domexception_init (void);
-jjs_value_t jjs_pack_fs_init (void);
-jjs_value_t jjs_pack_path_init (void);
-jjs_value_t jjs_pack_performance_init (void);
-jjs_value_t jjs_pack_text_init (void);
-jjs_value_t jjs_pack_url_init (void);
+jjs_value_t jjs_pack_console_init (jjs_context_t *context_p);
+jjs_value_t jjs_pack_domexception_init (jjs_context_t *context_p);
+jjs_value_t jjs_pack_fs_init (jjs_context_t *context_p);
+jjs_value_t jjs_pack_path_init (jjs_context_t *context_p);
+jjs_value_t jjs_pack_performance_init (jjs_context_t *context_p);
+jjs_value_t jjs_pack_text_init (jjs_context_t *context_p);
+jjs_value_t jjs_pack_url_init (jjs_context_t *context_p);
 
-jjs_value_t jjs_pack_lib_main (uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, jjs_value_ownership_t bindings_o);
+jjs_value_t jjs_pack_lib_main (jjs_context_t *context_p, uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, jjs_value_ownership_t bindings_o);
 
-jjs_value_t jjs_pack_lib_main_vmod (const char* package_name, jjs_external_handler_t vmod_callback);
+jjs_value_t jjs_pack_lib_main_vmod (jjs_context_t *context_p, const char* package_name, jjs_external_handler_t vmod_callback);
 
-jjs_value_t jjs_pack_lib_read_exports (uint8_t* source,
+jjs_value_t jjs_pack_lib_read_exports (jjs_context_t *context_p,
+                                       uint8_t* source,
                                        jjs_size_t source_size,
                                        jjs_value_t bindings,
                                        jjs_value_ownership_t bindings_o,
                                        jjs_pack_lib_exports_format_t exports_format);
 
-#define jjs_bindings() jjs_object ()
-void jjs_bindings_function (jjs_value_t bindings, const char* name, jjs_external_handler_t function_p);
-void jjs_bindings_value (jjs_value_t bindings, const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
+#define jjs_bindings(CTX) jjs_object (CTX)
+void jjs_bindings_function (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_external_handler_t function_p);
+void jjs_bindings_value (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
 
-uint64_t jjs_pack_platform_hrtime (void);
+uint64_t jjs_pack_platform_hrtime (jjs_context_t *context_p);
 double jjs_pack_platform_date_now (void);
 
 #define JJS_UNUSED(x) (void) (x)
@@ -59,16 +60,16 @@ double jjs_pack_platform_date_now (void);
   JJS_UNUSED (args_p);       \
   JJS_UNUSED (args_cnt)
 
-#define JJS_READ_STRING(IDENT, VALUE, SSIZE)                                                        \
+#define JJS_READ_STRING(CTX, IDENT, VALUE, SSIZE)                                                   \
   uint8_t IDENT##_stack_buffer[SSIZE];                                                              \
   uint8_t* IDENT##_p;                                                                               \
   bool IDENT##_free_buffer;                                                                         \
-  jjs_size_t IDENT##_size = jjs_string_size (VALUE, JJS_ENCODING_UTF8);                             \
+  jjs_size_t IDENT##_size = jjs_string_size ((CTX), VALUE, JJS_ENCODING_UTF8);                      \
                                                                                                     \
   if (IDENT##_size < (SSIZE))                                                                       \
   {                                                                                                 \
     jjs_size_t IDENT##_written =                                                                    \
-      jjs_string_to_buffer (VALUE, JJS_ENCODING_UTF8, &IDENT##_stack_buffer[0], (SSIZE) -1u);       \
+      jjs_string_to_buffer ((CTX), VALUE, JJS_ENCODING_UTF8, &IDENT##_stack_buffer[0], (SSIZE) -1u);\
     IDENT##_stack_buffer[IDENT##_written] = '\0';                                                   \
     IDENT##_p = &IDENT##_stack_buffer[0];                                                           \
     IDENT##_free_buffer = false;                                                                    \
@@ -76,7 +77,8 @@ double jjs_pack_platform_date_now (void);
   else                                                                                              \
   {                                                                                                 \
     IDENT##_p = malloc ((SSIZE) + 1u);                                                              \
-    jjs_size_t IDENT##_written = jjs_string_to_buffer (VALUE, JJS_ENCODING_UTF8, IDENT##_p, SSIZE); \
+    jjs_size_t IDENT##_written = jjs_string_to_buffer (                                             \
+      (CTX), VALUE, JJS_ENCODING_UTF8, IDENT##_p, SSIZE);                                           \
     IDENT##_p[IDENT##_written] = '\0';                                                              \
     IDENT##_free_buffer = true;                                                                     \
   }
@@ -87,14 +89,14 @@ double jjs_pack_platform_date_now (void);
     free (IDENT##_p);               \
   }
 
-#define JJS_ARG(IDENT, INDEX, EXPECT)                                        \
-  jjs_value_t IDENT = args_cnt > (INDEX) ? args_p[INDEX] : jjs_undefined (); \
-  do                                                                         \
-  {                                                                          \
-    if (!EXPECT (IDENT))                                                     \
-    {                                                                        \
-      return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid argument.");             \
-    }                                                                        \
+#define JJS_ARG(CTX, IDENT, INDEX, EXPECT)                                        \
+  jjs_value_t IDENT = args_cnt > (INDEX) ? args_p[INDEX] : jjs_undefined (CTX);   \
+  do                                                                              \
+  {                                                                               \
+    if (!EXPECT ((CTX), IDENT))                                                   \
+    {                                                                             \
+      return jjs_throw_sz ((CTX), JJS_ERROR_TYPE, "Invalid argument.");           \
+    }                                                                             \
   } while (0)
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)

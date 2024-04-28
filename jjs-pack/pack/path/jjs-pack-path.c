@@ -27,13 +27,16 @@ extern const uint32_t jjs_pack_path_snapshot_len;
 static JJS_HANDLER (jjs_pack_path_env)
 {
   JJS_HANDLER_HEADER ();
+  jjs_context_t *context_p = call_info_p->context_p;
+
   if (args_cnt == 0)
   {
-    return jjs_undefined ();
+    return jjs_undefined (context_p);
   }
 
   uint8_t buffer[256];
-  jjs_size_t written = jjs_string_to_buffer (args_p[0],
+  jjs_size_t written = jjs_string_to_buffer (context_p,
+                                             args_p[0],
                                              JJS_ENCODING_UTF8,
                                              &buffer[0],
                                              (jjs_size_t) (sizeof (buffer) / sizeof (buffer[0])) - 1);
@@ -41,22 +44,19 @@ static JJS_HANDLER (jjs_pack_path_env)
 
   char* value = getenv ((const char*) buffer);
 
-  if (value == NULL)
-  {
-    return jjs_string_sz ("");
-  }
-
-  return jjs_string ((const jjs_char_t*) value, (jjs_size_t) strlen (value), JJS_ENCODING_UTF8);
+  return jjs_string_utf8_sz (context_p, value ? value : "");
 } /* jjs_pack_path_env */
 
 static JJS_HANDLER (jjs_pack_lib_path_vmod_callback)
 {
   JJS_HANDLER_HEADER ();
-  jjs_value_t bindings = jjs_bindings ();
+  jjs_context_t *context_p = call_info_p->context_p;
+  jjs_value_t bindings = jjs_bindings (context_p);
 
-  jjs_bindings_function (bindings, "env", &jjs_pack_path_env);
+  jjs_bindings_function (context_p, bindings, "env", &jjs_pack_path_env);
 
-  return jjs_pack_lib_read_exports (jjs_pack_path_snapshot,
+  return jjs_pack_lib_read_exports (context_p,
+                                    jjs_pack_path_snapshot,
                                     jjs_pack_path_snapshot_len,
                                     bindings,
                                     JJS_MOVE,
@@ -66,11 +66,11 @@ static JJS_HANDLER (jjs_pack_lib_path_vmod_callback)
 #endif /* JJS_PACK_PATH */
 
 jjs_value_t
-jjs_pack_path_init (void)
+jjs_pack_path_init (jjs_context_t *context_p)
 {
 #if JJS_PACK_PATH
-  return jjs_pack_lib_main_vmod ("jjs:path", jjs_pack_lib_path_vmod_callback);
+  return jjs_pack_lib_main_vmod (context_p, "jjs:path", jjs_pack_lib_path_vmod_callback);
 #else /* !JJS_PACK_PATH */
-  return jjs_throw_sz (JJS_ERROR_COMMON, "path pack is not enabled");
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "path pack is not enabled");
 #endif /* JJS_PACK_PATH */
 } /* jjs_pack_path_init */

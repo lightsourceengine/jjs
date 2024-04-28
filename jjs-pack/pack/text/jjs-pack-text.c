@@ -27,7 +27,7 @@
 extern uint8_t jjs_pack_text_snapshot[];
 extern const uint32_t jjs_pack_text_snapshot_len;
 
-static bool jjs_pack_text_arraybuffer (jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size_t* buffer_size_p);
+static bool jjs_pack_text_arraybuffer (jjs_context_t *context_p, jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size_t* buffer_size_p);
 static bool utf8_has_bom (const uint8_t* buffer, uint32_t length);
 static uint32_t utf8_length_unsafe (const uint8_t* buffer, uint32_t size);
 static uint32_t utf8_decode (uint32_t* state, uint32_t* codep, uint32_t byte);
@@ -37,9 +37,10 @@ static void utf8_copy_with_replacements (const uint8_t* data, uint32_t data_size
 static JJS_HANDLER (jjs_pack_text_encode)
 {
   JJS_HANDLER_HEADER ();
-  jjs_value_t value = args_cnt > 0 ? args_p[0] : jjs_undefined ();
-  jjs_size_t size = jjs_string_size (value, JJS_ENCODING_UTF8);
-  jjs_value_t result = jjs_typedarray (JJS_TYPEDARRAY_UINT8, size);
+  jjs_context_t *context_p = call_info_p->context_p;
+  jjs_value_t value = args_cnt > 0 ? args_p[0] : jjs_undefined (context_p);
+  jjs_size_t size = jjs_string_size (context_p, value, JJS_ENCODING_UTF8);
+  jjs_value_t result = jjs_typedarray (context_p, JJS_TYPEDARRAY_UINT8, size);
 
   if (size == 0)
   {
@@ -49,14 +50,14 @@ static JJS_HANDLER (jjs_pack_text_encode)
   uint8_t* buffer_p;
   jjs_size_t buffer_size;
 
-  if (jjs_pack_text_arraybuffer (result, &buffer_p, &buffer_size))
+  if (jjs_pack_text_arraybuffer (context_p, result, &buffer_p, &buffer_size))
   {
-    jjs_size_t written = jjs_string_to_buffer (value, JJS_ENCODING_UTF8, buffer_p, buffer_size);
+    jjs_size_t written = jjs_string_to_buffer (context_p, value, JJS_ENCODING_UTF8, buffer_p, buffer_size);
 
     if (written != buffer_size)
     {
-      jjs_value_free (result);
-      result = jjs_typedarray (JJS_TYPEDARRAY_UINT8, 0);
+      jjs_value_free (context_p, result);
+      result = jjs_typedarray (context_p, JJS_TYPEDARRAY_UINT8, 0);
     }
   }
 
@@ -66,13 +67,14 @@ static JJS_HANDLER (jjs_pack_text_encode)
 static JJS_HANDLER (jjs_pack_text_encode_into)
 {
   JJS_HANDLER_HEADER ();
-  jjs_value_t value = args_cnt > 0 ? args_p[0] : jjs_undefined ();
-  jjs_value_t target = args_cnt > 1 ? args_p[1] : jjs_undefined ();
-  jjs_size_t size = jjs_string_size (value, JJS_ENCODING_UTF8);
+  jjs_context_t *context_p = call_info_p->context_p;
+  jjs_value_t value = args_cnt > 0 ? args_p[0] : jjs_undefined (context_p);
+  jjs_value_t target = args_cnt > 1 ? args_p[1] : jjs_undefined (context_p);
+  jjs_size_t size = jjs_string_size (context_p, value, JJS_ENCODING_UTF8);
 
-  if (!jjs_value_is_typedarray (target) || jjs_typedarray_type (target) != JJS_TYPEDARRAY_UINT8)
+  if (!jjs_value_is_typedarray (context_p, target) || jjs_typedarray_type (context_p, target) != JJS_TYPEDARRAY_UINT8)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "encodeInto(): buffer argument is not a Uint8Array");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "encodeInto(): buffer argument is not a Uint8Array");
   }
 
   uint8_t* buffer_p;
@@ -80,9 +82,9 @@ static JJS_HANDLER (jjs_pack_text_encode_into)
   jjs_size_t written;
   jjs_size_t read;
 
-  if (size > 0 && jjs_pack_text_arraybuffer (target, &buffer_p, &buffer_size))
+  if (size > 0 && jjs_pack_text_arraybuffer (context_p, target, &buffer_p, &buffer_size))
   {
-    written = jjs_string_to_buffer (value, JJS_ENCODING_UTF8, buffer_p, buffer_size);
+    written = jjs_string_to_buffer (context_p, value, JJS_ENCODING_UTF8, buffer_p, buffer_size);
     read = utf8_length_unsafe (buffer_p, written);
   }
   else
@@ -91,14 +93,14 @@ static JJS_HANDLER (jjs_pack_text_encode_into)
     read = 0;
   }
 
-  jjs_value_t result = jjs_object ();
-  jjs_value_t read_value = jjs_number ((double) read);
-  jjs_value_t written_value = jjs_number ((double) written);
+  jjs_value_t result = jjs_object (context_p);
+  jjs_value_t read_value = jjs_number (context_p, (double) read);
+  jjs_value_t written_value = jjs_number (context_p, (double) written);
 
-  jjs_value_free (jjs_object_set_sz (result, "read", read_value));
-  jjs_value_free (jjs_object_set_sz (result, "written", written_value));
-  jjs_value_free (read_value);
-  jjs_value_free (written_value);
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, result, "read", read_value));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, result, "written", written_value));
+  jjs_value_free (context_p, read_value);
+  jjs_value_free (context_p, written_value);
 
   return result;
 } /* jjs_pack_text_encode_into */
@@ -106,22 +108,23 @@ static JJS_HANDLER (jjs_pack_text_encode_into)
 static JJS_HANDLER (jjs_pack_text_decode_utf8)
 {
   JJS_HANDLER_HEADER ();
-  jjs_value_t buffer = args_cnt > 0 ? args_p[0] : jjs_undefined ();
-  bool ignore_bom = args_cnt > 1 ? jjs_value_is_true (args_p[1]) : jjs_undefined ();
-  bool fatal = args_cnt > 2 ? jjs_value_is_true (args_p[2]) : jjs_undefined ();
-  bool is_buffer_like = jjs_value_is_typedarray (buffer) || jjs_value_is_shared_arraybuffer (buffer)
-                        || jjs_value_is_arraybuffer (buffer) || jjs_value_is_dataview (buffer);
+  jjs_context_t *context_p = call_info_p->context_p;
+  jjs_value_t buffer = args_cnt > 0 ? args_p[0] : jjs_undefined (context_p);
+  bool ignore_bom = args_cnt > 1 ? jjs_value_is_true (context_p, args_p[1]) : jjs_undefined (context_p);
+  bool fatal = args_cnt > 2 ? jjs_value_is_true (context_p, args_p[2]) : jjs_undefined (context_p);
+  bool is_buffer_like = jjs_value_is_typedarray (context_p, buffer) || jjs_value_is_shared_arraybuffer (context_p, buffer)
+                        || jjs_value_is_arraybuffer (context_p, buffer) || jjs_value_is_dataview (context_p, buffer);
   if (!is_buffer_like)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "decode(): buffer argument is not a buffer-like object");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "decode(): buffer argument is not a buffer-like object");
   }
 
   uint8_t* buffer_p;
   jjs_size_t buffer_size;
 
-  if (!jjs_pack_text_arraybuffer (buffer, &buffer_p, &buffer_size))
+  if (!jjs_pack_text_arraybuffer (context_p, buffer, &buffer_p, &buffer_size))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "decode(): failed to extract native buffer");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "decode(): failed to extract native buffer");
   }
 
   if (ignore_bom && utf8_has_bom (buffer_p, buffer_size))
@@ -132,26 +135,26 @@ static JJS_HANDLER (jjs_pack_text_decode_utf8)
 
   if (buffer_size == 0)
   {
-    return jjs_string_sz ("");
+    return jjs_string_sz (context_p, "");
   }
 
   uint32_t actual_size = utf8_size_with_replacements (buffer_p, buffer_size);
 
   if (buffer_size != actual_size && fatal)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "decode(): invalid UTF8 sequence");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "decode(): invalid UTF8 sequence");
   }
 
   uint8_t* buffer_copy_p = malloc (actual_size);
 
   if (buffer_copy_p == NULL)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "decode(): failed to copy native buffer");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "decode(): failed to copy native buffer");
   }
 
   utf8_copy_with_replacements (buffer_p, buffer_size, buffer_copy_p);
 
-  jjs_value_t result = jjs_string (buffer_copy_p, actual_size, JJS_ENCODING_UTF8);
+  jjs_value_t result = jjs_string (context_p, buffer_copy_p, actual_size, JJS_ENCODING_UTF8);
 
   free (buffer_copy_p);
 
@@ -159,46 +162,46 @@ static JJS_HANDLER (jjs_pack_text_decode_utf8)
 } /* jjs_pack_text_decode_utf8 */
 
 static bool
-jjs_pack_text_arraybuffer (jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size_t* buffer_size_p)
+jjs_pack_text_arraybuffer (jjs_context_t *context_p, jjs_value_t buffer_like, uint8_t** buffer_p, jjs_size_t* buffer_size_p)
 {
-  if (jjs_value_is_typedarray (buffer_like))
+  if (jjs_value_is_typedarray (context_p, buffer_like))
   {
     jjs_length_t offset = 0;
     jjs_length_t length = 0;
 
-    jjs_value_t array_buffer = jjs_typedarray_buffer (buffer_like, &offset, &length);
+    jjs_value_t array_buffer = jjs_typedarray_buffer (context_p, buffer_like, &offset, &length);
 
-    if (jjs_value_is_exception (array_buffer))
+    if (jjs_value_is_exception (context_p, array_buffer))
     {
-      jjs_value_free (array_buffer);
+      jjs_value_free (context_p, array_buffer);
       return false;
     }
 
-    *buffer_p = jjs_arraybuffer_data (array_buffer) + offset;
+    *buffer_p = jjs_arraybuffer_data (context_p, array_buffer) + offset;
     *buffer_size_p = length;
-    jjs_value_free (array_buffer);
+    jjs_value_free (context_p, array_buffer);
   }
-  else if (jjs_value_is_arraybuffer (buffer_like))
+  else if (jjs_value_is_arraybuffer (context_p, buffer_like))
   {
-    *buffer_p = jjs_arraybuffer_data (buffer_like);
-    *buffer_size_p = jjs_arraybuffer_size (buffer_like);
+    *buffer_p = jjs_arraybuffer_data (context_p, buffer_like);
+    *buffer_size_p = jjs_arraybuffer_size (context_p, buffer_like);
   }
-  else if (jjs_value_is_dataview (buffer_like))
+  else if (jjs_value_is_dataview (context_p, buffer_like))
   {
     jjs_length_t offset = 0;
     jjs_length_t length = 0;
 
-    jjs_value_t array_buffer = jjs_dataview_buffer (buffer_like, &offset, &length);
+    jjs_value_t array_buffer = jjs_dataview_buffer (context_p, buffer_like, &offset, &length);
 
-    if (jjs_value_is_exception (array_buffer))
+    if (jjs_value_is_exception (context_p, array_buffer))
     {
-      jjs_value_free (array_buffer);
+      jjs_value_free (context_p, array_buffer);
       return false;
     }
 
-    *buffer_p = jjs_arraybuffer_data (array_buffer) + offset;
+    *buffer_p = jjs_arraybuffer_data (context_p, array_buffer) + offset;
     *buffer_size_p = length;
-    jjs_value_free (array_buffer);
+    jjs_value_free (context_p, array_buffer);
   }
   else
   {
@@ -331,17 +334,17 @@ utf8_decode (uint32_t* state, uint32_t* codep, uint32_t byte)
 #endif /* JJS_PACK_TEXT */
 
 jjs_value_t
-jjs_pack_text_init (void)
+jjs_pack_text_init (jjs_context_t *context_p)
 {
 #if JJS_PACK_TEXT
-  jjs_value_t bindings = jjs_bindings ();
+  jjs_value_t bindings = jjs_bindings (context_p);
 
-  jjs_bindings_function (bindings, "encode", jjs_pack_text_encode);
-  jjs_bindings_function (bindings, "encodeInto", jjs_pack_text_encode_into);
-  jjs_bindings_function (bindings, "decodeUTF8", jjs_pack_text_decode_utf8);
+  jjs_bindings_function (context_p, bindings, "encode", jjs_pack_text_encode);
+  jjs_bindings_function (context_p, bindings, "encodeInto", jjs_pack_text_encode_into);
+  jjs_bindings_function (context_p, bindings, "decodeUTF8", jjs_pack_text_decode_utf8);
 
-  return jjs_pack_lib_main (jjs_pack_text_snapshot, jjs_pack_text_snapshot_len, bindings, JJS_MOVE);
+  return jjs_pack_lib_main (context_p, jjs_pack_text_snapshot, jjs_pack_text_snapshot_len, bindings, JJS_MOVE);
 #else /* !JJS_PACK_TEXT */
-  return jjs_throw_sz (JJS_ERROR_COMMON, "text pack is not enabled");
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "text pack is not enabled");
 #endif /* JJS_PACK_TEXT */
 } /* jjs_pack_text_init */

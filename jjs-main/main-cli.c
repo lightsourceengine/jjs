@@ -481,7 +481,7 @@ static void
 cleanup_engine (jjs_context_t *context_p)
 {
 #if defined (JJS_PACK) && JJS_PACK
-  jjs_pack_cleanup ();
+  jjs_pack_cleanup (context_p);
 #endif /* defined (JJS_PACK) && JJS_PACK */
   jjs_context_free (context_p);
 }
@@ -501,7 +501,7 @@ init_engine (const cli_common_options_t *options)
   }
 
 #if defined (JJS_PACK) && JJS_PACK
-  jjs_pack_init (JJS_PACK_INIT_ALL);
+  jjs_pack_init (context_p, JJS_PACK_INIT_ALL);
 #endif /* defined (JJS_PACK) && JJS_PACK */
 
   if (options->has_log_level)

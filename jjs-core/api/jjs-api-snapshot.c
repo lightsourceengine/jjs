@@ -134,7 +134,8 @@ snapshot_write_to_buffer_by_offset (uint8_t *buffer_p, /**< buffer */
  * @return start offset
  */
 static uint32_t
-snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< compiled code */
+snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
+                            const ecma_compiled_code_t *compiled_code_p, /**< compiled code */
                             uint8_t *snapshot_buffer_p, /**< snapshot buffer */
                             size_t snapshot_buffer_size, /**< snapshot buffer size */
                             snapshot_globals_t *globals_p) /**< snapshot globals */
@@ -150,7 +151,7 @@ snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< co
 
   if (globals_p->snapshot_buffer_write_offset > JJS_SNAPSHOT_MAXIMUM_WRITE_OFFSET)
   {
-    globals_p->snapshot_error = jjs_throw_sz (JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_MAXIMUM_SNAPSHOT_SIZE));
+    globals_p->snapshot_error = jjs_throw_sz (context_p, JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_MAXIMUM_SNAPSHOT_SIZE));
     return 0;
   }
 
@@ -164,7 +165,7 @@ snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< co
   if (compiled_code_p->status_flags & CBC_CODE_FLAGS_HAS_TAGGED_LITERALS)
   {
     globals_p->snapshot_error =
-      jjs_throw_sz (JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_TAGGED_TEMPLATE_LITERALS));
+      jjs_throw_sz (context_p, JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_TAGGED_TEMPLATE_LITERALS));
     return 0;
   }
 
@@ -179,7 +180,7 @@ snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< co
     /* Regular expression. */
     if (globals_p->snapshot_buffer_write_offset + sizeof (ecma_compiled_code_t) > snapshot_buffer_size)
     {
-      globals_p->snapshot_error = jjs_throw_sz (JJS_ERROR_RANGE, error_buffer_too_small_p);
+      globals_p->snapshot_error = jjs_throw_sz (context_p, JJS_ERROR_RANGE, error_buffer_too_small_p);
       return 0;
     }
 
@@ -200,7 +201,7 @@ snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< co
                                              buffer_p,
                                              buffer_size))
     {
-      globals_p->snapshot_error = jjs_throw_sz (JJS_ERROR_RANGE, error_buffer_too_small_p);
+      globals_p->snapshot_error = jjs_throw_sz (context_p, JJS_ERROR_RANGE, error_buffer_too_small_p);
       /* cannot return inside ECMA_FINALIZE_UTF8_STRING */
     }
 
@@ -234,7 +235,7 @@ snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< co
                                            compiled_code_p,
                                            ((size_t) compiled_code_p->size) << JMEM_ALIGNMENT_LOG))
   {
-    globals_p->snapshot_error = jjs_throw_sz (JJS_ERROR_RANGE, error_buffer_too_small_p);
+    globals_p->snapshot_error = jjs_throw_sz (context_p, JJS_ERROR_RANGE, error_buffer_too_small_p);
     return 0;
   }
 
@@ -276,7 +277,7 @@ snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< co
     }
     else
     {
-      uint32_t offset = snapshot_add_compiled_code (bytecode_p, snapshot_buffer_p, snapshot_buffer_size, globals_p);
+      uint32_t offset = snapshot_add_compiled_code (context_p, bytecode_p, snapshot_buffer_p, snapshot_buffer_size, globals_p);
 
       JJS_ASSERT (!ecma_is_value_empty (globals_p->snapshot_error) || offset > start_offset);
 
@@ -317,7 +318,8 @@ static_snapshot_error_unsupported_literal (snapshot_globals_t *globals_p, /**< s
  * @return start offset
  */
 static uint32_t
-static_snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< compiled code */
+static_snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
+                                   const ecma_compiled_code_t *compiled_code_p, /**< compiled code */
                                    uint8_t *snapshot_buffer_p, /**< snapshot buffer */
                                    size_t snapshot_buffer_size, /**< snapshot buffer size */
                                    snapshot_globals_t *globals_p) /**< snapshot globals */
@@ -331,7 +333,7 @@ static_snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, 
 
   if (globals_p->snapshot_buffer_write_offset >= JJS_SNAPSHOT_MAXIMUM_WRITE_OFFSET)
   {
-    globals_p->snapshot_error = jjs_throw_sz (JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_MAXIMUM_SNAPSHOT_SIZE));
+    globals_p->snapshot_error = jjs_throw_sz (context_p, JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_MAXIMUM_SNAPSHOT_SIZE));
     return 0;
   }
 
@@ -346,7 +348,7 @@ static_snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, 
   {
     /* Regular expression literals are not supported. */
     globals_p->snapshot_error =
-      jjs_throw_sz (JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_REGULAR_EXPRESSION_NOT_SUPPORTED));
+      jjs_throw_sz (context_p, JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_REGULAR_EXPRESSION_NOT_SUPPORTED));
     return 0;
   }
 
@@ -356,7 +358,7 @@ static_snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, 
                                            compiled_code_p,
                                            ((size_t) compiled_code_p->size) << JMEM_ALIGNMENT_LOG))
   {
-    globals_p->snapshot_error = jjs_throw_sz (JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_BUFFER_SMALL));
+    globals_p->snapshot_error = jjs_throw_sz (context_p, JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_BUFFER_SMALL));
     return 0;
   }
 
@@ -409,7 +411,7 @@ static_snapshot_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, 
     else
     {
       uint32_t offset =
-        static_snapshot_add_compiled_code (bytecode_p, snapshot_buffer_p, snapshot_buffer_size, globals_p);
+        static_snapshot_add_compiled_code (context_p, bytecode_p, snapshot_buffer_p, snapshot_buffer_size, globals_p);
 
       JJS_ASSERT (!ecma_is_value_empty (globals_p->snapshot_error) || offset > start_offset);
 
@@ -791,11 +793,11 @@ jjs_generate_snapshot (jjs_context_t* context_p, /**< JJS context */
 
   if (generate_snapshot_opts & JJS_SNAPSHOT_SAVE_STATIC)
   {
-    static_snapshot_add_compiled_code (bytecode_data_p, (uint8_t *) buffer_p, buffer_size, &globals);
+    static_snapshot_add_compiled_code (context_p, bytecode_data_p, (uint8_t *) buffer_p, buffer_size, &globals);
   }
   else
   {
-    snapshot_add_compiled_code (bytecode_data_p, (uint8_t *) buffer_p, buffer_size, &globals);
+    snapshot_add_compiled_code (context_p, bytecode_data_p, (uint8_t *) buffer_p, buffer_size, &globals);
   }
 
   if (!ecma_is_value_empty (globals.snapshot_error))

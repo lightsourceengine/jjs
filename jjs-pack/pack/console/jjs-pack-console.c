@@ -18,74 +18,37 @@
 
 #if JJS_PACK_CONSOLE
 
-#include <stdio.h>
-
 extern uint8_t jjs_pack_console_snapshot[];
 extern const uint32_t jjs_pack_console_snapshot_len;
-
-static void
-println (jjs_value_t value)
-{
-  jjs_size_t size = jjs_string_size (value, JJS_ENCODING_UTF8);
-
-  if (size < 256)
-  {
-    uint8_t small_buffer[256];
-    jjs_size_t written = jjs_string_to_buffer (value,
-                                               JJS_ENCODING_UTF8,
-                                               &small_buffer[0],
-                                               (jjs_size_t)(sizeof (small_buffer) / sizeof (small_buffer[0])));
-
-    if (written > 0)
-    {
-      fwrite (&small_buffer[0], sizeof (small_buffer[0]), written, stdout);
-    }
-  }
-  else
-  {
-    uint8_t* buffer_p = jjs_heap_alloc (size);
-
-    if (buffer_p)
-    {
-      jjs_size_t written = jjs_string_to_buffer (value, JJS_ENCODING_UTF8, buffer_p, size);
-
-      if (written > 0)
-      {
-        fwrite (&buffer_p, sizeof (buffer_p[0]), written, stdout);
-      }
-
-      jjs_heap_free (buffer_p, size);
-    }
-  }
-
-  putc ('\n', stdout);
-} /* println */
 
 static JJS_HANDLER (jjs_pack_console_println)
 {
   JJS_HANDLER_HEADER ();
+  jjs_context_t *context_p = call_info_p->context_p;
 
-  if (args_cnt > 0)
+  if (args_cnt > 0 && jjs_value_is_string (context_p, args_p[0]))
   {
-    println (args_p[0]);
+    jjs_platform_stdout_write (context_p, args_p[0], JJS_KEEP);
   }
 
-  return jjs_undefined ();
+  jjs_platform_stdout_write (context_p, jjs_string_sz(context_p, "\n"), JJS_MOVE);
+
+  return jjs_undefined (call_info_p->context_p);
 } /* jjs_pack_console_println */
 
 #endif /* JJS_PACK_CONSOLE */
 
 jjs_value_t
-jjs_pack_console_init (void)
+jjs_pack_console_init (jjs_context_t *context_p)
 {
 #if JJS_PACK_CONSOLE
-  jjs_value_t bindings = jjs_bindings ();
+  jjs_value_t bindings = jjs_bindings (context_p);
 
-  jjs_bindings_function (bindings, "println", &jjs_pack_console_println);
-  jjs_bindings_function (bindings, "hrtime", jjs_pack_hrtime_handler);
+  jjs_bindings_function (context_p, bindings, "println", &jjs_pack_console_println);
+  jjs_bindings_function (context_p, bindings, "hrtime", jjs_pack_hrtime_handler);
 
-  return jjs_pack_lib_main (jjs_pack_console_snapshot, jjs_pack_console_snapshot_len, bindings, JJS_MOVE);
+  return jjs_pack_lib_main (context_p, jjs_pack_console_snapshot, jjs_pack_console_snapshot_len, bindings, JJS_MOVE);
 #else /* !JJS_PACK_CONSOLE */
-  return jjs_throw_sz (JJS_ERROR_COMMON, "console pack is not enabled");
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "console pack is not enabled");
 #endif /* JJS_PACK_CONSOLE */
 } /* jjs_pack_console_init */

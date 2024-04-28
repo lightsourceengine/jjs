@@ -58,8 +58,7 @@ check_feature (jjs_feature_t feature, /**< feature to check */
 {
   if (!jjs_feature_enabled (feature))
   {
-    jjs_log_set_level (JJS_LOG_LEVEL_WARNING);
-    jjs_log (JJS_LOG_LEVEL_WARNING, "Ignoring '%s' option because this feature is disabled!\n", option);
+    fprintf (stderr, "Ignoring '%s' option because this feature is disabled!\n", option);
     return false;
   }
   return true;
@@ -78,11 +77,11 @@ check_cli_error (const cli_state_t *const cli_state_p)
   {
     if (cli_state_p->arg != NULL)
     {
-      jjs_log (JJS_LOG_LEVEL_ERROR, "Error: %s %s\n", cli_state_p->error, cli_state_p->arg);
+      fprintf (stderr, "Error: %s %s\n", cli_state_p->error, cli_state_p->arg);
     }
     else
     {
-      jjs_log (JJS_LOG_LEVEL_ERROR, "Error: %s\n", cli_state_p->error);
+      fprintf (stderr, "Error: %s\n", cli_state_p->error);
     }
 
     return true;
@@ -105,7 +104,7 @@ read_file (uint8_t *input_pos_p, /**< next position in the input buffer */
 
   if (file == NULL)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: failed to open file: %s\n", file_name);
+    fprintf (stderr, "Error: failed to open file: %s\n", file_name);
     return 0;
   }
 
@@ -116,13 +115,13 @@ read_file (uint8_t *input_pos_p, /**< next position in the input buffer */
 
   if (bytes_read == 0)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: failed to read file: %s\n", file_name);
+    fprintf (stderr, "Error: failed to read file: %s\n", file_name);
     return 0;
   }
 
   if (bytes_read == max_size)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: file too large: %s\n", file_name);
+    fprintf (stderr, "Error: file too large: %s\n", file_name);
     return 0;
   }
 
@@ -134,26 +133,11 @@ read_file (uint8_t *input_pos_p, /**< next position in the input buffer */
  * Print error value
  */
 static void
-print_unhandled_exception (jjs_value_t error_value) /**< error value */
+print_unhandled_exception (jjs_context_t* context_p, /**< JJS context */
+                           jjs_value_t error_value) /**< error value */
 {
-  assert (!jjs_value_is_exception (error_value));
-
-  jjs_value_t err_str_val = jjs_value_to_string (error_value);
-
-  if (jjs_value_is_exception (err_str_val))
-  {
-    /* Avoid recursive error throws. */
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Snapshot error: [value cannot be converted to string]\n");
-    jjs_value_free (err_str_val);
-    return;
-  }
-
-  jjs_char_t err_str_buf[256];
-  jjs_size_t bytes = jjs_string_to_buffer (err_str_val, JJS_ENCODING_UTF8, err_str_buf, sizeof (err_str_buf) - 1);
-  err_str_buf[bytes] = '\0';
-
-  jjs_log (JJS_LOG_LEVEL_ERROR, "Snapshot error: %s\n", (char *) err_str_buf);
-  jjs_value_free (err_str_val);
+  assert (!jjs_value_is_exception (context_p, error_value));
+  jjs_log_fmt (context_p, JJS_LOG_LEVEL_ERROR, "Snapshot error: {}\n", error_value);
 } /* print_unhandled_exception */
 
 /**
@@ -243,7 +227,6 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
       {
         if (check_feature (JJS_FEATURE_PARSER_DUMP, cli_state_p->arg))
         {
-          jjs_log_set_level (JJS_LOG_LEVEL_DEBUG);
           context_flags |= JJS_CONTEXT_FLAG_SHOW_OPCODES;
         }
         break;
@@ -257,7 +240,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
       {
         if (file_name_p != NULL)
         {
-          jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Exactly one input file must be specified\n");
+          fprintf (stderr, "Error: Exactly one input file must be specified\n");
           return JJS_STANDALONE_EXIT_CODE_FAIL;
         }
 
@@ -269,7 +252,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 
           if (source_length == 0)
           {
-            jjs_log (JJS_LOG_LEVEL_ERROR, "Input file is empty\n");
+            fprintf (stderr, "Input file is empty\n");
             return JJS_STANDALONE_EXIT_CODE_FAIL;
           }
         }
@@ -290,18 +273,24 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 
   if (file_name_p == NULL)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Exactly one input file must be specified\n");
+    fprintf (stderr, "Error: Exactly one input file must be specified\n");
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
   jjs_context_t *context_p = NULL;
-  jjs_context_options_t options = jjs_context_options ();
-  options.context_flags = context_flags;
-  assert (jjs_context_new(&options, &context_p) == JJS_STATUS_OK);
+  jjs_context_options_t options = {
+    .context_flags = context_flags,
+  };
+  assert (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
 
-  if (!jjs_validate_string (source_p, (jjs_size_t) source_length, JJS_ENCODING_UTF8))
+  if (context_flags & JJS_CONTEXT_FLAG_SHOW_OPCODES)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Input must be a valid UTF-8 string.\n");
+    jjs_log_set_level (context_p, JJS_LOG_LEVEL_DEBUG);
+  }
+
+  if (!jjs_validate_string (context_p, source_p, (jjs_size_t) source_length, JJS_ENCODING_UTF8))
+  {
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: Input must be a valid UTF-8 string.\n");
     jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
@@ -332,7 +321,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 
       if (num_of_lit > 0)
       {
-        jjs_register_magic_strings (magic_string_items, num_of_lit, magic_string_lengths);
+        jjs_register_magic_strings (context_p, magic_string_items, num_of_lit, magic_string_lengths);
       }
     }
   }
@@ -342,53 +331,54 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
   /* To avoid cppcheck warning. */
   parse_options.argument_list = 0;
   parse_options.source_name =
-    jjs_string ((const jjs_char_t *) file_name_p, (jjs_size_t) strlen (file_name_p), JJS_ENCODING_UTF8);
+    jjs_string (context_p, (const jjs_char_t *) file_name_p, (jjs_size_t) strlen (file_name_p), JJS_ENCODING_UTF8);
 
   if (function_args_p != NULL)
   {
     parse_options.options |= JJS_PARSE_HAS_ARGUMENT_LIST;
-    parse_options.argument_list = jjs_string ((const jjs_char_t *) function_args_p,
-                                                (jjs_size_t) strlen (function_args_p),
-                                                JJS_ENCODING_UTF8);
+    parse_options.argument_list = jjs_string (context_p,
+                                              (const jjs_char_t *) function_args_p,
+                                              (jjs_size_t) strlen (function_args_p),
+                                              JJS_ENCODING_UTF8);
   }
 
-  jjs_value_t snapshot_result = jjs_parse ((jjs_char_t *) source_p, source_length, &parse_options);
+  jjs_value_t snapshot_result = jjs_parse (context_p, (jjs_char_t *) source_p, source_length, &parse_options);
 
-  if (!jjs_value_is_exception (snapshot_result))
+  if (!jjs_value_is_exception (context_p, snapshot_result))
   {
     jjs_value_t parse_result = snapshot_result;
     snapshot_result =
-      jjs_generate_snapshot (parse_result, snapshot_flags, output_buffer, sizeof (output_buffer) / sizeof (uint32_t));
-    jjs_value_free (parse_result);
+      jjs_generate_snapshot (context_p, parse_result, snapshot_flags, output_buffer, sizeof (output_buffer) / sizeof (uint32_t));
+    jjs_value_free (context_p, parse_result);
   }
 
   if (parse_options.options & JJS_PARSE_HAS_ARGUMENT_LIST)
   {
-    jjs_value_free (parse_options.argument_list);
+    jjs_value_free (context_p, parse_options.argument_list);
   }
 
-  jjs_value_free (parse_options.source_name);
+  jjs_value_free (context_p, parse_options.source_name);
 
-  if (jjs_value_is_exception (snapshot_result))
+  if (jjs_value_is_exception (context_p, snapshot_result))
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Generating snapshot failed!\n");
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: Generating snapshot failed!\n");
 
-    snapshot_result = jjs_exception_value (snapshot_result, true);
+    snapshot_result = jjs_exception_value (context_p, snapshot_result, true);
 
-    print_unhandled_exception (snapshot_result);
+    print_unhandled_exception (context_p, snapshot_result);
 
-    jjs_value_free (snapshot_result);
+    jjs_value_free (context_p, snapshot_result);
     jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  size_t snapshot_size = (size_t) jjs_value_as_number (snapshot_result);
-  jjs_value_free (snapshot_result);
+  size_t snapshot_size = (size_t) jjs_value_as_number (context_p, snapshot_result);
+  jjs_value_free (context_p, snapshot_result);
 
   FILE *snapshot_file_p = fopen (output_file_name_p, "wb");
   if (snapshot_file_p == NULL)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Unable to write snapshot file: '%s'\n", output_file_name_p);
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: Unable to write snapshot file: '%s'\n", output_file_name_p);
     jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
@@ -467,7 +457,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
         }
         else
         {
-          jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Unsupported literal dump format.");
+          fprintf (stderr, "Error: Unsupported literal dump format.");
           return JJS_STANDALONE_EXIT_CODE_FAIL;
         }
         break;
@@ -514,7 +504,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
 
   if (number_of_files < 1)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: at least one input file must be specified.\n");
+    fprintf (stderr, "Error: at least one input file must be specified.\n");
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -534,16 +524,17 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
   {
     /* The input contains more than one input snapshot file, so we must merge them first. */
     const char *error_p = NULL;
-    size_t merged_snapshot_size = jjs_merge_snapshots (snapshot_buffers,
-                                                         snapshot_buffer_sizes,
-                                                         number_of_files,
-                                                         output_buffer,
-                                                         JJS_BUFFER_SIZE,
-                                                         &error_p);
+    size_t merged_snapshot_size = jjs_merge_snapshots (context_p,
+                                                       snapshot_buffers,
+                                                       snapshot_buffer_sizes,
+                                                       number_of_files,
+                                                       output_buffer,
+                                                       JJS_BUFFER_SIZE,
+                                                       &error_p);
 
     if (merged_snapshot_size == 0)
     {
-      jjs_log (JJS_LOG_LEVEL_ERROR, "Error: %s\n", error_p);
+      jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: %s\n", error_p);
       jjs_context_free (context_p);
       return JJS_STANDALONE_EXIT_CODE_FAIL;
     }
@@ -559,7 +550,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
 
   if (lit_buf_sz == 0)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR,
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR,
                "Error: Literal saving failed! No literals were found in the input snapshot(s).\n");
     jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
@@ -574,7 +565,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
 
   if (file_p == NULL)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: cannot open file: '%s'\n", literals_file_name_p);
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: cannot open file: '%s'\n", literals_file_name_p);
     jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
@@ -675,7 +666,7 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
 
   if (number_of_files < 2)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: at least two input files must be passed.\n");
+    fprintf (stderr, "Error: at least two input files must be passed.\n");
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -683,16 +674,17 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
   assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
 
   const char *error_p = NULL;
-  size_t merged_snapshot_size = jjs_merge_snapshots (merge_buffers,
-                                                       merge_buffer_sizes,
-                                                       number_of_files,
-                                                       output_buffer,
-                                                       JJS_BUFFER_SIZE,
-                                                       &error_p);
+  size_t merged_snapshot_size = jjs_merge_snapshots (context_p,
+                                                     merge_buffers,
+                                                     merge_buffer_sizes,
+                                                     number_of_files,
+                                                     output_buffer,
+                                                     JJS_BUFFER_SIZE,
+                                                     &error_p);
 
   if (merged_snapshot_size == 0)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: %s\n", error_p);
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: %s\n", error_p);
     jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
@@ -701,7 +693,7 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
 
   if (file_p == NULL)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: cannot open file: '%s'\n", output_file_name_p);
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: cannot open file: '%s'\n", output_file_name_p);
     jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
@@ -792,7 +784,7 @@ main (int argc, /**< number of arguments */
           return process_generate (&cli_state, argc, argv[0]);
         }
 
-        jjs_log (JJS_LOG_LEVEL_ERROR, "Error: unknown command: %s\n\n", command_p);
+        fprintf (stderr, "Error: unknown command: %s\n\n", command_p);
         print_commands (argv[0]);
 
         return JJS_STANDALONE_EXIT_CODE_FAIL;

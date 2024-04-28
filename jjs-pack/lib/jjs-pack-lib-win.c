@@ -20,7 +20,7 @@
 #include <windows.h>
 
 uint64_t
-jjs_pack_platform_hrtime (void)
+jjs_pack_platform_hrtime (jjs_context_t *context_p)
 {
   // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/win/util.c
 
@@ -37,7 +37,7 @@ jjs_pack_platform_hrtime (void)
     else
     {
       jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
-      jjs_platform_fatal (JJS_FATAL_FAILED_ASSERTION);
+      jjs_platform_fatal (context_p, JJS_FATAL_FAILED_ASSERTION);
       return 0;
     }
   }
@@ -47,7 +47,7 @@ jjs_pack_platform_hrtime (void)
   if (!QueryPerformanceCounter (&counter))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
-    jjs_platform_fatal (JJS_FATAL_FAILED_ASSERTION);
+    jjs_platform_fatal (context_p, JJS_FATAL_FAILED_ASSERTION);
     return 0;
   }
 

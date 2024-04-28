@@ -31,10 +31,10 @@ JJS_C_API_BEGIN
 #define JJS_PACK_INIT_TEXT          (1u << 6)
 #define JJS_PACK_INIT_URL           (1u << 7)
 
-void jjs_pack_init (uint32_t init_flags);
-jjs_value_t jjs_pack_init_v (uint32_t init_flags);
+void jjs_pack_init (jjs_context_t *context_p, uint32_t init_flags);
+jjs_value_t jjs_pack_init_v (jjs_context_t *context_p, uint32_t init_flags);
 
-void jjs_pack_cleanup (void);
+void jjs_pack_cleanup (jjs_context_t *context_p);
 
 JJS_C_API_END
 

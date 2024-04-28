@@ -25,16 +25,16 @@ extern const uint32_t jjs_pack_performance_snapshot_len;
 #endif /* JJS_PACK_PERFORMANCE */
 
 jjs_value_t
-jjs_pack_performance_init (void)
+jjs_pack_performance_init (jjs_context_t *context_p)
 {
 #if JJS_PACK_PERFORMANCE
-  jjs_value_t bindings = jjs_bindings ();
+  jjs_value_t bindings = jjs_bindings (context_p);
 
-  jjs_bindings_function (bindings, "hrtime", jjs_pack_hrtime_handler);
-  jjs_bindings_function (bindings, "DateNow", jjs_pack_date_now_handler);
+  jjs_bindings_function (context_p, bindings, "hrtime", jjs_pack_hrtime_handler);
+  jjs_bindings_function (context_p, bindings, "DateNow", jjs_pack_date_now_handler);
 
-  return jjs_pack_lib_main (jjs_pack_performance_snapshot, jjs_pack_performance_snapshot_len, bindings, JJS_MOVE);
+  return jjs_pack_lib_main (context_p, jjs_pack_performance_snapshot, jjs_pack_performance_snapshot_len, bindings, JJS_MOVE);
 #else /* !JJS_PACK_PERFORMANCE */
-  return jjs_throw_sz (JJS_ERROR_COMMON, "performance pack is not enabled");
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "performance pack is not enabled");
 #endif /* JJS_PACK_PERFORMANCE */
 } /* jjs_pack_performance_init */

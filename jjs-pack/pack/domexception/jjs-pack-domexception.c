@@ -22,14 +22,15 @@ extern const uint32_t jjs_pack_domexception_snapshot_len;
 #endif /* JJS_PACK_DOMEXCEPTION */
 
 jjs_value_t
-jjs_pack_domexception_init (void)
+jjs_pack_domexception_init (jjs_context_t *context_p)
 {
 #if JJS_PACK_DOMEXCEPTION
-  return jjs_pack_lib_main (jjs_pack_domexception_snapshot,
+  return jjs_pack_lib_main (context_p,
+                            jjs_pack_domexception_snapshot,
                             jjs_pack_domexception_snapshot_len,
-                            jjs_undefined (),
+                            jjs_undefined (context_p),
                             JJS_KEEP);
 #else /* !JJS_PACK_DOMEXCEPTION */
-  return jjs_throw_sz (JJS_ERROR_COMMON, "domexception pack is not enabled");
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "domexception pack is not enabled");
 #endif /* JJS_PACK_DOMEXCEPTION */
 } /* jjs_pack_domexception_init */
