@@ -44,20 +44,20 @@ typedef enum
 } esm_result_type_t;
 
 static JJS_HANDLER (esm_resolve_handler);
-static jjs_value_t esm_read (jjs_value_t specifier, jjs_value_t referrer_path);
-static jjs_value_t esm_import (jjs_value_t specifier, jjs_value_t referrer_path);
-static jjs_value_t esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t result_type);
-static jjs_value_t user_value_to_path (jjs_value_t user_value);
-static jjs_value_t esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p);
+static jjs_value_t esm_read (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_path);
+static jjs_value_t esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_path);
+static jjs_value_t esm_link_and_evaluate (jjs_context_t* context_p, jjs_value_t module, bool move_module, esm_result_type_t result_type);
+static jjs_value_t user_value_to_path (jjs_context_t* context_p, jjs_value_t user_value);
+static jjs_value_t esm_link_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer, void *user_p);
 static jjs_value_t
-esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type);
-static void set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url);
+esm_run_source (jjs_context_t* context_p, jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type);
+static void set_module_properties (jjs_context_t* context_p, jjs_value_t module, jjs_value_t filename, jjs_value_t url);
 #if JJS_ANNEX_COMMONJS
-static jjs_value_t commonjs_module_evaluate_cb (jjs_value_t native_module);
+static jjs_value_t commonjs_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module);
 #endif /* JJS_ANNEX_COMMONJS */
 #if JJS_ANNEX_VMOD
-static jjs_value_t vmod_module_evaluate_cb (jjs_value_t native_module);
-static jjs_value_t vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache);
+static jjs_value_t vmod_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module);
+static jjs_value_t vmod_get_or_load_module (jjs_context_t* context_p, jjs_value_t specifier, ecma_value_t esm_cache);
 #endif /* JJS_ANNEX_VMOD */
 
 static void
@@ -83,9 +83,9 @@ esm_source_init (jjs_esm_source_t* esm_source_p)
  * @return an empty jjs_esm_source_t object
  */
 jjs_esm_source_t
-jjs_esm_source (void)
+jjs_esm_source (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
   jjs_esm_source_t source;
 
@@ -94,11 +94,7 @@ jjs_esm_source (void)
   return source;
 #else /* !(JJS_ANNEX_ESM) */
   JJS_ASSERT (false);
-  jjs_esm_source_t source;
-
-  memset (&source, 0, sizeof (source));
-
-  return source;
+  return (jjs_esm_source_t) {0};
 #endif /* (JJS_ANNEX_ESM) */
 }
 
@@ -112,13 +108,14 @@ jjs_esm_source (void)
  * free'd. After this function call, if the caller adds a JS value reference,
  * then the caller will need to clean up manually or via jjs_esm_source_free_values.
  *
+ * @param context_p JJS context
  * @param source_p pointer to a jjs_esm_source_t object to initialize
  * @return the given source_p pointer
  */
 jjs_esm_source_t *
-jjs_esm_source_init (jjs_esm_source_t *source_p)
+jjs_esm_source_init (jjs_context_t* context_p, jjs_esm_source_t *source_p)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
   JJS_ASSERT (source_p != NULL);
   esm_source_init (source_p);
@@ -131,13 +128,13 @@ jjs_esm_source_init (jjs_esm_source_t *source_p)
 }
 
 void
-jjs_esm_on_load (jjs_esm_load_cb_t callback_p, void *user_p)
+jjs_esm_on_load (jjs_context_t* context_p, jjs_esm_load_cb_t callback_p, void *user_p)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
-  JJS_CONTEXT (module_on_load_cb) = callback_p;
-  JJS_CONTEXT (module_on_load_user_p) = user_p;
+  context_p->module_on_load_cb = callback_p;
+  context_p->module_on_load_user_p = user_p;
 #else /* !(JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM) */
   JJS_UNUSED (callback_p);
   JJS_UNUSED (user_p);
@@ -145,13 +142,13 @@ jjs_esm_on_load (jjs_esm_load_cb_t callback_p, void *user_p)
 } /* jjs_esm_on_load */
 
 void
-jjs_esm_on_resolve (jjs_esm_resolve_cb_t callback_p, void *user_p)
+jjs_esm_on_resolve (jjs_context_t* context_p, jjs_esm_resolve_cb_t callback_p, void *user_p)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
-  JJS_CONTEXT (module_on_resolve_cb) = callback_p;
-  JJS_CONTEXT (module_on_resolve_user_p) = user_p;
+  context_p->module_on_resolve_cb = callback_p;
+  context_p->module_on_resolve_user_p = user_p;
 #else /* !(JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM) */
   JJS_UNUSED (callback_p);
   JJS_UNUSED (user_p);
@@ -163,20 +160,21 @@ jjs_esm_on_resolve (jjs_esm_resolve_cb_t callback_p, void *user_p)
  *
  * This hook is responsible for loading a module given a resolved path.
  *
+ * @param context_p JJS context
  * @param path resolved path
- * @param context_p load context
+ * @param load_context_p load context
  * @param user_p user pointer
  * @return object containing 'source' and 'format'; otherwise, an exception. return value must be freed.
  */
 jjs_value_t
-jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p, void *user_p)
+jjs_esm_default_on_load_cb (jjs_context_t* context_p, jjs_value_t path, jjs_esm_load_context_t *load_context_p, void *user_p)
 {
   JJS_UNUSED (user_p);
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
   ecma_value_t source;
-  ecma_string_t *format_p = ecma_get_string_from_value (context_p->format);
+  ecma_string_t *format_p = ecma_get_string_from_value (load_context_p->format);
 
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_SNAPSHOT))
   {
@@ -184,7 +182,7 @@ jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p,
       .encoding = JJS_ENCODING_NONE,
     };
 
-    source = jjs_platform_read_file (path, JJS_KEEP, &options);
+    source = jjs_platform_read_file (context_p, path, JJS_KEEP, &options);
   }
   else if (!ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_NONE))
   {
@@ -192,14 +190,14 @@ jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p,
       .encoding = JJS_ENCODING_UTF8,
     };
 
-    source = jjs_platform_read_file (path, JJS_KEEP, &options);
+    source = jjs_platform_read_file (context_p, path, JJS_KEEP, &options);
   }
   else
   {
-    source = jjs_throw_sz(JJS_ERROR_TYPE, "load context contains an unsupported format field");
+    source = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "load context contains an unsupported format field");
   }
 
-  if (jjs_value_is_exception(source))
+  if (jjs_value_is_exception (context_p, source))
   {
     return source;
   }
@@ -209,14 +207,13 @@ jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p,
   ecma_set_m (result, LIT_MAGIC_STRING_SOURCE, source);
   ecma_free_value (source);
 
-  ecma_set_m (result, LIT_MAGIC_STRING_FORMAT, context_p->format);
+  ecma_set_m (result, LIT_MAGIC_STRING_FORMAT, load_context_p->format);
 
   return result;
 #else /* !(JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM) */
-  JJS_UNUSED (path);
-  JJS_UNUSED (context_p);
+  JJS_UNUSED (path, load_context_p);
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */
 } /* jjs_esm_default_on_load_cb */
 
@@ -234,16 +231,17 @@ jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t *context_p,
  *
  * TODO: information about overloading
  *
+ * @param context_p JJS context
  * @param specifier CommonJS request or ESM specifier
- * @param context_p context of the resolve operation
+ * @param resolve_context_p context of the resolve operation
  * @param user_p user pointer passed to jjs_esm_on_resolve
  * @return on success, an object containing 'path' to a module and 'format' of the module
  */
 jjs_value_t
-jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t *context_p, void *user_p)
+jjs_esm_default_on_resolve_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_esm_resolve_context_t *resolve_context_p, void *user_p)
 {
   JJS_UNUSED (user_p);
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM
   ecma_value_t path;
@@ -252,18 +250,18 @@ jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t 
   {
     case ANNEX_SPECIFIER_TYPE_RELATIVE:
     {
-      path = annex_path_join (context_p->referrer_path, specifier, true);
+      path = annex_path_join (context_p, resolve_context_p->referrer_path, specifier, true);
       break;
     }
     case ANNEX_SPECIFIER_TYPE_ABSOLUTE:
     {
-      path = annex_path_normalize (specifier);
+      path = annex_path_normalize (context_p, specifier);
       break;
     }
 #if JJS_ANNEX_PMAP
     case ANNEX_SPECIFIER_TYPE_PACKAGE:
     {
-      path = jjs_annex_pmap_resolve (specifier, context_p->type);
+      path = jjs_annex_pmap_resolve (context_p, specifier, resolve_context_p->type);
       break;
     }
 #endif /* JJS_ANNEX_PMAP */
@@ -274,7 +272,7 @@ jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t 
     }
   }
 
-  if (jjs_value_is_exception (path))
+  if (jjs_value_is_exception (context_p, path))
   {
     return path;
   }
@@ -282,7 +280,7 @@ jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t 
   if (!ecma_is_value_string (path))
   {
     ecma_free_value (path);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "failed to resolve path");
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "failed to resolve path");
   }
 
   ecma_value_t format = annex_path_format (path);
@@ -296,10 +294,9 @@ jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t 
 
   return result;
 #else /* !(JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM) */
-  JJS_UNUSED (specifier);
-  JJS_UNUSED (context_p);
+  JJS_UNUSED_ALL (specifier, context_p);
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */
 } /* jjs_esm_default_on_resolve_cb */
 
@@ -310,31 +307,32 @@ jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t 
  * non-jjs_value_t, such as source code buffers, field cleanup
  * should be done before calling this function.
  *
+ * @param context_p JJS context
  * @param esm_source_p source object
  */
 void
-jjs_esm_source_free_values (jjs_esm_source_t *esm_source_p)
+jjs_esm_source_free_values (jjs_context_t* context_p, jjs_esm_source_t *esm_source_p)
 {
   JJS_ASSERT (esm_source_p != NULL);
 
   if (esm_source_p->source_value != 0)
   {
-    jjs_value_free (esm_source_p->source_value);
+    jjs_value_free (context_p, esm_source_p->source_value);
   }
 
   if (esm_source_p->dirname != 0)
   {
-    jjs_value_free (esm_source_p->dirname);
+    jjs_value_free (context_p, esm_source_p->dirname);
   }
 
   if (esm_source_p->filename != 0)
   {
-    jjs_value_free (esm_source_p->filename);
+    jjs_value_free (context_p, esm_source_p->filename);
   }
 
   if (esm_source_p->meta_extension != 0)
   {
-    jjs_value_free (esm_source_p->meta_extension);
+    jjs_value_free (context_p, esm_source_p->meta_extension);
   }
 
   memset (esm_source_p, 0, sizeof (jjs_esm_source_t));
@@ -350,43 +348,44 @@ jjs_esm_source_free_values (jjs_esm_source_t *esm_source_p)
  * Note: This import call is synchronous, which is not to the ECMA spec. In the
  *       future, this method may be changed to be asynchronous or deprecated.
  *
+ * @param context_p JJS context
  * @param specifier string value of the specifier
  * @param specifier_o specifier reference ownership
  * @return the namespace object of the module. on error, an exception is
  * returned. return value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_import (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
+jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
-  jjs_value_t referrer_path = annex_path_cwd ();
+  jjs_value_t referrer_path = annex_path_cwd (context_p);
 
-  if (!jjs_value_is_string (referrer_path))
+  if (!jjs_value_is_string (context_p, referrer_path))
   {
-    JJS_DISOWN (specifier, specifier_o);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
+    JJS_DISOWN (context_p, specifier, specifier_o);
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
-  jjs_value_t module = esm_import (specifier, referrer_path);
+  jjs_value_t module = esm_import (context_p, specifier, referrer_path);
 
-  jjs_value_free (referrer_path);
+  jjs_value_free (context_p, referrer_path);
 
-  JJS_DISOWN (specifier, specifier_o);
+  JJS_DISOWN (context_p, specifier, specifier_o);
 
-  if (jjs_value_is_exception (module))
+  if (jjs_value_is_exception (context_p, module))
   {
     return module;
   }
 
-  jjs_value_t namespace = jjs_module_namespace (module);
+  jjs_value_t namespace = jjs_module_namespace (context_p, module);
 
-  jjs_value_free (module);
+  jjs_value_free (context_p, module);
 
   return namespace;
 #else /* !JJS_ANNEX_ESM */
-  JJS_DISOWN (specifier, specifier_o);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  JJS_DISOWN (context_p, specifier, specifier_o);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_import */
 
@@ -395,20 +394,22 @@ jjs_esm_import (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
  *
  * @see jjs_esm_import
  *
+ * @param context_p JJS context
  * @param specifier_sz string value of the specifier. if NULL, an empty string is used.
  * @return the namespace object of the module. on error, an exception is returned. return
  * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_import_sz (const char *specifier_p)
+jjs_esm_import_sz (jjs_context_t* context_p, const char *specifier_p)
 {
-  jjs_assert_api_enabled ();
-  return jjs_esm_import (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE);
+  jjs_assert_api_enabled (context_p);
+  return jjs_esm_import (context_p, annex_util_create_string_utf8_sz (context_p, specifier_p), JJS_MOVE);
 } /* jjs_esm_import_sz */
 
 /**
  * import a module from in-memory source.
  *
+ * @param context_p JJS context
  * @param source_p UTF-8 encoded module source
  * @param source_len size of source_p in bytes (not encoded characters)
  * @param options_p configuration options for the new module
@@ -416,17 +417,17 @@ jjs_esm_import_sz (const char *specifier_p)
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_import_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
+jjs_esm_import_source (jjs_context_t* context_p, jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
-  return esm_run_source (source_p, source_values_o, ESM_RUN_RESULT_NAMESPACE);
+  return esm_run_source (context_p, source_p, source_values_o, ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_ANNEX_ESM */
   if (source_values_o == JJS_MOVE)
   {
-    jjs_esm_source_free_values (source_p);
+    jjs_esm_source_free_values (context_p, source_p);
   }
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_import_source */
 
@@ -447,34 +448,35 @@ jjs_esm_import_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_
  * Note: This method will not work with cached modules. A module can only be
  *       evaluated once!
  *
+ * @param context_p JJS context
  * @param specifier string value of the specifier
  * @param specifier_o specifier reference ownership
  * @return the evaluation result of the module. on error, an exception is
  * returned. return value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_evaluate (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
+jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
-  jjs_value_t referrer_path = annex_path_cwd ();
+  jjs_value_t referrer_path = annex_path_cwd (context_p);
 
-  if (!jjs_value_is_string (referrer_path))
+  if (!jjs_value_is_string (context_p, referrer_path))
   {
-    JJS_DISOWN (specifier, specifier_o);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get current working directory");
+    JJS_DISOWN (context_p, specifier, specifier_o);
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
-  jjs_value_t module = esm_read (specifier, referrer_path);
+  jjs_value_t module = esm_read (context_p, specifier, referrer_path);
 
-  jjs_value_free (referrer_path);
+  jjs_value_free (context_p, referrer_path);
 
-  JJS_DISOWN (specifier, specifier_o);
+  JJS_DISOWN (context_p, specifier, specifier_o);
 
-  return esm_link_and_evaluate (module, true, ESM_RUN_RESULT_EVALUATE);
+  return esm_link_and_evaluate (context_p, module, true, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
-  JJS_DISOWN (specifier, specifier_o);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  JJS_DISOWN (context_p, specifier, specifier_o);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_evaluate */
 
@@ -483,20 +485,22 @@ jjs_esm_evaluate (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
  *
  * @see jjs_esm_evaluate
  *
+ * @param context_p JJS context
  * @param specifier string value of the specifier. if NULL, an empty string is used.
  * @return the evaluation result of the module. on error, an exception is returned. return
  * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_evaluate_sz (const char *specifier_p)
+jjs_esm_evaluate_sz (jjs_context_t* context_p, const char *specifier_p)
 {
-  jjs_assert_api_enabled ();
-  return jjs_esm_evaluate (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE);
+  jjs_assert_api_enabled (context_p);
+  return jjs_esm_evaluate (context_p, annex_util_create_string_utf8_sz (context_p, specifier_p), JJS_MOVE);
 } /* jjs_esm_evaluate_sz */
 
 /**
  * Evaluate a module from source.
  *
+ * @param context_p JJS context
  * @param source_p UTF-8 encoded module source
  * @param source_len size of source_p in bytes (not encoded characters)
  * @param options_p configuration options for the new module
@@ -504,66 +508,65 @@ jjs_esm_evaluate_sz (const char *specifier_p)
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_evaluate_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
+jjs_esm_evaluate_source (jjs_context_t* context_p, jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
-  return esm_run_source (source_p, source_values_o, ESM_RUN_RESULT_EVALUATE);
+  return esm_run_source (context_p, source_p, source_values_o, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
   if (source_values_o == JJS_MOVE)
   {
-    jjs_esm_source_free_values (source_p);
+    jjs_esm_source_free_values (context_p, source_p);
   }
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_evaluate_source */
 
 jjs_value_t
-jjs_esm_default_on_import_cb (jjs_value_t specifier, jjs_value_t user_value, void *user_p)
+jjs_esm_default_on_import_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t user_value, void *user_p)
 {
   JJS_UNUSED (user_p);
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
-  jjs_value_t referrer_path = user_value_to_path (user_value);
+  jjs_value_t referrer_path = user_value_to_path (context_p, user_value);
 
-  if (!jjs_value_is_string (referrer_path))
+  if (!jjs_value_is_string (context_p, referrer_path))
   {
-    jjs_value_free (referrer_path);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "Failed to get referrer path from user_value");
+    jjs_value_free (context_p, referrer_path);
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Failed to get referrer path from user_value");
   }
 
-  jjs_value_t module = esm_import (specifier, referrer_path);
+  jjs_value_t module = esm_import (context_p, specifier, referrer_path);
 
-  jjs_value_free (referrer_path);
+  jjs_value_free (context_p, referrer_path);
 
   return module;
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (specifier);
-  JJS_UNUSED (user_value);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (specifier, user_value);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_default_on_import_cb */
 
 void
-jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_object, void *user_p)
+jjs_esm_default_on_import_meta_cb (jjs_context_t* context_p, jjs_value_t module, jjs_value_t meta_object, void *user_p)
 {
   JJS_UNUSED (user_p);
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
   jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_URL);
   jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_FILENAME);
   jjs_module_copy_string_property (meta_object, module, LIT_MAGIC_STRING_DIRNAME);
 
-  jjs_value_t resolve = jjs_function_external (esm_resolve_handler);
+  jjs_value_t resolve = jjs_function_external (context_p, esm_resolve_handler);
   jjs_value_t dirname = ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME);
   jjs_value_t path = ecma_make_magic_string_value(LIT_MAGIC_STRING_PATH);
 
-  jjs_object_set_internal (resolve, path, dirname);
+  jjs_object_set_internal (context_p, resolve, path, dirname);
   ecma_set_m (meta_object, LIT_MAGIC_STRING_RESOLVE, resolve);
 
-  jjs_value_free (path);
-  jjs_value_free (dirname);
-  jjs_value_free (resolve);
+  jjs_value_free (context_p, path);
+  jjs_value_free (context_p, dirname);
+  jjs_value_free (context_p, resolve);
 
   ecma_value_t extension = ecma_find_own_m (module, LIT_MAGIC_STRING_EXTENSION);
 
@@ -573,8 +576,7 @@ jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_object, 
     ecma_free_value (extension);
   }
 #else /* !JJS_ANNEX_ESM */
-  JJS_UNUSED (module);
-  JJS_UNUSED (meta_object);
+  JJS_UNUSED_ALL (module, meta_object);
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_module_default_import_meta */
 
@@ -582,39 +584,40 @@ jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_object, 
 
 static JJS_HANDLER (esm_resolve_handler)
 {
-  jjs_value_t specifier = args_count > 0 ? args_p[0] : jjs_undefined ();
+  jjs_context_t* context_p = call_info_p->context_p;
+  jjs_value_t specifier = args_count > 0 ? args_p[0] : jjs_undefined (context_p);
 
-  if (!jjs_value_is_string (specifier))
+  if (!jjs_value_is_string (context_p, specifier))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid argument");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid argument");
   }
 
 #if JJS_ANNEX_VMOD
-  if (jjs_vmod_exists (specifier, JJS_KEEP))
+  if (jjs_vmod_exists (context_p, specifier, JJS_KEEP))
   {
     return ecma_copy_value (specifier);
   }
 #endif
 
-  ecma_value_t referrer_path = annex_util_get_internal_m (call_info_p->function, LIT_MAGIC_STRING_PATH);
+  ecma_value_t referrer_path = annex_util_get_internal_m (context_p, call_info_p->function, LIT_MAGIC_STRING_PATH);
 
-  if (!jjs_value_is_string (referrer_path))
+  if (!jjs_value_is_string (context_p, referrer_path))
   {
-    jjs_value_free (referrer_path);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "resolve is missing referrer path");
+    jjs_value_free (context_p, referrer_path);
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "resolve is missing referrer path");
   }
 
-  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_MODULE);
+  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (context_p, specifier, referrer_path, JJS_MODULE_TYPE_MODULE);
   jjs_value_t result;
 
-  if (jjs_value_is_exception (resolved.result))
+  if (jjs_value_is_exception (context_p, resolved.result))
   {
-    result = jjs_value_copy (resolved.result);
+    result = jjs_value_copy (context_p, resolved.result);
   }
   else
   {
     /* options = { path: boolean }. if path truthy, return file path; otherwise, return file url */
-    jjs_value_t options = args_count > 1 ? args_p[1] : jjs_undefined ();
+    jjs_value_t options = args_count > 1 ? args_p[1] : jjs_undefined (context_p);
     ecma_value_t options_path = ecma_find_own_m (options, LIT_MAGIC_STRING_PATH);
     bool use_path = ecma_is_value_found (options_path) ? ecma_op_to_boolean (options_path) : false;
 
@@ -622,52 +625,52 @@ static JJS_HANDLER (esm_resolve_handler)
 
     if (use_path)
     {
-      result = jjs_value_copy (resolved.path);
+      result = jjs_value_copy (context_p, resolved.path);
     }
     else
     {
-      result = annex_path_to_file_url (resolved.path);
+      result = annex_path_to_file_url (context_p, resolved.path);
 
-      if (!jjs_value_is_string (result))
+      if (!jjs_value_is_string (context_p, result))
       {
         ecma_free_value(result);
-        result = jjs_throw_sz (JJS_ERROR_COMMON, "Failed to convert path to url.");
+        result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Failed to convert path to url.");
       }
     }
   }
 
-  jjs_value_free (referrer_path);
-  jjs_annex_module_resolve_free (&resolved);
+  jjs_value_free (context_p, referrer_path);
+  jjs_annex_module_resolve_free (context_p, &resolved);
 
   return result;
 }
 
 static jjs_value_t
-esm_import (jjs_value_t specifier, jjs_value_t referrer_path)
+esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_path)
 {
-  jjs_value_t module = esm_read (specifier, referrer_path);
-  jjs_value_t result = esm_link_and_evaluate (module, false, ESM_RUN_RESULT_NONE);
+  jjs_value_t module = esm_read (context_p, specifier, referrer_path);
+  jjs_value_t result = esm_link_and_evaluate (context_p, module, false, ESM_RUN_RESULT_NONE);
 
-  if (jjs_value_is_exception (result))
+  if (jjs_value_is_exception (context_p, result))
   {
-    jjs_value_free (module);
+    jjs_value_free (context_p, module);
     return result;
   }
 
-  jjs_value_free (result);
+  jjs_value_free (context_p, result);
 
   return module;
 } /* esm_import */
 
 static jjs_value_t
-esm_realpath_dirname (jjs_value_t dirname_value)
+esm_realpath_dirname (jjs_context_t* context_p, jjs_value_t dirname_value)
 {
   if (dirname_value == 0 || ecma_is_value_undefined (dirname_value))
   {
-    return annex_path_cwd ();
+    return annex_path_cwd (context_p);
   }
 
-  return annex_path_normalize (dirname_value);
+  return annex_path_normalize (context_p, dirname_value);
 } /* esm_realpath_dirname */
 
 static jjs_value_t
@@ -682,37 +685,37 @@ esm_basename_or_default (jjs_value_t filename_value)
 } /* esm_basename_or_default */
 
 static jjs_value_t
-esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t result_type)
+esm_link_and_evaluate (jjs_context_t* context_p, jjs_value_t module, bool move_module, esm_result_type_t result_type)
 {
   jjs_module_state_t state;
   jjs_value_t result;
 
-  if (jjs_value_is_exception (module))
+  if (jjs_value_is_exception (context_p, module))
   {
-    return move_module ? module : jjs_value_copy (module);
+    return move_module ? module : jjs_value_copy (context_p, module);
   }
 
-  state = jjs_module_state (module);
+  state = jjs_module_state (context_p, module);
 
   if (state == JJS_MODULE_STATE_UNLINKED)
   {
-    jjs_value_t link_result = jjs_module_link (module, esm_link_cb, NULL);
+    jjs_value_t link_result = jjs_module_link (context_p, module, esm_link_cb, NULL);
 
-    if (jjs_value_is_exception (link_result))
+    if (jjs_value_is_exception (context_p, link_result))
     {
       result = link_result;
       goto done;
     }
 
-    JJS_ASSERT (jjs_value_is_true (link_result));
-    jjs_value_free (link_result);
+    JJS_ASSERT (jjs_value_is_true (context_p, link_result));
+    jjs_value_free (context_p, link_result);
   }
 
-  state = jjs_module_state (module);
+  state = jjs_module_state (context_p, module);
 
   if (state == JJS_MODULE_STATE_LINKED)
   {
-    result = jjs_module_evaluate (module);
+    result = jjs_module_evaluate (context_p, module);
   }
   else if (state == JJS_MODULE_STATE_EVALUATED)
   {
@@ -720,49 +723,49 @@ esm_link_and_evaluate (jjs_value_t module, bool move_module, esm_result_type_t r
   }
   else
   {
-    result = jjs_throw_sz (JJS_ERROR_COMMON, "module must be in linked state to evaluate");
+    result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "module must be in linked state to evaluate");
   }
 
 done:
-  if (!jjs_value_is_exception (result))
+  if (!jjs_value_is_exception (context_p, result))
   {
     switch (result_type)
     {
       case ESM_RUN_RESULT_NAMESPACE:
-        jjs_value_free (result);
-        result = jjs_module_namespace (module);
+        jjs_value_free (context_p, result);
+        result = jjs_module_namespace (context_p, module);
         break;
       case ESM_RUN_RESULT_EVALUATE:
         break;
       case ESM_RUN_RESULT_NONE:
-        jjs_value_free (result);
+        jjs_value_free (context_p, result);
         result = ECMA_VALUE_UNDEFINED;
         break;
       default:
-        jjs_value_free (result);
-        result = jjs_throw_sz (JJS_ERROR_COMMON, "invalid result_type");
+        jjs_value_free (context_p, result);
+        result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "invalid result_type");
         break;
     }
   }
 
   if (move_module)
   {
-    jjs_value_free (module);
+    jjs_value_free (context_p, module);
   }
 
   return result;
 } /* esm_link_and_evaluate */
 
 static jjs_value_t
-esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type)
+esm_run_source (jjs_context_t* context_p, jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type)
 {
   if (source_p == NULL)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "source_p must not be NULL");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "source_p must not be NULL");
   }
 
   bool has_source_sz = source_p->source_sz != NULL;
-  bool has_source_value = source_p->source_value != 0 ? jjs_value_is_string (source_p->source_value) : false;
+  bool has_source_value = source_p->source_value != 0 ? jjs_value_is_string (context_p, source_p->source_value) : false;
   bool has_source_buffer = source_p->source_buffer_size != 0;
   jjs_value_t validation;
 
@@ -770,30 +773,31 @@ esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_
       || (has_source_value && !has_source_sz && !has_source_buffer)
       || (has_source_buffer && !has_source_value && !has_source_sz))
   {
-    validation = jjs_undefined ();
+    validation = jjs_undefined (context_p);
   }
   else if (!has_source_sz && !has_source_value && !has_source_buffer)
   {
-    validation = jjs_throw_sz (JJS_ERROR_TYPE, "source_p contains no sources");
+    validation = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "source_p contains no sources");
   }
   else
   {
     validation =
-      jjs_throw_sz (JJS_ERROR_TYPE,
+      jjs_throw_sz (context_p,
+                    JJS_ERROR_TYPE,
                     "source_p contains multiple sources. Use only one of source_value, source_sz or source_buffer.");
   }
 
-  if (jjs_value_is_exception (validation))
+  if (jjs_value_is_exception (context_p, validation))
   {
     if (source_values_o == JJS_MOVE)
     {
-      jjs_esm_source_free_values (source_p);
+      jjs_esm_source_free_values (context_p, source_p);
     }
 
     return validation;
   }
 
-  jjs_value_free (validation);
+  jjs_value_free (context_p, validation);
 
   ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
   jjs_parse_options_t parse_options;
@@ -802,33 +806,33 @@ esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_
   jjs_value_t filename_value = ECMA_VALUE_UNDEFINED;
   jjs_value_t dirname_value;
 
-  dirname_value = esm_realpath_dirname (source_p->dirname);
+  dirname_value = esm_realpath_dirname (context_p, source_p->dirname);
 
-  if (!jjs_value_is_string (dirname_value))
+  if (!jjs_value_is_string (context_p, dirname_value))
   {
-    module = jjs_throw_sz (JJS_ERROR_TYPE, "jjs_source_options_t.dirname must be a path to an fs directory");
+    module = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "jjs_source_options_t.dirname must be a path to an fs directory");
     goto after_parse;
   }
 
   basename_value = esm_basename_or_default (source_p->filename);
 
-  if (!jjs_value_is_string (basename_value))
+  if (!jjs_value_is_string (context_p, basename_value))
   {
-    module = jjs_throw_sz (JJS_ERROR_TYPE, "jjs_source_options_t.filename must be a normal filename");
+    module = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "jjs_source_options_t.filename must be a normal filename");
     goto after_parse;
   }
 
-  filename_value = annex_path_join (dirname_value, basename_value, false);
+  filename_value = annex_path_join (context_p, dirname_value, basename_value, false);
 
-  if (!jjs_value_is_string (filename_value))
+  if (!jjs_value_is_string (context_p, filename_value))
   {
-    module = jjs_throw_sz (JJS_ERROR_TYPE, "Failed to create filename path to source module.");
+    module = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Failed to create filename path to source module.");
     goto after_parse;
   }
 
   if (ecma_has_own_v (esm_cache, filename_value))
   {
-    module = jjs_throw_sz (JJS_ERROR_TYPE, "A module with this filename has already been loaded.");
+    module = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "A module with this filename has already been loaded.");
     goto after_parse;
   }
 
@@ -842,20 +846,20 @@ esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_
 
   if (has_source_buffer)
   {
-    module = jjs_parse (source_p->source_buffer_p, source_p->source_buffer_size, &parse_options);
+    module = jjs_parse (context_p, source_p->source_buffer_p, source_p->source_buffer_size, &parse_options);
   }
   else if (has_source_sz)
   {
-    module = jjs_parse ((const jjs_char_t *) source_p->source_sz, strlen (source_p->source_sz), &parse_options);
+    module = jjs_parse (context_p, (const jjs_char_t *) source_p->source_sz, strlen (source_p->source_sz), &parse_options);
   }
   else
   {
-    module = jjs_parse_value (source_p->source_value, &parse_options);
+    module = jjs_parse_value (context_p, source_p->source_value, &parse_options);
   }
 
-  if (!jjs_value_is_exception (module))
+  if (!jjs_value_is_exception (context_p, module))
   {
-    jjs_value_t file_url = annex_path_to_file_url (filename_value);
+    jjs_value_t file_url = annex_path_to_file_url (context_p, filename_value);
 
     JJS_ASSERT (ecma_is_value_string (file_url));
 
@@ -878,41 +882,41 @@ esm_run_source (jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_
       ecma_set_v (esm_cache, filename_value, module);
     }
 
-    jjs_value_free (file_url);
+    jjs_value_free (context_p, file_url);
   }
 
 after_parse:
-  jjs_value_free (filename_value);
-  jjs_value_free (basename_value);
-  jjs_value_free (dirname_value);
+  jjs_value_free (context_p, filename_value);
+  jjs_value_free (context_p, basename_value);
+  jjs_value_free (context_p, dirname_value);
 
   if (source_values_o == JJS_MOVE)
   {
-    jjs_esm_source_free_values (source_p);
+    jjs_esm_source_free_values (context_p, source_p);
   }
 
-  return esm_link_and_evaluate (module, true, result_type);
+  return esm_link_and_evaluate (context_p, module, true, result_type);
 } /* esm_run_source */
 
 static jjs_value_t
-esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
+esm_read (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_path)
 {
   ecma_value_t esm_cache = ecma_get_global_object ()->esm_cache;
 
 #if JJS_ANNEX_VMOD
-  if (jjs_annex_vmod_exists (specifier))
+  if (jjs_annex_vmod_exists (context_p, specifier))
   {
-    return vmod_get_or_load_module (specifier, esm_cache);
+    return vmod_get_or_load_module (context_p, specifier, esm_cache);
   }
 #endif /* JJS_ANNEX_VMOD */
 
   // resolve specifier
-  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_MODULE);
+  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (context_p, specifier, referrer_path, JJS_MODULE_TYPE_MODULE);
 
-  if (jjs_value_is_exception (resolved.result))
+  if (jjs_value_is_exception (context_p, resolved.result))
   {
-    jjs_value_t resolved_exception = jjs_value_copy (resolved.result);
-    jjs_annex_module_resolve_free (&resolved);
+    jjs_value_t resolved_exception = jjs_value_copy (context_p, resolved.result);
+    jjs_annex_module_resolve_free (context_p, &resolved);
     return resolved_exception;
   }
 
@@ -920,18 +924,18 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
 
   if (cached_module != ECMA_VALUE_NOT_FOUND)
   {
-    jjs_annex_module_resolve_free (&resolved);
+    jjs_annex_module_resolve_free (context_p, &resolved);
     return cached_module;
   }
 
   ecma_free_value (cached_module);
 
   // load source
-  jjs_annex_module_load_t loaded = jjs_annex_module_load (resolved.path, resolved.format, JJS_MODULE_TYPE_MODULE);
+  jjs_annex_module_load_t loaded = jjs_annex_module_load (context_p, resolved.path, resolved.format, JJS_MODULE_TYPE_MODULE);
 
-  if (jjs_value_is_exception (loaded.result))
+  if (jjs_value_is_exception (context_p, loaded.result))
   {
-    jjs_annex_module_resolve_free (&resolved);
+    jjs_annex_module_resolve_free (context_p, &resolved);
     return loaded.result;
   }
 
@@ -947,30 +951,30 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
       .source_name = resolved.path,
     };
 
-    module = jjs_parse_value (loaded.source, &opts);
+    module = jjs_parse_value (context_p, loaded.source, &opts);
 
-    if (!jjs_value_is_exception (module))
+    if (!jjs_value_is_exception (context_p, module))
     {
-      jjs_value_t file_url = annex_path_to_file_url (resolved.path);
+      jjs_value_t file_url = annex_path_to_file_url (context_p, resolved.path);
 
-      if (jjs_value_is_string (file_url))
+      if (jjs_value_is_string (context_p, file_url))
       {
-        set_module_properties (module, resolved.path, file_url);
+        set_module_properties (context_p, module, resolved.path, file_url);
       }
       else
       {
-        jjs_value_free (module);
-        module = jjs_throw_sz (JJS_ERROR_COMMON, "failed to convert path to file url");
+        jjs_value_free (context_p, module);
+        module = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "failed to convert path to file url");
       }
 
-      jjs_value_free (file_url);
+      jjs_value_free (context_p, file_url);
     }
   }
 #if JJS_ANNEX_COMMONJS
   else if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_COMMONJS))
   {
     jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
-    jjs_value_t file_url = annex_path_to_file_url (resolved.path);
+    jjs_value_t file_url = annex_path_to_file_url (context_p, resolved.path);
 
     // TODO: get export names from pmap?
 
@@ -981,38 +985,38 @@ esm_read (jjs_value_t specifier, jjs_value_t referrer_path)
       file_url = ECMA_VALUE_UNDEFINED;
     }
 
-    module = jjs_synthetic_module (commonjs_module_evaluate_cb, &default_name, 1);
-    set_module_properties (module, resolved.path, file_url);
+    module = jjs_synthetic_module (context_p, commonjs_module_evaluate_cb, &default_name, 1);
+    set_module_properties (context_p, module, resolved.path, file_url);
 
-    jjs_value_free (default_name);
-    jjs_value_free (file_url);
+    jjs_value_free (context_p, default_name);
+    jjs_value_free (context_p, file_url);
   }
 #endif /* JJS_ANNEX_COMMONJS */
   else
   {
-    module = jjs_throw_sz (JJS_ERROR_TYPE, "Invalid format");
+    module = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid format");
   }
 
-  if (!jjs_value_is_exception (module))
+  if (!jjs_value_is_exception (context_p, module))
   {
     ecma_set_v (esm_cache, resolved.path, module);
   }
 
-  jjs_annex_module_resolve_free (&resolved);
-  jjs_annex_module_load_free (&loaded);
+  jjs_annex_module_resolve_free (context_p, &resolved);
+  jjs_annex_module_load_free (context_p, &loaded);
 
   return module;
 } /* esm_read */
 
 static jjs_value_t
-esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p)
+esm_link_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer, void *user_p)
 {
   JJS_UNUSED (user_p);
 
   jjs_value_t path = ecma_find_own_m (referrer, LIT_MAGIC_STRING_DIRNAME);
-  jjs_value_t module = esm_read (specifier, path);
+  jjs_value_t module = esm_read (context_p, specifier, path);
 
-  jjs_value_free (path);
+  jjs_value_free (context_p, path);
 
   return module;
 } /* esm_link_cb */
@@ -1025,21 +1029,23 @@ esm_link_cb (jjs_value_t specifier, jjs_value_t referrer, void *user_p)
  * If exports contains a 'default' key, exports.default will be used as
  * default. Otherwise, exports will be used as default.
  *
+ * @param context_p JJS context
  * @param native_module synthetic/native ES module
  * @param exports CommonJS or Virtual Module exports object
  * @return true if successful, exception otherwise. the return value must be
  * freed with jjs_value_free.
  */
 static jjs_value_t
-module_native_set_default (jjs_value_t native_module, jjs_value_t exports)
+module_native_set_default (jjs_context_t* context_p, jjs_value_t native_module, jjs_value_t exports)
 {
   jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
   ecma_value_t default_value = ecma_find_own_v (exports, default_name);
-  jjs_value_t result = jjs_synthetic_module_set_export (native_module,
+  jjs_value_t result = jjs_synthetic_module_set_export (context_p,
+                                                        native_module,
                                                         default_name,
                                                         ecma_is_value_found (default_value) ? default_value : exports);
 
-  jjs_value_free (default_name);
+  jjs_value_free (context_p, default_name);
   ecma_free_value (default_value);
 
   return result;
@@ -1050,26 +1056,26 @@ module_native_set_default (jjs_value_t native_module, jjs_value_t exports)
 #if JJS_ANNEX_COMMONJS
 
 static jjs_value_t
-commonjs_module_evaluate_cb (jjs_value_t native_module)
+commonjs_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module)
 {
   jjs_value_t filename = ecma_find_own_m (native_module, LIT_MAGIC_STRING_FILENAME);
-  JJS_ASSERT (jjs_value_is_string (filename));
+  JJS_ASSERT (jjs_value_is_string (context_p, filename));
   jjs_value_t referrer_path = ecma_find_own_m (native_module, LIT_MAGIC_STRING_DIRNAME);
-  JJS_ASSERT (jjs_value_is_string (referrer_path));
+  JJS_ASSERT (jjs_value_is_string (context_p, referrer_path));
 
-  jjs_value_t exports = jjs_annex_require (filename, referrer_path);
+  jjs_value_t exports = jjs_annex_require (context_p, filename, referrer_path);
 
-  jjs_value_free (filename);
-  jjs_value_free (referrer_path);
+  jjs_value_free (context_p, filename);
+  jjs_value_free (context_p, referrer_path);
 
-  if (jjs_value_is_exception (exports))
+  if (jjs_value_is_exception (context_p, exports))
   {
     return exports;
   }
 
-  jjs_value_t result = module_native_set_default (native_module, exports);
+  jjs_value_t result = module_native_set_default (context_p, native_module, exports);
 
-  jjs_value_free (exports);
+  jjs_value_free (context_p, exports);
 
   return result;
 } /* commonjs_module_evaluate_cb */
@@ -1079,7 +1085,7 @@ commonjs_module_evaluate_cb (jjs_value_t native_module)
 #if JJS_ANNEX_VMOD
 
 static jjs_value_t
-vmod_module_evaluate_cb (jjs_value_t native_module)
+vmod_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module)
 {
   ecma_value_t exports = ecma_find_own_m (native_module, LIT_MAGIC_STRING_EXPORTS);
 
@@ -1087,7 +1093,7 @@ vmod_module_evaluate_cb (jjs_value_t native_module)
 
   if (!ecma_is_value_found (exports))
   {
-    return jjs_throw_sz (JJS_ERROR_COMMON, "vmod esm module missing exports property");
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "vmod esm module missing exports property");
   }
 
   ecma_value_t delete_result = ecma_op_object_delete (ecma_get_object_from_value (native_module),
@@ -1096,15 +1102,15 @@ vmod_module_evaluate_cb (jjs_value_t native_module)
 
   ecma_free_value (delete_result);
 
-  jjs_value_t result = module_native_set_default (native_module, exports);
+  jjs_value_t result = module_native_set_default (context_p, native_module, exports);
 
-  jjs_value_free (exports);
+  jjs_value_free (context_p, exports);
 
   return result;
 } /* vmod_module_evaluate_cb */
 
 static jjs_value_t
-vmod_link (jjs_value_t module, jjs_value_t exports, ecma_collection_t *keys_p, bool was_default_appended)
+vmod_link (jjs_context_t* context_p, jjs_value_t module, jjs_value_t exports, ecma_collection_t *keys_p, bool was_default_appended)
 {
   uint32_t count = keys_p->item_count - (was_default_appended ? 1 : 0);
 
@@ -1116,41 +1122,41 @@ vmod_link (jjs_value_t module, jjs_value_t exports, ecma_collection_t *keys_p, b
 
     if (value == ECMA_VALUE_NOT_FOUND)
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, "failed to get export value while linking vmod module");
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "failed to get export value while linking vmod module");
     }
 
-    jjs_value_t result = jjs_synthetic_module_set_export (module, keys_p->buffer_p[i], value);
+    jjs_value_t result = jjs_synthetic_module_set_export (context_p, module, keys_p->buffer_p[i], value);
 
     ecma_free_value (value);
 
-    if (jjs_value_is_exception (result))
+    if (jjs_value_is_exception (context_p, result))
     {
       return result;
     }
 
-    jjs_value_free (result);
+    jjs_value_free (context_p, result);
   }
 
   if (was_default_appended)
   {
     ecma_value_t default_key = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
-    jjs_value_t result = jjs_synthetic_module_set_export (module, default_key, exports);
+    jjs_value_t result = jjs_synthetic_module_set_export (context_p, module, default_key, exports);
 
     ecma_free_value (default_key);
 
-    if (jjs_value_is_exception (result))
+    if (jjs_value_is_exception (context_p, result))
     {
       return result;
     }
 
-    jjs_value_free (result);
+    jjs_value_free (context_p, result);
   }
 
-  return jjs_module_link (module, esm_link_cb, NULL);
+  return jjs_module_link (context_p, module, esm_link_cb, NULL);
 } /* vmod_link */
 
 static jjs_value_t
-vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
+vmod_get_or_load_module (jjs_context_t* context_p, jjs_value_t specifier, ecma_value_t esm_cache)
 {
   ecma_value_t cached = ecma_find_own_v (esm_cache, specifier);
 
@@ -1161,9 +1167,9 @@ vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
 
   ecma_free_value (cached);
 
-  jjs_value_t exports = jjs_annex_vmod_resolve (specifier);
+  jjs_value_t exports = jjs_annex_vmod_resolve (context_p, specifier);
 
-  if (jjs_value_is_exception (exports))
+  if (jjs_value_is_exception (context_p, exports))
   {
     return exports;
   }
@@ -1188,7 +1194,7 @@ vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
 
     if (JJS_UNLIKELY (keys_p == NULL))
     {
-      return jjs_throw_sz (JJS_ERROR_COMMON, "failed to allocate collection for vmod keys");
+      return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "failed to allocate collection for vmod keys");
     }
   }
 
@@ -1204,27 +1210,27 @@ vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
     was_default_appended = false;
   }
 
-  jjs_value_t native_module = jjs_synthetic_module (vmod_module_evaluate_cb, keys_p->buffer_p, keys_p->item_count);
+  jjs_value_t native_module = jjs_synthetic_module (context_p, vmod_module_evaluate_cb, keys_p->buffer_p, keys_p->item_count);
 
-  if (!jjs_value_is_exception (native_module))
+  if (!jjs_value_is_exception (context_p, native_module))
   {
-    jjs_value_t linked = vmod_link (native_module, exports, keys_p, was_default_appended);
+    jjs_value_t linked = vmod_link (context_p, native_module, exports, keys_p, was_default_appended);
 
-    if (!jjs_value_is_exception (linked))
+    if (!jjs_value_is_exception (context_p, linked))
     {
-      jjs_value_free (linked);
+      jjs_value_free (context_p, linked);
       ecma_set_m (native_module, LIT_MAGIC_STRING_EXPORTS, exports);
       ecma_set_v (esm_cache, specifier, native_module);
     }
     else
     {
-      jjs_value_free (native_module);
+      jjs_value_free (context_p, native_module);
       native_module = linked;
     }
   }
 
   ecma_collection_free (keys_p);
-  jjs_value_free (exports);
+  jjs_value_free (context_p, exports);
 
   return native_module;
 } /* vmod_get_or_load_module */
@@ -1232,7 +1238,7 @@ vmod_get_or_load_module (jjs_value_t specifier, ecma_value_t esm_cache)
 #endif /* JJS_ANNEX_VMOD */
 
 static jjs_value_t
-user_value_to_path (jjs_value_t user_value)
+user_value_to_path (jjs_context_t* context_p, jjs_value_t user_value)
 {
   annex_specifier_type_t path_type = annex_path_specifier_type (user_value);
   jjs_value_t result;
@@ -1244,11 +1250,11 @@ user_value_to_path (jjs_value_t user_value)
     result = ecma_is_value_found (module) ? ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME)
                                           : annex_path_dirname (user_value);
 
-    jjs_value_free (module);
+    jjs_value_free (context_p, module);
   }
   else if (path_type == ANNEX_SPECIFIER_TYPE_FILE_URL)
   {
-    result = jjs_throw_sz (JJS_ERROR_COMMON, "user_value cannot be a file url");
+    result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "user_value cannot be a file url");
   }
   else
   {
@@ -1257,29 +1263,29 @@ user_value_to_path (jjs_value_t user_value)
     // when using jjs_parse, the caller may forget to set user_value, they need to contrive a fake absolute
     // path (for parsing an in mem string) or the absolute path needs to be built. if user_value is not set,
     // cwd is a reasonable default value for most use cases.
-    result = annex_path_cwd ();
+    result = annex_path_cwd (context_p);
   }
 
   return result;
 } /* user_value_to_path */
 
 static void
-set_module_properties (jjs_value_t module, jjs_value_t filename, jjs_value_t url)
+set_module_properties (jjs_context_t* context_p, jjs_value_t module, jjs_value_t filename, jjs_value_t url)
 {
-  if (jjs_value_is_exception (module))
+  if (jjs_value_is_exception (context_p, module))
   {
     return;
   }
 
   jjs_value_t path_dirname = annex_path_dirname (filename);
 
-  JJS_ASSERT (jjs_value_is_string (path_dirname));
+  JJS_ASSERT (jjs_value_is_string (context_p, path_dirname));
 
   ecma_set_m (module, LIT_MAGIC_STRING_DIRNAME, path_dirname);
   ecma_set_m (module, LIT_MAGIC_STRING_URL, url);
   ecma_set_m (module, LIT_MAGIC_STRING_FILENAME, filename);
 
-  jjs_value_free (path_dirname);
+  jjs_value_free (context_p, path_dirname);
 } /* set_module_properties */
 
 #endif /* JJS_ANNEX_ESM */

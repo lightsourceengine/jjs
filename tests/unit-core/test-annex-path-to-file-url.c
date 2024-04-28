@@ -156,11 +156,11 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   test_annex_path_to_file_url ();
   test_annex_path_to_file_url_bad_input ();
   
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

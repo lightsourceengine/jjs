@@ -39,7 +39,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   const jjs_char_t array_iterator_keys[] = "[1, 2, 3].keys()";
   const jjs_char_t array_iterator_values[] = "[1, 2, 3].values()";
@@ -104,7 +104,7 @@ main (void)
     jjs_value_free (entries[idx].value);
   }
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

@@ -378,7 +378,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   test_esm_source ();
   test_esm_source_free_values ();
@@ -403,6 +403,6 @@ main (void)
   test_esm_evaluate_source_exceptions ();
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

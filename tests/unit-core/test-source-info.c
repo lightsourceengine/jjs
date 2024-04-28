@@ -36,12 +36,12 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   if (!jjs_feature_enabled (JJS_FEATURE_FUNCTION_TO_STRING))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Source code is not stored!\n");
-    jjs_cleanup ();
+    TEST_CONTEXT_FREE (context_p);
     return 0;
   }
 
@@ -157,6 +157,6 @@ main (void)
   jjs_source_info_free (source_info_p);
   jjs_value_free (value);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

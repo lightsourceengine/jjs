@@ -18,6 +18,6 @@
 
 #include "ecma-globals.h"
 
-void jjs_api_object_init (ecma_value_t realm);
+void jjs_api_object_init (jjs_context_t* context_p, ecma_value_t realm);
 
 #endif /* JJS_API_OBJECT_H */

@@ -123,10 +123,10 @@ void jjs_jrt_set_log_level (jjs_log_level_t level);
  * Logging
  */
 #if JJS_LOGGING
-#define JJS_ERROR_MSG(...)   jjs_log (JJS_LOG_LEVEL_ERROR, __VA_ARGS__)
-#define JJS_WARNING_MSG(...) jjs_log (JJS_LOG_LEVEL_WARNING, __VA_ARGS__)
-#define JJS_DEBUG_MSG(...)   jjs_log (JJS_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#define JJS_TRACE_MSG(...)   jjs_log (JJS_LOG_LEVEL_TRACE, __VA_ARGS__)
+#define JJS_ERROR_MSG(...)   jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define JJS_WARNING_MSG(...) jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define JJS_DEBUG_MSG(...)   jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define JJS_TRACE_MSG(...)   jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_TRACE, __VA_ARGS__)
 #else /* !JJS_LOGGING */
 #define JJS_ERROR_MSG(...)          \
   do                                  \

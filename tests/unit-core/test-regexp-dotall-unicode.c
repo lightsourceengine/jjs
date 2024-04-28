@@ -21,7 +21,7 @@ int
 main (void)
 {
   TEST_INIT ();
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t undefined_this_arg = jjs_undefined ();
   char pattern2[] = "\\u{61}.\\u{62}";
@@ -66,6 +66,6 @@ main (void)
   jjs_value_free (is_sticky);
   jjs_value_free (is_unicode);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

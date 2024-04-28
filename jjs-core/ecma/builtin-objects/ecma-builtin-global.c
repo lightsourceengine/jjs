@@ -86,22 +86,24 @@ enum
 static ecma_value_t
 ecma_builtin_global_object_eval (ecma_value_t x) /**< routine's first argument */
 {
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
   if (JJS_UNLIKELY (!ecma_is_value_string (x)))
   {
     /* step 1 */
     return ecma_copy_value (x);
   }
 
-  uint32_t parse_opts = vm_is_direct_eval_form_call () ? ECMA_PARSE_DIRECT_EVAL : ECMA_PARSE_NO_OPTS;
+  uint32_t parse_opts = vm_is_direct_eval_form_call (context_p) ? ECMA_PARSE_DIRECT_EVAL : ECMA_PARSE_NO_OPTS;
 
   /* See also: ECMA-262 v5, 10.1.1 */
-  if (parse_opts && vm_is_strict_mode ())
+  if (parse_opts && vm_is_strict_mode (context_p))
   {
     JJS_ASSERT (parse_opts & ECMA_PARSE_DIRECT_EVAL);
     parse_opts |= ECMA_PARSE_STRICT_MODE;
   }
 
-  if (vm_is_direct_eval_form_call ())
+  if (vm_is_direct_eval_form_call (context_p))
   {
     parse_opts |= ECMA_GET_LOCAL_PARSE_OPTS ();
   }

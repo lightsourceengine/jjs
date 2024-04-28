@@ -19,7 +19,30 @@
 #include "jjs-core.h"
 #include "ecma-globals.h"
 
-jjs_platform_t jjsp_defaults (void);
+struct jjs_platform_s
+{
+  jjs_allocator_t *allocator;
+  int32_t refs;
+
+  jjs_platform_fatal_fn_t fatal;
+
+  jjs_platform_io_write_fn_t io_write;
+  jjs_platform_io_flush_fn_t io_flush;
+  jjs_platform_io_stream_t io_stdout;
+
+  jjs_encoding_t io_stdout_encoding;
+  jjs_platform_io_stream_t io_stderr;
+  jjs_encoding_t io_stderr_encoding;
+
+  jjs_platform_time_local_tza_fn_t time_local_tza;
+  jjs_platform_time_now_ms_fn_t time_now_ms;
+  jjs_platform_time_sleep_fn_t time_sleep;
+
+  jjs_platform_path_cwd_fn_t path_cwd;
+  jjs_platform_path_realpath_fn_t path_realpath;
+
+  jjs_platform_fs_read_file_fn_t fs_read_file;
+};
 
 /* platform api implementation helpers */
 

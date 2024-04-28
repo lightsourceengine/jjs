@@ -183,7 +183,7 @@ find_test_object_by_property (const jjs_value_t candidate, void *context_p)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_parse_options_t parse_options;
   parse_options.options = JJS_PARSE_STRICT_MODE;
@@ -252,7 +252,7 @@ main (void)
   test_container ();
   test_internal_prop ();
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

@@ -364,476 +364,478 @@ main (void)
   jjs_value_t res, args[2];
   double number_val;
   char buffer[32];
-
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
-
-  parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
-
-  res = jjs_run (parsed_code_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  jjs_value_free (res);
-  jjs_value_free (parsed_code_val);
-
-  global_obj_val = jjs_current_realm ();
-
-  /* Get global.boo (non-existing field) */
-  val_t = get_property (global_obj_val, "boo");
-  TEST_ASSERT (!jjs_value_is_exception (val_t));
-  TEST_ASSERT (jjs_value_is_undefined (val_t));
-
-  /* Get global.t */
-  val_t = get_property (global_obj_val, "t");
-  TEST_ASSERT (!jjs_value_is_exception (val_t));
-  TEST_ASSERT (jjs_value_is_number (val_t) && jjs_value_as_number (val_t) == 1.0);
-  jjs_value_free (val_t);
-
-  /* Get global.foo */
-  val_foo = get_property (global_obj_val, "foo");
-  TEST_ASSERT (!jjs_value_is_exception (val_foo));
-  TEST_ASSERT (jjs_value_is_object (val_foo));
-
-  /* Call foo (4, 2) */
-  args[0] = jjs_number (4);
-  args[1] = jjs_number (2);
-  res = jjs_call (val_foo, jjs_undefined (), args, 2);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 1.0);
-  jjs_value_free (res);
-
-  /* Get global.bar */
-  val_bar = get_property (global_obj_val, "bar");
-  TEST_ASSERT (!jjs_value_is_exception (val_bar));
-  TEST_ASSERT (jjs_value_is_object (val_bar));
-
-  /* Call bar (4, 2) */
-  res = jjs_call (val_bar, jjs_undefined (), args, 2);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 5.0);
-  jjs_value_free (res);
-  jjs_value_free (val_bar);
-
-  /* Set global.t = "abcd" */
-  jjs_value_free (args[0]);
-  args[0] = jjs_string_sz ("abcd");
-  res = set_property (global_obj_val, "t", args[0]);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_true (res));
-  jjs_value_free (res);
-
-  /* Call foo (4, 2) */
-  res = jjs_call (val_foo, jjs_undefined (), args, 2);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_string (res));
-  sz = jjs_string_size (res, JJS_ENCODING_CESU8);
-  TEST_ASSERT (sz == 4);
-  sz = jjs_string_to_buffer (res, JJS_ENCODING_CESU8, (jjs_char_t *) buffer, sz);
-  TEST_ASSERT (sz == 4);
-  jjs_value_free (res);
-  TEST_ASSERT (!strncmp (buffer, "abcd", (size_t) sz));
-  jjs_value_free (args[0]);
-  jjs_value_free (args[1]);
-
-  /* Get global.A */
-  val_A = get_property (global_obj_val, "A");
-  TEST_ASSERT (!jjs_value_is_exception (val_A));
-  TEST_ASSERT (jjs_value_is_object (val_A));
-
-  /* Get A.prototype */
-  is_ok = jjs_value_is_constructor (val_A);
-  TEST_ASSERT (is_ok);
-  val_A_prototype = get_property (val_A, "prototype");
-  TEST_ASSERT (!jjs_value_is_exception (val_A_prototype));
-  TEST_ASSERT (jjs_value_is_object (val_A_prototype));
-  jjs_value_free (val_A);
-
-  /* Set A.prototype.foo = global.foo */
-  res = set_property (val_A_prototype, "foo", val_foo);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_true (res));
-  jjs_value_free (res);
-  jjs_value_free (val_A_prototype);
-  jjs_value_free (val_foo);
-
-  /* Get global.a */
-  val_a = get_property (global_obj_val, "a");
-  TEST_ASSERT (!jjs_value_is_exception (val_a));
-  TEST_ASSERT (jjs_value_is_object (val_a));
-
-  /* Get a.t */
-  res = get_property (val_a, "t");
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 12.0);
-  jjs_value_free (res);
-
-  /* foreach properties */
-  val_p = get_property (global_obj_val, "p");
-  is_ok = jjs_object_foreach (val_p, foreach, (void *) "user_data");
-  TEST_ASSERT (is_ok);
-
-  /* break foreach at third element */
-  int count = 0;
-  is_ok = jjs_object_foreach (val_p, foreach_subset, &count);
-  TEST_ASSERT (is_ok);
-  TEST_ASSERT (count == 3);
-  jjs_value_free (val_p);
-
-  /* foreach with throw test */
-  val_np = get_property (global_obj_val, "np");
-  is_ok = !jjs_object_foreach (val_np, foreach_exception, NULL);
-  TEST_ASSERT (is_ok);
-  jjs_value_free (val_np);
-
-  /* Get a.foo */
-  val_a_foo = get_property (val_a, "foo");
-  TEST_ASSERT (!jjs_value_is_exception (val_a_foo));
-  TEST_ASSERT (jjs_value_is_object (val_a_foo));
-
-  /* Call a.foo () */
-  res = jjs_call (val_a_foo, val_a, NULL, 0);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 12.0);
-  jjs_value_free (res);
-  jjs_value_free (val_a_foo);
-
-  jjs_value_free (val_a);
-
-  /* Create native handler bound function object and set it to 'external' variable */
-  external_func_val = jjs_function_external (handler);
-  TEST_ASSERT (jjs_value_is_function (external_func_val) && jjs_value_is_constructor (external_func_val));
-
-  res = set_property (global_obj_val, "external", external_func_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_true (res));
-  jjs_value_free (external_func_val);
-
-  /* Call 'call_external' function that should call external function created above */
-  val_call_external = get_property (global_obj_val, "call_external");
-  TEST_ASSERT (!jjs_value_is_exception (val_call_external));
-  TEST_ASSERT (jjs_value_is_object (val_call_external));
-  res = jjs_call (val_call_external, global_obj_val, NULL, 0);
-  jjs_value_free (val_call_external);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_string (res));
-  sz = jjs_string_size (res, JJS_ENCODING_CESU8);
-  TEST_ASSERT (sz == 19);
-  sz = jjs_string_to_buffer (res, JJS_ENCODING_CESU8, (jjs_char_t *) buffer, sz);
-  TEST_ASSERT (sz == 19);
-  jjs_value_free (res);
-  TEST_ASSERT (!strncmp (buffer, "string from handler", (size_t) sz));
-
-  /* Create native handler bound function object and set it to 'external_construct' variable */
-  external_construct_val = jjs_function_external (handler_construct);
-  TEST_ASSERT (jjs_value_is_function (external_construct_val) && jjs_value_is_constructor (external_construct_val));
-
-  res = set_property (global_obj_val, "external_construct", external_construct_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_true (res));
-  jjs_value_free (res);
-
-  /* Call external function created above, as constructor */
-  args[0] = jjs_boolean (true);
-  res = jjs_construct (external_construct_val, args, 1);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_object (res));
-  val_value_field = get_property (res, "value_field");
-
-  /* Get 'value_field' of constructed object */
-  TEST_ASSERT (!jjs_value_is_exception (val_value_field));
-  TEST_ASSERT (jjs_value_is_boolean (val_value_field) && jjs_value_is_true (val_value_field));
-  jjs_value_free (val_value_field);
-  jjs_value_free (external_construct_val);
-
-  TEST_ASSERT (jjs_object_has_native_ptr (res, &JJS_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2)));
-  void *ptr = jjs_object_get_native_ptr (res, &JJS_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2));
-  TEST_ASSERT ((uintptr_t) ptr == (uintptr_t) 0x0012345678abcdefull);
-
-  /* Passing NULL for info_p is allowed. */
-  TEST_ASSERT (!jjs_object_has_native_ptr (res, NULL));
-  jjs_object_set_native_ptr (res, NULL, (void *) 0x0012345678abcdefull);
-
-  TEST_ASSERT (jjs_object_has_native_ptr (res, NULL));
-  ptr = jjs_object_get_native_ptr (res, NULL);
-  TEST_ASSERT ((uintptr_t) ptr == (uintptr_t) 0x0012345678abcdefull);
-
-  jjs_value_free (res);
-
-  /* Test: It is ok to set native pointer's free callback as NULL. */
-  jjs_value_t obj_freecb = jjs_object ();
-  jjs_object_set_native_ptr (obj_freecb, &JJS_NATIVE_HANDLE_INFO_FOR_CTYPE (bind3), (void *) 0x1234);
-
-  jjs_value_free (obj_freecb);
-
-  /* Test: Throwing exception from native handler. */
-  throw_test_handler_val = jjs_function_external (handler_throw_test);
-  TEST_ASSERT (jjs_value_is_function (throw_test_handler_val));
-
-  res = set_property (global_obj_val, "throw_test", throw_test_handler_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_true (res));
-  jjs_value_free (res);
-  jjs_value_free (throw_test_handler_val);
-
-  val_t = get_property (global_obj_val, "call_throw_test");
-  TEST_ASSERT (!jjs_value_is_exception (val_t));
-  TEST_ASSERT (jjs_value_is_object (val_t));
-
-  res = jjs_call (val_t, global_obj_val, NULL, 0);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  jjs_value_free (val_t);
-  jjs_value_free (res);
-
-  /* Test: Unhandled exception in called function */
-  val_t = get_property (global_obj_val, "throw_reference_error");
-  TEST_ASSERT (!jjs_value_is_exception (val_t));
-  TEST_ASSERT (jjs_value_is_object (val_t));
-
-  res = jjs_call (val_t, global_obj_val, NULL, 0);
-
-  TEST_ASSERT (jjs_value_is_exception (res));
-  jjs_value_free (val_t);
-
-  /* 'res' should contain exception object */
-  res = jjs_exception_value (res, true);
-  TEST_ASSERT (jjs_value_is_object (res));
-  jjs_value_free (res);
-
-  /* Test: Call of non-function */
-  obj_val = jjs_object ();
-  res = jjs_call (obj_val, global_obj_val, NULL, 0);
-  TEST_ASSERT (jjs_value_is_exception (res));
-
-  /* 'res' should contain exception object */
-  res = jjs_exception_value (res, true);
-  TEST_ASSERT (jjs_value_is_object (res));
-  jjs_value_free (res);
-
-  jjs_value_free (obj_val);
-
-  /* Test: Unhandled exception in function called, as constructor */
-  val_t = get_property (global_obj_val, "throw_reference_error");
-  TEST_ASSERT (!jjs_value_is_exception (val_t));
-  TEST_ASSERT (jjs_value_is_object (val_t));
-
-  res = jjs_construct (val_t, NULL, 0);
-  TEST_ASSERT (jjs_value_is_exception (res));
-  jjs_value_free (val_t);
-
-  /* 'res' should contain exception object */
-  res = jjs_exception_value (res, true);
-  TEST_ASSERT (jjs_value_is_object (res));
-  jjs_value_free (res);
-
-  /* Test: Call of non-function as constructor */
-  obj_val = jjs_object ();
-  res = jjs_construct (obj_val, NULL, 0);
-  TEST_ASSERT (jjs_value_is_exception (res));
-
-  /* 'res' should contain exception object */
-  res = jjs_exception_value (res, true);
-  TEST_ASSERT (jjs_value_is_object (res));
-  jjs_value_free (res);
-
-  jjs_value_free (obj_val);
-
-  /* Test: Array Object API */
-  jjs_value_t array_obj_val = jjs_array (10);
-  TEST_ASSERT (jjs_value_is_array (array_obj_val));
-  TEST_ASSERT (jjs_array_length (array_obj_val) == 10);
-
-  jjs_value_t v_in = jjs_number (10.5);
-  res = jjs_object_set_index (array_obj_val, 5, v_in);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_boolean (res) && jjs_value_is_true (res));
-  jjs_value_free (res);
-  jjs_value_t v_out = jjs_object_get_index (array_obj_val, 5);
-
-  TEST_ASSERT (jjs_value_is_number (v_out) && jjs_value_as_number (v_out) == 10.5);
-
-  jjs_object_delete_index (array_obj_val, 5);
-  jjs_value_t v_und = jjs_object_get_index (array_obj_val, 5);
-
-  TEST_ASSERT (jjs_value_is_undefined (v_und));
-
-  jjs_value_free (v_in);
-  jjs_value_free (v_out);
-  jjs_value_free (v_und);
-  jjs_value_free (array_obj_val);
-
-  /* Test: object keys */
-  res = jjs_object_keys (global_obj_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_array (res));
-  TEST_ASSERT (jjs_array_length (res) == 18);
-  jjs_value_free (res);
-
-  /* Test: jjs_value_to_primitive */
-  obj_val = jjs_eval ((jjs_char_t *) "new String ('hello')", 20, JJS_PARSE_NO_OPTS);
-  TEST_ASSERT (!jjs_value_is_exception (obj_val));
-  TEST_ASSERT (jjs_value_is_object (obj_val));
-  TEST_ASSERT (!jjs_value_is_string (obj_val));
-  prim_val = jjs_value_to_primitive (obj_val);
-  TEST_ASSERT (!jjs_value_is_exception (prim_val));
-  TEST_ASSERT (jjs_value_is_string (prim_val));
-  jjs_value_free (prim_val);
-
-  /* Test: jjs_object_proto */
-  proto_val = jjs_object_proto (jjs_undefined ());
-  TEST_ASSERT (jjs_value_is_exception (proto_val));
-  jjs_value_t error = jjs_exception_value (proto_val, true);
-  TEST_ASSERT (jjs_error_type (error) == JJS_ERROR_TYPE);
-  jjs_value_free (error);
-
-  proto_val = jjs_object_proto (obj_val);
-  TEST_ASSERT (!jjs_value_is_exception (proto_val));
-  TEST_ASSERT (jjs_value_is_object (proto_val));
-  jjs_value_free (proto_val);
-  jjs_value_free (obj_val);
-
-  if (jjs_feature_enabled (JJS_FEATURE_PROXY))
-  {
-    jjs_value_t target = jjs_object ();
-    jjs_value_t handler = jjs_object ();
-    jjs_value_t proxy = jjs_proxy (target, handler);
-    jjs_value_t obj_proto = jjs_eval ((jjs_char_t *) "Object.prototype", 16, JJS_PARSE_NO_OPTS);
-
-    jjs_value_free (target);
-    jjs_value_free (handler);
-    proto_val = jjs_object_proto (proxy);
-    TEST_ASSERT (!jjs_value_is_exception (proto_val));
-    TEST_ASSERT (proto_val == obj_proto);
-    jjs_value_free (proto_val);
-    jjs_value_free (obj_proto);
-    jjs_value_free (proxy);
-  }
-
-  /* Test: jjs_object_set_proto */
-  obj_val = jjs_object ();
-  res = jjs_object_set_proto (obj_val, jjs_null ());
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_boolean (res));
-  TEST_ASSERT (jjs_value_is_true (res));
-
-  jjs_value_t new_proto = jjs_object ();
-  res = jjs_object_set_proto (obj_val, new_proto);
-  jjs_value_free (new_proto);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_boolean (res));
-  TEST_ASSERT (jjs_value_is_true (res));
-  proto_val = jjs_object_proto (obj_val);
-  TEST_ASSERT (!jjs_value_is_exception (proto_val));
-  TEST_ASSERT (jjs_value_is_object (proto_val));
-  jjs_value_free (proto_val);
-  jjs_value_free (obj_val);
-
-  if (jjs_feature_enabled (JJS_FEATURE_PROXY))
-  {
-    jjs_value_t target = jjs_object ();
-    jjs_value_t handler = jjs_object ();
-    jjs_value_t proxy = jjs_proxy (target, handler);
-    new_proto = jjs_eval ((jjs_char_t *) "Function.prototype", 18, JJS_PARSE_NO_OPTS);
-
-    res = jjs_object_set_proto (proxy, new_proto);
-    TEST_ASSERT (!jjs_value_is_exception (res));
-    jjs_value_t target_proto = jjs_object_proto (target);
-    TEST_ASSERT (target_proto == new_proto);
-
-    jjs_value_free (target);
-    jjs_value_free (handler);
-    jjs_value_free (proxy);
-    jjs_value_free (new_proto);
-    jjs_value_free (target_proto);
-  }
-
-  /* Test: eval */
-  const jjs_char_t eval_code_src1[] = "(function () { return 123; })";
-  val_t = jjs_eval (eval_code_src1, sizeof (eval_code_src1) - 1, JJS_PARSE_STRICT_MODE);
-  TEST_ASSERT (!jjs_value_is_exception (val_t));
-  TEST_ASSERT (jjs_value_is_object (val_t));
-  TEST_ASSERT (jjs_value_is_function (val_t));
-
-  res = jjs_call (val_t, jjs_undefined (), NULL, 0);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 123.0);
-  jjs_value_free (res);
-
-  jjs_value_free (val_t);
-
-  /* cleanup. */
-  jjs_value_free (global_obj_val);
-
-  /* Test: run gc. */
-  jjs_heap_gc (JJS_GC_PRESSURE_LOW);
-
-  /* Test: spaces */
-  const jjs_char_t eval_code_src2[] = "\x0a \x0b \x0c \xc2\xa0 \xe2\x80\xa8 \xe2\x80\xa9 \xef\xbb\xbf 4321";
-  val_t = jjs_eval (eval_code_src2, sizeof (eval_code_src2) - 1, JJS_PARSE_STRICT_MODE);
-  TEST_ASSERT (!jjs_value_is_exception (val_t));
-  TEST_ASSERT (jjs_value_is_number (val_t) && jjs_value_as_number (val_t) == 4321.0);
-  jjs_value_free (val_t);
-
-  /* Test: number */
-  val_t = jjs_number (6.25);
-  number_val = jjs_value_as_number (val_t);
-  TEST_ASSERT (number_val * 3 == 18.75);
-  jjs_value_free (val_t);
-
-  val_t = jjs_infinity (true);
-  number_val = jjs_value_as_number (val_t);
-  TEST_ASSERT (number_val * 3 == number_val && number_val != 0.0);
-  jjs_value_free (val_t);
-
-  val_t = jjs_nan ();
-  number_val = jjs_value_as_number (val_t);
-  TEST_ASSERT (number_val != number_val);
-  jjs_value_free (val_t);
-
-  /* Test: create function */
-  jjs_value_t script_source = jjs_string_sz ("  return 5 +  a+\nb+c");
-
   jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz ("a , b,c");
 
-  jjs_value_t func_val = jjs_parse_value (script_source, &parse_options);
+  {
+    TEST_CONTEXT_NEW (context_p);
 
-  TEST_ASSERT (!jjs_value_is_exception (func_val));
+    parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
 
-  jjs_value_free (parse_options.argument_list);
-  jjs_value_free (script_source);
+    res = jjs_run (parsed_code_val);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    jjs_value_free (res);
+    jjs_value_free (parsed_code_val);
 
-  jjs_value_t func_args[3] = { jjs_number (4), jjs_number (6), jjs_number (-2) };
+    global_obj_val = jjs_current_realm ();
 
-  val_t = jjs_call (func_val, func_args[0], func_args, 3);
-  number_val = jjs_value_as_number (val_t);
-  TEST_ASSERT (number_val == 13.0);
+    /* Get global.boo (non-existing field) */
+    val_t = get_property (global_obj_val, "boo");
+    TEST_ASSERT (!jjs_value_is_exception (val_t));
+    TEST_ASSERT (jjs_value_is_undefined (val_t));
 
-  jjs_value_free (val_t);
-  jjs_value_free (func_val);
+    /* Get global.t */
+    val_t = get_property (global_obj_val, "t");
+    TEST_ASSERT (!jjs_value_is_exception (val_t));
+    TEST_ASSERT (jjs_value_is_number (val_t) && jjs_value_as_number (val_t) == 1.0);
+    jjs_value_free (val_t);
 
-  parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_null ();
+    /* Get global.foo */
+    val_foo = get_property (global_obj_val, "foo");
+    TEST_ASSERT (!jjs_value_is_exception (val_foo));
+    TEST_ASSERT (jjs_value_is_object (val_foo));
 
-  func_val = jjs_parse ((const jjs_char_t *) "", 0, &parse_options);
-  jjs_value_free (parse_options.argument_list);
+    /* Call foo (4, 2) */
+    args[0] = jjs_number (4);
+    args[1] = jjs_number (2);
+    res = jjs_call (val_foo, jjs_undefined (), args, 2);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 1.0);
+    jjs_value_free (res);
 
-  TEST_ASSERT (jjs_value_is_exception (func_val) && jjs_error_type (func_val) == JJS_ERROR_TYPE);
-  jjs_value_free (func_val);
+    /* Get global.bar */
+    val_bar = get_property (global_obj_val, "bar");
+    TEST_ASSERT (!jjs_value_is_exception (val_bar));
+    TEST_ASSERT (jjs_value_is_object (val_bar));
 
-  script_source = jjs_number (4.5);
-  func_val = jjs_parse_value (script_source, NULL);
-  jjs_value_free (script_source);
+    /* Call bar (4, 2) */
+    res = jjs_call (val_bar, jjs_undefined (), args, 2);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 5.0);
+    jjs_value_free (res);
+    jjs_value_free (val_bar);
 
-  TEST_ASSERT (jjs_value_is_exception (func_val) && jjs_error_type (func_val) == JJS_ERROR_TYPE);
-  jjs_value_free (func_val);
+    /* Set global.t = "abcd" */
+    jjs_value_free (args[0]);
+    args[0] = jjs_string_sz ("abcd");
+    res = set_property (global_obj_val, "t", args[0]);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_true (res));
+    jjs_value_free (res);
 
-  jjs_cleanup ();
+    /* Call foo (4, 2) */
+    res = jjs_call (val_foo, jjs_undefined (), args, 2);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_string (res));
+    sz = jjs_string_size (res, JJS_ENCODING_CESU8);
+    TEST_ASSERT (sz == 4);
+    sz = jjs_string_to_buffer (res, JJS_ENCODING_CESU8, (jjs_char_t *) buffer, sz);
+    TEST_ASSERT (sz == 4);
+    jjs_value_free (res);
+    TEST_ASSERT (!strncmp (buffer, "abcd", (size_t) sz));
+    jjs_value_free (args[0]);
+    jjs_value_free (args[1]);
 
-  TEST_ASSERT (test_api_is_free_callback_was_called);
+    /* Get global.A */
+    val_A = get_property (global_obj_val, "A");
+    TEST_ASSERT (!jjs_value_is_exception (val_A));
+    TEST_ASSERT (jjs_value_is_object (val_A));
+
+    /* Get A.prototype */
+    is_ok = jjs_value_is_constructor (val_A);
+    TEST_ASSERT (is_ok);
+    val_A_prototype = get_property (val_A, "prototype");
+    TEST_ASSERT (!jjs_value_is_exception (val_A_prototype));
+    TEST_ASSERT (jjs_value_is_object (val_A_prototype));
+    jjs_value_free (val_A);
+
+    /* Set A.prototype.foo = global.foo */
+    res = set_property (val_A_prototype, "foo", val_foo);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_true (res));
+    jjs_value_free (res);
+    jjs_value_free (val_A_prototype);
+    jjs_value_free (val_foo);
+
+    /* Get global.a */
+    val_a = get_property (global_obj_val, "a");
+    TEST_ASSERT (!jjs_value_is_exception (val_a));
+    TEST_ASSERT (jjs_value_is_object (val_a));
+
+    /* Get a.t */
+    res = get_property (val_a, "t");
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 12.0);
+    jjs_value_free (res);
+
+    /* foreach properties */
+    val_p = get_property (global_obj_val, "p");
+    is_ok = jjs_object_foreach (val_p, foreach, (void *) "user_data");
+    TEST_ASSERT (is_ok);
+
+    /* break foreach at third element */
+    int count = 0;
+    is_ok = jjs_object_foreach (val_p, foreach_subset, &count);
+    TEST_ASSERT (is_ok);
+    TEST_ASSERT (count == 3);
+    jjs_value_free (val_p);
+
+    /* foreach with throw test */
+    val_np = get_property (global_obj_val, "np");
+    is_ok = !jjs_object_foreach (val_np, foreach_exception, NULL);
+    TEST_ASSERT (is_ok);
+    jjs_value_free (val_np);
+
+    /* Get a.foo */
+    val_a_foo = get_property (val_a, "foo");
+    TEST_ASSERT (!jjs_value_is_exception (val_a_foo));
+    TEST_ASSERT (jjs_value_is_object (val_a_foo));
+
+    /* Call a.foo () */
+    res = jjs_call (val_a_foo, val_a, NULL, 0);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 12.0);
+    jjs_value_free (res);
+    jjs_value_free (val_a_foo);
+
+    jjs_value_free (val_a);
+
+    /* Create native handler bound function object and set it to 'external' variable */
+    external_func_val = jjs_function_external (handler);
+    TEST_ASSERT (jjs_value_is_function (external_func_val) && jjs_value_is_constructor (external_func_val));
+
+    res = set_property (global_obj_val, "external", external_func_val);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_true (res));
+    jjs_value_free (external_func_val);
+
+    /* Call 'call_external' function that should call external function created above */
+    val_call_external = get_property (global_obj_val, "call_external");
+    TEST_ASSERT (!jjs_value_is_exception (val_call_external));
+    TEST_ASSERT (jjs_value_is_object (val_call_external));
+    res = jjs_call (val_call_external, global_obj_val, NULL, 0);
+    jjs_value_free (val_call_external);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_string (res));
+    sz = jjs_string_size (res, JJS_ENCODING_CESU8);
+    TEST_ASSERT (sz == 19);
+    sz = jjs_string_to_buffer (res, JJS_ENCODING_CESU8, (jjs_char_t *) buffer, sz);
+    TEST_ASSERT (sz == 19);
+    jjs_value_free (res);
+    TEST_ASSERT (!strncmp (buffer, "string from handler", (size_t) sz));
+
+    /* Create native handler bound function object and set it to 'external_construct' variable */
+    external_construct_val = jjs_function_external (handler_construct);
+    TEST_ASSERT (jjs_value_is_function (external_construct_val) && jjs_value_is_constructor (external_construct_val));
+
+    res = set_property (global_obj_val, "external_construct", external_construct_val);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_true (res));
+    jjs_value_free (res);
+
+    /* Call external function created above, as constructor */
+    args[0] = jjs_boolean (true);
+    res = jjs_construct (external_construct_val, args, 1);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_object (res));
+    val_value_field = get_property (res, "value_field");
+
+    /* Get 'value_field' of constructed object */
+    TEST_ASSERT (!jjs_value_is_exception (val_value_field));
+    TEST_ASSERT (jjs_value_is_boolean (val_value_field) && jjs_value_is_true (val_value_field));
+    jjs_value_free (val_value_field);
+    jjs_value_free (external_construct_val);
+
+    TEST_ASSERT (jjs_object_has_native_ptr (res, &JJS_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2)));
+    void *ptr = jjs_object_get_native_ptr (res, &JJS_NATIVE_HANDLE_INFO_FOR_CTYPE (bind2));
+    TEST_ASSERT ((uintptr_t) ptr == (uintptr_t) 0x0012345678abcdefull);
+
+    /* Passing NULL for info_p is allowed. */
+    TEST_ASSERT (!jjs_object_has_native_ptr (res, NULL));
+    jjs_object_set_native_ptr (res, NULL, (void *) 0x0012345678abcdefull);
+
+    TEST_ASSERT (jjs_object_has_native_ptr (res, NULL));
+    ptr = jjs_object_get_native_ptr (res, NULL);
+    TEST_ASSERT ((uintptr_t) ptr == (uintptr_t) 0x0012345678abcdefull);
+
+    jjs_value_free (res);
+
+    /* Test: It is ok to set native pointer's free callback as NULL. */
+    jjs_value_t obj_freecb = jjs_object ();
+    jjs_object_set_native_ptr (obj_freecb, &JJS_NATIVE_HANDLE_INFO_FOR_CTYPE (bind3), (void *) 0x1234);
+
+    jjs_value_free (obj_freecb);
+
+    /* Test: Throwing exception from native handler. */
+    throw_test_handler_val = jjs_function_external (handler_throw_test);
+    TEST_ASSERT (jjs_value_is_function (throw_test_handler_val));
+
+    res = set_property (global_obj_val, "throw_test", throw_test_handler_val);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_true (res));
+    jjs_value_free (res);
+    jjs_value_free (throw_test_handler_val);
+
+    val_t = get_property (global_obj_val, "call_throw_test");
+    TEST_ASSERT (!jjs_value_is_exception (val_t));
+    TEST_ASSERT (jjs_value_is_object (val_t));
+
+    res = jjs_call (val_t, global_obj_val, NULL, 0);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    jjs_value_free (val_t);
+    jjs_value_free (res);
+
+    /* Test: Unhandled exception in called function */
+    val_t = get_property (global_obj_val, "throw_reference_error");
+    TEST_ASSERT (!jjs_value_is_exception (val_t));
+    TEST_ASSERT (jjs_value_is_object (val_t));
+
+    res = jjs_call (val_t, global_obj_val, NULL, 0);
+
+    TEST_ASSERT (jjs_value_is_exception (res));
+    jjs_value_free (val_t);
+
+    /* 'res' should contain exception object */
+    res = jjs_exception_value (res, true);
+    TEST_ASSERT (jjs_value_is_object (res));
+    jjs_value_free (res);
+
+    /* Test: Call of non-function */
+    obj_val = jjs_object ();
+    res = jjs_call (obj_val, global_obj_val, NULL, 0);
+    TEST_ASSERT (jjs_value_is_exception (res));
+
+    /* 'res' should contain exception object */
+    res = jjs_exception_value (res, true);
+    TEST_ASSERT (jjs_value_is_object (res));
+    jjs_value_free (res);
+
+    jjs_value_free (obj_val);
+
+    /* Test: Unhandled exception in function called, as constructor */
+    val_t = get_property (global_obj_val, "throw_reference_error");
+    TEST_ASSERT (!jjs_value_is_exception (val_t));
+    TEST_ASSERT (jjs_value_is_object (val_t));
+
+    res = jjs_construct (val_t, NULL, 0);
+    TEST_ASSERT (jjs_value_is_exception (res));
+    jjs_value_free (val_t);
+
+    /* 'res' should contain exception object */
+    res = jjs_exception_value (res, true);
+    TEST_ASSERT (jjs_value_is_object (res));
+    jjs_value_free (res);
+
+    /* Test: Call of non-function as constructor */
+    obj_val = jjs_object ();
+    res = jjs_construct (obj_val, NULL, 0);
+    TEST_ASSERT (jjs_value_is_exception (res));
+
+    /* 'res' should contain exception object */
+    res = jjs_exception_value (res, true);
+    TEST_ASSERT (jjs_value_is_object (res));
+    jjs_value_free (res);
+
+    jjs_value_free (obj_val);
+
+    /* Test: Array Object API */
+    jjs_value_t array_obj_val = jjs_array (10);
+    TEST_ASSERT (jjs_value_is_array (array_obj_val));
+    TEST_ASSERT (jjs_array_length (array_obj_val) == 10);
+
+    jjs_value_t v_in = jjs_number (10.5);
+    res = jjs_object_set_index (array_obj_val, 5, v_in);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_boolean (res) && jjs_value_is_true (res));
+    jjs_value_free (res);
+    jjs_value_t v_out = jjs_object_get_index (array_obj_val, 5);
+
+    TEST_ASSERT (jjs_value_is_number (v_out) && jjs_value_as_number (v_out) == 10.5);
+
+    jjs_object_delete_index (array_obj_val, 5);
+    jjs_value_t v_und = jjs_object_get_index (array_obj_val, 5);
+
+    TEST_ASSERT (jjs_value_is_undefined (v_und));
+
+    jjs_value_free (v_in);
+    jjs_value_free (v_out);
+    jjs_value_free (v_und);
+    jjs_value_free (array_obj_val);
+
+    /* Test: object keys */
+    res = jjs_object_keys (global_obj_val);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_array (res));
+    TEST_ASSERT (jjs_array_length (res) == 18);
+    jjs_value_free (res);
+
+    /* Test: jjs_value_to_primitive */
+    obj_val = jjs_eval ((jjs_char_t *) "new String ('hello')", 20, JJS_PARSE_NO_OPTS);
+    TEST_ASSERT (!jjs_value_is_exception (obj_val));
+    TEST_ASSERT (jjs_value_is_object (obj_val));
+    TEST_ASSERT (!jjs_value_is_string (obj_val));
+    prim_val = jjs_value_to_primitive (obj_val);
+    TEST_ASSERT (!jjs_value_is_exception (prim_val));
+    TEST_ASSERT (jjs_value_is_string (prim_val));
+    jjs_value_free (prim_val);
+
+    /* Test: jjs_object_proto */
+    proto_val = jjs_object_proto (jjs_undefined ());
+    TEST_ASSERT (jjs_value_is_exception (proto_val));
+    jjs_value_t error = jjs_exception_value (proto_val, true);
+    TEST_ASSERT (jjs_error_type (error) == JJS_ERROR_TYPE);
+    jjs_value_free (error);
+
+    proto_val = jjs_object_proto (obj_val);
+    TEST_ASSERT (!jjs_value_is_exception (proto_val));
+    TEST_ASSERT (jjs_value_is_object (proto_val));
+    jjs_value_free (proto_val);
+    jjs_value_free (obj_val);
+
+    if (jjs_feature_enabled (JJS_FEATURE_PROXY))
+    {
+      jjs_value_t target = jjs_object ();
+      jjs_value_t handler = jjs_object ();
+      jjs_value_t proxy = jjs_proxy (target, handler);
+      jjs_value_t obj_proto = jjs_eval ((jjs_char_t *) "Object.prototype", 16, JJS_PARSE_NO_OPTS);
+
+      jjs_value_free (target);
+      jjs_value_free (handler);
+      proto_val = jjs_object_proto (proxy);
+      TEST_ASSERT (!jjs_value_is_exception (proto_val));
+      TEST_ASSERT (proto_val == obj_proto);
+      jjs_value_free (proto_val);
+      jjs_value_free (obj_proto);
+      jjs_value_free (proxy);
+    }
+
+    /* Test: jjs_object_set_proto */
+    obj_val = jjs_object ();
+    res = jjs_object_set_proto (obj_val, jjs_null ());
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_boolean (res));
+    TEST_ASSERT (jjs_value_is_true (res));
+
+    jjs_value_t new_proto = jjs_object ();
+    res = jjs_object_set_proto (obj_val, new_proto);
+    jjs_value_free (new_proto);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_boolean (res));
+    TEST_ASSERT (jjs_value_is_true (res));
+    proto_val = jjs_object_proto (obj_val);
+    TEST_ASSERT (!jjs_value_is_exception (proto_val));
+    TEST_ASSERT (jjs_value_is_object (proto_val));
+    jjs_value_free (proto_val);
+    jjs_value_free (obj_val);
+
+    if (jjs_feature_enabled (JJS_FEATURE_PROXY))
+    {
+      jjs_value_t target = jjs_object ();
+      jjs_value_t handler = jjs_object ();
+      jjs_value_t proxy = jjs_proxy (target, handler);
+      new_proto = jjs_eval ((jjs_char_t *) "Function.prototype", 18, JJS_PARSE_NO_OPTS);
+
+      res = jjs_object_set_proto (proxy, new_proto);
+      TEST_ASSERT (!jjs_value_is_exception (res));
+      jjs_value_t target_proto = jjs_object_proto (target);
+      TEST_ASSERT (target_proto == new_proto);
+
+      jjs_value_free (target);
+      jjs_value_free (handler);
+      jjs_value_free (proxy);
+      jjs_value_free (new_proto);
+      jjs_value_free (target_proto);
+    }
+
+    /* Test: eval */
+    const jjs_char_t eval_code_src1[] = "(function () { return 123; })";
+    val_t = jjs_eval (eval_code_src1, sizeof (eval_code_src1) - 1, JJS_PARSE_STRICT_MODE);
+    TEST_ASSERT (!jjs_value_is_exception (val_t));
+    TEST_ASSERT (jjs_value_is_object (val_t));
+    TEST_ASSERT (jjs_value_is_function (val_t));
+
+    res = jjs_call (val_t, jjs_undefined (), NULL, 0);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    TEST_ASSERT (jjs_value_is_number (res) && jjs_value_as_number (res) == 123.0);
+    jjs_value_free (res);
+
+    jjs_value_free (val_t);
+
+    /* cleanup. */
+    jjs_value_free (global_obj_val);
+
+    /* Test: run gc. */
+    jjs_heap_gc (JJS_GC_PRESSURE_LOW);
+
+    /* Test: spaces */
+    const jjs_char_t eval_code_src2[] = "\x0a \x0b \x0c \xc2\xa0 \xe2\x80\xa8 \xe2\x80\xa9 \xef\xbb\xbf 4321";
+    val_t = jjs_eval (eval_code_src2, sizeof (eval_code_src2) - 1, JJS_PARSE_STRICT_MODE);
+    TEST_ASSERT (!jjs_value_is_exception (val_t));
+    TEST_ASSERT (jjs_value_is_number (val_t) && jjs_value_as_number (val_t) == 4321.0);
+    jjs_value_free (val_t);
+
+    /* Test: number */
+    val_t = jjs_number (6.25);
+    number_val = jjs_value_as_number (val_t);
+    TEST_ASSERT (number_val * 3 == 18.75);
+    jjs_value_free (val_t);
+
+    val_t = jjs_infinity (true);
+    number_val = jjs_value_as_number (val_t);
+    TEST_ASSERT (number_val * 3 == number_val && number_val != 0.0);
+    jjs_value_free (val_t);
+
+    val_t = jjs_nan ();
+    number_val = jjs_value_as_number (val_t);
+    TEST_ASSERT (number_val != number_val);
+    jjs_value_free (val_t);
+
+    /* Test: create function */
+    jjs_value_t script_source = jjs_string_sz ("  return 5 +  a+\nb+c");
+
+    parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
+    parse_options.argument_list = jjs_string_sz ("a , b,c");
+
+    jjs_value_t func_val = jjs_parse_value (script_source, &parse_options);
+
+    TEST_ASSERT (!jjs_value_is_exception (func_val));
+
+    jjs_value_free (parse_options.argument_list);
+    jjs_value_free (script_source);
+
+    jjs_value_t func_args[3] = { jjs_number (4), jjs_number (6), jjs_number (-2) };
+
+    val_t = jjs_call (func_val, func_args[0], func_args, 3);
+    number_val = jjs_value_as_number (val_t);
+    TEST_ASSERT (number_val == 13.0);
+
+    jjs_value_free (val_t);
+    jjs_value_free (func_val);
+
+    parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
+    parse_options.argument_list = jjs_null ();
+
+    func_val = jjs_parse ((const jjs_char_t *) "", 0, &parse_options);
+    jjs_value_free (parse_options.argument_list);
+
+    TEST_ASSERT (jjs_value_is_exception (func_val) && jjs_error_type (func_val) == JJS_ERROR_TYPE);
+    jjs_value_free (func_val);
+
+    script_source = jjs_number (4.5);
+    func_val = jjs_parse_value (script_source, NULL);
+    jjs_value_free (script_source);
+
+    TEST_ASSERT (jjs_value_is_exception (func_val) && jjs_error_type (func_val) == JJS_ERROR_TYPE);
+    jjs_value_free (func_val);
+
+    TEST_CONTEXT_FREE (context_p);
+
+    TEST_ASSERT (test_api_is_free_callback_was_called);
+  }
 
   /* Test: jjs_exception_value */
   {
-    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+    TEST_CONTEXT_NEW (context_p);
     jjs_value_t num_val = jjs_number (123);
     num_val = jjs_throw_value (num_val, true);
     TEST_ASSERT (jjs_value_is_exception (num_val));
@@ -847,11 +849,11 @@ main (void)
     num = jjs_value_as_number (num2_val);
     TEST_ASSERT (num == 123);
     jjs_value_free (num2_val);
-    jjs_cleanup ();
+    TEST_CONTEXT_FREE (context_p);
   }
 
   {
-    TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+    TEST_CONTEXT_NEW (context_p);
     const jjs_char_t scoped_src_p[] = "let a; this.b = 5";
     jjs_value_t parse_result = jjs_parse (scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (parse_result));
@@ -976,13 +978,13 @@ main (void)
       jjs_value_free (proxy);
     }
 
-    jjs_cleanup ();
+    TEST_CONTEXT_FREE (context_p);
   }
 
   /* Test: parser error location */
   if (jjs_feature_enabled (JJS_FEATURE_ERROR_MESSAGES))
   {
-    TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_STATUS_OK);
+    TEST_CONTEXT_NEW_FLAGS (context_p, JJS_CONTEXT_FLAG_SHOW_OPCODES);
 
     test_syntax_error ("b = 'hello';\nvar a = (;",
                        NULL,
@@ -1012,60 +1014,62 @@ main (void)
                        false);
 
     jjs_value_free (parse_options.source_name);
-    jjs_cleanup ();
+    TEST_CONTEXT_FREE (context_p);
   }
 
   /* External Magic String */
-  TEST_ASSERT (jjs_init_with_flags (JJS_CONTEXT_FLAG_SHOW_OPCODES) == JJS_STATUS_OK);
+  {
+    TEST_CONTEXT_NEW_FLAGS (context_p, JJS_CONTEXT_FLAG_SHOW_OPCODES);
 
-  uint32_t num_magic_string_items = (uint32_t) (sizeof (magic_string_items) / sizeof (jjs_char_t *));
-  jjs_register_magic_strings (magic_string_items, num_magic_string_items, magic_string_lengths);
+    uint32_t num_magic_string_items = (uint32_t) (sizeof (magic_string_items) / sizeof (jjs_char_t *));
+    jjs_register_magic_strings (magic_string_items, num_magic_string_items, magic_string_lengths);
 
-  const jjs_char_t ms_code_src[] = "var global = {}; var console = [1]; var process = 1;";
-  parsed_code_val = jjs_parse (ms_code_src, sizeof (ms_code_src) - 1, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+    const jjs_char_t ms_code_src[] = "var global = {}; var console = [1]; var process = 1;";
+    parsed_code_val = jjs_parse (ms_code_src, sizeof (ms_code_src) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
 
-  res = jjs_run (parsed_code_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  jjs_value_free (res);
-  jjs_value_free (parsed_code_val);
+    res = jjs_run (parsed_code_val);
+    TEST_ASSERT (!jjs_value_is_exception (res));
+    jjs_value_free (res);
+    jjs_value_free (parsed_code_val);
 
-  /* call jjs_string_sz functions which will returns with the registered external magic strings */
-  args[0] = jjs_string_sz ("console");
-  args[1] = jjs_string_sz ("\xed\xa0\x80\xed\xb6\x8a"); /**< greek zero sign */
+    /* call jjs_string_sz functions which will returns with the registered external magic strings */
+    args[0] = jjs_string_sz ("console");
+    args[1] = jjs_string_sz ("\xed\xa0\x80\xed\xb6\x8a"); /**< greek zero sign */
 
-  cesu8_length = jjs_string_length (args[0]);
-  cesu8_sz = jjs_string_size (args[0], JJS_ENCODING_CESU8);
+    cesu8_length = jjs_string_length (args[0]);
+    cesu8_sz = jjs_string_size (args[0], JJS_ENCODING_CESU8);
 
-  JJS_VLA (char, string_console, cesu8_sz);
-  jjs_string_to_buffer (args[0], JJS_ENCODING_CESU8, (jjs_char_t *) string_console, cesu8_sz);
+    JJS_VLA (char, string_console, cesu8_sz);
+    jjs_string_to_buffer (args[0], JJS_ENCODING_CESU8, (jjs_char_t *) string_console, cesu8_sz);
 
-  TEST_ASSERT (!strncmp (string_console, "console", cesu8_sz));
-  TEST_ASSERT (cesu8_length == 7);
-  TEST_ASSERT (cesu8_length == cesu8_sz);
+    TEST_ASSERT (!strncmp (string_console, "console", cesu8_sz));
+    TEST_ASSERT (cesu8_length == 7);
+    TEST_ASSERT (cesu8_length == cesu8_sz);
 
-  jjs_value_free (args[0]);
+    jjs_value_free (args[0]);
 
-  const jjs_char_t test_magic_str_access_src[] = "'console'.charAt(6) == 'e'";
-  res = jjs_eval (test_magic_str_access_src, sizeof (test_magic_str_access_src) - 1, JJS_PARSE_NO_OPTS);
-  TEST_ASSERT (jjs_value_is_boolean (res));
-  TEST_ASSERT (jjs_value_is_true (res));
+    const jjs_char_t test_magic_str_access_src[] = "'console'.charAt(6) == 'e'";
+    res = jjs_eval (test_magic_str_access_src, sizeof (test_magic_str_access_src) - 1, JJS_PARSE_NO_OPTS);
+    TEST_ASSERT (jjs_value_is_boolean (res));
+    TEST_ASSERT (jjs_value_is_true (res));
 
-  jjs_value_free (res);
+    jjs_value_free (res);
 
-  cesu8_length = jjs_string_length (args[1]);
-  cesu8_sz = jjs_string_size (args[1], JJS_ENCODING_CESU8);
+    cesu8_length = jjs_string_length (args[1]);
+    cesu8_sz = jjs_string_size (args[1], JJS_ENCODING_CESU8);
 
-  JJS_VLA (char, string_greek_zero_sign, cesu8_sz);
-  jjs_string_to_buffer (args[1], JJS_ENCODING_CESU8, (jjs_char_t *) string_greek_zero_sign, cesu8_sz);
+    JJS_VLA (char, string_greek_zero_sign, cesu8_sz);
+    jjs_string_to_buffer (args[1], JJS_ENCODING_CESU8, (jjs_char_t *) string_greek_zero_sign, cesu8_sz);
 
-  TEST_ASSERT (!strncmp (string_greek_zero_sign, "\xed\xa0\x80\xed\xb6\x8a", cesu8_sz));
-  TEST_ASSERT (cesu8_length == 2);
-  TEST_ASSERT (cesu8_sz == 6);
+    TEST_ASSERT (!strncmp (string_greek_zero_sign, "\xed\xa0\x80\xed\xb6\x8a", cesu8_sz));
+    TEST_ASSERT (cesu8_length == 2);
+    TEST_ASSERT (cesu8_sz == 6);
 
-  jjs_value_free (args[1]);
+    jjs_value_free (args[1]);
 
-  jjs_cleanup ();
+    TEST_CONTEXT_FREE (context_p);
+  }
 
   return 0;
 } /* main */

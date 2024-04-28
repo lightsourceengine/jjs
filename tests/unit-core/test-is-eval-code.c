@@ -68,7 +68,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t global_object_value = jjs_current_realm ();
 
@@ -105,6 +105,6 @@ main (void)
   source_p = TEST_STRING_LITERAL ("check_eval(function() {}, true)");
   jjs_value_free (jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), JJS_PARSE_NO_OPTS));
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

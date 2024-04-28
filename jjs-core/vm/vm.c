@@ -253,7 +253,8 @@ static const uint16_t vm_decode_table[] JJS_ATTR_CONST_DATA = { CBC_OPCODE_LIST 
  * @return ecma value
  */
 ecma_value_t
-vm_run_global (const ecma_compiled_code_t *bytecode_p, /**< pointer to bytecode to run */
+vm_run_global (jjs_context_t* context_p, /**< JJS context */
+               const ecma_compiled_code_t *bytecode_p, /**< pointer to bytecode to run */
                ecma_object_t *function_object_p) /**< function object if available */
 {
 #if JJS_BUILTIN_REALMS
@@ -277,16 +278,16 @@ vm_run_global (const ecma_compiled_code_t *bytecode_p, /**< pointer to bytecode 
 #if JJS_BUILTIN_REALMS
   ecma_value_t this_binding = ((ecma_global_object_t *) global_obj_p)->this_binding;
 
-  ecma_global_object_t *saved_global_object_p = JJS_CONTEXT (global_object_p);
-  JJS_CONTEXT (global_object_p) = (ecma_global_object_t *) global_obj_p;
+  ecma_global_object_t *saved_global_object_p = context_p->global_object_p;
+  context_p->global_object_p = (ecma_global_object_t *) global_obj_p;
 #else /* !JJS_BUILTIN_REALMS */
   ecma_value_t this_binding = ecma_make_object_value (global_obj_p);
 #endif /* JJS_BUILTIN_REALMS */
 
-  ecma_value_t result = vm_run (&shared, this_binding, global_scope_p);
+  ecma_value_t result = vm_run (context_p, &shared, this_binding, global_scope_p);
 
 #if JJS_BUILTIN_REALMS
-  JJS_CONTEXT (global_object_p) = saved_global_object_p;
+  context_p->global_object_p = saved_global_object_p;
 #endif /* JJS_BUILTIN_REALMS */
 
   return result;
@@ -298,7 +299,8 @@ vm_run_global (const ecma_compiled_code_t *bytecode_p, /**< pointer to bytecode 
  * @return ecma value
  */
 ecma_value_t
-vm_run_eval (ecma_compiled_code_t *bytecode_data_p, /**< byte-code data */
+vm_run_eval (jjs_context_t* context_p, /**< JJS context */
+             ecma_compiled_code_t *bytecode_data_p, /**< byte-code data */
              uint32_t parse_opts) /**< ecma_parse_opts_t option bits */
 {
   ecma_value_t this_binding;
@@ -307,12 +309,12 @@ vm_run_eval (ecma_compiled_code_t *bytecode_data_p, /**< byte-code data */
   /* ECMA-262 v5, 10.4.2 */
   if (parse_opts & ECMA_PARSE_DIRECT_EVAL)
   {
-    this_binding = ecma_copy_value (JJS_CONTEXT (vm_top_context_p)->this_binding);
-    lex_env_p = JJS_CONTEXT (vm_top_context_p)->lex_env_p;
+    this_binding = ecma_copy_value (context_p->vm_top_context_p->this_binding);
+    lex_env_p = context_p->vm_top_context_p->lex_env_p;
 
 #if JJS_DEBUGGER
-    uint32_t chain_index = JJS_CONTEXT (debugger_eval_chain_index);
-    JJS_CONTEXT (debugger_eval_chain_index) = 0;
+    uint32_t chain_index = context_p->debugger_eval_chain_index;
+    context_p->debugger_eval_chain_index = 0;
 
     while (chain_index != 0)
     {
@@ -371,7 +373,7 @@ vm_run_eval (ecma_compiled_code_t *bytecode_data_p, /**< byte-code data */
   shared.function_object_p = NULL;
   shared.status_flags = (parse_opts & ECMA_PARSE_DIRECT_EVAL) ? VM_FRAME_CTX_SHARED_DIRECT_EVAL : 0;
 
-  ecma_value_t completion_value = vm_run (&shared, this_binding, lex_env_p);
+  ecma_value_t completion_value = vm_run (context_p, &shared, this_binding, lex_env_p);
 
   ecma_deref_object (lex_env_p);
   ecma_free_value (this_binding);
@@ -399,7 +401,8 @@ vm_run_eval (ecma_compiled_code_t *bytecode_data_p, /**< byte-code data */
  * @return ecma value
  */
 ecma_value_t
-vm_run_module (ecma_module_t *module_p) /**< module to be executed */
+vm_run_module (jjs_context_t* context_p, /**< JJS context */
+               ecma_module_t *module_p) /**< module to be executed */
 {
   const ecma_value_t module_init_result = ecma_module_initialize (module_p);
 
@@ -413,7 +416,7 @@ vm_run_module (ecma_module_t *module_p) /**< module to be executed */
   shared.function_object_p = &module_p->header.object;
   shared.status_flags = 0;
 
-  return vm_run (&shared, ECMA_VALUE_UNDEFINED, module_p->scope_p);
+  return vm_run (context_p, &shared, ECMA_VALUE_UNDEFINED, module_p->scope_p);
 } /* vm_run_module */
 
 #endif /* JJS_MODULE_SYSTEM */
@@ -530,7 +533,7 @@ vm_get_class_function (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
  * 'super(...)' function call handler.
  */
 static void
-vm_super_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+vm_super_call (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
   JJS_ASSERT (frame_ctx_p->call_operation == VM_EXEC_SUPER_CALL);
   JJS_ASSERT (frame_ctx_p->byte_code_p[0] == CBC_EXT_OPCODE);
@@ -571,7 +574,7 @@ vm_super_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
   {
     ecma_object_t *func_obj_p = ecma_get_object_from_value (func_value);
     completion_value =
-      ecma_op_function_construct (func_obj_p, JJS_CONTEXT (current_new_target_p), arguments_p, arguments_list_len);
+      ecma_op_function_construct (func_obj_p, context_p->current_new_target_p, arguments_p, arguments_list_len);
 
     if (!ECMA_IS_VALUE_ERROR (completion_value) && ecma_op_this_binding_is_initialized (environment_record_p))
     {
@@ -610,7 +613,7 @@ vm_super_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
   if (JJS_UNLIKELY (ECMA_IS_VALUE_ERROR (completion_value)))
   {
 #if JJS_DEBUGGER
-    JJS_CONTEXT (debugger_exception_byte_code_p) = frame_ctx_p->byte_code_p;
+    context_p->debugger_exception_byte_code_p = frame_ctx_p->byte_code_p;
 #endif /* JJS_DEBUGGER */
     frame_ctx_p->byte_code_p = (uint8_t *) vm_error_byte_code_p;
   }
@@ -642,8 +645,9 @@ vm_super_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
  *   - new O(...args)
  */
 static void
-vm_spread_operation (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+vm_spread_operation (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
+  JJS_UNUSED (context_p);
   JJS_ASSERT (frame_ctx_p->byte_code_p[0] == CBC_EXT_OPCODE);
 
   uint8_t opcode = frame_ctx_p->byte_code_p[1];
@@ -700,7 +704,7 @@ vm_spread_operation (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
   if (JJS_UNLIKELY (ECMA_IS_VALUE_ERROR (completion_value)))
   {
 #if JJS_DEBUGGER
-    JJS_CONTEXT (debugger_exception_byte_code_p) = frame_ctx_p->byte_code_p;
+    context_p->debugger_exception_byte_code_p = frame_ctx_p->byte_code_p;
 #endif /* JJS_DEBUGGER */
     frame_ctx_p->byte_code_p = (uint8_t *) vm_error_byte_code_p;
   }
@@ -733,7 +737,7 @@ vm_spread_operation (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
  * See also: ECMA-262 v5, 11.2.3
  */
 static void
-opfunc_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+opfunc_call (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
   const uint8_t *byte_code_p = frame_ctx_p->byte_code_p + 1;
   uint8_t opcode = byte_code_p[-1];
@@ -757,7 +761,7 @@ opfunc_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
   ecma_value_t completion_value =
     ecma_op_function_validated_call (func_value, this_value, stack_top_p, arguments_list_len);
 
-  JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_DIRECT_EVAL;
+  context_p->status_flags &= (uint32_t) ~ECMA_STATUS_DIRECT_EVAL;
 
   /* Free registers. */
   for (uint32_t i = 0; i < arguments_list_len; i++)
@@ -774,7 +778,7 @@ opfunc_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
   if (JJS_UNLIKELY (ECMA_IS_VALUE_ERROR (completion_value)))
   {
 #if JJS_DEBUGGER
-    JJS_CONTEXT (debugger_exception_byte_code_p) = frame_ctx_p->byte_code_p;
+    context_p->debugger_exception_byte_code_p = frame_ctx_p->byte_code_p;
 #endif /* JJS_DEBUGGER */
     frame_ctx_p->byte_code_p = (uint8_t *) vm_error_byte_code_p;
   }
@@ -808,8 +812,10 @@ opfunc_call (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
  * See also: ECMA-262 v5, 11.2.2
  */
 static void
-opfunc_construct (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+opfunc_construct (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
+  JJS_UNUSED (context_p);
+
   const uint8_t *byte_code_p = frame_ctx_p->byte_code_p + 1;
   uint8_t opcode = byte_code_p[-1];
   unsigned int arguments_list_len;
@@ -849,7 +855,7 @@ opfunc_construct (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
   if (JJS_UNLIKELY (ECMA_IS_VALUE_ERROR (completion_value)))
   {
 #if JJS_DEBUGGER
-    JJS_CONTEXT (debugger_exception_byte_code_p) = frame_ctx_p->byte_code_p;
+    context_p->debugger_exception_byte_code_p = frame_ctx_p->byte_code_p;
 #endif /* JJS_DEBUGGER */
     frame_ctx_p->byte_code_p = (uint8_t *) vm_error_byte_code_p;
   }
@@ -966,7 +972,7 @@ opfunc_construct (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
  * @return ecma value
  */
 static ecma_value_t JJS_ATTR_NOINLINE
-vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
   const ecma_compiled_code_t *bytecode_header_p = frame_ctx_p->shared_p->bytecode_header_p;
   const uint8_t *byte_code_p = frame_ctx_p->byte_code_p;
@@ -1108,17 +1114,17 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         if (opcode_data & VM_OC_BACKWARD_BRANCH)
         {
 #if JJS_VM_HALT
-          if (JJS_CONTEXT (vm_exec_stop_cb) != NULL && --JJS_CONTEXT (vm_exec_stop_counter) == 0)
+          if (context_p->vm_exec_stop_cb != NULL && --context_p->vm_exec_stop_counter == 0)
           {
-            result = JJS_CONTEXT (vm_exec_stop_cb) (JJS_CONTEXT (vm_exec_stop_user_p));
+            result = context_p->vm_exec_stop_cb (context_p->vm_exec_stop_user_p);
 
             if (ecma_is_value_undefined (result))
             {
-              JJS_CONTEXT (vm_exec_stop_counter) = JJS_CONTEXT (vm_exec_stop_frequency);
+              context_p->vm_exec_stop_counter = context_p->vm_exec_stop_frequency;
             }
             else
             {
-              JJS_CONTEXT (vm_exec_stop_counter) = 1;
+              context_p->vm_exec_stop_counter = 1;
 
               if (ecma_is_value_exception (result))
               {
@@ -2826,7 +2832,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         }
         case VM_OC_PUSH_NEW_TARGET:
         {
-          ecma_object_t *new_target_object_p = JJS_CONTEXT (current_new_target_p);
+          ecma_object_t *new_target_object_p = context_p->current_new_target_p;
           if (new_target_object_p == NULL)
           {
             *stack_top_p++ = ECMA_VALUE_UNDEFINED;
@@ -3173,7 +3179,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         }
         case VM_OC_EVAL:
         {
-          JJS_CONTEXT (status_flags) |= ECMA_STATUS_DIRECT_EVAL;
+          context_p->status_flags |= ECMA_STATUS_DIRECT_EVAL;
           JJS_ASSERT ((*byte_code_p >= CBC_CALL && *byte_code_p <= CBC_CALL2_PROP_BLOCK)
                         || (*byte_code_p == CBC_EXT_OPCODE && byte_code_p[1] >= CBC_EXT_SPREAD_CALL
                             && byte_code_p[1] <= CBC_EXT_SPREAD_CALL_PROP_BLOCK));
@@ -3197,7 +3203,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         {
           JJS_ASSERT (frame_ctx_p->byte_code_p[1] == CBC_EXT_ERROR);
 #if JJS_DEBUGGER
-          frame_ctx_p->byte_code_p = JJS_CONTEXT (debugger_exception_byte_code_p);
+          frame_ctx_p->byte_code_p = context_p->debugger_exception_byte_code_p;
 #endif /* JJS_DEBUGGER */
 
           result = ECMA_VALUE_ERROR;
@@ -4463,7 +4469,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
           {
             jcontext_raise_exception (*stack_top_p);
 #if JJS_VM_THROW
-            JJS_CONTEXT (status_flags) |= ECMA_STATUS_ERROR_THROWN;
+            context_p->status_flags |= ECMA_STATUS_ERROR_THROWN;
 #endif /* JJS_VM_THROW */
             result = ECMA_VALUE_ERROR;
 
@@ -4605,10 +4611,10 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
             import_meta_object_p = ecma_create_object (NULL, 0, ECMA_OBJECT_TYPE_GENERAL);
             import_meta = ecma_make_object_value (import_meta_object_p);
 
-            if (JJS_CONTEXT (module_import_meta_callback_p) != NULL)
+            if (context_p->module_import_meta_callback_p != NULL)
             {
-              void *user_p = JJS_CONTEXT (module_import_meta_callback_user_p);
-              JJS_CONTEXT (module_import_meta_callback_p) (module, import_meta, user_p);
+              void *user_p = context_p->module_import_meta_callback_user_p;
+              context_p->module_import_meta_callback_p (context_p, module, import_meta, user_p);
             }
 
             CBC_SCRIPT_GET_IMPORT_META (script_p, script_p->refs_and_type) = import_meta;
@@ -4625,19 +4631,19 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 #if JJS_DEBUGGER
         case VM_OC_BREAKPOINT_ENABLED:
         {
-          if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_IGNORE)
+          if (context_p->debugger_flags & JJS_DEBUGGER_VM_IGNORE)
           {
             continue;
           }
 
-          JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+          JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
           JJS_ASSERT (!(frame_ctx_p->shared_p->bytecode_header_p->status_flags & CBC_CODE_FLAGS_DEBUGGER_IGNORE));
 
           frame_ctx_p->byte_code_p = byte_code_start_p;
 
           jjs_debugger_breakpoint_hit (JJS_DEBUGGER_BREAKPOINT_HIT);
-          if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
+          if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
           {
             result = ECMA_VALUE_ERROR;
             goto error;
@@ -4646,23 +4652,23 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         }
         case VM_OC_BREAKPOINT_DISABLED:
         {
-          if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_IGNORE)
+          if (context_p->debugger_flags & JJS_DEBUGGER_VM_IGNORE)
           {
             continue;
           }
 
-          JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+          JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
           JJS_ASSERT (!(frame_ctx_p->shared_p->bytecode_header_p->status_flags & CBC_CODE_FLAGS_DEBUGGER_IGNORE));
 
           frame_ctx_p->byte_code_p = byte_code_start_p;
 
-          if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_STOP)
-              && (JJS_CONTEXT (debugger_stop_context) == NULL
-                  || JJS_CONTEXT (debugger_stop_context) == JJS_CONTEXT (vm_top_context_p)))
+          if ((context_p->debugger_flags & JJS_DEBUGGER_VM_STOP)
+              && (context_p->debugger_stop_context == NULL
+                  || context_p->debugger_stop_context == context_p->vm_top_context_p))
           {
             jjs_debugger_breakpoint_hit (JJS_DEBUGGER_BREAKPOINT_HIT);
-            if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
+            if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
             {
               result = ECMA_VALUE_ERROR;
               goto error;
@@ -4670,25 +4676,25 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
             continue;
           }
 
-          if (JJS_CONTEXT (debugger_message_delay) > 0)
+          if (context_p->debugger_message_delay > 0)
           {
-            JJS_CONTEXT (debugger_message_delay)--;
+            context_p->debugger_message_delay--;
             continue;
           }
 
-          JJS_CONTEXT (debugger_message_delay) = JJS_DEBUGGER_MESSAGE_FREQUENCY;
+          context_p->debugger_message_delay = JJS_DEBUGGER_MESSAGE_FREQUENCY;
 
           if (jjs_debugger_receive (NULL))
           {
             continue;
           }
 
-          if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_STOP)
-              && (JJS_CONTEXT (debugger_stop_context) == NULL
-                  || JJS_CONTEXT (debugger_stop_context) == JJS_CONTEXT (vm_top_context_p)))
+          if ((context_p->debugger_flags & JJS_DEBUGGER_VM_STOP)
+              && (context_p->debugger_stop_context == NULL
+                  || context_p->debugger_stop_context == context_p->vm_top_context_p))
           {
             jjs_debugger_breakpoint_hit (JJS_DEBUGGER_BREAKPOINT_HIT);
-            if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
+            if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
             {
               result = ECMA_VALUE_ERROR;
               goto error;
@@ -4818,15 +4824,15 @@ error:
       }
 
 #if JJS_VM_THROW
-      if (!(JJS_CONTEXT (status_flags) & ECMA_STATUS_ERROR_THROWN))
+      if (!(context_p->status_flags & ECMA_STATUS_ERROR_THROWN))
       {
-        JJS_CONTEXT (status_flags) |= ECMA_STATUS_ERROR_THROWN;
+        context_p->status_flags |= ECMA_STATUS_ERROR_THROWN;
 
-        jjs_throw_cb_t vm_throw_callback_p = JJS_CONTEXT (vm_throw_callback_p);
+        jjs_throw_cb_t vm_throw_callback_p = context_p->vm_throw_callback_p;
 
         if (vm_throw_callback_p != NULL)
         {
-          vm_throw_callback_p (JJS_CONTEXT (error_value), JJS_CONTEXT (vm_throw_callback_user_p));
+          vm_throw_callback_p (context_p->error_value, context_p->vm_throw_callback_user_p);
         }
       }
 #endif /* JJS_VM_THROW */
@@ -4835,26 +4841,26 @@ error:
       const uint32_t dont_stop =
         (JJS_DEBUGGER_VM_IGNORE_EXCEPTION | JJS_DEBUGGER_VM_IGNORE | JJS_DEBUGGER_VM_EXCEPTION_THROWN);
 
-      if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+      if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
           && !(frame_ctx_p->shared_p->bytecode_header_p->status_flags
                & (CBC_CODE_FLAGS_DEBUGGER_IGNORE | CBC_CODE_FLAGS_STATIC_FUNCTION))
-          && !(JJS_CONTEXT (debugger_flags) & dont_stop))
+          && !(context_p->debugger_flags & dont_stop))
       {
         /* Save the error to a local value, because the engine enters breakpoint mode after,
            therefore an evaluation error, or user-created error throw would overwrite it. */
-        ecma_value_t current_error_value = JJS_CONTEXT (error_value);
+        ecma_value_t current_error_value = context_p->error_value;
 
         if (jjs_debugger_send_exception_string (current_error_value))
         {
           jjs_debugger_breakpoint_hit (JJS_DEBUGGER_EXCEPTION_HIT);
 
-          if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
+          if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
           {
             ecma_free_value (current_error_value);
           }
           else
           {
-            JJS_CONTEXT (error_value) = current_error_value;
+            context_p->error_value = current_error_value;
           }
 
           JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_EXCEPTION_THROWN);
@@ -4977,7 +4983,8 @@ finish:
  *         ECMA_VALUE_ERROR on failure
  */
 ecma_value_t
-vm_init_module_scope (ecma_module_t *module_p) /**< module without scope */
+vm_init_module_scope (jjs_context_t* context_p, /**< JJS context */
+                      ecma_module_t *module_p) /**< module without scope */
 {
   ecma_object_t *global_object_p;
 #if JJS_BUILTIN_REALMS
@@ -4999,11 +5006,11 @@ vm_init_module_scope (ecma_module_t *module_p) /**< module without scope */
 
   module_p->scope_p = scope_p;
 
-  ecma_module_on_init_scope_cb on_init_scope_p = JJS_CONTEXT (module_on_init_scope_p);
+  ecma_module_on_init_scope_cb on_init_scope_p = context_p->module_on_init_scope_p;
 
   if (on_init_scope_p)
   {
-    on_init_scope_p (module_p);
+    on_init_scope_p (context_p, module_p);
   }
 
   ecma_deref_object (scope_p);
@@ -5153,12 +5160,13 @@ JJS_STATIC_ASSERT ((int) CBC_CODE_FLAGS_STRICT_MODE == (int) VM_FRAME_CTX_IS_STR
  *         ECMA_VALUE_EMPTY - otherwise
  */
 static void JJS_ATTR_NOINLINE
-vm_init_exec (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+vm_init_exec (jjs_context_t* context_p, /**< JJS context */
+              vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
   vm_frame_ctx_shared_t *shared_p = frame_ctx_p->shared_p;
   const ecma_compiled_code_t *bytecode_header_p = shared_p->bytecode_header_p;
 
-  frame_ctx_p->prev_context_p = JJS_CONTEXT (vm_top_context_p);
+  frame_ctx_p->prev_context_p = context_p->vm_top_context_p;
   frame_ctx_p->context_depth = 0;
   frame_ctx_p->status_flags = (uint8_t) ((shared_p->status_flags & VM_FRAME_CTX_DIRECT_EVAL)
                                          | (bytecode_header_p->status_flags & VM_FRAME_CTX_IS_STRICT));
@@ -5227,8 +5235,8 @@ vm_init_exec (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
     }
   }
 
-  JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_DIRECT_EVAL;
-  JJS_CONTEXT (vm_top_context_p) = frame_ctx_p;
+  context_p->status_flags &= (uint32_t) ~ECMA_STATUS_DIRECT_EVAL;
+  context_p->vm_top_context_p = frame_ctx_p;
 } /* vm_init_exec */
 
 /**
@@ -5237,27 +5245,28 @@ vm_init_exec (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
  * @return ecma value
  */
 ecma_value_t JJS_ATTR_NOINLINE
-vm_execute (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+vm_execute (jjs_context_t* context_p, /**< JJS context */
+            vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
   while (true)
   {
-    ecma_value_t completion_value = vm_loop (frame_ctx_p);
+    ecma_value_t completion_value = vm_loop (context_p, frame_ctx_p);
 
     switch (frame_ctx_p->call_operation)
     {
       case VM_EXEC_CALL:
       {
-        opfunc_call (frame_ctx_p);
+        opfunc_call (context_p, frame_ctx_p);
         break;
       }
       case VM_EXEC_SUPER_CALL:
       {
-        vm_super_call (frame_ctx_p);
+        vm_super_call (context_p, frame_ctx_p);
         break;
       }
       case VM_EXEC_SPREAD_OP:
       {
-        vm_spread_operation (frame_ctx_p);
+        vm_spread_operation (context_p, frame_ctx_p);
         break;
       }
       case VM_EXEC_RETURN:
@@ -5266,7 +5275,7 @@ vm_execute (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
       }
       case VM_EXEC_CONSTRUCT:
       {
-        opfunc_construct (frame_ctx_p);
+        opfunc_construct (context_p, frame_ctx_p);
         break;
       }
       default:
@@ -5293,15 +5302,15 @@ vm_execute (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         }
 
 #if JJS_DEBUGGER
-        if (JJS_CONTEXT (debugger_stop_context) == JJS_CONTEXT (vm_top_context_p))
+        if (context_p->debugger_stop_context == context_p->vm_top_context_p)
         {
           /* The engine will stop when the next breakpoint is reached. */
-          JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_STOP);
-          JJS_CONTEXT (debugger_stop_context) = NULL;
+          JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_VM_STOP);
+          context_p->debugger_stop_context = NULL;
         }
 #endif /* JJS_DEBUGGER */
 
-        JJS_CONTEXT (vm_top_context_p) = frame_ctx_p->prev_context_p;
+        context_p->vm_top_context_p = frame_ctx_p->prev_context_p;
         return completion_value;
       }
     }
@@ -5314,7 +5323,8 @@ vm_execute (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
  * @return ecma value
  */
 ecma_value_t
-vm_run (vm_frame_ctx_shared_t *shared_p, /**< shared data */
+vm_run (jjs_context_t* context_p, /**< JJS context */
+        vm_frame_ctx_shared_t *shared_p, /**< shared data */
         ecma_value_t this_binding_value, /**< value of 'ThisBinding' */
         ecma_object_t *lex_env_p) /**< lexical environment to use */
 {
@@ -5341,8 +5351,8 @@ vm_run (vm_frame_ctx_shared_t *shared_p, /**< shared data */
   frame_ctx_p->lex_env_p = lex_env_p;
   frame_ctx_p->this_binding = this_binding_value;
 
-  vm_init_exec (frame_ctx_p);
-  return vm_execute (frame_ctx_p);
+  vm_init_exec (context_p, frame_ctx_p);
+  return vm_execute (context_p, frame_ctx_p);
 } /* vm_run */
 
 /**

@@ -35,6 +35,11 @@ JJS_C_API_BEGIN
 typedef uint32_t jjs_value_t;
 
 /**
+ * An opaque declaration of the JJS context structure.
+ */
+typedef struct jjs_context_t jjs_context_t;
+
+/**
  * Error codes that can be passed by the engine when calling jjs_platform_fatal.
  */
 typedef enum
@@ -126,7 +131,6 @@ typedef enum
 
   /* context initialization errors */
   JJS_STATUS_CONTEXT_ALREADY_INITIALIZED, /**< context already in an initialized state */
-  JJS_STATUS_CONTEXT_INVALID_EXTERNAL_HEAP, /**< external heap is invalid or not aligned */
   JJS_STATUS_CONTEXT_IMMUTABLE_HEAP_SIZE, /**< heap size was configured at compile time and cannot be changed  */
   JJS_STATUS_CONTEXT_IMMUTABLE_STACK_LIMIT, /**< stack limit was configured at compile time and cannot be changed  */
   JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING, /**< platform.io_stdout was set with an unsupported platform.io_stdout_encoding value */
@@ -151,39 +155,6 @@ typedef struct jjs_allocator_s
 } jjs_allocator_t;
 
 /**
- * Buffer object used by platform api functions.
- *
- * The buffer object contains the pointer to the buffer, size and free information. The default
- * free method will call the allocator free method with the buffer pointer.
- */
-typedef struct jjs_platform_buffer_s
-{
-  void* data_p; /**< pointer to allocated data */
-  uint32_t data_size; /**< size of buffer in bytes */
-  void (*free)(struct jjs_platform_buffer_s*); /**< free the contents (allocation) of this buffer */
-  jjs_allocator_t* allocator; /**< allocator responsible for freeing data_p */
-} jjs_platform_buffer_t;
-
-/**
- * Buffer view object used by platform api functions.
- *
- * The buffer view is to deal with path adjustments after calling platform specific apis. We may
- * need to cut off the prefix or remove trailing slashes or things like dirname. The underlying
- * allocation information needs to be kept around to free, but pointer and size needs to be
- * massaged. Its similar to the relationship between JS TypedArray/DataView and ArrayBuffer.
- *
- * The default free method will call free on the source buffer.
- */
-typedef struct jjs_platform_buffer_view_s
-{
-  void* data_p; /**< pointer to start of buffer. may point to source->data_p or a pointer withn the source buffer. */
-  uint32_t data_size; /**< size of buffer in bytes */
-  jjs_encoding_t encoding; /**< encoding of data. may not be applicable to all views. */
-  jjs_platform_buffer_t source; /**< source buffer. view owns the allocation for this buffer. */
-  void (*free)(struct jjs_platform_buffer_view_s*); /**< free the contents (allocation) of this buffer view */
-} jjs_platform_buffer_view_t;
-
-/**
  * Flags for path conversion.
  */
 typedef enum
@@ -191,225 +162,6 @@ typedef enum
   JJS_PATH_FLAG_NULL_TERMINATE = 1 << 1, /**< add a null terminator */
   JJS_PATH_FLAG_LONG_FILENAME_PREFIX = 1 << 2, /**< add a windows long pathname prefix  */
 } jjs_platform_path_flag_t;
-
-/**
- * Path object passed to platform api functions
- *
- * The path includes the path, size in bytes and encoding. Due to how the engine represents the
- * string internally, the encoding will be CESU8 or ASCII. The path is NOT null terminated.
- *
- * The ECMA spec calls for internal string representation as UTF16. CESU8 is a replacement for
- * UTF16 in embedded environments. The engine uses CESU8 internally. Although it is similar to
- * UTF8, CESU8 is not common.
- *
- * Whether it is the null terminator, windows long name prefix or the encoding, the path name
- * will have to be copied to a workable format. The convert() method will handle the common
- * conversion cases. If convert() does not work, you can just use the path + size in the
- * path object and do conversion yourself.
- */
-typedef struct jjs_platform_path_s
-{
-  /* public fields */
-  const uint8_t* path_p; /**< path from the engine. must not be modified. */
-  uint32_t path_size; /**< size of path in bytes */
-  jjs_encoding_t encoding; /**< encoding of path. CESU8 or ASCII. */
-
-  /* public api */
-  jjs_status_t (*convert)(struct jjs_platform_path_s*, jjs_encoding_t, uint32_t, jjs_platform_buffer_view_t* out_p); /**< converts path to a new encoding and/or format. jjs_platform_path owns the returned buffer. */
-
-  /* private fields */
-  jjs_allocator_t* allocator; /**< allocator used by convert */
-} jjs_platform_path_t;
-
-/* Platform API Signatures */
-
-typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
-
-/* io */
-typedef void* jjs_platform_io_stream_t;
-typedef void (*jjs_platform_io_write_fn_t) (void*, const uint8_t*, uint32_t, jjs_encoding_t);
-typedef void (*jjs_platform_io_flush_fn_t) (void*);
-
-/* fs */
-typedef jjs_status_t (*jjs_platform_fs_read_file_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_t*);
-
-/* time */
-typedef jjs_status_t (*jjs_platform_time_sleep_fn_t) (uint32_t);
-typedef jjs_status_t (*jjs_platform_time_local_tza_fn_t) (double, int32_t*);
-typedef jjs_status_t (*jjs_platform_time_now_ms_fn_t) (double*);
-
-/* path */
-typedef jjs_status_t (*jjs_platform_cwd_fn_t) (jjs_allocator_t* allocator, jjs_platform_buffer_view_t*);
-typedef jjs_status_t (*jjs_platform_path_realpath_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_view_t*);
-
-/**
- * Contains platform specific data and functions used internally by JJS. The
- * structure is exposed publicly so that the embedding application can inject
- * their own platform specific implementations.
- *
- * Depending on compile settings and the platform, all platform functionality
- * might not be available. API should be checked for NULL before using.
- */
-typedef struct
-{
-  /**
-   * Engine calls this platform function when the process experiences a fatal failure
-   * which it cannot recover.
-   *
-   * A libc implementation will implement this with exit(), abort() or both.
-   *
-   * This platform function is required by the engine.
-   */
-  jjs_platform_fatal_fn_t fatal;
-
-  /**
-   * Get the current working directory of the process.
-   *
-   * The implementation is passed an allocator and a buffer view. The buffer view is
-   * a container the implementation should fill in. The implementation is expected to
-   * use the allocator to allocate the buffer.
-   *
-   * On success, JJS_STATUS_OK should be returned.
-   */
-  jjs_platform_cwd_fn_t path_cwd;
-
-  /**
-   * Writes bytes to an output stream.
-   *
-   * The first parameter is the stream, which will always be io_stdout or io_stderr. The
-   * implementation of write must be compatible with those streams. By default, the standard
-   * stdout and stderr FILE* are set for the streams. If your write does not support FILE*,
-   * then you need to update io_stdout and io_stderr with compatible values.
-   *
-   * The data buffer passed is just bytes with an encoding type. The encoding type could be
-   * anything the engine supports, but in practice, it will always be the default encoding
-   * type of the stream.
-   */
-  jjs_platform_io_write_fn_t io_write;
-
-  /**
-   * Flush a stream.
-   *
-   * The engine will call this at jjs_cleanup or before an assertion / fatal error. Like
-   * io_write, the passed in stream is always io_stdout or io_stderr. The flush function
-   * must be compatible with those fields.
-   *
-   * The default implementation uses fflush, so io_stdout and io_stderr are expected to
-   * be compatible FILE* (stdout and stderr by default).
-   */
-  jjs_platform_io_flush_fn_t io_flush;
-
-  /**
-   * Stream the engine uses when it wants to write to stdout.
-   *
-   * The value is opaque, but must be compatible with the io_write function. With the
-   * default io_write, this value can be set to a FILE*. If you wanted this stream to
-   * go to a file and you want to use the default io_write, it can be replaced with a
-   * pointer from fopen.
-   */
-  jjs_platform_io_stream_t io_stdout;
-
-  /**
-   * Default encoding to use when writing a JS string to the stdout stream.
-   *
-   * Internally, the JS engine uses CESU8, a compact replacement for UTF16. The encoding is
-   * not too different from UTF8, but it is not common. The engine will convert the bytes
-   * to the stream's default encoding.
-   *
-   * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
-   * ASCII (non-ASCII codepoints will be converted to ?).
-   */
-  jjs_encoding_t io_stdout_encoding;
-
-  /**
-   * Stream the engine uses when it wants to write to stderr.
-   *
-   * The value is opaque, but must be compatible with the io_write function. With the
-   * default io_write, this value can be set to a FILE*. If you wanted this stream to
-   * go to a file and you want to use the default io_write, it can be replaced with a
-   * pointer from fopen.
-   */
-  jjs_platform_io_stream_t io_stderr;
-
-  /**
-   * Default encoding to use when writing a JS string to the stderr stream.
-   *
-   * Internally, the JS engine uses CESU8, a compact replacement for UTF16. The encoding is
-   * not too different from UTF8, but it is not common. The engine will convert the bytes
-   * to the stream's default encoding.
-   *
-   * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
-   * ASCII (non-ASCII codepoints will be converted to ?).
-   */
-  jjs_encoding_t io_stderr_encoding;
-
-  /**
-   * Get local time zone adjustment in milliseconds for the given input time.
-   *
-   * The argument is a time value representing milliseconds since unix epoch.
-   *
-   * Ideally, this function should satisfy the stipulations applied to LocalTZA
-   * in section 21.4.1.7 of the ECMAScript version 12.0, as if called with isUTC true.
-   *
-   * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
-   */
-  jjs_platform_time_local_tza_fn_t time_local_tza;
-
-  /**
-   * Get the current system time in UTC time or milliseconds since the unix epoch.
-   *
-   * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
-   */
-  jjs_platform_time_now_ms_fn_t time_now_ms;
-
-  /**
-   * Put the current thread to sleep for the given number of milliseconds.
-   *
-   * This platform function is required by jjs-core when JJS_DEBUGGER is enabled.
-   */
-  jjs_platform_time_sleep_fn_t time_sleep;
-
-  /**
-   * Returns an absolute path with symlinks resolved to their real path names.
-   *
-   * The implementation will be passed a path object, allocator and buffer view.
-   *
-   * The path object will be encoded in CESU8 or ASCII and will NOT be null
-   * terminated. The path object has a convert method to handle converting
-   * the path to a platform friendly path string format.
-   *
-   * The allocator should be used to allocate the buffer in buffer view.
-   *
-   * Buffer view is a container that the implementation should fill out.
-   *
-   * The implementation should use realpath or GetFinalPathNameByHandle
-   * or whatever the platform has to get an absolute path without symlinks.
-   * The primary use case for resolving module path names so that they can
-   * be consistent cache keys, preventing modules from being reloaded.
-   */
-  jjs_platform_path_realpath_fn_t path_realpath;
-
-  /**
-   * Reads the entire contents of a file.
-   *
-   * The input path will be encoded in CESU8 or ASCII and will NOT be null
-   * terminated. The path object has a convert method to handle converting
-   * the path to a platform friendly path string format. If the implementation
-   * call convert, the implementation is responsible for calling the view's
-   * free() method.
-   *
-   * The allocator should be used to allocate the file buffer.
-   *
-   * The passed in jjs_platform_buffer_t is a container object that the
-   * implementation must fill in with the buffer pointer, size and information
-   * about how to free the buffer. The caller will need to read the buffer
-   * and will call the free method when it is done.
-   *
-   * If the implementation really wants to use it's own allocation strategy,
-   * it can set jjs_platform_buffer_t free and allocator appropriately.
-   */
-  jjs_platform_fs_read_file_fn_t fs_read_file;
-} jjs_platform_t;
 
 /**
  * JJS init flags.
@@ -420,54 +172,12 @@ typedef enum
   JJS_CONTEXT_FLAG_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
   JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
   JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
-  JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP = (1u << 3), /**< enable an external, pre allocated heap */
 } jjs_context_flag_t;
-
-/**
- * Callback for cleaning up an externally set context vm heap.
- */
-typedef void (*jjs_context_heap_free_cb_t) (void* context_heap_p, void* user_p);
 
 /**
  * Callback for handling an unhandled promise rejection.
  */
-typedef void (*jjs_context_unhandled_rejection_cb_t) (jjs_value_t promise, jjs_value_t reason, void *user_p);
-
-/**
- * Settings for an externally allocated heap.
- */
-typedef struct
-{
-  /**
-   * User allocated memory block to be used as the engine's vm heap.
-   *
-   * The engine will use this memory as the vm heap, so the user must keep this buffer
-   * pointer active until the engine is finished with it. The engine no longer needs
-   * this pointer when jjs_cleanup() is called or the user provided free_cb function
-   * is called.
-   *
-   * The pointer and the size of this buffer must be aligned.
-   */
-  uint8_t* buffer_p;
-
-  /**
-   * The size of the user allocated memory block in bytes.
-   *
-   * The size must be aligned.
-   */
-  uint32_t buffer_size_in_bytes;
-
-  /**
-   * Optional callback indicating the engine is done using the external heap memory block.
-   */
-  jjs_context_heap_free_cb_t free_cb;
-
-  /**
-   * Optional user defined token passed to the free_cb function. Some use cases require
-   * extra information in the free process.
-   */
-  void* free_user_p;
-} jjs_external_heap_options_t;
+typedef void (*jjs_context_unhandled_rejection_cb_t) (jjs_context_t *context, jjs_value_t promise, jjs_value_t reason, void *user_p);
 
 /**
  * Set of exclusions for the javascript jjs namespace.
@@ -483,141 +193,6 @@ typedef enum
   JJS_NAMESPACE_EXCLUSION_STDOUT = 1 << 6, /**< exclude jjs.stdout */
   JJS_NAMESPACE_EXCLUSION_STDERR = 1 << 7, /**< exclude jjs.stderr */
 } jjs_namespace_exclusion_t;
-
-/**
- * Context initialization settings.
- *
- * Use jjs_context_options_init() to initialize this structure, as that function fills
- * in configured defaults.
- */
-typedef struct
-{
-  /**
-   * Context configuration flags. Bits enumerated in jjs_context_flag_t.
-   */
-  uint32_t context_flags;
-
-  /**
-   * Control which apis are exposed to scripts in the javascript jjs object (globalThis.jjs).
-   *
-   * The exclusions here are limited to the jjs namespace. The native apis are not affected
-   * by these exclusions. But, if a feature is disabled at the native layer, the feature
-   * is automatically excluded from the jjs namespace. For example, if the context has no
-   * platform read file function, readFile will not be added to the jjs namespace regardless
-   * of the exclusion settings.
-   */
-  uint32_t jjs_namespace_exclusions;
-
-  /**
-   * Unhandled rejection callback.
-   *
-   * An unhandled rejection can be received via jjs_promise_on_event; however, enabling that
-   * enables all promise events. There is only one on_event listener and that is for
-   * user code. And, the on_event is a compile time switch.
-   *
-   * This function is exclusively for listening to the unhandled rejection event, it's always
-   * built and can be dynamically configured by the user. If not set, the default behavior is
-   * to log the unhandled rejection reason by logging to error.
-   */
-  jjs_context_unhandled_rejection_cb_t unhandled_rejection_cb;
-
-  /**
-   * User defined token passed to unhandled_rejection_cb. Default: NULL
-   */
-  void* unhandled_rejection_user_p;
-
-  /**
-   * Externally allocated heap configuration.
-   *
-   * To enable an external heap, add context flag: JJS_CONTEXT_FLAG_USING_EXTERNAL_HEAP and
-   * add settings to this struct.
-   *
-   * JJS_VM_HEAP_STATIC must be ON in order to use an external heap. Otherwise, jjs_init will
-   * fail with an error code.
-   */
-  jjs_external_heap_options_t external_heap;
-
-  /**
-   * VM heap size in kilobytes.
-   *
-   * If JJS_VM_HEAP_STATIC is ON, the vm heap cannot be manually configured. If you try to
-   * change the heap size, jjs_init will return an error code.
-   *
-   * Default: JJS_DEFAULT_VM_HEAP_SIZE
-   */
-  uint32_t vm_heap_size_kb;
-
-  /**
-   * VM stack size limit in kilobytes.
-   *
-   * If JJS_VM_STACK_STATIC is set, jjs_init will return an error status if you attempt to
-   * set this field.
-   *
-   * WARNING: This feature will not work across platforms, compilers and build configurations!
-   * The recommendation is to use JJS_VM_STACK_STATIC ON and JJS_DEFAULT_VM_STACK_LIMIT 0.
-   * 
-   * Default: JJS_DEFAULT_VM_STACK_LIMIT
-   */
-  uint32_t vm_stack_limit_kb;
-
-  /**
-   * Allowed heap usage limit until next garbage collection. The value is in kilobytes.
-   *
-   * If 0, the computed value is min (1/32 of heap size, 8K).
-   *
-   * Default: JJS_DEFAULT_GC_LIMIT
-   */
-  uint32_t gc_limit_kb;
-
-  /**
-   * GC mark depth.
-   *
-   * if 0, mark depth is unlimited.
-   *
-   * Default: JJS_DEFAULT_GC_MARK_LIMIT
-   */
-  uint32_t gc_mark_limit;
-
-  /**
-   * Amount of newly allocated objects since the last GC run, represented as
-   * a fraction of all allocated objects.
-   *
-   * If 0, 16 is used.
-   *
-   * Default: JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
-   */
-  uint32_t gc_new_objects_fraction;
-
-  /**
-   * Platform object.
-   *
-   * When jjs_context_options or jjs_context_options_init is called, this is filled in with all
-   * the platform specific information and functions JJS will use by default. Depending on
-   * compile time configuration some fields will be filled in and other not.
-   *
-   * As part of context configuration, you can modify anything in platform with your own data
-   * of behavior. When the options are committed to the context through jjs_init, the modified
-   * platform is used by JJS.
-   */
-  jjs_platform_t platform;
-
-  /**
-   * Fallback scratch buffer allocator.
-   *
-   * The engine has an internal arena allocator for temporary allocations for paths, loading
-   * source files or snapshots or json and other optimizations. If the arena buffer is too
-   * small or gets exhausted, this fallback is used. The fallback should be the vm or system
-   * allocator.
-   *
-   * The arena allocator buffer size can be set with JJS_SCRATCH_ARENA_SIZE. If 0, the scratch
-   * arena allocator is disabled and the fallback allocator is used exclusively.
-   *
-   * By default, the system allocator is used. You can set this to the vm heap
-   * allocator or use your own allocator.
-   */
-  jjs_allocator_t scratch_allocator;
-
-} jjs_context_options_t;
 
 /**
  * Enum that is associated with a value passed to an api. It indicates how to handle
@@ -906,6 +481,7 @@ typedef struct jjs_call_info_t
   jjs_value_t function; /**< invoked function object */
   jjs_value_t this_value; /**< this value passed to the function  */
   jjs_value_t new_target; /**< current new target value, undefined for non-constructor calls */
+  jjs_context_t *context_p;
 } jjs_call_info_t;
 
 /**
@@ -928,7 +504,7 @@ struct jjs_object_native_info_t;
 /**
  * Native free callback of an object.
  */
-typedef void (*jjs_object_native_free_cb_t) (void *native_p, const struct jjs_object_native_info_t *info_p);
+typedef void (*jjs_object_native_free_cb_t) (jjs_context_t* context_p, void *native_p, const struct jjs_object_native_info_t *info_p);
 
 /**
  * Free callback for external strings.
@@ -1041,11 +617,6 @@ typedef struct jjs_object_native_info_t
   uint16_t offset_of_references; /**< byte offset indicating the start offset of value
                                   *   references in the user allocated buffer */
 } jjs_object_native_info_t;
-
-/**
- * An opaque declaration of the JJS context structure.
- */
-typedef struct jjs_context_t jjs_context_t;
 
 /**
  * Enum that contains the supported binary operation types
@@ -1205,12 +776,12 @@ typedef enum
 /**
  * Callback which is called by jjs_module_link to get the referenced module.
  */
-typedef jjs_value_t (*jjs_module_link_cb_t) (const jjs_value_t specifier, const jjs_value_t referrer, void *user_p);
+typedef jjs_value_t (*jjs_module_link_cb_t) (jjs_context_t* context_p, const jjs_value_t specifier, const jjs_value_t referrer, void *user_p);
 
 /**
  * Callback which is called when an import is resolved dynamically to get the referenced module.
  */
-typedef jjs_value_t (*jjs_module_import_cb_t) (const jjs_value_t specifier, const jjs_value_t user_value, void *user_p);
+typedef jjs_value_t (*jjs_module_import_cb_t) (jjs_context_t* context_p, const jjs_value_t specifier, const jjs_value_t user_value, void *user_p);
 
 /**
  * Callback which is called after the module enters into linked, evaluated or error state.
@@ -1223,14 +794,15 @@ typedef void (*jjs_module_state_changed_cb_t) (jjs_module_state_t new_state,
 /**
  * Callback which is called when an import.meta expression of a module is evaluated the first time.
  */
-typedef void (*jjs_module_import_meta_cb_t) (const jjs_value_t module,
-                                               const jjs_value_t meta_object,
-                                               void *user_p);
+typedef void (*jjs_module_import_meta_cb_t) (jjs_context_t* context_p,
+                                             const jjs_value_t module,
+                                             const jjs_value_t meta_object,
+                                             void *user_p);
 
 /**
  * Callback which is called by jjs_module_evaluate to evaluate the synthetic module.
  */
-typedef jjs_value_t (*jjs_synthetic_module_evaluate_cb_t) (const jjs_value_t module);
+typedef jjs_value_t (*jjs_synthetic_module_evaluate_cb_t) (jjs_context_t* context_p, const jjs_value_t module);
 
 typedef enum
 {
@@ -1260,12 +832,12 @@ typedef struct
 /**
  *
  */
-typedef jjs_value_t (*jjs_esm_resolve_cb_t) (jjs_value_t specifier, jjs_esm_resolve_context_t *context_p, void *user_p);
+typedef jjs_value_t (*jjs_esm_resolve_cb_t) (jjs_context_t* context_p, jjs_value_t specifier, jjs_esm_resolve_context_t *resolve_context_p, void *user_p);
 
 /**
  *
  */
-typedef jjs_value_t (*jjs_esm_load_cb_t) (jjs_value_t path, jjs_esm_load_context_t *context_p, void *user_p);
+typedef jjs_value_t (*jjs_esm_load_cb_t) (jjs_context_t* context_p, jjs_value_t path, jjs_esm_load_context_t *load_context_p, void *user_p);
 
 /**
  * Proxy related types.
@@ -1382,10 +954,11 @@ typedef enum
 /**
  * Notification callback for tracking Promise and async function operations.
  */
-typedef void (*jjs_promise_event_cb_t) (jjs_promise_event_type_t event_type,
-                                          const jjs_value_t object,
-                                          const jjs_value_t value,
-                                          void *user_p);
+typedef void (*jjs_promise_event_cb_t) (jjs_context_t* context_p,
+                                        jjs_promise_event_type_t event_type,
+                                        const jjs_value_t object,
+                                        const jjs_value_t value,
+                                        void *user_p);
 
 /**
  * Symbol related types.
@@ -1544,7 +1117,7 @@ typedef struct jjs_wstream_s
    *
    * This function is required to be implemented.
    */
-  void (*write)(const struct jjs_wstream_s*, const uint8_t*, jjs_size_t);
+  void (*write)(jjs_context_t* context_p, const struct jjs_wstream_s*, const uint8_t*, jjs_size_t);
 
   /**
    * State of the stream. Stream instance decides how and if this is used.
@@ -1556,6 +1129,409 @@ typedef struct jjs_wstream_s
    */
   jjs_encoding_t encoding;
 } jjs_wstream_t;
+
+typedef struct jjs_platform_s jjs_platform_t;
+
+/**
+ * Buffer object used by platform api functions.
+ *
+ * The buffer object contains the pointer to the buffer, size and free information. The default
+ * free method will call the allocator free method with the buffer pointer.
+ */
+typedef struct jjs_platform_buffer_s
+{
+  void* data_p; /**< pointer to allocated data */
+  uint32_t data_size; /**< size of buffer in bytes */
+  void (*free)(struct jjs_platform_buffer_s*); /**< free the contents (allocation) of this buffer */
+  jjs_allocator_t* allocator; /**< allocator responsible for freeing data_p */
+} jjs_platform_buffer_t;
+
+/**
+ * Buffer view object used by platform api functions.
+ *
+ * The buffer view is to deal with path adjustments after calling platform specific apis. We may
+ * need to cut off the prefix or remove trailing slashes or things like dirname. The underlying
+ * allocation information needs to be kept around to free, but pointer and size needs to be
+ * massaged. Its similar to the relationship between JS TypedArray/DataView and ArrayBuffer.
+ *
+ * The default free method will call free on the source buffer.
+ */
+typedef struct jjs_platform_buffer_view_s
+{
+  void* data_p; /**< pointer to start of buffer. may point to source->data_p or a pointer withn the source buffer. */
+  uint32_t data_size; /**< size of buffer in bytes */
+  jjs_encoding_t encoding; /**< encoding of data. may not be applicable to all views. */
+  jjs_platform_buffer_t source; /**< source buffer. view owns the allocation for this buffer. */
+  void (*free)(struct jjs_platform_buffer_view_s*); /**< free the contents (allocation) of this buffer view */
+} jjs_platform_buffer_view_t;
+
+/**
+ * Path object passed to platform api functions
+ *
+ * The path includes the path, size in bytes and encoding. Due to how the engine represents the
+ * string internally, the encoding will be CESU8 or ASCII. The path is NOT null terminated.
+ *
+ * The ECMA spec calls for internal string representation as UTF16. CESU8 is a replacement for
+ * UTF16 in embedded environments. The engine uses CESU8 internally. Although it is similar to
+ * UTF8, CESU8 is not common.
+ *
+ * Whether it is the null terminator, windows long name prefix or the encoding, the path name
+ * will have to be copied to a workable format. The convert() method will handle the common
+ * conversion cases. If convert() does not work, you can just use the path + size in the
+ * path object and do conversion yourself.
+ */
+typedef struct jjs_platform_path_s
+{
+  /* public fields */
+  const uint8_t* path_p; /**< path from the engine. must not be modified. */
+  uint32_t path_size; /**< size of path in bytes */
+  jjs_encoding_t encoding; /**< encoding of path. CESU8 or ASCII. */
+
+  /* public api */
+  jjs_status_t (*convert)(struct jjs_platform_path_s*, jjs_encoding_t, uint32_t, jjs_platform_buffer_view_t* out_p); /**< converts path to a new encoding and/or format. jjs_platform_path owns the returned buffer. */
+
+  /* private fields */
+  jjs_allocator_t* allocator; /**< allocator used by convert */
+} jjs_platform_path_t;
+
+/* Platform API Signatures */
+
+typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
+
+/* io */
+typedef void* jjs_platform_io_stream_t;
+typedef void (*jjs_platform_io_write_fn_t) (void*, const uint8_t*, uint32_t, jjs_encoding_t);
+typedef void (*jjs_platform_io_flush_fn_t) (void*);
+
+/* fs */
+typedef jjs_status_t (*jjs_platform_fs_read_file_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_t*);
+
+/* time */
+typedef jjs_status_t (*jjs_platform_time_sleep_fn_t) (uint32_t);
+typedef jjs_status_t (*jjs_platform_time_local_tza_fn_t) (double, int32_t*);
+typedef jjs_status_t (*jjs_platform_time_now_ms_fn_t) (double*);
+
+/* path */
+typedef jjs_status_t (*jjs_platform_path_cwd_fn_t) (jjs_allocator_t* allocator, jjs_platform_buffer_view_t*);
+typedef jjs_status_t (*jjs_platform_path_realpath_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_view_t*);
+
+typedef enum
+{
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_FATAL = 1 << 0,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_PATH_CWD = 1 << 1,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_PATH_REALPATH = 1 << 2,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_WRITE = 1 << 3,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_FLUSH = 1 << 4,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDOUT = 1 << 5,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDERR = 1 << 6,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDOUT_ENCODING = 1 << 7,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDERR_ENCODING = 1 << 8,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_LOCAL_TZA = 1 << 9,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_NOW_MS = 1 << 10,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_SLEEP = 1 << 11,
+  JJS_PLATFORM_OPTIONS_FLAG_HAS_FS_READ_FILE = 1 << 12,
+  JJS_PLATFORM_OPTIONS_FLAG_ALL = INT32_MAX,
+} jjs_platform_options_flag_t;
+
+/**
+ * Contains platform specific data and functions used internally by JJS. The
+ * structure is exposed publicly so that the embedding application can inject
+ * their own platform specific implementations.
+ *
+ * Depending on compile settings and the platform, all platform functionality
+ * might not be available. API should be checked for NULL before using.
+ */
+typedef struct
+{
+  uint32_t flags;
+
+  jjs_allocator_t* allocator;
+
+  /**
+   * Engine calls this platform function when the process experiences a fatal failure
+   * which it cannot recover.
+   *
+   * A libc implementation will implement this with exit(), abort() or both.
+   *
+   * This platform function is required by the engine.
+   */
+  jjs_platform_fatal_fn_t fatal;
+
+  /**
+   * Get the current working directory of the process.
+   *
+   * The implementation is passed an allocator and a buffer view. The buffer view is
+   * a container the implementation should fill in. The implementation is expected to
+   * use the allocator to allocate the buffer.
+   *
+   * On success, JJS_STATUS_OK should be returned.
+   */
+  jjs_platform_path_cwd_fn_t path_cwd;
+
+  /**
+   * Writes bytes to an output stream.
+   *
+   * The first parameter is the stream, which will always be io_stdout or io_stderr. The
+   * implementation of write must be compatible with those streams. By default, the standard
+   * stdout and stderr FILE* are set for the streams. If your write does not support FILE*,
+   * then you need to update io_stdout and io_stderr with compatible values.
+   *
+   * The data buffer passed is just bytes with an encoding type. The encoding type could be
+   * anything the engine supports, but in practice, it will always be the default encoding
+   * type of the stream.
+   */
+  jjs_platform_io_write_fn_t io_write;
+
+  /**
+   * Flush a stream.
+   *
+   * The engine will call this at jjs_cleanup or before an assertion / fatal error. Like
+   * io_write, the passed in stream is always io_stdout or io_stderr. The flush function
+   * must be compatible with those fields.
+   *
+   * The default implementation uses fflush, so io_stdout and io_stderr are expected to
+   * be compatible FILE* (stdout and stderr by default).
+   */
+  jjs_platform_io_flush_fn_t io_flush;
+
+  /**
+   * Stream the engine uses when it wants to write to stdout.
+   *
+   * The value is opaque, but must be compatible with the io_write function. With the
+   * default io_write, this value can be set to a FILE*. If you wanted this stream to
+   * go to a file and you want to use the default io_write, it can be replaced with a
+   * pointer from fopen.
+   */
+  jjs_platform_io_stream_t io_stdout;
+
+  /**
+   * Default encoding to use when writing a JS string to the stdout stream.
+   *
+   * Internally, the JS engine uses CESU8, a compact replacement for UTF16. The encoding is
+   * not too different from UTF8, but it is not common. The engine will convert the bytes
+   * to the stream's default encoding.
+   *
+   * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
+   * ASCII (non-ASCII codepoints will be converted to ?).
+   */
+  jjs_encoding_t io_stdout_encoding;
+
+  /**
+   * Stream the engine uses when it wants to write to stderr.
+   *
+   * The value is opaque, but must be compatible with the io_write function. With the
+   * default io_write, this value can be set to a FILE*. If you wanted this stream to
+   * go to a file and you want to use the default io_write, it can be replaced with a
+   * pointer from fopen.
+   */
+  jjs_platform_io_stream_t io_stderr;
+
+  /**
+   * Default encoding to use when writing a JS string to the stderr stream.
+   *
+   * Internally, the JS engine uses CESU8, a compact replacement for UTF16. The encoding is
+   * not too different from UTF8, but it is not common. The engine will convert the bytes
+   * to the stream's default encoding.
+   *
+   * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
+   * ASCII (non-ASCII codepoints will be converted to ?).
+   */
+  jjs_encoding_t io_stderr_encoding;
+
+  /**
+   * Get local time zone adjustment in milliseconds for the given input time.
+   *
+   * The argument is a time value representing milliseconds since unix epoch.
+   *
+   * Ideally, this function should satisfy the stipulations applied to LocalTZA
+   * in section 21.4.1.7 of the ECMAScript version 12.0, as if called with isUTC true.
+   *
+   * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
+   */
+  jjs_platform_time_local_tza_fn_t time_local_tza;
+
+  /**
+   * Get the current system time in UTC time or milliseconds since the unix epoch.
+   *
+   * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
+   */
+  jjs_platform_time_now_ms_fn_t time_now_ms;
+
+  /**
+   * Put the current thread to sleep for the given number of milliseconds.
+   *
+   * This platform function is required by jjs-core when JJS_DEBUGGER is enabled.
+   */
+  jjs_platform_time_sleep_fn_t time_sleep;
+
+  /**
+   * Returns an absolute path with symlinks resolved to their real path names.
+   *
+   * The implementation will be passed a path object, allocator and buffer view.
+   *
+   * The path object will be encoded in CESU8 or ASCII and will NOT be null
+   * terminated. The path object has a convert method to handle converting
+   * the path to a platform friendly path string format.
+   *
+   * The allocator should be used to allocate the buffer in buffer view.
+   *
+   * Buffer view is a container that the implementation should fill out.
+   *
+   * The implementation should use realpath or GetFinalPathNameByHandle
+   * or whatever the platform has to get an absolute path without symlinks.
+   * The primary use case for resolving module path names so that they can
+   * be consistent cache keys, preventing modules from being reloaded.
+   */
+  jjs_platform_path_realpath_fn_t path_realpath;
+
+  /**
+   * Reads the entire contents of a file.
+   *
+   * The input path will be encoded in CESU8 or ASCII and will NOT be null
+   * terminated. The path object has a convert method to handle converting
+   * the path to a platform friendly path string format. If the implementation
+   * call convert, the implementation is responsible for calling the view's
+   * free() method.
+   *
+   * The allocator should be used to allocate the file buffer.
+   *
+   * The passed in jjs_platform_buffer_t is a container object that the
+   * implementation must fill in with the buffer pointer, size and information
+   * about how to free the buffer. The caller will need to read the buffer
+   * and will call the free method when it is done.
+   *
+   * If the implementation really wants to use it's own allocation strategy,
+   * it can set jjs_platform_buffer_t free and allocator appropriately.
+   */
+  jjs_platform_fs_read_file_fn_t fs_read_file;
+} jjs_platform_options_t;
+
+/**
+ * Context initialization settings.
+ *
+ * Use jjs_context_options_init() to initialize this structure, as that function fills
+ * in configured defaults.
+ */
+typedef struct
+{
+  jjs_allocator_t *allocator;
+  jjs_platform_t *platform;
+
+  /**
+   * Context configuration flags. Bits enumerated in jjs_context_flag_t.
+   */
+  uint32_t context_flags;
+
+  /**
+   * Control which apis are exposed to scripts in the javascript jjs object (globalThis.jjs).
+   *
+   * The exclusions here are limited to the jjs namespace. The native apis are not affected
+   * by these exclusions. But, if a feature is disabled at the native layer, the feature
+   * is automatically excluded from the jjs namespace. For example, if the context has no
+   * platform read file function, readFile will not be added to the jjs namespace regardless
+   * of the exclusion settings.
+   */
+  uint32_t jjs_namespace_exclusions;
+
+  /**
+   * Unhandled rejection callback.
+   *
+   * An unhandled rejection can be received via jjs_promise_on_event; however, enabling that
+   * enables all promise events. There is only one on_event listener and that is for
+   * user code. And, the on_event is a compile time switch.
+   *
+   * This function is exclusively for listening to the unhandled rejection event, it's always
+   * built and can be dynamically configured by the user. If not set, the default behavior is
+   * to log the unhandled rejection reason by logging to error.
+   */
+  jjs_context_unhandled_rejection_cb_t unhandled_rejection_cb;
+
+  /**
+   * User defined token passed to unhandled_rejection_cb. Default: NULL
+   */
+  void* unhandled_rejection_user_p;
+
+  /**
+   * VM heap size in kilobytes.
+   *
+   * If JJS_VM_HEAP_STATIC is ON, the vm heap cannot be manually configured. If you try to
+   * change the heap size, jjs_init will return an error code.
+   *
+   * Default: JJS_DEFAULT_VM_HEAP_SIZE
+   */
+  uint32_t vm_heap_size_kb;
+
+  /**
+   * VM stack size limit in kilobytes.
+   *
+   * If JJS_VM_STACK_STATIC is set, jjs_init will return an error status if you attempt to
+   * set this field.
+   *
+   * WARNING: This feature will not work across platforms, compilers and build configurations!
+   * The recommendation is to use JJS_VM_STACK_STATIC ON and JJS_DEFAULT_VM_STACK_LIMIT 0.
+   *
+   * Default: JJS_DEFAULT_VM_STACK_LIMIT
+   */
+  uint32_t vm_stack_limit_kb;
+
+  /**
+   * Allowed heap usage limit until next garbage collection. The value is in kilobytes.
+   *
+   * If 0, the computed value is min (1/32 of heap size, 8K).
+   *
+   * Default: JJS_DEFAULT_GC_LIMIT
+   */
+  uint32_t gc_limit_kb;
+
+  /**
+   * GC mark depth.
+   *
+   * if 0, mark depth is unlimited.
+   *
+   * Default: JJS_DEFAULT_GC_MARK_LIMIT
+   */
+  uint32_t gc_mark_limit;
+
+  /**
+   * Amount of newly allocated objects since the last GC run, represented as
+   * a fraction of all allocated objects.
+   *
+   * If 0, 16 is used.
+   *
+   * Default: JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
+   */
+  uint32_t gc_new_objects_fraction;
+
+  /**
+   * Platform object.
+   *
+   * When jjs_context_options or jjs_context_options_init is called, this is filled in with all
+   * the platform specific information and functions JJS will use by default. Depending on
+   * compile time configuration some fields will be filled in and other not.
+   *
+   * As part of context configuration, you can modify anything in platform with your own data
+   * of behavior. When the options are committed to the context through jjs_init, the modified
+   * platform is used by JJS.
+   */
+//  jjs_platform_options_t platform;
+
+  /**
+   * Fallback scratch buffer allocator.
+   *
+   * The engine has an internal arena allocator for temporary allocations for paths, loading
+   * source files or snapshots or json and other optimizations. If the arena buffer is too
+   * small or gets exhausted, this fallback is used. The fallback should be the vm or system
+   * allocator.
+   *
+   * The arena allocator buffer size can be set with JJS_SCRATCH_ARENA_SIZE. If 0, the scratch
+   * arena allocator is disabled and the fallback allocator is used exclusively.
+   *
+   * By default, the system allocator is used. You can set this to the vm heap
+   * allocator or use your own allocator.
+   */
+//  jjs_allocator_t scratch_allocator;
+
+} jjs_context_options_t;
 
 /**
  * @}

@@ -29,7 +29,7 @@ main (void)
   /* DataView builtin requires the TypedArray builtin */
   TEST_ASSERT (jjs_feature_enabled (JJS_FEATURE_TYPEDARRAY));
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   /* Test accessors */
   jjs_value_t arraybuffer = jjs_arraybuffer (16);
@@ -97,7 +97,7 @@ main (void)
   jjs_value_free (view1);
   jjs_value_free (arraybuffer);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

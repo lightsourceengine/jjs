@@ -294,12 +294,15 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  jjs_init_with_flags (context_flags);
+  jjs_context_t *context_p = NULL;
+  jjs_context_options_t options = jjs_context_options ();
+  options.context_flags = context_flags;
+  assert (jjs_context_new(&options, &context_p) == JJS_STATUS_OK);
 
   if (!jjs_validate_string (source_p, (jjs_size_t) source_length, JJS_ENCODING_UTF8))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Input must be a valid UTF-8 string.\n");
-    jjs_cleanup ();
+    jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -375,7 +378,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
     print_unhandled_exception (snapshot_result);
 
     jjs_value_free (snapshot_result);
-    jjs_cleanup ();
+    jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -386,7 +389,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
   if (snapshot_file_p == NULL)
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Error: Unable to write snapshot file: '%s'\n", output_file_name_p);
-    jjs_cleanup ();
+    jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -395,7 +398,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 
   printf ("Created snapshot file: '%s' (%zu bytes)\n", output_file_name_p, snapshot_size);
 
-  jjs_cleanup ();
+  jjs_context_free (context_p);
   return JJS_STANDALONE_EXIT_CODE_OK;
 } /* process_generate */
 
@@ -515,7 +518,8 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  jjs_init_default ();
+  jjs_context_t *context_p = NULL;
+  assert (jjs_context_new (NULL, &context_p));
 
   size_t lit_buf_sz = 0;
   if (number_of_files == 1)
@@ -540,7 +544,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
     if (merged_snapshot_size == 0)
     {
       jjs_log (JJS_LOG_LEVEL_ERROR, "Error: %s\n", error_p);
-      jjs_cleanup ();
+      jjs_context_free (context_p);
       return JJS_STANDALONE_EXIT_CODE_FAIL;
     }
 
@@ -557,7 +561,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
   {
     jjs_log (JJS_LOG_LEVEL_ERROR,
                "Error: Literal saving failed! No literals were found in the input snapshot(s).\n");
-    jjs_cleanup ();
+    jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -571,7 +575,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
   if (file_p == NULL)
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Error: cannot open file: '%s'\n", literals_file_name_p);
-    jjs_cleanup ();
+    jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -580,7 +584,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
 
   printf ("Literals are saved into '%s' (%zu bytes).\n", literals_file_name_p, lit_buf_sz);
 
-  jjs_cleanup ();
+  jjs_context_free (context_p);
   return JJS_STANDALONE_EXIT_CODE_OK;
 } /* process_literal_dump */
 
@@ -674,8 +678,9 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
     jjs_log (JJS_LOG_LEVEL_ERROR, "Error: at least two input files must be passed.\n");
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
-  
-  jjs_init_default ();
+
+  jjs_context_t *context_p = NULL;
+  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
 
   const char *error_p = NULL;
   size_t merged_snapshot_size = jjs_merge_snapshots (merge_buffers,
@@ -688,7 +693,7 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
   if (merged_snapshot_size == 0)
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Error: %s\n", error_p);
-    jjs_cleanup ();
+    jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -697,7 +702,7 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
   if (file_p == NULL)
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Error: cannot open file: '%s'\n", output_file_name_p);
-    jjs_cleanup ();
+    jjs_context_free (context_p);
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
@@ -708,7 +713,7 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
           output_file_name_p,
           merged_snapshot_size);
 
-  jjs_cleanup ();
+  jjs_context_free (context_p);
   return JJS_STANDALONE_EXIT_CODE_OK;
 } /* process_merge */
 

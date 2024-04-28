@@ -35,21 +35,13 @@ JJS_C_API_BEGIN
  * @{
  */
 
-jjs_context_options_t jjs_context_options (void);
-jjs_context_options_t *jjs_context_options_init (jjs_context_options_t * opts);
-jjs_allocator_t jjs_context_system_allocator (void);
-jjs_allocator_t jjs_context_vm_allocator (void);
+jjs_status_t jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context_p);
+void jjs_context_free (jjs_context_t* context_p);
 
-jjs_status_t jjs_init (const jjs_context_options_t * opts);
-jjs_status_t jjs_init_default (void);
-jjs_status_t jjs_init_with_flags (uint32_t context_flags);
+void *jjs_context_data (jjs_context_t* context_p, const jjs_context_data_manager_t *manager_p);
 
-void jjs_cleanup (void);
-
-void *jjs_context_data (const jjs_context_data_manager_t *manager_p);
-
-jjs_value_t jjs_current_realm (void);
-jjs_value_t jjs_set_realm (jjs_value_t realm);
+jjs_value_t jjs_current_realm (jjs_context_t* context_p);
+jjs_value_t jjs_set_realm (jjs_context_t* context_p, jjs_value_t realm);
 /**
  * jjs-api-general-context @}
  */
@@ -58,14 +50,15 @@ jjs_value_t jjs_set_realm (jjs_value_t realm);
  * @defgroup jjs-api-general-heap Heap management
  * @{
  */
-void *jjs_heap_alloc (jjs_size_t size);
-void jjs_heap_free (void *mem_p, jjs_size_t size);
+void *jjs_heap_alloc (jjs_context_t* context_p, jjs_size_t size);
+void jjs_heap_free (jjs_context_t* context_p, void *mem_p, jjs_size_t size);
 
-bool jjs_heap_stats (jjs_heap_stats_t *out_stats_p);
-void jjs_heap_gc (jjs_gc_mode_t mode);
+bool jjs_heap_stats (jjs_context_t* context_p, jjs_heap_stats_t *out_stats_p);
+void jjs_heap_gc (jjs_context_t* context_p, jjs_gc_mode_t mode);
 
-bool jjs_foreach_live_object (jjs_foreach_live_object_cb_t callback, void *user_data);
-bool jjs_foreach_live_object_with_info (const jjs_object_native_info_t *native_info_p,
+bool jjs_foreach_live_object (jjs_context_t* context_p, jjs_foreach_live_object_cb_t callback, void *user_data);
+bool jjs_foreach_live_object_with_info (jjs_context_t* context_p,
+                                        const jjs_object_native_info_t *native_info_p,
                                         jjs_foreach_live_object_with_info_cb_t callback,
                                         void *user_data_p);
 /**
@@ -77,18 +70,24 @@ bool jjs_foreach_live_object_with_info (const jjs_object_native_info_t *native_i
  * @{
  */
 
-void jjs_fmt_v (const jjs_wstream_t *wstream_p,
+void jjs_fmt_v (jjs_context_t* context_p,
+                const jjs_wstream_t *wstream_p,
                 const char *format_p,
                 const jjs_value_t *values_p,
                 jjs_size_t values_length);
-jjs_value_t jjs_fmt_to_string_v (const char *format_p, const jjs_value_t *values_p, jjs_size_t values_length);
-jjs_size_t jjs_fmt_to_buffer_v (jjs_char_t *buffer_p,
+jjs_value_t jjs_fmt_to_string_v (jjs_context_t* context_p,
+                                 const char *format_p,
+                                 const jjs_value_t *values_p,
+                                 jjs_size_t values_length);
+jjs_size_t jjs_fmt_to_buffer_v (jjs_context_t* context_p,
+                                jjs_char_t *buffer_p,
                                 jjs_size_t buffer_size,
                                 jjs_encoding_t encoding,
                                 const char *format_p,
                                 const jjs_value_t *values_p,
                                 jjs_size_t values_length);
-jjs_value_t jjs_fmt_join_v (jjs_value_t delimiter,
+jjs_value_t jjs_fmt_join_v (jjs_context_t* context_p,
+                            jjs_value_t delimiter,
                             jjs_value_ownership_t delimiter_o,
                             const jjs_value_t *values_p,
                             jjs_size_t values_length);
@@ -102,14 +101,14 @@ jjs_value_t jjs_fmt_join_v (jjs_value_t delimiter,
  * @{
  */
 
-void JJS_ATTR_FORMAT (printf, 2, 3) jjs_log (jjs_log_level_t level, const char *format_p, ...);
-void jjs_log_set_level (jjs_log_level_t level);
-void jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length);
+void JJS_ATTR_FORMAT (printf, 3, 4) jjs_log (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, ...);
+void jjs_log_set_level (jjs_context_t* context_p, jjs_log_level_t level);
+void jjs_log_fmt_v (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length);
 
-bool jjs_validate_string (const jjs_char_t *buffer_p, jjs_size_t buffer_size, jjs_encoding_t encoding);
+bool jjs_validate_string (jjs_context_t* context_p, const jjs_char_t *buffer_p, jjs_size_t buffer_size, jjs_encoding_t encoding);
 bool JJS_ATTR_CONST jjs_feature_enabled (const jjs_feature_t feature);
 void
-jjs_register_magic_strings (const jjs_char_t *const *ext_strings_p, uint32_t count, const jjs_length_t *str_lengths_p);
+jjs_register_magic_strings (jjs_context_t* context_p, const jjs_char_t *const *ext_strings_p, uint32_t count, const jjs_length_t *str_lengths_p);
 
 /**
  * jjs-api-general-misc @}
@@ -128,8 +127,8 @@ jjs_register_magic_strings (const jjs_char_t *const *ext_strings_p, uint32_t cou
  * @defgroup jjs-api-code-parse Parsing
  * @{
  */
-jjs_value_t jjs_parse (const jjs_char_t *source_p, size_t source_size, const jjs_parse_options_t *options_p);
-jjs_value_t jjs_parse_value (const jjs_value_t source, const jjs_parse_options_t *options_p);
+jjs_value_t jjs_parse (jjs_context_t* context_p, const jjs_char_t *source_p, size_t source_size, const jjs_parse_options_t *options_p);
+jjs_value_t jjs_parse_value (jjs_context_t* context_p, const jjs_value_t source, const jjs_parse_options_t *options_p);
 /**
  * jjs-api-code-parse @}
  */
@@ -138,11 +137,11 @@ jjs_value_t jjs_parse_value (const jjs_value_t source, const jjs_parse_options_t
  * @defgroup jjs-api-code-exec Execution
  * @{
  */
-jjs_value_t jjs_eval (const jjs_char_t *source_p, size_t source_size, uint32_t flags);
-jjs_value_t jjs_run (const jjs_value_t script);
-jjs_value_t jjs_run_jobs (void);
-jjs_value_t jjs_queue_microtask(const jjs_value_t callback);
-bool jjs_has_pending_jobs (void);
+jjs_value_t jjs_eval (jjs_context_t* context_p, const jjs_char_t *source_p, size_t source_size, uint32_t flags);
+jjs_value_t jjs_run (jjs_context_t* context_p, const jjs_value_t script);
+jjs_value_t jjs_run_jobs (jjs_context_t* context_p);
+jjs_value_t jjs_queue_microtask(jjs_context_t* context_p, const jjs_value_t callback);
+bool jjs_has_pending_jobs (jjs_context_t* context_p);
 /**
  * jjs-api-code-exec @}
  */
@@ -151,10 +150,10 @@ bool jjs_has_pending_jobs (void);
  * @defgroup jjs-api-code-sourceinfo Source information
  * @{
  */
-jjs_value_t jjs_source_name (const jjs_value_t value);
-jjs_value_t jjs_source_user_value (const jjs_value_t value);
-jjs_source_info_t *jjs_source_info (const jjs_value_t value);
-void jjs_source_info_free (jjs_source_info_t *source_info_p);
+jjs_value_t jjs_source_name (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_source_user_value (jjs_context_t* context_p, const jjs_value_t value);
+jjs_source_info_t *jjs_source_info (jjs_context_t* context_p, const jjs_value_t value);
+void jjs_source_info_free (jjs_context_t* context_p, jjs_source_info_t *source_info_p);
 /**
  * jjs-api-code-sourceinfo @}
  */
@@ -163,7 +162,7 @@ void jjs_source_info_free (jjs_source_info_t *source_info_p);
  * @defgroup jjs-api-code-cb Callbacks
  * @{
  */
-void jjs_halt_handler (uint32_t interval, jjs_halt_cb_t callback, void *user_p);
+void jjs_halt_handler (jjs_context_t* context_p, uint32_t interval, jjs_halt_cb_t callback, void *user_p);
 /**
  * jjs-api-code-cb @}
  */
@@ -181,8 +180,8 @@ void jjs_halt_handler (uint32_t interval, jjs_halt_cb_t callback, void *user_p);
  * @defgroup jjs-api-backtrace-capture Capturing
  * @{
  */
-jjs_value_t jjs_backtrace (uint32_t max_depth);
-void jjs_backtrace_capture (jjs_backtrace_cb_t callback, void *user_p);
+jjs_value_t jjs_backtrace (jjs_context_t* context_p, uint32_t max_depth);
+void jjs_backtrace_capture (jjs_context_t* context_p, jjs_backtrace_cb_t callback, void *user_p);
 /**
  * jjs-api-backtrace-capture @}
  */
@@ -191,11 +190,11 @@ void jjs_backtrace_capture (jjs_backtrace_cb_t callback, void *user_p);
  * @defgroup jjs-api-backtrace-frame Frames
  * @{
  */
-jjs_frame_type_t jjs_frame_type (const jjs_frame_t *frame_p);
-const jjs_value_t *jjs_frame_callee (jjs_frame_t *frame_p);
-const jjs_value_t *jjs_frame_this (jjs_frame_t *frame_p);
-const jjs_frame_location_t *jjs_frame_location (jjs_frame_t *frame_p);
-bool jjs_frame_is_strict (jjs_frame_t *frame_p);
+jjs_frame_type_t jjs_frame_type (jjs_context_t* context_p, const jjs_frame_t *frame_p);
+const jjs_value_t *jjs_frame_callee (jjs_context_t* context_p, jjs_frame_t *frame_p);
+const jjs_value_t *jjs_frame_this (jjs_context_t* context_p, jjs_frame_t *frame_p);
+const jjs_frame_location_t *jjs_frame_location (jjs_context_t* context_p, jjs_frame_t *frame_p);
+bool jjs_frame_is_strict (jjs_context_t* context_p, jjs_frame_t *frame_p);
 /**
  * jjs-api-backtrace-frame @}
  */
@@ -210,44 +209,44 @@ bool jjs_frame_is_strict (jjs_frame_t *frame_p);
  */
 
 /* Reference management */
-jjs_value_t JJS_ATTR_WARN_UNUSED_RESULT jjs_value_copy (const jjs_value_t value);
-void jjs_value_free (jjs_value_t value);
-bool jjs_value_free_unless (jjs_value_t value, jjs_value_condition_fn_t condition_fn);
+jjs_value_t JJS_ATTR_WARN_UNUSED_RESULT jjs_value_copy (jjs_context_t* context_p, const jjs_value_t value);
+void jjs_value_free (jjs_context_t* context_p, jjs_value_t value);
+bool jjs_value_free_unless (jjs_context_t* context_p, jjs_value_t value, jjs_value_condition_fn_t condition_fn);
 
 /**
  * @defgroup jjs-api-value-checks Type inspection
  * @{
  */
-jjs_type_t jjs_value_type (const jjs_value_t value);
-bool jjs_value_is_exception (const jjs_value_t value);
-bool jjs_value_is_abort (const jjs_value_t value);
+jjs_type_t jjs_value_type (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_exception (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_abort (jjs_context_t* context_p, const jjs_value_t value);
 
-bool jjs_value_is_undefined (const jjs_value_t value);
-bool jjs_value_is_null (const jjs_value_t value);
-bool jjs_value_is_boolean (const jjs_value_t value);
-bool jjs_value_is_true (const jjs_value_t value);
-bool jjs_value_is_false (const jjs_value_t value);
+bool jjs_value_is_undefined (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_null (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_boolean (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_true (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_false (jjs_context_t* context_p, const jjs_value_t value);
 
-bool jjs_value_is_number (const jjs_value_t value);
-bool jjs_value_is_bigint (const jjs_value_t value);
+bool jjs_value_is_number (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_bigint (jjs_context_t* context_p, const jjs_value_t value);
 
-bool jjs_value_is_string (const jjs_value_t value);
-bool jjs_value_is_symbol (const jjs_value_t value);
+bool jjs_value_is_string (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_symbol (jjs_context_t* context_p, const jjs_value_t value);
 
-bool jjs_value_is_object (const jjs_value_t value);
-bool jjs_value_is_array (const jjs_value_t value);
-bool jjs_value_is_promise (const jjs_value_t value);
-bool jjs_value_is_proxy (const jjs_value_t value);
-bool jjs_value_is_arraybuffer (const jjs_value_t value);
-bool jjs_value_is_shared_arraybuffer (const jjs_value_t value);
-bool jjs_value_is_dataview (const jjs_value_t value);
-bool jjs_value_is_typedarray (const jjs_value_t value);
+bool jjs_value_is_object (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_array (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_promise (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_proxy (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_arraybuffer (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_shared_arraybuffer (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_dataview (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_typedarray (jjs_context_t* context_p, const jjs_value_t value);
 
-bool jjs_value_is_constructor (const jjs_value_t value);
-bool jjs_value_is_function (const jjs_value_t value);
-bool jjs_value_is_async_function (const jjs_value_t value);
+bool jjs_value_is_constructor (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_function (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_value_is_async_function (jjs_context_t* context_p, const jjs_value_t value);
 
-bool jjs_value_is_error (const jjs_value_t value);
+bool jjs_value_is_error (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-value-checks @}
  */
@@ -256,19 +255,19 @@ bool jjs_value_is_error (const jjs_value_t value);
  * @defgroup jjs-api-value-coerce Coercion
  * @{
  */
-bool jjs_value_to_boolean (const jjs_value_t value);
-jjs_value_t jjs_value_to_number (const jjs_value_t value);
-jjs_value_t jjs_value_to_object (const jjs_value_t value);
-jjs_value_t jjs_value_to_primitive (const jjs_value_t value);
-jjs_value_t jjs_value_to_string (const jjs_value_t value);
-jjs_value_t jjs_value_to_bigint (const jjs_value_t value);
+bool jjs_value_to_boolean (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_value_to_number (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_value_to_object (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_value_to_primitive (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_value_to_string (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_value_to_bigint (jjs_context_t* context_p, const jjs_value_t value);
 
-double jjs_value_as_number (const jjs_value_t value);
-double jjs_value_as_integer (const jjs_value_t value);
-int32_t jjs_value_as_int32 (const jjs_value_t value);
-uint32_t jjs_value_as_uint32 (const jjs_value_t value);
-float jjs_value_as_float (const jjs_value_t value);
-double jjs_value_as_double (const jjs_value_t value);
+double jjs_value_as_number (jjs_context_t* context_p, const jjs_value_t value);
+double jjs_value_as_integer (jjs_context_t* context_p, const jjs_value_t value);
+int32_t jjs_value_as_int32 (jjs_context_t* context_p, const jjs_value_t value);
+uint32_t jjs_value_as_uint32 (jjs_context_t* context_p, const jjs_value_t value);
+float jjs_value_as_float (jjs_context_t* context_p, const jjs_value_t value);
+double jjs_value_as_double (jjs_context_t* context_p, const jjs_value_t value);
 
 /**
  * jjs-api-value-coerce @}
@@ -278,7 +277,7 @@ double jjs_value_as_double (const jjs_value_t value);
  * @defgroup jjs-api-value-op Operations
  * @{
  */
-jjs_value_t jjs_binary_op (jjs_binary_op_t operation, const jjs_value_t lhs, const jjs_value_t rhs);
+jjs_value_t jjs_binary_op (jjs_context_t* context_p, jjs_binary_op_t operation, const jjs_value_t lhs, const jjs_value_t rhs);
 
 /**
  * jjs-api-value-op @}
@@ -297,10 +296,10 @@ jjs_value_t jjs_binary_op (jjs_binary_op_t operation, const jjs_value_t lhs, con
  * @defgroup jjs-api-exception-ctor Constructors
  * @{
  */
-jjs_value_t jjs_throw (jjs_error_t type, const jjs_value_t message);
-jjs_value_t jjs_throw_sz (jjs_error_t type, const char *message_p);
-jjs_value_t jjs_throw_value (jjs_value_t value, bool take_ownership);
-jjs_value_t jjs_throw_abort (jjs_value_t value, bool take_ownership);
+jjs_value_t jjs_throw (jjs_context_t* context_p, jjs_error_t type, const jjs_value_t message);
+jjs_value_t jjs_throw_sz (jjs_context_t* context_p, jjs_error_t type, const char *message_p);
+jjs_value_t jjs_throw_value (jjs_context_t* context_p, jjs_value_t value, bool take_ownership);
+jjs_value_t jjs_throw_abort (jjs_context_t* context_p, jjs_value_t value, bool take_ownership);
 /**
  * jjs-api-exception-ctor @}
  */
@@ -309,7 +308,7 @@ jjs_value_t jjs_throw_abort (jjs_value_t value, bool take_ownership);
  * @defgroup jjs-api-exception-op Operations
  * @{
  */
-void jjs_exception_allow_capture (jjs_value_t value, bool allow_capture);
+void jjs_exception_allow_capture (jjs_context_t* context_p, jjs_value_t value, bool allow_capture);
 /**
  * jjs-api-exception-op @}
  */
@@ -318,8 +317,8 @@ void jjs_exception_allow_capture (jjs_value_t value, bool allow_capture);
  * @defgroup jjs-api-exception-get Getters
  * @{
  */
-jjs_value_t jjs_exception_value (jjs_value_t value, bool free_exception);
-bool jjs_exception_is_captured (const jjs_value_t value);
+jjs_value_t jjs_exception_value (jjs_context_t* context_p, jjs_value_t value, bool free_exception);
+bool jjs_exception_is_captured (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-exception-get @}
  */
@@ -328,7 +327,7 @@ bool jjs_exception_is_captured (const jjs_value_t value);
  * @defgroup jjs-api-exception-cb Callbacks
  * @{
  */
-void jjs_on_throw (jjs_throw_cb_t callback, void *user_p);
+void jjs_on_throw (jjs_context_t* context_p, jjs_throw_cb_t callback, void *user_p);
 /**
  * jjs-api-exception-cb @}
  */
@@ -352,7 +351,7 @@ void jjs_on_throw (jjs_throw_cb_t callback, void *user_p);
  * @{
  */
 
-jjs_value_t JJS_ATTR_CONST jjs_undefined (void);
+jjs_value_t JJS_ATTR_CONST jjs_undefined (jjs_context_t* context_p);
 
 /**
  * jjs-api-undefined-ctor @}
@@ -372,7 +371,7 @@ jjs_value_t JJS_ATTR_CONST jjs_undefined (void);
  * @{
  */
 
-jjs_value_t JJS_ATTR_CONST jjs_null (void);
+jjs_value_t JJS_ATTR_CONST jjs_null (jjs_context_t* context_p);
 
 /**
  * jjs-api-null-ctor @}
@@ -392,7 +391,7 @@ jjs_value_t JJS_ATTR_CONST jjs_null (void);
  * @{
  */
 
-jjs_value_t JJS_ATTR_CONST jjs_boolean (bool value);
+jjs_value_t JJS_ATTR_CONST jjs_boolean (jjs_context_t* context_p, bool value);
 
 /**
  * jjs-api-boolean-ctor @}
@@ -412,14 +411,14 @@ jjs_value_t JJS_ATTR_CONST jjs_boolean (bool value);
  * @{
  */
 
-jjs_value_t jjs_number (double value);
-jjs_value_t jjs_infinity (bool sign);
-jjs_value_t jjs_nan (void);
+jjs_value_t jjs_number (jjs_context_t* context_p, double value);
+jjs_value_t jjs_infinity (jjs_context_t* context_p, bool sign);
+jjs_value_t jjs_nan (jjs_context_t* context_p);
 
-jjs_value_t jjs_number_from_float (float value);
-jjs_value_t jjs_number_from_double (double value);
-jjs_value_t jjs_number_from_int32 (int32_t value);
-jjs_value_t jjs_number_from_uint32 (uint32_t value);
+jjs_value_t jjs_number_from_float (jjs_context_t* context_p, float value);
+jjs_value_t jjs_number_from_double (jjs_context_t* context_p, double value);
+jjs_value_t jjs_number_from_int32 (jjs_context_t* context_p, int32_t value);
+jjs_value_t jjs_number_from_uint32 (jjs_context_t* context_p, uint32_t value);
 
 /**
  * jjs-api-number-ctor @}
@@ -438,7 +437,7 @@ jjs_value_t jjs_number_from_uint32 (uint32_t value);
  * @defgroup jjs-api-bigint-ctor Constructors
  * @{
  */
-jjs_value_t jjs_bigint (const uint64_t *digits_p, uint32_t digit_count, bool sign);
+jjs_value_t jjs_bigint (jjs_context_t* context_p, const uint64_t *digits_p, uint32_t digit_count, bool sign);
 /**
  * jjs-api-bigint-ctor @}
  */
@@ -447,7 +446,7 @@ jjs_value_t jjs_bigint (const uint64_t *digits_p, uint32_t digit_count, bool sig
  * @defgroup jjs-api-bigint-get Getters
  * @{
  */
-uint32_t jjs_bigint_digit_count (const jjs_value_t value);
+uint32_t jjs_bigint_digit_count (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-bigint-get @}
  */
@@ -456,7 +455,7 @@ uint32_t jjs_bigint_digit_count (const jjs_value_t value);
  * @defgroup jjs-api-bigint-op Operations
  * @{
  */
-void jjs_bigint_to_digits (const jjs_value_t value, uint64_t *digits_p, uint32_t digit_count, bool *sign_p);
+void jjs_bigint_to_digits (jjs_context_t* context_p, const jjs_value_t value, uint64_t *digits_p, uint32_t digit_count, bool *sign_p);
 /**
  * jjs-api-bigint-get @}
  */
@@ -474,12 +473,12 @@ void jjs_bigint_to_digits (const jjs_value_t value, uint64_t *digits_p, uint32_t
  * @defgroup jjs-api-string-ctor Constructors
  * @{
  */
-jjs_value_t jjs_string (const jjs_char_t *buffer_p, jjs_size_t buffer_size, jjs_encoding_t encoding);
-jjs_value_t jjs_string_sz (const char *str_p);
-jjs_value_t jjs_string_external (const jjs_char_t *buffer_p, jjs_size_t buffer_size, void *user_p);
-jjs_value_t jjs_string_external_sz (const char *str_p, void *user_p);
-jjs_value_t jjs_string_utf8_sz (const char *str_p);
-jjs_value_t jjs_string_cesu8_sz (const char *str_p);
+jjs_value_t jjs_string (jjs_context_t* context_p, const jjs_char_t *buffer_p, jjs_size_t buffer_size, jjs_encoding_t encoding);
+jjs_value_t jjs_string_sz (jjs_context_t* context_p, const char *str_p);
+jjs_value_t jjs_string_external (jjs_context_t* context_p, const jjs_char_t *buffer_p, jjs_size_t buffer_size, void *user_p);
+jjs_value_t jjs_string_external_sz (jjs_context_t* context_p, const char *str_p, void *user_p);
+jjs_value_t jjs_string_utf8_sz (jjs_context_t* context_p, const char *str_p);
+jjs_value_t jjs_string_cesu8_sz (jjs_context_t* context_p, const char *str_p);
 
 /**
  * jjs-api-string-cotr @}
@@ -489,9 +488,9 @@ jjs_value_t jjs_string_cesu8_sz (const char *str_p);
  * @defgroup jjs-api-string-get Getters
  * @{
  */
-jjs_size_t jjs_string_size (const jjs_value_t value, jjs_encoding_t encoding);
-jjs_length_t jjs_string_length (const jjs_value_t value);
-void *jjs_string_user_ptr (const jjs_value_t value, bool *is_external);
+jjs_size_t jjs_string_size (jjs_context_t* context_p, const jjs_value_t value, jjs_encoding_t encoding);
+jjs_length_t jjs_string_length (jjs_context_t* context_p, const jjs_value_t value);
+void *jjs_string_user_ptr (jjs_context_t* context_p, const jjs_value_t value, bool *is_external);
 /**
  * jjs-api-string-get @}
  */
@@ -500,15 +499,16 @@ void *jjs_string_user_ptr (const jjs_value_t value, bool *is_external);
  * @defgroup jjs-api-string-op Operations
  * @{
  */
-jjs_size_t jjs_string_substr (const jjs_value_t value, jjs_length_t start, jjs_length_t end);
-jjs_size_t jjs_string_to_buffer (const jjs_value_t value,
-                                     jjs_encoding_t encoding,
-                                     jjs_char_t *buffer_p,
-                                     jjs_size_t buffer_size);
-void jjs_string_iterate (const jjs_value_t value,
-                           jjs_encoding_t encoding,
-                           jjs_string_iterate_cb_t callback,
-                           void *user_p);
+jjs_size_t jjs_string_substr (jjs_context_t* context_p, const jjs_value_t value, jjs_length_t start, jjs_length_t end);
+jjs_size_t jjs_string_to_buffer (jjs_context_t* context_p, const jjs_value_t value,
+                                 jjs_encoding_t encoding,
+                                 jjs_char_t *buffer_p,
+                                 jjs_size_t buffer_size);
+void jjs_string_iterate (jjs_context_t* context_p,
+                         const jjs_value_t value,
+                         jjs_encoding_t encoding,
+                         jjs_string_iterate_cb_t callback,
+                         void *user_p);
 /**
  * jjs-api-string-op @}
  */
@@ -517,7 +517,7 @@ void jjs_string_iterate (const jjs_value_t value,
  * @defgroup jjs-api-string-cb Callbacks
  * @{
  */
-void jjs_string_external_on_free (jjs_external_string_free_cb_t callback);
+void jjs_string_external_on_free (jjs_context_t* context_p, jjs_external_string_free_cb_t callback);
 /**
  * jjs-api-string-cb @}
  */
@@ -535,8 +535,8 @@ void jjs_string_external_on_free (jjs_external_string_free_cb_t callback);
  * @defgroup jjs-api-symbol-ctor Constructors
  * @{
  */
-jjs_value_t jjs_symbol (jjs_well_known_symbol_t symbol);
-jjs_value_t jjs_symbol_with_description (const jjs_value_t value);
+jjs_value_t jjs_symbol (jjs_context_t* context_p, jjs_well_known_symbol_t symbol);
+jjs_value_t jjs_symbol_with_description (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-symbol-ctor @}
  */
@@ -545,8 +545,8 @@ jjs_value_t jjs_symbol_with_description (const jjs_value_t value);
  * @defgroup jjs-api-symbol-get Getters
  * @{
  */
-jjs_value_t jjs_symbol_description (const jjs_value_t symbol);
-jjs_value_t jjs_symbol_descriptive_string (const jjs_value_t symbol);
+jjs_value_t jjs_symbol_description (jjs_context_t* context_p, const jjs_value_t symbol);
+jjs_value_t jjs_symbol_descriptive_string (jjs_context_t* context_p, const jjs_value_t symbol);
 /**
  * jjs-api-symbol-get @}
  */
@@ -568,7 +568,7 @@ jjs_value_t jjs_symbol_descriptive_string (const jjs_value_t symbol);
  * @defgroup jjs-api-object-ctor Constructors
  * @{
  */
-jjs_value_t jjs_object (void);
+jjs_value_t jjs_object (jjs_context_t* context_p);
 /**
  * jjs-api-object-ctor @}
  */
@@ -578,10 +578,10 @@ jjs_value_t jjs_object (void);
  * @{
  */
 
-jjs_object_type_t jjs_object_type (const jjs_value_t object);
-jjs_value_t jjs_object_proto (const jjs_value_t object);
-jjs_value_t jjs_object_keys (const jjs_value_t object);
-jjs_value_t jjs_object_property_names (const jjs_value_t object, jjs_property_filter_t filter);
+jjs_object_type_t jjs_object_type (jjs_context_t* context_p, const jjs_value_t object);
+jjs_value_t jjs_object_proto (jjs_context_t* context_p, const jjs_value_t object);
+jjs_value_t jjs_object_keys (jjs_context_t* context_p, const jjs_value_t object);
+jjs_value_t jjs_object_property_names (jjs_context_t* context_p, const jjs_value_t object, jjs_property_filter_t filter);
 
 /**
  * jjs-api-object-get @}
@@ -592,23 +592,25 @@ jjs_value_t jjs_object_property_names (const jjs_value_t object, jjs_property_fi
  * @{
  */
 
-jjs_value_t jjs_object_set_proto (jjs_value_t object, const jjs_value_t proto);
-bool jjs_object_foreach (const jjs_value_t object, jjs_object_property_foreach_cb_t foreach_p, void *user_data_p);
+jjs_value_t jjs_object_set_proto (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t proto);
+bool jjs_object_foreach (jjs_context_t* context_p, const jjs_value_t object, jjs_object_property_foreach_cb_t foreach_p, void *user_data_p);
 
 /**
  * @defgroup jjs-api-object-op-set Set
  * @{
  */
-jjs_value_t jjs_object_set (jjs_value_t object, const jjs_value_t key, const jjs_value_t value);
-jjs_value_t jjs_object_set_sz (jjs_value_t object, const char *key_p, const jjs_value_t value);
-jjs_value_t jjs_object_set_index (jjs_value_t object, uint32_t index, const jjs_value_t value);
-jjs_value_t jjs_object_define_own_prop (jjs_value_t object,
-                                            const jjs_value_t key,
-                                            const jjs_property_descriptor_t *prop_desc_p);
-bool jjs_object_set_internal (jjs_value_t object, const jjs_value_t key, const jjs_value_t value);
-void jjs_object_set_native_ptr (jjs_value_t object,
-                                  const jjs_object_native_info_t *native_info_p,
-                                  void *native_pointer_p);
+jjs_value_t jjs_object_set (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key, const jjs_value_t value);
+jjs_value_t jjs_object_set_sz (jjs_context_t* context_p, jjs_value_t object, const char *key_p, const jjs_value_t value);
+jjs_value_t jjs_object_set_index (jjs_context_t* context_p, jjs_value_t object, uint32_t index, const jjs_value_t value);
+jjs_value_t jjs_object_define_own_prop (jjs_context_t* context_p,
+                                        jjs_value_t object,
+                                        const jjs_value_t key,
+                                        const jjs_property_descriptor_t *prop_desc_p);
+bool jjs_object_set_internal (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key, const jjs_value_t value);
+void jjs_object_set_native_ptr (jjs_context_t* context_p,
+                                jjs_value_t object,
+                                const jjs_object_native_info_t *native_info_p,
+                                void *native_pointer_p);
 /**
  * jjs-api-object-op-set @}
  */
@@ -617,11 +619,11 @@ void jjs_object_set_native_ptr (jjs_value_t object,
  * @defgroup jjs-api-object-op-has Has
  * @{
  */
-jjs_value_t jjs_object_has (const jjs_value_t object, const jjs_value_t key);
-jjs_value_t jjs_object_has_sz (const jjs_value_t object, const char *key_p);
-jjs_value_t jjs_object_has_own (const jjs_value_t object, const jjs_value_t key);
-bool jjs_object_has_internal (const jjs_value_t object, const jjs_value_t key);
-bool jjs_object_has_native_ptr (const jjs_value_t object, const jjs_object_native_info_t *native_info_p);
+jjs_value_t jjs_object_has (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+jjs_value_t jjs_object_has_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
+jjs_value_t jjs_object_has_own (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+bool jjs_object_has_internal (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+bool jjs_object_has_native_ptr (jjs_context_t* context_p, const jjs_value_t object, const jjs_object_native_info_t *native_info_p);
 /**
  * jjs-api-object-op-has @}
  */
@@ -630,19 +632,21 @@ bool jjs_object_has_native_ptr (const jjs_value_t object, const jjs_object_nativ
  * @defgroup jjs-api-object-op-get Get
  * @{
  */
-jjs_value_t jjs_object_get (const jjs_value_t object, const jjs_value_t key);
-jjs_value_t jjs_object_get_sz (const jjs_value_t object, const char *key_p);
-jjs_value_t jjs_object_get_index (const jjs_value_t object, uint32_t index);
-jjs_value_t jjs_object_get_own_prop (const jjs_value_t object,
-                                         const jjs_value_t key,
-                                         jjs_property_descriptor_t *prop_desc_p);
-jjs_value_t jjs_object_get_internal (const jjs_value_t object, const jjs_value_t key);
-void *jjs_object_get_native_ptr (const jjs_value_t object, const jjs_object_native_info_t *native_info_p);
-
-jjs_value_t jjs_object_find_own (const jjs_value_t object,
+jjs_value_t jjs_object_get (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+jjs_value_t jjs_object_get_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
+jjs_value_t jjs_object_get_index (jjs_context_t* context_p, const jjs_value_t object, uint32_t index);
+jjs_value_t jjs_object_get_own_prop (jjs_context_t* context_p,
+                                     const jjs_value_t object,
                                      const jjs_value_t key,
-                                     const jjs_value_t receiver,
-                                     bool *found_p);
+                                     jjs_property_descriptor_t *prop_desc_p);
+jjs_value_t jjs_object_get_internal (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+void *jjs_object_get_native_ptr (jjs_context_t* context_p, const jjs_value_t object, const jjs_object_native_info_t *native_info_p);
+
+jjs_value_t jjs_object_find_own (jjs_context_t* context_p,
+                                 const jjs_value_t object,
+                                 const jjs_value_t key,
+                                 const jjs_value_t receiver,
+                                 bool *found_p);
 /**
  * jjs-api-object-op-get @}
  */
@@ -651,11 +655,11 @@ jjs_value_t jjs_object_find_own (const jjs_value_t object,
  * @defgroup jjs-api-object-op-del Delete
  * @{
  */
-jjs_value_t jjs_object_delete (jjs_value_t object, const jjs_value_t key);
-jjs_value_t jjs_object_delete_sz (const jjs_value_t object, const char *key_p);
-jjs_value_t jjs_object_delete_index (jjs_value_t object, uint32_t index);
-bool jjs_object_delete_internal (jjs_value_t object, const jjs_value_t key);
-bool jjs_object_delete_native_ptr (jjs_value_t object, const jjs_object_native_info_t *native_info_p);
+jjs_value_t jjs_object_delete (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key);
+jjs_value_t jjs_object_delete_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
+jjs_value_t jjs_object_delete_index (jjs_context_t* context_p, jjs_value_t object, uint32_t index);
+bool jjs_object_delete_internal (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key);
+bool jjs_object_delete_native_ptr (jjs_context_t* context_p, jjs_value_t object, const jjs_object_native_info_t *native_info_p);
 /**
  * jjs-api-object-op-del @}
  */
@@ -673,9 +677,10 @@ bool jjs_object_delete_native_ptr (jjs_value_t object, const jjs_object_native_i
  * @defgroup jjs-api-object-prop-desc-ctor Constructors
  * @{
  */
-jjs_property_descriptor_t jjs_property_descriptor (void);
-jjs_value_t jjs_property_descriptor_from_object (const jjs_value_t obj_value,
-                                                     jjs_property_descriptor_t *out_prop_desc_p);
+jjs_property_descriptor_t jjs_property_descriptor (jjs_context_t* context_p);
+jjs_value_t jjs_property_descriptor_from_object (jjs_context_t* context_p,
+                                                 const jjs_value_t obj_value,
+                                                 jjs_property_descriptor_t *out_prop_desc_p);
 /**
  * jjs-api-object-prop-desc-ctor @}
  */
@@ -684,8 +689,8 @@ jjs_value_t jjs_property_descriptor_from_object (const jjs_value_t obj_value,
  * @defgroup jjs-api-object-prop-desc-op Operations
  * @{
  */
-void jjs_property_descriptor_free (jjs_property_descriptor_t *prop_desc_p);
-jjs_value_t jjs_property_descriptor_to_object (const jjs_property_descriptor_t *src_prop_desc_p);
+void jjs_property_descriptor_free (jjs_context_t* context_p, jjs_property_descriptor_t *prop_desc_p);
+jjs_value_t jjs_property_descriptor_to_object (jjs_context_t* context_p, const jjs_property_descriptor_t *src_prop_desc_p);
 /**
  * jjs-api-object-prop-desc-op @}
  */
@@ -703,9 +708,9 @@ jjs_value_t jjs_property_descriptor_to_object (const jjs_property_descriptor_t *
  * @defgroup jjs-api-object-native-ptr-op Operations
  * @{
  */
-void jjs_native_ptr_init (void *native_pointer_p, const jjs_object_native_info_t *native_info_p);
-void jjs_native_ptr_free (void *native_pointer_p, const jjs_object_native_info_t *native_info_p);
-void jjs_native_ptr_set (jjs_value_t *reference_p, const jjs_value_t value);
+void jjs_native_ptr_init (jjs_context_t* context_p, void *native_pointer_p, const jjs_object_native_info_t *native_info_p);
+void jjs_native_ptr_free (jjs_context_t* context_p, void *native_pointer_p, const jjs_object_native_info_t *native_info_p);
+void jjs_native_ptr_set (jjs_context_t* context_p, jjs_value_t *reference_p, const jjs_value_t value);
 /**
  * jjs-api-object-native-ptr-op @}
  */
@@ -723,7 +728,7 @@ void jjs_native_ptr_set (jjs_value_t *reference_p, const jjs_value_t value);
  * @defgroup jjs-api-array-ctor Constructors
  * @{
  */
-jjs_value_t jjs_array (jjs_length_t length);
+jjs_value_t jjs_array (jjs_context_t* context_p, jjs_length_t length);
 /**
  * jjs-api-array-ctor @}
  */
@@ -732,7 +737,7 @@ jjs_value_t jjs_array (jjs_length_t length);
  * @defgroup jjs-api-array-get Getters
  * @{
  */
-jjs_length_t jjs_array_length (const jjs_value_t value);
+jjs_length_t jjs_array_length (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-array-get @}
  */
@@ -750,8 +755,8 @@ jjs_length_t jjs_array_length (const jjs_value_t value);
  * @defgroup jjs-api-arraybuffer-ctor Constructors
  * @{
  */
-jjs_value_t jjs_arraybuffer (const jjs_length_t size);
-jjs_value_t jjs_arraybuffer_external (uint8_t *buffer_p, jjs_length_t size, void *user_p);
+jjs_value_t jjs_arraybuffer (jjs_context_t* context_p, const jjs_length_t size);
+jjs_value_t jjs_arraybuffer_external (jjs_context_t* context_p, uint8_t *buffer_p, jjs_length_t size, void *user_p);
 /**
  * jjs-api-arraybuffer-ctor @}
  */
@@ -760,10 +765,10 @@ jjs_value_t jjs_arraybuffer_external (uint8_t *buffer_p, jjs_length_t size, void
  * @defgroup jjs-api-arraybuffer-get Getters
  * @{
  */
-jjs_size_t jjs_arraybuffer_size (const jjs_value_t value);
-uint8_t *jjs_arraybuffer_data (const jjs_value_t value);
-bool jjs_arraybuffer_is_detachable (const jjs_value_t value);
-bool jjs_arraybuffer_has_buffer (const jjs_value_t value);
+jjs_size_t jjs_arraybuffer_size (jjs_context_t* context_p, const jjs_value_t value);
+uint8_t *jjs_arraybuffer_data (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_arraybuffer_is_detachable (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_arraybuffer_has_buffer (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-arraybuffer-get @}
  */
@@ -773,11 +778,11 @@ bool jjs_arraybuffer_has_buffer (const jjs_value_t value);
  * @{
  */
 jjs_size_t
-jjs_arraybuffer_read (const jjs_value_t value, jjs_size_t offset, uint8_t *buffer_p, jjs_size_t buffer_size);
+jjs_arraybuffer_read (jjs_context_t* context_p, const jjs_value_t value, jjs_size_t offset, uint8_t *buffer_p, jjs_size_t buffer_size);
 jjs_size_t
-jjs_arraybuffer_write (jjs_value_t value, jjs_size_t offset, const uint8_t *buffer_p, jjs_size_t buffer_size);
-jjs_value_t jjs_arraybuffer_detach (jjs_value_t value);
-void jjs_arraybuffer_heap_allocation_limit (jjs_size_t limit);
+jjs_arraybuffer_write (jjs_context_t* context_p, jjs_value_t value, jjs_size_t offset, const uint8_t *buffer_p, jjs_size_t buffer_size);
+jjs_value_t jjs_arraybuffer_detach (jjs_context_t* context_p, jjs_value_t value);
+void jjs_arraybuffer_heap_allocation_limit (jjs_context_t* context_p, jjs_size_t limit);
 /**
  * jjs-api-arraybuffer-op @}
  */
@@ -786,9 +791,10 @@ void jjs_arraybuffer_heap_allocation_limit (jjs_size_t limit);
  * @defgroup jjs-api-arraybuffer-cb Callbacks
  * @{
  */
-void jjs_arraybuffer_allocator (jjs_arraybuffer_allocate_cb_t allocate_callback,
-                                  jjs_arraybuffer_free_cb_t free_callback,
-                                  void *user_p);
+void jjs_arraybuffer_allocator (jjs_context_t* context_p,
+                                jjs_arraybuffer_allocate_cb_t allocate_callback,
+                                jjs_arraybuffer_free_cb_t free_callback,
+                                void *user_p);
 /**
  * jjs-api-arraybuffer-cb @}
  */
@@ -806,8 +812,8 @@ void jjs_arraybuffer_allocator (jjs_arraybuffer_allocate_cb_t allocate_callback,
  * @defgroup jjs-api-sharedarraybuffer-ctor Constructors
  * @{
  */
-jjs_value_t jjs_shared_arraybuffer (jjs_size_t size);
-jjs_value_t jjs_shared_arraybuffer_external (uint8_t *buffer_p, jjs_size_t buffer_size, void *user_p);
+jjs_value_t jjs_shared_arraybuffer (jjs_context_t* context_p, jjs_size_t size);
+jjs_value_t jjs_shared_arraybuffer_external (jjs_context_t* context_p, uint8_t *buffer_p, jjs_size_t buffer_size, void *user_p);
 /**
  * jjs-api-sharedarraybuffer-ctor @}
  */
@@ -825,7 +831,7 @@ jjs_value_t jjs_shared_arraybuffer_external (uint8_t *buffer_p, jjs_size_t buffe
  * @defgroup jjs-api-dataview-ctor Constructors
  * @{
  */
-jjs_value_t jjs_dataview (const jjs_value_t value, jjs_size_t byte_offset, jjs_size_t byte_length);
+jjs_value_t jjs_dataview (jjs_context_t* context_p, const jjs_value_t value, jjs_size_t byte_offset, jjs_size_t byte_length);
 /**
  * jjs-api-dataview-ctr @}
  */
@@ -835,7 +841,7 @@ jjs_value_t jjs_dataview (const jjs_value_t value, jjs_size_t byte_offset, jjs_s
  * @{
  */
 jjs_value_t
-jjs_dataview_buffer (const jjs_value_t dataview, jjs_size_t *byte_offset, jjs_size_t *byte_length);
+jjs_dataview_buffer (jjs_context_t* context_p, const jjs_value_t dataview, jjs_size_t *byte_offset, jjs_size_t *byte_length);
 /**
  * jjs-api-dataview-get @}
  */
@@ -853,12 +859,13 @@ jjs_dataview_buffer (const jjs_value_t dataview, jjs_size_t *byte_offset, jjs_si
  * @defgroup jjs-api-typedarray-ctor Constructors
  * @{
  */
-jjs_value_t jjs_typedarray (jjs_typedarray_type_t type, jjs_length_t length);
-jjs_value_t jjs_typedarray_with_buffer (jjs_typedarray_type_t type, const jjs_value_t arraybuffer);
-jjs_value_t jjs_typedarray_with_buffer_span (jjs_typedarray_type_t type,
-                                                 const jjs_value_t arraybuffer,
-                                                 jjs_size_t byte_offset,
-                                                 jjs_size_t byte_length);
+jjs_value_t jjs_typedarray (jjs_context_t* context_p, jjs_typedarray_type_t type, jjs_length_t length);
+jjs_value_t jjs_typedarray_with_buffer (jjs_context_t* context_p, jjs_typedarray_type_t type, const jjs_value_t arraybuffer);
+jjs_value_t jjs_typedarray_with_buffer_span (jjs_context_t* context_p,
+                                             jjs_typedarray_type_t type,
+                                             const jjs_value_t arraybuffer,
+                                             jjs_size_t byte_offset,
+                                             jjs_size_t byte_length);
 /**
  * jjs-api-typedarray-ctor @}
  */
@@ -867,9 +874,9 @@ jjs_value_t jjs_typedarray_with_buffer_span (jjs_typedarray_type_t type,
  * @defgroup jjs-api-typedarray-get Getters
  * @{
  */
-jjs_typedarray_type_t jjs_typedarray_type (const jjs_value_t value);
-jjs_length_t jjs_typedarray_length (const jjs_value_t value);
-jjs_value_t jjs_typedarray_buffer (const jjs_value_t value, jjs_size_t *byte_offset, jjs_size_t *byte_length);
+jjs_typedarray_type_t jjs_typedarray_type (jjs_context_t* context_p, const jjs_value_t value);
+jjs_length_t jjs_typedarray_length (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_typedarray_buffer (jjs_context_t* context_p, const jjs_value_t value, jjs_size_t *byte_offset, jjs_size_t *byte_length);
 /**
  * jjs-api-typedarray-get @}
  */
@@ -887,7 +894,7 @@ jjs_value_t jjs_typedarray_buffer (const jjs_value_t value, jjs_size_t *byte_off
  * @defgroup jjs-api-iterator-get Getters
  * @{
  */
-jjs_iterator_type_t jjs_iterator_type (const jjs_value_t value);
+jjs_iterator_type_t jjs_iterator_type (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-iterator-get @}
  */
@@ -905,7 +912,7 @@ jjs_iterator_type_t jjs_iterator_type (const jjs_value_t value);
  * @defgroup jjs-api-function-ctor Constructors
  * @{
  */
-jjs_value_t jjs_function_external (jjs_external_handler_t handler);
+jjs_value_t jjs_function_external (jjs_context_t* context_p, jjs_external_handler_t handler);
 /**
  * jjs-api-function-ctor @}
  */
@@ -914,8 +921,8 @@ jjs_value_t jjs_function_external (jjs_external_handler_t handler);
  * @defgroup jjs-api-function-get Getters
  * @{
  */
-jjs_function_type_t jjs_function_type (const jjs_value_t value);
-bool jjs_function_is_dynamic (const jjs_value_t value);
+jjs_function_type_t jjs_function_type (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_function_is_dynamic (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-function-get @}
  */
@@ -924,11 +931,12 @@ bool jjs_function_is_dynamic (const jjs_value_t value);
  * @defgroup jjs-api-function-op Operations
  * @{
  */
-jjs_value_t jjs_call (const jjs_value_t function,
-                          const jjs_value_t this_value,
-                          const jjs_value_t *args_p,
-                          jjs_size_t args_count);
-jjs_value_t jjs_construct (const jjs_value_t function, const jjs_value_t *args_p, jjs_size_t args_count);
+jjs_value_t jjs_call (jjs_context_t* context_p,
+                      const jjs_value_t function,
+                      const jjs_value_t this_value,
+                      const jjs_value_t *args_p,
+                      jjs_size_t args_count);
+jjs_value_t jjs_construct (jjs_context_t* context_p, const jjs_value_t function, const jjs_value_t *args_p, jjs_size_t args_count);
 /**
  * jjs-api-function-op @}
  */
@@ -946,8 +954,8 @@ jjs_value_t jjs_construct (const jjs_value_t function, const jjs_value_t *args_p
  * @defgroup jjs-api-proxy-ctor Constructors
  * @{
  */
-jjs_value_t jjs_proxy (const jjs_value_t target, const jjs_value_t handler);
-jjs_value_t jjs_proxy_custom (const jjs_value_t target, const jjs_value_t handler, uint32_t flags);
+jjs_value_t jjs_proxy (jjs_context_t* context_p, const jjs_value_t target, const jjs_value_t handler);
+jjs_value_t jjs_proxy_custom (jjs_context_t* context_p, const jjs_value_t target, const jjs_value_t handler, uint32_t flags);
 /**
  * jjs-api-function-proxy-ctor @}
  */
@@ -956,8 +964,8 @@ jjs_value_t jjs_proxy_custom (const jjs_value_t target, const jjs_value_t handle
  * @defgroup jjs-api-proxy-get Getters
  * @{
  */
-jjs_value_t jjs_proxy_target (const jjs_value_t value);
-jjs_value_t jjs_proxy_handler (const jjs_value_t value);
+jjs_value_t jjs_proxy_target (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_proxy_handler (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-function-proxy-get @}
  */
@@ -975,7 +983,7 @@ jjs_value_t jjs_proxy_handler (const jjs_value_t value);
  * @defgroup jjs-api-promise-ctor Constructors
  * @{
  */
-jjs_value_t jjs_promise (void);
+jjs_value_t jjs_promise (jjs_context_t* context_p);
 /**
  * jjs-api-promise-ctor @}
  */
@@ -984,8 +992,8 @@ jjs_value_t jjs_promise (void);
  * @defgroup jjs-api-promise-get Getters
  * @{
  */
-jjs_value_t jjs_promise_result (const jjs_value_t promise);
-jjs_promise_state_t jjs_promise_state (const jjs_value_t promise);
+jjs_value_t jjs_promise_result (jjs_context_t* context_p, const jjs_value_t promise);
+jjs_promise_state_t jjs_promise_state (jjs_context_t* context_p, const jjs_value_t promise);
 /**
  * jjs-api-promise-get @}
  */
@@ -994,8 +1002,8 @@ jjs_promise_state_t jjs_promise_state (const jjs_value_t promise);
  * @defgroup jjs-api-promise-op Operations
  * @{
  */
-jjs_value_t jjs_promise_resolve (jjs_value_t promise, const jjs_value_t argument);
-jjs_value_t jjs_promise_reject (jjs_value_t promise, const jjs_value_t argument);
+jjs_value_t jjs_promise_resolve (jjs_context_t* context_p, jjs_value_t promise, const jjs_value_t argument);
+jjs_value_t jjs_promise_reject (jjs_context_t* context_p, jjs_value_t promise, const jjs_value_t argument);
 /**
  * jjs-api-promise-op @}
  */
@@ -1004,7 +1012,7 @@ jjs_value_t jjs_promise_reject (jjs_value_t promise, const jjs_value_t argument)
  * @defgroup jjs-api-promise-cb Callbacks
  * @{
  */
-void jjs_promise_on_event (jjs_promise_event_filter_t filters, jjs_promise_event_cb_t callback, void *user_p);
+void jjs_promise_on_event (jjs_context_t* context_p, jjs_promise_event_filter_t filters, jjs_promise_event_cb_t callback, void *user_p);
 /**
  * jjs-api-promise-cb @}
  */
@@ -1022,9 +1030,10 @@ void jjs_promise_on_event (jjs_promise_event_filter_t filters, jjs_promise_event
  * @defgroup jjs-api-container-ctor Constructors
  * @{
  */
-jjs_value_t jjs_container (jjs_container_type_t container_type,
-                               const jjs_value_t *arguments_p,
-                               jjs_length_t argument_count);
+jjs_value_t jjs_container (jjs_context_t* context_p,
+                           jjs_container_type_t container_type,
+                           const jjs_value_t *arguments_p,
+                           jjs_length_t argument_count);
 /**
  * jjs-api-promise-ctor @}
  */
@@ -1033,7 +1042,7 @@ jjs_value_t jjs_container (jjs_container_type_t container_type,
  * @defgroup jjs-api-container-get Getters
  * @{
  */
-jjs_container_type_t jjs_container_type (const jjs_value_t value);
+jjs_container_type_t jjs_container_type (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-container-get @}
  */
@@ -1042,11 +1051,12 @@ jjs_container_type_t jjs_container_type (const jjs_value_t value);
  * @defgroup jjs-api-container-op Operations
  * @{
  */
-jjs_value_t jjs_container_to_array (const jjs_value_t value, bool *is_key_value_p);
-jjs_value_t jjs_container_op (jjs_container_op_t operation,
-                                  jjs_value_t container,
-                                  const jjs_value_t *arguments,
-                                  uint32_t argument_count);
+jjs_value_t jjs_container_to_array (jjs_context_t* context_p, const jjs_value_t value, bool *is_key_value_p);
+jjs_value_t jjs_container_op (jjs_context_t* context_p,
+                              jjs_container_op_t operation,
+                              jjs_value_t container,
+                              const jjs_value_t *arguments,
+                              uint32_t argument_count);
 /**
  * jjs-api-container-op @}
  */
@@ -1064,8 +1074,8 @@ jjs_value_t jjs_container_op (jjs_container_op_t operation,
  * @defgroup jjs-api-regexp-ctor Constructors
  * @{
  */
-jjs_value_t jjs_regexp (const jjs_value_t pattern, uint16_t flags);
-jjs_value_t jjs_regexp_sz (const char *pattern_p, uint16_t flags);
+jjs_value_t jjs_regexp (jjs_context_t* context_p, const jjs_value_t pattern, uint16_t flags);
+jjs_value_t jjs_regexp_sz (jjs_context_t* context_p, const char *pattern_p, uint16_t flags);
 /**
  * jjs-api-regexp-ctor @}
  */
@@ -1083,8 +1093,8 @@ jjs_value_t jjs_regexp_sz (const char *pattern_p, uint16_t flags);
  * @defgroup jjs-api-error-ctor Constructors
  * @{
  */
-jjs_value_t jjs_error (jjs_error_t type, const jjs_value_t message, const jjs_value_t options);
-jjs_value_t jjs_error_sz (jjs_error_t type, const char *message_p, const jjs_value_t options);
+jjs_value_t jjs_error (jjs_context_t* context_p, jjs_error_t type, const jjs_value_t message, const jjs_value_t options);
+jjs_value_t jjs_error_sz (jjs_context_t* context_p, jjs_error_t type, const char *message_p, const jjs_value_t options);
 /**
  * jjs-api-error-ctor @}
  */
@@ -1093,7 +1103,7 @@ jjs_value_t jjs_error_sz (jjs_error_t type, const char *message_p, const jjs_val
  * @defgroup jjs-api-error-get Getters
  * @{
  */
-jjs_error_t jjs_error_type (jjs_value_t value);
+jjs_error_t jjs_error_type (jjs_context_t* context_p, jjs_value_t value);
 /**
  * jjs-api-error-get @}
  */
@@ -1102,7 +1112,7 @@ jjs_error_t jjs_error_type (jjs_value_t value);
  * @defgroup jjs-api-error-cb Callbacks
  * @{
  */
-void jjs_error_on_created (jjs_error_object_created_cb_t callback, void *user_p);
+void jjs_error_on_created (jjs_context_t* context_p, jjs_error_object_created_cb_t callback, void *user_p);
 /**
  * jjs-api-error-cb @}
  */
@@ -1120,8 +1130,8 @@ void jjs_error_on_created (jjs_error_object_created_cb_t callback, void *user_p)
  * @defgroup jjs-api-aggregate-error-ctor Constructors
  * @{
  */
-jjs_value_t jjs_aggregate_error (const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options);
-jjs_value_t jjs_aggregate_error_sz (const jjs_value_t errors, const char *message_p, const jjs_value_t options);
+jjs_value_t jjs_aggregate_error (jjs_context_t* context_p, const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options);
+jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t errors, const char *message_p, const jjs_value_t options);
 /**
  * jjs-api-aggregate-error--ctor @}
  */
@@ -1144,10 +1154,10 @@ jjs_value_t jjs_aggregate_error_sz (const jjs_value_t errors, const char *messag
  * @{
  */
 
-jjs_value_t jjs_json_parse (const jjs_char_t *string_p, jjs_size_t string_size);
-jjs_value_t jjs_json_parse_sz (const char* string_p);
-jjs_value_t jjs_json_parse_file (jjs_value_t filename, jjs_value_ownership_t filename_o);
-jjs_value_t jjs_json_stringify (const jjs_value_t object);
+jjs_value_t jjs_json_parse (jjs_context_t* context_p, const jjs_char_t *string_p, jjs_size_t string_size);
+jjs_value_t jjs_json_parse_sz (jjs_context_t* context_p, const char* string_p);
+jjs_value_t jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_value_ownership_t filename_o);
+jjs_value_t jjs_json_stringify (jjs_context_t* context_p, const jjs_value_t object);
 
 /**
  * jjs-api-json-op @}
@@ -1166,10 +1176,10 @@ jjs_value_t jjs_json_stringify (const jjs_value_t object);
  * @defgroup jjs-api-module-get Getters
  * @{
  */
-jjs_module_state_t jjs_module_state (const jjs_value_t module);
-size_t jjs_module_request_count (const jjs_value_t module);
-jjs_value_t jjs_module_request (const jjs_value_t module, size_t request_index);
-jjs_value_t jjs_module_namespace (const jjs_value_t module);
+jjs_module_state_t jjs_module_state (jjs_context_t* context_p, const jjs_value_t module);
+size_t jjs_module_request_count (jjs_context_t* context_p, const jjs_value_t module);
+jjs_value_t jjs_module_request (jjs_context_t* context_p, const jjs_value_t module, size_t request_index);
+jjs_value_t jjs_module_namespace (jjs_context_t* context_p, const jjs_value_t module);
 /**
  * jjs-api-module-get @}
  */
@@ -1179,8 +1189,8 @@ jjs_value_t jjs_module_namespace (const jjs_value_t module);
  * @{
  */
 
-jjs_value_t jjs_module_link (const jjs_value_t module, jjs_module_link_cb_t callback, void *user_p);
-jjs_value_t jjs_module_evaluate (const jjs_value_t module);
+jjs_value_t jjs_module_link (jjs_context_t* context_p, const jjs_value_t module, jjs_module_link_cb_t callback, void *user_p);
+jjs_value_t jjs_module_evaluate (jjs_context_t* context_p, const jjs_value_t module);
 
 /**
  * jjs-api-module-op @}
@@ -1191,11 +1201,15 @@ jjs_value_t jjs_module_evaluate (const jjs_value_t module);
  * @{
  */
 
-jjs_value_t jjs_synthetic_module (jjs_synthetic_module_evaluate_cb_t callback,
+jjs_value_t jjs_synthetic_module (jjs_context_t* context_p,
+                                  jjs_synthetic_module_evaluate_cb_t callback,
                                   const jjs_value_t *const exports_p,
                                   size_t export_count);
 jjs_value_t
-jjs_synthetic_module_set_export (jjs_value_t module, const jjs_value_t export_name, const jjs_value_t value);
+jjs_synthetic_module_set_export (jjs_context_t* context_p,
+                                 jjs_value_t module,
+                                 const jjs_value_t export_name,
+                                 const jjs_value_t value);
 
 /**
  * jjs-api-synthetic-module @}
@@ -1205,9 +1219,9 @@ jjs_synthetic_module_set_export (jjs_value_t module, const jjs_value_t export_na
  * @defgroup jjs-api-module-cb Callbacks
  * @{
  */
-void jjs_module_on_state_changed (jjs_module_state_changed_cb_t callback, void *user_p);
-void jjs_module_on_import_meta (jjs_module_import_meta_cb_t callback, void *user_p);
-void jjs_module_on_import (jjs_module_import_cb_t callback, void *user_p);
+void jjs_module_on_state_changed (jjs_context_t* context_p, jjs_module_state_changed_cb_t callback, void *user_p);
+void jjs_module_on_import_meta (jjs_context_t* context_p, jjs_module_import_meta_cb_t callback, void *user_p);
+void jjs_module_on_import (jjs_context_t* context_p, jjs_module_import_cb_t callback, void *user_p);
 
 /**
  * jjs-api-module-cb @}
@@ -1227,10 +1241,10 @@ void jjs_module_on_import (jjs_module_import_cb_t callback, void *user_p);
  * @{
  */
 
-jjs_value_t jjs_pmap (jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t root, jjs_value_ownership_t root_o);
+jjs_value_t jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t root, jjs_value_ownership_t root_o);
 
-jjs_value_t jjs_pmap_resolve (jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type);
-jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t module_type);
+jjs_value_t jjs_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type);
+jjs_value_t jjs_pmap_resolve_sz (jjs_context_t* context_p, const char* specifier_p, jjs_module_type_t module_type);
 
 /**
  * jjs-pmap-ops @}
@@ -1250,31 +1264,34 @@ jjs_value_t jjs_pmap_resolve_sz (const char* specifier_p, jjs_module_type_t modu
  * @{
  */
 
-jjs_value_t jjs_platform_cwd (void);
-bool jjs_platform_has_cwd (void);
+jjs_status_t jjs_platform_new (const jjs_platform_options_t* options_p, jjs_platform_t** platform_p);
+void jjs_platform_free (jjs_platform_t* platform_p);
 
-jjs_value_t jjs_platform_realpath (jjs_value_t path, jjs_value_ownership_t path_o);
-jjs_value_t jjs_platform_realpath_sz (const char* path_p);
-bool jjs_platform_has_realpath (void);
+jjs_value_t jjs_platform_cwd (jjs_context_t* context_p);
+bool jjs_platform_has_cwd (jjs_context_t* context_p);
 
-jjs_value_t jjs_platform_read_file (jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts);
-jjs_value_t jjs_platform_read_file_sz (const char* path_p, const jjs_platform_read_file_options_t* opts);
-bool jjs_platform_has_read_file (void);
+jjs_value_t jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_value_ownership_t path_o);
+jjs_value_t jjs_platform_realpath_sz (jjs_context_t* context_p, const char* path_p);
+bool jjs_platform_has_realpath (jjs_context_t* context_p);
 
-void jjs_platform_stdout_write (jjs_value_t value, jjs_value_ownership_t value_o);
-void jjs_platform_stdout_flush (void);
-bool jjs_platform_has_stdout (void);
+jjs_value_t jjs_platform_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts);
+jjs_value_t jjs_platform_read_file_sz (jjs_context_t* context_p, const char* path_p, const jjs_platform_read_file_options_t* opts);
+bool jjs_platform_has_read_file (jjs_context_t* context_p);
 
-void jjs_platform_stderr_write (jjs_value_t value, jjs_value_ownership_t value_o);
-void jjs_platform_stderr_flush (void);
-bool jjs_platform_has_stderr (void);
+void jjs_platform_stdout_write (jjs_context_t* context_p, jjs_value_t value, jjs_value_ownership_t value_o);
+void jjs_platform_stdout_flush (jjs_context_t* context_p);
+bool jjs_platform_has_stdout (jjs_context_t* context_p);
 
-jjs_value_t jjs_platform_os (void);
+void jjs_platform_stderr_write (jjs_context_t* context_p, jjs_value_t value, jjs_value_ownership_t value_o);
+void jjs_platform_stderr_flush (jjs_context_t* context_p);
+bool jjs_platform_has_stderr (jjs_context_t* context_p);
+
+jjs_value_t jjs_platform_os (jjs_context_t* context_p);
 jjs_platform_os_t JJS_ATTR_CONST jjs_platform_os_type (void);
-jjs_value_t jjs_platform_arch (void);
+jjs_value_t jjs_platform_arch (jjs_context_t* context_p);
 jjs_platform_arch_t JJS_ATTR_CONST jjs_platform_arch_type (void);
 
-void jjs_platform_fatal (jjs_fatal_code_t code);
+void jjs_platform_fatal (jjs_context_t* context_p, jjs_fatal_code_t code);
 
 /**
  * jjs-platform-ops @}
@@ -1294,8 +1311,8 @@ void jjs_platform_fatal (jjs_fatal_code_t code);
  * @{
  */
 
-jjs_value_t jjs_commonjs_require (jjs_value_t specifier, jjs_value_ownership_t specifier_o);
-jjs_value_t jjs_commonjs_require_sz (const char* specifier_p);
+jjs_value_t jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
+jjs_value_t jjs_commonjs_require_sz (jjs_context_t* context_p, const char* specifier_p);
 
 /**
  * jjs-commonjs-ops @}
@@ -1315,25 +1332,25 @@ jjs_value_t jjs_commonjs_require_sz (const char* specifier_p);
  * @{
  */
 
-jjs_esm_source_t jjs_esm_source (void);
-jjs_esm_source_t* jjs_esm_source_init (jjs_esm_source_t* source_p);
-void jjs_esm_source_free_values (jjs_esm_source_t* esm_source_p);
+jjs_esm_source_t jjs_esm_source (jjs_context_t* context_p);
+jjs_esm_source_t* jjs_esm_source_init (jjs_context_t* context_p, jjs_esm_source_t* source_p);
+void jjs_esm_source_free_values (jjs_context_t* context_p, jjs_esm_source_t* esm_source_p);
 
-jjs_value_t jjs_esm_import (jjs_value_t specifier, jjs_value_ownership_t specifier_o);
-jjs_value_t jjs_esm_import_sz (const char* specifier_p);
-jjs_value_t jjs_esm_import_source (jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
+jjs_value_t jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
+jjs_value_t jjs_esm_import_sz (jjs_context_t* context_p, const char* specifier_p);
+jjs_value_t jjs_esm_import_source (jjs_context_t* context_p, jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
 
-jjs_value_t jjs_esm_evaluate (jjs_value_t specifier, jjs_value_ownership_t specifier_o);
-jjs_value_t jjs_esm_evaluate_sz (const char* specifier_p);
-jjs_value_t jjs_esm_evaluate_source (jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
+jjs_value_t jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
+jjs_value_t jjs_esm_evaluate_sz (jjs_context_t* context_p, const char* specifier_p);
+jjs_value_t jjs_esm_evaluate_source (jjs_context_t* context_p, jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
 
-void jjs_esm_on_load (jjs_esm_load_cb_t callback_p, void *user_p);
-void jjs_esm_on_resolve (jjs_esm_resolve_cb_t callback_p, void *user_p);
+void jjs_esm_on_load (jjs_context_t* context_p, jjs_esm_load_cb_t callback_p, void *user_p);
+void jjs_esm_on_resolve (jjs_context_t* context_p, jjs_esm_resolve_cb_t callback_p, void *user_p);
 
-jjs_value_t jjs_esm_default_on_load_cb (jjs_value_t path, jjs_esm_load_context_t * context_p, void *user_p);
-jjs_value_t jjs_esm_default_on_resolve_cb (jjs_value_t specifier, jjs_esm_resolve_context_t * context_p, void *user_p);
-jjs_value_t jjs_esm_default_on_import_cb (jjs_value_t specifier, jjs_value_t user_value, void *user_p);
-void jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_object, void *user_p);
+jjs_value_t jjs_esm_default_on_load_cb (jjs_context_t* context_p, jjs_value_t path, jjs_esm_load_context_t * load_context_p, void *user_p);
+jjs_value_t jjs_esm_default_on_resolve_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_esm_resolve_context_t * resolve_context_p, void *user_p);
+jjs_value_t jjs_esm_default_on_import_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t user_value, void *user_p);
+void jjs_esm_default_on_import_meta_cb (jjs_context_t* context_p, jjs_value_t module, jjs_value_t meta_object, void *user_p);
 
 /**
  * jjs-esm-ops @}
@@ -1353,17 +1370,17 @@ void jjs_esm_default_on_import_meta_cb (jjs_value_t module, jjs_value_t meta_obj
  * @{
  */
 
-jjs_value_t jjs_vmod (jjs_value_t name, jjs_value_ownership_t name_o, jjs_value_t value, jjs_value_ownership_t value_o);
-jjs_value_t jjs_vmod_sz (const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
+jjs_value_t jjs_vmod (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o, jjs_value_t value, jjs_value_ownership_t value_o);
+jjs_value_t jjs_vmod_sz (jjs_context_t* context_p, const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
 
-jjs_value_t jjs_vmod_resolve (jjs_value_t name, jjs_value_ownership_t name_o);
-jjs_value_t jjs_vmod_resolve_sz (const char* name);
+jjs_value_t jjs_vmod_resolve (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o);
+jjs_value_t jjs_vmod_resolve_sz (jjs_context_t* context_p, const char* name);
 
-bool jjs_vmod_exists (jjs_value_t name, jjs_value_ownership_t name_o);
-bool jjs_vmod_exists_sz (const char* name);
+bool jjs_vmod_exists (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o);
+bool jjs_vmod_exists_sz (jjs_context_t* context_p, const char* name);
 
-void jjs_vmod_remove (jjs_value_t name, jjs_value_ownership_t name_o);
-void jjs_vmod_remove_sz (const char* name);
+void jjs_vmod_remove (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o);
+void jjs_vmod_remove_sz (jjs_context_t* context_p, const char* name);
 
 /**
  * jjs-vmod-ops @}
@@ -1382,7 +1399,7 @@ void jjs_vmod_remove_sz (const char* name);
  * @defgroup jjs-api-realm-ctor Constructors
  * @{
  */
-jjs_value_t jjs_realm (void);
+jjs_value_t jjs_realm (jjs_context_t* context_p);
 /**
  * jjs-api-realm-ctor @}
  */
@@ -1391,7 +1408,7 @@ jjs_value_t jjs_realm (void);
  * @defgroup jjs-api-realm-get Getters
  * @{
  */
-jjs_value_t jjs_realm_this (jjs_value_t realm);
+jjs_value_t jjs_realm_this (jjs_context_t* context_p, jjs_value_t realm);
 /**
  * jjs-api-realm-ctor @}
  */
@@ -1400,7 +1417,7 @@ jjs_value_t jjs_realm_this (jjs_value_t realm);
  * @defgroup jjs-api-realm-op Operation
  * @{
  */
-jjs_value_t jjs_realm_set_this (jjs_value_t realm, jjs_value_t this_value);
+jjs_value_t jjs_realm_set_this (jjs_context_t* context_p, jjs_value_t realm, jjs_value_t this_value);
 /**
  * jjs-api-realm-op @}
  */
@@ -1416,11 +1433,11 @@ jjs_value_t jjs_realm_set_this (jjs_value_t realm, jjs_value_t this_value);
 /**
  * Helper macro for using jjs_log_fmt_v.
  */
-#define jjs_log_fmt(LEVEL, FORMAT, ...)                                                         \
-  do                                                                                            \
-  {                                                                                             \
-    jjs_value_t args__[] = { __VA_ARGS__ };                                                     \
-    jjs_log_fmt_v (LEVEL, FORMAT, args__, (jjs_size_t) (sizeof (args__) / sizeof (args__[0]))); \
+#define jjs_log_fmt(CTX, LEVEL, FORMAT, ...)                                                           \
+  do                                                                                                   \
+  {                                                                                                    \
+    jjs_value_t args__[] = { __VA_ARGS__ };                                                            \
+    jjs_log_fmt_v ((CTX), LEVEL, FORMAT, args__, (jjs_size_t) (sizeof (args__) / sizeof (args__[0]))); \
   } while (false)
 
 JJS_C_API_END

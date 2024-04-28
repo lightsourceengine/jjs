@@ -20,15 +20,15 @@
 
 #define JJS_HANDLER(NAME) jjs_value_t NAME (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], uint32_t args_count)
 
-void jjs_annex_init (void);
-void jjs_annex_init_realm (ecma_global_object_t* global_p);
-void jjs_annex_finalize (void);
+void jjs_annex_init (jjs_context_t* context_p);
+void jjs_annex_init_realm (jjs_context_t* context_p, ecma_global_object_t* global_p);
+void jjs_annex_finalize (jjs_context_t* context_p);
 
-jjs_value_t jjs_annex_require (jjs_value_t specifier, jjs_value_t referrer_path);
-jjs_value_t jjs_annex_create_require (jjs_value_t referrer);
+jjs_value_t jjs_annex_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_path);
+jjs_value_t jjs_annex_create_require (jjs_context_t* context_p, jjs_value_t referrer);
 
-ecma_value_t jjs_annex_pmap_create_api (void);
-jjs_value_t jjs_annex_pmap_resolve (jjs_value_t specifier, jjs_module_type_t module_type);
+ecma_value_t jjs_annex_pmap_create_api (jjs_context_t* context_p);
+jjs_value_t jjs_annex_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_module_type_t module_type);
 
 JJS_HANDLER(queue_microtask_handler);
 

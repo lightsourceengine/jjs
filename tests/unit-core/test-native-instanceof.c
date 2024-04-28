@@ -51,7 +51,7 @@ test_instanceof (jjs_value_t instanceof, jjs_value_t constructor)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t instanceof = jjs_eval ((jjs_char_t *) instanceof_source, sizeof (instanceof_source) - 1, true);
 
@@ -73,7 +73,7 @@ main (void)
 
   jjs_value_free (instanceof);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

@@ -20,6 +20,7 @@
 #include "jjs-snapshot.h"
 #include "jjs-util.h"
 #include "jjs-annex-vmod.h"
+#include "jjs-platform.h"
 
 #include "annex.h"
 #include "jcontext.h"
@@ -33,27 +34,28 @@
 * ./ or ../) or absolute path. Package names are resolved by the currently
 * set pmap.
 *
+* @param context_p JJS context
 * @param specifier string value of the specifier
 * @param specifier_o specifier reference ownership
 * @return module export object. on error, an exception is returned. return
 * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_commonjs_require (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
+jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_COMMONJS
-  jjs_value_t referrer_path = annex_path_cwd ();
-  jjs_value_t result = jjs_annex_require (specifier, referrer_path);
+  jjs_value_t referrer_path = annex_path_cwd (context_p);
+  jjs_value_t result = jjs_annex_require (context_p, specifier, referrer_path);
 
-  jjs_value_free (referrer_path);
+  jjs_value_free (context_p, referrer_path);
 
-  JJS_DISOWN (specifier, specifier_o);
+  JJS_DISOWN (context_p, specifier, specifier_o);
 
   return result;
 #else /* !JJS_ANNEX_COMMONJS */
   JJS_DISOWN (specifier, specifier_o);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_commonjs_require */
 
@@ -62,26 +64,27 @@ jjs_commonjs_require (jjs_value_t specifier, jjs_value_ownership_t specifier_o)
 *
 * @see jjs_commonjs_require
 *
+* @param context_p JJS context
 * @param specifier string value of the specifier
 * @return module export object. on error, an exception is returned. return
 * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_commonjs_require_sz (const char *specifier_p)
+jjs_commonjs_require_sz (jjs_context_t* context_p, const char *specifier_p)
 {
-  jjs_assert_api_enabled ();
-  return jjs_commonjs_require (annex_util_create_string_utf8_sz (specifier_p), JJS_MOVE);
+  jjs_assert_api_enabled (context_p);
+  return jjs_commonjs_require (context_p, annex_util_create_string_utf8_sz (context_p, specifier_p), JJS_MOVE);
 } /* jjs_commonjs_require_sz */
 
 #if JJS_ANNEX_COMMONJS
 
-static jjs_value_t create_require_from_directory (jjs_value_t referrer_path);
-static ecma_value_t create_module (ecma_value_t filename);
-static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecma_value_t format);
-static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_value_t source);
-static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma_value_t source);
-static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_value_t fn);
-static ecma_value_t require_impl (ecma_value_t specifier, ecma_value_t referrer_path);
+static jjs_value_t create_require_from_directory (jjs_context_t* context_p, jjs_value_t referrer_path);
+static ecma_value_t create_module (jjs_context_t* context_p, ecma_value_t filename);
+static ecma_value_t load_module (jjs_context_t* context_p, ecma_value_t module, ecma_value_t filename, ecma_value_t format);
+static ecma_value_t load_module_exports_from_source (jjs_context_t* context_p, ecma_value_t module, ecma_value_t source);
+static ecma_value_t load_module_exports_from_snapshot (jjs_context_t* context_p, ecma_value_t module, ecma_value_t source);
+static ecma_value_t run_module (jjs_context_t* context_p, ecma_value_t module, ecma_value_t filename, jjs_value_t fn);
+static ecma_value_t require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t referrer_path);
 static JJS_HANDLER (require_handler);
 static JJS_HANDLER (resolve_handler);
 
@@ -90,25 +93,26 @@ static JJS_HANDLER (resolve_handler);
  *
  * dirname of the filename will be taken as the base directory for resolving
  *
+ * @param context_p JJS context
  * @param referrer filename of module
  * @return require function or exception on error. return value must be freed.
  */
-jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
+jjs_value_t jjs_annex_create_require (jjs_context_t* context_p, jjs_value_t referrer)
 {
   ecma_value_t path;
 
-  if (jjs_value_is_undefined (referrer))
+  if (jjs_value_is_undefined (context_p, referrer))
   {
-    if (JJS_CONTEXT (platform_api.path_cwd) != NULL)
+    if (context_p->platform_p->path_cwd != NULL)
     {
-      path = annex_path_cwd ();
+      path = annex_path_cwd (context_p);
     }
     else
     {
-      return create_require_from_directory (jjs_undefined ());
+      return create_require_from_directory (context_p, jjs_undefined (context_p));
     }
   }
-  else if (jjs_value_is_string (referrer))
+  else if (jjs_value_is_string (context_p, referrer))
   {
     annex_specifier_type_t type = annex_path_specifier_type (referrer);
 
@@ -116,7 +120,7 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
     JJS_ASSERT (type == ANNEX_SPECIFIER_TYPE_ABSOLUTE);
 
     if (type != ANNEX_SPECIFIER_TYPE_ABSOLUTE) {
-      return jjs_throw_sz (JJS_ERROR_COMMON, "create_require expects an absolute filename");
+      return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "create_require expects an absolute filename");
     }
 
     path = annex_path_dirname (referrer);
@@ -128,46 +132,49 @@ jjs_value_t jjs_annex_create_require (jjs_value_t referrer)
 
   if (ecma_is_value_string (path))
   {
-    ecma_value_t fn = create_require_from_directory (path);
+    ecma_value_t fn = create_require_from_directory (context_p, path);
 
     ecma_free_value (path);
 
     return fn;
   }
 
-  ecma_free_value(path);
+  ecma_free_value (path);
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_STRING_OR_UNDEFINED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_STRING_OR_UNDEFINED));
 } /* jjs_annex_create_require */
 
 /**
  * Require a module from a specifier relative to a directory.
  *
+ * @param context_p JJS context
  * @param specifier package name or file path string
  * @param referrer_path directory string to resolve relative file paths against
  * @return on success, module exports are returned. on error, exception is returned.
  */
 jjs_value_t
-jjs_annex_require (jjs_value_t specifier, jjs_value_t referrer_path)
+jjs_annex_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_path)
 {
-  return require_impl (specifier, referrer_path);
+  return require_impl (context_p, specifier, referrer_path);
 } /* jjs_annex_require */
 
 /**
  * Create a require function from a directory path.
  *
+ * @param context_p JJS context
  * @param referrer_path directory path
  * @return require function or exception on error. return value must be freed.
  */
-static jjs_value_t create_require_from_directory (jjs_value_t referrer_path)
+static jjs_value_t create_require_from_directory (jjs_context_t* context_p, jjs_value_t referrer_path)
 {
+  JJS_UNUSED (context_p);
   ecma_global_object_t* global_p = ecma_get_global_object ();
   ecma_value_t require = ecma_make_object_value (ecma_op_create_external_function_object (require_handler));
   ecma_value_t resolve = ecma_make_object_value (ecma_op_create_external_function_object (resolve_handler));
 
   // put path in internal slot
-  annex_util_set_internal_m (require, LIT_MAGIC_STRING_PATH, referrer_path);
-  annex_util_set_internal_m (resolve, LIT_MAGIC_STRING_PATH, referrer_path);
+  annex_util_set_internal_m (context_p, require, LIT_MAGIC_STRING_PATH, referrer_path);
+  annex_util_set_internal_m (context_p, resolve, LIT_MAGIC_STRING_PATH, referrer_path);
 
   // set require.resolve
   ecma_set_m (require, LIT_MAGIC_STRING_RESOLVE, resolve);
@@ -186,33 +193,34 @@ static jjs_value_t create_require_from_directory (jjs_value_t referrer_path)
  */
 static JJS_HANDLER (resolve_handler)
 {
+  jjs_context_t *context_p = call_info_p->context_p;
   ecma_value_t request = args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED;
 
   if (!ecma_is_value_string (request))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid argument");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid argument");
   }
 
 #if JJS_ANNEX_VMOD
-  if (jjs_vmod_exists (request, JJS_KEEP))
+  if (jjs_vmod_exists (context_p, request, JJS_KEEP))
   {
     return ecma_copy_value (request);
   }
 #endif
 
-  ecma_value_t referrer_path = annex_util_get_internal_m (call_info_p->function, LIT_MAGIC_STRING_PATH);
+  ecma_value_t referrer_path = annex_util_get_internal_m (context_p, call_info_p->function, LIT_MAGIC_STRING_PATH);
 
-  if (!jjs_value_is_string (referrer_path))
+  if (!jjs_value_is_string (context_p, referrer_path))
   {
-    jjs_value_free (referrer_path);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "resolve is missing referrer path");
+    jjs_value_free (context_p, referrer_path);
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "resolve is missing referrer path");
   }
 
-  jjs_annex_module_resolve_t result = jjs_annex_module_resolve (request, referrer_path, JJS_MODULE_TYPE_COMMONJS);
+  jjs_annex_module_resolve_t result = jjs_annex_module_resolve (context_p, request, referrer_path, JJS_MODULE_TYPE_COMMONJS);
 
   ecma_free_value (referrer_path);
 
-  if (jjs_value_is_exception (result.result))
+  if (jjs_value_is_exception (context_p, result.result))
   {
     return result.result;
   }
@@ -220,7 +228,7 @@ static JJS_HANDLER (resolve_handler)
   ecma_value_t path = result.path;
 
   result.path = ECMA_VALUE_UNDEFINED;
-  jjs_annex_module_resolve_free (&result);
+  jjs_annex_module_resolve_free (context_p, &result);
 
   return path;
 } /* resolve_handler */
@@ -230,20 +238,21 @@ static JJS_HANDLER (resolve_handler)
  */
 static JJS_HANDLER (require_handler)
 {
+  jjs_context_t* context_p = call_info_p->context_p;
   ecma_value_t specifier = args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED;
-  ecma_value_t referrer_path = annex_util_get_internal_m (call_info_p->function, LIT_MAGIC_STRING_PATH);
+  ecma_value_t referrer_path = annex_util_get_internal_m (context_p, call_info_p->function, LIT_MAGIC_STRING_PATH);
   jjs_value_t result;
 
-  if (jjs_value_is_string (referrer_path))
+  if (jjs_value_is_string (context_p, referrer_path))
   {
-    result = require_impl (specifier, referrer_path);
+    result = require_impl (context_p, specifier, referrer_path);
   }
   else
   {
-    result = jjs_throw_sz (JJS_ERROR_COMMON, "require is missing referrer path");
+    result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "require is missing referrer path");
   }
 
-  jjs_value_free (referrer_path);
+  jjs_value_free (context_p, referrer_path);
 
   return result;
 } /* require_handler */
@@ -252,29 +261,29 @@ static JJS_HANDLER (require_handler)
  * Shared require implementation.
  */
 static ecma_value_t
-require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
+require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t referrer_path)
 {
   if (!ecma_is_value_string (specifier))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require specifier");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid require specifier");
   }
 
 #if JJS_ANNEX_VMOD
-  if (jjs_annex_vmod_exists (specifier))
+  if (jjs_annex_vmod_exists (context_p, specifier))
   {
-    return jjs_annex_vmod_resolve (specifier);
+    return jjs_annex_vmod_resolve (context_p, specifier);
   }
 #endif /* JJS_ANNEX_VMOD */
 
   if (!ecma_is_value_string (referrer_path))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid require referrer");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid require referrer");
   }
 
   /* resolve the request to an absolute path */
-  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (specifier, referrer_path, JJS_MODULE_TYPE_COMMONJS);
+  jjs_annex_module_resolve_t resolved = jjs_annex_module_resolve (context_p, specifier, referrer_path, JJS_MODULE_TYPE_COMMONJS);
 
-  if (jjs_value_is_exception (resolved.result))
+  if (jjs_value_is_exception (context_p, resolved.result))
   {
     return resolved.result;
   }
@@ -290,13 +299,13 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
     bool is_loaded = ecma_is_value_true (loaded);
 
     ecma_free_value (loaded);
-    jjs_annex_module_resolve_free (&resolved);
+    jjs_annex_module_resolve_free (context_p, &resolved);
 
     if (!is_loaded)
     {
       ecma_free_value (cached_module);
 
-      return jjs_throw_sz (JJS_ERROR_TYPE, "Circular dependency");
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Circular dependency");
     }
 
     /* return module.exports */
@@ -308,21 +317,21 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
     {
       ecma_free_value (exports);
 
-      return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid module");
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid module");
     }
 
     return exports;
   }
 
-  ecma_value_t module = create_module (resolved.path);
+  ecma_value_t module = create_module (context_p, resolved.path);
 
   ecma_set_v (commonjs_cache, resolved.path, module);
 
-  ecma_value_t load_module_result = load_module (module, resolved.path, resolved.format);
+  ecma_value_t load_module_result = load_module (context_p, module, resolved.path, resolved.format);
 
-  jjs_annex_module_resolve_free (&resolved);
+  jjs_annex_module_resolve_free (context_p, &resolved);
 
-  if (jjs_value_is_exception (load_module_result))
+  if (jjs_value_is_exception (context_p, load_module_result))
   {
     ecma_value_t delete_result = ecma_op_object_delete (ecma_get_object_from_value (commonjs_cache),
                                                         ecma_get_string_from_value (resolved.path),
@@ -346,8 +355,10 @@ require_impl (ecma_value_t specifier, ecma_value_t referrer_path)
 /**
  * Create a CommonJS module object.
  */
-static ecma_value_t create_module (ecma_value_t filename)
+static ecma_value_t create_module (jjs_context_t* context_p, ecma_value_t filename)
 {
+  JJS_UNUSED (context_p);
+
   ecma_value_t module = ecma_create_object_with_null_proto ();
   ecma_value_t exports = ecma_create_object_with_null_proto ();
   ecma_value_t path_dirname = annex_path_dirname (filename);
@@ -368,11 +379,11 @@ static ecma_value_t create_module (ecma_value_t filename)
 /**
  * Load a CommonJS module.
  */
-static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecma_value_t format)
+static ecma_value_t load_module (jjs_context_t* context_p, ecma_value_t module, ecma_value_t filename, ecma_value_t format)
 {
-  jjs_annex_module_load_t loaded = jjs_annex_module_load (filename, format, JJS_MODULE_TYPE_COMMONJS);
+  jjs_annex_module_load_t loaded = jjs_annex_module_load (context_p, filename, format, JJS_MODULE_TYPE_COMMONJS);
 
-  if (jjs_value_is_exception (loaded.result))
+  if (jjs_value_is_exception (context_p, loaded.result))
   {
     return loaded.result;
   }
@@ -383,18 +394,18 @@ static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecm
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_JS)
       || ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_COMMONJS))
   {
-    exports = load_module_exports_from_source (module, loaded.source);
+    exports = load_module_exports_from_source (context_p, module, loaded.source);
   }
   else if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_SNAPSHOT))
   {
-    exports = load_module_exports_from_snapshot (module, loaded.source);
+    exports = load_module_exports_from_snapshot (context_p, module, loaded.source);
   }
   else
   {
-    exports = jjs_throw_sz (JJS_ERROR_TYPE, "Invalid format");
+    exports = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid format");
   }
 
-  jjs_annex_module_load_free (&loaded);
+  jjs_annex_module_load_free (context_p, &loaded);
 
   return exports;
 } /* load_module_exports */
@@ -402,7 +413,7 @@ static ecma_value_t load_module (ecma_value_t module, ecma_value_t filename, ecm
 /**
  * Load a CommonJS module from javascript source code.
  */
-static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_value_t source)
+static ecma_value_t load_module_exports_from_source (jjs_context_t* context_p, ecma_value_t module, ecma_value_t source)
 {
   ecma_value_t filename = ecma_find_own_m (module, LIT_MAGIC_STRING_FILENAME);
   JJS_ASSERT (ecma_is_value_string (filename));
@@ -414,18 +425,18 @@ static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_v
     .source_name = filename,
   };
 
-  jjs_value_t fn = jjs_parse_value (source, &parse_opts);
+  jjs_value_t fn = jjs_parse_value (context_p, source, &parse_opts);
 
-  if (jjs_value_is_exception(fn))
+  if (jjs_value_is_exception (context_p, fn))
   {
-    ecma_free_value(filename);
+    ecma_free_value (filename);
     return fn;
   }
 
-  ecma_value_t exports = run_module (module, filename, fn);
+  ecma_value_t exports = run_module (context_p, module, filename, fn);
 
-  ecma_free_value(filename);
-  jjs_value_free(fn);
+  ecma_free_value (filename);
+  jjs_value_free (context_p, fn);
 
   return exports;
 } /* load_module_exports_from_source */
@@ -436,19 +447,19 @@ static ecma_value_t load_module_exports_from_source (ecma_value_t module, ecma_v
  * @return ecma value
  *         Returned value must be freed with ecma_free_value.
  */
-static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma_value_t source)
+static ecma_value_t load_module_exports_from_snapshot (jjs_context_t* context_p, ecma_value_t module, ecma_value_t source)
 {
-  if (!jjs_value_is_arraybuffer(source))
+  if (!jjs_value_is_arraybuffer (context_p, source))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid snapshot");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid snapshot");
   }
 
-  jjs_size_t size = jjs_arraybuffer_size (source);
-  uint8_t* buffer = jjs_arraybuffer_data (source);
+  jjs_size_t size = jjs_arraybuffer_size (context_p, source);
+  uint8_t* buffer = jjs_arraybuffer_data (context_p, source);
 
   if (size == 0 || !buffer)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Empty ArrayBuffer for snapshot");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Empty ArrayBuffer for snapshot");
   }
 
   ecma_value_t filename = ecma_find_own_m (module, LIT_MAGIC_STRING_FILENAME);
@@ -460,6 +471,7 @@ static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma
   };
 
   jjs_value_t fn = jjs_exec_snapshot(
+    context_p,
     (const uint32_t*) buffer,
     size,
     0,
@@ -467,16 +479,16 @@ static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma
      | JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME | JJS_SNAPSHOT_EXEC_HAS_USER_VALUE,
     &opts);
 
-  if (jjs_value_is_exception (fn))
+  if (jjs_value_is_exception (context_p, fn))
   {
     ecma_free_value (filename);
     return fn;
   }
 
-  ecma_value_t exports = run_module (module, filename, fn);
+  ecma_value_t exports = run_module (context_p, module, filename, fn);
 
-  ecma_free_value(filename);
-  jjs_value_free(fn);
+  ecma_free_value (filename);
+  jjs_value_free (context_p, fn);
 
   return exports;
 } /* load_module_exports_from_snapshot */
@@ -486,11 +498,11 @@ static ecma_value_t load_module_exports_from_snapshot (ecma_value_t module, ecma
  *
  * @return ecma value
  */
-static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_value_t fn)
+static ecma_value_t run_module (jjs_context_t* context_p, ecma_value_t module, ecma_value_t filename, jjs_value_t fn)
 {
-  ecma_value_t require = jjs_annex_create_require (filename);
+  ecma_value_t require = jjs_annex_create_require (context_p, filename);
 
-  if (jjs_value_is_exception (require))
+  if (jjs_value_is_exception (context_p, require))
   {
     return require;
   }
@@ -500,10 +512,10 @@ static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_
   if (!ecma_is_value_found (module_dirname))
   {
     ecma_free_value (require);
-    return jjs_throw_sz (JJS_ERROR_COMMON, "CommonJS module missing path");
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "CommonJS module missing path");
   }
 
-  ecma_value_t exports = jjs_object ();
+  ecma_value_t exports = jjs_object (context_p);
 
   ecma_set_m (module, LIT_MAGIC_STRING_EXPORTS, exports);
 
@@ -511,18 +523,18 @@ static ecma_value_t run_module (ecma_value_t module, ecma_value_t filename, jjs_
     module, exports, require, filename, module_dirname,
   };
 
-  jjs_value_t result = jjs_call (fn, ECMA_VALUE_UNDEFINED, argv, sizeof (argv) / sizeof (ecma_value_t));
+  jjs_value_t result = jjs_call (context_p, fn, ECMA_VALUE_UNDEFINED, argv, sizeof (argv) / sizeof (ecma_value_t));
 
   ecma_free_value (module_dirname);
   ecma_free_value (exports);
   ecma_free_value (require);
 
-  if (jjs_value_is_exception (result))
+  if (jjs_value_is_exception (context_p, result))
   {
     return result;
   }
 
-  jjs_value_free (result);
+  jjs_value_free (context_p, result);
 
   return ecma_find_own_m (module, LIT_MAGIC_STRING_EXPORTS);
 } /* run_module */

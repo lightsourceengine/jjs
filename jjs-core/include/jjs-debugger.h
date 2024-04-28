@@ -56,15 +56,16 @@ typedef jjs_value_t (*jjs_debugger_wait_for_source_callback_t) (const jjs_char_t
 /**
  * Engine debugger functions.
  */
-bool jjs_debugger_is_connected (void);
-void jjs_debugger_stop (void);
-void jjs_debugger_continue (void);
-void jjs_debugger_stop_at_breakpoint (bool enable_stop_at_breakpoint);
+bool jjs_debugger_is_connected (jjs_context_t* context_p);
+void jjs_debugger_stop (jjs_context_t* context_p);
+void jjs_debugger_continue (jjs_context_t* context_p);
+void jjs_debugger_stop_at_breakpoint (jjs_context_t* context_p, bool enable_stop_at_breakpoint);
 jjs_debugger_wait_for_source_status_t
-jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t callback_p,
-                                       void *user_p,
-                                       jjs_value_t *return_value);
-void jjs_debugger_send_output (const jjs_char_t *buffer, jjs_size_t str_size);
+jjs_debugger_wait_for_client_source (jjs_context_t* context_p,
+                                     jjs_debugger_wait_for_source_callback_t callback_p,
+                                     void *user_p,
+                                     jjs_value_t *return_value);
+void jjs_debugger_send_output (jjs_context_t* context_p, const jjs_char_t *buffer, jjs_size_t str_size);
 
 /**
  * @}

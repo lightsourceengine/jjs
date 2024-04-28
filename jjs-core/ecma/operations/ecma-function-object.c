@@ -1033,7 +1033,7 @@ ecma_op_function_call_constructor (vm_frame_ctx_shared_args_t *shared_args_p, /*
   JJS_CONTEXT (global_object_p) = ecma_op_function_get_realm (shared_args_p->header.bytecode_header_p);
 #endif /* JJS_BUILTIN_REALMS */
 
-  ret_value = vm_run (&shared_args_p->header, this_binding, scope_p);
+  ret_value = vm_run (&JJS_CONTEXT_STRUCT, &shared_args_p->header, this_binding, scope_p);
 
 #if JJS_BUILTIN_REALMS
   JJS_CONTEXT (global_object_p) = saved_global_object_p;
@@ -1173,7 +1173,7 @@ ecma_op_function_call_simple (ecma_object_t *func_obj_p, /**< Function object */
   JJS_CONTEXT (global_object_p) = realm_p;
 #endif /* JJS_BUILTIN_REALMS */
 
-  ecma_value_t ret_value = vm_run (&shared_args.header, this_binding, scope_p);
+  ecma_value_t ret_value = vm_run (&JJS_CONTEXT_STRUCT, &shared_args.header, this_binding, scope_p);
 
 #if JJS_BUILTIN_REALMS
   JJS_CONTEXT (global_object_p) = saved_global_object_p;
@@ -1246,6 +1246,7 @@ ecma_op_function_call_native (ecma_object_t *func_obj_p, /**< Function object */
   jjs_call_info_t call_info;
   call_info.function = ecma_make_object_value (func_obj_p);
   call_info.this_value = this_arg_value;
+  call_info.context_p = &JJS_CONTEXT_STRUCT;
 
   ecma_object_t *new_target_p = JJS_CONTEXT (current_new_target_p);
   call_info.new_target = (new_target_p == NULL) ? ECMA_VALUE_UNDEFINED : ecma_make_object_value (new_target_p);

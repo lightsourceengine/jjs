@@ -203,14 +203,13 @@ test_free_cb (jjs_arraybuffer_type_t buffer_type, /**< type of the array buffer 
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
-
   if (!jjs_feature_enabled (JJS_FEATURE_TYPEDARRAY))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "ArrayBuffer is disabled!\n");
-    jjs_cleanup ();
     return 0;
   }
+
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_arraybuffer_heap_allocation_limit (4);
   jjs_arraybuffer_allocator (test_allocate_cb, test_free_cb, (void *) &allocate_mode);
@@ -477,7 +476,7 @@ main (void)
     jjs_value_free (arraybuffer);
   }
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   TEST_ASSERT (allocate_count == 1);
   TEST_ASSERT (free_count == 2);

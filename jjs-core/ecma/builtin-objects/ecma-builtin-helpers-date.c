@@ -24,6 +24,7 @@
 #include "jcontext.h"
 
 #include "lit-char-helpers.h"
+#include "jjs-platform.h"
 
 #if JJS_BUILTIN_DATE
 
@@ -275,9 +276,9 @@ ecma_date_week_day (ecma_number_t time) /**< time value */
 extern inline int32_t JJS_ATTR_ALWAYS_INLINE
 ecma_date_local_time_zone_adjustment (ecma_number_t time) /**< time value */
 {
-  JJS_ASSERT (JJS_CONTEXT (platform_api).time_local_tza != NULL);
+  JJS_ASSERT (JJS_CONTEXT (platform_p)->time_local_tza != NULL);
   int32_t tza;
-  jjs_status_t status = JJS_CONTEXT (platform_api).time_local_tza (time, &tza);
+  jjs_status_t status = JJS_CONTEXT (platform_p)->time_local_tza (time, &tza);
 
   return (status == JJS_STATUS_OK) ? tza : 0;
 } /* ecma_date_local_time_zone_adjustment */

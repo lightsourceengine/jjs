@@ -75,7 +75,10 @@ static char **argv;
 static JJS_ATTR_NOINLINE int
 run (void)
 {
-  jjs_init_default ();
+  jjs_context_t *context_p = NULL;
+
+  assert (jjs_context_new (NULL, &context_p));
+
   jjs_value_t ret_value = jjs_undefined ();
 
   for (int i = 1; i < argc; i++)
@@ -115,7 +118,7 @@ run (void)
     !jjs_value_is_exception (ret_value) ? JJS_STANDALONE_EXIT_CODE_OK : JJS_STANDALONE_EXIT_CODE_FAIL;
 
   jjs_value_free (ret_value);
-  jjs_cleanup ();
+  jjs_context_free (context_p);
 
   return ret_code;
 } /* run */

@@ -95,14 +95,13 @@ run_module (const char *source_p, /* source code */
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
-
   if (!jjs_feature_enabled (JJS_FEATURE_MODULE))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Module is disabled!\n");
-    jjs_cleanup ();
     return 0;
   }
+
+  TEST_CONTEXT_NEW (context_p);
 
   register_assert ();
   jjs_module_on_import_meta (module_import_meta_callback, (void *) &counter);
@@ -151,6 +150,6 @@ main (void)
 
   TEST_ASSERT (counter == 5);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

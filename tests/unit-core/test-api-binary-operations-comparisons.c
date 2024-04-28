@@ -35,7 +35,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t obj1 = jjs_eval ((const jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
   jjs_value_t obj2 = jjs_eval ((const jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
@@ -199,7 +199,7 @@ main (void)
   jjs_value_free (obj2);
   jjs_value_free (err1);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

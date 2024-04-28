@@ -27,6 +27,8 @@
 #include "jcontext.h"
 #include "lit-char-helpers.h"
 
+#include "jjs-platform.h"
+
 #if JJS_BUILTIN_DATE
 
 #define ECMA_BUILTINS_INTERNAL
@@ -692,9 +694,9 @@ ecma_builtin_date_utc (const ecma_value_t args[], /**< arguments list */
 static ecma_number_t
 ecma_builtin_date_now_helper (void)
 {
-  JJS_ASSERT (JJS_CONTEXT (platform_api).time_now_ms != NULL);
+  JJS_ASSERT (JJS_CONTEXT (platform_p)->time_now_ms != NULL);
   double unix_timestamp_ms;
-  jjs_status_t status = JJS_CONTEXT (platform_api).time_now_ms (&unix_timestamp_ms);
+  jjs_status_t status = JJS_CONTEXT (platform_p)->time_now_ms (&unix_timestamp_ms);
 
   return (status == JJS_STATUS_OK) ? floor (DOUBLE_TO_ECMA_NUMBER_T (unix_timestamp_ms)) : 0;
 } /* ecma_builtin_date_now_helper */

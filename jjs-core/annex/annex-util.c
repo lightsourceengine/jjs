@@ -33,30 +33,34 @@
 /**
  * Define a function property on an object.
  *
+ * @param context_p JJS context
  * @param object_p target object
  * @param name_id magic string id of the property name
  * @param handler_p native function
  */
 void
-annex_util_define_function (ecma_object_t* object_p,
+annex_util_define_function (jjs_context_t* context_p,
+                            ecma_object_t* object_p,
                             lit_magic_string_id_t name_id,
                             ecma_native_handler_t handler_p)
 {
   ecma_value_t fn = ecma_make_object_value (ecma_op_create_external_function_object (handler_p));
 
-  annex_util_define_value (object_p, name_id, fn, JJS_MOVE);
+  annex_util_define_value (context_p, object_p, name_id, fn, JJS_MOVE);
 } /* annex_util_define_function */
 
 /**
  * Define a value property on an object.
  *
+ * @param context_p JJS context
  * @param object_p target object
  * @param name_id magic string id of the property name
  * @param value property value
  * @param value_o value reference ownership
  */
 void
-annex_util_define_value (ecma_object_t* object_p,
+annex_util_define_value (jjs_context_t* context_p,
+                         ecma_object_t* object_p,
                          lit_magic_string_id_t name_id,
                          ecma_value_t value,
                          jjs_value_ownership_t value_o)
@@ -73,19 +77,21 @@ annex_util_define_value (ecma_object_t* object_p,
 
   ecma_free_value (result);
 
-  JJS_DISOWN (value, value_o);
+  JJS_DISOWN (context_p, value, value_o);
 } /* annex_util_define_value */
 
 /**
  * Define a readonly value property on an object.
  *
+ * @param context_p JJS context
  * @param object_p target object
  * @param name_id magic string id of the property name
  * @param value property value
  * @param value_o value reference ownership
  */
 void
-annex_util_define_ro_value (ecma_object_t* object_p,
+annex_util_define_ro_value (jjs_context_t* context_p,
+                            ecma_object_t* object_p,
                             lit_magic_string_id_t name_id,
                             ecma_value_t value,
                             jjs_value_ownership_t value_o)
@@ -102,7 +108,7 @@ annex_util_define_ro_value (ecma_object_t* object_p,
 
   ecma_free_value (result);
 
-  JJS_DISOWN (value, value_o);
+  JJS_DISOWN (context_p, value, value_o);
 } /* annex_util_define_value_ro */
 
 /**
@@ -248,30 +254,32 @@ ecma_has_own_v (ecma_value_t object, ecma_value_t key)
 /**
  * Add a value to an objects internal property map.
  *
+ * @param context_p JJS context
  * @param object target
  * @param key magic string id
  * @param value JS value to set
  */
-void annex_util_set_internal_m (jjs_value_t object, lit_magic_string_id_t key, jjs_value_t value)
+void annex_util_set_internal_m (jjs_context_t* context_p, jjs_value_t object, lit_magic_string_id_t key, jjs_value_t value)
 {
-  jjs_object_set_internal (object, ecma_make_magic_string_value (key), value);
+  jjs_object_set_internal (context_p, object, ecma_make_magic_string_value (key), value);
 }
 
 /**
  * Get a value from an object's internal property map.
  *
+ * @param context_p JJS context
  * @param object target
  * @param key magic string id
  * @return the requested value. if the value is not found, undefined is returned. the return
  * value must be free'd
  */
-ecma_value_t annex_util_get_internal_m (ecma_value_t object, lit_magic_string_id_t key)
+ecma_value_t annex_util_get_internal_m (jjs_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key)
 {
-  jjs_value_t value = jjs_object_get_internal (object, ecma_make_magic_string_value (key));
+  jjs_value_t value = jjs_object_get_internal (context_p, object, ecma_make_magic_string_value (key));
 
-  if (jjs_value_is_exception (value))
+  if (jjs_value_is_exception (context_p, value))
   {
-    jjs_value_free (value);
+    jjs_value_free (context_p, value);
     return ECMA_VALUE_UNDEFINED;
   }
 
@@ -284,14 +292,14 @@ ecma_value_t annex_util_get_internal_m (ecma_value_t object, lit_magic_string_id
  * @return JS string. caller must free with ecma_free_value.
  */
 jjs_value_t
-annex_util_create_string_utf8_sz (const char* str_p)
+annex_util_create_string_utf8_sz (jjs_context_t* context_p, const char* str_p)
 {
   if (str_p == NULL || *str_p == '\0')
   {
     return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
   }
 
-  return jjs_string ((const jjs_char_t*) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_UTF8);
+  return jjs_string (context_p, (const jjs_char_t*) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_UTF8);
 } /* annex_util_create_string_utf8_sz */
 
 /**
@@ -312,7 +320,7 @@ annex_util_create_string_utf8_sz (const char* str_p)
 bool
 annex_util_is_valid_package_name (ecma_value_t name)
 {
-  if (!jjs_value_is_string (name))
+  if (!ecma_is_value_string (name))
   {
     return false;
   }

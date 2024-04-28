@@ -112,10 +112,12 @@ JJS_STATIC_ASSERT (((NUMBER_ARITHMETIC_SUBTRACTION + ECMA_NUMBER_ARITHMETIC_OP_A
  * Turn on API availability
  */
 static inline void JJS_ATTR_ALWAYS_INLINE
-jjs_api_enable (void)
+jjs_api_enable (jjs_context_t* context_p)
 {
 #ifndef JJS_NDEBUG
-  JJS_CONTEXT (status_flags) |= ECMA_STATUS_API_ENABLED;
+  context_p->status_flags |= ECMA_STATUS_API_ENABLED;
+#else
+  JJS_UNUSED (cotext_p);
 #endif /* JJS_NDEBUG */
 } /* jjs_make_api_available */
 
@@ -123,131 +125,59 @@ jjs_api_enable (void)
  * Turn off API availability
  */
 static inline void JJS_ATTR_ALWAYS_INLINE
-jjs_api_disable (void)
+jjs_api_disable (jjs_context_t* context_p)
 {
 #ifndef JJS_NDEBUG
-  JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_API_ENABLED;
+  context_p->status_flags &= (uint32_t) ~ECMA_STATUS_API_ENABLED;
+#else
+  JJS_UNUSED (cotext_p);
 #endif /* JJS_NDEBUG */
 } /* jjs_api_disable */
 
-jjs_context_options_t
-jjs_context_options (void)
-{
-  jjs_context_options_t opts;
-
-  jjs_context_options_init (&opts);
-
-  return opts;
-} /* jjs_context_options */
-
 /**
- * Initializes a jjs_context_options_t with defaults.
+ * Create a new JJS engine context.
  *
- * Always use this function for jjs_context_options_t, as defaults are configured that
- * may or may not be available otherwise and jjs_init assumes jjs_context_options_t has
- * these defaults.
- *
- * After this function runs, you can add or remove jjs_context_options_t configuration to
- * suit your application's needs.
- *
- * @param opts context options to initialize
- * @return the opts argument
- */
-jjs_context_options_t *
-jjs_context_options_init (jjs_context_options_t * opts)
-{
-  JJS_ASSERT (opts != NULL);
-  memset(opts, 0, sizeof (jjs_context_options_t));
-
-  opts->vm_heap_size_kb = JJS_DEFAULT_VM_HEAP_SIZE;
-  opts->vm_stack_limit_kb = JJS_DEFAULT_VM_STACK_LIMIT;
-  opts->gc_limit_kb = JJS_DEFAULT_GC_LIMIT;
-  opts->gc_mark_limit = JJS_DEFAULT_GC_MARK_LIMIT;
-  opts->gc_new_objects_fraction = JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION;
-  opts->scratch_allocator = jjs_util_system_allocator();
-
-  opts->platform = jjsp_defaults ();
-
-  return opts;
-} /* jjs_context_options */
-
-/**
- * Configure an allocator that uses stdlib's malloc and free.
- */
-jjs_allocator_t jjs_context_system_allocator (void)
-{
-  return jjs_util_system_allocator ();
-} /* jjs_context_system_allocator */
-
-/**
- * Configure an allocator that uses vm heap alloc and free.
- */
-jjs_allocator_t jjs_context_vm_allocator (void)
-{
-  return jjs_util_vm_allocator ();
-} /* jjs_context_vm_allocator */
-
-/**
- * Start JJS with context options.
- *
- * Use jjs_context_options_init () to init the context options and make your changes from
- * there. jjs_init () expects the context options to be fully populated and there are
- * quite a few options. Some defaults may not be available otherwise.
- *
- * @param opts context options. if NULL, (compile time set) default context options are used
- * @return JJS_CONTEXT_STATUS_OK or an error code on failure
+ * @param options_p context options. if NULL, compile time defaults are used
+ * @param context_p context object iff return status is JJS_STATUS_OK
+ * @return on success: JJS_STATUS_OK; otherwise, a status code indicating an error
  */
 jjs_status_t
-jjs_init (const jjs_context_options_t * opts)
+jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context_p)
 {
-  jjs_status_t status = jjs_context_init (opts);
+  jjs_status_t status = jjs_context_init (options_p);
 
   if (status != JJS_STATUS_OK)
   {
     return status;
   }
 
-  jjs_api_enable ();
+  // TODO: get from init
+  jjs_context_t* ctx_p = &JJS_CONTEXT_STRUCT;
+
+  jjs_api_enable (ctx_p);
   jmem_init ();
   ecma_init ();
-  jjs_api_object_init (ecma_make_object_value (ecma_builtin_get_global ()));
-  jjs_annex_init ();
-  jjs_annex_init_realm (JJS_CONTEXT (global_object_p));
+  jjs_api_object_init (ctx_p, ecma_make_object_value (ecma_builtin_get_global ()));
+  jjs_annex_init (ctx_p);
+  jjs_annex_init_realm (ctx_p, ctx_p->global_object_p);
 
-  return JJS_STATUS_OK;
-} /* jjs_init */
+  *context_p = ctx_p;
 
-/**
- * Start JJS with default context options.
- *
- * @return JJS_CONTEXT_STATUS_OK or an error code on failure
- */
-jjs_status_t
-jjs_init_default (void)
-{
-  return jjs_init (NULL);
-} /* jjs_init_default */
-
-jjs_status_t
-jjs_init_with_flags (uint32_t context_flags)
-{
-  jjs_context_options_t opts = jjs_context_options ();
-
-  opts.context_flags = context_flags;
-
-  return jjs_init (&opts);
+  return status;
 }
 
 /**
- * Terminate JJS engine
+ * Release a JJS engine context object
+ *
+ * @param context_p context object to free
  */
 void
-jjs_cleanup (void)
+jjs_context_free (jjs_context_t* context_p)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
     jjs_debugger_send_type (JJS_DEBUGGER_CLOSE_CONNECTION);
 
@@ -255,7 +185,7 @@ jjs_cleanup (void)
   }
 #endif /* JJS_DEBUGGER */
 
-  for (jjs_context_data_header_t *this_p = JJS_CONTEXT (context_data_p); this_p != NULL; this_p = this_p->next_p)
+  for (jjs_context_data_header_t *this_p = context_p->context_data_p; this_p != NULL; this_p = this_p->next_p)
   {
     if (this_p->manager_p->deinit_cb)
     {
@@ -265,11 +195,11 @@ jjs_cleanup (void)
   }
 
   ecma_free_all_enqueued_jobs ();
-  jjs_annex_finalize ();
+  jjs_annex_finalize (context_p);
   ecma_finalize ();
-  jjs_api_disable ();
+  jjs_api_disable (context_p);
 
-  for (jjs_context_data_header_t *this_p = JJS_CONTEXT (context_data_p), *next_p = NULL; this_p != NULL;
+  for (jjs_context_data_header_t *this_p = context_p->context_data_p, *next_p = NULL; this_p != NULL;
        this_p = next_p)
   {
     next_p = this_p->next_p;
@@ -283,24 +213,25 @@ jjs_cleanup (void)
     jmem_heap_free_block (this_p, sizeof (jjs_context_data_header_t) + this_p->manager_p->bytes_needed);
   }
 
-  jjs_context_cleanup ();
-} /* jjs_cleanup */
+  jjs_context_cleanup (context_p);
+}
 
 /**
  * Retrieve a context data item, or create a new one.
  *
+ * @param context_p JJS context
  * @param manager_p pointer to the manager whose context data item should be returned.
  *
  * @return a pointer to the user-provided context-specific data item for the given manager, creating such a pointer if
  * none was found.
  */
 void *
-jjs_context_data (const jjs_context_data_manager_t *manager_p)
+jjs_context_data (jjs_context_t* context_p, const jjs_context_data_manager_t *manager_p)
 {
   void *ret = NULL;
   jjs_context_data_header_t *item_p;
 
-  for (item_p = JJS_CONTEXT (context_data_p); item_p != NULL; item_p = item_p->next_p)
+  for (item_p = context_p->context_data_p; item_p != NULL; item_p = item_p->next_p)
   {
     if (item_p->manager_p == manager_p)
     {
@@ -310,8 +241,8 @@ jjs_context_data (const jjs_context_data_manager_t *manager_p)
 
   item_p = jmem_heap_alloc_block (sizeof (jjs_context_data_header_t) + manager_p->bytes_needed);
   item_p->manager_p = manager_p;
-  item_p->next_p = JJS_CONTEXT (context_data_p);
-  JJS_CONTEXT (context_data_p) = item_p;
+  item_p->next_p = context_p->context_data_p;
+  context_p->context_data_p = item_p;
 
   if (manager_p->bytes_needed > 0)
   {
@@ -331,12 +262,13 @@ jjs_context_data (const jjs_context_data_manager_t *manager_p)
  * Register external magic string array
  */
 void
-jjs_register_magic_strings (const jjs_char_t *const *ext_strings_p, /**< character arrays, representing
-                                                                         *   external magic strings' contents */
-                              uint32_t count, /**< number of the strings */
-                              const jjs_length_t *str_lengths_p) /**< lengths of all strings */
+jjs_register_magic_strings (jjs_context_t* context_p, /**< JJS context */
+                            const jjs_char_t *const *ext_strings_p, /**< character arrays, representing
+                                                                     *   external magic strings' contents */
+                            uint32_t count, /**< number of the strings */
+                            const jjs_length_t *str_lengths_p) /**< lengths of all strings */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   lit_magic_strings_ex_set ((const lit_utf8_byte_t *const *) ext_strings_p,
                             count,
@@ -347,9 +279,10 @@ jjs_register_magic_strings (const jjs_char_t *const *ext_strings_p, /**< charact
  * Run garbage collection
  */
 void
-jjs_heap_gc (jjs_gc_mode_t mode) /**< operational mode */
+jjs_heap_gc (jjs_context_t* context_p, /**< JJS context */
+             jjs_gc_mode_t mode) /**< operational mode */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (mode == JJS_GC_PRESSURE_LOW)
   {
@@ -368,9 +301,11 @@ jjs_heap_gc (jjs_gc_mode_t mode) /**< operational mode */
  *         false - otherwise. Usually it is because the MEM_STATS feature is not enabled.
  */
 bool
-jjs_heap_stats (jjs_heap_stats_t *out_stats_p) /**< [out] heap memory stats */
+jjs_heap_stats (jjs_context_t* context_p, /**< JJS context */
+                jjs_heap_stats_t *out_stats_p) /**< [out] heap memory stats */
 {
 #if JJS_MEM_STATS
+  JJS_UNUSED (context_p);
   if (out_stats_p == NULL)
   {
     return false;
@@ -387,7 +322,7 @@ jjs_heap_stats (jjs_heap_stats_t *out_stats_p) /**< [out] heap memory stats */
 
   return true;
 #else /* !JJS_MEM_STATS */
-  JJS_UNUSED (out_stats_p);
+  JJS_UNUSED_ALL (context_p, out_stats_p);
   return false;
 #endif /* JJS_MEM_STATS */
 } /* jjs_heap_stats */
@@ -400,11 +335,12 @@ jjs_heap_stats (jjs_heap_stats_t *out_stats_p) /**< [out] heap memory stats */
  *         thrown error - otherwise
  */
 static jjs_value_t
-jjs_parse_common (void *source_p, /**< script source */
-                    const jjs_parse_options_t *options_p, /**< parsing options, can be NULL if not used */
-                    uint32_t parse_opts) /**< internal parsing options */
+jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
+                  void *source_p, /**< script source */
+                  const jjs_parse_options_t *options_p, /**< parsing options, can be NULL if not used */
+                  uint32_t parse_opts) /**< internal parsing options */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (options_p != NULL)
   {
@@ -418,12 +354,12 @@ jjs_parse_common (void *source_p, /**< script source */
             && ((options_p->options & JJS_PARSE_MODULE) || !ecma_is_value_string (options_p->argument_list)))
         || ((options_p->options & JJS_PARSE_HAS_SOURCE_NAME) && !ecma_is_value_string (options_p->source_name)))
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
     }
   }
 
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED) && options_p != NULL
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) && options_p != NULL
       && (options_p->options & JJS_PARSE_HAS_SOURCE_NAME) && ecma_is_value_string (options_p->source_name))
   {
     ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value (options_p->source_name),
@@ -445,9 +381,9 @@ jjs_parse_common (void *source_p, /**< script source */
   if ((parse_opts & JJS_PARSE_MODULE) != 0)
   {
 #if JJS_MODULE_SYSTEM
-    JJS_CONTEXT (module_current_p) = ecma_module_create ();
+    context_p->module_current_p = ecma_module_create ();
 #else /* !JJS_MODULE_SYSTEM */
-    return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
+    return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif /* JJS_MODULE_SYSTEM */
   }
 
@@ -469,10 +405,10 @@ jjs_parse_common (void *source_p, /**< script source */
 #if JJS_MODULE_SYSTEM
   if (JJS_UNLIKELY (parse_opts & JJS_PARSE_MODULE))
   {
-    ecma_module_t *module_p = JJS_CONTEXT (module_current_p);
+    ecma_module_t *module_p = context_p->module_current_p;
     module_p->u.compiled_code_p = bytecode_data_p;
 
-    JJS_CONTEXT (module_current_p) = NULL;
+    context_p->module_current_p = NULL;
 
     return ecma_make_object_value ((ecma_object_t *) module_p);
   }
@@ -511,22 +447,20 @@ jjs_parse_common (void *source_p, /**< script source */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_parse (const jjs_char_t *source_p, /**< script source */
-             size_t source_size, /**< script source size */
-             const jjs_parse_options_t *options_p) /**< parsing options, can be NULL if not used */
+jjs_parse (jjs_context_t* context_p, /**< JJS context */
+           const jjs_char_t *source_p, /**< script source */
+           size_t source_size, /**< script source size */
+           const jjs_parse_options_t *options_p) /**< parsing options, can be NULL if not used */
 {
 #if JJS_PARSER
   parser_source_char_t source_char;
   source_char.source_p = source_p;
   source_char.source_size = source_size;
 
-  return jjs_parse_common ((void *) &source_char, options_p, JJS_PARSE_NO_OPTS);
+  return jjs_parse_common (context_p, (void *) &source_char, options_p, JJS_PARSE_NO_OPTS);
 #else /* !JJS_PARSER */
-  JJS_UNUSED (source_p);
-  JJS_UNUSED (source_size);
-  JJS_UNUSED (options_p);
-
-  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_PARSER_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (source_p, source_size, options_p);
+  return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_PARSER_NOT_SUPPORTED));
 #endif /* JJS_PARSER */
 } /* jjs_parse */
 
@@ -537,16 +471,17 @@ jjs_parse (const jjs_char_t *source_p, /**< script source */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_parse_value (const jjs_value_t source, /**< script source */
-                   const jjs_parse_options_t *options_p) /**< parsing options, can be NULL if not used */
+jjs_parse_value (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_value_t source, /**< script source */
+                 const jjs_parse_options_t *options_p) /**< parsing options, can be NULL if not used */
 {
 #if JJS_PARSER
   if (!ecma_is_value_string (source))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  return jjs_parse_common ((void *) &source, options_p, ECMA_PARSE_HAS_SOURCE_VALUE);
+  return jjs_parse_common (context_p, (void *) &source, options_p, ECMA_PARSE_HAS_SOURCE_VALUE);
 #else /* !JJS_PARSER */
   JJS_UNUSED (source);
   JJS_UNUSED (options_p);
@@ -565,20 +500,21 @@ jjs_parse_value (const jjs_value_t source, /**< script source */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_run (const jjs_value_t script) /**< script or module to run */
+jjs_run (jjs_context_t* context_p, /**< JJS context */
+         const jjs_value_t script) /**< script or module to run */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (script))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_object_t *object_p = ecma_get_object_from_value (script);
 
   if (!ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SCRIPT))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
@@ -588,7 +524,7 @@ jjs_run (const jjs_value_t script) /**< script or module to run */
 
   JJS_ASSERT (CBC_FUNCTION_GET_TYPE (bytecode_data_p->status_flags) == CBC_FUNCTION_SCRIPT);
 
-  return jjs_return (vm_run_global (bytecode_data_p, object_p));
+  return jjs_return (vm_run_global (context_p, bytecode_data_p, object_p));
 } /* jjs_run */
 
 /**
@@ -600,22 +536,24 @@ jjs_run (const jjs_value_t script) /**< script or module to run */
  * @return result of eval, may be error value.
  */
 jjs_value_t
-jjs_eval (const jjs_char_t *source_p, /**< source code */
-            size_t source_size, /**< length of source code */
-            uint32_t flags) /**< jjs_parse_opts_t flags */
+jjs_eval (jjs_context_t* context_p, /**< JJS context */
+          const jjs_char_t *source_p, /**< source code */
+          size_t source_size, /**< length of source code */
+          uint32_t flags) /**< jjs_parse_opts_t flags */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   uint32_t allowed_parse_options = JJS_PARSE_STRICT_MODE;
 
   if ((flags & ~allowed_parse_options) != 0)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  parser_source_char_t source_char;
-  source_char.source_p = source_p;
-  source_char.source_size = source_size;
+  parser_source_char_t source_char = {
+    .source_p = source_p,
+    .source_size = source_size,
+  };
 
   return jjs_return (ecma_op_eval_chars_buffer ((void *) &source_char, flags));
 } /* jjs_eval */
@@ -629,16 +567,16 @@ jjs_eval (const jjs_char_t *source_p, /**< source code */
  * @return result of last executed job, possibly an exception.
  */
 jjs_value_t
-jjs_run_jobs (void)
+jjs_run_jobs (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return jjs_return (ecma_process_all_enqueued_jobs ());
 } /* jjs_run_jobs */
 
 bool
-jjs_has_pending_jobs (void) {
-  jjs_assert_api_enabled ();
+jjs_has_pending_jobs (jjs_context_t* context_p) /**< JJS context */ {
+  jjs_assert_api_enabled (context_p);
 
   return ecma_has_enqueued_jobs ();
 } /* jjs_has_pending_jobs */
@@ -652,9 +590,9 @@ jjs_has_pending_jobs (void) {
  * @return api value of global object
  */
 jjs_value_t
-jjs_current_realm (void)
+jjs_current_realm (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
   ecma_object_t *global_obj_p = ecma_builtin_get_global ();
   ecma_ref_object (global_obj_p);
   return ecma_make_object_value (global_obj_p);
@@ -667,9 +605,10 @@ jjs_current_realm (void)
  *         false - otherwise
  */
 bool
-jjs_value_is_abort (const jjs_value_t value) /**< api value */
+jjs_value_is_abort (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_exception (value))
   {
@@ -688,9 +627,10 @@ jjs_value_is_abort (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_array (const jjs_value_t value) /**< JJS api value */
+jjs_value_is_array (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value) /**< JJS api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return (ecma_is_value_object (value)
           && ecma_get_object_base_type (ecma_get_object_from_value (value)) == ECMA_OBJECT_BASE_TYPE_ARRAY);
@@ -703,9 +643,10 @@ jjs_value_is_array (const jjs_value_t value) /**< JJS api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_boolean (const jjs_value_t value) /**< api value */
+jjs_value_is_boolean (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_boolean (value);
 } /* jjs_value_is_boolean */
@@ -717,9 +658,10 @@ jjs_value_is_boolean (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_true (const jjs_value_t value) /**< api value */
+jjs_value_is_true (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_true (value);
 } /* jjs_value_is_true */
@@ -731,9 +673,10 @@ jjs_value_is_true (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_false (const jjs_value_t value) /**< api value */
+jjs_value_is_false (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_false (value);
 } /* jjs_value_is_false */
@@ -745,9 +688,10 @@ jjs_value_is_false (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_constructor (const jjs_value_t value) /**< JJS api value */
+jjs_value_is_constructor (jjs_context_t* context_p, /**< JJS context */
+                          const jjs_value_t value) /**< JJS api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_constructor (value);
 } /* jjs_value_is_constructor */
@@ -759,9 +703,10 @@ jjs_value_is_constructor (const jjs_value_t value) /**< JJS api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_exception (const jjs_value_t value) /**< api value */
+jjs_value_is_exception (jjs_context_t* context_p, /**< JJS context */
+                        const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_exception (value);
 } /* jjs_value_is_exception */
@@ -773,9 +718,10 @@ jjs_value_is_exception (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_function (const jjs_value_t value) /**< api value */
+jjs_value_is_function (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_op_is_callable (value);
 } /* jjs_value_is_function */
@@ -787,9 +733,10 @@ jjs_value_is_function (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_async_function (const jjs_value_t value) /**< api value */
+jjs_value_is_async_function (jjs_context_t* context_p, /**< JJS context */
+                             const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_object (value))
   {
@@ -815,9 +762,10 @@ jjs_value_is_async_function (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_number (const jjs_value_t value) /**< api value */
+jjs_value_is_number (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_number (value);
 } /* jjs_value_is_number */
@@ -829,9 +777,10 @@ jjs_value_is_number (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_null (const jjs_value_t value) /**< api value */
+jjs_value_is_null (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_null (value);
 } /* jjs_value_is_null */
@@ -843,9 +792,10 @@ jjs_value_is_null (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_object (const jjs_value_t value) /**< api value */
+jjs_value_is_object (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_object (value);
 } /* jjs_value_is_object */
@@ -857,9 +807,10 @@ jjs_value_is_object (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_promise (const jjs_value_t value) /**< api value */
+jjs_value_is_promise (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return (ecma_is_value_object (value) && ecma_is_promise (ecma_get_object_from_value (value)));
 } /* jjs_value_is_promise */
@@ -871,9 +822,10 @@ jjs_value_is_promise (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_proxy (const jjs_value_t value) /**< api value */
+jjs_value_is_proxy (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_BUILTIN_PROXY
   return (ecma_is_value_object (value) && ECMA_OBJECT_IS_PROXY (ecma_get_object_from_value (value)));
 #else /* !JJS_BUILTIN_PROXY */
@@ -889,9 +841,10 @@ jjs_value_is_proxy (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_string (const jjs_value_t value) /**< api value */
+jjs_value_is_string (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_string (value);
 } /* jjs_value_is_string */
@@ -903,9 +856,10 @@ jjs_value_is_string (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_symbol (const jjs_value_t value) /**< api value */
+jjs_value_is_symbol (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_symbol (value);
 } /* jjs_value_is_symbol */
@@ -917,9 +871,10 @@ jjs_value_is_symbol (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_bigint (const jjs_value_t value) /**< api value */
+jjs_value_is_bigint (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_BIGINT
   return ecma_is_value_bigint (value);
@@ -936,9 +891,10 @@ jjs_value_is_bigint (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_is_undefined (const jjs_value_t value) /**< api value */
+jjs_value_is_undefined (jjs_context_t* context_p, /**< JJS context */
+                        const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_value_undefined (value);
 } /* jjs_value_is_undefined */
@@ -949,9 +905,10 @@ jjs_value_is_undefined (const jjs_value_t value) /**< api value */
  * @return jjs_type_t value
  */
 jjs_type_t
-jjs_value_type (const jjs_value_t value) /**< input value to check */
+jjs_value_type (jjs_context_t* context_p, /**< JJS context */
+                const jjs_value_t value) /**< input value to check */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value))
   {
@@ -1082,9 +1039,10 @@ JJS_STATIC_ASSERT (sizeof (jjs_class_object_type) == ECMA_OBJECT_CLASS__MAX,
  *         jjs_object_type_t value - otherwise
  */
 jjs_object_type_t
-jjs_object_type (const jjs_value_t value) /**< input value to check */
+jjs_object_type (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_value_t value) /**< input value to check */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (value))
   {
@@ -1134,9 +1092,10 @@ jjs_object_type (const jjs_value_t value) /**< input value to check */
  *         jjs_function_type_t value - otherwise
  */
 jjs_function_type_t
-jjs_function_type (const jjs_value_t value) /**< input value to check */
+jjs_function_type (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t value) /**< input value to check */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_object (value))
   {
@@ -1198,9 +1157,10 @@ jjs_function_type (const jjs_value_t value) /**< input value to check */
  *         jjs_iterator_type_t value - otherwise
  */
 jjs_iterator_type_t
-jjs_iterator_type (const jjs_value_t value) /**< input value to check */
+jjs_iterator_type (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t value) /**< input value to check */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_object (value))
   {
@@ -1341,15 +1301,16 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
  *         true/false - the result of the binary operation on the given operands otherwise
  */
 jjs_value_t
-jjs_binary_op (jjs_binary_op_t operation, /**< operation */
-                 const jjs_value_t lhs, /**< first operand */
-                 const jjs_value_t rhs) /**< second operand */
+jjs_binary_op (jjs_context_t* context_p, /**< JJS context */
+               jjs_binary_op_t operation, /**< operation */
+               const jjs_value_t lhs, /**< first operand */
+               const jjs_value_t rhs) /**< second operand */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (lhs) || ecma_is_value_exception (rhs))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   switch (operation)
@@ -1382,7 +1343,7 @@ jjs_binary_op (jjs_binary_op_t operation, /**< operation */
     {
       if (!ecma_is_value_object (lhs) || !ecma_op_is_callable (rhs))
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
       }
 
       ecma_object_t *proto_obj_p = ecma_get_object_from_value (rhs);
@@ -1401,7 +1362,7 @@ jjs_binary_op (jjs_binary_op_t operation, /**< operation */
     }
     default:
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_UNSUPPORTED_BINARY_OPERATION));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_UNSUPPORTED_BINARY_OPERATION));
     }
   }
 } /* jjs_binary_op */
@@ -1413,21 +1374,22 @@ jjs_binary_op (jjs_binary_op_t operation, /**< operation */
  * @return api abort value
  */
 jjs_value_t
-jjs_throw_abort (jjs_value_t value, /**< api value */
-                   bool take_ownership) /**< release api value */
+jjs_throw_abort (jjs_context_t* context_p, /**< JJS context */
+                 jjs_value_t value, /**< api value */
+                 bool take_ownership) /**< release api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
     /* This is a rare case so it is optimized for
      * binary size rather than performance. */
-    if (jjs_value_is_abort (value))
+    if (jjs_value_is_abort (context_p, value))
     {
-      return take_ownership ? value : jjs_value_copy (value);
+      return take_ownership ? value : jjs_value_copy (context_p, value);
     }
 
-    value = jjs_exception_value (value, take_ownership);
+    value = jjs_exception_value (context_p, value, take_ownership);
     take_ownership = true;
   }
 
@@ -1446,21 +1408,22 @@ jjs_throw_abort (jjs_value_t value, /**< api value */
  * @return exception value
  */
 jjs_value_t
-jjs_throw_value (jjs_value_t value, /**< value */
-                   bool take_ownership) /**< take ownership of the value */
+jjs_throw_value (jjs_context_t* context_p, /**< JJS context */
+                 jjs_value_t value, /**< value */
+                 bool take_ownership) /**< take ownership of the value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
     /* This is a rare case so it is optimized for
      * binary size rather than performance. */
-    if (!jjs_value_is_abort (value))
+    if (!jjs_value_is_abort (context_p, value))
     {
-      return take_ownership ? value : jjs_value_copy (value);
+      return take_ownership ? value : jjs_value_copy (context_p, value);
     }
 
-    value = jjs_exception_value (value, take_ownership);
+    value = jjs_exception_value (context_p, value, take_ownership);
     take_ownership = true;
   }
 
@@ -1479,21 +1442,22 @@ jjs_throw_value (jjs_value_t value, /**< value */
  * @return value in exception
  */
 jjs_value_t
-jjs_exception_value (jjs_value_t value, /**< api value */
-                       bool free_exception) /**< release api value */
+jjs_exception_value (jjs_context_t* context_p, /**< JJS context */
+                     jjs_value_t value, /**< api value */
+                     bool free_exception) /**< release api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_exception (value))
   {
     return free_exception ? value : ecma_copy_value (value);
   }
 
-  jjs_value_t ret_val = jjs_value_copy (ecma_get_extended_primitive_from_value (value)->u.value);
+  jjs_value_t ret_val = jjs_value_copy (context_p, ecma_get_extended_primitive_from_value (value)->u.value);
 
   if (free_exception)
   {
-    jjs_value_free (value);
+    jjs_value_free (context_p, value);
   }
   return ret_val;
 } /* jjs_exception_value */
@@ -1503,13 +1467,14 @@ jjs_exception_value (jjs_value_t value, /**< api value */
  * create or update any properties of the newly created Error object.
  */
 void
-jjs_error_on_created (jjs_error_object_created_cb_t callback, /**< new callback */
-                        void *user_p) /**< user pointer passed to the callback */
+jjs_error_on_created (jjs_context_t* context_p, /**< JJS context */
+                      jjs_error_object_created_cb_t callback, /**< new callback */
+                      void *user_p) /**< user pointer passed to the callback */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  JJS_CONTEXT (error_object_created_callback_p) = callback;
-  JJS_CONTEXT (error_object_created_callback_user_p) = user_p;
+  context_p->error_object_created_callback_p = callback;
+  context_p->error_object_created_callback_user_p = user_p;
 } /* jjs_error_on_created */
 
 /**
@@ -1517,15 +1482,15 @@ jjs_error_on_created (jjs_error_object_created_cb_t callback, /**< new callback 
  * function is called when an error is thrown in ECMAScript code.
  */
 void
-jjs_on_throw (jjs_throw_cb_t callback, /**< callback which is called on throws */
-                void *user_p) /**< pointer passed to the function */
+jjs_on_throw (jjs_context_t* context_p, /**< JJS context */
+              jjs_throw_cb_t callback, /**< callback which is called on throws */
+              void *user_p) /**< pointer passed to the function */
 {
 #if JJS_VM_THROW
-  JJS_CONTEXT (vm_throw_callback_p) = callback;
-  JJS_CONTEXT (vm_throw_callback_user_p) = user_p;
+  context_p->vm_throw_callback_p = callback;
+  context_p->vm_throw_callback_user_p = user_p;
 #else /* !JJS_VM_THROW */
-  JJS_UNUSED (callback);
-  JJS_UNUSED (user_p);
+  JJS_UNUSED_ALL (context_p, callback, user_p);
 #endif /* JJS_VM_THROW */
 } /* jjs_on_throw */
 
@@ -1536,9 +1501,10 @@ jjs_on_throw (jjs_throw_cb_t callback, /**< callback which is called on throws *
  *         false, otherwise
  */
 bool
-jjs_exception_is_captured (const jjs_value_t value) /**< exception value */
+jjs_exception_is_captured (jjs_context_t* context_p, /**< JJS context */
+                           const jjs_value_t value) /**< exception value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_VM_THROW
   if (!ecma_is_value_exception (value))
@@ -1550,7 +1516,7 @@ jjs_exception_is_captured (const jjs_value_t value) /**< exception value */
 
   return (error_ref_p->refs_and_type & ECMA_ERROR_API_FLAG_THROW_CAPTURED) != 0;
 #else /* !JJS_VM_THROW */
-  JJS_UNUSED (value);
+  JJS_UNUSED_ALL (context_p, value);
   return false;
 #endif /* JJS_VM_THROW */
 } /* jjs_exception_is_captured */
@@ -1559,10 +1525,11 @@ jjs_exception_is_captured (const jjs_value_t value) /**< exception value */
  * Sets whether the callback set by jjs_on_throw should capture the exception or not
  */
 void
-jjs_exception_allow_capture (jjs_value_t value, /**< exception value */
-                               bool should_capture) /**< callback should capture this error */
+jjs_exception_allow_capture (jjs_context_t* context_p, /**< JJS context */
+                             jjs_value_t value, /**< exception value */
+                             bool should_capture) /**< callback should capture this error */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_VM_THROW
   if (!ecma_is_value_exception (value))
@@ -1580,8 +1547,7 @@ jjs_exception_allow_capture (jjs_value_t value, /**< exception value */
 
   error_ref_p->refs_and_type |= ECMA_ERROR_API_FLAG_THROW_CAPTURED;
 #else /* !JJS_VM_THROW */
-  JJS_UNUSED (value);
-  JJS_UNUSED (should_capture);
+  JJS_UNUSED_ALL (context_p, value, should_capture);
 #endif /* JJS_VM_THROW */
 } /* jjs_exception_allow_capture */
 
@@ -1592,8 +1558,10 @@ jjs_exception_allow_capture (jjs_value_t value, /**< exception value */
  *         false - otherwise
  */
 bool
-jjs_value_is_error (const jjs_value_t value) /**< api value */
+jjs_value_is_error (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value) /**< api value */
 {
+  JJS_UNUSED (context_p);
   return ecma_is_value_object (value)
          && ecma_object_class_is (ecma_get_object_from_value (value), ECMA_OBJECT_CLASS_ERROR);
 } /* jjs_value_is_error */
@@ -1605,8 +1573,11 @@ jjs_value_is_error (const jjs_value_t value) /**< api value */
  *         JJS_ERROR_NONE - if the input value is not an Error object
  */
 jjs_error_t
-jjs_error_type (jjs_value_t value) /**< api value */
+jjs_error_type (jjs_context_t* context_p, /**< JJS context */
+                jjs_value_t value) /**< api value */
 {
+  JJS_UNUSED (context_p);
+
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
     value = ecma_get_extended_primitive_from_value (value)->u.value;
@@ -1630,9 +1601,10 @@ jjs_error_type (jjs_value_t value) /**< api value */
  * @return stored number as double
  */
 double
-jjs_value_as_number (const jjs_value_t value) /**< api value */
+jjs_value_as_number (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_number (value))
   {
@@ -1649,9 +1621,10 @@ jjs_value_as_number (const jjs_value_t value) /**< api value */
  *         false - otherwise
  */
 bool
-jjs_value_to_boolean (const jjs_value_t value) /**< input value */
+jjs_value_to_boolean (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value))
   {
@@ -1671,13 +1644,14 @@ jjs_value_to_boolean (const jjs_value_t value) /**< input value */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_value_to_number (const jjs_value_t value) /**< input value */
+jjs_value_to_number (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   ecma_number_t num;
@@ -1701,13 +1675,14 @@ jjs_value_to_number (const jjs_value_t value) /**< input value */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_value_to_object (const jjs_value_t value) /**< input value */
+jjs_value_to_object (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   return jjs_return (ecma_op_to_object (value));
@@ -1723,13 +1698,14 @@ jjs_value_to_object (const jjs_value_t value) /**< input value */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_value_to_primitive (const jjs_value_t value) /**< input value */
+jjs_value_to_primitive (jjs_context_t* context_p, /**< JJS context */
+                        const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   return jjs_return (ecma_op_to_primitive (value, ECMA_PREFERRED_TYPE_NO));
@@ -1745,13 +1721,14 @@ jjs_value_to_primitive (const jjs_value_t value) /**< input value */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_value_to_string (const jjs_value_t value) /**< input value */
+jjs_value_to_string (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   ecma_string_t *str_p = ecma_op_to_string (value);
@@ -1773,20 +1750,21 @@ jjs_value_to_string (const jjs_value_t value) /**< input value */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_value_to_bigint (const jjs_value_t value) /**< input value */
+jjs_value_to_bigint (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_BIGINT
   if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   return jjs_return (ecma_bigint_to_bigint (value, true));
 #else /* !JJS_BUILTIN_BIGINT */
   JJS_UNUSED (value);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_BIGINT_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_BIGINT_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_BIGINT */
 } /* jjs_value_to_bigint */
 
@@ -1799,9 +1777,10 @@ jjs_value_to_bigint (const jjs_value_t value) /**< input value */
  * @return integer representation of the number.
  */
 double
-jjs_value_as_integer (const jjs_value_t value) /**< input value */
+jjs_value_as_integer (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_number (value))
   {
@@ -1834,9 +1813,10 @@ jjs_value_as_integer (const jjs_value_t value) /**< input value */
  * @return int32 representation of the number.
  */
 int32_t
-jjs_value_as_int32 (const jjs_value_t value) /**< input value */
+jjs_value_as_int32 (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_number (value))
   {
@@ -1855,9 +1835,10 @@ jjs_value_as_int32 (const jjs_value_t value) /**< input value */
  * @return uint32 representation of the number.
  */
 uint32_t
-jjs_value_as_uint32 (const jjs_value_t value) /**< input value */
+jjs_value_as_uint32 (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< input value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_number (value))
   {
@@ -1873,9 +1854,10 @@ jjs_value_as_uint32 (const jjs_value_t value) /**< input value */
  * @return stored number as float
  */
 float
-jjs_value_as_float (const jjs_value_t value)  /**< api value */
+jjs_value_as_float (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value)  /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_number (value))
   {
@@ -1895,9 +1877,10 @@ jjs_value_as_float (const jjs_value_t value)  /**< api value */
  * @return stored number as double
  */
 double
-jjs_value_as_double (const jjs_value_t value)  /**< api value */
+jjs_value_as_double (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value)  /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_number (value))
   {
@@ -1919,9 +1902,10 @@ jjs_value_as_double (const jjs_value_t value)  /**< api value */
  * @return copied value
  */
 jjs_value_t
-jjs_value_copy (const jjs_value_t value) /**< value */
+jjs_value_copy (jjs_context_t* context_p, /**< JJS context */
+                const jjs_value_t value) /**< value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
@@ -1936,9 +1920,10 @@ jjs_value_copy (const jjs_value_t value) /**< value */
  * Release ownership of the argument value
  */
 void
-jjs_value_free (jjs_value_t value) /**< value */
+jjs_value_free (jjs_context_t* context_p, /**< JJS context */
+                jjs_value_t value) /**< value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
@@ -1958,13 +1943,14 @@ jjs_value_free (jjs_value_t value) /**< value */
  * the condition is satisfied, you may want to take additional steps like
  * logging or chaning control flow before releasing the value.
  *
+ * @param context_p JJS context
  * @param value the value to release
  * @param condition_fn condition function to apply to the value
  * @return true: value was released; false: value was not released
  */
-bool jjs_value_free_unless (jjs_value_t value, jjs_value_condition_fn_t condition_fn)
+bool jjs_value_free_unless (jjs_context_t* context_p, jjs_value_t value, jjs_value_condition_fn_t condition_fn)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
   JJS_ASSERT (condition_fn);
 
   if (condition_fn (value))
@@ -1972,7 +1958,7 @@ bool jjs_value_free_unless (jjs_value_t value, jjs_value_condition_fn_t conditio
     return false;
   }
 
-  jjs_value_free (value);
+  jjs_value_free (context_p, value);
 
   return true;
 } /* jjs_value_free_unless */
@@ -1986,9 +1972,10 @@ bool jjs_value_free_unless (jjs_value_t value, jjs_value_condition_fn_t conditio
  * @return value of the constructed array object
  */
 jjs_value_t
-jjs_array (jjs_length_t length) /**< length of array */
+jjs_array (jjs_context_t* context_p, /**< JJS context */
+           jjs_length_t length) /**< length of array */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   ecma_object_t *array_p = ecma_op_new_array_object (length);
   return ecma_make_object_value (array_p);
@@ -2000,9 +1987,10 @@ jjs_array (jjs_length_t length) /**< length of array */
  * @return value of the created boolean
  */
 jjs_value_t
-jjs_boolean (bool value) /**< bool value from which a jjs_value_t will be created */
+jjs_boolean (jjs_context_t* context_p, /**< JJS context */
+             bool value) /**< bool value from which a jjs_value_t will be created */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_make_boolean_value (value);
 } /* jjs_boolean */
@@ -2014,11 +2002,12 @@ jjs_boolean (bool value) /**< bool value from which a jjs_value_t will be create
  * @return Error object
  */
 jjs_value_t
-jjs_error (jjs_error_t error_type, /**< type of error */
-             const jjs_value_t message, /**< message of the error */
-             const jjs_value_t options)  /**< options */
+jjs_error (jjs_context_t* context_p, /**< JJS context */
+           jjs_error_t error_type, /**< type of error */
+           const jjs_value_t message, /**< message of the error */
+           const jjs_value_t options)  /**< options */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   ecma_string_t *message_p = NULL;
   if (ecma_is_value_string (message))
@@ -2038,18 +2027,19 @@ jjs_error (jjs_error_t error_type, /**< type of error */
  * @return Error object
  */
 jjs_value_t
-jjs_error_sz (jjs_error_t error_type, /**< type of error */
-                const char *message_p, /**< message of the error */
-                const jjs_value_t options)  /**< options */
+jjs_error_sz (jjs_context_t* context_p, /**< JJS context */
+              jjs_error_t error_type, /**< type of error */
+              const char *message_p, /**< message of the error */
+              const jjs_value_t options)  /**< options */
 {
   jjs_value_t message = ECMA_VALUE_UNDEFINED;
 
   if (message_p != NULL)
   {
-    message = jjs_string_sz (message_p);
+    message = jjs_string_sz (context_p, message_p);
   }
 
-  ecma_value_t error = jjs_error (error_type, message, options);
+  ecma_value_t error = jjs_error (context_p, error_type, message, options);
   ecma_free_value (message);
 
   return error;
@@ -2065,13 +2055,14 @@ jjs_error_sz (jjs_error_t error_type, /**< type of error */
  * If the options argument is an object containing a "cause" property, this cause property will be
  * copied to the new error object. Otherwise, the options argument is ignored.
  *
+ * @param context_p JJS context
  * @param errors iterable value, like an Array or Set
  * @param message_p value to set as message
  * @param options optional options object containing "cause"
  * @return AggregateError object or exception if errors is not iterable
  */
-jjs_value_t jjs_aggregate_error (const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options) {
-  jjs_assert_api_enabled ();
+jjs_value_t jjs_aggregate_error (jjs_context_t* context_p, const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options) {
+  jjs_assert_api_enabled (context_p);
 
   return ecma_new_aggregate_error(errors, message, options);
 } /* jjs_aggregate_error */
@@ -2084,20 +2075,23 @@ jjs_value_t jjs_aggregate_error (const jjs_value_t errors, const jjs_value_t mes
  * If the options argument is an object containing a "cause" property, this cause property will be
  * copied to the new error object. Otherwise, the options argument is ignored.
  *
+ * @param context_p JJS context
  * @param errors iterable value, like an Array or Set
  * @param message_p null terminated string message
  * @param options optional options object containing "cause"
  * @return AggregateError object or exception if errors is not iterable
  */
-jjs_value_t jjs_aggregate_error_sz (const jjs_value_t errors, const char *message_p, const jjs_value_t options) {
+jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t errors, const char *message_p, const jjs_value_t options) {
+  jjs_assert_api_enabled (context_p);
+
   jjs_value_t message = ECMA_VALUE_UNDEFINED;
 
   if (message_p != NULL)
   {
-    message = jjs_string_sz (message_p);
+    message = jjs_string_sz (context_p, message_p);
   }
 
-  ecma_value_t error = jjs_aggregate_error (errors, message, options);
+  ecma_value_t error = jjs_aggregate_error (context_p, errors, message, options);
   ecma_free_value (message);
 
   return error;
@@ -2110,10 +2104,11 @@ jjs_value_t jjs_aggregate_error_sz (const jjs_value_t errors, const char *messag
  * @return exception value
  */
 jjs_value_t
-jjs_throw (jjs_error_t error_type, /**< type of error */
-             const jjs_value_t message) /**< message value */
+jjs_throw (jjs_context_t* context_p, /**< JJS context */
+           jjs_error_t error_type, /**< type of error */
+           const jjs_value_t message) /**< message value */
 {
-  return jjs_throw_value (jjs_error (error_type, message, ECMA_VALUE_UNDEFINED), true);
+  return jjs_throw_value (context_p, jjs_error (context_p, error_type, message, ECMA_VALUE_UNDEFINED), true);
 } /* jjs_throw */
 
 /**
@@ -2123,11 +2118,12 @@ jjs_throw (jjs_error_t error_type, /**< type of error */
  * @return exception value
  */
 jjs_value_t
-jjs_throw_sz (jjs_error_t error_type, /**< type of error */
-                const char *message_p) /**< value of 'message' property
+jjs_throw_sz (jjs_context_t* context_p, /**< JJS context */
+              jjs_error_t error_type, /**< type of error */
+              const char *message_p) /**< value of 'message' property
                                         *   of constructed error object */
 {
-  return jjs_throw_value (jjs_error_sz (error_type, message_p, ECMA_VALUE_UNDEFINED), true);
+  return jjs_throw_value (context_p, jjs_error_sz (context_p, error_type, message_p, ECMA_VALUE_UNDEFINED), true);
 } /* jjs_throw_sz */
 
 /**
@@ -2139,10 +2135,10 @@ jjs_throw_sz (jjs_error_t error_type, /**< type of error */
  * @return value of the constructed function object
  */
 jjs_value_t
-jjs_function_external (jjs_external_handler_t handler) /**< native handler
-                                                            *   for the function */
+jjs_function_external (jjs_context_t* context_p, /**< JJS context */
+                       jjs_external_handler_t handler) /**< native handler or the function */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   ecma_object_t *func_obj_p = ecma_op_create_external_function_object (handler);
   return ecma_make_object_value (func_obj_p);
@@ -2157,9 +2153,10 @@ jjs_function_external (jjs_external_handler_t handler) /**< native handler
  * @return jjs_value_t created from the given double argument.
  */
 jjs_value_t
-jjs_number (double value) /**< double value from which a jjs_value_t will be created */
+jjs_number (jjs_context_t* context_p, /**< JJS context */
+            double value) /**< double value from which a jjs_value_t will be created */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_make_number_value ((ecma_number_t) value);
 } /* jjs_number */
@@ -2173,10 +2170,10 @@ jjs_number (double value) /**< double value from which a jjs_value_t will be cre
  * @return jjs_value_t representing an infinity value.
  */
 jjs_value_t
-jjs_infinity (bool sign) /**< true for negative Infinity
-                            *   false for positive Infinity */
+jjs_infinity (jjs_context_t* context_p, /**< JJS context */
+              bool sign) /**< true for negative Infinity; false for positive Infinity */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_make_number_value (ecma_number_make_infinity (sign));
 } /* jjs_infinity */
@@ -2190,9 +2187,9 @@ jjs_infinity (bool sign) /**< true for negative Infinity
  * @return jjs_value_t representing a not-a-number value.
  */
 jjs_value_t
-jjs_nan (void)
+jjs_nan (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_make_nan_value ();
 } /* jjs_nan */
@@ -2205,9 +2202,10 @@ jjs_nan (void)
  *
  * @return jjs_value_t created from the given float argument.
  */
-jjs_value_t jjs_number_from_float (float value) /**< float value from which a jjs_value_t will be created */
+jjs_value_t jjs_number_from_float (jjs_context_t* context_p, /**< JJS context */
+                                   float value) /**< float value from which a jjs_value_t will be created */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_NUMBER_TYPE_FLOAT64
   return ecma_make_number_value ((ecma_number_t) value);
@@ -2224,9 +2222,10 @@ jjs_value_t jjs_number_from_float (float value) /**< float value from which a jj
  *
  * @return jjs_value_t created from the given double argument.
  */
-jjs_value_t jjs_number_from_double (double value) /**< double value from which a jjs_value_t will be created */
+jjs_value_t jjs_number_from_double (jjs_context_t* context_p, /**< JJS context */
+                                    double value) /**< double value from which a jjs_value_t will be created */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_NUMBER_TYPE_FLOAT64
   return ecma_make_number_value (value);
@@ -2243,9 +2242,10 @@ jjs_value_t jjs_number_from_double (double value) /**< double value from which a
  *
  * @return jjs_value_t created from the given integer argument.
  */
-jjs_value_t jjs_number_from_int32 (int32_t value) /**< int value from which a jjs_value_t will be created */
+jjs_value_t jjs_number_from_int32 (jjs_context_t* context_p, /**< JJS context */
+                                   int32_t value) /**< int value from which a jjs_value_t will be created */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_make_int32_value (value);
 } /* jjs_number_from_int32 */
@@ -2258,9 +2258,10 @@ jjs_value_t jjs_number_from_int32 (int32_t value) /**< int value from which a jj
  *
  * @return jjs_value_t created from the given unsigned argument.
  */
-jjs_value_t jjs_number_from_uint32 (uint32_t value) /**< unsigned value from which a jjs_value_t will be created */
+jjs_value_t jjs_number_from_uint32 (jjs_context_t* context_p, /**< JJS context */
+                                    uint32_t value) /**< unsigned value from which a jjs_value_t will be created */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_make_uint32_value (value);
 } /* jjs_number_from_uint32 */
@@ -2271,9 +2272,9 @@ jjs_value_t jjs_number_from_uint32 (uint32_t value) /**< unsigned value from whi
  * @return value of undefined
  */
 jjs_value_t
-jjs_undefined (void)
+jjs_undefined (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ECMA_VALUE_UNDEFINED;
 } /* jjs_undefined */
@@ -2284,9 +2285,9 @@ jjs_undefined (void)
  * @return jjs_value_t representing null
  */
 jjs_value_t
-jjs_null (void)
+jjs_null (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ECMA_VALUE_NULL;
 } /* jjs_null */
@@ -2300,9 +2301,9 @@ jjs_null (void)
  * @return value of the created object
  */
 jjs_value_t
-jjs_object (void)
+jjs_object (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_make_object_value (ecma_op_create_object_object_noarg ());
 } /* jjs_object */
@@ -2317,9 +2318,9 @@ jjs_object (void)
  * @return value of the created object
  */
 jjs_value_t
-jjs_promise (void)
+jjs_promise (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return jjs_return (ecma_op_create_promise_object (ECMA_VALUE_EMPTY, ECMA_VALUE_UNDEFINED, NULL));
 } /* jjs_create_promise */
@@ -2333,14 +2334,15 @@ jjs_promise (void)
  * @return value of the created Proxy object
  */
 jjs_value_t
-jjs_proxy (const jjs_value_t target, /**< target argument */
-             const jjs_value_t handler) /**< handler argument */
+jjs_proxy (jjs_context_t* context_p, /**< JJS context */
+           const jjs_value_t target, /**< target argument */
+           const jjs_value_t handler) /**< handler argument */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (target) || ecma_is_value_exception (handler))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
 #if JJS_BUILTIN_PROXY
@@ -2353,7 +2355,7 @@ jjs_proxy (const jjs_value_t target, /**< target argument */
 
   return ecma_make_object_value (proxy_p);
 #else /* !JJS_BUILTIN_PROXY */
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PROXY_IS_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PROXY_IS_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_PROXY */
 } /* jjs_proxy */
 
@@ -2373,15 +2375,16 @@ JJS_STATIC_ASSERT ((int) JJS_PROXY_SKIP_RESULT_VALIDATION == (int) ECMA_PROXY_SK
  * @return value of the created Proxy object
  */
 jjs_value_t
-jjs_proxy_custom (const jjs_value_t target, /**< target argument */
-                    const jjs_value_t handler, /**< handler argument */
-                    uint32_t flags) /**< jjs_proxy_custom_behavior_t option bits */
+jjs_proxy_custom (jjs_context_t* context_p, /**< JJS context */
+                  const jjs_value_t target, /**< target argument */
+                  const jjs_value_t handler, /**< handler argument */
+                  uint32_t flags) /**< jjs_proxy_custom_behavior_t option bits */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (target) || ecma_is_value_exception (handler))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
 #if JJS_BUILTIN_PROXY
@@ -2397,7 +2400,7 @@ jjs_proxy_custom (const jjs_value_t target, /**< target argument */
   return ecma_make_object_value (proxy_p);
 #else /* !JJS_BUILTIN_PROXY */
   JJS_UNUSED (flags);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PROXY_IS_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PROXY_IS_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_PROXY */
 } /* jjs_proxy_custom */
 
@@ -2407,10 +2410,11 @@ jjs_proxy_custom (const jjs_value_t target, /**< target argument */
  * @return created string
  */
 jjs_value_t
-jjs_string_sz (const char *str_p) /**< pointer to string */
+jjs_string_sz (jjs_context_t* context_p, /**< JJS context */
+               const char *str_p) /**< pointer to string */
 {
   const jjs_char_t *data_p = (const jjs_char_t *) str_p;
-  return jjs_string (data_p, lit_zt_utf8_string_size (data_p), JJS_ENCODING_CESU8);
+  return jjs_string (context_p, data_p, lit_zt_utf8_string_size (data_p), JJS_ENCODING_CESU8);
 } /* jjs_string_sz */
 
 /**
@@ -2421,9 +2425,10 @@ jjs_string_sz (const char *str_p) /**< pointer to string */
  * @return created string
  */
 jjs_value_t
-jjs_string_utf8_sz (const char *str_p) /**< pointer to string */
+jjs_string_utf8_sz (jjs_context_t* context_p, /**< JJS context */
+                    const char *str_p) /**< pointer to string */
 {
-  return jjs_string ((const jjs_char_t *) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_UTF8);
+  return jjs_string (context_p, (const jjs_char_t *) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_UTF8);
 } /* jjs_string_utf8_sz */
 
 /**
@@ -2434,9 +2439,10 @@ jjs_string_utf8_sz (const char *str_p) /**< pointer to string */
  * @return created string
  */
 jjs_value_t
-jjs_string_cesu8_sz (const char *str_p) /**< pointer to string */
+jjs_string_cesu8_sz (jjs_context_t* context_p, /**< JJS context */
+                     const char *str_p) /**< pointer to string */
 {
-  return jjs_string ((const jjs_char_t *) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_CESU8);
+  return jjs_string (context_p, (const jjs_char_t *) str_p, (jjs_size_t) strlen (str_p), JJS_ENCODING_CESU8);
 } /* jjs_string_cesu8_sz */
 
 /**
@@ -2449,13 +2455,14 @@ jjs_string_cesu8_sz (const char *str_p) /**< pointer to string */
  * @return created string
  */
 jjs_value_t
-jjs_string (const jjs_char_t *buffer_p, /**< pointer to buffer */
-              jjs_size_t buffer_size, /**< buffer size */
-              jjs_encoding_t encoding) /**< buffer encoding */
+jjs_string (jjs_context_t* context_p, /**< JJS context */
+            const jjs_char_t *buffer_p, /**< pointer to buffer */
+            jjs_size_t buffer_size, /**< buffer size */
+            jjs_encoding_t encoding) /**< buffer encoding */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
   ecma_string_t *ecma_str_p = NULL;
-  JJS_ASSERT (jjs_validate_string (buffer_p, buffer_size, encoding));
+  JJS_ASSERT (jjs_validate_string (context_p, buffer_p, buffer_size, encoding));
 
   switch (encoding)
   {
@@ -2471,7 +2478,7 @@ jjs_string (const jjs_char_t *buffer_p, /**< pointer to buffer */
     }
     default:
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_ENCODING));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_ENCODING));
     }
   }
 
@@ -2484,11 +2491,12 @@ jjs_string (const jjs_char_t *buffer_p, /**< pointer to buffer */
  * @return created external string
  */
 jjs_value_t
-jjs_string_external_sz (const char *str_p, /**< pointer to string */
-                          void *user_p) /**< user pointer passed to the callback when the string is freed */
+jjs_string_external_sz (jjs_context_t* context_p, /**< JJS context */
+                        const char *str_p, /**< pointer to string */
+                        void *user_p) /**< user pointer passed to the callback when the string is freed */
 {
   const jjs_char_t *data_p = (const jjs_char_t *) str_p;
-  return jjs_string_external (data_p, lit_zt_utf8_string_size (data_p), user_p);
+  return jjs_string_external (context_p, data_p, lit_zt_utf8_string_size (data_p), user_p);
 } /* jjs_string_external_sz */
 
 /**
@@ -2501,13 +2509,14 @@ jjs_string_external_sz (const char *str_p, /**< pointer to string */
  * @return created external string
  */
 jjs_value_t
-jjs_string_external (const jjs_char_t *buffer_p, /**< pointer to string */
-                       jjs_size_t buffer_size, /**< string size */
-                       void *user_p) /**< user pointer passed to the callback when the string is freed */
+jjs_string_external (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_char_t *buffer_p, /**< pointer to string */
+                     jjs_size_t buffer_size, /**< string size */
+                     void *user_p) /**< user pointer passed to the callback when the string is freed */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  JJS_ASSERT (jjs_validate_string (buffer_p, buffer_size, JJS_ENCODING_CESU8));
+  JJS_ASSERT (jjs_validate_string (context_p, buffer_p, buffer_size, JJS_ENCODING_CESU8));
   ecma_string_t *ecma_str_p = ecma_new_ecma_external_string_from_cesu8 (buffer_p, buffer_size, user_p);
   return ecma_make_string_value (ecma_str_p);
 } /* jjs_string_external_sz_sz */
@@ -2521,13 +2530,14 @@ jjs_string_external (const jjs_char_t *buffer_p, /**< pointer to string */
  *         or thrown exception
  */
 jjs_value_t
-jjs_symbol_with_description (const jjs_value_t value) /**< api value */
+jjs_symbol_with_description (jjs_context_t* context_p, /**< JJS context */
+                             const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   return jjs_return (ecma_op_create_symbol (&value, 1));
@@ -2542,11 +2552,12 @@ jjs_symbol_with_description (const jjs_value_t value) /**< api value */
  *         or thrown exception
  */
 jjs_value_t
-jjs_bigint (const uint64_t *digits_p, /**< BigInt digits (lowest digit first) */
-              uint32_t digit_count, /**< number of BigInt digits */
-              bool sign) /**< sign bit, true if the result should be negative */
+jjs_bigint (jjs_context_t* context_p, /**< JJS context */
+            const uint64_t *digits_p, /**< BigInt digits (lowest digit first) */
+            uint32_t digit_count, /**< number of BigInt digits */
+            bool sign) /**< sign bit, true if the result should be negative */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_BIGINT
   return jjs_return (ecma_bigint_create_from_digits (digits_p, digit_count, sign));
@@ -2564,15 +2575,16 @@ jjs_bigint (const uint64_t *digits_p, /**< BigInt digits (lowest digit first) */
  * @return value of the constructed RegExp object.
  */
 jjs_value_t
-jjs_regexp_sz (const char *pattern_p, /**< RegExp pattern as zero-terminated ASCII string */
-                 uint16_t flags) /**< RegExp flags */
+jjs_regexp_sz (jjs_context_t* context_p, /**< JJS context */
+               const char *pattern_p, /**< RegExp pattern as zero-terminated ASCII string */
+               uint16_t flags) /**< RegExp flags */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  jjs_value_t pattern = jjs_string_sz (pattern_p);
-  jjs_value_t result = jjs_regexp (pattern, flags);
+  jjs_value_t pattern = jjs_string_sz (context_p, pattern_p);
+  jjs_value_t result = jjs_regexp (context_p, pattern, flags);
 
-  jjs_value_free (pattern);
+  jjs_value_free (context_p, pattern);
   return jjs_return (result);
 } /* jjs_regexp_sz */
 
@@ -2582,15 +2594,16 @@ jjs_regexp_sz (const char *pattern_p, /**< RegExp pattern as zero-terminated ASC
  * @return value of the constructed RegExp object.
  */
 jjs_value_t
-jjs_regexp (const jjs_value_t pattern, /**< pattern string */
-              uint16_t flags) /**< RegExp flags */
+jjs_regexp (jjs_context_t* context_p, /**< JJS context */
+            const jjs_value_t pattern, /**< pattern string */
+            uint16_t flags) /**< RegExp flags */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_REGEXP
   if (!ecma_is_value_string (pattern))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_object_t *regexp_obj_p = ecma_op_regexp_alloc (NULL);
@@ -2605,10 +2618,8 @@ jjs_regexp (const jjs_value_t pattern, /**< pattern string */
   return jjs_return (result);
 
 #else /* !JJS_BUILTIN_REGEXP */
-  JJS_UNUSED (pattern);
-  JJS_UNUSED (flags);
-
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_REGEXP_IS_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (pattern, flags);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_REGEXP_IS_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_REGEXP */
 } /* jjs_regexp */
 
@@ -2618,20 +2629,20 @@ jjs_regexp (const jjs_value_t pattern, /**< pattern string */
  * @return new realm object
  */
 jjs_value_t
-jjs_realm (void)
+jjs_realm (jjs_context_t* context_p) /**< JJS context */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_REALMS
   ecma_global_object_t *global_object_p = ecma_builtin_create_global_object ();
   ecma_value_t global = ecma_make_object_value ((ecma_object_t *) global_object_p);
 
-  jjs_api_object_init (global);
-  jjs_annex_init_realm (global_object_p);
+  jjs_api_object_init (context_p, global);
+  jjs_annex_init_realm (context_p, global_object_p);
 
   return global;
 #else /* !JJS_BUILTIN_REALMS */
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_REALMS_ARE_DISABLED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_REALMS_ARE_DISABLED));
 #endif /* JJS_BUILTIN_REALMS */
 } /* jjs_realm */
 
@@ -2644,11 +2655,12 @@ jjs_realm (void)
  * @return length of the given array
  */
 jjs_length_t
-jjs_array_length (const jjs_value_t value) /**< api value */
+jjs_array_length (jjs_context_t* context_p, /**< JJS context */
+                  const jjs_value_t value) /**< api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  if (!jjs_value_is_object (value))
+  if (!jjs_value_is_object (context_p, value))
   {
     return 0;
   }
@@ -2670,10 +2682,11 @@ jjs_array_length (const jjs_value_t value) /**< api value */
  *         0 - if value is not a string
  */
 jjs_size_t
-jjs_string_size (const jjs_value_t value, /**< input string */
-                   jjs_encoding_t encoding) /**< encoding */
+jjs_string_size (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_value_t value, /**< input string */
+                 jjs_encoding_t encoding) /**< encoding */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_string (value))
   {
@@ -2704,9 +2717,10 @@ jjs_string_size (const jjs_value_t value, /**< input string */
  *         0 - if value is not a string
  */
 jjs_length_t
-jjs_string_length (const jjs_value_t value) /**< input string */
+jjs_string_length (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t value) /**< input string */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_string (value))
   {
@@ -2723,12 +2737,13 @@ jjs_string_length (const jjs_value_t value) /**< input string */
  * @return number of bytes copied to the buffer
  */
 jjs_size_t
-jjs_string_to_buffer (const jjs_value_t value, /**< input string value */
-                        jjs_encoding_t encoding, /**< output encoding */
-                        jjs_char_t *buffer_p, /**< [out] output characters buffer */
-                        jjs_size_t buffer_size) /**< size of output buffer */
+jjs_string_to_buffer (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value, /**< input string value */
+                      jjs_encoding_t encoding, /**< output encoding */
+                      jjs_char_t *buffer_p, /**< [out] output characters buffer */
+                      jjs_size_t buffer_size) /**< size of output buffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_string (value) || buffer_p == NULL)
   {
@@ -2744,6 +2759,7 @@ jjs_string_to_buffer (const jjs_value_t value, /**< input string value */
  * Create a substring of the input string value.
  * Return an empty string if input value is not a string.
  *
+ * @param context_p JJS context
  * @param value  the input string value
  * @param start  start position of the substring
  * @param end    end position of the substring
@@ -2751,8 +2767,9 @@ jjs_string_to_buffer (const jjs_value_t value, /**< input string value */
  * @return created string
  */
 jjs_value_t
-jjs_string_substr (const jjs_value_t value, jjs_length_t start, jjs_length_t end)
+jjs_string_substr (jjs_context_t* context_p, const jjs_value_t value, jjs_length_t start, jjs_length_t end)
 {
+  JJS_UNUSED (context_p);
   if (!ecma_is_value_string (value))
   {
     return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
@@ -2765,17 +2782,21 @@ jjs_string_substr (const jjs_value_t value, jjs_length_t start, jjs_length_t end
  * Iterate over the input string value in the specified encoding, visiting each unit of the encoded string once. If
  * the input value is not a string, the function will do nothing.
  *
+ * @param context_p JJS context
  * @param value     the input string value
  * @param callback  callback function called for each byte of the encoded string.
  * @param encoding  the requested encoding for the string
  * @param user_p    User pointer passed to the callback function
  */
 void
-jjs_string_iterate (const jjs_value_t value,
-                      jjs_encoding_t encoding,
-                      jjs_string_iterate_cb_t callback,
-                      void *user_p)
+jjs_string_iterate (jjs_context_t* context_p,
+                    const jjs_value_t value,
+                    jjs_encoding_t encoding,
+                    jjs_string_iterate_cb_t callback,
+                    void *user_p)
 {
+  jjs_assert_api_enabled (context_p);
+
   if (!ecma_is_value_string (value))
   {
     return;
@@ -2836,9 +2857,11 @@ jjs_string_iterate (const jjs_value_t value,
  * Sets the global callback which is called when an external string is freed.
  */
 void
-jjs_string_external_on_free (jjs_external_string_free_cb_t callback) /**< free callback */
+jjs_string_external_on_free (jjs_context_t* context_p, /**< JJS context */
+                             jjs_external_string_free_cb_t callback) /**< free callback */
 {
-  JJS_CONTEXT (external_string_free_callback_p) = callback;
+  jjs_assert_api_enabled (context_p);
+  context_p->external_string_free_callback_p = callback;
 } /* jjs_string_external_on_free */
 
 /**
@@ -2848,10 +2871,13 @@ jjs_string_external_on_free (jjs_external_string_free_cb_t callback) /**< free c
  *         NULL, otherwise
  */
 void *
-jjs_string_user_ptr (const jjs_value_t value, /**< string value */
-                       bool *is_external) /**< [out] true - if value is an external string,
-                                           *         false - otherwise */
+jjs_string_user_ptr (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value, /**< string value */
+                     bool *is_external) /**< [out] true - if value is an external string,
+                                         *         false - otherwise */
 {
+  jjs_assert_api_enabled (context_p);
+
   if (is_external != NULL)
   {
     *is_external = false;
@@ -2892,10 +2918,11 @@ jjs_string_user_ptr (const jjs_value_t value, /**< string value */
  *         true/false API value  - depend on whether the property exists
  */
 jjs_value_t
-jjs_object_has (const jjs_value_t object, /**< object value */
-                  const jjs_value_t key) /**< property name (string value) */
+jjs_object_has (jjs_context_t* context_p, /**< JJS context */
+                const jjs_value_t object, /**< object value */
+                const jjs_value_t key) /**< property name (string value) */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
@@ -2915,17 +2942,18 @@ jjs_object_has (const jjs_value_t object, /**< object value */
  *         true/false API value  - depend on whether the property exists
  */
 jjs_value_t
-jjs_object_has_sz (const jjs_value_t object, /**< object value */
-                     const char *key_p) /**< property key */
+jjs_object_has_sz (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t object, /**< object value */
+                   const char *key_p) /**< property key */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  jjs_value_t key_str = jjs_string_sz (key_p);
-  jjs_value_t result = jjs_object_has (object, key_str);
+  jjs_value_t key_str = jjs_string_sz (context_p, key_p);
+  jjs_value_t result = jjs_object_has (context_p, object, key_str);
   ecma_free_value (key_str);
 
   return result;
-} /* jjs_object_has */
+} /* jjs_object_has_sz */
 
 /**
  * Checks whether the object has the given property.
@@ -2934,10 +2962,11 @@ jjs_object_has_sz (const jjs_value_t object, /**< object value */
  *         ECMA_VALUE_{TRUE, FALSE} - based on whether the property exists
  */
 jjs_value_t
-jjs_object_has_own (const jjs_value_t object, /**< object value */
-                      const jjs_value_t key) /**< property name (string value) */
+jjs_object_has_own (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t object, /**< object value */
+                    const jjs_value_t key) /**< property name (string value) */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
@@ -2957,10 +2986,11 @@ jjs_object_has_own (const jjs_value_t object, /**< object value */
  *         false - otherwise
  */
 bool
-jjs_object_has_internal (const jjs_value_t object, /**< object value */
-                           const jjs_value_t key) /**< property name value */
+jjs_object_has_internal (jjs_context_t* context_p, /**< JJS context */
+                         const jjs_value_t object, /**< object value */
+                         const jjs_value_t key) /**< property name value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
@@ -2996,10 +3026,11 @@ jjs_object_has_internal (const jjs_value_t object, /**< object value */
  *         exception - otherwise
  */
 jjs_value_t
-jjs_object_delete (jjs_value_t object, /**< object value */
-                     const jjs_value_t key) /**< property name (string value) */
+jjs_object_delete (jjs_context_t* context_p, /**< JJS context */
+                   jjs_value_t object, /**< object value */
+                   const jjs_value_t key) /**< property name (string value) */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
@@ -3016,13 +3047,14 @@ jjs_object_delete (jjs_value_t object, /**< object value */
  *         exception - otherwise
  */
 jjs_value_t
-jjs_object_delete_sz (jjs_value_t object, /**< object value */
-                        const char *key_p) /**< property key */
+jjs_object_delete_sz (jjs_context_t* context_p, /**< JJS context */
+                      jjs_value_t object, /**< object value */
+                      const char *key_p) /**< property key */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  jjs_value_t key_str = jjs_string_sz (key_p);
-  jjs_value_t result = jjs_object_delete (object, key_str);
+  jjs_value_t key_str = jjs_string_sz (context_p, key_p);
+  jjs_value_t result = jjs_object_delete (context_p, object, key_str);
   ecma_free_value (key_str);
 
   return result;
@@ -3035,10 +3067,11 @@ jjs_object_delete_sz (jjs_value_t object, /**< object value */
  *         false - otherwise
  */
 jjs_value_t
-jjs_object_delete_index (jjs_value_t object, /**< object value */
-                           uint32_t index) /**< index to be written */
+jjs_object_delete_index (jjs_context_t* context_p, /**< JJS context */
+                         jjs_value_t object, /**< object value */
+                         uint32_t index) /**< index to be written */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
@@ -3059,10 +3092,11 @@ jjs_object_delete_index (jjs_value_t object, /**< object value */
  *         false - otherwise
  */
 bool
-jjs_object_delete_internal (jjs_value_t object, /**< object value */
-                              const jjs_value_t key) /**< property name value */
+jjs_object_delete_internal (jjs_context_t* context_p, /**< JJS context */
+                            jjs_value_t object, /**< object value */
+                            const jjs_value_t key) /**< property name value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
@@ -3108,14 +3142,15 @@ jjs_object_delete_internal (jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_get (const jjs_value_t object, /**< object value */
-                  const jjs_value_t key) /**< property name (string value) */
+jjs_object_get (jjs_context_t* context_p, /**< JJS context */
+                const jjs_value_t object, /**< object value */
+                const jjs_value_t key) /**< property name (string value) */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   jjs_value_t ret_value =
@@ -3133,17 +3168,18 @@ jjs_object_get (const jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_get_sz (const jjs_value_t object, /**< object value */
-                     const char *key_p) /**< property key */
+jjs_object_get_sz (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t object, /**< object value */
+                   const char *key_p) /**< property key */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  jjs_value_t key_str = jjs_string_sz (key_p);
-  jjs_value_t result = jjs_object_get (object, key_str);
+  jjs_value_t key_str = jjs_string_sz (context_p, key_p);
+  jjs_value_t result = jjs_object_get (context_p, object, key_str);
   ecma_free_value (key_str);
 
   return result;
-} /* jjs_object_get */
+} /* jjs_object_get_sz */
 
 /**
  * Get value by an index from the specified object.
@@ -3155,14 +3191,15 @@ jjs_object_get_sz (const jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_get_index (const jjs_value_t object, /**< object value */
-                        uint32_t index) /**< index to be written */
+jjs_object_get_index (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t object, /**< object value */
+                      uint32_t index) /**< index to be written */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_value_t ret_value = ecma_op_object_get_by_index (ecma_get_object_from_value (object), index);
@@ -3180,13 +3217,14 @@ jjs_object_get_index (const jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_find_own (const jjs_value_t object, /**< object value */
-                       const jjs_value_t key, /**< property name (string value) */
-                       const jjs_value_t receiver, /**< receiver object value */
-                       bool *found_p) /**< [out] true, if the property is found
-                                       *   or object is a Proxy object, false otherwise */
+jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t object, /**< object value */
+                     const jjs_value_t key, /**< property name (string value) */
+                     const jjs_value_t receiver, /**< receiver object value */
+                     bool *found_p) /**< [out] true, if the property is found
+                                     *   or object is a Proxy object, false otherwise */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (found_p != NULL)
   {
@@ -3195,7 +3233,7 @@ jjs_object_find_own (const jjs_value_t object, /**< object value */
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key) || !ecma_is_value_object (receiver))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_object_t *object_p = ecma_get_object_from_value (object);
@@ -3239,14 +3277,15 @@ jjs_object_find_own (const jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_get_internal (const jjs_value_t object, /**< object value */
-                           const jjs_value_t key) /**< property name value */
+jjs_object_get_internal (jjs_context_t* context_p, /**< JJS context */
+                         const jjs_value_t object, /**< object value */
+                         const jjs_value_t key) /**< property name value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_object_t *obj_p = ecma_get_object_from_value (object);
@@ -3286,15 +3325,16 @@ jjs_object_get_internal (const jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_set (jjs_value_t object, /**< object value */
-                  const jjs_value_t key, /**< property name (string value) */
-                  const jjs_value_t value) /**< value to set */
+jjs_object_set (jjs_context_t* context_p, /**< JJS context */
+                jjs_value_t object, /**< object value */
+                const jjs_value_t key, /**< property name (string value) */
+                const jjs_value_t value) /**< value to set */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value) || !ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   return jjs_return (
@@ -3311,18 +3351,19 @@ jjs_object_set (jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_set_sz (jjs_value_t object, /**< object value */
-                     const char *key_p, /**< property key */
-                     const jjs_value_t value) /**< value to set */
+jjs_object_set_sz (jjs_context_t* context_p, /**< JJS context */
+                   jjs_value_t object, /**< object value */
+                   const char *key_p, /**< property key */
+                   const jjs_value_t value) /**< value to set */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  jjs_value_t key_str = jjs_string_sz (key_p);
-  jjs_value_t result = jjs_object_set (object, key_str, value);
+  jjs_value_t key_str = jjs_string_sz (context_p, key_p);
+  jjs_value_t result = jjs_object_set (context_p, object, key_str, value);
   ecma_free_value (key_str);
 
   return result;
-} /* jjs_object_set */
+} /* jjs_object_set_sz */
 
 /**
  * Set indexed value in the specified object
@@ -3334,15 +3375,16 @@ jjs_object_set_sz (jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_set_index (jjs_value_t object, /**< object value */
-                        uint32_t index, /**< index to be written */
-                        const jjs_value_t value) /**< value to set */
+jjs_object_set_index (jjs_context_t* context_p, /**< JJS context */
+                      jjs_value_t object, /**< object value */
+                      uint32_t index, /**< index to be written */
+                      const jjs_value_t value) /**< value to set */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value) || !ecma_is_value_object (object))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_value_t ret_value = ecma_op_object_put_by_index (ecma_get_object_from_value (object), index, value, true);
@@ -3361,11 +3403,12 @@ jjs_object_set_index (jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 bool
-jjs_object_set_internal (jjs_value_t object, /**< object value */
-                           const jjs_value_t key, /**< property name value */
-                           const jjs_value_t value) /**< value to set */
+jjs_object_set_internal (jjs_context_t* context_p, /**< JJS context */
+                         jjs_value_t object, /**< object value */
+                         const jjs_value_t key, /**< property name value */
+                         const jjs_value_t value) /**< value to set */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (value) || !ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
@@ -3430,8 +3473,9 @@ jjs_object_set_internal (jjs_value_t object, /**< object value */
  * @return empty property descriptor
  */
 jjs_property_descriptor_t
-jjs_property_descriptor (void)
+jjs_property_descriptor (jjs_context_t* context_p) /**< JJS context */
 {
+  JJS_UNUSED (context_p);
   jjs_property_descriptor_t prop_desc;
 
   prop_desc.flags = JJS_PROP_NO_OPTS;
@@ -3450,9 +3494,10 @@ jjs_property_descriptor (void)
  * @return jjs_property_descriptor_t
  */
 static jjs_property_descriptor_t
-jjs_property_descriptor_from_ecma (const ecma_property_descriptor_t *prop_desc_p) /**<[out] property_descriptor */
+jjs_property_descriptor_from_ecma (jjs_context_t* context_p, /**< JJS context */
+                                   const ecma_property_descriptor_t *prop_desc_p) /**<[out] property_descriptor */
 {
-  jjs_property_descriptor_t prop_desc = jjs_property_descriptor ();
+  jjs_property_descriptor_t prop_desc = jjs_property_descriptor (context_p);
 
   prop_desc.flags = prop_desc_p->flags;
 
@@ -3496,8 +3541,11 @@ jjs_property_descriptor_from_ecma (const ecma_property_descriptor_t *prop_desc_p
  * @return ecma_property_descriptor_t
  */
 static ecma_property_descriptor_t
-jjs_property_descriptor_to_ecma (const jjs_property_descriptor_t *prop_desc_p) /**< input property_descriptor */
+jjs_property_descriptor_to_ecma (jjs_context_t* context_p, /**< JJS context */
+                                 const jjs_property_descriptor_t *prop_desc_p) /**< input property_descriptor */
 {
+  JJS_UNUSED (context_p);
+
   ecma_property_descriptor_t prop_desc = ecma_make_empty_property_descriptor ();
 
   prop_desc.flags = prop_desc_p->flags;
@@ -3581,15 +3629,16 @@ jjs_property_descriptor_to_ecma (const jjs_property_descriptor_t *prop_desc_p) /
  *         false value - otherwise
  */
 static jjs_value_t
-jjs_type_error_or_false (ecma_error_msg_t msg, /**< message */
-                           uint16_t flags) /**< property descriptor flags */
+jjs_type_error_or_false (jjs_context_t* context_p, /**< JJS context */
+                         ecma_error_msg_t msg, /**< message */
+                         uint16_t flags) /**< property descriptor flags */
 {
   if (!(flags & JJS_PROP_SHOULD_THROW))
   {
     return ECMA_VALUE_FALSE;
   }
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (msg));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (msg));
 } /* jjs_type_error_or_false */
 
 /**
@@ -3603,28 +3652,29 @@ jjs_type_error_or_false (ecma_error_msg_t msg, /**< message */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_define_own_prop (jjs_value_t object, /**< object value */
-                              const jjs_value_t key, /**< property name (string value) */
-                              const jjs_property_descriptor_t *prop_desc_p) /**< property descriptor */
+jjs_object_define_own_prop (jjs_context_t* context_p, /**< JJS context */
+                            jjs_value_t object, /**< object value */
+                            const jjs_value_t key, /**< property name (string value) */
+                            const jjs_property_descriptor_t *prop_desc_p) /**< property descriptor */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
-    return jjs_type_error_or_false (ECMA_ERR_WRONG_ARGS_MSG, prop_desc_p->flags);
+    return jjs_type_error_or_false (context_p, ECMA_ERR_WRONG_ARGS_MSG, prop_desc_p->flags);
   }
 
   if (prop_desc_p->flags & (JJS_PROP_IS_WRITABLE_DEFINED | JJS_PROP_IS_VALUE_DEFINED)
       && prop_desc_p->flags & (JJS_PROP_IS_GET_DEFINED | JJS_PROP_IS_SET_DEFINED))
   {
-    return jjs_type_error_or_false (ECMA_ERR_WRONG_ARGS_MSG, prop_desc_p->flags);
+    return jjs_type_error_or_false (context_p, ECMA_ERR_WRONG_ARGS_MSG, prop_desc_p->flags);
   }
 
-  ecma_property_descriptor_t prop_desc = jjs_property_descriptor_to_ecma (prop_desc_p);
+  ecma_property_descriptor_t prop_desc = jjs_property_descriptor_to_ecma (context_p, prop_desc_p);
 
   if (ECMA_IS_VALUE_ERROR (prop_desc.value))
   {
-    return jjs_type_error_or_false (ECMA_ERR_WRONG_ARGS_MSG, prop_desc_p->flags);
+    return jjs_type_error_or_false (context_p, ECMA_ERR_WRONG_ARGS_MSG, prop_desc_p->flags);
   }
 
   return jjs_return (ecma_op_object_define_own_property (ecma_get_object_from_value (object),
@@ -3639,11 +3689,12 @@ jjs_object_define_own_prop (jjs_value_t object, /**< object value */
  *         false - otherwise, the prop_desc_p is unchanged
  */
 jjs_value_t
-jjs_object_get_own_prop (const jjs_value_t object, /**< object value */
-                           const jjs_value_t key, /**< property name (string value) */
-                           jjs_property_descriptor_t *prop_desc_p) /**< property descriptor */
+jjs_object_get_own_prop (jjs_context_t* context_p, /**< JJS context */
+                         const jjs_value_t object, /**< object value */
+                         const jjs_value_t key, /**< property name (string value) */
+                         jjs_property_descriptor_t *prop_desc_p) /**< property descriptor */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
@@ -3714,21 +3765,22 @@ jjs_object_get_own_prop (const jjs_value_t object, /**< object value */
  * Free fields of property descriptor (setter, getter and value).
  */
 void
-jjs_property_descriptor_free (jjs_property_descriptor_t *prop_desc_p) /**< property descriptor */
+jjs_property_descriptor_free (jjs_context_t* context_p, /**< JJS context */
+                              jjs_property_descriptor_t *prop_desc_p) /**< property descriptor */
 {
   if (prop_desc_p->flags & JJS_PROP_IS_VALUE_DEFINED)
   {
-    jjs_value_free (prop_desc_p->value);
+    jjs_value_free (context_p, prop_desc_p->value);
   }
 
   if (prop_desc_p->flags & JJS_PROP_IS_GET_DEFINED)
   {
-    jjs_value_free (prop_desc_p->getter);
+    jjs_value_free (context_p, prop_desc_p->getter);
   }
 
   if (prop_desc_p->flags & JJS_PROP_IS_SET_DEFINED)
   {
-    jjs_value_free (prop_desc_p->setter);
+    jjs_value_free (context_p, prop_desc_p->setter);
   }
 } /* jjs_property_descriptor_free */
 
@@ -3742,23 +3794,24 @@ jjs_property_descriptor_free (jjs_property_descriptor_t *prop_desc_p) /**< prope
  * @return returned JJS value of the called function
  */
 jjs_value_t
-jjs_call (const jjs_value_t func_object, /**< function object to call */
-            const jjs_value_t this_value, /**< object for 'this' binding */
-            const jjs_value_t *args_p, /**< function's call arguments */
-            jjs_size_t args_count) /**< number of the arguments */
+jjs_call (jjs_context_t* context_p, /**< JJS context */
+          const jjs_value_t func_object, /**< function object to call */
+          const jjs_value_t this_value, /**< object for 'this' binding */
+          const jjs_value_t *args_p, /**< function's call arguments */
+          jjs_size_t args_count) /**< number of the arguments */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_exception (this_value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   for (jjs_size_t i = 0; i < args_count; i++)
   {
     if (ecma_is_value_exception (args_p[i]))
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
     }
   }
 
@@ -3775,23 +3828,24 @@ jjs_call (const jjs_value_t func_object, /**< function object to call */
  * @return returned JJS value of the invoked constructor
  */
 jjs_value_t
-jjs_construct (const jjs_value_t func_object, /**< function object to call */
-                 const jjs_value_t *args_p, /**< function's call arguments
-                                               *   (NULL if arguments number is zero) */
-                 jjs_size_t args_count) /**< number of the arguments */
+jjs_construct (jjs_context_t* context_p, /**< JJS context */
+               const jjs_value_t func_object, /**< function object to call */
+               const jjs_value_t *args_p, /**< function's call arguments
+                                           *   (NULL if arguments number is zero) */
+               jjs_size_t args_count) /**< number of the arguments */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  if (!jjs_value_is_constructor (func_object))
+  if (!jjs_value_is_constructor (context_p, func_object))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   for (jjs_size_t i = 0; i < args_count; i++)
   {
     if (ecma_is_value_exception (args_p[i]))
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
     }
   }
 
@@ -3811,13 +3865,14 @@ jjs_construct (const jjs_value_t func_object, /**< function object to call */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_keys (const jjs_value_t object) /**< object value */
+jjs_object_keys (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_value_t object) /**< object value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_collection_t *prop_names =
@@ -3843,13 +3898,14 @@ jjs_object_keys (const jjs_value_t object) /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_proto (const jjs_value_t object) /**< object value */
+jjs_object_proto (jjs_context_t* context_p, /**< JJS context */
+                  const jjs_value_t object) /**< object value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_object_t *obj_p = ecma_get_object_from_value (object);
@@ -3879,15 +3935,16 @@ jjs_object_proto (const jjs_value_t object) /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_set_proto (jjs_value_t object, /**< object value */
-                        const jjs_value_t proto) /**< prototype object value */
+jjs_object_set_proto (jjs_context_t* context_p, /**< JJS context */
+                      jjs_value_t object, /**< object value */
+                      const jjs_value_t proto) /**< prototype object value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object) || ecma_is_value_exception (proto)
       || (!ecma_is_value_object (proto) && !ecma_is_value_null (proto)))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
   ecma_object_t *obj_p = ecma_get_object_from_value (object);
 
@@ -3911,8 +3968,11 @@ jjs_object_set_proto (jjs_value_t object, /**< object value */
  *          false - if the object is an internal object which should no be accessed by the user.
  */
 static bool
-jjs_object_is_valid_foreach (ecma_object_t *object_p) /**< object to test */
+jjs_object_is_valid_foreach (jjs_context_t* context_p, /**< JJS context */
+                             ecma_object_t *object_p) /**< object to test */
 {
+  JJS_UNUSED (context_p);
+
   if (ecma_is_lexical_environment (object_p))
   {
     return false;
@@ -3943,20 +4003,21 @@ jjs_object_is_valid_foreach (ecma_object_t *object_p) /**< object to test */
  *         false - otherwise - traversal visited all objects.
  */
 bool
-jjs_foreach_live_object (jjs_foreach_live_object_cb_t callback, /**< function pointer of the iterator function */
-                           void *user_data_p) /**< pointer to user data */
+jjs_foreach_live_object (jjs_context_t* context_p, /**< JJS context */
+                         jjs_foreach_live_object_cb_t callback, /**< function pointer of the iterator function */
+                         void *user_data_p) /**< pointer to user data */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   JJS_ASSERT (callback != NULL);
 
-  jmem_cpointer_t iter_cp = JJS_CONTEXT (ecma_gc_objects_cp);
+  jmem_cpointer_t iter_cp = context_p->ecma_gc_objects_cp;
 
   while (iter_cp != JMEM_CP_NULL)
   {
     ecma_object_t *iter_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, iter_cp);
 
-    if (jjs_object_is_valid_foreach (iter_p) && !callback (ecma_make_object_value (iter_p), user_data_p))
+    if (jjs_object_is_valid_foreach (context_p, iter_p) && !callback (ecma_make_object_value (iter_p), user_data_p))
     {
       return true;
     }
@@ -3974,26 +4035,27 @@ jjs_foreach_live_object (jjs_foreach_live_object_cb_t callback, /**< function po
  *         false - otherwise - traversal visited all objects.
  */
 bool
-jjs_foreach_live_object_with_info (const jjs_object_native_info_t *native_info_p, /**< the type info
+jjs_foreach_live_object_with_info (jjs_context_t* context_p, /**< JJS context */
+                                   const jjs_object_native_info_t *native_info_p, /**< the type info
                                                                                        *   of the native pointer */
-                                     jjs_foreach_live_object_with_info_cb_t callback, /**< function to apply for
+                                   jjs_foreach_live_object_with_info_cb_t callback, /**< function to apply for
                                                                                          *   each matching object */
-                                     void *user_data_p) /**< pointer to user data */
+                                   void *user_data_p) /**< pointer to user data */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   JJS_ASSERT (native_info_p != NULL);
   JJS_ASSERT (callback != NULL);
 
   ecma_native_pointer_t *native_pointer_p;
 
-  jmem_cpointer_t iter_cp = JJS_CONTEXT (ecma_gc_objects_cp);
+  jmem_cpointer_t iter_cp = context_p->ecma_gc_objects_cp;
 
   while (iter_cp != JMEM_CP_NULL)
   {
     ecma_object_t *iter_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, iter_cp);
 
-    if (jjs_object_is_valid_foreach (iter_p))
+    if (jjs_object_is_valid_foreach (context_p, iter_p))
     {
       native_pointer_p = ecma_get_native_pointer_value (iter_p, (void *) native_info_p);
       if (native_pointer_p && !callback (ecma_make_object_value (iter_p), native_pointer_p->native_p, user_data_p))
@@ -4018,11 +4080,12 @@ jjs_foreach_live_object_with_info (const jjs_object_native_info_t *native_info_p
  *         or NULL
  */
 void *
-jjs_object_get_native_ptr (const jjs_value_t object, /**< object to get native pointer from */
-                             const jjs_object_native_info_t *native_info_p) /**< the type info
-                                                                               *   of the native pointer */
+jjs_object_get_native_ptr (jjs_context_t* context_p, /**< JJS context */
+                           const jjs_value_t object, /**< object to get native pointer from */
+                           const jjs_object_native_info_t *native_info_p) /**< the type info
+                                                                           *   of the native pointer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
@@ -4055,11 +4118,12 @@ jjs_object_get_native_ptr (const jjs_value_t object, /**< object to get native p
  *      a NULL value deletes the current type info.
  */
 void
-jjs_object_set_native_ptr (jjs_value_t object, /**< object to set native pointer in */
-                             const jjs_object_native_info_t *native_info_p, /**< object's native type info */
-                             void *native_pointer_p) /**< native pointer */
+jjs_object_set_native_ptr (jjs_context_t* context_p, /**< JJS context */
+                           jjs_value_t object, /**< object to set native pointer in */
+                           const jjs_object_native_info_t *native_info_p, /**< object's native type info */
+                           void *native_pointer_p) /**< native pointer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_object (object))
   {
@@ -4076,10 +4140,11 @@ jjs_object_set_native_ptr (jjs_value_t object, /**< object to set native pointer
  *         false otherwise
  */
 bool
-jjs_object_has_native_ptr (const jjs_value_t object, /**< object to set native pointer in */
-                             const jjs_object_native_info_t *native_info_p) /**< object's native type info */
+jjs_object_has_native_ptr (jjs_context_t* context_p, /**< JJS context */
+                           const jjs_value_t object, /**< object to set native pointer in */
+                           const jjs_object_native_info_t *native_info_p) /**< object's native type info */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
@@ -4106,10 +4171,11 @@ jjs_object_has_native_ptr (const jjs_value_t object, /**< object to set native p
  *         false - otherwise
  */
 bool
-jjs_object_delete_native_ptr (jjs_value_t object, /**< object to delete native pointer from */
-                                const jjs_object_native_info_t *native_info_p) /**< object's native type info */
+jjs_object_delete_native_ptr (jjs_context_t* context_p, /**< JJS context */
+                              jjs_value_t object, /**< object to delete native pointer from */
+                              const jjs_object_native_info_t *native_info_p) /**< object's native type info */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (ecma_is_value_object (object))
   {
@@ -4126,11 +4192,12 @@ jjs_object_delete_native_ptr (jjs_value_t object, /**< object to delete native p
  * The references are initialized to undefined.
  */
 void
-jjs_native_ptr_init (void *native_pointer_p, /**< a valid non-NULL pointer to a native buffer */
-                       const jjs_object_native_info_t *native_info_p) /**< the type info of
-                                                                         *   the native pointer */
+jjs_native_ptr_init (jjs_context_t* context_p, /**< JJS context */
+                     void *native_pointer_p, /**< a valid non-NULL pointer to a native buffer */
+                     const jjs_object_native_info_t *native_info_p) /**< the type info of
+                                                                     *   the native pointer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (native_pointer_p == NULL || native_info_p == NULL)
   {
@@ -4152,11 +4219,12 @@ jjs_native_ptr_init (void *native_pointer_p, /**< a valid non-NULL pointer to a 
  * similar to jjs_native_ptr_init.
  */
 void
-jjs_native_ptr_free (void *native_pointer_p, /**< a valid non-NULL pointer to a native buffer */
-                       const jjs_object_native_info_t *native_info_p) /**< the type info of
-                                                                         *   the native pointer */
+jjs_native_ptr_free (jjs_context_t* context_p, /**< JJS context */
+                     void *native_pointer_p, /**< a valid non-NULL pointer to a native buffer */
+                     const jjs_object_native_info_t *native_info_p) /**< the type info of
+                                                                     *   the native pointer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (native_pointer_p == NULL || native_info_p == NULL)
   {
@@ -4182,11 +4250,12 @@ jjs_native_ptr_free (void *native_pointer_p, /**< a valid non-NULL pointer to a 
  *      Error references are not supported, they are replaced by undefined values.
  */
 void
-jjs_native_ptr_set (jjs_value_t *reference_p, /**< a valid non-NULL pointer to
-                                                   *   a reference in a native buffer. */
-                      const jjs_value_t value) /**< new value of the reference */
+jjs_native_ptr_set (jjs_context_t* context_p, /**< JJS context */
+                    jjs_value_t *reference_p, /**< a valid non-NULL pointer to
+                                               *   a reference in a native buffer. */
+                    const jjs_value_t value) /**< new value of the reference */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (reference_p == NULL)
   {
@@ -4214,11 +4283,12 @@ jjs_native_ptr_set (jjs_value_t *reference_p, /**< a valid non-NULL pointer to
  *                 if getter of field threw a exception or unhandled exceptions were thrown during traversal;
  */
 bool
-jjs_object_foreach (const jjs_value_t object, /**< object value */
-                      jjs_object_property_foreach_cb_t foreach_p, /**< foreach function */
-                      void *user_data_p) /**< user data for foreach function */
+jjs_object_foreach (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t object, /**< object value */
+                    jjs_object_property_foreach_cb_t foreach_p, /**< foreach function */
+                    void *user_data_p) /**< user data for foreach function */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
@@ -4276,14 +4346,15 @@ jjs_object_foreach (const jjs_value_t object, /**< object value */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_object_property_names (const jjs_value_t object, /**< object */
-                             jjs_property_filter_t filter) /**< property filter options */
+jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
+                           const jjs_value_t object, /**< object */
+                           jjs_property_filter_t filter) /**< property filter options */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_object (object))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_object_t *obj_p = ecma_get_object_from_value (object);
@@ -4450,15 +4521,16 @@ jjs_object_property_names (const jjs_value_t object, /**< object */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_property_descriptor_to_object (const jjs_property_descriptor_t *src_prop_desc_p) /**< property descriptor */
+jjs_property_descriptor_to_object (jjs_context_t* context_p, /**< JJS context */
+                                   const jjs_property_descriptor_t *src_prop_desc_p) /**< property descriptor */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  ecma_property_descriptor_t prop_desc = jjs_property_descriptor_to_ecma (src_prop_desc_p);
+  ecma_property_descriptor_t prop_desc = jjs_property_descriptor_to_ecma (context_p, src_prop_desc_p);
 
   if (ECMA_IS_VALUE_ERROR (prop_desc.value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_object_t *desc_obj_p = ecma_op_from_property_descriptor (&prop_desc);
@@ -4473,12 +4545,13 @@ jjs_property_descriptor_to_object (const jjs_property_descriptor_t *src_prop_des
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_property_descriptor_from_object (const jjs_value_t object, /**< object value */
-                                       jjs_property_descriptor_t *out_prop_desc_p) /**< [out] filled property
-                                                                                      * descriptor if return value is
-                                                                                      * true, unmodified otherwise */
+jjs_property_descriptor_from_object (jjs_context_t* context_p, /**< JJS context */
+                                     const jjs_value_t object, /**< object value */
+                                     jjs_property_descriptor_t *out_prop_desc_p) /**< [out] filled property
+                                                                                  * descriptor if return value is
+                                                                                  * true, unmodified otherwise */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   ecma_property_descriptor_t prop_desc;
   jjs_value_t result = ecma_op_to_property_descriptor (object, &prop_desc);
@@ -4490,7 +4563,7 @@ jjs_property_descriptor_from_object (const jjs_value_t object, /**< object value
 
   JJS_ASSERT (result == ECMA_VALUE_EMPTY);
 
-  *out_prop_desc_p = jjs_property_descriptor_from_ecma (&prop_desc);
+  *out_prop_desc_p = jjs_property_descriptor_from_ecma (context_p, &prop_desc);
   return ECMA_VALUE_TRUE;
 } /* jjs_property_descriptor_from_object */
 
@@ -4501,19 +4574,20 @@ jjs_property_descriptor_from_object (const jjs_value_t object, /**< object value
  *         exception - otherwise
  */
 jjs_value_t
-jjs_promise_resolve (jjs_value_t promise, /**< the promise value */
-                       const jjs_value_t argument) /**< the argument */
+jjs_promise_resolve (jjs_context_t* context_p, /**< JJS context */
+                     jjs_value_t promise, /**< the promise value */
+                     const jjs_value_t argument) /**< the argument */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  if (!jjs_value_is_promise (promise))
+  if (!jjs_value_is_promise (context_p, promise))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   if (ecma_is_value_exception (argument))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   return ecma_fulfill_promise_with_checks (promise, argument);
@@ -4526,19 +4600,20 @@ jjs_promise_resolve (jjs_value_t promise, /**< the promise value */
  *         exception - otherwise
  */
 jjs_value_t
-jjs_promise_reject (jjs_value_t promise, /**< the promise value */
-                      const jjs_value_t argument) /**< the argument */
+jjs_promise_reject (jjs_context_t* context_p, /**< JJS context */
+                    jjs_value_t promise, /**< the promise value */
+                    const jjs_value_t argument) /**< the argument */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  if (!jjs_value_is_promise (promise))
+  if (!jjs_value_is_promise (context_p, promise))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   if (ecma_is_value_exception (argument))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   return ecma_reject_promise_with_checks (promise, argument);
@@ -4551,13 +4626,14 @@ jjs_promise_reject (jjs_value_t promise, /**< the promise value */
  *         - Type error if the promise support was not enabled or the input was not a promise object
  */
 jjs_value_t
-jjs_promise_result (const jjs_value_t promise) /**< promise object to get the result from */
+jjs_promise_result (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t promise) /**< promise object to get the result from */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  if (!jjs_value_is_promise (promise))
+  if (!jjs_value_is_promise (context_p, promise))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   return ecma_promise_get_result (ecma_get_object_from_value (promise));
@@ -4571,11 +4647,12 @@ jjs_promise_result (const jjs_value_t promise) /**< promise object to get the re
  *           or the promise support was not enabled.
  */
 jjs_promise_state_t
-jjs_promise_state (const jjs_value_t promise) /**< promise object to get the state from */
+jjs_promise_state (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t promise) /**< promise object to get the state from */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
-  if (!jjs_value_is_promise (promise))
+  if (!jjs_value_is_promise (context_p, promise))
   {
     return JJS_PROMISE_STATE_NONE;
   }
@@ -4593,26 +4670,25 @@ jjs_promise_state (const jjs_value_t promise) /**< promise object to get the sta
  *     the previous callback is overwritten
  */
 void
-jjs_promise_on_event (jjs_promise_event_filter_t filters, /**< combination of event filters */
-                        jjs_promise_event_cb_t callback, /**< notification callback */
-                        void *user_p) /**< user pointer passed to the callback */
+jjs_promise_on_event (jjs_context_t* context_p, /**< JJS context */
+                      jjs_promise_event_filter_t filters, /**< combination of event filters */
+                      jjs_promise_event_cb_t callback, /**< notification callback */
+                      void *user_p) /**< user pointer passed to the callback */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_PROMISE_CALLBACK
   if (filters == JJS_PROMISE_EVENT_FILTER_DISABLE || callback == NULL)
   {
-    JJS_CONTEXT (promise_callback_filters) = JJS_PROMISE_EVENT_FILTER_DISABLE;
+    context_p->promise_callback_filters = JJS_PROMISE_EVENT_FILTER_DISABLE;
     return;
   }
 
-  JJS_CONTEXT (promise_callback_filters) = (uint32_t) filters;
-  JJS_CONTEXT (promise_callback) = callback;
-  JJS_CONTEXT (promise_callback_user_p) = user_p;
+  context_p->promise_callback_filters = (uint32_t) filters;
+  context_p->promise_callback = callback;
+  context_p->promise_callback_user_p = user_p;
 #else /* !JJS_PROMISE_CALLBACK */
-  JJS_UNUSED (filters);
-  JJS_UNUSED (callback);
-  JJS_UNUSED (user_p);
+  JJS_UNUSED_ALL (context_p, filters, callback, user_p);
 #endif /* JJS_PROMISE_CALLBACK */
 } /* jjs_promise_set_callback */
 
@@ -4626,9 +4702,10 @@ jjs_promise_on_event (jjs_promise_event_filter_t filters, /**< combination of ev
  *         well-known symbol value - otherwise
  */
 jjs_value_t
-jjs_symbol (jjs_well_known_symbol_t symbol) /**< jjs_well_known_symbol_t enum value */
+jjs_symbol (jjs_context_t* context_p, /**< JJS context */
+            jjs_well_known_symbol_t symbol) /**< jjs_well_known_symbol_t enum value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   lit_magic_string_id_t id = (lit_magic_string_id_t) (LIT_GLOBAL_SYMBOL__FIRST + symbol);
 
@@ -4650,13 +4727,14 @@ jjs_symbol (jjs_well_known_symbol_t symbol) /**< jjs_well_known_symbol_t enum va
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_symbol_description (const jjs_value_t symbol) /**< symbol value */
+jjs_symbol_description (jjs_context_t* context_p, /**< JJS context */
+                        const jjs_value_t symbol) /**< symbol value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_symbol (symbol))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   /* Note: This operation cannot throw an error */
@@ -4673,13 +4751,14 @@ jjs_symbol_description (const jjs_value_t symbol) /**< symbol value */
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_symbol_descriptive_string (const jjs_value_t symbol) /**< symbol value */
+jjs_symbol_descriptive_string (jjs_context_t* context_p, /**< JJS context */
+                               const jjs_value_t symbol) /**< symbol value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_symbol (symbol))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   /* Note: This operation cannot throw an error */
@@ -4692,9 +4771,10 @@ jjs_symbol_descriptive_string (const jjs_value_t symbol) /**< symbol value */
  * @return number of uint64 digits
  */
 uint32_t
-jjs_bigint_digit_count (const jjs_value_t value) /**< BigInt value */
+jjs_bigint_digit_count (jjs_context_t* context_p, /**< JJS context */
+                        const jjs_value_t value) /**< BigInt value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_BIGINT
   if (!ecma_is_value_bigint (value))
@@ -4713,11 +4793,14 @@ jjs_bigint_digit_count (const jjs_value_t value) /**< BigInt value */
  * Get the uint64 digits of a BigInt value (lowest digit first)
  */
 void
-jjs_bigint_to_digits (const jjs_value_t value, /**< BigInt value */
-                        uint64_t *digits_p, /**< [out] buffer for digits */
-                        uint32_t digit_count, /**< buffer size in digits */
-                        bool *sign_p) /**< [out] sign of BigInt */
+jjs_bigint_to_digits (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value, /**< BigInt value */
+                      uint64_t *digits_p, /**< [out] buffer for digits */
+                      uint32_t digit_count, /**< buffer size in digits */
+                      bool *sign_p) /**< [out] sign of BigInt */
 {
+  JJS_UNUSED (context_p);
+
 #if JJS_BUILTIN_BIGINT
   if (!ecma_is_value_bigint (value))
   {
@@ -4747,9 +4830,10 @@ jjs_bigint_to_digits (const jjs_value_t value, /**< BigInt value */
  *         target object - otherwise
  */
 jjs_value_t
-jjs_proxy_target (const jjs_value_t proxy_value) /**< proxy value */
+jjs_proxy_target (jjs_context_t* context_p, /**< JJS context */
+                  const jjs_value_t proxy_value) /**< proxy value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_PROXY
   if (ecma_is_value_object (proxy_value))
@@ -4771,7 +4855,7 @@ jjs_proxy_target (const jjs_value_t proxy_value) /**< proxy value */
   JJS_UNUSED (proxy_value);
 #endif /* JJS_BUILTIN_PROXY */
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_IS_NOT_A_PROXY));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_IS_NOT_A_PROXY));
 } /* jjs_proxy_target */
 
 /**
@@ -4781,9 +4865,10 @@ jjs_proxy_target (const jjs_value_t proxy_value) /**< proxy value */
  *         handler object - otherwise
  */
 jjs_value_t
-jjs_proxy_handler (const jjs_value_t proxy_value) /**< proxy value */
+jjs_proxy_handler (jjs_context_t* context_p, /**< JJS context */
+                   const jjs_value_t proxy_value) /**< proxy value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_PROXY
   if (ecma_is_value_object (proxy_value))
@@ -4805,7 +4890,7 @@ jjs_proxy_handler (const jjs_value_t proxy_value) /**< proxy value */
   JJS_UNUSED (proxy_value);
 #endif /* JJS_BUILTIN_PROXY */
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_IS_NOT_A_PROXY));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_IS_NOT_A_PROXY));
 } /* jjs_proxy_handler */
 
 /**
@@ -4815,10 +4900,12 @@ jjs_proxy_handler (const jjs_value_t proxy_value) /**< proxy value */
  *         false - otherwise
  */
 bool
-jjs_validate_string (const jjs_char_t *buffer_p, /**< string buffer */
-                       jjs_size_t buffer_size, /**< buffer size */
-                       jjs_encoding_t encoding) /**< buffer encoding */
+jjs_validate_string (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_char_t *buffer_p, /**< string buffer */
+                     jjs_size_t buffer_size, /**< buffer size */
+                     jjs_encoding_t encoding) /**< buffer encoding */
 {
+  JJS_UNUSED (context_p);
   switch (encoding)
   {
     case JJS_ENCODING_CESU8:
@@ -4841,11 +4928,13 @@ jjs_validate_string (const jjs_char_t *buffer_p, /**< string buffer */
  *
  * Log messages with lower significance than the current log level will be ignored by `jjs_log`.
  *
- * @param level: requested log level
+ * @param context_p JJS context
+ * @param level requested log level
  */
 void
-jjs_log_set_level (jjs_log_level_t level)
+jjs_log_set_level (jjs_context_t* context_p, jjs_log_level_t level)
 {
+  JJS_UNUSED (context_p);
   jjs_jrt_set_log_level (level);
 } /* jjs_log_set_level */
 
@@ -4860,13 +4949,15 @@ jjs_log_set_level (jjs_log_level_t level)
  * @param str_p: message
  */
 static void
-jjs_log_string (const char *str_p, jjs_size_t size)
+jjs_log_string (jjs_context_t* context_p, /**< JJS context */
+                const char *str_p, /**< message */
+                jjs_size_t size) /**< message size */
 {
   /* TODO: logging does not specify encoding. use stderr encoding for now. */
-  if (JJS_CONTEXT (platform_api).io_write && JJS_CONTEXT (platform_api).io_stderr) {
-    JJS_CONTEXT (platform_api).io_write (JJS_CONTEXT (platform_api).io_stderr,
-                                         (const uint8_t *) str_p, size,
-                                         JJS_CONTEXT (platform_api).io_stderr_encoding);
+  if (context_p->platform_p && context_p->platform_p->io_write && context_p->platform_p->io_stderr) {
+    context_p->platform_p->io_write (context_p->platform_p->io_stderr,
+                                     (const uint8_t *) str_p, size,
+                                     context_p->platform_p->io_stderr_encoding);
   }
 
 #if JJS_DEBUGGER
@@ -4880,26 +4971,27 @@ jjs_log_string (const char *str_p, jjs_size_t size)
 /**
  * Log a fixed-size string message.
  *
- * @param str_p: message
- * @param size: size
- * @param buffer_p: buffer to use
+ * @param context_p JJS context
+ * @param str_p message
+ * @param size size
+ * @param buffer_p buffer to use
  */
 static void
-jjs_log_string_fixed (const char *str_p, size_t size, char *buffer_p)
+jjs_log_string_fixed (jjs_context_t* context_p, const char *str_p, size_t size, char *buffer_p)
 {
   const size_t batch_size = JJS_LOG_BUFFER_SIZE - 1;
 
   while (size > batch_size)
   {
     memcpy (buffer_p, str_p, batch_size);
-    jjs_log_string (buffer_p, (jjs_size_t) batch_size);
+    jjs_log_string (context_p, buffer_p, (jjs_size_t) batch_size);
 
     str_p += batch_size;
     size -= batch_size;
   }
 
   memcpy (buffer_p, str_p, size);
-  jjs_log_string (buffer_p, (jjs_size_t) size);
+  jjs_log_string (context_p, buffer_p, (jjs_size_t) size);
 } /* jjs_log_string_fixed */
 
 /**
@@ -4989,11 +5081,12 @@ jjs_format_int (int num, uint8_t width, char padding, char *buffer_p)
  *
  * Width and padding sub-modifiers are also supported.
  *
- * @param format_p: format string
- * @param level: message log level
+ * @param context_p JJS context
+ * @param format_p format string
+ * @param level message log level
  */
 void
-jjs_log (jjs_log_level_t level, const char *format_p, ...)
+jjs_log (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, ...)
 {
   if (level > jjs_jrt_get_log_level ())
   {
@@ -5011,7 +5104,7 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
     if (*cursor_p == '%' || buffer_index > JJS_LOG_BUFFER_SIZE - 2)
     {
       buffer_p[buffer_index] = '\0';
-      jjs_log_string (buffer_p, buffer_index);
+      jjs_log_string (context_p, buffer_p, buffer_index);
       buffer_index = 0;
     }
 
@@ -5063,11 +5156,11 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
 
         if (precision == 0)
         {
-          jjs_log_string (str_p, (jjs_size_t) strlen (str_p));
+          jjs_log_string (context_p, str_p, (jjs_size_t) strlen (str_p));
           break;
         }
 
-        jjs_log_string_fixed (str_p, precision, buffer_p);
+        jjs_log_string_fixed (context_p, str_p, precision, buffer_p);
         break;
       }
       case 'c':
@@ -5079,19 +5172,19 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
       case 'd':
       {
         char *f = jjs_format_int (va_arg (vl, int), width, padding, buffer_p);
-        jjs_log_string (f, (jjs_size_t) strlen (f));
+        jjs_log_string (context_p, f, (jjs_size_t) strlen (f));
         break;
       }
       case 'u':
       {
         char *f = jjs_format_unsigned (va_arg (vl, unsigned int), width, padding, 10, buffer_p);
-        jjs_log_string (f, (jjs_size_t) strlen (f));
+        jjs_log_string (context_p, f, (jjs_size_t) strlen (f));
         break;
       }
       case 'x':
       {
         char *f = jjs_format_unsigned (va_arg (vl, unsigned int), width, padding, 16, buffer_p);
-        jjs_log_string (f, (jjs_size_t) strlen (f));
+        jjs_log_string (context_p, f, (jjs_size_t) strlen (f));
         break;
       }
       default:
@@ -5104,7 +5197,7 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
 
   if (buffer_index > 0)
   {
-    jjs_log_string (buffer_p, buffer_index);
+    jjs_log_string (context_p, buffer_p, buffer_index);
   }
 
   va_end (vl);
@@ -5126,6 +5219,7 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
  * jjs_log_fmt macro is available to hide the creation of a temporary values array, giving a
  * var args like experience.
  *
+ * @param context_p JJS context
  * @param level log level. if greater than the current log level, the message will not be printed
  * @param format_p format string. only {} substitutions are supported.
  * @param values list of values. if values_length == 0, this can be NULL.
@@ -5133,7 +5227,7 @@ jjs_log (jjs_log_level_t level, const char *format_p, ...)
  * printed
  */
 void
-jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length)
+jjs_log_fmt_v (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length)
 {
   JJS_ASSERT (format_p);
 
@@ -5144,12 +5238,12 @@ jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *v
 
   jjs_wstream_t wstream;
 
-  if (!jjs_wstream_log (&wstream))
+  if (!jjs_wstream_log (context_p, &wstream))
   {
     return;
   }
 
-  jjs_fmt_v (&wstream, format_p, values, values_length);
+  jjs_fmt_v (context_p, &wstream, format_p, values, values_length);
 } /* jjs_log_fmt */
 
 /**
@@ -5164,9 +5258,10 @@ jjs_log_fmt_v (jjs_log_level_t level, const char *format_p, const jjs_value_t *v
  *         NULL otherwise
  */
 void *
-jjs_heap_alloc (jjs_size_t size) /**< size of the memory block */
+jjs_heap_alloc (jjs_context_t* context_p,
+                jjs_size_t size) /**< size of the memory block */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return jmem_heap_alloc_block_null_on_error (size);
 } /* jjs_heap_alloc */
@@ -5175,10 +5270,11 @@ jjs_heap_alloc (jjs_size_t size) /**< size of the memory block */
  * Free memory allocated on the engine's heap.
  */
 void
-jjs_heap_free (void *mem_p, /**< value returned by jjs_heap_alloc */
-                 jjs_size_t size) /**< same size as passed to jjs_heap_alloc */
+jjs_heap_free (jjs_context_t* context_p,
+               void *mem_p, /**< value returned by jjs_heap_alloc */
+               jjs_size_t size) /**< same size as passed to jjs_heap_alloc */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   jmem_heap_free_block (mem_p, size);
 } /* jjs_heap_free */
@@ -5189,24 +5285,24 @@ jjs_heap_free (void *mem_p, /**< value returned by jjs_heap_alloc */
  * than 1, the callback is only called at every interval ticks.
  */
 void
-jjs_halt_handler (uint32_t interval, /**< interval of the function call */
-                    jjs_halt_cb_t callback, /**< periodically called user function */
-                    void *user_p) /**< pointer passed to the function */
+jjs_halt_handler (jjs_context_t* context_p,
+                  uint32_t interval, /**< interval of the function call */
+                  jjs_halt_cb_t callback, /**< periodically called user function */
+                  void *user_p) /**< pointer passed to the function */
 {
+  jjs_assert_api_enabled (context_p);
 #if JJS_VM_HALT
   if (interval == 0)
   {
     interval = 1;
   }
 
-  JJS_CONTEXT (vm_exec_stop_frequency) = interval;
-  JJS_CONTEXT (vm_exec_stop_counter) = interval;
-  JJS_CONTEXT (vm_exec_stop_cb) = callback;
-  JJS_CONTEXT (vm_exec_stop_user_p) = user_p;
+  context_p->vm_exec_stop_frequency = interval;
+  context_p->vm_exec_stop_counter = interval;
+  context_p->vm_exec_stop_cb = callback;
+  context_p->vm_exec_stop_user_p = user_p;
 #else /* !JJS_VM_HALT */
-  JJS_UNUSED (interval);
-  JJS_UNUSED (callback);
-  JJS_UNUSED (user_p);
+  JJS_UNUSED_ALL (context_p, interval, callback, user_p);
 #endif /* JJS_VM_HALT */
 } /* jjs_halt_handler */
 
@@ -5218,9 +5314,11 @@ jjs_halt_handler (uint32_t interval, /**< interval of the function call */
  * @return array value
  */
 jjs_value_t
-jjs_backtrace (uint32_t max_depth) /**< depth limit of the backtrace */
+jjs_backtrace (jjs_context_t* context_p, /**< JJS context */
+               uint32_t max_depth) /**< depth limit of the backtrace */
 {
-  return vm_get_backtrace (max_depth);
+  jjs_assert_api_enabled (context_p);
+  return vm_get_backtrace (context_p, max_depth);
 } /* jjs_backtrace */
 
 /**
@@ -5228,15 +5326,18 @@ jjs_backtrace (uint32_t max_depth) /**< depth limit of the backtrace */
  * The captured frame data is passed to a callback function.
  */
 void
-jjs_backtrace_capture (jjs_backtrace_cb_t callback, /**< callback function */
-                         void *user_p) /**< user pointer passed to the callback function */
+jjs_backtrace_capture (jjs_context_t* context_p, /**< JJS context */
+                       jjs_backtrace_cb_t callback, /**< callback function */
+                       void *user_p) /**< user pointer passed to the callback function */
 {
+  jjs_assert_api_enabled (context_p);
+
   jjs_frame_t frame;
-  vm_frame_ctx_t *context_p = JJS_CONTEXT (vm_top_context_p);
+  vm_frame_ctx_t *frame_context_p = context_p->vm_top_context_p;
 
   while (context_p != NULL)
   {
-    frame.context_p = context_p;
+    frame.context_p = frame_context_p;
     frame.frame_type = JJS_BACKTRACE_FRAME_JS;
 
     if (!callback (&frame, user_p))
@@ -5244,7 +5345,7 @@ jjs_backtrace_capture (jjs_backtrace_cb_t callback, /**< callback function */
       return;
     }
 
-    context_p = context_p->prev_context_p;
+    frame_context_p = frame_context_p->prev_context_p;
   }
 } /* jjs_backtrace */
 
@@ -5254,8 +5355,10 @@ jjs_backtrace_capture (jjs_backtrace_cb_t callback, /**< callback function */
  * @return frame type listed in jjs_frame_type_t
  */
 jjs_frame_type_t
-jjs_frame_type (const jjs_frame_t *frame_p) /**< frame pointer */
+jjs_frame_type (jjs_context_t* context_p, /**< JJS context */
+                const jjs_frame_t *frame_p) /**< frame pointer */
 {
+  jjs_assert_api_enabled (context_p);
   return (jjs_frame_type_t) frame_p->frame_type;
 } /* jjs_frame_type */
 
@@ -5266,15 +5369,17 @@ jjs_frame_type (const jjs_frame_t *frame_p) /**< frame pointer */
  *         NULL - otherwise
  */
 const jjs_frame_location_t *
-jjs_frame_location (jjs_frame_t *frame_p) /**< frame pointer */
+jjs_frame_location (jjs_context_t* context_p, /**< JJS context */
+                    jjs_frame_t *frame_p) /**< frame pointer */
 {
-  JJS_UNUSED (frame_p);
+  jjs_assert_api_enabled (context_p);
+  JJS_UNUSED_ALL (frame_p);
 
 #if JJS_LINE_INFO
   if (frame_p->frame_type == JJS_BACKTRACE_FRAME_JS)
   {
-    vm_frame_ctx_t *context_p = frame_p->context_p;
-    const ecma_compiled_code_t *bytecode_header_p = context_p->shared_p->bytecode_header_p;
+    vm_frame_ctx_t *frame_context_p = frame_p->context_p;
+    const ecma_compiled_code_t *bytecode_header_p = frame_context_p->shared_p->bytecode_header_p;
 
     if (!(bytecode_header_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO))
     {
@@ -5284,7 +5389,7 @@ jjs_frame_location (jjs_frame_t *frame_p) /**< frame pointer */
     frame_p->location.source_name = ecma_get_source_name (bytecode_header_p);
 
     ecma_line_info_get (ecma_compiled_code_get_line_info (bytecode_header_p),
-                        (uint32_t) (context_p->byte_code_p - context_p->byte_code_start_p),
+                        (uint32_t) (frame_context_p->byte_code_p - frame_context_p->byte_code_start_p),
                         &frame_p->location);
 
     return &frame_p->location;
@@ -5302,15 +5407,18 @@ jjs_frame_location (jjs_frame_t *frame_p) /**< frame pointer */
  *         NULL - otherwise
  */
 const jjs_value_t *
-jjs_frame_callee (jjs_frame_t *frame_p) /**< frame pointer */
+jjs_frame_callee (jjs_context_t* context_p, /**< JJS context */
+                  jjs_frame_t *frame_p) /**< frame pointer */
 {
+  jjs_assert_api_enabled (context_p);
+
   if (frame_p->frame_type == JJS_BACKTRACE_FRAME_JS)
   {
-    vm_frame_ctx_t *context_p = frame_p->context_p;
+    vm_frame_ctx_t *frame_context_p = frame_p->context_p;
 
-    if (context_p->shared_p->function_object_p != NULL)
+    if (frame_context_p->shared_p->function_object_p != NULL)
     {
-      frame_p->function = ecma_make_object_value (context_p->shared_p->function_object_p);
+      frame_p->function = ecma_make_object_value (frame_context_p->shared_p->function_object_p);
       return &frame_p->function;
     }
   }
@@ -5327,8 +5435,11 @@ jjs_frame_callee (jjs_frame_t *frame_p) /**< frame pointer */
  *         NULL - otherwise
  */
 const jjs_value_t *
-jjs_frame_this (jjs_frame_t *frame_p) /**< frame pointer */
+jjs_frame_this (jjs_context_t* context_p, /**< JJS context */
+                jjs_frame_t *frame_p) /**< frame pointer */
 {
+  jjs_assert_api_enabled (context_p);
+
   if (frame_p->frame_type == JJS_BACKTRACE_FRAME_JS)
   {
     frame_p->this_binding = frame_p->context_p->this_binding;
@@ -5345,8 +5456,11 @@ jjs_frame_this (jjs_frame_t *frame_p) /**< frame pointer */
  *         false - otherwise
  */
 bool
-jjs_frame_is_strict (jjs_frame_t *frame_p) /**< frame pointer */
+jjs_frame_is_strict (jjs_context_t* context_p, /**< JJS context */
+                     jjs_frame_t *frame_p) /**< frame pointer */
 {
+  jjs_assert_api_enabled (context_p);
+
   return (frame_p->frame_type == JJS_BACKTRACE_FRAME_JS
           && (frame_p->context_p->status_flags & VM_FRAME_CTX_IS_STRICT) != 0);
 } /* jjs_frame_is_strict */
@@ -5362,12 +5476,14 @@ jjs_frame_is_strict (jjs_frame_t *frame_p) /**< frame pointer */
  *         - "<anonymous>", otherwise
  */
 jjs_value_t
-jjs_source_name (const jjs_value_t value) /**< JJS api value */
+jjs_source_name (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_value_t value) /**< JJS api value */
 {
+  jjs_assert_api_enabled (context_p);
 #if JJS_SOURCE_NAME
-  if (ecma_is_value_undefined (value) && JJS_CONTEXT (vm_top_context_p) != NULL)
+  if (ecma_is_value_undefined (value) && context_p->vm_top_context_p != NULL)
   {
-    return ecma_copy_value (ecma_get_source_name (JJS_CONTEXT (vm_top_context_p)->shared_p->bytecode_header_p));
+    return ecma_copy_value (ecma_get_source_name (context_p->vm_top_context_p->shared_p->bytecode_header_p));
   }
 
   ecma_value_t script_value = ecma_script_get_from_value (value);
@@ -5381,7 +5497,7 @@ jjs_source_name (const jjs_value_t value) /**< JJS api value */
 
   return ecma_copy_value (script_p->source_name);
 #else /* !JJS_SOURCE_NAME */
-  JJS_UNUSED (value);
+  JJS_UNUSED_ALL (context_p, value);
   return ecma_make_magic_string_value (LIT_MAGIC_STRING_SOURCE_NAME_ANON);
 #endif /* JJS_SOURCE_NAME */
 } /* jjs_source_name */
@@ -5396,8 +5512,10 @@ jjs_source_name (const jjs_value_t value) /**< JJS api value */
  * @return user value
  */
 jjs_value_t
-jjs_source_user_value (const jjs_value_t value) /**< JJS api value */
+jjs_source_user_value (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_value_t value) /**< JJS api value */
 {
+  jjs_assert_api_enabled (context_p);
   ecma_value_t script_value = ecma_script_get_from_value (value);
 
   if (script_value == JMEM_CP_NULL)
@@ -5423,8 +5541,11 @@ jjs_source_user_value (const jjs_value_t value) /**< JJS api value */
  *         false, otherwise
  */
 bool
-jjs_function_is_dynamic (const jjs_value_t value) /**< JJS api value */
+jjs_function_is_dynamic (jjs_context_t* context_p, /**< JJS context */
+                         const jjs_value_t value) /**< JJS api value */
 {
+  jjs_assert_api_enabled (context_p);
+
   ecma_value_t script_value = ecma_script_get_from_value (value);
 
   if (script_value == JMEM_CP_NULL)
@@ -5443,9 +5564,10 @@ jjs_function_is_dynamic (const jjs_value_t value) /**< JJS api value */
  * @return a newly created source info, if at least one field is available, NULL otherwise
  */
 jjs_source_info_t *
-jjs_source_info (const jjs_value_t value) /**< JJS api value */
+jjs_source_info (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_value_t value) /**< JJS api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_FUNCTION_TO_STRING
   if (!ecma_is_value_object (value))
@@ -5597,9 +5719,10 @@ jjs_source_info (const jjs_value_t value) /**< JJS api value */
  * Frees the the source info structure returned by jjs_source_info.
  */
 void
-jjs_source_info_free (jjs_source_info_t *source_info_p) /**< source info block */
+jjs_source_info_free (jjs_context_t* context_p, /**< JJS context */
+                      jjs_source_info_t *source_info_p) /**< source info block */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_FUNCTION_TO_STRING
   if (source_info_p != NULL)
@@ -5626,9 +5749,10 @@ jjs_source_info_free (jjs_source_info_t *source_info_p) /**< source info block *
  *         exception - otherwise
  */
 jjs_value_t
-jjs_set_realm (jjs_value_t realm_value) /**< JJS api value */
+jjs_set_realm (jjs_context_t* context_p, /**< JJS context */
+               jjs_value_t realm_value) /**< JJS api value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_REALMS
   if (ecma_is_value_object (realm_value))
@@ -5637,16 +5761,16 @@ jjs_set_realm (jjs_value_t realm_value) /**< JJS api value */
 
     if (ecma_builtin_is_global (object_p))
     {
-      ecma_global_object_t *previous_global_object_p = JJS_CONTEXT (global_object_p);
-      JJS_CONTEXT (global_object_p) = (ecma_global_object_t *) object_p;
+      ecma_global_object_t *previous_global_object_p = context_p->global_object_p;
+      context_p->global_object_p = (ecma_global_object_t *) object_p;
       return ecma_make_object_value ((ecma_object_t *) previous_global_object_p);
     }
   }
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PASSED_ARGUMENT_IS_NOT_A_REALM));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PASSED_ARGUMENT_IS_NOT_A_REALM));
 #else /* !JJS_BUILTIN_REALMS */
-  JJS_UNUSED (realm_value);
-  return jjs_throw_sz (JJS_ERROR_REFERENCE, ecma_get_error_msg (ECMA_ERR_REALM_IS_NOT_AVAILABLE));
+  JJS_UNUSED (context_p, realm_value);
+  return jjs_throw_sz (context_p, JJS_ERROR_REFERENCE, ecma_get_error_msg (ECMA_ERR_REALM_IS_NOT_AVAILABLE));
 #endif /* JJS_BUILTIN_REALMS */
 } /* jjs_set_realm */
 
@@ -5657,9 +5781,10 @@ jjs_set_realm (jjs_value_t realm_value) /**< JJS api value */
  *         this value - otherwise
  */
 jjs_value_t
-jjs_realm_this (jjs_value_t realm) /**< realm value */
+jjs_realm_this (jjs_context_t* context_p, /**< JJS context */
+                jjs_value_t realm) /**< realm value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_REALMS
   if (ecma_is_value_object (realm))
@@ -5685,7 +5810,7 @@ jjs_realm_this (jjs_value_t realm) /**< realm value */
   }
 #endif /* JJS_BUILTIN_REALMS */
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PASSED_ARGUMENT_IS_NOT_A_REALM));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PASSED_ARGUMENT_IS_NOT_A_REALM));
 } /* jjs_realm_this */
 
 /**
@@ -5698,15 +5823,16 @@ jjs_realm_this (jjs_value_t realm) /**< realm value */
  *         true - otherwise
  */
 jjs_value_t
-jjs_realm_set_this (jjs_value_t realm, /**< realm value */
-                      jjs_value_t this_value) /**< this value */
+jjs_realm_set_this (jjs_context_t* context_p, /**< JJS context */
+                    jjs_value_t realm, /**< realm value */
+                    jjs_value_t this_value) /**< this value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_REALMS
   if (!ecma_is_value_object (this_value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SECOND_ARGUMENT_MUST_BE_AN_OBJECT));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SECOND_ARGUMENT_MUST_BE_AN_OBJECT));
   }
 
   if (ecma_is_value_object (realm))
@@ -5728,11 +5854,10 @@ jjs_realm_set_this (jjs_value_t realm, /**< realm value */
     }
   }
 
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_FIRST_ARGUMENT_IS_NOT_A_REALM));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_FIRST_ARGUMENT_IS_NOT_A_REALM));
 #else /* !JJS_BUILTIN_REALMS */
-  JJS_UNUSED (realm);
-  JJS_UNUSED (this_value);
-  return jjs_throw_sz (JJS_ERROR_REFERENCE, ecma_get_error_msg (ECMA_ERR_REALM_IS_NOT_AVAILABLE));
+  JJS_UNUSED_ALL (realm, this_value);
+  return jjs_throw_sz (context_p, JJS_ERROR_REFERENCE, ecma_get_error_msg (ECMA_ERR_REALM_IS_NOT_AVAILABLE));
 #endif /* JJS_BUILTIN_REALMS */
 } /* jjs_realm_set_this */
 
@@ -5743,9 +5868,10 @@ jjs_realm_set_this (jjs_value_t realm, /**< realm value */
  *         false - otherwise
  */
 bool
-jjs_value_is_arraybuffer (const jjs_value_t value) /**< value to check if it is an ArrayBuffer */
+jjs_value_is_arraybuffer (jjs_context_t* context_p, /**< JJS context */
+                          const jjs_value_t value) /**< value to check if it is an ArrayBuffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   return ecma_is_arraybuffer (value);
@@ -5766,16 +5892,17 @@ jjs_value_is_arraybuffer (const jjs_value_t value) /**< value to check if it is 
  * @return value of the constructed ArrayBuffer object
  */
 jjs_value_t
-jjs_arraybuffer (const jjs_length_t size) /**< size of the backing store allocated
+jjs_arraybuffer (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_length_t size) /**< size of the backing store allocated
                                                *   for the array buffer in bytes */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   return jjs_return (ecma_make_object_value (ecma_arraybuffer_new_object (size)));
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (size);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_arraybuffer */
 
@@ -5791,11 +5918,12 @@ jjs_arraybuffer (const jjs_length_t size) /**< size of the backing store allocat
  * @return value of the newly constructed array buffer object
  */
 jjs_value_t
-jjs_arraybuffer_external (uint8_t *buffer_p, /**< the backing store used by the array buffer object */
-                            jjs_length_t size, /**< size of the buffer in bytes */
-                            void *user_p) /**< user pointer assigned to the array buffer object */
+jjs_arraybuffer_external (jjs_context_t* context_p, /**< JJS context */
+                          uint8_t *buffer_p, /**< the backing store used by the array buffer object */
+                          jjs_length_t size, /**< size of the buffer in bytes */
+                          void *user_p) /**< user pointer assigned to the array buffer object */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   ecma_object_t *arraybuffer_p;
@@ -5820,10 +5948,8 @@ jjs_arraybuffer_external (uint8_t *buffer_p, /**< the backing store used by the 
 
   return jjs_return (ecma_make_object_value (arraybuffer_p));
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (size);
-  JJS_UNUSED (buffer_p);
-  JJS_UNUSED (user_p);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (size, buffer_p, user_p);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_arraybuffer_external */
 
@@ -5834,9 +5960,10 @@ jjs_arraybuffer_external (uint8_t *buffer_p, /**< the backing store used by the 
  *         false - otherwise
  */
 bool
-jjs_value_is_shared_arraybuffer (const jjs_value_t value) /**< value to check if it is a SharedArrayBuffer */
+jjs_value_is_shared_arraybuffer (jjs_context_t* context_p, /**< JJS context */
+                                 const jjs_value_t value) /**< value to check if it is a SharedArrayBuffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
   return ecma_is_shared_arraybuffer (value);
 } /* jjs_value_is_shared_arraybuffer */
@@ -5852,16 +5979,17 @@ jjs_value_is_shared_arraybuffer (const jjs_value_t value) /**< value to check if
  * @return value of the constructed SharedArrayBuffer object
  */
 jjs_value_t
-jjs_shared_arraybuffer (jjs_length_t size) /**< size of the backing store allocated
-                                                *   for the shared array buffer in bytes */
+jjs_shared_arraybuffer (jjs_context_t* context_p, /**< JJS context */
+                        jjs_length_t size) /**< size of the backing store allocated
+                                            *   for the shared array buffer in bytes */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
   return jjs_return (ecma_make_object_value (ecma_shared_arraybuffer_new_object (size)));
 #else /* !JJS_BUILTIN_SHAREDARRAYBUFFER */
   JJS_UNUSED (size);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SHARED_ARRAYBUFFER_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SHARED_ARRAYBUFFER_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 } /* jjs_shared_arraybuffer */
 
@@ -5877,13 +6005,14 @@ jjs_shared_arraybuffer (jjs_length_t size) /**< size of the backing store alloca
  * @return value of the newly constructed shared array buffer object
  */
 jjs_value_t
-jjs_shared_arraybuffer_external (uint8_t *buffer_p, /**< the backing store used by the
-                                                       *   shared array buffer object */
-                                   jjs_length_t size, /**< size of the buffer in bytes */
-                                   void *user_p) /**< user pointer assigned to the
-                                                  *   shared array buffer object */
+jjs_shared_arraybuffer_external (jjs_context_t* context_p, /**< JJS context */
+                                 uint8_t *buffer_p, /**< the backing store used by the
+                                                     *   shared array buffer object */
+                                 jjs_length_t size, /**< size of the buffer in bytes */
+                                 void *user_p) /**< user pointer assigned to the
+                                                *   shared array buffer object */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
   ecma_object_t *shared_arraybuffer_p;
@@ -5908,10 +6037,8 @@ jjs_shared_arraybuffer_external (uint8_t *buffer_p, /**< the backing store used 
 
   return ecma_make_object_value (shared_arraybuffer_p);
 #else /* !JJS_BUILTIN_SHAREDARRAYBUFFER */
-  JJS_UNUSED (size);
-  JJS_UNUSED (buffer_p);
-  JJS_UNUSED (user_p);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SHARED_ARRAYBUFFER_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (size, buffer_p, user_p);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SHARED_ARRAYBUFFER_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 } /* jjs_shared_arraybuffer_external */
 
@@ -5947,12 +6074,13 @@ jjs_arraybuffer_allocate_buffer_no_throw (ecma_object_t *arraybuffer_p) /**< Arr
  * @return number of bytes copied into the ArrayBuffer or SharedArrayBuffer.
  */
 jjs_length_t
-jjs_arraybuffer_write (jjs_value_t value, /**< target ArrayBuffer or SharedArrayBuffer */
-                         jjs_length_t offset, /**< start offset of the ArrayBuffer */
-                         const uint8_t *buf_p, /**< buffer to copy from */
-                         jjs_length_t buf_size) /**< number of bytes to copy from the buffer */
+jjs_arraybuffer_write (jjs_context_t* context_p, /**< JJS context */
+                       jjs_value_t value, /**< target ArrayBuffer or SharedArrayBuffer */
+                       jjs_length_t offset, /**< start offset of the ArrayBuffer */
+                       const uint8_t *buf_p, /**< buffer to copy from */
+                       jjs_length_t buf_size) /**< number of bytes to copy from the buffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (!(ecma_is_arraybuffer (value) || ecma_is_shared_arraybuffer (value)))
@@ -5986,10 +6114,7 @@ jjs_arraybuffer_write (jjs_value_t value, /**< target ArrayBuffer or SharedArray
 
   return copy_count;
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (value);
-  JJS_UNUSED (offset);
-  JJS_UNUSED (buf_p);
-  JJS_UNUSED (buf_size);
+  JJS_UNUSED_ALL (value, offset, buf_p, buf_size);
   return 0;
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_arraybuffer_write */
@@ -6003,12 +6128,13 @@ jjs_arraybuffer_write (jjs_value_t value, /**< target ArrayBuffer or SharedArray
  * @return number of bytes read from the ArrayBuffer.
  */
 jjs_length_t
-jjs_arraybuffer_read (const jjs_value_t value, /**< ArrayBuffer or SharedArrayBuffer to read from */
-                        jjs_length_t offset, /**< start offset of the ArrayBuffer or SharedArrayBuffer */
-                        uint8_t *buf_p, /**< destination buffer to copy to */
-                        jjs_length_t buf_size) /**< number of bytes to copy into the buffer */
+jjs_arraybuffer_read (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value, /**< ArrayBuffer or SharedArrayBuffer to read from */
+                      jjs_length_t offset, /**< start offset of the ArrayBuffer or SharedArrayBuffer */
+                      uint8_t *buf_p, /**< destination buffer to copy to */
+                      jjs_length_t buf_size) /**< number of bytes to copy into the buffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (!(ecma_is_arraybuffer (value) || ecma_is_shared_arraybuffer (value)))
@@ -6042,10 +6168,7 @@ jjs_arraybuffer_read (const jjs_value_t value, /**< ArrayBuffer or SharedArrayBu
 
   return copy_count;
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (value);
-  JJS_UNUSED (offset);
-  JJS_UNUSED (buf_p);
-  JJS_UNUSED (buf_size);
+  JJS_UNUSED_ALL (value, offset, buf_p, buf_size);
   return 0;
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_arraybuffer_read */
@@ -6059,9 +6182,10 @@ jjs_arraybuffer_read (const jjs_value_t value, /**< ArrayBuffer or SharedArrayBu
  * @return the length of the ArrayBuffer in bytes.
  */
 jjs_length_t
-jjs_arraybuffer_size (const jjs_value_t value) /**< ArrayBuffer or SharedArrayBuffer */
+jjs_arraybuffer_size (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t value) /**< ArrayBuffer or SharedArrayBuffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (ecma_is_arraybuffer (value) || ecma_is_shared_arraybuffer (value))
@@ -6088,9 +6212,10 @@ jjs_arraybuffer_size (const jjs_value_t value) /**< ArrayBuffer or SharedArrayBu
  *            - an external ArrayBuffer has been detached
  */
 uint8_t *
-jjs_arraybuffer_data (const jjs_value_t array_buffer) /**< Array Buffer to use */
+jjs_arraybuffer_data (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t array_buffer) /**< Array Buffer to use */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (!(ecma_is_arraybuffer (array_buffer) || ecma_is_shared_arraybuffer (array_buffer)))
@@ -6120,9 +6245,10 @@ jjs_arraybuffer_data (const jjs_value_t array_buffer) /**< Array Buffer to use *
  *         value marked with error flag - otherwise
  */
 bool
-jjs_arraybuffer_is_detachable (const jjs_value_t value) /**< ArrayBuffer */
+jjs_arraybuffer_is_detachable (jjs_context_t* context_p, /**< JJS context */
+                               const jjs_value_t value) /**< ArrayBuffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (ecma_is_arraybuffer (value))
@@ -6146,9 +6272,10 @@ jjs_arraybuffer_is_detachable (const jjs_value_t value) /**< ArrayBuffer */
  *         value marked with error flag - otherwise
  */
 jjs_value_t
-jjs_arraybuffer_detach (jjs_value_t value) /**< ArrayBuffer */
+jjs_arraybuffer_detach (jjs_context_t* context_p, /**< JJS context */
+                        jjs_value_t value) /**< ArrayBuffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (ecma_is_arraybuffer (value))
@@ -6158,12 +6285,12 @@ jjs_arraybuffer_detach (jjs_value_t value) /**< ArrayBuffer */
     {
       return ECMA_VALUE_NULL;
     }
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARRAY_BUFFER_DETACHED));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARRAY_BUFFER_DETACHED));
   }
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (value);
 #endif /* JJS_BUILTIN_TYPEDARRAY */
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_AN_ARRAYBUFFER));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_AN_ARRAYBUFFER));
 } /* jjs_arraybuffer_detach */
 
 /**
@@ -6173,9 +6300,10 @@ jjs_arraybuffer_detach (jjs_value_t value) /**< ArrayBuffer */
  *         false, otherwise
  */
 bool
-jjs_arraybuffer_has_buffer (const jjs_value_t value) /**< array buffer or typed array value */
+jjs_arraybuffer_has_buffer (jjs_context_t* context_p, /**< JJS context */
+                            const jjs_value_t value) /**< array buffer or typed array value */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (!ecma_is_value_object (value))
@@ -6208,13 +6336,14 @@ jjs_arraybuffer_has_buffer (const jjs_value_t value) /**< array buffer or typed 
  * are not called for these array buffers. The default limit is 256 bytes.
  */
 void
-jjs_arraybuffer_heap_allocation_limit (jjs_length_t allocation_limit) /**< maximum size of
-                                                                           *   compact allocation */
+jjs_arraybuffer_heap_allocation_limit (jjs_context_t* context_p, /**< JJS context */
+                                       jjs_length_t allocation_limit) /**< maximum size of
+                                                                       *   compact allocation */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  JJS_CONTEXT (arraybuffer_compact_allocation_limit) = allocation_limit;
+  context_p->arraybuffer_compact_allocation_limit = allocation_limit;
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (allocation_limit);
 #endif /* JJS_BUILTIN_TYPEDARRAY */
@@ -6224,22 +6353,21 @@ jjs_arraybuffer_heap_allocation_limit (jjs_length_t allocation_limit) /**< maxim
  * Set callbacks for allocating and freeing backing stores for array buffer objects.
  */
 void
-jjs_arraybuffer_allocator (jjs_arraybuffer_allocate_cb_t allocate_callback, /**< callback for allocating
-                                                                                 *   array buffer memory */
-                             jjs_arraybuffer_free_cb_t free_callback, /**< callback for freeing
-                                                                         *   array buffer memory */
-                             void *user_p) /**< user pointer passed to the callbacks */
+jjs_arraybuffer_allocator (jjs_context_t* context_p, /**< JJS context */
+                           jjs_arraybuffer_allocate_cb_t allocate_callback, /**< callback for allocating
+                                                                             *   array buffer memory */
+                           jjs_arraybuffer_free_cb_t free_callback, /**< callback for freeing
+                                                                     *   array buffer memory */
+                           void *user_p) /**< user pointer passed to the callbacks */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  JJS_CONTEXT (arraybuffer_allocate_callback) = allocate_callback;
-  JJS_CONTEXT (arraybuffer_free_callback) = free_callback;
-  JJS_CONTEXT (arraybuffer_allocate_callback_user_p) = user_p;
+  context_p->arraybuffer_allocate_callback = allocate_callback;
+  context_p->arraybuffer_free_callback = free_callback;
+  context_p->arraybuffer_allocate_callback_user_p = user_p;
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (allocate_callback);
-  JJS_UNUSED (free_callback);
-  JJS_UNUSED (user_p);
+  JJS_UNUSED_ALL (allocate_callback, free_callback, user_p);
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_arraybuffer_allocator */
 
@@ -6258,35 +6386,34 @@ jjs_arraybuffer_allocator (jjs_arraybuffer_allocate_cb_t allocate_callback, /**<
  *         created error - otherwise
  */
 jjs_value_t
-jjs_dataview (const jjs_value_t array_buffer, /**< arraybuffer to create DataView from */
-                jjs_length_t byte_offset, /**< offset in bytes, to the first byte in the buffer */
-                jjs_length_t byte_length) /**< number of elements in the byte array */
+jjs_dataview (jjs_context_t* context_p, /**< JJS context */
+              const jjs_value_t array_buffer, /**< arraybuffer to create DataView from */
+              jjs_length_t byte_offset, /**< offset in bytes, to the first byte in the buffer */
+              jjs_length_t byte_length) /**< number of elements in the byte array */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_DATAVIEW
   if (ecma_is_value_exception (array_buffer))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_value_t arguments_p[3] = { array_buffer,
                                   ecma_make_uint32_value (byte_offset),
                                   ecma_make_uint32_value (byte_length) };
-  ecma_object_t *old_new_target_p = JJS_CONTEXT (current_new_target_p);
+  ecma_object_t *old_new_target_p = context_p->current_new_target_p;
   if (old_new_target_p == NULL)
   {
-    JJS_CONTEXT (current_new_target_p) = ecma_builtin_get (ECMA_BUILTIN_ID_DATAVIEW);
+    context_p->current_new_target_p = ecma_builtin_get (ECMA_BUILTIN_ID_DATAVIEW);
   }
 
   ecma_value_t dataview_value = ecma_op_dataview_create (arguments_p, 3);
-  JJS_CONTEXT (current_new_target_p) = old_new_target_p;
+  context_p->current_new_target_p = old_new_target_p;
   return jjs_return (dataview_value);
 #else /* !JJS_BUILTIN_DATAVIEW */
-  JJS_UNUSED (array_buffer);
-  JJS_UNUSED (byte_offset);
-  JJS_UNUSED (byte_length);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_DATA_VIEW_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (array_buffer, byte_offset, byte_length);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_DATA_VIEW_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_DATAVIEW */
 } /* jjs_dataview */
 
@@ -6297,9 +6424,10 @@ jjs_dataview (const jjs_value_t array_buffer, /**< arraybuffer to create DataVie
  *         false - otherwise
  */
 bool
-jjs_value_is_dataview (const jjs_value_t value) /**< value to check if it is a DataView object */
+jjs_value_is_dataview (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_value_t value) /**< value to check if it is a DataView object */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_DATAVIEW
   return ecma_is_dataview (value);
@@ -6322,16 +6450,17 @@ jjs_value_is_dataview (const jjs_value_t value) /**< value to check if it is a D
  *         TypeError if the object is not a DataView.
  */
 jjs_value_t
-jjs_dataview_buffer (const jjs_value_t value, /**< DataView to get the arraybuffer from */
-                       jjs_length_t *byte_offset, /**< [out] byteOffset property */
-                       jjs_length_t *byte_length) /**< [out] byteLength property */
+jjs_dataview_buffer (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value, /**< DataView to get the arraybuffer from */
+                     jjs_length_t *byte_offset, /**< [out] byteOffset property */
+                     jjs_length_t *byte_length) /**< [out] byteLength property */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_DATAVIEW
   if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
   ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (value);
@@ -6356,10 +6485,8 @@ jjs_dataview_buffer (const jjs_value_t value, /**< DataView to get the arraybuff
 
   return ecma_make_object_value (arraybuffer_p);
 #else /* !JJS_BUILTIN_DATAVIEW */
-  JJS_UNUSED (value);
-  JJS_UNUSED (byte_offset);
-  JJS_UNUSED (byte_length);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_DATA_VIEW_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (value, byte_offset, byte_length);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_DATA_VIEW_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_DATAVIEW */
 } /* jjs_dataview_buffer */
 
@@ -6374,9 +6501,10 @@ jjs_dataview_buffer (const jjs_value_t value, /**< DataView to get the arraybuff
  *         false - otherwise
  */
 bool
-jjs_value_is_typedarray (const jjs_value_t value) /**< value to check if it is a TypedArray */
+jjs_value_is_typedarray (jjs_context_t* context_p, /**< JJS context */
+                         const jjs_value_t value) /**< value to check if it is a TypedArray */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   return ecma_is_typedarray (value);
@@ -6464,10 +6592,11 @@ jjs_typedarray_find_by_type (jjs_typedarray_type_t type_name, /**< type of the T
  * @return - new TypedArray object
  */
 jjs_value_t
-jjs_typedarray (jjs_typedarray_type_t type_name, /**< type of TypedArray to create */
-                  jjs_length_t length) /**< element count of the new TypedArray */
+jjs_typedarray (jjs_context_t* context_p, /**< JJS context */
+                jjs_typedarray_type_t type_name, /**< type of TypedArray to create */
+                jjs_length_t length) /**< element count of the new TypedArray */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   ecma_builtin_id_t prototype_id = 0;
@@ -6476,7 +6605,7 @@ jjs_typedarray (jjs_typedarray_type_t type_name, /**< type of TypedArray to crea
 
   if (!jjs_typedarray_find_by_type (type_name, &prototype_id, &id, &element_size_shift))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_FOR_TYPEDARRAY));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_FOR_TYPEDARRAY));
   }
 
   ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
@@ -6488,9 +6617,8 @@ jjs_typedarray (jjs_typedarray_type_t type_name, /**< type of TypedArray to crea
 
   return array_value;
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (type_name);
-  JJS_UNUSED (length);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (type_name, length);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_typedarray */
 
@@ -6504,17 +6632,18 @@ jjs_typedarray (jjs_typedarray_type_t type_name, /**< type of TypedArray to crea
  * @return - new TypedArray object
  */
 jjs_value_t
-jjs_typedarray_with_buffer_span (jjs_typedarray_type_t type, /**< type of TypedArray to create */
-                                   const jjs_value_t arraybuffer, /**< ArrayBuffer to use */
-                                   jjs_length_t byte_offset, /**< offset for the ArrayBuffer */
-                                   jjs_length_t length) /**< number of elements to use from ArrayBuffer */
+jjs_typedarray_with_buffer_span (jjs_context_t* context_p, /**< JJS context */
+                                 jjs_typedarray_type_t type, /**< type of TypedArray to create */
+                                 const jjs_value_t arraybuffer, /**< ArrayBuffer to use */
+                                 jjs_length_t byte_offset, /**< offset for the ArrayBuffer */
+                                 jjs_length_t length) /**< number of elements to use from ArrayBuffer */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (ecma_is_value_exception (arraybuffer))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   ecma_builtin_id_t prototype_id = 0;
@@ -6523,12 +6652,12 @@ jjs_typedarray_with_buffer_span (jjs_typedarray_type_t type, /**< type of TypedA
 
   if (!jjs_typedarray_find_by_type (type, &prototype_id, &id, &element_size_shift))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_FOR_TYPEDARRAY));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_FOR_TYPEDARRAY));
   }
 
   if (!ecma_is_arraybuffer (arraybuffer))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_NOT_ARRAY_BUFFER));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_NOT_ARRAY_BUFFER));
   }
 
   ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
@@ -6540,11 +6669,8 @@ jjs_typedarray_with_buffer_span (jjs_typedarray_type_t type, /**< type of TypedA
 
   return jjs_return (array_value);
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (type);
-  JJS_UNUSED (arraybuffer);
-  JJS_UNUSED (byte_offset);
-  JJS_UNUSED (length);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (type, arraybuffer, byte_offset, length);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_typedarray_with_buffer_span */
 
@@ -6558,23 +6684,23 @@ jjs_typedarray_with_buffer_span (jjs_typedarray_type_t type, /**< type of TypedA
  * @return - new TypedArray object
  */
 jjs_value_t
-jjs_typedarray_with_buffer (jjs_typedarray_type_t type, /**< type of TypedArray to create */
-                              const jjs_value_t arraybuffer) /**< ArrayBuffer to use */
+jjs_typedarray_with_buffer (jjs_context_t* context_p, /**< JJS context */
+                            jjs_typedarray_type_t type, /**< type of TypedArray to create */
+                            const jjs_value_t arraybuffer) /**< ArrayBuffer to use */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (ecma_is_value_exception (arraybuffer))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  jjs_length_t byte_length = jjs_arraybuffer_size (arraybuffer);
-  return jjs_typedarray_with_buffer_span (type, arraybuffer, 0, byte_length);
+  jjs_length_t byte_length = jjs_arraybuffer_size (context_p, arraybuffer);
+  return jjs_typedarray_with_buffer_span (context_p, type, arraybuffer, 0, byte_length);
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (type);
-  JJS_UNUSED (arraybuffer);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (type, arraybuffer);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_typedarray_with_buffer */
 
@@ -6585,9 +6711,10 @@ jjs_typedarray_with_buffer (jjs_typedarray_type_t type, /**< type of TypedArray 
  *         - JJS_TYPEDARRAY_INVALID if the argument is not a TypedArray
  */
 jjs_typedarray_type_t
-jjs_typedarray_type (const jjs_value_t value) /**< object to get the TypedArray type */
+jjs_typedarray_type (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t value) /**< object to get the TypedArray type */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (!ecma_is_typedarray (value))
@@ -6618,9 +6745,10 @@ jjs_typedarray_type (const jjs_value_t value) /**< object to get the TypedArray 
  * @return length of the TypedArray.
  */
 jjs_length_t
-jjs_typedarray_length (const jjs_value_t value) /**< TypedArray to query */
+jjs_typedarray_length (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_value_t value) /**< TypedArray to query */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (ecma_is_typedarray (value))
@@ -6648,16 +6776,17 @@ jjs_typedarray_length (const jjs_value_t value) /**< TypedArray to query */
  *         TypeError if the object is not a TypedArray.
  */
 jjs_value_t
-jjs_typedarray_buffer (const jjs_value_t value, /**< TypedArray to get the arraybuffer from */
-                         jjs_length_t *byte_offset, /**< [out] byteOffset property */
-                         jjs_length_t *byte_length) /**< [out] byteLength property */
+jjs_typedarray_buffer (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_value_t value, /**< TypedArray to get the arraybuffer from */
+                       jjs_length_t *byte_offset, /**< [out] byteOffset property */
+                       jjs_length_t *byte_length) /**< [out] byteLength property */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
   if (!ecma_is_typedarray (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_OBJECT_IS_NOT_A_TYPEDARRAY));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_OBJECT_IS_NOT_A_TYPEDARRAY));
   }
 
   ecma_object_t *array_p = ecma_get_object_from_value (value);
@@ -6677,10 +6806,8 @@ jjs_typedarray_buffer (const jjs_value_t value, /**< TypedArray to get the array
   ecma_ref_object (arraybuffer_p);
   return jjs_return (ecma_make_object_value (arraybuffer_p));
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (value);
-  JJS_UNUSED (byte_length);
-  JJS_UNUSED (byte_offset);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (value, byte_length, byte_offset);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_typedarray_buffer */
 
@@ -6692,25 +6819,25 @@ jjs_typedarray_buffer (const jjs_value_t value, /**< TypedArray to get the array
  * @return object value, or exception
  */
 jjs_value_t
-jjs_json_parse (const jjs_char_t *string_p, /**< json string */
-                  jjs_size_t string_size) /**< json string size */
+jjs_json_parse (jjs_context_t* context_p, /**< JJS context */
+                const jjs_char_t *string_p, /**< json string */
+                jjs_size_t string_size) /**< json string size */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_JSON
   ecma_value_t ret_value = ecma_builtin_json_parse_buffer (string_p, string_size);
 
   if (ecma_is_value_undefined (ret_value))
   {
-    ret_value = jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRING_PARSE_ERROR));
+    ret_value = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRING_PARSE_ERROR));
   }
 
   return jjs_return (ret_value);
 #else /* !JJS_BUILTIN_JSON */
-  JJS_UNUSED (string_p);
-  JJS_UNUSED (string_size);
+  JJS_UNUSED_All (string_p, string_size);
 
-  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_JSON */
 } /* jjs_json_parse */
 
@@ -6722,42 +6849,44 @@ jjs_json_parse (const jjs_char_t *string_p, /**< json string */
  * @return object value, or exception
  */
 jjs_value_t
-jjs_json_parse_sz (const char* string_p) /**< null-terminated json string */
+jjs_json_parse_sz (jjs_context_t* context_p, /**< JJS context */
+                   const char* string_p) /**< null-terminated json string */
 {
-  jjs_assert_api_enabled ();
-  return jjs_json_parse ((const jjs_char_t*) string_p, string_p ? (jjs_size_t) strlen (string_p) : 0);
+  jjs_assert_api_enabled (context_p);
+  return jjs_json_parse (context_p, (const jjs_char_t*) string_p, string_p ? (jjs_size_t) strlen (string_p) : 0);
 } /* jjs_json_parse_sz */
 
 /**
  * Load a JSON object from file.
  *
+ * @param context_p JJS context
  * @param filename path to JSON file
  * @param filename_o filename reference ownership
  * @return object value, or exception
  */
 jjs_value_t
-jjs_json_parse_file (jjs_value_t filename, jjs_value_ownership_t filename_o)
+jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_value_ownership_t filename_o)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_BUILTIN_JSON
-  jjs_value_t buffer = jjs_platform_read_file (filename, filename_o, NULL);
+  jjs_value_t buffer = jjs_platform_read_file (context_p, filename, filename_o, NULL);
 
-  if (jjs_value_is_exception (buffer))
+  if (jjs_value_is_exception (context_p, buffer))
   {
     return buffer;
   }
 
-  jjs_char_t* json_p = jjs_arraybuffer_data (buffer);
-  jjs_size_t len = jjs_arraybuffer_size (buffer);
+  jjs_char_t* json_p = jjs_arraybuffer_data (context_p, buffer);
+  jjs_size_t len = jjs_arraybuffer_size (context_p, buffer);
 
-  jjs_value_t result = jjs_json_parse (json_p, len);
+  jjs_value_t result = jjs_json_parse (context_p, json_p, len);
 
-  jjs_value_free (buffer);
+  jjs_value_free (context_p, buffer);
 
   return result;
 #else /* !JJS_BUILTIN_JSON */
   JJS_DISOWN (filename, filename_o);
-  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_JSON */
 } /* jjs_json_parse_file */
 
@@ -6773,27 +6902,28 @@ jjs_json_parse_file (jjs_value_t filename, jjs_value_ownership_t filename_o)
  *         - Error value if there was a problem during the stringification.
  */
 jjs_value_t
-jjs_json_stringify (const jjs_value_t input_value) /**< a value to stringify */
+jjs_json_stringify (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t input_value) /**< a value to stringify */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_BUILTIN_JSON
   if (ecma_is_value_exception (input_value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
   ecma_value_t ret_value = ecma_builtin_json_stringify_no_opts (input_value);
 
   if (ecma_is_value_undefined (ret_value))
   {
-    ret_value = jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRINGIFY_ERROR));
+    ret_value = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRINGIFY_ERROR));
   }
 
   return jjs_return (ret_value);
 #else /* JJS_BUILTIN_JSON */
   JJS_UNUSED (input_value);
 
-  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_JSON */
 } /* jjs_json_stringify */
 
@@ -6807,18 +6937,19 @@ jjs_json_stringify (const jjs_value_t input_value) /**< a value to stringify */
  * @return jjs_value_t representing a container with the given type.
  */
 jjs_value_t
-jjs_container (jjs_container_type_t container_type, /**< Type of the container */
-                 const jjs_value_t *arguments_list_p, /**< arguments list */
-                 jjs_length_t arguments_list_len) /**< Length of arguments list */
+jjs_container (jjs_context_t* context_p, /**< JJS context */
+               jjs_container_type_t container_type, /**< Type of the container */
+               const jjs_value_t *arguments_list_p, /**< arguments list */
+               jjs_length_t arguments_list_len) /**< Length of arguments list */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_CONTAINER
   for (jjs_length_t i = 0; i < arguments_list_len; i++)
   {
     if (ecma_is_value_exception (arguments_list_p[i]))
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
     }
   }
 
@@ -6858,25 +6989,23 @@ jjs_container (jjs_container_type_t container_type, /**< Type of the container *
     }
     default:
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_CONTAINER_TYPE));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_CONTAINER_TYPE));
     }
   }
-  ecma_object_t *old_new_target_p = JJS_CONTEXT (current_new_target_p);
+  ecma_object_t *old_new_target_p = context_p->current_new_target_p;
 
   if (old_new_target_p == NULL)
   {
-    JJS_CONTEXT (current_new_target_p) = ecma_builtin_get (ctor_id);
+    context_p->current_new_target_p = ecma_builtin_get (ctor_id);
   }
 
   ecma_value_t container_value = ecma_op_container_create (arguments_list_p, arguments_list_len, lit_id, proto_id);
 
-  JJS_CONTEXT (current_new_target_p) = old_new_target_p;
+  context_p->current_new_target_p = old_new_target_p;
   return jjs_return (container_value);
 #else /* !JJS_BUILTIN_CONTAINER */
-  JJS_UNUSED (arguments_list_p);
-  JJS_UNUSED (arguments_list_len);
-  JJS_UNUSED (container_type);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (arguments_list_p, arguments_list_len, container_type);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_CONTAINER */
 } /* jjs_container */
 
@@ -6886,9 +7015,10 @@ jjs_container (jjs_container_type_t container_type, /**< Type of the container *
  * @return Corresponding type to the given container object.
  */
 jjs_container_type_t
-jjs_container_type (const jjs_value_t value) /**< the container object */
+jjs_container_type (jjs_context_t* context_p, /**< JJS context */
+                    const jjs_value_t value) /**< the container object */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_CONTAINER
   if (ecma_is_value_object (value))
@@ -6939,22 +7069,23 @@ jjs_container_type (const jjs_value_t value) /**< the container object */
  * @return an array of items for maps/sets or their iterators, error otherwise
  */
 jjs_value_t
-jjs_container_to_array (const jjs_value_t value, /**< the container or iterator object */
-                          bool *is_key_value_p) /**< [out] is key-value structure */
+jjs_container_to_array (jjs_context_t* context_p, /**< JJS context */
+                        const jjs_value_t value, /**< the container or iterator object */
+                        bool *is_key_value_p) /**< [out] is key-value structure */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_CONTAINER
   if (!ecma_is_value_object (value))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NEEDED));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NEEDED));
   }
 
   ecma_object_t *obj_p = ecma_get_object_from_value (value);
 
   if (ecma_get_object_type (obj_p) != ECMA_OBJECT_TYPE_CLASS)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NEEDED));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NEEDED));
   }
 
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
@@ -6989,7 +7120,7 @@ jjs_container_to_array (const jjs_value_t value, /**< the container or iterator 
 
     iterator_kind = ext_obj_p->u.cls.u1.iterator_kind;
   }
-  else if (jjs_container_type (value) != JJS_CONTAINER_TYPE_INVALID)
+  else if (jjs_container_type (context_p, value) != JJS_CONTAINER_TYPE_INVALID)
   {
     ecma_collection_t *container_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, ext_obj_p->u.cls.u3.value);
     entry_count = ECMA_CONTAINER_ENTRY_COUNT (container_p);
@@ -7007,7 +7138,7 @@ jjs_container_to_array (const jjs_value_t value, /**< the container or iterator 
   }
   else
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NEEDED));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NEEDED));
   }
 
   *is_key_value_p = (iterator_kind == ECMA_ITERATOR_ENTRIES);
@@ -7034,9 +7165,8 @@ jjs_container_to_array (const jjs_value_t value, /**< the container or iterator 
   }
   return ecma_op_new_array_object_from_collection (collection_buffer, false);
 #else /* !JJS_BUILTIN_CONTAINER */
-  JJS_UNUSED (value);
-  JJS_UNUSED (is_key_value_p);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (value, is_key_value_p);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_CONTAINER */
 } /* jjs_container_to_array */
 
@@ -7047,23 +7177,24 @@ jjs_container_to_array (const jjs_value_t value, /**< the container or iterator 
  *                 result of the container operation - otherwise.
  */
 jjs_value_t
-jjs_container_op (jjs_container_op_t operation, /**< container operation */
-                    jjs_value_t container, /**< container */
-                    const jjs_value_t *arguments, /**< list of arguments */
-                    uint32_t arguments_number) /**< number of arguments */
+jjs_container_op (jjs_context_t* context_p, /**< JJS context */
+                  jjs_container_op_t operation, /**< container operation */
+                  jjs_value_t container, /**< container */
+                  const jjs_value_t *arguments, /**< list of arguments */
+                  uint32_t arguments_number) /**< number of arguments */
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 #if JJS_BUILTIN_CONTAINER
   if (!ecma_is_value_object (container))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_IS_NOT_AN_OBJECT));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_IS_NOT_AN_OBJECT));
   }
 
   ecma_object_t *obj_p = ecma_get_object_from_value (container);
 
   if (ecma_get_object_type (obj_p) != ECMA_OBJECT_TYPE_CLASS)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_IS_NOT_A_CONTAINER_OBJECT));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_IS_NOT_A_CONTAINER_OBJECT));
   }
   uint16_t type = ((ecma_extended_object_t *) obj_p)->u.cls.u2.container_id;
   ecma_extended_object_t *container_object_p = ecma_op_container_get_object (container, type);
@@ -7082,7 +7213,7 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
     {
       if (arguments_number != 1 || ecma_is_value_exception (arguments[0]))
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
       }
       break;
     }
@@ -7090,7 +7221,7 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
     {
       if (arguments_number != 2 || ecma_is_value_exception (arguments[0]) || ecma_is_value_exception (arguments[1]))
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
       }
       break;
     }
@@ -7099,13 +7230,13 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
     {
       if (arguments_number != 0)
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
       }
       break;
     }
     default:
     {
-      return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
     }
   }
 
@@ -7117,7 +7248,7 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
     {
       if (type == LIT_MAGIC_STRING_MAP_UL || type == LIT_MAGIC_STRING_WEAKMAP_UL)
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
       result = ecma_op_container_set (container_object_p, arguments[0], arguments[0], type);
       break;
@@ -7126,7 +7257,7 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
     {
       if (type == LIT_MAGIC_STRING_SET_UL || type == LIT_MAGIC_STRING_WEAKSET_UL)
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
       result = ecma_op_container_get (container_object_p, arguments[0], type);
       break;
@@ -7135,7 +7266,7 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
     {
       if (type == LIT_MAGIC_STRING_SET_UL || type == LIT_MAGIC_STRING_WEAKSET_UL)
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
       result = ecma_op_container_set (container_object_p, arguments[0], arguments[1], type);
       break;
@@ -7164,24 +7295,21 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
     {
       if (type == LIT_MAGIC_STRING_WEAKSET_UL || type == LIT_MAGIC_STRING_WEAKMAP_UL)
       {
-        return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
+        return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
       result = ecma_op_container_clear (container_object_p);
       break;
     }
     default:
     {
-      result = jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_UNSUPPORTED_CONTAINER_OPERATION));
+      result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_UNSUPPORTED_CONTAINER_OPERATION));
       break;
     }
   }
   return jjs_return (result);
 #else /* !JJS_BUILTIN_CONTAINER */
-  JJS_UNUSED (operation);
-  JJS_UNUSED (container);
-  JJS_UNUSED (arguments);
-  JJS_UNUSED (arguments_number);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (operation, container, arguments, arguments_number);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_CONTAINER */
 } /* jjs_container_op */
 
@@ -7189,16 +7317,16 @@ jjs_container_op (jjs_container_op_t operation, /**< container operation */
  * Write a JS string to a fmt stream.
  */
 static void
-fmt_write_string (const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_value_ownership_t value_o)
+fmt_write_string (jjs_context_t* context_p, const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_value_ownership_t value_o)
 {
   if (ecma_is_value_string (value))
   {
-    jjs_wstream_write_string (wstream_p, value, value_o);
+    jjs_wstream_write_string (context_p, wstream_p, value, value_o);
   }
   else
   {
-    JJS_DISOWN (value, value_o);
-    wstream_p->write (wstream_p, (const jjs_char_t *) "undefined", 9);
+    JJS_DISOWN (context_p, value, value_o);
+    wstream_p->write (context_p, wstream_p, (const jjs_char_t *) "undefined", 9);
   }
 } /* fmt_write_string */
 
@@ -7206,75 +7334,78 @@ fmt_write_string (const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_value_o
  * Write a JS value to a fmt stream.
  */
 static void
-fmt_write_value (const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_value_ownership_t value_o)
+fmt_write_value (jjs_context_t* context_p,
+                 const jjs_wstream_t *wstream_p,
+                 jjs_value_t value,
+                 jjs_value_ownership_t value_o)
 {
-  if (jjs_value_is_exception (value))
+  if (jjs_value_is_exception (context_p, value))
   {
-    fmt_write_string (wstream_p, jjs_undefined (), JJS_MOVE);
+    fmt_write_string (context_p, wstream_p, jjs_undefined (context_p), JJS_MOVE);
     goto done;
   }
 
-  if (jjs_value_is_symbol (value))
+  if (jjs_value_is_symbol (context_p, value))
   {
-    fmt_write_string (wstream_p, jjs_symbol_descriptive_string (value), JJS_MOVE);
+    fmt_write_string (context_p, wstream_p, jjs_symbol_descriptive_string (context_p, value), JJS_MOVE);
     goto done;
   }
 
-  if (jjs_value_is_string (value))
+  if (jjs_value_is_string (context_p, value))
   {
-    fmt_write_string (wstream_p, value, JJS_KEEP);
+    fmt_write_string (context_p, wstream_p, value, JJS_KEEP);
     goto done;
   }
 
-  if (jjs_value_is_array (value))
+  if (jjs_value_is_array (context_p, value))
   {
     static const uint8_t LBRACKET = '[';
     static const uint8_t RBRACKET = ']';
 
-    wstream_p->write (wstream_p, &LBRACKET, 1);
-    fmt_write_string (wstream_p, jjs_value_to_string (value), JJS_MOVE);
-    wstream_p->write (wstream_p, &RBRACKET, 1);
+    wstream_p->write (context_p, wstream_p, &LBRACKET, 1);
+    fmt_write_string (context_p, wstream_p, jjs_value_to_string (context_p, value), JJS_MOVE);
+    wstream_p->write (context_p, wstream_p, &RBRACKET, 1);
     goto done;
   }
 
-  fmt_write_string (wstream_p, jjs_value_to_string (value), JJS_MOVE);
+  fmt_write_string (context_p, wstream_p, jjs_value_to_string (context_p, value), JJS_MOVE);
 
-  if (jjs_value_is_error (value))
+  if (jjs_value_is_error (context_p, value))
   {
     /* TODO: print cause and AggregateError errors */
     ecma_value_t stack = ecma_make_magic_string_value (LIT_MAGIC_STRING_STACK);
-    jjs_value_t backtrace_val = jjs_object_get (value, stack);
+    jjs_value_t backtrace_val = jjs_object_get (context_p, value, stack);
 
     ecma_fast_free_value (stack);
 
-    if (jjs_value_is_array (backtrace_val))
+    if (jjs_value_is_array (context_p, backtrace_val))
     {
-      uint32_t length = jjs_array_length (backtrace_val);
+      uint32_t length = jjs_array_length (context_p, backtrace_val);
 
       for (uint32_t i = 0; i < length; i++)
       {
-        jjs_value_t item_val = jjs_object_get_index (backtrace_val, i);
+        jjs_value_t item_val = jjs_object_get_index (context_p, backtrace_val, i);
 
-        if (jjs_value_is_string (item_val))
+        if (jjs_value_is_string (context_p, item_val))
         {
-          fmt_write_string (wstream_p, item_val, JJS_KEEP);
+          fmt_write_string (context_p, wstream_p, item_val, JJS_KEEP);
 
           if (i != length - 1)
           {
             static const uint8_t NEWLINE = '\n';
-            wstream_p->write (wstream_p, &NEWLINE, 1);
+            wstream_p->write (context_p, wstream_p, &NEWLINE, 1);
           }
         }
 
-        jjs_value_free (item_val);
+        jjs_value_free (context_p, item_val);
       }
     }
 
-    jjs_value_free (backtrace_val);
+    jjs_value_free (context_p, backtrace_val);
   }
 
 done:
-  JJS_DISOWN (value, value_o);
+  JJS_DISOWN (context_p, value, value_o);
 } /* fmt_write_value */
 
 /**
@@ -7300,7 +7431,8 @@ done:
  * wstream_p write will receive characters in arbitrary batches.
  */
 void
-jjs_fmt_v (const jjs_wstream_t *wstream_p, /**< target stream object */
+jjs_fmt_v (jjs_context_t* context_p, /**< JJS context */
+           const jjs_wstream_t *wstream_p, /**< target stream object */
            const char *format_p, /**< format string */
            const jjs_value_t *values_p, /**< list of JS values for substitution */
            jjs_size_t values_length) /**< number of values */
@@ -7322,7 +7454,7 @@ jjs_fmt_v (const jjs_wstream_t *wstream_p, /**< target stream object */
     {
       if (found_left_brace)
       {
-        wstream_p->write (wstream_p, (const uint8_t *) cursor_p, 1);
+        wstream_p->write (context_p, wstream_p, (const uint8_t *) cursor_p, 1);
       }
       else
       {
@@ -7331,15 +7463,15 @@ jjs_fmt_v (const jjs_wstream_t *wstream_p, /**< target stream object */
     }
     else if (found_left_brace && *cursor_p == '}')
     {
-      jjs_value_t value = values_index < values_length ? values_p[values_index++] : jjs_undefined ();
+      jjs_value_t value = values_index < values_length ? values_p[values_index++] : jjs_undefined (context_p);
 
-      if (jjs_value_is_exception (value))
+      if (jjs_value_is_exception (context_p, value))
       {
-        fmt_write_value (wstream_p, jjs_exception_value (value, false), JJS_MOVE);
+        fmt_write_value (context_p, wstream_p, jjs_exception_value (context_p, value, false), JJS_MOVE);
       }
       else
       {
-        fmt_write_value (wstream_p, value, JJS_KEEP);
+        fmt_write_value (context_p, wstream_p, value, JJS_KEEP);
       }
 
       found_left_brace = false;
@@ -7348,11 +7480,11 @@ jjs_fmt_v (const jjs_wstream_t *wstream_p, /**< target stream object */
     {
       if (found_left_brace)
       {
-        wstream_p->write (wstream_p, (const uint8_t *) (cursor_p - 1), 1);
+        wstream_p->write (context_p, wstream_p, (const uint8_t *) (cursor_p - 1), 1);
         found_left_brace = false;
       }
 
-      wstream_p->write (wstream_p, (const uint8_t *) cursor_p, 1);
+      wstream_p->write (context_p, wstream_p, (const uint8_t *) cursor_p, 1);
     }
 
     cursor_p++;
@@ -7367,7 +7499,8 @@ jjs_fmt_v (const jjs_wstream_t *wstream_p, /**< target stream object */
  * @return JS string. must be released with jjs_value_free
  */
 jjs_value_t
-jjs_fmt_to_string_v (const char *format_p, /**< format string */
+jjs_fmt_to_string_v (jjs_context_t* context_p, /**< JJS context */
+                     const char *format_p, /**< format string */
                      const jjs_value_t *values_p, /**< substitution values */
                      jjs_size_t values_length) /**< number of substitution values */
 {
@@ -7375,7 +7508,7 @@ jjs_fmt_to_string_v (const char *format_p, /**< format string */
 
   if (format_p == NULL || values_length == 0)
   {
-    return jjs_string_utf8_sz (format_p);
+    return jjs_string_utf8_sz (context_p, format_p);
   }
 
   ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
@@ -7387,7 +7520,7 @@ jjs_fmt_to_string_v (const char *format_p, /**< format string */
     return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
   }
 
-  jjs_fmt_v (&wstream, format_p, values_p, values_length);
+  jjs_fmt_v (context_p, &wstream, format_p, values_p, values_length);
 
   return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_to_string_v */
@@ -7400,7 +7533,8 @@ jjs_fmt_to_string_v (const char *format_p, /**< format string */
  * @return the number of bytes written to buffer_p; if there is a problem 0 is returned.
  */
 jjs_size_t
-jjs_fmt_to_buffer_v (jjs_char_t *buffer_p, /**< target buffer */
+jjs_fmt_to_buffer_v (jjs_context_t* context_p, /**< JJS context */
+                     jjs_char_t *buffer_p, /**< target buffer */
                      jjs_size_t buffer_size, /**< target buffer size */
                      jjs_encoding_t encoding, /**< encoding used to write character to buffer */
                      const char *format_p, /**< format string */
@@ -7427,7 +7561,7 @@ jjs_fmt_to_buffer_v (jjs_char_t *buffer_p, /**< target buffer */
     return 0;
   }
 
-  jjs_fmt_v (&wstream, format_p, values_p, values_length);
+  jjs_fmt_v (context_p, &wstream, format_p, values_p, values_length);
 
   return target.buffer_index;
 } /* jjs_fmt_to_buffer_v */
@@ -7445,12 +7579,13 @@ jjs_fmt_to_buffer_v (jjs_char_t *buffer_p, /**< target buffer */
  * released with jjs_value_free
  */
 jjs_value_t
-jjs_fmt_join_v (jjs_value_t delimiter, /**< string delimiter */
+jjs_fmt_join_v (jjs_context_t* context_p, /**< JJS context */
+                jjs_value_t delimiter, /**< string delimiter */
                 jjs_value_ownership_t delimiter_o, /**< delimiter reference ownership */
                 const jjs_value_t *values_p, /**< substitution values */
                 jjs_size_t values_length) /**< number of substitution values */
 {
-  if (!jjs_value_is_string (delimiter) || values_length == 0)
+  if (!jjs_value_is_string (context_p, delimiter) || values_length == 0)
   {
     return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
   }
@@ -7466,15 +7601,15 @@ jjs_fmt_join_v (jjs_value_t delimiter, /**< string delimiter */
 
   for (jjs_size_t i = 0; i < values_length; i++)
   {
-    fmt_write_value (&wstream, values_p[i], JJS_KEEP);
+    fmt_write_value (context_p, &wstream, values_p[i], JJS_KEEP);
 
     if (i < values_length - 1)
     {
-      fmt_write_value (&wstream, delimiter, JJS_KEEP);
+      fmt_write_value (context_p, &wstream, delimiter, JJS_KEEP);
     }
   }
 
-  JJS_DISOWN (delimiter, delimiter_o);
+  JJS_DISOWN (context_p, delimiter, delimiter_o);
 
   return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_join_v */

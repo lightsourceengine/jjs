@@ -19,6 +19,7 @@
 
 #include "jrt-libc-includes.h"
 #include "jrt.h"
+#include "jcontext.h"
 
 /*
  * Exit with specified status code.
@@ -60,7 +61,7 @@ jjs_fatal (jjs_fatal_code_t code) /**< status code */
   }
 #endif /* !JJS_NDEBUG */
 
-  jjs_platform_fatal (code);
+  jjs_platform_fatal (&JJS_CONTEXT_STRUCT, code);
 
   /* to make compiler happy for some RTOS: 'control reaches end of non-void function' */
   while (true)

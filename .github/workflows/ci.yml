@@ -1,7 +1,7 @@
 name: ci
 
-on: [push, pull_request]
-# on: workflow_dispatch
+#on: [push, pull_request]
+on: workflow_dispatch
 
 env:
   CMAKE_GENERATOR: Ninja

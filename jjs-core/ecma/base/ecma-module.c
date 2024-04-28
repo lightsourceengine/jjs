@@ -561,7 +561,7 @@ ecma_module_evaluate (ecma_module_t *module_p) /**< module */
 
     if (module_p->u.callback)
     {
-      ret_value = module_p->u.callback (ecma_make_object_value (&module_p->header.object));
+      ret_value = module_p->u.callback (&JJS_CONTEXT_STRUCT, ecma_make_object_value (&module_p->header.object));
 
       if (JJS_UNLIKELY (ecma_is_value_exception (ret_value)))
       {
@@ -572,7 +572,7 @@ ecma_module_evaluate (ecma_module_t *module_p) /**< module */
   }
   else
   {
-    ret_value = vm_run_module (module_p);
+    ret_value = vm_run_module (&JJS_CONTEXT_STRUCT, module_p);
   }
 
   if (JJS_LIKELY (!ECMA_IS_VALUE_ERROR (ret_value)))
@@ -1145,7 +1145,7 @@ restart:
     {
       JJS_ASSERT (ecma_is_value_string (node_p->u.path_or_module));
 
-      ecma_value_t resolve_result = callback (node_p->u.path_or_module, module_val, user_p);
+      ecma_value_t resolve_result = callback (&JJS_CONTEXT_STRUCT, node_p->u.path_or_module, module_val, user_p);
 
       if (JJS_UNLIKELY (ecma_is_value_exception (resolve_result)))
       {
@@ -1232,7 +1232,7 @@ restart:
       JJS_ASSERT (!(current_module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC));
 
       /* Initialize scope for handling circular references. */
-      ecma_value_t result = vm_init_module_scope (current_module_p);
+      ecma_value_t result = vm_init_module_scope (&JJS_CONTEXT_STRUCT, current_module_p);
 
       if (ECMA_IS_VALUE_ERROR (result))
       {
@@ -1373,10 +1373,11 @@ ecma_module_import (ecma_value_t specifier, /**< module specifier */
     goto error_module_instantiate;
   }
 
-  jjs_value_t result;
-  result = JJS_CONTEXT (module_import_callback_p) (ecma_make_string_value (specifier_p),
-                                                     user_value,
-                                                     JJS_CONTEXT (module_import_callback_user_p));
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+  jjs_value_t result = context_p->module_import_callback_p (context_p,
+                                                            ecma_make_string_value (specifier_p),
+                                                            user_value,
+                                                            context_p->module_import_callback_user_p);
   ecma_deref_ecma_string (specifier_p);
 
   if (JJS_UNLIKELY (ecma_is_value_exception (result)))

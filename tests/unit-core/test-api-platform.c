@@ -27,7 +27,7 @@ test_platform_after_init (void)
   TEST_ASSERT (jjs_platform_os_type () != JJS_PLATFORM_OS_UNKNOWN);
   TEST_ASSERT (jjs_platform_arch_type () != JJS_PLATFORM_ARCH_UNKNOWN);
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   TEST_ASSERT (jjs_platform_os () != JJS_PLATFORM_OS_UNKNOWN);
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_os ())));
@@ -38,19 +38,19 @@ test_platform_after_init (void)
   TEST_ASSERT (jjs_platform_has_read_file ());
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
 test_platform_cwd (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   TEST_ASSERT (jjs_platform_has_cwd ());
   TEST_ASSERT (jjs_value_is_string (push (jjs_platform_cwd ())));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
@@ -60,19 +60,19 @@ test_platform_cwd_not_set (void)
 
   options.platform.path_cwd = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW_OPTS (context_p, &options);
 
   TEST_ASSERT (!jjs_platform_has_cwd ());
   TEST_ASSERT (jjs_value_is_exception (push (jjs_platform_cwd ())));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
 test_platform_realpath (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
   jjs_value_t path;
 
   TEST_ASSERT (jjs_platform_has_realpath ());
@@ -90,13 +90,13 @@ test_platform_realpath (void)
   TEST_ASSERT (jjs_value_is_exception (path));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
 test_platform_read_file (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   TEST_ASSERT (jjs_platform_has_read_file ());
 
@@ -125,7 +125,7 @@ test_platform_read_file (void)
   TEST_ASSERT (jjs_value_is_exception (contents));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
@@ -135,14 +135,14 @@ test_platform_realpath_not_set (void)
 
   options.platform.path_realpath = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW_OPTS (context_p, &options);
 
   TEST_ASSERT (!jjs_platform_has_realpath ());
   jjs_value_t path = push (jjs_platform_realpath (jjs_string_utf8_sz ("."), JJS_MOVE));
   TEST_ASSERT (jjs_value_is_exception (path));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
@@ -152,20 +152,20 @@ test_platform_read_file_not_set (void)
 
   options.platform.fs_read_file = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW_OPTS (context_p, &options);
 
   TEST_ASSERT (!jjs_platform_has_read_file ());
   jjs_value_t path = push (jjs_platform_read_file (jjs_string_utf8_sz (TEST_FILE), JJS_MOVE, NULL));
   TEST_ASSERT (jjs_value_is_exception (path));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
 test_platform_stream (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   TEST_ASSERT (jjs_platform_has_stdout () == true);
 
@@ -177,65 +177,67 @@ test_platform_stream (void)
   jjs_platform_stderr_write (jjs_string_sz ("hello\n"), JJS_MOVE);
   jjs_platform_stderr_flush ();
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
 test_platform_stream_requirements (void)
 {
+  jjs_context_t *context_p;
   jjs_context_options_t options;
 
   /* invalid default encoding */
   options = jjs_context_options ();
   options.platform.io_stdout_encoding = JJS_ENCODING_UTF16;
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING);
 
   options = jjs_context_options ();
   options.platform.io_stderr_encoding = JJS_ENCODING_UTF16;
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING);
 
   /* streams without write function */
   options = jjs_context_options ();
   options.platform.io_write = NULL;
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == false);
   TEST_ASSERT (jjs_platform_has_stderr () == false);
-  jjs_cleanup();
+  TEST_CONTEXT_FREE (context_p);
 
   /* no streams */
   options = jjs_context_options ();
   options.platform.io_stdout = NULL;
   options.platform.io_stderr = NULL;
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == false);
   TEST_ASSERT (jjs_platform_has_stderr () == false);
-  jjs_cleanup();
+  TEST_CONTEXT_FREE (context_p);
 
   /* default init */
   options = jjs_context_options ();
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == true);
   TEST_ASSERT (jjs_platform_has_stderr () == true);
-  jjs_cleanup();
+  TEST_CONTEXT_FREE (context_p);
 
   /* no flush */
   options = jjs_context_options ();
   options.platform.io_flush = NULL;
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
   TEST_ASSERT (jjs_platform_has_stdout () == true);
   TEST_ASSERT (jjs_platform_has_stderr () == true);
-  jjs_cleanup();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
 test_platform_debugger_requirements (void)
 {
 #if JJS_DEBUGGER
+  jjs_context_t *context_p;
   jjs_context_options_t options = jjs_context_options ();
 
   options.platform.time_sleep = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP);
 #endif
 }
 
@@ -243,19 +245,20 @@ static void
 test_platform_date_requirements (void)
 {
 #if JJS_BUILTIN_DATE
+  jjs_context_t *context_p;
   jjs_context_options_t options = jjs_context_options ();
 
   TEST_ASSERT (options.platform.time_local_tza != NULL);
   options.platform.time_local_tza = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA);
 
   options = jjs_context_options ();
 
   TEST_ASSERT (options.platform.time_now_ms != NULL);
   options.platform.time_now_ms = NULL;
 
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS);
+  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS);
 #endif
 }
 
@@ -294,7 +297,7 @@ test_platform_api_exists (void)
 static void
 test_jjs_namespace (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
   jjs_value_t global = push (jjs_current_realm ());
   jjs_value_t jjs = push (jjs_object_get_sz (global, "jjs"));
   
@@ -312,7 +315,7 @@ test_jjs_namespace (void)
   TEST_ASSERT (jjs_value_is_function (push (jjs_object_get_sz (jjs, "gc"))));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void
@@ -321,7 +324,7 @@ check_jjs_namespace_exclusion (jjs_namespace_exclusion_t exclusion, const char* 
   jjs_context_options_t options = jjs_context_options ();
 
   options.jjs_namespace_exclusions = exclusion;
-  TEST_ASSERT (jjs_init (&options) == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW_OPTS (context_p, &options);
   jjs_value_t global = push (jjs_current_realm ());
   jjs_value_t jjs = push (jjs_object_get_sz (global, "jjs"));
 
@@ -334,7 +337,7 @@ check_jjs_namespace_exclusion (jjs_namespace_exclusion_t exclusion, const char* 
   TEST_ASSERT (jjs_value_is_false (push (jjs_object_has_sz (jjs, api_name_sz))));
 
   free_values ();
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 }
 
 static void

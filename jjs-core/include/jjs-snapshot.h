@@ -67,23 +67,26 @@ typedef struct
 /**
  * Snapshot functions.
  */
-jjs_value_t jjs_generate_snapshot (jjs_value_t compiled_code,
-                                       uint32_t generate_snapshot_opts,
-                                       uint32_t *buffer_p,
-                                       size_t buffer_size);
+jjs_value_t jjs_generate_snapshot (jjs_context_t* context_p,
+                                   jjs_value_t compiled_code,
+                                   uint32_t generate_snapshot_opts,
+                                   uint32_t *buffer_p,
+                                   size_t buffer_size);
 
-jjs_value_t jjs_exec_snapshot (const uint32_t *snapshot_p,
-                                   size_t snapshot_size,
-                                   size_t func_index,
-                                   uint32_t exec_snapshot_opts,
-                                   const jjs_exec_snapshot_option_values_t *options_values_p);
+jjs_value_t jjs_exec_snapshot (jjs_context_t* context_p,
+                               const uint32_t *snapshot_p,
+                               size_t snapshot_size,
+                               size_t func_index,
+                               uint32_t exec_snapshot_opts,
+                               const jjs_exec_snapshot_option_values_t *options_values_p);
 
-size_t jjs_merge_snapshots (const uint32_t **inp_buffers_p,
-                              size_t *inp_buffer_sizes_p,
-                              size_t number_of_snapshots,
-                              uint32_t *out_buffer_p,
-                              size_t out_buffer_size,
-                              const char **error_p);
+size_t jjs_merge_snapshots (jjs_context_t* context_p,
+                            const uint32_t **inp_buffers_p,
+                            size_t *inp_buffer_sizes_p,
+                            size_t number_of_snapshots,
+                            uint32_t *out_buffer_p,
+                            size_t out_buffer_size,
+                            const char **error_p);
 size_t jjs_get_literals_from_snapshot (const uint32_t *snapshot_p,
                                          size_t snapshot_size,
                                          jjs_char_t *lit_buf_p,

@@ -287,6 +287,8 @@ enum
  */
 typedef ecma_value_t (*ecma_vm_exec_stop_callback_t) (void *user_p);
 
+typedef struct ecma_context_s ecma_context_t;
+
 /**
  * Forward definition of jjs_call_info_t.
  */

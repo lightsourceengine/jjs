@@ -45,7 +45,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t base_obj = jjs_object ();
   jjs_value_t constructor = jjs_function_external (my_constructor);
@@ -106,7 +106,7 @@ main (void)
   jjs_value_free (instance_val);
   jjs_value_free (no_proto_instance_val);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

@@ -20,7 +20,7 @@
 #include "jcontext.h"
 
 #if JJS_ANNEX_QUEUE_MICROTASK
-static jjs_value_t queue_microtask_impl (jjs_value_t callback);
+static jjs_value_t queue_microtask_impl (jjs_context_t* context_p, jjs_value_t callback);
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 /**
@@ -28,19 +28,20 @@ static jjs_value_t queue_microtask_impl (jjs_value_t callback);
  *
  * The callback function will be called the next time jjs_run_jobs() is called.
  *
+ * @param context_p JJS context
  * @param callback callback function
  * @return on success, undefined; if callback is not callable, throws a TypeError exception
  */
 jjs_value_t
-jjs_queue_microtask(const jjs_value_t callback)
+jjs_queue_microtask(jjs_context_t* context_p, const jjs_value_t callback)
 {
-  jjs_assert_api_enabled ();
+  jjs_assert_api_enabled (context_p);
 
 #if JJS_ANNEX_QUEUE_MICROTASK
-  return queue_microtask_impl (callback);
+  return queue_microtask_impl (context_p, callback);
 #else /* !JJS_ANNEX_QUEUE_MICROTASK */
   JJS_UNUSED (callback);
-  return jjs_throw_sz(JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_QUEUE_MICROTASK_NOT_SUPPORTED));
+  return jjs_throw_sz(context_p, JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_QUEUE_MICROTASK_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
 } /* jjs_queue_microtask */
 
@@ -51,9 +52,7 @@ jjs_queue_microtask(const jjs_value_t callback)
  */
 JJS_HANDLER (queue_microtask_handler)
 {
-  (void) call_info_p;
-
-  return queue_microtask_impl (args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED);
+  return queue_microtask_impl (call_info_p->context_p, args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED);
 } /* queue_microtask_handler */
 
 /**
@@ -64,11 +63,11 @@ JJS_HANDLER (queue_microtask_handler)
  *         Value must be freed by caller.
  */
 static jjs_value_t
-queue_microtask_impl (jjs_value_t callback)
+queue_microtask_impl (jjs_context_t* context_p, jjs_value_t callback)
 {
-  if (!jjs_value_is_function (callback))
+  if (!jjs_value_is_function (context_p, callback))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE));
   }
 
   ecma_enqueue_microtask_job (callback);

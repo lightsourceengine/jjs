@@ -41,7 +41,8 @@
 #define FILE_URL_ENCODE_PREFIX_NIX_LEN 7
 #endif /* _WIN32 */
 
-static ecma_value_t annex_encode_path (const lit_utf8_byte_t* path_p,
+static ecma_value_t annex_encode_path (jjs_context_t* context_p,
+                                       const lit_utf8_byte_t* path_p,
                                        lit_utf8_size_t path_len,
                                        const lit_utf8_byte_t* prefix,
                                        lit_utf8_size_t prefix_len);
@@ -91,13 +92,14 @@ annex_path_specifier_type (ecma_value_t specifier)
  * Join a referrer path and specifier path. Optionally, normalize the resulting
  * full path.
  *
+ * @param context_p JJS context
  * @param referrer referrer directory path
  * @param specifier file path
  * @param normalize if true, normalize the path
  * @return the resulting joined path. If the path is invalid, an empty value is returned.
  */
 ecma_value_t
-annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize)
+annex_path_join (jjs_context_t* context_p, ecma_value_t referrer, ecma_value_t specifier, bool normalize)
 {
   if (!ecma_is_value_string (referrer) || !ecma_is_value_string (specifier))
   {
@@ -121,7 +123,7 @@ annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize)
 
   if (normalize)
   {
-    ecma_value_t normalized = annex_path_normalize (result);
+    ecma_value_t normalized = annex_path_normalize (context_p, result);
 
     ecma_free_value (result);
 
@@ -136,22 +138,23 @@ annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize)
 /**
  * Normalize a path.
  *
+ * @param context_p JJS context
  * @param path the string path
  * @return a normalized path or an empty value if the path is invalid or normalization fails
  */
 ecma_value_t
-annex_path_normalize (ecma_value_t path)
+annex_path_normalize (jjs_context_t* context_p, ecma_value_t path)
 {
-  if (!ecma_is_value_string (path) || jjs_string_length (path) == 0)
+  if (!ecma_is_value_string (path) || jjs_string_length (context_p, path) == 0)
   {
     return ECMA_VALUE_EMPTY;
   }
 
-  jjs_value_t result = jjs_platform_realpath (path, JJS_KEEP);
+  jjs_value_t result = jjs_platform_realpath (context_p, path, JJS_KEEP);
 
-  if (!jjs_value_is_string (result))
+  if (!jjs_value_is_string (context_p, result))
   {
-    jjs_value_free (result);
+    jjs_value_free (context_p, result);
     result = ECMA_VALUE_EMPTY;
   }
 
@@ -162,13 +165,13 @@ annex_path_normalize (ecma_value_t path)
  * Get the current working directory.
  */
 ecma_value_t
-annex_path_cwd (void)
+annex_path_cwd (jjs_context_t* context_p)
 {
-  jjs_value_t cwd = jjs_platform_cwd ();
+  jjs_value_t cwd = jjs_platform_cwd (context_p);
 
-  if (!jjs_value_is_string (cwd))
+  if (!jjs_value_is_string (context_p, cwd))
   {
-    jjs_value_free (cwd);
+    jjs_value_free (context_p, cwd);
     cwd = ECMA_VALUE_EMPTY;
   }
 
@@ -311,7 +314,7 @@ annex_path_format (ecma_value_t path)
  * @return string file url or empty value on error
  */
 ecma_value_t
-annex_path_to_file_url (ecma_value_t path)
+annex_path_to_file_url (jjs_context_t* context_p, ecma_value_t path)
 {
   if (!ecma_is_value_string (path))
   {
@@ -367,7 +370,7 @@ annex_path_to_file_url (ecma_value_t path)
 
   if (prefix_len > 0)
   {
-    result = annex_encode_path (path_bytes_p, path_bytes_len, (const lit_utf8_byte_t*) prefix, prefix_len);
+    result = annex_encode_path (context_p, path_bytes_p, path_bytes_len, (const lit_utf8_byte_t*) prefix, prefix_len);
   }
   else
   {
@@ -480,19 +483,20 @@ annex_encode_char (lit_utf8_byte_t c, lit_utf8_byte_t* buffer)
 } /* annex_encode_char */
 
 static ecma_value_t
-annex_encode_path (const lit_utf8_byte_t* path_p,
+annex_encode_path (jjs_context_t* context_p,
+                   const lit_utf8_byte_t* path_p,
                    lit_utf8_size_t path_len,
                    const lit_utf8_byte_t* prefix,
                    lit_utf8_size_t prefix_len)
 {
   /* maximum size if every character in path gets encoded to %XX format */
   const lit_utf8_size_t encoded_capacity = prefix_len + (path_len * 3);
-  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator ();
+  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator (context_p);
   lit_utf8_byte_t* encoded_p = allocator->alloc (allocator, encoded_capacity);
 
   if (encoded_p == NULL)
   {
-    jjs_util_context_release_scratch_allocator ();
+    jjs_util_context_release_scratch_allocator (context_p);
     return ECMA_VALUE_EMPTY;
   }
 
@@ -587,7 +591,7 @@ annex_encode_path (const lit_utf8_byte_t* path_p,
   }
 
   allocator->free (allocator, encoded_p, encoded_capacity);
-  jjs_util_context_release_scratch_allocator ();
+  jjs_util_context_release_scratch_allocator (context_p);
 
   return result;
 } /* annex_encode_path */

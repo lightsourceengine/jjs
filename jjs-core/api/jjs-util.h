@@ -27,7 +27,8 @@ typedef struct
 
 jjs_value_t jjs_return (jjs_value_t value);
 
-bool jjs_util_map_option (jjs_value_t option,
+bool jjs_util_map_option (jjs_context_t* context_p,
+                          jjs_value_t option,
                           jjs_value_ownership_t option_o,
                           jjs_value_t key,
                           jjs_value_ownership_t key_o,
@@ -37,14 +38,15 @@ bool jjs_util_map_option (jjs_value_t option,
                           uint32_t* out_p);
 
 jjs_allocator_t jjs_util_system_allocator (void);
-jjs_allocator_t jjs_util_vm_allocator (void);
-jjs_allocator_t jjs_util_arraybuffer_allocator (void);
+jjs_allocator_t * jjs_util_system_allocator_ptr (void);
+jjs_allocator_t jjs_util_vm_allocator (jjs_context_t* context_p);
+jjs_allocator_t jjs_util_arraybuffer_allocator (jjs_context_t* context_p);
 jjs_value_t jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator);
 
-bool jjs_util_context_allocator_init (const jjs_allocator_t* fallback_allocator);
+bool jjs_util_context_allocator_init (jjs_context_t* context_p, const jjs_allocator_t* fallback_allocator);
 
-jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (void);
-void jjs_util_context_release_scratch_allocator (void);
+jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p);
+void jjs_util_context_release_scratch_allocator (jjs_context_t* context_p);
 
 jjs_status_t
 jjs_util_convert (jjs_allocator_t* allocator,
@@ -74,8 +76,9 @@ jjs_util_convert (jjs_allocator_t* allocator,
  *           - before jjs_init and after jjs_cleanup
  *           - between enter to and return from a native free callback
  */
-#define jjs_assert_api_enabled() JJS_ASSERT (JJS_CONTEXT (status_flags) & ECMA_STATUS_API_ENABLED)
+// TODO: NDEBUG version
+#define jjs_assert_api_enabled(CTX) JJS_ASSERT ((CTX) != NULL && ((CTX)->status_flags & ECMA_STATUS_API_ENABLED))
 
-#define JJS_DISOWN(VALUE, VALUE_OWNERSHIP) if ((VALUE_OWNERSHIP) == JJS_MOVE) jjs_value_free (VALUE)
+#define JJS_DISOWN(CTX, VALUE, VALUE_OWNERSHIP) if ((VALUE_OWNERSHIP) == JJS_MOVE) jjs_value_free ((CTX), VALUE)
 
 #endif /* JJS_UTIL_H */

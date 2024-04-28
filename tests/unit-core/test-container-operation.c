@@ -20,15 +20,14 @@
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
-
   if (!jjs_feature_enabled (JJS_FEATURE_MAP) || !jjs_feature_enabled (JJS_FEATURE_SET)
       || !jjs_feature_enabled (JJS_FEATURE_WEAKMAP) || !jjs_feature_enabled (JJS_FEATURE_WEAKSET))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Containers are disabled!\n");
-    jjs_cleanup ();
     return 0;
   }
+
+  TEST_CONTEXT_NEW (context_p);
 
   // Map container tests
   jjs_value_t map = jjs_container (JJS_CONTAINER_TYPE_MAP, NULL, 0);
@@ -176,7 +175,7 @@ main (void)
   jjs_value_free (key_str);
   jjs_value_free (number);
   jjs_value_free (obj);
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 
 } /* main */

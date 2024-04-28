@@ -204,6 +204,10 @@ ecma_free_microtask_job (ecma_job_microtask_t *job_p) /**< job pointer */
 static ecma_value_t
 ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the job to be operated */
 {
+#if JJS_PROMISE_CALLBACK
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+#endif /* JJS_PROMISE_CALLBACK */
+
   /* 2. */
   JJS_ASSERT (
     ecma_object_class_is (ecma_get_object_from_value (job_p->capability), ECMA_OBJECT_CLASS_PROMISE_CAPABILITY));
@@ -213,12 +217,12 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
 #if JJS_PROMISE_CALLBACK
   if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_REACTION_JOB))
   {
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (JJS_PROMISE_EVENT_BEFORE_REACTION_JOB,
-     capability_p->header.u.cls.u3.promise,
-     ECMA_VALUE_UNDEFINED,
-     JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p,
+                                 JJS_PROMISE_EVENT_BEFORE_REACTION_JOB,
+                                 capability_p->header.u.cls.u3.promise,
+                                 ECMA_VALUE_UNDEFINED,
+                                 context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -268,14 +272,14 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
   ecma_free_value (handler_result);
 
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_REACTION_JOB))
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_REACTION_JOB))
   {
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (JJS_PROMISE_EVENT_AFTER_REACTION_JOB,
-     capability_p->header.u.cls.u3.promise,
-     ECMA_VALUE_UNDEFINED,
-     JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p,
+                                 JJS_PROMISE_EVENT_AFTER_REACTION_JOB,
+                                 capability_p->header.u.cls.u3.promise,
+                                 ECMA_VALUE_UNDEFINED,
+                                 context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -294,7 +298,9 @@ static ecma_value_t
 ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_p) /**< the job to be operated */
 {
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB))
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB))
   {
     jjs_promise_event_type_t type = JJS_PROMISE_EVENT_ASYNC_BEFORE_RESOLVE;
 
@@ -303,9 +309,12 @@ ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_
       type = JJS_PROMISE_EVENT_ASYNC_BEFORE_REJECT;
     }
 
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (type, job_p->executable_object, job_p->argument, JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p,
+                                 type,
+                                 job_p->executable_object,
+                                 job_p->argument,
+                                 context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -396,7 +405,7 @@ ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_
 free_job:
 
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB))
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB))
   {
     jjs_promise_event_type_t type = JJS_PROMISE_EVENT_ASYNC_AFTER_RESOLVE;
 
@@ -405,9 +414,12 @@ free_job:
       type = JJS_PROMISE_EVENT_ASYNC_AFTER_REJECT;
     }
 
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (type, job_p->executable_object, job_p->argument, JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p,
+                                 type,
+                                 job_p->executable_object,
+                                 job_p->argument,
+                                 context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -588,7 +600,7 @@ ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, /**< promise to
  */
 void ecma_enqueue_microtask_job(ecma_value_t callback)
 {
-  JJS_ASSERT(jjs_value_is_function(callback));
+  JJS_ASSERT(jjs_value_is_function(&JJS_CONTEXT_STRUCT, callback));
 
   ecma_job_microtask_t *job_p;
   job_p = (ecma_job_microtask_t *) jmem_heap_alloc_block (sizeof (ecma_job_microtask_t));

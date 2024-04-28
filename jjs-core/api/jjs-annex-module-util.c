@@ -23,12 +23,14 @@
 /**
  * Call the module_on_resolve callback.
  *
+ * @param context_p JJS context
  * @param request require request
  * @param referrer_path directory path of the referrer
  * @param module_type type of the module
  * @return resolve result. must be freed by jjs_annex_module_resolve_free.
  */
-jjs_annex_module_resolve_t jjs_annex_module_resolve (ecma_value_t request,
+jjs_annex_module_resolve_t jjs_annex_module_resolve (jjs_context_t* context_p,
+                                                     ecma_value_t request,
                                                      ecma_value_t referrer_path,
                                                      jjs_module_type_t module_type)
 {
@@ -37,7 +39,7 @@ jjs_annex_module_resolve_t jjs_annex_module_resolve (ecma_value_t request,
     .referrer_path = referrer_path,
   };
 
-  jjs_esm_resolve_cb_t module_on_resolve_cb = JJS_CONTEXT (module_on_resolve_cb);
+  jjs_esm_resolve_cb_t module_on_resolve_cb = context_p->module_on_resolve_cb;
 
   JJS_ASSERT (module_on_resolve_cb != NULL);
 
@@ -45,14 +47,14 @@ jjs_annex_module_resolve_t jjs_annex_module_resolve (ecma_value_t request,
 
   if (module_on_resolve_cb != NULL)
   {
-    resolve_result = module_on_resolve_cb (request, &context, JJS_CONTEXT (module_on_resolve_user_p));
+    resolve_result = module_on_resolve_cb (context_p, request, &context, context_p->module_on_resolve_user_p);
   }
   else
   {
-    resolve_result = jjs_throw_sz (JJS_ERROR_COMMON, "module_on_resolve callback is not set");
+    resolve_result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "module_on_resolve callback is not set");
   }
 
-  if (jjs_value_is_exception (resolve_result))
+  if (jjs_value_is_exception (context_p, resolve_result))
   {
     return (jjs_annex_module_resolve_t) {
       .path = ECMA_VALUE_UNDEFINED,
@@ -73,16 +75,18 @@ jjs_annex_module_resolve_t jjs_annex_module_resolve (ecma_value_t request,
 /**
  * Free the resolve result.
  *
+ * @param context_p JJS context
  * @param resolve_result_p pointer to a resolve result
  */
-void jjs_annex_module_resolve_free (jjs_annex_module_resolve_t *resolve_result_p)
+void jjs_annex_module_resolve_free (jjs_context_t* context_p, jjs_annex_module_resolve_t *resolve_result_p)
 {
-  jjs_value_free(resolve_result_p->path);
-  jjs_value_free(resolve_result_p->format);
-  jjs_value_free(resolve_result_p->result);
+  jjs_value_free(context_p, resolve_result_p->path);
+  jjs_value_free(context_p, resolve_result_p->format);
+  jjs_value_free(context_p, resolve_result_p->result);
 } /* jjs_annex_module_resolve_free */
 
-jjs_annex_module_load_t jjs_annex_module_load (ecma_value_t path,
+jjs_annex_module_load_t jjs_annex_module_load (jjs_context_t* context_p,
+                                               ecma_value_t path,
                                                ecma_value_t format,
                                                jjs_module_type_t module_type)
 {
@@ -93,16 +97,16 @@ jjs_annex_module_load_t jjs_annex_module_load (ecma_value_t path,
 
   ecma_value_t load_result;
 
-  if (JJS_CONTEXT (module_on_load_cb) != NULL)
+  if (context_p->module_on_load_cb != NULL)
   {
-    load_result = JJS_CONTEXT (module_on_load_cb) (path, &context, JJS_CONTEXT (module_on_load_user_p));
+    load_result = context_p->module_on_load_cb (context_p, path, &context, context_p->module_on_load_user_p);
   }
   else
   {
-    load_result = jjs_throw_sz (JJS_ERROR_COMMON, "module_on_load callback is not set");
+    load_result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "module_on_load callback is not set");
   }
 
-  if (jjs_value_is_exception (load_result))
+  if (jjs_value_is_exception (context_p, load_result))
   {
     return (jjs_annex_module_load_t) {
       .source = ECMA_VALUE_UNDEFINED,
@@ -113,15 +117,15 @@ jjs_annex_module_load_t jjs_annex_module_load (ecma_value_t path,
 
   ecma_value_t final_format = ecma_find_own_m (load_result, LIT_MAGIC_STRING_FORMAT);
 
-  if (!jjs_value_is_string (final_format))
+  if (!jjs_value_is_string (context_p, final_format))
   {
-    jjs_value_free (load_result);
-    jjs_value_free (final_format);
+    jjs_value_free (context_p, load_result);
+    jjs_value_free (context_p, final_format);
 
     return (jjs_annex_module_load_t) {
       .source = ECMA_VALUE_UNDEFINED,
       .format = ECMA_VALUE_UNDEFINED,
-      .result = jjs_throw_sz (JJS_ERROR_TYPE, "Invalid format"),
+      .result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid format"),
     };
   }
 
@@ -137,13 +141,14 @@ jjs_annex_module_load_t jjs_annex_module_load (ecma_value_t path,
 /**
  * Free the module load result.
  *
+ * @param context_p JJS context
  * @param load_result_p pointer to a load result
  */
-void jjs_annex_module_load_free (jjs_annex_module_load_t *load_result_p)
+void jjs_annex_module_load_free (jjs_context_t* context_p, jjs_annex_module_load_t *load_result_p)
 {
-  jjs_value_free (load_result_p->source);
-  jjs_value_free (load_result_p->format);
-  jjs_value_free (load_result_p->result);
+  jjs_value_free (context_p, load_result_p->source);
+  jjs_value_free (context_p, load_result_p->format);
+  jjs_value_free (context_p, load_result_p->result);
 } /* jjs_annex_module_load_free */
 
 #endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */

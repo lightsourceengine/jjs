@@ -22,7 +22,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   /* Test: init property descriptor */
   jjs_property_descriptor_t prop_desc = jjs_property_descriptor ();
@@ -133,7 +133,7 @@ main (void)
   jjs_value_free (prop_name);
   jjs_value_free (obj_val);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

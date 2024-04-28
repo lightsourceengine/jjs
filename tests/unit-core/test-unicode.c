@@ -37,7 +37,7 @@ test_syntax_error (char *script_p) /**< script */
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   if (!test_syntax_error ("\\u{61}"))
   {
@@ -52,7 +52,7 @@ main (void)
     TEST_ASSERT (!test_syntax_error ("$\xF0\x90\xB2\x80$: break $\xed\xa0\x83\xed\xb2\x80$"));
   }
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

@@ -118,7 +118,7 @@ typedef struct ecma_module_resolve_stack
  * Callback registered with context to be called with a module's lexical
  * scope is created.
  */
-typedef void (*ecma_module_on_init_scope_cb) (ecma_module_t* module_p);
+typedef void (*ecma_module_on_init_scope_cb) (jjs_context_t* context_p, ecma_module_t* module_p);
 
 ecma_value_t ecma_module_initialize (ecma_module_t *module_p);
 ecma_module_t *ecma_module_get_resolved_module (ecma_value_t module_val);

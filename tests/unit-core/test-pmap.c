@@ -397,7 +397,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   test_pmap ();
   test_pmap_invalid ();
@@ -412,6 +412,6 @@ main (void)
   test_pmap_resolve_scoped_package_string ();
   test_pmap_resolve_error ();
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

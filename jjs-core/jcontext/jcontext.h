@@ -77,10 +77,9 @@ struct jjs_context_t
   ecma_global_object_t *global_object_p; /**< current global object */
 
   jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
-  jjs_context_heap_free_cb_t heap_free_cb; /**< called when an external heap pointer should be free'd */
-  void *heap_free_user_p; /**< user defined token to pass to heap_free_cb */
+  jjs_allocator_t *heap_allocator_p;
 
-  jjs_platform_t platform_api; /**< platform api access */
+  jjs_platform_t *platform_p;
   jjs_platform_io_stream_t *streams[2]; /**< installed platform io streams. validated at context init.
                                            * indexes at jjs_platform_io_stream_id_t */
 

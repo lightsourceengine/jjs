@@ -49,13 +49,13 @@ static const jjs_object_native_info_t native_info = {
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t obj = jjs_object ();
 
   jjs_object_set_native_ptr (obj, &native_info, NULL);
   jjs_value_free (obj);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

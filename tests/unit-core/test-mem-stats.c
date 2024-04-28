@@ -28,7 +28,7 @@ main (void)
                                                           "var b = 'world';"
                                                           "var c = a + ' ' + b;");
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
   jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
   TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
 
@@ -50,7 +50,7 @@ main (void)
   jjs_value_free (res);
   jjs_value_free (parsed_code_val);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

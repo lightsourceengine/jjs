@@ -72,15 +72,14 @@ run_eval_error (const char *source_p)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
-
   if (!jjs_feature_enabled (JJS_FEATURE_MAP) || !jjs_feature_enabled (JJS_FEATURE_SET)
       || !jjs_feature_enabled (JJS_FEATURE_WEAKMAP) || !jjs_feature_enabled (JJS_FEATURE_WEAKSET))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Containers are disabled!\n");
-    jjs_cleanup ();
     return 0;
   }
+
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t instance_check;
   jjs_value_t global = jjs_current_realm ();
@@ -241,6 +240,6 @@ main (void)
                   "var result = create_array_from_container(iter, false);\n"
                   "assert(result instanceof Error);");
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

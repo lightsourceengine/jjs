@@ -565,12 +565,12 @@ test_detached_arraybuffer (void)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   if (!jjs_feature_enabled (JJS_FEATURE_TYPEDARRAY))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "TypedArray is disabled!\n");
-    jjs_cleanup ();
+    TEST_CONTEXT_FREE (context_p);
     return 0;
   }
 
@@ -731,7 +731,7 @@ main (void)
 
   test_detached_arraybuffer ();
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

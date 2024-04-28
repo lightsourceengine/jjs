@@ -91,11 +91,31 @@
  * Test initialization statement that should be included
  * at the beginning of main function in every unit test.
  */
-#define TEST_INIT()                              \
-  do                                             \
-  {                                              \
-    srand ((uint32_t) time (NULL));              \
+#define TEST_INIT()                 \
+  do                                \
+  {                                 \
+    srand ((uint32_t) time (NULL)); \
   } while (0)
+
+#define TEST_CONTEXT_NEW(CONTEXT_IDENT) \
+  jjs_context_t* CONTEXT_IDENT;         \
+  TEST_ASSERT (jjs_context_new (NULL, &(CONTEXT_IDENT)) == JJS_STATUS_OK)
+
+#define TEST_CONTEXT_NEW_OPTS(CONTEXT_IDENT, OPTS_P) \
+  jjs_context_t* CONTEXT_IDENT;                      \
+  TEST_ASSERT (jjs_context_new ((OPTS_P), &(CONTEXT_IDENT)) == JJS_STATUS_OK)
+
+#define TEST_CONTEXT_NEW_FLAGS(CONTEXT_IDENT, FLAGS)                             \
+  jjs_context_t* CONTEXT_IDENT;                                                  \
+  do                                                                             \
+  {                                                                              \
+    jjs_context_options_t options = {                                            \
+      .context_flags = (FLAGS),                                                  \
+    };                                                                           \
+    TEST_ASSERT (jjs_context_new (&options, &(CONTEXT_IDENT)) == JJS_STATUS_OK); \
+  } while (false)
+
+#define TEST_CONTEXT_FREE(CONTEXT_IDENT) jjs_context_free (CONTEXT_IDENT);
 
 /**
  * Initialize just the global context, but not the ecma, annex and pack layers.
@@ -103,8 +123,7 @@
  * Most tests should use jjs_init. This helper is for tests that target lower
  * layers that need the context to be setup.
  */
-#define TEST_CONTEXT_INIT() \
-  TEST_ASSERT (jjs_context_init (NULL) == JJS_STATUS_OK)
+#define TEST_CONTEXT_INIT() TEST_ASSERT (jjs_context_init (NULL) == JJS_STATUS_OK)
 
 /**
  * Cleanup a test environment that called TEST_CONTEXT_INIT() to start.

@@ -45,7 +45,7 @@ int
 main (void)
 {
   TEST_INIT ();
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t pp_string = jjs_string_sz ("pp");
   jjs_value_t qq_string = jjs_string_sz ("qq");
@@ -204,6 +204,6 @@ main (void)
   jjs_value_free (qq_string);
   jjs_value_free (rr_string);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

@@ -190,16 +190,16 @@ void
 ecma_reject_promise (ecma_value_t promise, /**< promise */
                      ecma_value_t reason) /**< reason for reject */
 {
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_object_t *obj_p = ecma_get_object_from_value (promise);
 
   JJS_ASSERT (ecma_promise_get_flags (obj_p) & ECMA_PROMISE_IS_PENDING);
 
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_REJECT))
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_REJECT))
   {
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (JJS_PROMISE_EVENT_REJECT, promise, reason, JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p, JJS_PROMISE_EVENT_REJECT, promise, reason, context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -219,16 +219,15 @@ ecma_reject_promise (ecma_value_t promise, /**< promise */
     ((ecma_extended_object_t *) obj_p)->u.cls.u1.promise_flags |= ECMA_PROMISE_UNHANDLED_REJECT;
 
 #if JJS_PROMISE_CALLBACK
-    if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
+    if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ERROR))
     {
-      JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-      JJS_CONTEXT (promise_callback)
-      (JJS_PROMISE_EVENT_REJECT_WITHOUT_HANDLER, promise, reason, JJS_CONTEXT (promise_callback_user_p));
+      JJS_ASSERT (context_p->promise_callback != NULL);
+      context_p->promise_callback (context_p, JJS_PROMISE_EVENT_REJECT_WITHOUT_HANDLER, promise, reason, context_p->promise_callback_user_p);
     }
 #endif /* JJS_PROMISE_CALLBACK */
 
-    JJS_ASSERT (JJS_CONTEXT (unhandled_rejection_cb) != NULL);
-    JJS_CONTEXT (unhandled_rejection_cb) (promise, reason, JJS_CONTEXT (unhandled_rejection_user_p));
+    JJS_ASSERT (context_p->unhandled_rejection_cb != NULL);
+    context_p->unhandled_rejection_cb (context_p, promise, reason, context_p->unhandled_rejection_user_p);
   }
 
   promise_p->reactions = ecma_new_collection ();
@@ -281,11 +280,16 @@ ecma_fulfill_promise (ecma_value_t promise, /**< promise */
   }
 
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_RESOLVE))
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_RESOLVE))
   {
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (JJS_PROMISE_EVENT_RESOLVE, promise, value, JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p,
+                                 JJS_PROMISE_EVENT_RESOLVE,
+                                 promise,
+                                 value,
+                                 context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -324,11 +328,16 @@ ecma_reject_promise_with_checks (ecma_value_t promise, /**< promise */
   if (JJS_UNLIKELY (ecma_is_resolver_already_called (promise_obj_p)))
   {
 #if JJS_PROMISE_CALLBACK
-    if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
+    jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
+    if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ERROR))
     {
-      JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-      JJS_CONTEXT (promise_callback)
-      (JJS_PROMISE_EVENT_REJECT_FULFILLED, promise, reason, JJS_CONTEXT (promise_callback_user_p));
+      JJS_ASSERT (context_p->promise_callback != NULL);
+      context_p->promise_callback (context_p,
+                                   JJS_PROMISE_EVENT_REJECT_FULFILLED,
+                                   promise,
+                                   reason,
+                                   context_p->promise_callback_user_p);
     }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -362,11 +371,16 @@ ecma_fulfill_promise_with_checks (ecma_value_t promise, /**< promise */
   if (JJS_UNLIKELY (ecma_is_resolver_already_called (promise_obj_p)))
   {
 #if JJS_PROMISE_CALLBACK
-    if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
+    jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
+    if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ERROR))
     {
-      JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-      JJS_CONTEXT (promise_callback)
-      (JJS_PROMISE_EVENT_RESOLVE_FULFILLED, promise, value, JJS_CONTEXT (promise_callback_user_p));
+      JJS_ASSERT (context_p->promise_callback != NULL);
+      context_p->promise_callback (context_p,
+                                   JJS_PROMISE_EVENT_RESOLVE_FULFILLED,
+                                   promise,
+                                   value,
+                                   context_p->promise_callback_user_p);
     }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -499,11 +513,16 @@ ecma_op_create_promise_object (ecma_value_t executor, /**< the executor function
   promise_object_p->reactions = reactions;
 
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_CREATE))
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_CREATE))
   {
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (JJS_PROMISE_EVENT_CREATE, ecma_make_object_value (object_p), parent, JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p,
+                                 JJS_PROMISE_EVENT_CREATE,
+                                 ecma_make_object_value (object_p),
+                                 parent,
+                                 context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -1166,11 +1185,16 @@ ecma_promise_async_then (ecma_value_t promise, /**< promise object */
                          ecma_value_t executable_object) /**< executable object of the async function */
 {
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ASYNC_MAIN))
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ASYNC_MAIN))
   {
-    JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-    JJS_CONTEXT (promise_callback)
-    (JJS_PROMISE_EVENT_ASYNC_AWAIT, executable_object, promise, JJS_CONTEXT (promise_callback_user_p));
+    JJS_ASSERT (context_p->promise_callback != NULL);
+    context_p->promise_callback (context_p,
+                                 JJS_PROMISE_EVENT_ASYNC_AWAIT,
+                                 executable_object,
+                                 promise,
+                                 context_p->promise_callback_user_p);
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
@@ -1196,11 +1220,14 @@ ecma_promise_async_then (ecma_value_t promise, /**< promise object */
   {
     ((ecma_extended_object_t *) promise_obj_p)->u.cls.u1.promise_flags &= (uint8_t) ~ECMA_PROMISE_UNHANDLED_REJECT;
 #if JJS_PROMISE_CALLBACK
-    if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
+    if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ERROR))
     {
-      JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-      JJS_CONTEXT (promise_callback)
-      (JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED, promise, ECMA_VALUE_UNDEFINED, JJS_CONTEXT (promise_callback_user_p));
+      JJS_ASSERT (context_p->promise_callback != NULL);
+      context_p->promise_callback (context_p,
+                                   JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED,
+                                   promise,
+                                   ECMA_VALUE_UNDEFINED,
+                                   context_p->promise_callback_user_p);
     }
 #endif /* JJS_PROMISE_CALLBACK */
   }
@@ -1350,14 +1377,16 @@ ecma_promise_perform_then (ecma_value_t promise, /**< the promise which call 'th
     {
       promise_p->header.u.cls.u1.promise_flags &= (uint8_t) ~ECMA_PROMISE_UNHANDLED_REJECT;
 #if JJS_PROMISE_CALLBACK
-      if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_ERROR))
+      jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
+      if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ERROR))
       {
-        JJS_ASSERT (JJS_CONTEXT (promise_callback) != NULL);
-        JJS_CONTEXT (promise_callback)
-        (JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED,
-         promise,
-         ECMA_VALUE_UNDEFINED,
-         JJS_CONTEXT (promise_callback_user_p));
+        JJS_ASSERT (context_p->promise_callback != NULL);
+        context_p->promise_callback (context_p,
+                                     JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED,
+                                     promise,
+                                     ECMA_VALUE_UNDEFINED,
+                                     context_p->promise_callback_user_p);
       }
 #endif /* JJS_PROMISE_CALLBACK */
     }

@@ -260,14 +260,13 @@ resolve_callback5 (const jjs_value_t specifier, /**< module specifier */
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
-
   if (!jjs_feature_enabled (JJS_FEATURE_MODULE))
   {
     jjs_log (JJS_LOG_LEVEL_ERROR, "Module is disabled!\n");
-    jjs_cleanup ();
     return 0;
   }
+
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t number = jjs_number (5);
   jjs_value_t object = jjs_object ();
@@ -535,7 +534,7 @@ main (void)
   TEST_ASSERT (jjs_value_is_exception (result) && jjs_error_type (result) == JJS_ERROR_SYNTAX);
   jjs_value_free (result);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

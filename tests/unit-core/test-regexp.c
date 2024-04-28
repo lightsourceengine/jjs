@@ -21,7 +21,7 @@ int
 main (void)
 {
   TEST_INIT ();
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t global_obj_val = jjs_current_realm ();
 
@@ -66,6 +66,6 @@ main (void)
   jjs_value_free (is_global);
   jjs_value_free (global_obj_val);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

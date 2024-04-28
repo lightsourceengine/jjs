@@ -22,7 +22,9 @@ int
 LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 {
   srand ((unsigned) time (NULL));
-  jjs_init_default ();
+
+  jjs_context_t *context_p = NULL;
+  assert (jjs_context_new (NULL, &context_p));
 
   if (jjs_validate_string ((jjs_char_t *) data, (jjs_size_t) size, JJS_ENCODING_UTF8))
   {
@@ -42,7 +44,7 @@ LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
     jjs_value_free (parse_value);
   }
 
-  jjs_cleanup ();
+  jjs_context_free (context_p);
 
   return 0;
 } /* LLVMFuzzerTestOneInput */

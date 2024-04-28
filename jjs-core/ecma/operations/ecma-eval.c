@@ -90,7 +90,7 @@ ecma_op_eval_chars_buffer (void *source_p, /**< source code */
     return ECMA_VALUE_ERROR;
   }
 
-  return vm_run_eval (bytecode_p, parse_opts);
+  return vm_run_eval (&JJS_CONTEXT_STRUCT, bytecode_p, parse_opts);
 #endif /* JJS_PARSER */
 } /* ecma_op_eval_chars_buffer */
 

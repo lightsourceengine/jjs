@@ -22,7 +22,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_error_t errors[] = { JJS_ERROR_COMMON, JJS_ERROR_EVAL, JJS_ERROR_RANGE, JJS_ERROR_REFERENCE,
                              JJS_ERROR_SYNTAX, JJS_ERROR_TYPE, JJS_ERROR_URI };
@@ -69,5 +69,5 @@ main (void)
 
   jjs_value_free (result);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 } /* main */

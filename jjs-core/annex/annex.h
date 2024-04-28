@@ -34,12 +34,12 @@ typedef struct ecma_cstr_s
 } ecma_cstr_t;
 
 annex_specifier_type_t annex_path_specifier_type (ecma_value_t specifier);
-ecma_value_t annex_path_join (ecma_value_t referrer, ecma_value_t specifier, bool normalize);
-ecma_value_t annex_path_normalize (ecma_value_t path);
-ecma_value_t annex_path_cwd (void);
+ecma_value_t annex_path_join (jjs_context_t* context_p, ecma_value_t referrer, ecma_value_t specifier, bool normalize);
+ecma_value_t annex_path_normalize (jjs_context_t* context_p, ecma_value_t path);
+ecma_value_t annex_path_cwd (jjs_context_t* context_p);
 ecma_value_t annex_path_format (ecma_value_t path);
 ecma_value_t annex_path_dirname (ecma_value_t path);
-ecma_value_t annex_path_to_file_url (ecma_value_t path);
+ecma_value_t annex_path_to_file_url (jjs_context_t* context_p, ecma_value_t path);
 ecma_value_t annex_path_basename (ecma_value_t path);
 
 #define ecma_get_global_object() ((ecma_global_object_t*)ecma_builtin_get_global ())
@@ -56,22 +56,25 @@ bool ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key);
 bool ecma_has_own_v (ecma_value_t object, ecma_value_t key);
 ecma_value_t ecma_string_ascii_sz (const char* string_p);
 
-void annex_util_set_internal_m (ecma_value_t object, lit_magic_string_id_t key, ecma_value_t value);
-ecma_value_t annex_util_get_internal_m (ecma_value_t object, lit_magic_string_id_t key);
+void annex_util_set_internal_m (jjs_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key, ecma_value_t value);
+ecma_value_t annex_util_get_internal_m (jjs_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key);
 
-void annex_util_define_function (ecma_object_t* global_p,
+void annex_util_define_function (jjs_context_t* context_p,
+                                 ecma_object_t* global_p,
                                  lit_magic_string_id_t name_id,
                                  ecma_native_handler_t handler_p);
-void annex_util_define_value (ecma_object_t* object_p,
+void annex_util_define_value (jjs_context_t* context_p,
+                              ecma_object_t* object_p,
                               lit_magic_string_id_t name_id,
                               ecma_value_t value,
                               jjs_value_ownership_t value_o);
-void annex_util_define_ro_value (ecma_object_t* object_p,
+void annex_util_define_ro_value (jjs_context_t* context_p,
+                                 ecma_object_t* object_p,
                                  lit_magic_string_id_t name_id,
                                  ecma_value_t value,
                                  jjs_value_ownership_t value_o);
 
 bool annex_util_is_valid_package_name (ecma_value_t name);
-jjs_value_t annex_util_create_string_utf8_sz (const char* str_p);
+jjs_value_t annex_util_create_string_utf8_sz (jjs_context_t* context_p, const char* str_p);
 
 #endif /* !ANNEX_H */

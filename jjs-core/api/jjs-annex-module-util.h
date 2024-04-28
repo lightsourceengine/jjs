@@ -32,14 +32,16 @@ typedef struct jjs_annex_module_load_t
   jjs_value_t result;
 } jjs_annex_module_load_t;
 
-jjs_annex_module_resolve_t jjs_annex_module_resolve (ecma_value_t request,
+jjs_annex_module_resolve_t jjs_annex_module_resolve (jjs_context_t* context_p,
+                                                     ecma_value_t request,
                                                      ecma_value_t referrer_path,
                                                      jjs_module_type_t module_type);
-void jjs_annex_module_resolve_free (jjs_annex_module_resolve_t *resolve_result_p);
+void jjs_annex_module_resolve_free (jjs_context_t* context_p, jjs_annex_module_resolve_t *resolve_result_p);
 
-jjs_annex_module_load_t jjs_annex_module_load (ecma_value_t path,
+jjs_annex_module_load_t jjs_annex_module_load (jjs_context_t* context_p,
+                                               ecma_value_t path,
                                                ecma_value_t format,
                                                jjs_module_type_t module_type);
-void jjs_annex_module_load_free (jjs_annex_module_load_t *load_result_p);
+void jjs_annex_module_load_free (jjs_context_t* context_p, jjs_annex_module_load_t *load_result_p);
 
 #endif /* !JJS_ANNEX_MODULE_UTIL_H */

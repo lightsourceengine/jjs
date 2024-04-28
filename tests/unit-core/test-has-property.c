@@ -31,7 +31,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t object = jjs_object ();
   jjs_value_t prop_name = jjs_string_sz ("something");
@@ -66,7 +66,7 @@ main (void)
   jjs_value_free (prop_value);
   jjs_value_free (proto_object);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

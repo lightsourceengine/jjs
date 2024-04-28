@@ -26,7 +26,7 @@ main (void)
     return 0;
   }
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t string = jjs_string_sz ("0xfffffff1fffffff2fffffff3");
   TEST_ASSERT (!jjs_value_is_exception (string));
@@ -182,6 +182,6 @@ main (void)
 
   jjs_value_free (bigint);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

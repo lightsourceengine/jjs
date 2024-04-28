@@ -228,7 +228,7 @@ main (void)
     return 0;
   }
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t handler = jjs_object ();
   {
@@ -361,6 +361,6 @@ main (void)
 
   test_proxy_native ();
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

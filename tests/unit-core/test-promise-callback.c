@@ -126,7 +126,7 @@ main (void)
   /* The test system enables this feature when Promises are enabled. */
   TEST_ASSERT (jjs_feature_enabled (JJS_FEATURE_PROMISE_CALLBACK));
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_promise_event_filter_t filters =
     (JJS_PROMISE_EVENT_FILTER_CREATE | JJS_PROMISE_EVENT_FILTER_RESOLVE | JJS_PROMISE_EVENT_FILTER_REJECT
@@ -355,6 +355,6 @@ main (void)
             "async function f(p) { await p }"
             "f(Promise.resolve(1).then(() => {}))\n");
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

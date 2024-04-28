@@ -180,14 +180,14 @@ test_promise_from_js (void)
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   test_promise_resolve_fail ();
   test_promise_resolve_success ();
 
   test_promise_from_js ();
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

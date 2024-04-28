@@ -45,7 +45,7 @@ main (void)
   jjs_value_t result;
   jjs_value_t callback;
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   callback = jjs_function_external (simple_callback);
   result = jjs_queue_microtask (callback);
@@ -91,7 +91,7 @@ main (void)
   TEST_ASSERT (jjs_value_is_exception (result));
   jjs_value_free (result);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

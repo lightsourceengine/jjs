@@ -1303,7 +1303,7 @@ ecma_gc_free_native_pointer (ecma_property_t property, /**< property descriptor 
 
       if (free_cb != NULL)
       {
-        free_cb (native_pointer_p->native_p, native_pointer_p->native_info_p);
+        free_cb (&JJS_CONTEXT_STRUCT, native_pointer_p->native_p, native_pointer_p->native_info_p);
       }
     }
 
@@ -1327,7 +1327,7 @@ ecma_gc_free_native_pointer (ecma_property_t property, /**< property descriptor 
 
       if (free_cb != NULL)
       {
-        free_cb (item_p->data.native_p, item_p->data.native_info_p);
+        free_cb (&JJS_CONTEXT_STRUCT, item_p->data.native_p, item_p->data.native_info_p);
       }
     }
 

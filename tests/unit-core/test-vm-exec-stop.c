@@ -44,7 +44,7 @@ main (void)
     return 0;
   }
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   int countdown = 6;
   jjs_halt_handler (16, vm_exec_stop_callback, &countdown);
@@ -83,6 +83,6 @@ main (void)
   jjs_value_free (res);
   jjs_value_free (parsed_code_val);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

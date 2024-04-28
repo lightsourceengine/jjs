@@ -63,7 +63,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   // note: it is slightly difficult to test filesystem operations
   //       from these unit tests. mostly negative tests are done here.
@@ -72,6 +72,6 @@ main (void)
   test_invalid_jjs_commonjs_require_arg ();
   test_invalid_jjs_commonjs_require_sz_arg ();
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

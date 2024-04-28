@@ -35,26 +35,27 @@ static jjs_size_t READ_FILE_ENCODING_OPTION_MAP_LEN =
 /** jjs.cwd handler */
 static JJS_HANDLER (jjs_api_cwd_handler)
 {
-  JJS_UNUSED_ALL (call_info_p, args_count, args_p);
-  return jjs_platform_cwd ();
+  JJS_UNUSED_ALL (args_count, args_p);
+  jjs_context_t *context_p = call_info_p->context_p;
+
+  return jjs_platform_cwd (context_p);
 } /* jjs_api_cwd_handler */
 
 /** jjs.realpath handler */
 static JJS_HANDLER (jjs_api_realpath_handler)
 {
-  JJS_UNUSED_ALL (call_info_p);
-  return jjs_platform_realpath (args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP);
+  jjs_context_t *context_p = call_info_p->context_p;
+  return jjs_platform_realpath (context_p, args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP);
 } /* jjs_api_realpath_handler */
 
 /** jjs.gc handler */
 static JJS_HANDLER (jjs_api_gc_handler)
 {
-  JJS_UNUSED_ALL (call_info_p);
-
+  jjs_context_t *context_p = call_info_p->context_p;
   jjs_gc_mode_t mode =
-    ((args_count > 0 && jjs_value_to_boolean (args_p[0])) ? JJS_GC_PRESSURE_HIGH : JJS_GC_PRESSURE_LOW);
+    ((args_count > 0 && jjs_value_to_boolean (context_p, args_p[0])) ? JJS_GC_PRESSURE_HIGH : JJS_GC_PRESSURE_LOW);
 
-  jjs_heap_gc (mode);
+  jjs_heap_gc (context_p, mode);
 
   return ECMA_VALUE_UNDEFINED;
 } /* jjs_api_gc_handler */
@@ -62,13 +63,14 @@ static JJS_HANDLER (jjs_api_gc_handler)
 /** jjs.readFile handler */
 static JJS_HANDLER (jjs_api_read_file_handler)
 {
-  JJS_UNUSED_ALL (call_info_p);
+  jjs_context_t *context_p = call_info_p->context_p;
 
   uint32_t raw_encoding;
 
-  bool result = jjs_util_map_option (args_count > 1 ? args_p[1] : jjs_undefined (),
+  bool result = jjs_util_map_option (context_p,
+                                     args_count > 1 ? args_p[1] : jjs_undefined (context_p),
                                      JJS_KEEP,
-                                     jjs_string_sz ("encoding"),
+                                     jjs_string_sz (context_p, "encoding"),
                                      JJS_MOVE,
                                      READ_FILE_ENCODING_OPTION_MAP,
                                      READ_FILE_ENCODING_OPTION_MAP_LEN,
@@ -81,72 +83,72 @@ static JJS_HANDLER (jjs_api_read_file_handler)
       .encoding = (jjs_encoding_t) raw_encoding,
     };
 
-    return jjs_platform_read_file (args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP, &options);
+    return jjs_platform_read_file (context_p, args_count > 0 ? args_p[0] : ECMA_VALUE_UNDEFINED, JJS_KEEP, &options);
   }
   else
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, "Invalid encoding in argument 2");
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid encoding in argument 2");
   }
 } /* jjs_api_read_file_handler */
 
 void
-jjs_api_object_init (ecma_value_t realm)
+jjs_api_object_init (jjs_context_t* context_p, ecma_value_t realm)
 {
-  jjs_value_t jjs = jjs_object ();
+  jjs_value_t jjs = jjs_object (context_p);
   ecma_object_t* jjs_p = ecma_get_object_from_value (jjs);
   uint32_t exclusions = JJS_CONTEXT (jjs_namespace_exclusions);
 
-  annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_VERSION, jjs_string_sz (JJS_API_VERSION_STRING), JJS_MOVE);
-  annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_OS, jjs_platform_os (), JJS_MOVE);
-  annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_ARCH, jjs_platform_arch (), JJS_MOVE);
+  annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_VERSION, jjs_string_sz (context_p, JJS_API_VERSION_STRING), JJS_MOVE);
+  annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_OS, jjs_platform_os (context_p), JJS_MOVE);
+  annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_ARCH, jjs_platform_arch (context_p), JJS_MOVE);
 
-  if ((exclusions & JJS_NAMESPACE_EXCLUSION_CWD) == 0 && jjs_platform_has_cwd ())
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_CWD) == 0 && jjs_platform_has_cwd (context_p))
   {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_CWD, jjs_api_cwd_handler);
+    annex_util_define_function (context_p, jjs_p, LIT_MAGIC_STRING_CWD, jjs_api_cwd_handler);
   }
 
-  if ((exclusions & JJS_NAMESPACE_EXCLUSION_REALPATH) == 0 && jjs_platform_has_realpath ())
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_REALPATH) == 0 && jjs_platform_has_realpath (context_p))
   {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_REALPATH, jjs_api_realpath_handler);
+    annex_util_define_function (context_p, jjs_p, LIT_MAGIC_STRING_REALPATH, jjs_api_realpath_handler);
   }
 
-  if ((exclusions & JJS_NAMESPACE_EXCLUSION_READ_FILE) == 0 && jjs_platform_has_read_file ())
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_READ_FILE) == 0 && jjs_platform_has_read_file (context_p))
   {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_READ_FILE, jjs_api_read_file_handler);
+    annex_util_define_function (context_p, jjs_p, LIT_MAGIC_STRING_READ_FILE, jjs_api_read_file_handler);
   }
 
 #if JJS_ANNEX_PMAP
   if ((exclusions & JJS_NAMESPACE_EXCLUSION_PMAP) == 0)
   {
-    annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_PMAP, jjs_annex_pmap_create_api (), JJS_MOVE);
+    annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_PMAP, jjs_annex_pmap_create_api (context_p), JJS_MOVE);
   }
 #endif /* JJS_ANNEX_PMAP */
 
 #if JJS_ANNEX_VMOD
   if ((exclusions & JJS_NAMESPACE_EXCLUSION_VMOD) == 0)
   {
-    annex_util_define_ro_value (jjs_p, LIT_MAGIC_STRING_VMOD, jjs_annex_vmod_create_api (), JJS_MOVE);
+    annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_VMOD, jjs_annex_vmod_create_api (context_p), JJS_MOVE);
   }
 #endif /* JJS_ANNEX_VMOD */
 
   if ((exclusions & JJS_NAMESPACE_EXCLUSION_GC) == 0)
   {
-    annex_util_define_function (jjs_p, LIT_MAGIC_STRING_GC, jjs_api_gc_handler);
+    annex_util_define_function (context_p, jjs_p, LIT_MAGIC_STRING_GC, jjs_api_gc_handler);
   }
 
   jjs_value_t stream;
 
   /* stdout */
-  if ((exclusions & JJS_NAMESPACE_EXCLUSION_STDOUT) == 0 && jjs_wstream_new (JJS_STDOUT, &stream))
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_STDOUT) == 0 && jjs_wstream_new (context_p, JJS_STDOUT, &stream))
   {
-    annex_util_define_value (jjs_p, LIT_MAGIC_STRING_STDOUT, stream, JJS_MOVE);
+    annex_util_define_value (context_p, jjs_p, LIT_MAGIC_STRING_STDOUT, stream, JJS_MOVE);
   }
 
   /* stderr */
-  if ((exclusions & JJS_NAMESPACE_EXCLUSION_STDERR) == 0 && jjs_wstream_new (JJS_STDERR, &stream))
+  if ((exclusions & JJS_NAMESPACE_EXCLUSION_STDERR) == 0 && jjs_wstream_new (context_p, JJS_STDERR, &stream))
   {
-    annex_util_define_value (jjs_p, LIT_MAGIC_STRING_STDERR, stream, JJS_MOVE);
+    annex_util_define_value (context_p, jjs_p, LIT_MAGIC_STRING_STDERR, stream, JJS_MOVE);
   }
 
-  annex_util_define_ro_value (ecma_get_object_from_value (realm), LIT_MAGIC_STRING_JJS, jjs, JJS_MOVE);
+  annex_util_define_ro_value (context_p, ecma_get_object_from_value (realm), LIT_MAGIC_STRING_JJS, jjs, JJS_MOVE);
 } /* jjs_api_object_init */

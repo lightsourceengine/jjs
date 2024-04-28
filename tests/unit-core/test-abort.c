@@ -35,7 +35,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_value_t global = jjs_current_realm ();
   jjs_value_t callback_name = jjs_string_sz ("callback");
@@ -116,6 +116,6 @@ main (void)
 
   jjs_value_free (value);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

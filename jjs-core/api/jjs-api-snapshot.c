@@ -735,17 +735,18 @@ snapshot_load_compiled_code (const uint8_t *base_addr_p, /**< base address of th
  *         error object otherwise
  */
 jjs_value_t
-jjs_generate_snapshot (jjs_value_t compiled_code, /**< parsed script or function */
-                         uint32_t generate_snapshot_opts, /**< jjs_generate_snapshot_opts_t option bits */
-                         uint32_t *buffer_p, /**< buffer to save snapshot to */
-                         size_t buffer_size) /**< the buffer's size */
+jjs_generate_snapshot (jjs_context_t* context_p, /**< JJS context */
+                       jjs_value_t compiled_code, /**< parsed script or function */
+                       uint32_t generate_snapshot_opts, /**< jjs_generate_snapshot_opts_t option bits */
+                       uint32_t *buffer_p, /**< buffer to save snapshot to */
+                       size_t buffer_size) /**< the buffer's size */
 {
 #if JJS_SNAPSHOT_SAVE
   uint32_t allowed_options = JJS_SNAPSHOT_SAVE_STATIC;
 
   if ((generate_snapshot_opts & ~allowed_options) != 0)
   {
-    return jjs_throw_sz (JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_FLAG_NOT_SUPPORTED));
+    return jjs_throw_sz (context_p, JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_FLAG_NOT_SUPPORTED));
   }
 
   const ecma_compiled_code_t *bytecode_data_p = NULL;
@@ -777,7 +778,7 @@ jjs_generate_snapshot (jjs_value_t compiled_code, /**< parsed script or function
 
   if (JJS_UNLIKELY (bytecode_data_p == NULL))
   {
-    return jjs_throw_sz (JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_UNSUPPORTED_COMPILED_CODE));
+    return jjs_throw_sz (context_p, JJS_ERROR_RANGE, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_UNSUPPORTED_COMPILED_CODE));
   }
 
   snapshot_globals_t globals;
@@ -827,7 +828,7 @@ jjs_generate_snapshot (jjs_value_t compiled_code, /**< parsed script or function
                                           &literals_num))
     {
       JJS_ASSERT (lit_map_p == NULL);
-      return jjs_throw_sz (JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_CANNOT_ALLOCATE_MEMORY_LITERALS));
+      return jjs_throw_sz (context_p, JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_CANNOT_ALLOCATE_MEMORY_LITERALS));
     }
 
     jjs_snapshot_set_offsets (buffer_p + (aligned_header_size / sizeof (uint32_t)),
@@ -846,12 +847,8 @@ jjs_generate_snapshot (jjs_value_t compiled_code, /**< parsed script or function
 
   return ecma_make_number_value ((ecma_number_t) globals.snapshot_buffer_write_offset);
 #else /* !JJS_SNAPSHOT_SAVE */
-  JJS_UNUSED (compiled_code);
-  JJS_UNUSED (generate_snapshot_opts);
-  JJS_UNUSED (buffer_p);
-  JJS_UNUSED (buffer_size);
-
-  return jjs_throw_sz (JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_SAVE_DISABLED));
+  JJS_UNUSED_ALL (compiled_code, generate_snapshot_opts, buffer_p, buffer_size);
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_SAVE_DISABLED));
 #endif /* JJS_SNAPSHOT_SAVE */
 } /* jjs_generate_snapshot */
 
@@ -865,11 +862,12 @@ jjs_generate_snapshot (jjs_value_t compiled_code, /**< parsed script or function
  *         thrown error - otherwise
  */
 jjs_value_t
-jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
-                     size_t snapshot_size, /**< size of snapshot */
-                     size_t func_index, /**< index of primary function */
-                     uint32_t exec_snapshot_opts, /**< jjs_exec_snapshot_opts_t option bits */
-                     const jjs_exec_snapshot_option_values_t *option_values_p) /**< additional option values,
+jjs_exec_snapshot (jjs_context_t* context_p, /**< JJS context */
+                   const uint32_t *snapshot_p, /**< snapshot */
+                   size_t snapshot_size, /**< size of snapshot */
+                   size_t func_index, /**< index of primary function */
+                   uint32_t exec_snapshot_opts, /**< jjs_exec_snapshot_opts_t option bits */
+                   const jjs_exec_snapshot_option_values_t *option_values_p) /**< additional option values,
                                                                                   *   can be NULL if not used */
 {
 #if JJS_SNAPSHOT_EXEC
@@ -881,7 +879,7 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
 
   if ((exec_snapshot_opts & ~(allowed_opts)) != 0)
   {
-    return jjs_throw_sz (JJS_ERROR_RANGE,
+    return jjs_throw_sz (context_p, JJS_ERROR_RANGE,
                            ecma_get_error_msg (ECMA_ERR_UNSUPPORTED_SNAPSHOT_EXEC_FLAGS_ARE_SPECIFIED));
   }
 
@@ -889,7 +887,7 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
 
   if (snapshot_size <= sizeof (jjs_snapshot_header_t))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_SNAPSHOT_FORMAT));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_SNAPSHOT_FORMAT));
   }
 
   const jjs_snapshot_header_t *header_p = (const jjs_snapshot_header_t *) snapshot_data_p;
@@ -897,17 +895,17 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
   if (header_p->magic != JJS_SNAPSHOT_MAGIC || header_p->version != JJS_SNAPSHOT_VERSION
       || !snapshot_check_global_flags (header_p->global_flags))
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_SNAPSHOT_VERSION_OR_FEATURES));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_SNAPSHOT_VERSION_OR_FEATURES));
   }
 
   if (header_p->lit_table_offset > snapshot_size)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_SNAPSHOT_VERSION_OR_FEATURES));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_SNAPSHOT_VERSION_OR_FEATURES));
   }
 
   if (func_index >= header_p->number_of_funcs)
   {
-    return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_FUNCTION_INDEX_IS_HIGHER_THAN_MAXIMUM));
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_FUNCTION_INDEX_IS_HIGHER_THAN_MAXIMUM));
   }
 
   JJS_ASSERT ((header_p->lit_table_offset % sizeof (uint32_t)) == 0);
@@ -919,12 +917,12 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
   {
     if (!(exec_snapshot_opts & JJS_SNAPSHOT_EXEC_ALLOW_STATIC))
     {
-      return jjs_throw_sz (JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_STATIC_SNAPSHOTS_ARE_NOT_ENABLED));
+      return jjs_throw_sz (context_p, JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_STATIC_SNAPSHOTS_ARE_NOT_ENABLED));
     }
 
     if (exec_snapshot_opts & JJS_SNAPSHOT_EXEC_COPY_DATA)
     {
-      return jjs_throw_sz (JJS_ERROR_COMMON,
+      return jjs_throw_sz (context_p, JJS_ERROR_COMMON,
                              ecma_get_error_msg (ECMA_ERR_STATIC_SNAPSHOTS_CANNOT_BE_COPIED_INTO_MEMORY));
     }
   }
@@ -949,7 +947,7 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
     CBC_SCRIPT_SET_TYPE (script_p, user_value, CBC_SCRIPT_REF_ONE);
 
 #if JJS_BUILTIN_REALMS
-    script_p->realm_p = (ecma_object_t *) JJS_CONTEXT (global_object_p);
+    script_p->realm_p = (ecma_object_t *) context_p->global_object_p;
 #endif /* JJS_BUILTIN_REALMS */
 
 #if JJS_SOURCE_NAME
@@ -992,7 +990,7 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
   }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_SHOW_OPCODES)
+  if (context_p->context_flags & JJS_CONTEXT_FLAG_SHOW_OPCODES)
   {
     util_print_cbc (bytecode_p);
   }
@@ -1024,7 +1022,7 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
   }
   else
   {
-    ret_val = vm_run_global (bytecode_p, NULL);
+    ret_val = vm_run_global (context_p, bytecode_p, NULL);
     if (!(bytecode_p->status_flags & CBC_CODE_FLAGS_STATIC_FUNCTION))
     {
       ecma_bytecode_deref (bytecode_p);
@@ -1038,13 +1036,8 @@ jjs_exec_snapshot (const uint32_t *snapshot_p, /**< snapshot */
 
   return ret_val;
 #else /* !JJS_SNAPSHOT_EXEC */
-  JJS_UNUSED (snapshot_p);
-  JJS_UNUSED (snapshot_size);
-  JJS_UNUSED (func_index);
-  JJS_UNUSED (exec_snapshot_opts);
-  JJS_UNUSED (option_values_p);
-
-  return jjs_throw_sz (JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_EXEC_DISABLED));
+  JJS_UNUSED_ALL (snapshot_p, snapshot_size, func_index, exec_snapshot_opts, option_values_p);
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_EXEC_DISABLED));
 #endif /* JJS_SNAPSHOT_EXEC */
 } /* jjs_exec_snapshot */
 
@@ -1205,14 +1198,16 @@ update_literal_offsets (uint8_t *buffer_p, /**< [in,out] snapshot buffer start *
  *         0 on error
  */
 size_t
-jjs_merge_snapshots (const uint32_t **inp_buffers_p, /**< array of (pointers to start of) input buffers */
-                       size_t *inp_buffer_sizes_p, /**< array of input buffer sizes */
-                       size_t number_of_snapshots, /**< number of snapshots */
-                       uint32_t *out_buffer_p, /**< output buffer */
-                       size_t out_buffer_size, /**< output buffer size */
-                       const char **error_p) /**< error description */
+jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
+                     const uint32_t **inp_buffers_p, /**< array of (pointers to start of) input buffers */
+                     size_t *inp_buffer_sizes_p, /**< array of input buffer sizes */
+                     size_t number_of_snapshots, /**< number of snapshots */
+                     uint32_t *out_buffer_p, /**< output buffer */
+                     size_t out_buffer_size, /**< output buffer size */
+                     const char **error_p) /**< error description */
 {
 #if JJS_SNAPSHOT_SAVE
+  JJS_UNUSED (context_p);
   uint32_t number_of_funcs = 0;
   uint32_t merged_global_flags = 0;
   size_t functions_size = sizeof (jjs_snapshot_header_t);
@@ -1332,12 +1327,7 @@ jjs_merge_snapshots (const uint32_t **inp_buffers_p, /**< array of (pointers to 
   *error_p = NULL;
   return functions_size;
 #else /* !JJS_SNAPSHOT_SAVE */
-  JJS_UNUSED (inp_buffers_p);
-  JJS_UNUSED (inp_buffer_sizes_p);
-  JJS_UNUSED (number_of_snapshots);
-  JJS_UNUSED (out_buffer_p);
-  JJS_UNUSED (out_buffer_size);
-  JJS_UNUSED (error_p);
+  JJS_UNUSED_ALL (context_p, inp_buffers_p, inp_buffer_sizes_p, number_of_snapshots, out_buffer_p, out_buffer_size, error_p);
 
   *error_p = "snapshot merge not supported";
   return 0;
@@ -1710,11 +1700,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
 
   return lit_buf_p <= buffer_end_p ? (size_t) (lit_buf_p - buffer_start_p) : 0;
 #else /* !JJS_SNAPSHOT_SAVE */
-  JJS_UNUSED (snapshot_p);
-  JJS_UNUSED (snapshot_size);
-  JJS_UNUSED (lit_buf_p);
-  JJS_UNUSED (lit_buf_size);
-  JJS_UNUSED (is_c_format);
+  JJS_UNUSED_ALL (snapshot_p, snapshot_size, lit_buf_p, lit_buf_size, is_c_format);
 
   return 0;
 #endif /* JJS_SNAPSHOT_SAVE */

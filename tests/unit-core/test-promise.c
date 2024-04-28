@@ -104,7 +104,7 @@ register_js_function (const char *name_p, /**< name of the function */
 int
 main (void)
 {
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   register_js_function ("create_promise1", create_promise1_handler);
   register_js_function ("create_promise2", create_promise2_handler);
@@ -147,7 +147,7 @@ main (void)
   jjs_value_free (str_resolve);
   jjs_value_free (str_reject);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   return 0;
 } /* main */

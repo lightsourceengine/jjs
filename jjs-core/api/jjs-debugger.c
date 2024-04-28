@@ -25,11 +25,12 @@
  *         false - otherwise
  */
 bool
-jjs_debugger_is_connected (void)
+jjs_debugger_is_connected (jjs_context_t* context_p) /**< JJS context */
 {
 #if JJS_DEBUGGER
-  return JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED;
+  return context_p->debugger_flags & JJS_DEBUGGER_CONNECTED;
 #else /* !JJS_DEBUGGER */
+  JJS_UNUSED (context_p);
   return false;
 #endif /* JJS_DEBUGGER */
 } /* jjs_debugger_is_connected */
@@ -38,15 +39,17 @@ jjs_debugger_is_connected (void)
  * Stop execution at the next available breakpoint.
  */
 void
-jjs_debugger_stop (void)
+jjs_debugger_stop (jjs_context_t* context_p) /**< JJS context */
 {
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
-      && !(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_BREAKPOINT_MODE))
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
+      && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
     JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
-    JJS_CONTEXT (debugger_stop_context) = NULL;
+    context_p->debugger_stop_context = NULL;
   }
+#else /* !JJS_DEBUGGER */
+  JJS_UNUSED (context_p);
 #endif /* JJS_DEBUGGER */
 } /* jjs_debugger_stop */
 
@@ -54,15 +57,17 @@ jjs_debugger_stop (void)
  * Continue execution.
  */
 void
-jjs_debugger_continue (void)
+jjs_debugger_continue (jjs_context_t* context_p) /**< JJS context */
 {
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
-      && !(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_BREAKPOINT_MODE))
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
+      && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
     JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_VM_STOP);
-    JJS_CONTEXT (debugger_stop_context) = NULL;
+    context_p->debugger_stop_context = NULL;
   }
+#else /* !JJS_DEBUGGER */
+  JJS_UNUSED (context_p);
 #endif /* JJS_DEBUGGER */
 } /* jjs_debugger_continue */
 
@@ -70,11 +75,12 @@ jjs_debugger_continue (void)
  * Sets whether the engine should stop at breakpoints.
  */
 void
-jjs_debugger_stop_at_breakpoint (bool enable_stop_at_breakpoint) /**< enable/disable stop at breakpoint */
+jjs_debugger_stop_at_breakpoint (jjs_context_t* context_p, /**< JJS context */
+                                 bool enable_stop_at_breakpoint) /**< enable/disable stop at breakpoint */
 {
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED
-      && !(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_BREAKPOINT_MODE))
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED
+      && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
     if (enable_stop_at_breakpoint)
     {
@@ -86,7 +92,7 @@ jjs_debugger_stop_at_breakpoint (bool enable_stop_at_breakpoint) /**< enable/dis
     }
   }
 #else /* !JJS_DEBUGGER */
-  JJS_UNUSED (enable_stop_at_breakpoint);
+  JJS_UNUSED_ALL (context_p, enable_stop_at_breakpoint);
 #endif /* JJS_DEBUGGER */
 } /* jjs_debugger_stop_at_breakpoint */
 
@@ -99,15 +105,16 @@ jjs_debugger_stop_at_breakpoint (bool enable_stop_at_breakpoint) /**< enable/dis
  *              JJS_DEBUGGER_CONTEXT_RESET_RECEIVED - the end of the context
  */
 jjs_debugger_wait_for_source_status_t
-jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t callback_p, /**< callback function */
-                                       void *user_p, /**< user pointer passed to the callback */
-                                       jjs_value_t *return_value) /**< [out] parse and run return value */
+jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context */
+                                     jjs_debugger_wait_for_source_callback_t callback_p, /**< callback function */
+                                     void *user_p, /**< user pointer passed to the callback */
+                                     jjs_value_t *return_value) /**< [out] parse and run return value */
 {
-  *return_value = jjs_undefined ();
+  *return_value = jjs_undefined (context_p);
 
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
-      && !(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_BREAKPOINT_MODE))
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
+      && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
     JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_CLIENT_SOURCE_MODE);
     jjs_debugger_uint8_data_t *client_source_data_p = NULL;
@@ -120,13 +127,13 @@ jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t cal
     {
       if (jjs_debugger_receive (&client_source_data_p))
       {
-        if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED))
+        if (!(context_p->debugger_flags & JJS_DEBUGGER_CONNECTED))
         {
           break;
         }
 
         /* Stop executing the current context. */
-        if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONTEXT_RESET_MODE))
+        if ((context_p->debugger_flags & JJS_DEBUGGER_CONTEXT_RESET_MODE))
         {
           ret_type = JJS_DEBUGGER_CONTEXT_RESET_RECEIVED;
           JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_CONTEXT_RESET_MODE);
@@ -134,7 +141,7 @@ jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t cal
         }
 
         /* Stop waiting for a new source file. */
-        if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CLIENT_NO_SOURCE))
+        if ((context_p->debugger_flags & JJS_DEBUGGER_CLIENT_NO_SOURCE))
         {
           ret_type = JJS_DEBUGGER_SOURCE_END;
           JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_CLIENT_SOURCE_MODE);
@@ -142,7 +149,7 @@ jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t cal
         }
 
         /* The source arrived. */
-        if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
+        if (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
         {
           JJS_ASSERT (client_source_data_p != NULL);
 
@@ -163,8 +170,8 @@ jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t cal
       jjs_debugger_transport_sleep ();
     }
 
-    JJS_ASSERT (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CLIENT_SOURCE_MODE)
-                  || !(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED));
+    JJS_ASSERT (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE)
+                  || !(context_p->debugger_flags & JJS_DEBUGGER_CONNECTED));
 
     if (client_source_data_p != NULL)
     {
@@ -178,9 +185,7 @@ jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t cal
 
   return JJS_DEBUGGER_SOURCE_RECEIVE_FAILED;
 #else /* !JJS_DEBUGGER */
-  JJS_UNUSED (callback_p);
-  JJS_UNUSED (user_p);
-
+  JJS_UNUSED_ALL (context_p, callback_p, user_p);
   return JJS_DEBUGGER_SOURCE_RECEIVE_FAILED;
 #endif /* JJS_DEBUGGER */
 } /* jjs_debugger_wait_for_client_source */
@@ -190,11 +195,12 @@ jjs_debugger_wait_for_client_source (jjs_debugger_wait_for_source_callback_t cal
  * Currently only sends print output.
  */
 void
-jjs_debugger_send_output (const jjs_char_t *buffer, /**< buffer */
-                            jjs_size_t str_size) /**< string size */
+jjs_debugger_send_output (jjs_context_t* context_p, /**< JJS context */
+                          const jjs_char_t *buffer, /**< buffer */
+                          jjs_size_t str_size) /**< string size */
 {
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
     jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT,
                                 JJS_DEBUGGER_OUTPUT_PRINT,
@@ -202,7 +208,6 @@ jjs_debugger_send_output (const jjs_char_t *buffer, /**< buffer */
                                 sizeof (uint8_t) * str_size);
   }
 #else /* !JJS_DEBUGGER */
-  JJS_UNUSED (buffer);
-  JJS_UNUSED (str_size);
+  JJS_UNUSED_ALL (context_p, buffer, str_size);
 #endif /* JJS_DEBUGGER */
 } /* jjs_debugger_send_output */

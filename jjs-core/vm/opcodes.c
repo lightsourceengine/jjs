@@ -755,7 +755,7 @@ opfunc_resume_executable_object (vm_executable_object_t *executable_object_p, /*
   JJS_CONTEXT (global_object_p) = ecma_op_function_get_realm (bytecode_header_p);
 #endif /* JJS_BUILTIN_REALMS */
 
-  ecma_value_t result = vm_execute (&executable_object_p->frame_ctx);
+  ecma_value_t result = vm_execute (&JJS_CONTEXT_STRUCT, &executable_object_p->frame_ctx);
 
 #if JJS_BUILTIN_REALMS
   JJS_CONTEXT (global_object_p) = saved_global_object_p;
@@ -1038,7 +1038,7 @@ opfunc_init_class_fields (ecma_object_t *class_object_p, /**< the function itsel
   ecma_object_t *scope_p =
     ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_object_t, ext_function_p->u.function.scope_cp);
 
-  result = vm_run (&shared_class_fields.header, this_val, scope_p);
+  result = vm_run (&JJS_CONTEXT_STRUCT, &shared_class_fields.header, this_val, scope_p);
 
   JJS_ASSERT (ECMA_IS_VALUE_ERROR (result) || result == ECMA_VALUE_UNDEFINED);
   return result;
@@ -1078,7 +1078,7 @@ opfunc_init_static_class_fields (ecma_value_t function_object, /**< the function
   ecma_object_t *scope_p =
     ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_object_t, ext_function_p->u.function.scope_cp);
 
-  ecma_value_t result = vm_run (&shared_class_fields.header, this_val, scope_p);
+  ecma_value_t result = vm_run (&JJS_CONTEXT_STRUCT, &shared_class_fields.header, this_val, scope_p);
 
   JJS_ASSERT (ECMA_IS_VALUE_ERROR (result) || result == ECMA_VALUE_UNDEFINED);
   return result;

@@ -46,7 +46,8 @@ jjs_return (const jjs_value_t value) /**< return value */
  * return false. If the option is undefined, true is returned with default_mapped_value.
  */
 bool
-jjs_util_map_option (jjs_value_t option,
+jjs_util_map_option (jjs_context_t* context_p,
+                     jjs_value_t option,
                      jjs_value_ownership_t option_o,
                      jjs_value_t key,
                      jjs_value_ownership_t key_o,
@@ -55,10 +56,10 @@ jjs_util_map_option (jjs_value_t option,
                      uint32_t default_mapped_value,
                      uint32_t* out_p)
 {
-  if (jjs_value_is_undefined (option))
+  if (jjs_value_is_undefined (context_p, option))
   {
-    JJS_DISOWN (option, option_o);
-    JJS_DISOWN (key, key_o);
+    JJS_DISOWN (context_p, option, option_o);
+    JJS_DISOWN (context_p, key, key_o);
     *out_p = default_mapped_value;
     return true;
   }
@@ -66,19 +67,19 @@ jjs_util_map_option (jjs_value_t option,
   /* option_value = option.key or option */
   jjs_value_t option_value;
 
-  if (jjs_value_is_string (option))
+  if (jjs_value_is_string (context_p, option))
   {
-    option_value = jjs_value_copy (option);
+    option_value = jjs_value_copy (context_p, option);
   }
-  else if (jjs_value_is_string (key) && jjs_value_is_object (option))
+  else if (jjs_value_is_string (context_p, key) && jjs_value_is_object (context_p, option))
   {
-    option_value = jjs_object_get (option, key);
+    option_value = jjs_object_get (context_p, option, key);
 
-    if (jjs_value_is_undefined (option_value))
+    if (jjs_value_is_undefined (context_p, option_value))
     {
-      JJS_DISOWN (option, option_o);
-      JJS_DISOWN (key, key_o);
-      jjs_value_free (option_value);
+      JJS_DISOWN (context_p, option, option_o);
+      JJS_DISOWN (context_p, key, key_o);
+      jjs_value_free (context_p, option_value);
       *out_p = default_mapped_value;
       return true;
     }
@@ -88,12 +89,12 @@ jjs_util_map_option (jjs_value_t option,
     option_value = ECMA_VALUE_EMPTY;
   }
 
-  JJS_DISOWN (option, option_o);
-  JJS_DISOWN (key, key_o);
+  JJS_DISOWN (context_p, option, option_o);
+  JJS_DISOWN (context_p, key, key_o);
 
-  if (!jjs_value_is_string (option_value))
+  if (!jjs_value_is_string (context_p, option_value))
   {
-    jjs_value_free (option_value);
+    jjs_value_free (context_p, option_value);
     return false;
   }
 
@@ -101,9 +102,9 @@ jjs_util_map_option (jjs_value_t option,
   char buffer[32];
 
   static const jjs_size_t size = (jjs_size_t) (sizeof (buffer) / sizeof (buffer[0]));
-  jjs_value_t w = jjs_string_to_buffer (option_value, JJS_ENCODING_CESU8, (lit_utf8_byte_t*) &buffer[0], size - 1);
+  jjs_value_t w = jjs_string_to_buffer (context_p, option_value, JJS_ENCODING_CESU8, (lit_utf8_byte_t*) &buffer[0], size - 1);
 
-  jjs_value_free (option_value);
+  jjs_value_free (context_p, option_value);
 
   JJS_ASSERT (w < size);
   buffer[w] = '\0';
@@ -294,32 +295,41 @@ jjs_util_system_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
 jjs_allocator_t
 jjs_util_system_allocator (void)
 {
-  return (jjs_allocator_t){
+  return *jjs_util_system_allocator_ptr ();
+}
+
+jjs_allocator_t *
+jjs_util_system_allocator_ptr (void)
+{
+  static jjs_allocator_t system_allocator = {
     .alloc = jjs_util_system_allocator_alloc,
     .free = jjs_util_system_allocator_free,
   };
+
+  return &system_allocator;
 }
 
 static void*
 jjs_util_vm_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
 {
-  JJS_UNUSED_ALL (self_p);
-  return jmem_heap_alloc_block (size);
+  JJS_ASSERT (self_p->internal[0]);
+  return jjs_heap_alloc (self_p->internal[0], size);
 }
 
 static void
 jjs_util_vm_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
 {
-  JJS_UNUSED_ALL (self_p);
-  jmem_heap_free_block (p, size);
+  JJS_ASSERT (self_p->internal[0]);
+  jjs_heap_free (self_p->internal[0], p, size);
 }
 
 jjs_allocator_t
-jjs_util_vm_allocator (void)
+jjs_util_vm_allocator (jjs_context_t* context_p)
 {
   return (jjs_allocator_t){
     .alloc = jjs_util_vm_allocator_alloc,
     .free = jjs_util_vm_allocator_free,
+    .internal[0] = context_p,
   };
 }
 
@@ -331,18 +341,19 @@ jjs_util_arraybuffer_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
     return NULL;
   }
 
-  jjs_value_t value = jjs_arraybuffer (size);
+  jjs_context_t *context_p = self_p->internal[2];
+  jjs_value_t value = jjs_arraybuffer (context_p, size);
 
-  if (jjs_value_is_exception (value))
+  if (jjs_value_is_exception (context_p, value))
   {
     return false;
   }
 
-  void* value_data_p = jjs_arraybuffer_data (value);
+  void* value_data_p = jjs_arraybuffer_data (context_p, value);
 
   if (value_data_p == NULL)
   {
-    jjs_value_free (value);
+    jjs_value_free (context_p, value);
     return false;
   }
 
@@ -359,7 +370,7 @@ jjs_util_arraybuffer_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t 
 
   if (self_p->internal[0] == p)
   {
-    jjs_value_free ((jjs_value_t) (uintptr_t) self_p->internal[1]);
+    jjs_value_free (self_p->internal[2], (jjs_value_t) (uintptr_t) self_p->internal[1]);
     self_p->internal[0] = self_p->internal[1] = NULL;
   }
 }
@@ -376,11 +387,12 @@ jjs_util_arraybuffer_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t 
  * jjs_util_arraybuffer_allocator_move() exists to extract the ArrayBuffer from the allocator.
  */
 jjs_allocator_t
-jjs_util_arraybuffer_allocator (void)
+jjs_util_arraybuffer_allocator (jjs_context_t* context_p)
 {
   return (jjs_allocator_t){
     .alloc = jjs_util_arraybuffer_allocator_alloc,
     .free = jjs_util_arraybuffer_allocator_free,
+    .internal = { NULL, NULL, context_p },
   };
 }
 
@@ -403,16 +415,16 @@ jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator)
  * Initialize the allocators in the context.
  */
 bool
-jjs_util_context_allocator_init (const jjs_allocator_t* fallback_allocator)
+jjs_util_context_allocator_init (jjs_context_t* context_p, const jjs_allocator_t* fallback_allocator)
 {
   jjs_allocator_t* scratch_arena_allocator = NULL;
 
 #if JJS_SCRATCH_ARENA_SIZE > 0
-  if (jjs_util_arena_allocator_init (&JJS_CONTEXT (scratch_arena_block),
+  if (jjs_util_arena_allocator_init (&context_p->scratch_arena_block,
                                      JJS_SCRATCH_ARENA_SIZE * 1024,
-                                     &JJS_CONTEXT (scratch_arena_allocator)))
+                                     &context_p->scratch_arena_allocator))
   {
-    scratch_arena_allocator = &JJS_CONTEXT (scratch_arena_allocator);
+    scratch_arena_allocator = &context_p->scratch_arena_allocator;
   }
   else
   {
@@ -420,12 +432,12 @@ jjs_util_context_allocator_init (const jjs_allocator_t* fallback_allocator)
   }
 #endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
 
-  JJS_CONTEXT (fallback_scratch_allocator) = *fallback_allocator;
+  context_p->fallback_scratch_allocator = *fallback_allocator;
 
   if (scratch_arena_allocator)
   {
-    JJS_CONTEXT (scratch_allocator) =
-      jjs_util_compound_allocator (scratch_arena_allocator, &JJS_CONTEXT (fallback_scratch_allocator));
+    context_p->scratch_allocator =
+      jjs_util_compound_allocator (scratch_arena_allocator, &context_p->fallback_scratch_allocator);
   }
 
   return true;
@@ -435,9 +447,9 @@ jjs_util_context_allocator_init (const jjs_allocator_t* fallback_allocator)
  * Acquire exclusive access to the scratch allocator.
  */
 jjs_allocator_t*
-jjs_util_context_acquire_scratch_allocator (void)
+jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p)
 {
-  return &JJS_CONTEXT (scratch_allocator);
+  return &context_p->scratch_allocator;
 }
 
 /**
@@ -445,10 +457,12 @@ jjs_util_context_acquire_scratch_allocator (void)
  * of its allocations are dropped.
  */
 void
-jjs_util_context_release_scratch_allocator (void)
+jjs_util_context_release_scratch_allocator (jjs_context_t* context_p)
 {
 #if JJS_SCRATCH_ARENA_SIZE > 0
-  jjs_util_arena_allocator_reset (&JJS_CONTEXT (scratch_arena_allocator));
+  jjs_util_arena_allocator_reset (&context_p->scratch_arena_allocator);
+#else /* !(JJS_SCRATCH_ARENA_SIZE > 0) */
+  JJS_UNUSED (context_p);
 #endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
 }
 

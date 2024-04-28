@@ -133,7 +133,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   TEST_ASSERT (!strcmp (*((const char **) jjs_context_data (&manager1)), "item1"));
   TEST_ASSERT (!strcmp (*((const char **) jjs_context_data (&manager2)), "item2"));
@@ -149,7 +149,7 @@ main (void)
   TEST_ASSERT (!test_context_data2_free_called);
   TEST_ASSERT (!test_context_data4_free_called);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
 
   TEST_ASSERT (test_context_data1_free_called);
   TEST_ASSERT (test_context_data2_free_called);

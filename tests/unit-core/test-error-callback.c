@@ -69,7 +69,7 @@ main (void)
 {
   TEST_INIT ();
 
-  TEST_ASSERT (jjs_init_default () == JJS_STATUS_OK);
+  TEST_CONTEXT_NEW (context_p);
 
   jjs_error_on_created (error_object_created_callback, (void *) &error_object_created_callback_count);
 
@@ -88,6 +88,6 @@ main (void)
 
   TEST_ASSERT (error_object_created_callback_count == 11);
 
-  jjs_cleanup ();
+  TEST_CONTEXT_FREE (context_p);
   return 0;
 } /* main */

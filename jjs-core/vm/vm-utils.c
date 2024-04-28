@@ -28,11 +28,11 @@
  *         false - otherwise
  */
 bool
-vm_is_strict_mode (void)
+vm_is_strict_mode (jjs_context_t* context_p) /**< JJS context */
 {
-  JJS_ASSERT (JJS_CONTEXT (vm_top_context_p) != NULL);
+  JJS_ASSERT (context_p->vm_top_context_p != NULL);
 
-  return JJS_CONTEXT (vm_top_context_p)->status_flags & VM_FRAME_CTX_IS_STRICT;
+  return context_p->vm_top_context_p->status_flags & VM_FRAME_CTX_IS_STRICT;
 } /* vm_is_strict_mode */
 
 /**
@@ -48,9 +48,9 @@ vm_is_strict_mode (void)
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_ALWAYS_INLINE
-vm_is_direct_eval_form_call (void)
+vm_is_direct_eval_form_call (jjs_context_t* context_p) /**< JJS context */
 {
-  return (JJS_CONTEXT (status_flags) & ECMA_STATUS_DIRECT_EVAL) != 0;
+  return (context_p->status_flags & ECMA_STATUS_DIRECT_EVAL) != 0;
 } /* vm_is_direct_eval_form_call */
 
 /**
@@ -61,10 +61,11 @@ vm_is_direct_eval_form_call (void)
  * @return array ecma value
  */
 ecma_value_t
-vm_get_backtrace (uint32_t max_depth) /**< maximum backtrace depth, 0 = unlimited */
+vm_get_backtrace (jjs_context_t* context_p, /**< JJS context */
+                  uint32_t max_depth) /**< maximum backtrace depth, 0 = unlimited */
 {
 #if JJS_LINE_INFO
-  vm_frame_ctx_t *context_p = JJS_CONTEXT (vm_top_context_p);
+  vm_frame_ctx_t *frame_context_p = context_p->vm_top_context_p;
 
   if (max_depth == 0)
   {
@@ -75,9 +76,9 @@ vm_get_backtrace (uint32_t max_depth) /**< maximum backtrace depth, 0 = unlimite
   JJS_ASSERT (ecma_op_object_is_fast_array (array_p));
   uint32_t index = 0;
 
-  while (context_p != NULL)
+  while (frame_context_p != NULL)
   {
-    const ecma_compiled_code_t *bytecode_header_p = context_p->shared_p->bytecode_header_p;
+    const ecma_compiled_code_t *bytecode_header_p = frame_context_p->shared_p->bytecode_header_p;
     ecma_value_t source_name = ecma_get_source_name (bytecode_header_p);
     ecma_string_t *str_p = ecma_get_string_from_value (source_name);
     ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
@@ -96,7 +97,7 @@ vm_get_backtrace (uint32_t max_depth) /**< maximum backtrace depth, 0 = unlimite
     {
       jjs_frame_location_t location;
       ecma_line_info_get (ecma_compiled_code_get_line_info (bytecode_header_p),
-                          (uint32_t) (context_p->byte_code_p - context_p->byte_code_start_p),
+                          (uint32_t) (frame_context_p->byte_code_p - frame_context_p->byte_code_start_p),
                           &location);
 
       ecma_string_t *line_str_p = ecma_new_ecma_string_from_uint32 (location.line);
@@ -118,7 +119,7 @@ vm_get_backtrace (uint32_t max_depth) /**< maximum backtrace depth, 0 = unlimite
     ecma_fast_array_set_property (array_p, index, ecma_make_string_value (builder_str_p));
     ecma_deref_ecma_string (builder_str_p);
 
-    context_p = context_p->prev_context_p;
+    frame_context_p = frame_context_p->prev_context_p;
     index++;
 
     if (index >= max_depth)
@@ -129,7 +130,7 @@ vm_get_backtrace (uint32_t max_depth) /**< maximum backtrace depth, 0 = unlimite
 
   return ecma_make_object_value (array_p);
 #else /* !JJS_LINE_INFO */
-  JJS_UNUSED (max_depth);
+  JJS_UNUSED_ALL (context_p, max_depth);
 
   return ecma_make_object_value (ecma_op_new_array_object (0));
 #endif /* JJS_LINE_INFO */

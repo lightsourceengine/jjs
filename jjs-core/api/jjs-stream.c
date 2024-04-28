@@ -17,6 +17,7 @@
 
 #include "jcontext.h"
 #include "jjs-util.h"
+#include "jjs-platform.h"
 #include "ecma-helpers.h"
 #include "annex.h"
 #include "jjs-annex.h"
@@ -25,7 +26,7 @@
 #include "jjs-debugger.h"
 #endif /* JJS_DEBUGGER */
 
-static void jjs_wstream_prototype_finalizer (void *native_p, const struct jjs_object_native_info_t *info_p);
+static void jjs_wstream_prototype_finalizer (jjs_context_t* context_p, void *native_p, const struct jjs_object_native_info_t *info_p);
 
 static jjs_object_native_info_t jjs_wstream_class_info = {
   .free_cb = jjs_wstream_prototype_finalizer,
@@ -33,55 +34,58 @@ static jjs_object_native_info_t jjs_wstream_class_info = {
 
 static JJS_HANDLER (jjs_wstream_prototype_write)
 {
-  if (args_count > 0 && jjs_value_is_string (args_p[0]))
+  jjs_context_t *context_p = call_info_p->context_p;
+
+  if (args_count > 0 && jjs_value_is_string (context_p, args_p[0]))
   {
-    jjs_wstream_t *wstream_p = jjs_object_get_native_ptr (call_info_p->this_value, &jjs_wstream_class_info);
+    jjs_wstream_t *wstream_p = jjs_object_get_native_ptr (context_p, call_info_p->this_value, &jjs_wstream_class_info);
 
     JJS_ASSERT (wstream_p);
 
     if (wstream_p)
     {
-      jjs_wstream_write_string (wstream_p, args_p[0], JJS_KEEP);
+      jjs_wstream_write_string (context_p, wstream_p, args_p[0], JJS_KEEP);
     }
   }
 
-  return jjs_undefined();
+  return jjs_undefined (context_p);
 } /* jjs_wstream_prototype_write */
 
 static JJS_HANDLER (jjs_wstream_prototype_flush)
 {
   JJS_UNUSED_ALL (args_count, args_p);
-  jjs_wstream_t *wstream_p = jjs_object_get_native_ptr (call_info_p->this_value, &jjs_wstream_class_info);
+  jjs_context_t *context_p = call_info_p->context_p;
+  jjs_wstream_t *wstream_p = jjs_object_get_native_ptr (context_p, call_info_p->this_value, &jjs_wstream_class_info);
 
   JJS_ASSERT (wstream_p);
 
-  if (wstream_p && JJS_CONTEXT (platform_api).io_flush)
+  if (wstream_p && context_p->platform_p->io_flush)
   {
-    JJS_CONTEXT (platform_api).io_flush (wstream_p->state_p);
+    context_p->platform_p->io_flush (wstream_p->state_p);
   }
 
-  return jjs_undefined();
+  return jjs_undefined (context_p);
 } /* jjs_wstream_prototype_flush */
 
-static void jjs_wstream_prototype_finalizer (void *native_p, const struct jjs_object_native_info_t *info_p)
+static void jjs_wstream_prototype_finalizer (jjs_context_t* context_p, void *native_p, const struct jjs_object_native_info_t *info_p)
 {
   JJS_UNUSED (info_p);
-  jjs_heap_free (native_p, (jjs_size_t) sizeof (jjs_wstream_t));
+  jjs_heap_free (context_p, native_p, (jjs_size_t) sizeof (jjs_wstream_t));
 } /* jjs_wstream_prototype_finalizer */
 
 static void
-wstream_io_write (const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
+wstream_io_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
 {
-  JJS_CONTEXT (platform_api).io_write (self_p->state_p, data_p, data_size, self_p->encoding);
+  context_p->platform_p->io_write (self_p->state_p, data_p, data_size, self_p->encoding);
 } /* wstream_io_write */
 
 #if JJS_DEBUGGER
 static void
-wstream_log_write (const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
+wstream_log_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
 {
   if (self_p->state_p)
   {
-    JJS_CONTEXT (platform_api).io_write (self_p->state_p, data_p, data_size, self_p->encoding);
+    context_p->platform_p->io_write (self_p->state_p, data_p, data_size, self_p->encoding);
   }
 
   #if JJS_DEBUGGER
@@ -94,8 +98,9 @@ wstream_log_write (const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t 
 #endif /* JJS_DEBUGGER */
 
 static void
-wstream_stringbuilder_write (const jjs_wstream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
+wstream_stringbuilder_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
 {
+  JJS_UNUSED (context_p);
   ecma_stringbuilder_t *builder_p = self_p->state_p;
 
   /* user of this stream is using CESU8, so we can just copy to the builder */
@@ -103,8 +108,9 @@ wstream_stringbuilder_write (const jjs_wstream_t *self_p, const uint8_t *buffer_
 } /* wstream_stringbuilder_write */
 
 static void
-wstream_memory_write (const jjs_wstream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
+wstream_memory_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *buffer_p, jjs_size_t size)
 {
+  JJS_UNUSED (context_p);
   jjs_wstream_buffer_state_t *target_p = self_p->state_p;
 
   if (target_p->buffer_index < target_p->buffer_size)
@@ -126,21 +132,22 @@ wstream_memory_write (const jjs_wstream_t *self_p, const uint8_t *buffer_p, jjs_
 /**
  * Creates a new JS writable stream instance that writes to a platform stream.
  *
+ * @param context_p JJS context
  * @param id platform stream id
  * @param out stream object; set if returns true
  * @return true: success, false: error
  */
 bool
-jjs_wstream_new (jjs_platform_io_stream_id_t id, jjs_value_t *out)
+jjs_wstream_new (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_value_t *out)
 {
   jjs_wstream_t wstream;
 
-  if (!jjs_wstream_from_id (id, &wstream))
+  if (!jjs_wstream_from_id (context_p, id, &wstream))
   {
     return false;
   }
 
-  jjs_wstream_t* wstream_p = jjs_heap_alloc (sizeof (jjs_wstream_t));
+  jjs_wstream_t* wstream_p = jjs_heap_alloc (context_p, sizeof (jjs_wstream_t));
 
   if (wstream_p == NULL)
   {
@@ -149,13 +156,13 @@ jjs_wstream_new (jjs_platform_io_stream_id_t id, jjs_value_t *out)
 
   memcpy (wstream_p, &wstream, sizeof (jjs_wstream_t));
 
-  jjs_value_t wstream_value = jjs_object();
+  jjs_value_t wstream_value = jjs_object(context_p);
   ecma_object_t *wstream_value_p = ecma_get_object_from_value (wstream_value);
 
-  jjs_object_set_native_ptr (wstream_value, &jjs_wstream_class_info, wstream_p);
+  jjs_object_set_native_ptr (context_p, wstream_value, &jjs_wstream_class_info, wstream_p);
 
-  annex_util_define_function (wstream_value_p, LIT_MAGIC_STRING_WRITE, jjs_wstream_prototype_write);
-  annex_util_define_function (wstream_value_p, LIT_MAGIC_STRING_FLUSH, jjs_wstream_prototype_flush);
+  annex_util_define_function (context_p, wstream_value_p, LIT_MAGIC_STRING_WRITE, jjs_wstream_prototype_write);
+  annex_util_define_function (context_p, wstream_value_p, LIT_MAGIC_STRING_FLUSH, jjs_wstream_prototype_flush);
 
   *out = wstream_value;
 
@@ -188,24 +195,24 @@ jjs_wstream_from_buffer (jjs_wstream_buffer_state_t * buffer_p, /**< buffer to w
  * @return true: initialized, false: failed
  */
 bool
-jjs_wstream_from_id (jjs_platform_io_stream_id_t id, jjs_wstream_t *out)
+jjs_wstream_from_id (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_wstream_t *out)
 {
-  if (jjs_stream_is_installed (id))
+  if (jjs_stream_is_installed (context_p, id))
   {
     switch (id)
     {
       case JJS_STDOUT:
       {
         out->write = wstream_io_write;
-        out->encoding = JJS_CONTEXT (platform_api).io_stdout_encoding;
-        out->state_p = JJS_CONTEXT (platform_api).io_stdout;
+        out->encoding = context_p->platform_p->io_stdout_encoding;
+        out->state_p = context_p->platform_p->io_stdout;
         return true;
       }
       case JJS_STDERR:
       {
         out->write = wstream_io_write;
-        out->encoding = JJS_CONTEXT (platform_api).io_stderr_encoding;
-        out->state_p = JJS_CONTEXT (platform_api).io_stderr;
+        out->encoding = context_p->platform_p->io_stderr_encoding;
+        out->state_p = context_p->platform_p->io_stderr;
         return true;
       }
       default:
@@ -238,21 +245,21 @@ jjs_wstream_from_stringbuilder (struct ecma_stringbuilder_t* builder, jjs_wstrea
  * @return true: initialized, false: failed
  */
 bool
-jjs_wstream_log (jjs_wstream_t* out) /**< wstream object to intialize */
+jjs_wstream_log (jjs_context_t* context_p, jjs_wstream_t* out) /**< wstream object to intialize */
 {
 #if JJS_DEBUGGER
-  if (!JJS_CONTEXT (platform_api).io_stderr && !jjs_debugger_is_connected ())
+  if (!context_p->platform_p->io_stderr && !jjs_debugger_is_connected ())
   {
     return false;
   }
 
-  out->state_p = JJS_CONTEXT (platform_api).io_stderr;
-  out->encoding = JJS_CONTEXT (platform_api).io_stderr_encoding;
+  out->state_p = context_p->platform_p->io_stderr;
+  out->encoding = context_p->platform_p->io_stderr_encoding;
   out->write = wstream_log_write;
 
   return true;
 #else /* !JJS_DEBUGGER */
-  return jjs_wstream_from_id (JJS_STDERR, out);
+  return jjs_wstream_from_id (context_p, JJS_STDERR, out);
 #endif /* JJS_DEBUGGER */
 } /* jjs_wstream_log */
 
@@ -263,11 +270,11 @@ jjs_wstream_log (jjs_wstream_t* out) /**< wstream object to intialize */
  * If ASCII, codepoints outside of the ASCII range are written as ? character.
  */
 void
-jjs_wstream_write_string (const jjs_wstream_t* wstream_p, jjs_value_t value, jjs_value_t value_o)
+jjs_wstream_write_string (jjs_context_t* context_p,const jjs_wstream_t* wstream_p, jjs_value_t value, jjs_value_t value_o)
 {
-  JJS_ASSERT (jjs_value_is_string (value));
+  JJS_ASSERT (jjs_value_is_string (context_p, value));
 
-  if (!jjs_value_is_string (value))
+  if (!jjs_value_is_string (context_p, value))
   {
     return;
   }
@@ -278,7 +285,7 @@ jjs_wstream_write_string (const jjs_wstream_t* wstream_p, jjs_value_t value, jjs
 
   if (ecma_string_get_length (string_p) == string_bytes_len || wstream_p->encoding == JJS_ENCODING_CESU8)
   {
-    wstream_p->write (wstream_p, string_bytes_p, string_bytes_len);
+    wstream_p->write (context_p, wstream_p, string_bytes_p, string_bytes_len);
   }
   else if (wstream_p->encoding == JJS_ENCODING_ASCII)
   {
@@ -292,7 +299,7 @@ jjs_wstream_write_string (const jjs_wstream_t* wstream_p, jjs_value_t value, jjs
     {
       if (*cesu8_cursor_p <= LIT_UTF8_1_BYTE_CODE_POINT_MAX)
       {
-        wstream_p->write (wstream_p, cesu8_cursor_p, 1);
+        wstream_p->write (context_p, wstream_p, cesu8_cursor_p, 1);
         cesu8_cursor_p++;
       }
       else
@@ -304,7 +311,7 @@ jjs_wstream_write_string (const jjs_wstream_t* wstream_p, jjs_value_t value, jjs
           break;
         }
 
-        wstream_p->write (wstream_p, &QUESTION_MARK, 1);
+        wstream_p->write (context_p, wstream_p, &QUESTION_MARK, 1);
         cesu8_cursor_p += read_size;
       }
     }
@@ -333,11 +340,11 @@ jjs_wstream_write_string (const jjs_wstream_t* wstream_p, jjs_value_t value, jjs
 
       if (cp >= LIT_UTF16_FIRST_SURROGATE_CODE_POINT)
       {
-        wstream_p->write (wstream_p, utf8_buf_p, lit_code_point_to_utf8 (cp, utf8_buf_p));
+        wstream_p->write (context_p, wstream_p, utf8_buf_p, lit_code_point_to_utf8 (cp, utf8_buf_p));
       }
       else
       {
-        wstream_p->write (wstream_p, cesu8_cursor_p, encoded_size);
+        wstream_p->write (context_p, wstream_p, cesu8_cursor_p, encoded_size);
       }
 
       cesu8_cursor_p += read_size;
@@ -354,7 +361,7 @@ jjs_wstream_write_string (const jjs_wstream_t* wstream_p, jjs_value_t value, jjs
 done:
   ECMA_FINALIZE_UTF8_STRING (string_bytes_p, string_bytes_len);
 
-  JJS_DISOWN (value, value_o);
+  JJS_DISOWN (context_p, value, value_o);
 } /* jjs_wstream_write_string */
 
 /**
@@ -364,10 +371,10 @@ done:
  * @return boolean status
  */
 bool
-jjs_stream_is_installed (jjs_platform_io_stream_id_t id) /**< platform stream id */
+jjs_stream_is_installed (jjs_context_t* context_p, jjs_platform_io_stream_id_t id) /**< platform stream id */
 {
   JJS_ASSERT (id == JJS_STDOUT || id == JJS_STDERR);
-  return JJS_CONTEXT (streams)[id] != NULL;
+  return context_p->streams[id] != NULL;
 }
 
 /**
@@ -375,11 +382,11 @@ jjs_stream_is_installed (jjs_platform_io_stream_id_t id) /**< platform stream id
  * function does nothing.
  */
 void
-jjs_stream_flush (jjs_platform_io_stream_id_t id) /**< platform stream id */
+jjs_stream_flush (jjs_context_t* context_p, jjs_platform_io_stream_id_t id) /**< platform stream id */
 {
-  if (JJS_CONTEXT (platform_api).io_flush && jjs_stream_is_installed (id))
+  if (context_p->platform_p->io_flush && jjs_stream_is_installed (context_p, id))
   {
-    JJS_CONTEXT (platform_api).io_flush (JJS_CONTEXT (streams)[id]);
+    context_p->platform_p->io_flush (context_p->streams[id]);
   }
 }
 
@@ -388,21 +395,22 @@ jjs_stream_flush (jjs_platform_io_stream_id_t id) /**< platform stream id */
  *
  * If the value is not a string or the stream is not installed, this function does nothing.
  *
+ * @param context_p JJS context
  * @param id platform stream id
  * @param value string JS value
  * @param value_o value reference ownership
  */
 void
-jjs_stream_write_string (jjs_platform_io_stream_id_t id, jjs_value_t value, jjs_value_t value_o)
+jjs_stream_write_string (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_value_t value, jjs_value_t value_o)
 {
   jjs_wstream_t wstream;
 
-  if (jjs_value_is_string (value) && jjs_wstream_from_id (id, &wstream))
+  if (jjs_value_is_string (context_p, value) && jjs_wstream_from_id (context_p, id, &wstream))
   {
-    jjs_wstream_write_string (&wstream, value, value_o);
+    jjs_wstream_write_string (context_p, &wstream, value, value_o);
   }
   else
   {
-    JJS_DISOWN (value, value_o);
+    JJS_DISOWN (context_p, value, value_o);
   }
 }
