@@ -468,20 +468,20 @@ typedef struct
   uint8_t code_size[sizeof (uint32_t)]; /**< total size of the message */
 } jjs_debugger_receive_client_source_first_t;
 
-void jjs_debugger_free_unreferenced_byte_code (void);
+void jjs_debugger_free_unreferenced_byte_code (jjs_context_t *context_p);
 
-bool jjs_debugger_receive (jjs_debugger_uint8_data_t **message_data_p);
+bool jjs_debugger_receive (jjs_context_t *context_p, jjs_debugger_uint8_data_t **message_data_p);
 
-void jjs_debugger_breakpoint_hit (uint8_t message_type);
+void jjs_debugger_breakpoint_hit (jjs_context_t *context_p, uint8_t message_type);
 
-void jjs_debugger_send_type (jjs_debugger_header_type_t type);
-bool jjs_debugger_send_configuration (uint8_t max_message_size);
-void jjs_debugger_send_data (jjs_debugger_header_type_t type, const void *data, size_t size);
-bool jjs_debugger_send_string (uint8_t message_type, uint8_t sub_type, const uint8_t *string_p, size_t string_length);
-bool jjs_debugger_send_function_cp (jjs_debugger_header_type_t type, ecma_compiled_code_t *compiled_code_p);
-bool jjs_debugger_send_parse_function (uint32_t line, uint32_t column);
-void jjs_debugger_send_memstats (void);
-bool jjs_debugger_send_exception_string (ecma_value_t exception_value);
+void jjs_debugger_send_type (jjs_context_t *context_p, jjs_debugger_header_type_t type);
+bool jjs_debugger_send_configuration (jjs_context_t *context_p, uint8_t max_message_size);
+void jjs_debugger_send_data (jjs_context_t *context_p, jjs_debugger_header_type_t type, const void *data, size_t size);
+bool jjs_debugger_send_string (jjs_context_t *context_p, uint8_t message_type, uint8_t sub_type, const uint8_t *string_p, size_t string_length);
+bool jjs_debugger_send_function_cp (jjs_context_t *context_p, jjs_debugger_header_type_t type, ecma_compiled_code_t *compiled_code_p);
+bool jjs_debugger_send_parse_function (jjs_context_t *context_p, uint32_t line, uint32_t column);
+void jjs_debugger_send_memstats (jjs_context_t *context_p);
+bool jjs_debugger_send_exception_string (jjs_context_t *context_p, ecma_value_t exception_value);
 
 #endif /* JJS_DEBUGGER */
 

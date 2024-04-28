@@ -17,6 +17,7 @@
 
 #include "debugger.h"
 #include "jcontext.h"
+#include "jjs-platform.h"
 
 #if JJS_DEBUGGER
 
@@ -34,32 +35,33 @@
  * Add a new transport layer.
  */
 void
-jjs_debugger_transport_add (jjs_debugger_transport_header_t *header_p, /**< transport implementation */
-                              size_t send_message_header_size, /**< header bytes reserved for outgoing messages */
-                              size_t max_send_message_size, /**< maximum number of bytes transmitted in a message */
-                              size_t receive_message_header_size, /**< header bytes reserved for incoming messages */
-                              size_t max_receive_message_size) /**< maximum number of bytes received in a message */
+jjs_debugger_transport_add (jjs_context_t* context_p, /**< JJS context */
+                            jjs_debugger_transport_header_t *header_p, /**< transport implementation */
+                            size_t send_message_header_size, /**< header bytes reserved for outgoing messages */
+                            size_t max_send_message_size, /**< maximum number of bytes transmitted in a message */
+                            size_t receive_message_header_size, /**< header bytes reserved for incoming messages */
+                            size_t max_receive_message_size) /**< maximum number of bytes received in a message */
 {
   JJS_ASSERT (max_send_message_size > JJS_DEBUGGER_TRANSPORT_MIN_BUFFER_SIZE
                 && max_receive_message_size > JJS_DEBUGGER_TRANSPORT_MIN_BUFFER_SIZE);
 
-  header_p->next_p = JJS_CONTEXT (debugger_transport_header_p);
-  JJS_CONTEXT (debugger_transport_header_p) = header_p;
+  header_p->next_p = context_p->debugger_transport_header_p;
+  context_p->debugger_transport_header_p = header_p;
 
   uint8_t *payload_p;
   size_t max_send_size;
   size_t max_receive_size;
 
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    payload_p = JJS_CONTEXT (debugger_send_buffer_payload_p);
-    max_send_size = JJS_CONTEXT (debugger_max_send_size);
-    max_receive_size = JJS_CONTEXT (debugger_max_receive_size);
+    payload_p = context_p->debugger_send_buffer_payload_p;
+    max_send_size = context_p->debugger_max_send_size;
+    max_receive_size = context_p->debugger_max_receive_size;
   }
   else
   {
     JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_CONNECTED);
-    payload_p = JJS_CONTEXT (debugger_send_buffer);
+    payload_p = context_p->debugger_send_buffer;
     max_send_size = JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE;
     max_receive_size = JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE;
   }
@@ -67,7 +69,7 @@ jjs_debugger_transport_add (jjs_debugger_transport_header_t *header_p, /**< tran
   JJS_ASSERT (max_send_size > JJS_DEBUGGER_TRANSPORT_MIN_BUFFER_SIZE + send_message_header_size);
   JJS_ASSERT (max_receive_size > JJS_DEBUGGER_TRANSPORT_MIN_BUFFER_SIZE + receive_message_header_size);
 
-  JJS_CONTEXT (debugger_send_buffer_payload_p) = payload_p + send_message_header_size;
+  context_p->debugger_send_buffer_payload_p = payload_p + send_message_header_size;
 
   max_send_size = max_send_size - send_message_header_size;
   max_receive_size = max_receive_size - receive_message_header_size;
@@ -82,8 +84,8 @@ jjs_debugger_transport_add (jjs_debugger_transport_header_t *header_p, /**< tran
     max_receive_size = max_receive_message_size;
   }
 
-  JJS_CONTEXT (debugger_max_send_size) = (uint8_t) max_send_size;
-  JJS_CONTEXT (debugger_max_receive_size) = (uint8_t) max_receive_size;
+  context_p->debugger_max_send_size = (uint8_t) max_send_size;
+  context_p->debugger_max_receive_size = (uint8_t) max_receive_size;
 } /* jjs_debugger_transport_add */
 
 /**
@@ -91,14 +93,14 @@ jjs_debugger_transport_add (jjs_debugger_transport_header_t *header_p, /**< tran
  * Must be called after the connection is successfully established.
  */
 void
-jjs_debugger_transport_start (void)
+jjs_debugger_transport_start (jjs_context_t* context_p) /**< JJS context */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
-  if (jjs_debugger_send_configuration (JJS_CONTEXT (debugger_max_receive_size)))
+  if (jjs_debugger_send_configuration (context_p, context_p->debugger_max_receive_size))
   {
     JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
-    JJS_CONTEXT (debugger_stop_context) = NULL;
+    context_p->debugger_stop_context = NULL;
   }
 } /* jjs_debugger_transport_start */
 
@@ -109,25 +111,25 @@ jjs_debugger_transport_start (void)
  *         false - otherwise
  */
 bool
-jjs_debugger_transport_is_connected (void)
+jjs_debugger_transport_is_connected (jjs_context_t* context_p) /**< JJS context */
 {
-  return (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED) != 0;
+  return (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) != 0;
 } /* jjs_debugger_transport_is_connected */
 
 /**
  * Notifies the debugger server that the connection is closed.
  */
 void
-jjs_debugger_transport_close (void)
+jjs_debugger_transport_close (jjs_context_t* context_p) /**< JJS context */
 {
-  if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED))
+  if (!(context_p->debugger_flags & JJS_DEBUGGER_CONNECTED))
   {
     return;
   }
 
-  JJS_CONTEXT (debugger_flags) = JJS_DEBUGGER_VM_IGNORE;
+  context_p->debugger_flags = JJS_DEBUGGER_VM_IGNORE;
 
-  jjs_debugger_transport_header_t *current_p = JJS_CONTEXT (debugger_transport_header_p);
+  jjs_debugger_transport_header_t *current_p = context_p->debugger_transport_header_p;
 
   JJS_ASSERT (current_p != NULL);
 
@@ -135,14 +137,14 @@ jjs_debugger_transport_close (void)
   {
     jjs_debugger_transport_header_t *next_p = current_p->next_p;
 
-    current_p->close (current_p);
+    current_p->close (context_p, current_p);
 
     current_p = next_p;
   } while (current_p != NULL);
 
-  jjs_log (JJS_LOG_LEVEL_DEBUG, "Debugger client connection closed.\n");
+  jjs_log (context_p, JJS_LOG_LEVEL_DEBUG, "Debugger client connection closed.\n");
 
-  jjs_debugger_free_unreferenced_byte_code ();
+  jjs_debugger_free_unreferenced_byte_code (context_p);
 } /* jjs_debugger_transport_close */
 
 /**
@@ -152,15 +154,16 @@ jjs_debugger_transport_close (void)
  *         false - connection closed
  */
 bool
-jjs_debugger_transport_send (const uint8_t *message_p, /**< message to be sent */
-                               size_t message_length) /**< message length in bytes */
+jjs_debugger_transport_send (jjs_context_t* context_p, /**< JJS context */
+                             const uint8_t *message_p, /**< message to be sent */
+                             size_t message_length) /**< message length in bytes */
 {
-  JJS_ASSERT (jjs_debugger_transport_is_connected ());
+  JJS_ASSERT (jjs_debugger_transport_is_connected (context_p));
   JJS_ASSERT (message_length > 0);
 
-  jjs_debugger_transport_header_t *header_p = JJS_CONTEXT (debugger_transport_header_p);
-  uint8_t *payload_p = JJS_CONTEXT (debugger_send_buffer_payload_p);
-  size_t max_send_size = JJS_CONTEXT (debugger_max_send_size);
+  jjs_debugger_transport_header_t *header_p = context_p->debugger_transport_header_p;
+  uint8_t *payload_p = context_p->debugger_send_buffer_payload_p;
+  size_t max_send_size = context_p->debugger_max_send_size;
 
   do
   {
@@ -168,7 +171,7 @@ jjs_debugger_transport_send (const uint8_t *message_p, /**< message to be sent *
 
     memcpy (payload_p, message_p, fragment_length);
 
-    if (!header_p->send (header_p, payload_p, fragment_length))
+    if (!header_p->send (context_p, header_p, payload_p, fragment_length))
     {
       return false;
     }
@@ -190,60 +193,60 @@ jjs_debugger_transport_send (const uint8_t *message_p, /**< message to be sent *
  *         false - connection closed
  */
 bool
-jjs_debugger_transport_receive (jjs_debugger_transport_receive_context_t *context_p) /**< [out] receive
-                                                                                          *   context */
+jjs_debugger_transport_receive (jjs_context_t* context_p, /**< JJS context */
+                                jjs_debugger_transport_receive_context_t *receive_context_p) /**< [out] receive context */
 {
-  JJS_ASSERT (jjs_debugger_transport_is_connected ());
+  JJS_ASSERT (jjs_debugger_transport_is_connected (context_p));
 
-  context_p->buffer_p = JJS_CONTEXT (debugger_receive_buffer);
-  context_p->received_length = JJS_CONTEXT (debugger_received_length);
-  context_p->message_p = NULL;
-  context_p->message_length = 0;
-  context_p->message_total_length = 0;
+  receive_context_p->buffer_p = context_p->debugger_receive_buffer;
+  receive_context_p->received_length = context_p->debugger_received_length;
+  receive_context_p->message_p = NULL;
+  receive_context_p->message_length = 0;
+  receive_context_p->message_total_length = 0;
 
-  jjs_debugger_transport_header_t *header_p = JJS_CONTEXT (debugger_transport_header_p);
+  jjs_debugger_transport_header_t *header_p = context_p->debugger_transport_header_p;
 
-  return header_p->receive (header_p, context_p);
+  return header_p->receive (context_p, header_p, receive_context_p);
 } /* jjs_debugger_transport_receive */
 
 /**
  * Clear the message buffer after the message is processed
  */
 void
-jjs_debugger_transport_receive_completed (jjs_debugger_transport_receive_context_t *context_p) /**< receive
-                                                                                                    *   context */
+jjs_debugger_transport_receive_completed (jjs_context_t* context_p, /**< JJS context */
+                                          jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
 {
-  JJS_ASSERT (context_p->message_p != NULL);
-  JJS_ASSERT (context_p->buffer_p == JJS_CONTEXT (debugger_receive_buffer));
+  JJS_ASSERT (receive_context_p->message_p != NULL);
+  JJS_ASSERT (receive_context_p->buffer_p == context_p->debugger_receive_buffer);
 
-  size_t message_total_length = context_p->message_total_length;
-  size_t received_length = context_p->received_length;
+  size_t message_total_length = receive_context_p->message_total_length;
+  size_t received_length = receive_context_p->received_length;
 
   JJS_ASSERT (message_total_length <= received_length);
 
   if (message_total_length == 0 || message_total_length == received_length)
   {
     /* All received data is processed. */
-    JJS_CONTEXT (debugger_received_length) = 0;
+    context_p->debugger_received_length = 0;
     return;
   }
 
-  uint8_t *buffer_p = context_p->buffer_p;
+  uint8_t *buffer_p = receive_context_p->buffer_p;
   received_length -= message_total_length;
 
   memmove (buffer_p, buffer_p + message_total_length, received_length);
 
-  JJS_CONTEXT (debugger_received_length) = (uint16_t) received_length;
+  context_p->debugger_received_length = (uint16_t) received_length;
 } /* jjs_debugger_transport_receive_completed */
 
 /**
  * Suspend execution for a predefined time (JJS_DEBUGGER_TRANSPORT_TIMEOUT ms).
  */
 void
-jjs_debugger_transport_sleep (void)
+jjs_debugger_transport_sleep (jjs_context_t *context_p)
 {
-  JJS_ASSERT(JJS_CONTEXT (platform_p)->time_sleep != NULL);
-  JJS_CONTEXT (platform_p)->time_sleep (JJS_DEBUGGER_TRANSPORT_TIMEOUT);
+  JJS_ASSERT(context_p->platform_p->time_sleep != NULL);
+  context_p->platform_p->time_sleep (JJS_DEBUGGER_TRANSPORT_TIMEOUT);
 } /* jjs_debugger_transport_sleep */
 
 #endif /* JJS_DEBUGGER */

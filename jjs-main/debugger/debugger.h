@@ -21,21 +21,21 @@
 
 JJS_C_API_BEGIN
 
-void jjsx_debugger_after_connect (bool success);
+void jjsx_debugger_after_connect (jjs_context_t *context_p, bool success);
 
 /*
  * Message transmission interfaces.
  */
-bool jjsx_debugger_tcp_create (uint16_t port);
-bool jjsx_debugger_serial_create (const char *config);
+bool jjsx_debugger_tcp_create (jjs_context_t *context_p, uint16_t port);
+bool jjsx_debugger_serial_create (jjs_context_t *context_p, const char *config);
 
 /*
  * Message encoding interfaces.
  */
-bool jjsx_debugger_ws_create (void);
-bool jjsx_debugger_rp_create (void);
+bool jjsx_debugger_ws_create (jjs_context_t *context_p);
+bool jjsx_debugger_rp_create (jjs_context_t *context_p);
 
-bool jjsx_debugger_is_reset (jjs_value_t value);
+bool jjsx_debugger_is_reset (jjs_context_t *context_p, jjs_value_t value);
 
 JJS_C_API_END
 

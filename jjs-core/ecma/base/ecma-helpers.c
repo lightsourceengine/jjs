@@ -1546,7 +1546,7 @@ ecma_bytecode_deref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
 #if JJS_DEBUGGER
     if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
         && !(bytecode_p->status_flags & CBC_CODE_FLAGS_DEBUGGER_IGNORE)
-        && jjs_debugger_send_function_cp (JJS_DEBUGGER_RELEASE_BYTE_CODE_CP, bytecode_p))
+        && jjs_debugger_send_function_cp (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_RELEASE_BYTE_CODE_CP, bytecode_p))
     {
       /* Delay the byte code free until the debugger client is notified.
        * If the connection is aborted the pointer is still freed by

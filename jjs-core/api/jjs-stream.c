@@ -89,9 +89,9 @@ wstream_log_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const 
   }
 
   #if JJS_DEBUGGER
-    if (jjs_debugger_is_connected ())
+    if (jjs_debugger_is_connected (context_p))
     {
-      jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, data_p, data_size);
+      jjs_debugger_send_string (context_p, JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, data_p, data_size);
     }
   #endif /* JJS_DEBUGGER */
 } /* wstream_log_write */
@@ -248,7 +248,7 @@ bool
 jjs_wstream_log (jjs_context_t* context_p, jjs_wstream_t* out) /**< wstream object to intialize */
 {
 #if JJS_DEBUGGER
-  if (!context_p->platform_p->io_stderr && !jjs_debugger_is_connected ())
+  if (!context_p->platform_p->io_stderr && !jjs_debugger_is_connected (context_p))
   {
     return false;
   }

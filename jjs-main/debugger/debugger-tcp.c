@@ -113,7 +113,8 @@ jjsx_debugger_tcp_close_socket (jjsx_socket_t socket_id) /**< socket to close */
  * Log tcp error message.
  */
 static void
-jjsx_debugger_tcp_log_error (int errno_value) /**< error value to log */
+jjsx_debugger_tcp_log_error (jjs_context_t* context_p, /**< JJS context */
+                             int errno_value) /**< error value to log */
 {
   if (errno_value == 0)
   {
@@ -129,10 +130,10 @@ jjsx_debugger_tcp_log_error (int errno_value) /**< error value to log */
                  (LPTSTR) &error_message,
                  0,
                  NULL);
-  JJSX_ERROR_MSG ("TCP Error: %s\n", error_message);
+  JJSX_ERROR_MSG (context_p, "TCP Error: %s\n", error_message);
   LocalFree (error_message);
 #else /* !_WIN32 */
-  JJSX_ERROR_MSG ("TCP Error: %s\n", strerror (errno_value));
+  JJSX_ERROR_MSG (context_p, "TCP Error: %s\n", strerror (errno_value));
 #endif /* _WIN32 */
 } /* jjsx_debugger_tcp_log_error */
 
@@ -140,17 +141,18 @@ jjsx_debugger_tcp_log_error (int errno_value) /**< error value to log */
  * Close a tcp connection.
  */
 static void
-jjsx_debugger_tcp_close (jjs_debugger_transport_header_t *header_p) /**< tcp implementation */
+jjsx_debugger_tcp_close (jjs_context_t* context_p, /**< JJS context */
+                         jjs_debugger_transport_header_t *header_p) /**< tcp implementation */
 {
-  JJSX_ASSERT (!jjs_debugger_transport_is_connected ());
+  JJSX_ASSERT (!jjs_debugger_transport_is_connected (context_p));
 
   jjsx_debugger_transport_tcp_t *tcp_p = (jjsx_debugger_transport_tcp_t *) header_p;
 
-  JJSX_DEBUG_MSG ("TCP connection closed.\n");
+  JJSX_DEBUG_MSG (context_p, "TCP connection closed.\n");
 
   jjsx_debugger_tcp_close_socket (tcp_p->tcp_socket);
 
-  jjs_heap_free ((void *) header_p, sizeof (jjsx_debugger_transport_tcp_t));
+  jjs_heap_free (context_p, (void *) header_p, sizeof (jjsx_debugger_transport_tcp_t));
 } /* jjsx_debugger_tcp_close */
 
 /**
@@ -160,11 +162,12 @@ jjsx_debugger_tcp_close (jjs_debugger_transport_header_t *header_p) /**< tcp imp
  *         false - otherwise
  */
 static bool
-jjsx_debugger_tcp_send (jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
-                          uint8_t *message_p, /**< message to be sent */
-                          size_t message_length) /**< message length in bytes */
+jjsx_debugger_tcp_send (jjs_context_t* context_p, /**< JJS context */
+                        jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
+                        uint8_t *message_p, /**< message to be sent */
+                        size_t message_length) /**< message length in bytes */
 {
-  JJSX_ASSERT (jjs_debugger_transport_is_connected ());
+  JJSX_ASSERT (jjs_debugger_transport_is_connected (context_p));
 
   jjsx_debugger_transport_tcp_t *tcp_p = (jjsx_debugger_transport_tcp_t *) header_p;
   jjsx_socket_size_t remaining_bytes = (jjsx_socket_size_t) message_length;
@@ -178,7 +181,7 @@ jjsx_debugger_tcp_send (jjs_debugger_transport_header_t *header_p, /**< tcp impl
     {
       int err_val = errno;
       jjs_debugger_transport_close ();
-      jjsx_debugger_tcp_log_error (err_val);
+      jjsx_debugger_tcp_log_error (context_p, err_val);
       return false;
     }
 #endif /* __linux__ */
@@ -194,8 +197,8 @@ jjsx_debugger_tcp_send (jjs_debugger_transport_header_t *header_p, /**< tcp impl
         continue;
       }
 
-      jjs_debugger_transport_close ();
-      jjsx_debugger_tcp_log_error (err_val);
+      jjs_debugger_transport_close (context_p);
+      jjsx_debugger_tcp_log_error (context_p, err_val);
       return false;
     }
 
@@ -210,8 +213,9 @@ jjsx_debugger_tcp_send (jjs_debugger_transport_header_t *header_p, /**< tcp impl
  * Receive data from a tcp connection.
  */
 static bool
-jjsx_debugger_tcp_receive (jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
-                             jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
+jjsx_debugger_tcp_receive (jjs_context_t* context_p, /**< JJS context */
+                           jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
+                           jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
 {
   jjsx_debugger_transport_tcp_t *tcp_p = (jjsx_debugger_transport_tcp_t *) header_p;
 
@@ -228,8 +232,8 @@ jjsx_debugger_tcp_receive (jjs_debugger_transport_header_t *header_p, /**< tcp i
 
     if (err_val != JJSX_EWOULDBLOCK || length == 0)
     {
-      jjs_debugger_transport_close ();
-      jjsx_debugger_tcp_log_error (err_val);
+      jjs_debugger_transport_close (context_p);
+      jjsx_debugger_tcp_log_error (context_p, err_val);
       return false;
     }
     length = 0;
@@ -295,7 +299,8 @@ jjsx_debugger_tcp_configure_socket (jjsx_socket_t server_socket, /** < socket to
  *         false otherwise
  */
 bool
-jjsx_debugger_tcp_create (uint16_t port) /**< listening port */
+jjsx_debugger_tcp_create (jjs_context_t* context_p, /**< JJS context */
+                          uint16_t port) /**< listening port */
 {
 #ifdef _WIN32
   WSADATA wsaData;
@@ -310,7 +315,7 @@ jjsx_debugger_tcp_create (uint16_t port) /**< listening port */
   jjsx_socket_t server_socket = socket (AF_INET, SOCK_STREAM, 0);
   if (server_socket == JJSX_SOCKET_INVALID)
   {
-    jjsx_debugger_tcp_log_error (jjsx_debugger_tcp_get_errno ());
+    jjsx_debugger_tcp_log_error (context_p, jjsx_debugger_tcp_get_errno ());
     return false;
   }
 
@@ -318,11 +323,11 @@ jjsx_debugger_tcp_create (uint16_t port) /**< listening port */
   {
     int error = jjsx_debugger_tcp_get_errno ();
     jjsx_debugger_tcp_close_socket (server_socket);
-    jjsx_debugger_tcp_log_error (error);
+    jjsx_debugger_tcp_log_error (context_p, error);
     return false;
   }
 
-  JJSX_DEBUG_MSG ("Waiting for client connection\n");
+  JJSX_DEBUG_MSG (context_p, "Waiting for client connection\n");
 
   struct sockaddr_in addr;
   socklen_t sin_size = sizeof (struct sockaddr_in);
@@ -333,7 +338,7 @@ jjsx_debugger_tcp_create (uint16_t port) /**< listening port */
 
   if (tcp_socket == JJSX_SOCKET_INVALID)
   {
-    jjsx_debugger_tcp_log_error (jjsx_debugger_tcp_get_errno ());
+    jjsx_debugger_tcp_log_error (context_p, jjsx_debugger_tcp_get_errno ());
     return false;
   }
 
@@ -361,12 +366,12 @@ jjsx_debugger_tcp_create (uint16_t port) /**< listening port */
   }
 #endif /* _WIN32 */
 
-  JJSX_DEBUG_MSG ("Connected from: %s\n", inet_ntoa (addr.sin_addr));
+  JJSX_DEBUG_MSG (context_p, "Connected from: %s\n", inet_ntoa (addr.sin_addr));
 
   jjs_size_t size = sizeof (jjsx_debugger_transport_tcp_t);
 
   jjs_debugger_transport_header_t *header_p;
-  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (size);
+  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (context_p, size);
 
   if (!header_p)
   {
@@ -380,11 +385,12 @@ jjsx_debugger_tcp_create (uint16_t port) /**< listening port */
 
   ((jjsx_debugger_transport_tcp_t *) header_p)->tcp_socket = tcp_socket;
 
-  jjs_debugger_transport_add (header_p,
-                                0,
-                                JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE,
-                                0,
-                                JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE);
+  jjs_debugger_transport_add (context_p,
+                              header_p,
+                              0,
+                              JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE,
+                              0,
+                              JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE);
 
   return true;
 } /* jjsx_debugger_tcp_create */
@@ -397,8 +403,9 @@ jjsx_debugger_tcp_create (uint16_t port) /**< listening port */
  * @return false
  */
 bool
-jjsx_debugger_tcp_create (uint16_t port)
+jjsx_debugger_tcp_create (jjs_context_t *context_p, uint16_t port)
 {
+  JJSX_UNUSED (context_p);
   JJSX_UNUSED (port);
   return false;
 } /* jjsx_debugger_tcp_create */

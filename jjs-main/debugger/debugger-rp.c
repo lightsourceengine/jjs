@@ -41,11 +41,12 @@ typedef struct
  * Close a tcp connection.
  */
 static void
-jjsx_debugger_rp_close (jjs_debugger_transport_header_t *header_p) /**< header for the transport interface */
+jjsx_debugger_rp_close (jjs_context_t* context_p, /**< JJS context */
+                        jjs_debugger_transport_header_t *header_p) /**< header for the transport interface */
 {
-  JJSX_ASSERT (!jjs_debugger_transport_is_connected ());
+  JJSX_ASSERT (!jjs_debugger_transport_is_connected (context_p));
 
-  jjs_heap_free ((void *) header_p, sizeof (jjs_debugger_transport_header_t));
+  jjs_heap_free (context_p, (void *) header_p, sizeof (jjs_debugger_transport_header_t));
 } /* jjsx_debugger_rp_close */
 
 /**
@@ -55,15 +56,16 @@ jjsx_debugger_rp_close (jjs_debugger_transport_header_t *header_p) /**< header f
  *         false - otherwise
  */
 static bool
-jjsx_debugger_rp_send (jjs_debugger_transport_header_t *header_p, /**< header for the transport interface */
-                         uint8_t *message_p, /**< message to be sent */
-                         size_t message_length) /**< message length in bytes */
+jjsx_debugger_rp_send (jjs_context_t* context_p, /**< JJS context */
+                       jjs_debugger_transport_header_t *header_p, /**< header for the transport interface */
+                       uint8_t *message_p, /**< message to be sent */
+                       size_t message_length) /**< message length in bytes */
 {
   JJSX_ASSERT (message_length <= JJSX_DEBUGGER_RAWPACKET_ONE_BYTE_LEN_MAX);
 
   message_p[-1] = (uint8_t) message_length;
 
-  return header_p->next_p->send (header_p->next_p, message_p - 1, message_length + 1);
+  return header_p->next_p->send (context_p, header_p->next_p, message_p - 1, message_length + 1);
 } /* jjsx_debugger_rp_send */
 
 /**
@@ -73,10 +75,11 @@ jjsx_debugger_rp_send (jjs_debugger_transport_header_t *header_p, /**< header fo
  *         false - otherwise
  */
 static bool
-jjsx_debugger_rp_receive (jjs_debugger_transport_header_t *header_p, /**< header for the transport interface */
-                            jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
+jjsx_debugger_rp_receive (jjs_context_t* context_p, /**< JJS context */
+                          jjs_debugger_transport_header_t *header_p, /**< header for the transport interface */
+                          jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
 {
-  if (!header_p->next_p->receive (header_p->next_p, receive_context_p))
+  if (!header_p->next_p->receive (context_p, header_p->next_p, receive_context_p))
   {
     return false;
   }
@@ -138,11 +141,11 @@ jjsx_debugger_rp_receive (jjs_debugger_transport_header_t *header_p, /**< header
  *         false - otherwise
  */
 bool
-jjsx_debugger_rp_create (void)
+jjsx_debugger_rp_create (jjs_context_t *context_p)
 {
   const jjs_size_t interface_size = sizeof (jjs_debugger_transport_header_t);
   jjs_debugger_transport_header_t *header_p;
-  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (interface_size);
+  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (context_p, interface_size);
 
   if (!header_p)
   {
@@ -153,11 +156,12 @@ jjsx_debugger_rp_create (void)
   header_p->send = jjsx_debugger_rp_send;
   header_p->receive = jjsx_debugger_rp_receive;
 
-  jjs_debugger_transport_add (header_p,
-                                JJSX_DEBUGGER_RAWPACKET_HEADER_SIZE,
-                                JJSX_DEBUGGER_RAWPACKET_ONE_BYTE_LEN_MAX,
-                                JJSX_DEBUGGER_RAWPACKET_HEADER_SIZE,
-                                JJSX_DEBUGGER_RAWPACKET_ONE_BYTE_LEN_MAX);
+  jjs_debugger_transport_add (context_p,
+                              header_p,
+                              JJSX_DEBUGGER_RAWPACKET_HEADER_SIZE,
+                              JJSX_DEBUGGER_RAWPACKET_ONE_BYTE_LEN_MAX,
+                              JJSX_DEBUGGER_RAWPACKET_HEADER_SIZE,
+                              JJSX_DEBUGGER_RAWPACKET_ONE_BYTE_LEN_MAX);
 
   return true;
 } /* jjsx_debugger_rp_create */
@@ -170,8 +174,9 @@ jjsx_debugger_rp_create (void)
  * @return false
  */
 bool
-jjsx_debugger_rp_create (void)
+jjsx_debugger_rp_create (jjs_context_t *context_p)
 {
+  JJSX_UNUSED (context_p);
   return false;
 } /* jjsx_debugger_rp_create */
 

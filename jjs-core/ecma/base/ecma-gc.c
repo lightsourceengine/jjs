@@ -2277,7 +2277,7 @@ ecma_free_unused_memory (jmem_pressure_t pressure) /**< current pressure */
          && JJS_CONTEXT (debugger_byte_code_free_tail) != ECMA_NULL_POINTER)
   {
     /* Wait until all byte code is freed or the connection is aborted. */
-    jjs_debugger_receive (NULL);
+    jjs_debugger_receive (&JJS_CONTEXT_STRUCT, NULL);
   }
 #endif /* JJS_DEBUGGER */
 

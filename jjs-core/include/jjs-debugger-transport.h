@@ -24,6 +24,8 @@
 
 JJS_C_API_BEGIN
 
+struct jjs_context_t;
+
 /** \addtogroup jjs-debugger-transport JJS engine debugger interface - transport control
  * @{
  */
@@ -54,20 +56,22 @@ struct jjs_debugger_transport_interface_t;
 /**
  * Close connection callback.
  */
-typedef void (*jjs_debugger_transport_close_t) (struct jjs_debugger_transport_interface_t *header_p);
+typedef void (*jjs_debugger_transport_close_t) (struct jjs_context_t *context_p, struct jjs_debugger_transport_interface_t *header_p);
 
 /**
  * Send data callback.
  */
-typedef bool (*jjs_debugger_transport_send_t) (struct jjs_debugger_transport_interface_t *header_p,
-                                                 uint8_t *message_p,
-                                                 size_t message_length);
+typedef bool (*jjs_debugger_transport_send_t) (struct jjs_context_t *context_p,
+                                               struct jjs_debugger_transport_interface_t *header_p,
+                                               uint8_t *message_p,
+                                               size_t message_length);
 
 /**
  * Receive data callback.
  */
-typedef bool (*jjs_debugger_transport_receive_t) (struct jjs_debugger_transport_interface_t *header_p,
-                                                    jjs_debugger_transport_receive_context_t *context_p);
+typedef bool (*jjs_debugger_transport_receive_t) (struct jjs_context_t *context_p,
+                                                  struct jjs_debugger_transport_interface_t *header_p,
+                                                  jjs_debugger_transport_receive_context_t *receive_context_p);
 
 /**
  * Transport layer header.
@@ -83,21 +87,22 @@ typedef struct jjs_debugger_transport_interface_t
   struct jjs_debugger_transport_interface_t *next_p; /**< next transport layer */
 } jjs_debugger_transport_header_t;
 
-void jjs_debugger_transport_add (jjs_debugger_transport_header_t *header_p,
-                                   size_t send_message_header_size,
-                                   size_t max_send_message_size,
-                                   size_t receive_message_header_size,
-                                   size_t max_receive_message_size);
-void jjs_debugger_transport_start (void);
+void jjs_debugger_transport_add (struct jjs_context_t *context_p,
+                                 jjs_debugger_transport_header_t *header_p,
+                                 size_t send_message_header_size,
+                                 size_t max_send_message_size,
+                                 size_t receive_message_header_size,
+                                 size_t max_receive_message_size);
+void jjs_debugger_transport_start (struct jjs_context_t *context_p);
 
-bool jjs_debugger_transport_is_connected (void);
-void jjs_debugger_transport_close (void);
+bool jjs_debugger_transport_is_connected (struct jjs_context_t *context_p);
+void jjs_debugger_transport_close (struct jjs_context_t *context_p);
 
-bool jjs_debugger_transport_send (const uint8_t *message_p, size_t message_length);
-bool jjs_debugger_transport_receive (jjs_debugger_transport_receive_context_t *context_p);
-void jjs_debugger_transport_receive_completed (jjs_debugger_transport_receive_context_t *context_p);
+bool jjs_debugger_transport_send (struct jjs_context_t *context_p, const uint8_t *message_p, size_t message_length);
+bool jjs_debugger_transport_receive (struct jjs_context_t *context_p, jjs_debugger_transport_receive_context_t *receive_context_p);
+void jjs_debugger_transport_receive_completed (struct jjs_context_t *context_p, jjs_debugger_transport_receive_context_t *receive_context_p);
 
-void jjs_debugger_transport_sleep (void);
+void jjs_debugger_transport_sleep (struct jjs_context_t *context_p);
 
 /**
  * @}

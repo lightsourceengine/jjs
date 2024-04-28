@@ -117,7 +117,7 @@ jjs_platform_new (const jjs_platform_options_t* options_p, jjs_platform_t** plat
   if (result_p->time_sleep == NULL)
   {
     status = JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP;
-    goto err;
+    goto done;
   }
 #endif
 

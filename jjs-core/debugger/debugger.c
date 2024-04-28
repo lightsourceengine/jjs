@@ -55,7 +55,7 @@ JJS_STATIC_ASSERT (JJS_DEBUGGER_MESSAGES_OUT_MAX_COUNT == 33 && JJS_DEBUGGER_MES
  * Type cast the debugger send buffer into a specific type.
  */
 #define JJS_DEBUGGER_SEND_BUFFER_AS(type, name_p) \
-  type *name_p = (type *) (JJS_CONTEXT (debugger_send_buffer_payload_p))
+  type *name_p = (type *) (context_p->debugger_send_buffer_payload_p)
 
 /**
  * Type cast the debugger receive buffer into a specific type.
@@ -67,12 +67,12 @@ JJS_STATIC_ASSERT (JJS_DEBUGGER_MESSAGES_OUT_MAX_COUNT == 33 && JJS_DEBUGGER_MES
  * were not acknowledged by the debugger client.
  */
 void
-jjs_debugger_free_unreferenced_byte_code (void)
+jjs_debugger_free_unreferenced_byte_code (jjs_context_t* context_p) /**< JJS context */
 {
   jjs_debugger_byte_code_free_t *byte_code_free_p;
 
   byte_code_free_p =
-    JMEM_CP_GET_POINTER (jjs_debugger_byte_code_free_t, JJS_CONTEXT (debugger_byte_code_free_tail));
+    JMEM_CP_GET_POINTER (jjs_debugger_byte_code_free_t, context_p->debugger_byte_code_free_tail);
 
   while (byte_code_free_p != NULL)
   {
@@ -92,21 +92,23 @@ jjs_debugger_free_unreferenced_byte_code (void)
  *         false - otherwise
  */
 static bool
-jjs_debugger_send (size_t message_length) /**< message length in bytes */
+jjs_debugger_send (jjs_context_t* context_p, /**< JJS context */
+                   size_t message_length) /**< message length in bytes */
 {
-  JJS_ASSERT (message_length <= JJS_CONTEXT (debugger_max_send_size));
+  JJS_ASSERT (message_length <= context_p->debugger_max_send_size);
 
-  jjs_debugger_transport_header_t *header_p = JJS_CONTEXT (debugger_transport_header_p);
-  uint8_t *payload_p = JJS_CONTEXT (debugger_send_buffer_payload_p);
+  jjs_debugger_transport_header_t *header_p = context_p->debugger_transport_header_p;
+  uint8_t *payload_p = context_p->debugger_send_buffer_payload_p;
 
-  return header_p->send (header_p, payload_p, message_length);
+  return header_p->send (context_p, header_p, payload_p, message_length);
 } /* jjs_debugger_send */
 
 /**
  * Send backtrace.
  */
 static void
-jjs_debugger_send_backtrace (const uint8_t *recv_buffer_p) /**< pointer to the received data */
+jjs_debugger_send_backtrace (jjs_context_t* context_p, /**< JJS context */
+                             const uint8_t *recv_buffer_p) /**< pointer to the received data */
 {
   JJS_DEBUGGER_RECEIVE_BUFFER_AS (jjs_debugger_receive_get_backtrace_t, get_backtrace_p);
 
@@ -125,7 +127,7 @@ jjs_debugger_send_backtrace (const uint8_t *recv_buffer_p) /**< pointer to the r
     JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_backtrace_total_t, backtrace_total_p);
     backtrace_total_p->type = JJS_DEBUGGER_BACKTRACE_TOTAL;
 
-    vm_frame_ctx_t *iter_frame_ctx_p = JJS_CONTEXT (vm_top_context_p);
+    vm_frame_ctx_t *iter_frame_ctx_p = context_p->vm_top_context_p;
     uint32_t frame_count = 0;
     while (iter_frame_ctx_p != NULL)
     {
@@ -137,14 +139,14 @@ jjs_debugger_send_backtrace (const uint8_t *recv_buffer_p) /**< pointer to the r
     }
     memcpy (backtrace_total_p->frame_count, &frame_count, sizeof (frame_count));
 
-    jjs_debugger_send (sizeof (jjs_debugger_send_type_t) + sizeof (frame_count));
+    jjs_debugger_send (context_p, sizeof (jjs_debugger_send_type_t) + sizeof (frame_count));
   }
 
   JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_backtrace_t, backtrace_p);
 
   backtrace_p->type = JJS_DEBUGGER_BACKTRACE;
 
-  vm_frame_ctx_t *frame_ctx_p = JJS_CONTEXT (vm_top_context_p);
+  vm_frame_ctx_t *frame_ctx_p = context_p->vm_top_context_p;
 
   size_t current_frame = 0;
   const size_t max_frame_count = JJS_DEBUGGER_SEND_MAX (jjs_debugger_frame_t);
@@ -171,7 +173,7 @@ jjs_debugger_send_backtrace (const uint8_t *recv_buffer_p) /**< pointer to the r
 
       if (current_frame >= max_frame_count)
       {
-        if (!jjs_debugger_send (max_message_size))
+        if (!jjs_debugger_send (context_p, max_message_size))
         {
           return;
         }
@@ -196,16 +198,16 @@ jjs_debugger_send_backtrace (const uint8_t *recv_buffer_p) /**< pointer to the r
 
   backtrace_p->type = JJS_DEBUGGER_BACKTRACE_END;
 
-  jjs_debugger_send (sizeof (jjs_debugger_send_type_t) + message_size);
+  jjs_debugger_send (context_p, sizeof (jjs_debugger_send_type_t) + message_size);
 } /* jjs_debugger_send_backtrace */
 
 /**
  * Send the scope chain types.
  */
 static void
-jjs_debugger_send_scope_chain (void)
+jjs_debugger_send_scope_chain (jjs_context_t* context_p) /**< JJS context */
 {
-  vm_frame_ctx_t *iter_frame_ctx_p = JJS_CONTEXT (vm_top_context_p);
+  vm_frame_ctx_t *iter_frame_ctx_p = context_p->vm_top_context_p;
 
   const size_t max_byte_count = JJS_DEBUGGER_SEND_MAX (uint8_t);
   const size_t max_message_size = JJS_DEBUGGER_SEND_SIZE (max_byte_count, uint8_t);
@@ -223,7 +225,7 @@ jjs_debugger_send_scope_chain (void)
 
     if (buffer_pos == max_byte_count)
     {
-      if (!jjs_debugger_send (max_message_size))
+      if (!jjs_debugger_send (context_p, max_message_size))
       {
         return;
       }
@@ -266,7 +268,7 @@ jjs_debugger_send_scope_chain (void)
 
   message_type_p->type = JJS_DEBUGGER_SCOPE_CHAIN_END;
 
-  jjs_debugger_send (sizeof (jjs_debugger_send_type_t) + buffer_pos);
+  jjs_debugger_send (context_p, sizeof (jjs_debugger_send_type_t) + buffer_pos);
 } /* jjs_debugger_send_scope_chain */
 
 /**
@@ -327,10 +329,11 @@ jjs_debugger_get_variable_type (ecma_value_t value) /**< input ecma value */
  *         false - otherwise
  */
 static bool
-jjs_debugger_copy_variables_to_string_message (uint8_t variable_type, /**< type */
-                                                 ecma_string_t *value_str, /**< property name or value string */
-                                                 jjs_debugger_send_string_t *message_string_p, /**< msg pointer */
-                                                 size_t *buffer_pos) /**< string data position of the message */
+jjs_debugger_copy_variables_to_string_message (jjs_context_t* context_p, /**< JJS context */
+                                               uint8_t variable_type, /**< type */
+                                               ecma_string_t *value_str, /**< property name or value string */
+                                               jjs_debugger_send_string_t *message_string_p, /**< msg pointer */
+                                               size_t *buffer_pos) /**< string data position of the message */
 {
   const size_t max_byte_count = JJS_DEBUGGER_SEND_MAX (uint8_t);
   const size_t max_message_size = JJS_DEBUGGER_SEND_SIZE (max_byte_count, uint8_t);
@@ -347,7 +350,7 @@ jjs_debugger_copy_variables_to_string_message (uint8_t variable_type, /**< type 
   {
     if (*buffer_pos == max_byte_count)
     {
-      if (!jjs_debugger_send (max_message_size))
+      if (!jjs_debugger_send (context_p, max_message_size))
       {
         result = false;
         break;
@@ -390,7 +393,7 @@ jjs_debugger_copy_variables_to_string_message (uint8_t variable_type, /**< type 
     {
       memcpy (message_string_p->string + *buffer_pos, string_p, free_bytes);
 
-      if (!jjs_debugger_send (max_message_size))
+      if (!jjs_debugger_send (context_p, max_message_size))
       {
         result = false;
         break;
@@ -418,21 +421,22 @@ jjs_debugger_copy_variables_to_string_message (uint8_t variable_type, /**< type 
  * Send variables of the given scope chain level.
  */
 static void
-jjs_debugger_send_scope_variables (const uint8_t *recv_buffer_p) /**< pointer to the received data */
+jjs_debugger_send_scope_variables (jjs_context_t* context_p, /**< JJS context */
+                                   const uint8_t *recv_buffer_p) /**< pointer to the received data */
 {
   JJS_DEBUGGER_RECEIVE_BUFFER_AS (jjs_debugger_receive_get_scope_variables_t, get_scope_variables_p);
 
   uint32_t chain_index;
   memcpy (&chain_index, get_scope_variables_p->chain_index, sizeof (uint32_t));
 
-  vm_frame_ctx_t *iter_frame_ctx_p = JJS_CONTEXT (vm_top_context_p);
+  vm_frame_ctx_t *iter_frame_ctx_p = context_p->vm_top_context_p;
   ecma_object_t *lex_env_p = iter_frame_ctx_p->lex_env_p;
 
   while (chain_index != 0)
   {
     if (JJS_UNLIKELY (lex_env_p->u2.outer_reference_cp == JMEM_CP_NULL))
     {
-      jjs_debugger_send_type (JJS_DEBUGGER_SCOPE_VARIABLES_END);
+      jjs_debugger_send_type (context_p, JJS_DEBUGGER_SCOPE_VARIABLES_END);
       return;
     }
 
@@ -488,10 +492,11 @@ jjs_debugger_send_scope_variables (const uint8_t *recv_buffer_p) /**< pointer to
 
         ecma_string_t *prop_name = ecma_string_from_property_name (prop_iter_p->types[i], prop_pair_p->names_cp[i]);
 
-        if (!jjs_debugger_copy_variables_to_string_message (JJS_DEBUGGER_VALUE_NONE,
-                                                              prop_name,
-                                                              message_string_p,
-                                                              &buffer_pos))
+        if (!jjs_debugger_copy_variables_to_string_message (context_p,
+                                                            JJS_DEBUGGER_VALUE_NONE,
+                                                            prop_name,
+                                                            message_string_p,
+                                                            &buffer_pos))
         {
           ecma_deref_ecma_string (prop_name);
           return;
@@ -506,7 +511,7 @@ jjs_debugger_send_scope_variables (const uint8_t *recv_buffer_p) /**< pointer to
         ecma_string_t *str_p = ecma_op_to_string (prop_value_p.value);
         JJS_ASSERT (str_p != NULL);
 
-        if (!jjs_debugger_copy_variables_to_string_message (variable_type, str_p, message_string_p, &buffer_pos))
+        if (!jjs_debugger_copy_variables_to_string_message (context_p, variable_type, str_p, message_string_p, &buffer_pos))
         {
           ecma_deref_ecma_string (str_p);
           return;
@@ -520,7 +525,7 @@ jjs_debugger_send_scope_variables (const uint8_t *recv_buffer_p) /**< pointer to
   }
 
   message_string_p->type = JJS_DEBUGGER_SCOPE_VARIABLES_END;
-  jjs_debugger_send (sizeof (jjs_debugger_send_type_t) + buffer_pos);
+  jjs_debugger_send (context_p, sizeof (jjs_debugger_send_type_t) + buffer_pos);
 } /* jjs_debugger_send_scope_variables */
 
 /**
@@ -530,18 +535,19 @@ jjs_debugger_send_scope_variables (const uint8_t *recv_buffer_p) /**< pointer to
  *         false - otherwise
  */
 static bool
-jjs_debugger_send_eval (const lit_utf8_byte_t *eval_string_p, /**< evaluated string */
-                          size_t eval_string_size) /**< evaluated string size */
+jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
+                        const lit_utf8_byte_t *eval_string_p, /**< evaluated string */
+                        size_t eval_string_size) /**< evaluated string size */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
-  JJS_ASSERT (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_VM_IGNORE));
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (!(context_p->debugger_flags & JJS_DEBUGGER_VM_IGNORE));
 
   JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_IGNORE);
 
   uint32_t chain_index;
   memcpy (&chain_index, eval_string_p, sizeof (uint32_t));
   uint32_t parse_opts = ECMA_PARSE_DIRECT_EVAL;
-  JJS_CONTEXT (debugger_eval_chain_index) = (uint16_t) chain_index;
+  context_p->debugger_eval_chain_index = (uint16_t) chain_index;
 
   parser_source_char_t source_char;
   source_char.source_p = eval_string_p + 5;
@@ -559,7 +565,7 @@ jjs_debugger_send_eval (const lit_utf8_byte_t *eval_string_p, /**< evaluated str
 
       /* Stop where the error is caught. */
       JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
-      JJS_CONTEXT (debugger_stop_context) = NULL;
+      context_p->debugger_stop_context = NULL;
 
       jcontext_raise_exception (result);
       jcontext_set_abort_flag (eval_string_p[4] == JJS_DEBUGGER_EVAL_ABORT);
@@ -582,7 +588,7 @@ jjs_debugger_send_eval (const lit_utf8_byte_t *eval_string_p, /**< evaluated str
   if (ECMA_IS_VALUE_ERROR (result))
   {
     type = JJS_DEBUGGER_EVAL_ERROR;
-    result = JJS_CONTEXT (error_value);
+    result = context_p->error_value;
 
     if (ecma_is_value_object (result))
     {
@@ -596,7 +602,7 @@ jjs_debugger_send_eval (const lit_utf8_byte_t *eval_string_p, /**< evaluated str
         ecma_free_value (result);
 
         const lit_utf8_byte_t *string_p = lit_get_magic_string_utf8 (id);
-        jjs_debugger_send_string (JJS_DEBUGGER_EVAL_RESULT, type, string_p, strlen ((const char *) string_p));
+        jjs_debugger_send_string (context_p, JJS_DEBUGGER_EVAL_RESULT, type, string_p, strlen ((const char *) string_p));
         return false;
       }
     }
@@ -615,7 +621,7 @@ jjs_debugger_send_eval (const lit_utf8_byte_t *eval_string_p, /**< evaluated str
   ecma_string_t *string_p = ecma_get_string_from_value (message);
 
   ECMA_STRING_TO_UTF8_STRING (string_p, buffer_p, buffer_size);
-  jjs_debugger_send_string (JJS_DEBUGGER_EVAL_RESULT, type, buffer_p, buffer_size);
+  jjs_debugger_send_string (context_p, JJS_DEBUGGER_EVAL_RESULT, type, buffer_p, buffer_size);
   ECMA_FINALIZE_UTF8_STRING (buffer_p, buffer_size);
 
   ecma_free_value (message);
@@ -626,12 +632,12 @@ jjs_debugger_send_eval (const lit_utf8_byte_t *eval_string_p, /**< evaluated str
 /**
  * Check received packet size.
  */
-#define JJS_DEBUGGER_CHECK_PACKET_SIZE(type)  \
-  if (message_size != sizeof (type))            \
-  {                                             \
-    JJS_ERROR_MSG ("Invalid message size\n"); \
-    jjs_debugger_transport_close ();          \
-    return false;                               \
+#define JJS_DEBUGGER_CHECK_PACKET_SIZE(ctx, type)  \
+  if (message_size != sizeof (type))               \
+  {                                                \
+    JJS_ERROR_MSG ("Invalid message size\n");      \
+    jjs_debugger_transport_close (ctx);            \
+    return false;                                  \
   }
 
 /**
@@ -641,18 +647,19 @@ jjs_debugger_send_eval (const lit_utf8_byte_t *eval_string_p, /**< evaluated str
  *         false - otherwise
  */
 static inline bool JJS_ATTR_ALWAYS_INLINE
-jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the received data */
-                                uint32_t message_size, /**< message size */
-                                bool *resume_exec_p, /**< pointer to the resume exec flag */
-                                uint8_t *expected_message_type_p, /**< message type */
-                                jjs_debugger_uint8_data_t **message_data_p) /**< custom message data */
+jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
+                              const uint8_t *recv_buffer_p, /**< pointer to the received data */
+                              uint32_t message_size, /**< message size */
+                              bool *resume_exec_p, /**< pointer to the resume exec flag */
+                              uint8_t *expected_message_type_p, /**< message type */
+                              jjs_debugger_uint8_data_t **message_data_p) /**< custom message data */
 {
   /* Process the received message. */
 
-  if (recv_buffer_p[0] >= JJS_DEBUGGER_CONTINUE && !(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_BREAKPOINT_MODE))
+  if (recv_buffer_p[0] >= JJS_DEBUGGER_CONTINUE && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
     JJS_ERROR_MSG ("Message requires breakpoint mode\n");
-    jjs_debugger_transport_close ();
+    jjs_debugger_transport_close (context_p);
     return false;
   }
 
@@ -667,7 +674,7 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
     {
       jmem_heap_free_block (uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
       JJS_ERROR_MSG ("Unexpected message\n");
-      jjs_debugger_transport_close ();
+      jjs_debugger_transport_close (context_p);
       return false;
     }
 
@@ -677,7 +684,7 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
     {
       jmem_heap_free_block (uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
       JJS_ERROR_MSG ("Invalid message size\n");
-      jjs_debugger_transport_close ();
+      jjs_debugger_transport_close (context_p);
       return false;
     }
 
@@ -689,7 +696,7 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
     {
       jmem_heap_free_block (uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
       JJS_ERROR_MSG ("Invalid message size\n");
-      jjs_debugger_transport_close ();
+      jjs_debugger_transport_close (context_p);
       return false;
     }
 
@@ -706,11 +713,11 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
     if (*expected_message_type_p == JJS_DEBUGGER_EVAL_PART)
     {
-      if (jjs_debugger_send_eval (string_p, uint8_data_p->uint8_size))
+      if (jjs_debugger_send_eval (context_p, string_p, uint8_data_p->uint8_size))
       {
         *resume_exec_p = true;
       }
-      result = (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED) != 0;
+      result = (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) != 0;
     }
     else
     {
@@ -727,17 +734,17 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
   {
     case JJS_DEBUGGER_FREE_BYTE_CODE_CP:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_byte_code_cp_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_byte_code_cp_t);
 
       JJS_DEBUGGER_RECEIVE_BUFFER_AS (jjs_debugger_receive_byte_code_cp_t, byte_code_p);
 
       jmem_cpointer_t byte_code_free_cp;
       memcpy (&byte_code_free_cp, byte_code_p->byte_code_cp, sizeof (jmem_cpointer_t));
 
-      if (byte_code_free_cp != JJS_CONTEXT (debugger_byte_code_free_tail))
+      if (byte_code_free_cp != context_p->debugger_byte_code_free_tail)
       {
         JJS_ERROR_MSG ("Invalid byte code free order\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
@@ -746,12 +753,12 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
       if (byte_code_free_p->prev_cp != ECMA_NULL_POINTER)
       {
-        JJS_CONTEXT (debugger_byte_code_free_tail) = byte_code_free_p->prev_cp;
+        context_p->debugger_byte_code_free_tail = byte_code_free_p->prev_cp;
       }
       else
       {
-        JJS_CONTEXT (debugger_byte_code_free_head) = ECMA_NULL_POINTER;
-        JJS_CONTEXT (debugger_byte_code_free_tail) = ECMA_NULL_POINTER;
+        context_p->debugger_byte_code_free_head = ECMA_NULL_POINTER;
+        context_p->debugger_byte_code_free_tail = ECMA_NULL_POINTER;
       }
 
 #if JJS_MEM_STATS
@@ -764,7 +771,7 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
     case JJS_DEBUGGER_UPDATE_BREAKPOINT:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_update_breakpoint_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_update_breakpoint_t);
 
       JJS_DEBUGGER_RECEIVE_BUFFER_AS (jjs_debugger_receive_update_breakpoint_t, update_breakpoint_p);
 
@@ -784,94 +791,94 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
     case JJS_DEBUGGER_MEMSTATS:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
-      jjs_debugger_send_memstats ();
+      jjs_debugger_send_memstats (context_p);
       return true;
     }
 
     case JJS_DEBUGGER_STOP:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
       JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
-      JJS_CONTEXT (debugger_stop_context) = NULL;
+      context_p->debugger_stop_context = NULL;
       *resume_exec_p = false;
       return true;
     }
 
     case JJS_DEBUGGER_CONTINUE:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
       JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_VM_STOP);
-      JJS_CONTEXT (debugger_stop_context) = NULL;
+      context_p->debugger_stop_context = NULL;
       *resume_exec_p = true;
       return true;
     }
 
     case JJS_DEBUGGER_STEP:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
       JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
-      JJS_CONTEXT (debugger_stop_context) = NULL;
+      context_p->debugger_stop_context = NULL;
       *resume_exec_p = true;
       return true;
     }
 
     case JJS_DEBUGGER_NEXT:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
       JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
-      JJS_CONTEXT (debugger_stop_context) = JJS_CONTEXT (vm_top_context_p);
+      context_p->debugger_stop_context = context_p->vm_top_context_p;
       *resume_exec_p = true;
       return true;
     }
 
     case JJS_DEBUGGER_FINISH:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
       JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
 
       /* This will point to the current context's parent (where the function was called)
        * and in case of NULL the result will the same as in case of STEP. */
-      JJS_CONTEXT (debugger_stop_context) = JJS_CONTEXT (vm_top_context_p->prev_context_p);
+      context_p->debugger_stop_context = JJS_CONTEXT (vm_top_context_p->prev_context_p);
       *resume_exec_p = true;
       return true;
     }
 
     case JJS_DEBUGGER_GET_BACKTRACE:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_get_backtrace_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_get_backtrace_t);
 
-      jjs_debugger_send_backtrace (recv_buffer_p);
+      jjs_debugger_send_backtrace (context_p, recv_buffer_p);
       return true;
     }
 
     case JJS_DEBUGGER_GET_SCOPE_CHAIN:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
-      jjs_debugger_send_scope_chain ();
+      jjs_debugger_send_scope_chain (context_p);
 
       return true;
     }
 
     case JJS_DEBUGGER_GET_SCOPE_VARIABLES:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_get_scope_variables_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_get_scope_variables_t);
 
-      jjs_debugger_send_scope_variables (recv_buffer_p);
+      jjs_debugger_send_scope_variables (context_p, recv_buffer_p);
 
       return true;
     }
 
     case JJS_DEBUGGER_EXCEPTION_CONFIG:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_exception_config_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_exception_config_t);
       JJS_DEBUGGER_RECEIVE_BUFFER_AS (jjs_debugger_receive_exception_config_t, exception_config_p);
 
       if (exception_config_p->enable == 0)
@@ -890,7 +897,7 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
     case JJS_DEBUGGER_PARSER_CONFIG:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_parser_config_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_parser_config_t);
       JJS_DEBUGGER_RECEIVE_BUFFER_AS (jjs_debugger_receive_parser_config_t, parser_config_p);
 
       if (parser_config_p->enable_wait != 0)
@@ -909,12 +916,12 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
     case JJS_DEBUGGER_PARSER_RESUME:
     {
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
-      if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_PARSER_WAIT_MODE))
+      if (!(context_p->debugger_flags & JJS_DEBUGGER_PARSER_WAIT_MODE))
       {
         JJS_ERROR_MSG ("Not in parser wait mode\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
@@ -927,7 +934,7 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
       if (message_size < sizeof (jjs_debugger_receive_eval_first_t) + 5)
       {
         JJS_ERROR_MSG ("Invalid message size\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
@@ -936,21 +943,21 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
       uint32_t eval_size;
       memcpy (&eval_size, eval_first_p->eval_size, sizeof (uint32_t));
 
-      if (eval_size <= JJS_CONTEXT (debugger_max_receive_size) - sizeof (jjs_debugger_receive_eval_first_t))
+      if (eval_size <= context_p->debugger_max_receive_size - sizeof (jjs_debugger_receive_eval_first_t))
       {
         if (eval_size != message_size - sizeof (jjs_debugger_receive_eval_first_t))
         {
           JJS_ERROR_MSG ("Invalid message size\n");
-          jjs_debugger_transport_close ();
+          jjs_debugger_transport_close (context_p);
           return false;
         }
 
-        if (jjs_debugger_send_eval ((lit_utf8_byte_t *) (eval_first_p + 1), eval_size))
+        if (jjs_debugger_send_eval (context_p, (lit_utf8_byte_t *) (eval_first_p + 1), eval_size))
         {
           *resume_exec_p = true;
         }
 
-        return (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED) != 0;
+        return (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) != 0;
       }
 
       jjs_debugger_uint8_data_t *eval_uint8_data_p;
@@ -977,14 +984,14 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
       if (message_size <= sizeof (jjs_debugger_receive_client_source_first_t))
       {
         JJS_ERROR_MSG ("Invalid message size\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
-      if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
+      if (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
       {
         JJS_ERROR_MSG ("Not in client source mode\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
@@ -995,11 +1002,11 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
       uint32_t header_size = sizeof (jjs_debugger_receive_client_source_first_t);
 
-      if (client_source_size <= JJS_CONTEXT (debugger_max_receive_size) - header_size
+      if (client_source_size <= context_p->debugger_max_receive_size - header_size
           && client_source_size != message_size - header_size)
       {
         JJS_ERROR_MSG ("Invalid message size\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
@@ -1033,14 +1040,14 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
     case JJS_DEBUGGER_NO_MORE_SOURCES:
     {
-      if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
+      if (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
       {
         JJS_ERROR_MSG ("Not in client source mode\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
       JJS_DEBUGGER_UPDATE_FLAGS (JJS_DEBUGGER_CLIENT_NO_SOURCE, JJS_DEBUGGER_CLIENT_SOURCE_MODE);
 
@@ -1051,14 +1058,14 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
 
     case JJS_DEBUGGER_CONTEXT_RESET:
     {
-      if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
+      if (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
       {
         JJS_ERROR_MSG ("Not in client source mode\n");
-        jjs_debugger_transport_close ();
+        jjs_debugger_transport_close (context_p);
         return false;
       }
 
-      JJS_DEBUGGER_CHECK_PACKET_SIZE (jjs_debugger_receive_type_t);
+      JJS_DEBUGGER_CHECK_PACKET_SIZE (context_p, jjs_debugger_receive_type_t);
 
       JJS_DEBUGGER_UPDATE_FLAGS (JJS_DEBUGGER_CONTEXT_RESET_MODE, JJS_DEBUGGER_CLIENT_SOURCE_MODE);
 
@@ -1070,7 +1077,7 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
     default:
     {
       JJS_ERROR_MSG ("Unexpected message.");
-      jjs_debugger_transport_close ();
+      jjs_debugger_transport_close (context_p);
       return false;
     }
   }
@@ -1087,14 +1094,15 @@ jjs_debugger_process_message (const uint8_t *recv_buffer_p, /**< pointer to the 
  *         false - otherwise
  */
 bool
-jjs_debugger_receive (jjs_debugger_uint8_data_t **message_data_p) /**< [out] data received from client */
+jjs_debugger_receive (jjs_context_t* context_p, /**< JJS context */
+                      jjs_debugger_uint8_data_t **message_data_p) /**< [out] data received from client */
 {
-  JJS_ASSERT (jjs_debugger_transport_is_connected ());
+  JJS_ASSERT (jjs_debugger_transport_is_connected (context_p));
 
-  JJS_ASSERT (message_data_p != NULL ? !!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_RECEIVE_DATA_MODE)
-                                       : !(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_RECEIVE_DATA_MODE));
+  JJS_ASSERT (message_data_p != NULL ? !!(context_p->debugger_flags & JJS_DEBUGGER_RECEIVE_DATA_MODE)
+                                       : !(context_p->debugger_flags & JJS_DEBUGGER_RECEIVE_DATA_MODE));
 
-  JJS_CONTEXT (debugger_message_delay) = JJS_DEBUGGER_MESSAGE_FREQUENCY;
+  context_p->debugger_message_delay = JJS_DEBUGGER_MESSAGE_FREQUENCY;
 
   bool resume_exec = false;
   uint8_t expected_message_type = 0;
@@ -1102,19 +1110,19 @@ jjs_debugger_receive (jjs_debugger_uint8_data_t **message_data_p) /**< [out] dat
   while (true)
   {
     jjs_debugger_transport_receive_context_t context;
-    if (!jjs_debugger_transport_receive (&context))
+    if (!jjs_debugger_transport_receive (context_p, &context))
     {
-      JJS_ASSERT (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED));
+      JJS_ASSERT (!(context_p->debugger_flags & JJS_DEBUGGER_CONNECTED));
       return true;
     }
 
     if (context.message_p == NULL)
     {
-      JJS_CONTEXT (debugger_received_length) = (uint16_t) context.received_length;
+      context_p->debugger_received_length = (uint16_t) context.received_length;
 
       if (expected_message_type != 0)
       {
-        jjs_debugger_transport_sleep ();
+        jjs_debugger_transport_sleep (context_p);
         continue;
       }
 
@@ -1126,17 +1134,18 @@ jjs_debugger_receive (jjs_debugger_uint8_data_t **message_data_p) /**< [out] dat
 
     /* The jjs_debugger_process_message function is inlined
      * so passing these arguments is essentially free. */
-    if (!jjs_debugger_process_message (context.message_p,
-                                         (uint32_t) context.message_length,
-                                         &resume_exec,
-                                         &expected_message_type,
-                                         message_data_p))
+    if (!jjs_debugger_process_message (context_p, 
+                                       context.message_p,
+                                       (uint32_t) context.message_length,
+                                       &resume_exec,
+                                       &expected_message_type,
+                                       message_data_p))
     {
-      JJS_ASSERT (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED));
+      JJS_ASSERT (!(context_p->debugger_flags & JJS_DEBUGGER_CONNECTED));
       return true;
     }
 
-    jjs_debugger_transport_receive_completed (&context);
+    jjs_debugger_transport_receive_completed (context_p, &context);
   }
 } /* jjs_debugger_receive */
 
@@ -1146,15 +1155,16 @@ jjs_debugger_receive (jjs_debugger_uint8_data_t **message_data_p) /**< [out] dat
  * Tell the client that a breakpoint has been hit and wait for further debugger commands.
  */
 void
-jjs_debugger_breakpoint_hit (uint8_t message_type) /**< message type */
+jjs_debugger_breakpoint_hit (jjs_context_t* context_p, /**< JJS context */
+                             uint8_t message_type) /**< message type */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
   JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_breakpoint_hit_t, breakpoint_hit_p);
 
   breakpoint_hit_p->type = message_type;
 
-  vm_frame_ctx_t *frame_ctx_p = JJS_CONTEXT (vm_top_context_p);
+  vm_frame_ctx_t *frame_ctx_p = context_p->vm_top_context_p;
 
   jmem_cpointer_t byte_code_header_cp;
   JMEM_CP_SET_NON_NULL_POINTER (byte_code_header_cp, frame_ctx_p->shared_p->bytecode_header_p);
@@ -1163,7 +1173,7 @@ jjs_debugger_breakpoint_hit (uint8_t message_type) /**< message type */
   uint32_t offset = (uint32_t) (frame_ctx_p->byte_code_p - (uint8_t *) frame_ctx_p->shared_p->bytecode_header_p);
   memcpy (breakpoint_hit_p->offset, &offset, sizeof (uint32_t));
 
-  if (!jjs_debugger_send (sizeof (jjs_debugger_send_breakpoint_hit_t)))
+  if (!jjs_debugger_send (context_p, sizeof (jjs_debugger_send_breakpoint_hit_t)))
   {
     return;
   }
@@ -1172,9 +1182,9 @@ jjs_debugger_breakpoint_hit (uint8_t message_type) /**< message type */
 
   jjs_debugger_uint8_data_t *uint8_data = NULL;
 
-  while (!jjs_debugger_receive (&uint8_data))
+  while (!jjs_debugger_receive (context_p, &uint8_data))
   {
-    jjs_debugger_transport_sleep ();
+    jjs_debugger_transport_sleep (context_p);
   }
 
   if (uint8_data != NULL)
@@ -1184,22 +1194,23 @@ jjs_debugger_breakpoint_hit (uint8_t message_type) /**< message type */
 
   JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_BREAKPOINT_MODE);
 
-  JJS_CONTEXT (debugger_message_delay) = JJS_DEBUGGER_MESSAGE_FREQUENCY;
+  context_p->debugger_message_delay = JJS_DEBUGGER_MESSAGE_FREQUENCY;
 } /* jjs_debugger_breakpoint_hit */
 
 /**
  * Send the type signal to the client.
  */
 void
-jjs_debugger_send_type (jjs_debugger_header_type_t type) /**< message type */
+jjs_debugger_send_type (jjs_context_t* context_p, /**< JJS context */
+                        jjs_debugger_header_type_t type) /**< message type */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
   JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_type_t, message_type_p);
 
   message_type_p->type = (uint8_t) type;
 
-  jjs_debugger_send (sizeof (jjs_debugger_send_type_t));
+  jjs_debugger_send (context_p, sizeof (jjs_debugger_send_type_t));
 } /* jjs_debugger_send_type */
 
 /**
@@ -1209,7 +1220,8 @@ jjs_debugger_send_type (jjs_debugger_header_type_t type) /**< message type */
  *         false - otherwise
  */
 bool
-jjs_debugger_send_configuration (uint8_t max_message_size) /**< maximum message size */
+jjs_debugger_send_configuration (jjs_context_t* context_p, /**< JJS context */
+                                 uint8_t max_message_size) /**< maximum message size */
 {
   JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_configuration_t, configuration_p);
 
@@ -1236,16 +1248,17 @@ jjs_debugger_send_configuration (uint8_t max_message_size) /**< maximum message 
   configuration_p->max_message_size = max_message_size;
   configuration_p->cpointer_size = sizeof (jmem_cpointer_t);
 
-  return jjs_debugger_send (sizeof (jjs_debugger_send_configuration_t));
+  return jjs_debugger_send (context_p, sizeof (jjs_debugger_send_configuration_t));
 } /* jjs_debugger_send_configuration */
 
 /**
  * Send raw data to the debugger client.
  */
 void
-jjs_debugger_send_data (jjs_debugger_header_type_t type, /**< message type */
-                          const void *data, /**< raw data */
-                          size_t size) /**< size of data */
+jjs_debugger_send_data (jjs_context_t* context_p, /**< JJS context */
+                        jjs_debugger_header_type_t type, /**< message type */
+                        const void *data, /**< raw data */
+                        size_t size) /**< size of data */
 {
   JJS_ASSERT (size <= JJS_DEBUGGER_SEND_MAX (uint8_t));
 
@@ -1254,7 +1267,7 @@ jjs_debugger_send_data (jjs_debugger_header_type_t type, /**< message type */
   message_type_p->type = (uint8_t) type;
   memcpy (message_type_p + 1, data, size);
 
-  jjs_debugger_send (sizeof (jjs_debugger_send_type_t) + size);
+  jjs_debugger_send (context_p, sizeof (jjs_debugger_send_type_t) + size);
 } /* jjs_debugger_send_data */
 
 /**
@@ -1264,12 +1277,13 @@ jjs_debugger_send_data (jjs_debugger_header_type_t type, /**< message type */
  *         false - otherwise
  */
 bool
-jjs_debugger_send_string (uint8_t message_type, /**< message type */
-                            uint8_t sub_type, /**< subtype of the string */
-                            const uint8_t *string_p, /**< string data */
-                            size_t string_length) /**< length of string */
+jjs_debugger_send_string (jjs_context_t* context_p, /**< JJS context */
+                          uint8_t message_type, /**< message type */
+                          uint8_t sub_type, /**< subtype of the string */
+                          const uint8_t *string_p, /**< string data */
+                          size_t string_length) /**< length of string */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
   const size_t max_byte_count = JJS_DEBUGGER_SEND_MAX (uint8_t);
   const size_t max_message_size = JJS_DEBUGGER_SEND_SIZE (max_byte_count, uint8_t);
@@ -1287,7 +1301,7 @@ jjs_debugger_send_string (uint8_t message_type, /**< message type */
   {
     memcpy (message_string_p->string, string_p, max_byte_count);
 
-    if (!jjs_debugger_send (max_message_size))
+    if (!jjs_debugger_send (context_p, max_message_size))
     {
       return false;
     }
@@ -1308,7 +1322,7 @@ jjs_debugger_send_string (uint8_t message_type, /**< message type */
     memcpy (message_string_p->string, string_p, string_length);
   }
 
-  return jjs_debugger_send (sizeof (jjs_debugger_send_type_t) + string_length);
+  return jjs_debugger_send (context_p, sizeof (jjs_debugger_send_type_t) + string_length);
 } /* jjs_debugger_send_string */
 
 /**
@@ -1318,10 +1332,11 @@ jjs_debugger_send_string (uint8_t message_type, /**< message type */
  *         false - otherwise
  */
 bool
-jjs_debugger_send_function_cp (jjs_debugger_header_type_t type, /**< message type */
-                                 ecma_compiled_code_t *compiled_code_p) /**< byte code pointer */
+jjs_debugger_send_function_cp (jjs_context_t* context_p, /**< JJS context */
+                               jjs_debugger_header_type_t type, /**< message type */
+                               ecma_compiled_code_t *compiled_code_p) /**< byte code pointer */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
   JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_byte_code_cp_t, byte_code_cp_p);
 
@@ -1331,7 +1346,7 @@ jjs_debugger_send_function_cp (jjs_debugger_header_type_t type, /**< message typ
   JMEM_CP_SET_NON_NULL_POINTER (compiled_code_cp, compiled_code_p);
   memcpy (byte_code_cp_p->byte_code_cp, &compiled_code_cp, sizeof (jmem_cpointer_t));
 
-  return jjs_debugger_send (sizeof (jjs_debugger_send_byte_code_cp_t));
+  return jjs_debugger_send (context_p, sizeof (jjs_debugger_send_byte_code_cp_t));
 } /* jjs_debugger_send_function_cp */
 
 /**
@@ -1341,10 +1356,11 @@ jjs_debugger_send_function_cp (jjs_debugger_header_type_t type, /**< message typ
  *         false - otherwise
  */
 bool
-jjs_debugger_send_parse_function (uint32_t line, /**< line */
-                                    uint32_t column) /**< column */
+jjs_debugger_send_parse_function (jjs_context_t* context_p, /**< JJS context */
+                                  uint32_t line, /**< line */
+                                  uint32_t column) /**< column */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
   JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_parse_function_t, message_parse_function_p);
 
@@ -1352,23 +1368,23 @@ jjs_debugger_send_parse_function (uint32_t line, /**< line */
   memcpy (message_parse_function_p->line, &line, sizeof (uint32_t));
   memcpy (message_parse_function_p->column, &column, sizeof (uint32_t));
 
-  return jjs_debugger_send (sizeof (jjs_debugger_send_parse_function_t));
+  return jjs_debugger_send (context_p, sizeof (jjs_debugger_send_parse_function_t));
 } /* jjs_debugger_send_parse_function */
 
 /**
  * Send memory statistics to the debugger client.
  */
 void
-jjs_debugger_send_memstats (void)
+jjs_debugger_send_memstats (jjs_context_t *context_p)
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
   JJS_DEBUGGER_SEND_BUFFER_AS (jjs_debugger_send_memstats_t, memstats_p);
 
   memstats_p->type = JJS_DEBUGGER_MEMSTATS_RECEIVE;
 
 #if JJS_MEM_STATS /* if memory statistics feature is enabled */
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   uint32_t allocated_bytes = (uint32_t) heap_stats->allocated_bytes;
   memcpy (memstats_p->allocated_bytes, &allocated_bytes, sizeof (uint32_t));
@@ -1388,7 +1404,7 @@ jjs_debugger_send_memstats (void)
   memset (memstats_p->property_bytes, 0, sizeof (uint32_t));
 #endif /* JJS_MEM_STATS */
 
-  jjs_debugger_send (sizeof (jjs_debugger_send_memstats_t));
+  jjs_debugger_send (context_p, sizeof (jjs_debugger_send_memstats_t));
 } /* jjs_debugger_send_memstats */
 
 /*
@@ -1397,8 +1413,10 @@ jjs_debugger_send_memstats (void)
  * @return standard error string
  */
 static ecma_string_t *
-jjs_debugger_exception_object_to_string (ecma_value_t exception_obj_value) /**< exception object */
+jjs_debugger_exception_object_to_string (jjs_context_t* context_p, /**< JJS context */
+                                         ecma_value_t exception_obj_value) /**< exception object */
 {
+  JJS_UNUSED (context_p);
   ecma_object_t *object_p = ecma_get_object_from_value (exception_obj_value);
 
   jmem_cpointer_t prototype_cp = object_p->u2.prototype_cp;
@@ -1501,14 +1519,14 @@ jjs_debugger_exception_object_to_string (ecma_value_t exception_obj_value) /**< 
  *         false - otherwise
  */
 bool
-jjs_debugger_send_exception_string (ecma_value_t exception_value)
+jjs_debugger_send_exception_string (jjs_context_t* context_p, ecma_value_t exception_value)
 {
   JJS_ASSERT (jcontext_has_pending_exception ());
   ecma_string_t *string_p = NULL;
 
   if (ecma_is_value_object (exception_value))
   {
-    string_p = jjs_debugger_exception_object_to_string (exception_value);
+    string_p = jjs_debugger_exception_object_to_string (context_p, exception_value);
 
     if (string_p == NULL)
     {
@@ -1528,7 +1546,7 @@ jjs_debugger_send_exception_string (ecma_value_t exception_value)
   ECMA_STRING_TO_UTF8_STRING (string_p, string_data_p, string_size);
 
   bool result =
-    jjs_debugger_send_string (JJS_DEBUGGER_EXCEPTION_STR, JJS_DEBUGGER_NO_SUBTYPE, string_data_p, string_size);
+    jjs_debugger_send_string (context_p, JJS_DEBUGGER_EXCEPTION_STR, JJS_DEBUGGER_NO_SUBTYPE, string_data_p, string_size);
 
   ECMA_FINALIZE_UTF8_STRING (string_data_p, string_size);
 

@@ -491,17 +491,18 @@ parse_update_branches (parser_context_t *context_p, /**< context */
  * Send current breakpoint list.
  */
 static void
-parser_send_breakpoints (parser_context_t *context_p, /**< context */
+parser_send_breakpoints (parser_context_t *parse_context_p, /**< context */
                          jjs_debugger_header_type_t type) /**< message type */
 {
   JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
-  JJS_ASSERT (context_p->breakpoint_info_count > 0);
+  JJS_ASSERT (parse_context_p->breakpoint_info_count > 0);
 
-  jjs_debugger_send_data (type,
-                            context_p->breakpoint_info,
-                            context_p->breakpoint_info_count * sizeof (parser_breakpoint_info_t));
+  jjs_debugger_send_data (&JJS_CONTEXT_STRUCT,
+                          type,
+                          parse_context_p->breakpoint_info,
+                          parse_context_p->breakpoint_info_count * sizeof (parser_breakpoint_info_t));
 
-  context_p->breakpoint_info_count = 0;
+  parse_context_p->breakpoint_info_count = 0;
 } /* parser_send_breakpoints */
 
 /**
@@ -1383,7 +1384,7 @@ parser_post_processing (parser_context_t *context_p) /**< context */
 #if JJS_DEBUGGER
   if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_function_cp (JJS_DEBUGGER_BYTE_CODE_CP, compiled_code_p);
+    jjs_debugger_send_function_cp (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_BYTE_CODE_CP, compiled_code_p);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -2074,10 +2075,11 @@ parser_parse_source (void *source_p, /**< source code */
 #if JJS_DEBUGGER
   if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_string (JJS_DEBUGGER_SOURCE_CODE,
-                                JJS_DEBUGGER_NO_SUBTYPE,
-                                context.source_start_p,
-                                context.source_size);
+    jjs_debugger_send_string (&JJS_CONTEXT_STRUCT,
+                              JJS_DEBUGGER_SOURCE_CODE,
+                              JJS_DEBUGGER_NO_SUBTYPE,
+                              context.source_start_p,
+                              context.source_size);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -2442,7 +2444,7 @@ parser_parse_source (void *source_p, /**< source code */
 #if JJS_DEBUGGER
   if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_type (JJS_DEBUGGER_PARSE_ERROR);
+    jjs_debugger_send_type (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_PARSE_ERROR);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -2678,7 +2680,7 @@ parser_parse_function (parser_context_t *context_p, /**< context */
 #if JJS_DEBUGGER
   if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_parse_function (context_p->token.line, context_p->token.column);
+    jjs_debugger_send_parse_function (&JJS_CONTEXT_STRUCT, context_p->token.line, context_p->token.column);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -2808,7 +2810,7 @@ parser_parse_arrow_function (parser_context_t *context_p, /**< context */
 #if JJS_DEBUGGER
   if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_parse_function (context_p->token.line, context_p->token.column);
+    jjs_debugger_send_parse_function (&JJS_CONTEXT_STRUCT, context_p->token.line, context_p->token.column);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -2917,7 +2919,7 @@ parser_parse_class_fields (parser_context_t *context_p) /**< context */
 #if JJS_DEBUGGER
   if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_parse_function (context_p->token.line, context_p->token.column);
+    jjs_debugger_send_parse_function (&JJS_CONTEXT_STRUCT, context_p->token.line, context_p->token.column);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -3345,18 +3347,18 @@ parser_parse_script (void *source_p, /**< source code */
       == (JJS_DEBUGGER_CONNECTED | JJS_DEBUGGER_PARSER_WAIT))
   {
     JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_PARSER_WAIT_MODE);
-    jjs_debugger_send_type (JJS_DEBUGGER_WAITING_AFTER_PARSE);
+    jjs_debugger_send_type (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_WAITING_AFTER_PARSE);
 
     while (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_PARSER_WAIT_MODE)
     {
-      jjs_debugger_receive (NULL);
+      jjs_debugger_receive (&JJS_CONTEXT_STRUCT, NULL);
 
       if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED))
       {
         break;
       }
 
-      jjs_debugger_transport_sleep ();
+      jjs_debugger_transport_sleep (&JJS_CONTEXT_STRUCT);
     }
   }
 #endif /* JJS_DEBUGGER */

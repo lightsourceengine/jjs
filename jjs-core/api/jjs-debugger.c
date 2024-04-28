@@ -113,7 +113,7 @@ jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context 
   *return_value = jjs_undefined (context_p);
 
 #if JJS_DEBUGGER
-  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
       && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
     JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_CLIENT_SOURCE_MODE);
@@ -121,11 +121,11 @@ jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context 
     jjs_debugger_wait_for_source_status_t ret_type = JJS_DEBUGGER_SOURCE_RECEIVE_FAILED;
 
     /* Notify the client about that the engine is waiting for a source. */
-    jjs_debugger_send_type (JJS_DEBUGGER_WAIT_FOR_SOURCE);
+    jjs_debugger_send_type (context_p, JJS_DEBUGGER_WAIT_FOR_SOURCE);
 
     while (true)
     {
-      if (jjs_debugger_receive (&client_source_data_p))
+      if (jjs_debugger_receive (context_p, &client_source_data_p))
       {
         if (!(context_p->debugger_flags & JJS_DEBUGGER_CONNECTED))
         {
@@ -167,7 +167,7 @@ jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context 
         }
       }
 
-      jjs_debugger_transport_sleep ();
+      jjs_debugger_transport_sleep (context_p);
     }
 
     JJS_ASSERT (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE)
@@ -202,10 +202,11 @@ jjs_debugger_send_output (jjs_context_t* context_p, /**< JJS context */
 #if JJS_DEBUGGER
   if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT,
-                                JJS_DEBUGGER_OUTPUT_PRINT,
-                                (const uint8_t *) buffer,
-                                sizeof (uint8_t) * str_size);
+    jjs_debugger_send_string (context_p,
+                              JJS_DEBUGGER_OUTPUT_RESULT,
+                              JJS_DEBUGGER_OUTPUT_PRINT,
+                              (const uint8_t *) buffer,
+                              sizeof (uint8_t) * str_size);
   }
 #else /* !JJS_DEBUGGER */
   JJS_UNUSED_ALL (context_p, buffer, str_size);

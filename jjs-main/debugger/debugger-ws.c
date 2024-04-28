@@ -144,7 +144,8 @@ jjsx_to_base64 (const uint8_t *source_p, /**< source data */
  *         false - otherwise
  */
 static bool
-jjsx_process_handshake (uint8_t *request_buffer_p) /**< temporary buffer */
+jjsx_process_handshake (jjs_context_t* context_p, /**< JJS context */
+                        uint8_t *request_buffer_p) /**< temporary buffer */
 {
   size_t request_buffer_size = 1024;
   uint8_t *request_end_p = request_buffer_p;
@@ -153,15 +154,15 @@ jjsx_process_handshake (uint8_t *request_buffer_p) /**< temporary buffer */
   while (true)
   {
     jjs_debugger_transport_receive_context_t context;
-    if (!jjs_debugger_transport_receive (&context))
+    if (!jjs_debugger_transport_receive (context_p, &context))
     {
-      JJSX_ASSERT (!jjs_debugger_transport_is_connected ());
+      JJSX_ASSERT (!jjs_debugger_transport_is_connected (context_p));
       return false;
     }
 
     if (context.message_p == NULL)
     {
-      jjs_debugger_transport_sleep ();
+      jjs_debugger_transport_sleep (context_p);
       continue;
     }
 
@@ -169,14 +170,14 @@ jjsx_process_handshake (uint8_t *request_buffer_p) /**< temporary buffer */
 
     if (length < context.message_length)
     {
-      JJSX_ERROR_MSG ("Handshake buffer too small.\n");
+      JJSX_ERROR_MSG (context_p, "Handshake buffer too small.\n");
       return false;
     }
 
     /* Both stream and datagram packets are supported. */
     memcpy (request_end_p, context.message_p, context.message_length);
 
-    jjs_debugger_transport_receive_completed (&context);
+    jjs_debugger_transport_receive_completed (context_p, &context);
 
     request_end_p += (size_t) context.message_length;
     *request_end_p = 0;
@@ -193,7 +194,7 @@ jjsx_process_handshake (uint8_t *request_buffer_p) /**< temporary buffer */
 
   if ((size_t) (request_end_p - request_buffer_p) < text_len || memcmp (request_buffer_p, get_text, text_len) != 0)
   {
-    JJSX_ERROR_MSG ("Invalid handshake format.\n");
+    JJSX_ERROR_MSG (context_p, "Invalid handshake format.\n");
     return false;
   }
 
@@ -206,7 +207,7 @@ jjsx_process_handshake (uint8_t *request_buffer_p) /**< temporary buffer */
   {
     if ((size_t) (request_end_p - websocket_key_p) < text_len)
     {
-      JJSX_ERROR_MSG ("Sec-WebSocket-Key not found.\n");
+      JJSX_ERROR_MSG (context_p, "Sec-WebSocket-Key not found.\n");
       return false;
     }
 
@@ -256,25 +257,26 @@ jjsx_process_handshake (uint8_t *request_buffer_p) /**< temporary buffer */
   const uint8_t response_prefix[] =
     "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ";
 
-  if (!jjs_debugger_transport_send (response_prefix, sizeof (response_prefix) - 1)
-      || !jjs_debugger_transport_send (request_buffer_p + sha1_length + 1, 27))
+  if (!jjs_debugger_transport_send (context_p, response_prefix, sizeof (response_prefix) - 1)
+      || !jjs_debugger_transport_send (context_p, request_buffer_p + sha1_length + 1, 27))
   {
     return false;
   }
 
   const uint8_t response_suffix[] = "=\r\n\r\n";
-  return jjs_debugger_transport_send (response_suffix, sizeof (response_suffix) - 1);
+  return jjs_debugger_transport_send (context_p, response_suffix, sizeof (response_suffix) - 1);
 } /* jjsx_process_handshake */
 
 /**
  * Close a tcp connection.
  */
 static void
-jjsx_debugger_ws_close (jjs_debugger_transport_header_t *header_p) /**< tcp implementation */
+jjsx_debugger_ws_close (jjs_context_t* context_p, /**< JJS context */
+                        jjs_debugger_transport_header_t *header_p) /**< tcp implementation */
 {
-  JJSX_ASSERT (!jjs_debugger_transport_is_connected ());
+  JJSX_ASSERT (!jjs_debugger_transport_is_connected (context_p));
 
-  jjs_heap_free ((void *) header_p, sizeof (jjs_debugger_transport_header_t));
+  jjs_heap_free (context_p, (void *) header_p, sizeof (jjs_debugger_transport_header_t));
 } /* jjsx_debugger_ws_close */
 
 /**
@@ -284,26 +286,28 @@ jjsx_debugger_ws_close (jjs_debugger_transport_header_t *header_p) /**< tcp impl
  *         false - otherwise
  */
 static bool
-jjsx_debugger_ws_send (jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
-                         uint8_t *message_p, /**< message to be sent */
-                         size_t message_length) /**< message length in bytes */
+jjsx_debugger_ws_send (jjs_context_t* context_p, /**< JJS context */
+                       jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
+                       uint8_t *message_p, /**< message to be sent */
+                       size_t message_length) /**< message length in bytes */
 {
   JJSX_ASSERT (message_length <= JJSX_DEBUGGER_WEBSOCKET_ONE_BYTE_LEN_MAX);
 
   message_p[-2] = JJSX_DEBUGGER_WEBSOCKET_FIN_BIT | JJSX_DEBUGGER_WEBSOCKET_BINARY_FRAME;
   message_p[-1] = (uint8_t) message_length;
 
-  return header_p->next_p->send (header_p->next_p, message_p - 2, message_length + 2);
+  return header_p->next_p->send (context_p, header_p->next_p, message_p - 2, message_length + 2);
 } /* jjsx_debugger_ws_send */
 
 /**
  * Receive data from a websocket connection.
  */
 static bool
-jjsx_debugger_ws_receive (jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
-                            jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
+jjsx_debugger_ws_receive (jjs_context_t* context_p, /**< JJS context */
+                          jjs_debugger_transport_header_t *header_p, /**< tcp implementation */
+                          jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
 {
-  if (!header_p->next_p->receive (header_p->next_p, receive_context_p))
+  if (!header_p->next_p->receive (context_p, header_p->next_p, receive_context_p))
   {
     return false;
   }
@@ -336,15 +340,15 @@ jjsx_debugger_ws_receive (jjs_debugger_transport_header_t *header_p, /**< tcp im
       || (message_p[1] & JJSX_DEBUGGER_WEBSOCKET_LENGTH_MASK) > JJSX_DEBUGGER_WEBSOCKET_ONE_BYTE_LEN_MAX
       || !(message_p[1] & JJSX_DEBUGGER_WEBSOCKET_MASK_BIT))
   {
-    JJSX_ERROR_MSG ("Unsupported Websocket message.\n");
-    jjs_debugger_transport_close ();
+    JJSX_ERROR_MSG (context_p, "Unsupported Websocket message.\n");
+    jjs_debugger_transport_close (context_p);
     return false;
   }
 
   if ((message_p[0] & JJSX_DEBUGGER_WEBSOCKET_OPCODE_MASK) != JJSX_DEBUGGER_WEBSOCKET_BINARY_FRAME)
   {
-    JJSX_ERROR_MSG ("Unsupported Websocket opcode.\n");
-    jjs_debugger_transport_close ();
+    JJSX_ERROR_MSG (context_p, "Unsupported Websocket opcode.\n");
+    jjs_debugger_transport_close (context_p);
     return false;
   }
 
@@ -403,30 +407,30 @@ jjsx_debugger_ws_receive (jjs_debugger_transport_header_t *header_p, /**< tcp im
  *         false - otherwise
  */
 bool
-jjsx_debugger_ws_create (void)
+jjsx_debugger_ws_create (jjs_context_t *context_p) /**< JJS context */
 {
   bool is_handshake_ok = false;
 
   const jjs_size_t buffer_size = 1024;
-  uint8_t *request_buffer_p = (uint8_t *) jjs_heap_alloc (buffer_size);
+  uint8_t *request_buffer_p = (uint8_t *) jjs_heap_alloc (context_p, buffer_size);
 
   if (!request_buffer_p)
   {
     return false;
   }
 
-  is_handshake_ok = jjsx_process_handshake (request_buffer_p);
+  is_handshake_ok = jjsx_process_handshake (context_p, request_buffer_p);
 
-  jjs_heap_free ((void *) request_buffer_p, buffer_size);
+  jjs_heap_free (context_p, (void *) request_buffer_p, buffer_size);
 
-  if (!is_handshake_ok && jjs_debugger_transport_is_connected ())
+  if (!is_handshake_ok && jjs_debugger_transport_is_connected (context_p))
   {
     return false;
   }
 
   const jjs_size_t interface_size = sizeof (jjs_debugger_transport_header_t);
   jjs_debugger_transport_header_t *header_p;
-  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (interface_size);
+  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (context_p, interface_size);
 
   if (!header_p)
   {
@@ -437,11 +441,12 @@ jjsx_debugger_ws_create (void)
   header_p->send = jjsx_debugger_ws_send;
   header_p->receive = jjsx_debugger_ws_receive;
 
-  jjs_debugger_transport_add (header_p,
-                                JJSX_DEBUGGER_WEBSOCKET_HEADER_SIZE,
-                                JJSX_DEBUGGER_WEBSOCKET_ONE_BYTE_LEN_MAX,
-                                JJSX_DEBUGGER_WEBSOCKET_HEADER_SIZE + JJSX_DEBUGGER_WEBSOCKET_MASK_SIZE,
-                                JJSX_DEBUGGER_WEBSOCKET_ONE_BYTE_LEN_MAX);
+  jjs_debugger_transport_add (context_p,
+                              header_p,
+                              JJSX_DEBUGGER_WEBSOCKET_HEADER_SIZE,
+                              JJSX_DEBUGGER_WEBSOCKET_ONE_BYTE_LEN_MAX,
+                              JJSX_DEBUGGER_WEBSOCKET_HEADER_SIZE + JJSX_DEBUGGER_WEBSOCKET_MASK_SIZE,
+                              JJSX_DEBUGGER_WEBSOCKET_ONE_BYTE_LEN_MAX);
 
   return true;
 } /* jjsx_debugger_ws_create */
@@ -454,8 +459,9 @@ jjsx_debugger_ws_create (void)
  * @return false
  */
 bool
-jjsx_debugger_ws_create (void)
+jjsx_debugger_ws_create (jjs_context_t* context_p) /**< JJS context */
 {
+  JJSX_UNUSED (context_p);
   return false;
 } /* jjsx_debugger_ws_create */
 

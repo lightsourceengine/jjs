@@ -1626,10 +1626,11 @@ parser_parse_function_expression (parser_context_t *context_p, /**< context */
 #if JJS_DEBUGGER
       if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
       {
-        jjs_debugger_send_string (JJS_DEBUGGER_FUNCTION_NAME,
-                                    JJS_DEBUGGER_NO_SUBTYPE,
-                                    context_p->lit_object.literal_p->u.char_p,
-                                    context_p->lit_object.literal_p->prop.length);
+        jjs_debugger_send_string (&JJS_CONTEXT_STRUCT,
+                                  JJS_DEBUGGER_FUNCTION_NAME,
+                                  JJS_DEBUGGER_NO_SUBTYPE,
+                                  context_p->lit_object.literal_p->u.char_p,
+                                  context_p->lit_object.literal_p->prop.length);
 
         /* Reset token position for the function. */
         context_p->token.line = debugger_line;

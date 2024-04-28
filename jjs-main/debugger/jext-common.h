@@ -90,9 +90,9 @@ void JJS_ATTR_NORETURN jjs_unreachable (const char *file, const char *function, 
 /*
  * Logging
  */
-#define JJSX_ERROR_MSG(...)   jjs_log (JJS_LOG_LEVEL_ERROR, __VA_ARGS__)
-#define JJSX_WARNING_MSG(...) jjs_log (JJS_LOG_LEVEL_WARNING, __VA_ARGS__)
-#define JJSX_DEBUG_MSG(...)   jjs_log (JJS_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#define JJSX_TRACE_MSG(...)   jjs_log (JJS_LOG_LEVEL_TRACE, __VA_ARGS__)
+#define JJSX_ERROR_MSG(CTX, ...)   jjs_log ((CTX), JJS_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define JJSX_WARNING_MSG(CTX, ...) jjs_log ((CTX), JJS_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define JJSX_DEBUG_MSG(CTX, ...)   jjs_log ((CTX), JJS_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define JJSX_TRACE_MSG(CTX, ...)   jjs_log ((CTX), JJS_LOG_LEVEL_TRACE, __VA_ARGS__)
 
 #endif /* !JEXT_COMMON_H */

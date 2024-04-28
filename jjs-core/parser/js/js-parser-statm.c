@@ -677,10 +677,11 @@ parser_parse_function_statement (parser_context_t *context_p) /**< context */
   if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
   {
     lexer_literal_t *name_p = context_p->lit_object.literal_p;
-    jjs_debugger_send_string (JJS_DEBUGGER_FUNCTION_NAME,
-                                JJS_DEBUGGER_NO_SUBTYPE,
-                                name_p->u.char_p,
-                                name_p->prop.length);
+    jjs_debugger_send_string (&JJS_CONTEXT_STRUCT,
+                              JJS_DEBUGGER_FUNCTION_NAME,
+                              JJS_DEBUGGER_NO_SUBTYPE,
+                              name_p->u.char_p,
+                              name_p->prop.length);
 
     /* Reset token position for the function. */
     context_p->token.line = debugger_line;

@@ -54,11 +54,11 @@ typedef struct
  * Correctly close a file descriptor.
  */
 static inline void
-jjsx_debugger_serial_close_fd (int fd) /**< file descriptor to close */
+jjsx_debugger_serial_close_fd (jjs_context_t *context_p, int fd) /**< file descriptor to close */
 {
   if (close (fd) != 0)
   {
-    JJSX_ERROR_MSG ("Error while closing the file descriptor: %d\n", errno);
+    JJSX_ERROR_MSG (context_p, "Error while closing the file descriptor: %d\n", errno);
   }
 } /* jjsx_debugger_serial_close_fd */
 
@@ -69,13 +69,13 @@ jjsx_debugger_serial_close_fd (int fd) /**< file descriptor to close */
  *         false if there was an error
  **/
 static bool
-jjsx_debugger_serial_set_blocking (int fd, bool blocking)
+jjsx_debugger_serial_set_blocking (jjs_context_t *context_p, int fd, bool blocking)
 {
   /* Save the current flags */
   int flags = fcntl (fd, F_GETFL, 0);
   if (flags == -1)
   {
-    JJSX_ERROR_MSG ("Error %d during get flags from file descriptor\n", errno);
+    JJSX_ERROR_MSG (context_p, "Error %d during get flags from file descriptor\n", errno);
     return false;
   }
 
@@ -90,7 +90,7 @@ jjsx_debugger_serial_set_blocking (int fd, bool blocking)
 
   if (fcntl (fd, F_SETFL, flags) == -1)
   {
-    JJSX_ERROR_MSG ("Error %d during set flags from file descriptor\n", errno);
+    JJSX_ERROR_MSG (context_p, "Error %d during set flags from file descriptor\n", errno);
     return false;
   }
 
@@ -104,7 +104,9 @@ jjsx_debugger_serial_set_blocking (int fd, bool blocking)
  *         false if there was an error
  */
 static inline bool
-jjsx_debugger_serial_configure_attributes (int fd, jjsx_debugger_transport_serial_config_t serial_config)
+jjsx_debugger_serial_configure_attributes (jjs_context_t *context_p,
+                                           int fd,
+                                           jjsx_debugger_transport_serial_config_t serial_config)
 {
   struct termios options;
   memset (&options, 0, sizeof (options));
@@ -112,7 +114,7 @@ jjsx_debugger_serial_configure_attributes (int fd, jjsx_debugger_transport_seria
   /* Get the parameters associated with the file descriptor */
   if (tcgetattr (fd, &options) != 0)
   {
-    JJSX_ERROR_MSG ("Error %d from tggetattr\n", errno);
+    JJSX_ERROR_MSG (context_p, "Error %d from tggetattr\n", errno);
     return false;
   }
 
@@ -148,7 +150,7 @@ jjsx_debugger_serial_configure_attributes (int fd, jjsx_debugger_transport_seria
     }
     default:
     {
-      JJSX_ERROR_MSG ("Unsupported data bits: %d\n", serial_config.data_bits);
+      JJSX_ERROR_MSG (context_p, "Unsupported data bits: %d\n", serial_config.data_bits);
       return false;
     }
   }
@@ -174,7 +176,7 @@ jjsx_debugger_serial_configure_attributes (int fd, jjsx_debugger_transport_seria
     }
     default:
     {
-      JJSX_ERROR_MSG ("Unsupported parity: %c\n", serial_config.parity);
+      JJSX_ERROR_MSG (context_p, "Unsupported parity: %c\n", serial_config.parity);
       return false;
     }
   }
@@ -193,7 +195,7 @@ jjsx_debugger_serial_configure_attributes (int fd, jjsx_debugger_transport_seria
     }
     default:
     {
-      JJSX_ERROR_MSG ("Unsupported stop bits: %d\n", serial_config.stop_bits);
+      JJSX_ERROR_MSG (context_p, "Unsupported stop bits: %d\n", serial_config.stop_bits);
       return false;
     }
   }
@@ -215,15 +217,15 @@ jjsx_debugger_serial_configure_attributes (int fd, jjsx_debugger_transport_seria
   /* Set the parameters associated with the file descriptor */
   if (tcsetattr (fd, TCSANOW, &options) != 0)
   {
-    JJSX_ERROR_MSG ("Error %d from tcsetattr", errno);
+    JJSX_ERROR_MSG (context_p, "Error %d from tcsetattr", errno);
     return false;
   }
 
   /* Flushes both data received but not read, and data written but not transmitted */
   if (tcflush (fd, TCIOFLUSH) != 0)
   {
-    JJSX_ERROR_MSG ("Error %d in tcflush() :%s\n", errno, strerror (errno));
-    jjsx_debugger_serial_close_fd (fd);
+    JJSX_ERROR_MSG (context_p, "Error %d in tcflush() :%s\n", errno, strerror (errno));
+    jjsx_debugger_serial_close_fd (context_p, fd);
     return false;
   }
 
@@ -234,17 +236,18 @@ jjsx_debugger_serial_configure_attributes (int fd, jjsx_debugger_transport_seria
  * Close a serial connection.
  */
 static void
-jjsx_debugger_serial_close (jjs_debugger_transport_header_t *header_p) /**< serial implementation */
+jjsx_debugger_serial_close (jjs_context_t* context_p, /**< JJS context */
+                            jjs_debugger_transport_header_t *header_p) /**< serial implementation */
 {
-  JJSX_ASSERT (!jjs_debugger_transport_is_connected ());
+  JJSX_ASSERT (!jjs_debugger_transport_is_connected (context_p));
 
   jjsx_debugger_transport_serial_t *serial_p = (jjsx_debugger_transport_serial_t *) header_p;
 
-  JJSX_DEBUG_MSG ("Serial connection closed.\n");
+  JJSX_DEBUG_MSG (context_p, "Serial connection closed.\n");
 
-  jjsx_debugger_serial_close_fd (serial_p->fd);
+  jjsx_debugger_serial_close_fd (context_p, serial_p->fd);
 
-  jjs_heap_free ((void *) header_p, sizeof (jjsx_debugger_transport_serial_t));
+  jjs_heap_free (context_p, (void *) header_p, sizeof (jjsx_debugger_transport_serial_t));
 } /* jjsx_debugger_serial_close */
 
 /**
@@ -254,11 +257,12 @@ jjsx_debugger_serial_close (jjs_debugger_transport_header_t *header_p) /**< seri
  *         false - otherwise
  */
 static bool
-jjsx_debugger_serial_send (jjs_debugger_transport_header_t *header_p, /**< serial implementation */
-                             uint8_t *message_p, /**< message to be sent */
-                             size_t message_length) /**< message length in bytes */
+jjsx_debugger_serial_send (jjs_context_t* context_p, /**< JJS context */
+                           jjs_debugger_transport_header_t *header_p, /**< serial implementation */
+                           uint8_t *message_p, /**< message to be sent */
+                           size_t message_length) /**< message length in bytes */
 {
-  JJSX_ASSERT (jjs_debugger_transport_is_connected ());
+  JJSX_ASSERT (jjs_debugger_transport_is_connected (context_p));
 
   jjsx_debugger_transport_serial_t *serial_p = (jjsx_debugger_transport_serial_t *) header_p;
 
@@ -273,8 +277,8 @@ jjsx_debugger_serial_send (jjs_debugger_transport_header_t *header_p, /**< seria
         continue;
       }
 
-      JJSX_ERROR_MSG ("Error: write to file descriptor: %d\n", errno);
-      jjs_debugger_transport_close ();
+      JJSX_ERROR_MSG (context_p, "Error: write to file descriptor: %d\n", errno);
+      jjs_debugger_transport_close (context_p);
       return false;
     }
 
@@ -289,8 +293,9 @@ jjsx_debugger_serial_send (jjs_debugger_transport_header_t *header_p, /**< seria
  * Receive data from a serial connection.
  */
 static bool
-jjsx_debugger_serial_receive (jjs_debugger_transport_header_t *header_p, /**< serial implementation */
-                                jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
+jjsx_debugger_serial_receive (jjs_context_t* context_p, /**< JJS context */
+                              jjs_debugger_transport_header_t *header_p, /**< serial implementation */
+                              jjs_debugger_transport_receive_context_t *receive_context_p) /**< receive context */
 {
   jjsx_debugger_transport_serial_t *serial_p = (jjsx_debugger_transport_serial_t *) header_p;
 
@@ -303,7 +308,7 @@ jjsx_debugger_serial_receive (jjs_debugger_transport_header_t *header_p, /**< se
   {
     if (errno != EWOULDBLOCK || length == 0)
     {
-      jjs_debugger_transport_close ();
+      jjs_debugger_transport_close (context_p);
       return false;
     }
     length = 0;
@@ -327,7 +332,8 @@ jjsx_debugger_serial_receive (jjs_debugger_transport_header_t *header_p, /**< se
  *         false otherwise
  */
 bool
-jjsx_debugger_serial_create (const char *config) /**< specify the configuration */
+jjsx_debugger_serial_create (jjs_context_t* context_p, /**< JJS context */
+                             const char *config) /**< specify the configuration */
 {
   /* Parse the configuration string */
   char tmp_config[CONFIG_SIZE];
@@ -345,36 +351,36 @@ jjsx_debugger_serial_create (const char *config) /**< specify the configuration 
 
   if (fd < 0)
   {
-    JJSX_ERROR_MSG ("Error %d opening %s: %s", errno, serial_config.device_id, strerror (errno));
+    JJSX_ERROR_MSG (context_p, "Error %d opening %s: %s", errno, serial_config.device_id, strerror (errno));
     return false;
   }
 
-  if (!jjsx_debugger_serial_configure_attributes (fd, serial_config))
+  if (!jjsx_debugger_serial_configure_attributes (context_p, fd, serial_config))
   {
-    jjsx_debugger_serial_close_fd (fd);
+    jjsx_debugger_serial_close_fd (context_p, fd);
     return false;
   }
 
-  JJSX_DEBUG_MSG ("Waiting for client connection\n");
+  JJSX_DEBUG_MSG (context_p, "Waiting for client connection\n");
 
   /* Client will sent a 'c' char to initiate the connection. */
   uint8_t conn_char;
   ssize_t t = read (fd, &conn_char, 1);
-  if (t != 1 || conn_char != 'c' || !jjsx_debugger_serial_set_blocking (fd, false))
+  if (t != 1 || conn_char != 'c' || !jjsx_debugger_serial_set_blocking (context_p, fd, false))
   {
     return false;
   }
 
-  JJSX_DEBUG_MSG ("Client connected\n");
+  JJSX_DEBUG_MSG (context_p, "Client connected\n");
 
   jjs_size_t size = sizeof (jjsx_debugger_transport_serial_t);
 
   jjs_debugger_transport_header_t *header_p;
-  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (size);
+  header_p = (jjs_debugger_transport_header_t *) jjs_heap_alloc (context_p, size);
 
   if (!header_p)
   {
-    jjsx_debugger_serial_close_fd (fd);
+    jjsx_debugger_serial_close_fd (context_p, fd);
     return false;
   }
 
@@ -384,11 +390,12 @@ jjsx_debugger_serial_create (const char *config) /**< specify the configuration 
 
   ((jjsx_debugger_transport_serial_t *) header_p)->fd = fd;
 
-  jjs_debugger_transport_add (header_p,
-                                0,
-                                JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE,
-                                0,
-                                JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE);
+  jjs_debugger_transport_add (context_p,
+                              header_p,
+                              0,
+                              JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE,
+                              0,
+                              JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE);
 
   return true;
 } /* jjsx_debugger_serial_create */
@@ -400,8 +407,9 @@ jjsx_debugger_serial_create (const char *config) /**< specify the configuration 
  * @return false
  */
 bool
-jjsx_debugger_serial_create (const char *config)
+jjsx_debugger_serial_create (jjs_context_t *context_p, const char *config)
 {
+  JJSX_UNUSED (context_p);
   JJSX_UNUSED (config);
   return false;
 } /* jjsx_debugger_serial_create */

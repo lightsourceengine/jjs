@@ -179,9 +179,9 @@ jjs_context_free (jjs_context_t* context_p)
 #if JJS_DEBUGGER
   if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_type (JJS_DEBUGGER_CLOSE_CONNECTION);
+    jjs_debugger_send_type (context_p, JJS_DEBUGGER_CLOSE_CONNECTION);
 
-    jjs_debugger_transport_close ();
+    jjs_debugger_transport_close (context_p);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -365,10 +365,11 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
     ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value (options_p->source_name),
                                 source_name_start_p,
                                 source_name_size);
-    jjs_debugger_send_string (JJS_DEBUGGER_SOURCE_CODE_NAME,
-                                JJS_DEBUGGER_NO_SUBTYPE,
-                                source_name_start_p,
-                                source_name_size);
+    jjs_debugger_send_string (context_p,
+                              JJS_DEBUGGER_SOURCE_CODE_NAME,
+                              JJS_DEBUGGER_NO_SUBTYPE,
+                              source_name_start_p,
+                              source_name_size);
     ECMA_FINALIZE_UTF8_STRING (source_name_start_p, source_name_size);
   }
 #endif /* JJS_DEBUGGER */
@@ -4961,9 +4962,9 @@ jjs_log_string (jjs_context_t* context_p, /**< JJS context */
   }
 
 #if JJS_DEBUGGER
-  if (jjs_debugger_is_connected ())
+  if (jjs_debugger_is_connected (context_p))
   {
-    jjs_debugger_send_string (JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, (const uint8_t *) str_p, size);
+    jjs_debugger_send_string (context_p, JJS_DEBUGGER_OUTPUT_RESULT, JJS_DEBUGGER_OUTPUT_LOG, (const uint8_t *) str_p, size);
   }
 #endif /* JJS_DEBUGGER */
 } /* jjs_log_string */

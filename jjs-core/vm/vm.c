@@ -4642,7 +4642,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
 
           frame_ctx_p->byte_code_p = byte_code_start_p;
 
-          jjs_debugger_breakpoint_hit (JJS_DEBUGGER_BREAKPOINT_HIT);
+          jjs_debugger_breakpoint_hit (context_p, JJS_DEBUGGER_BREAKPOINT_HIT);
           if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
           {
             result = ECMA_VALUE_ERROR;
@@ -4667,7 +4667,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
               && (context_p->debugger_stop_context == NULL
                   || context_p->debugger_stop_context == context_p->vm_top_context_p))
           {
-            jjs_debugger_breakpoint_hit (JJS_DEBUGGER_BREAKPOINT_HIT);
+            jjs_debugger_breakpoint_hit (context_p, JJS_DEBUGGER_BREAKPOINT_HIT);
             if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
             {
               result = ECMA_VALUE_ERROR;
@@ -4684,7 +4684,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
 
           context_p->debugger_message_delay = JJS_DEBUGGER_MESSAGE_FREQUENCY;
 
-          if (jjs_debugger_receive (NULL))
+          if (jjs_debugger_receive (context_p, NULL))
           {
             continue;
           }
@@ -4693,7 +4693,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
               && (context_p->debugger_stop_context == NULL
                   || context_p->debugger_stop_context == context_p->vm_top_context_p))
           {
-            jjs_debugger_breakpoint_hit (JJS_DEBUGGER_BREAKPOINT_HIT);
+            jjs_debugger_breakpoint_hit (context_p, JJS_DEBUGGER_BREAKPOINT_HIT);
             if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
             {
               result = ECMA_VALUE_ERROR;
@@ -4850,9 +4850,9 @@ error:
            therefore an evaluation error, or user-created error throw would overwrite it. */
         ecma_value_t current_error_value = context_p->error_value;
 
-        if (jjs_debugger_send_exception_string (current_error_value))
+        if (jjs_debugger_send_exception_string (context_p, current_error_value))
         {
-          jjs_debugger_breakpoint_hit (JJS_DEBUGGER_EXCEPTION_HIT);
+          jjs_debugger_breakpoint_hit (context_p, JJS_DEBUGGER_EXCEPTION_HIT);
 
           if (context_p->debugger_flags & JJS_DEBUGGER_VM_EXCEPTION_THROWN)
           {
