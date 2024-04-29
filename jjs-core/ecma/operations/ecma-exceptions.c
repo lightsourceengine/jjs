@@ -331,6 +331,7 @@ ecma_value_t
 ecma_raise_standard_error (jjs_error_t error_type, /**< error type */
                            ecma_error_msg_t msg) /**< error message */
 {
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_object_t *error_obj_p;
   const lit_utf8_byte_t *str_p = (lit_utf8_byte_t *) ecma_get_error_msg (msg);
 
@@ -345,7 +346,7 @@ ecma_raise_standard_error (jjs_error_t error_type, /**< error type */
     error_obj_p = ecma_new_standard_error (error_type, NULL);
   }
 
-  jcontext_raise_exception (ecma_make_object_value (error_obj_p));
+  jcontext_raise_exception (context_p, ecma_make_object_value (error_obj_p));
   return ECMA_VALUE_ERROR;
 } /* ecma_raise_standard_error */
 
@@ -363,7 +364,7 @@ ecma_raise_standard_error_with_format (jjs_error_t error_type, /**< error type *
                                        ...) /**< ecma-values */
 {
   JJS_ASSERT (format != NULL);
-
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
 
   const char *start_p = format;
@@ -429,7 +430,7 @@ ecma_raise_standard_error_with_format (jjs_error_t error_type, /**< error type *
 
   ecma_deref_ecma_string (builder_str_p);
 
-  jcontext_raise_exception (ecma_make_object_value (error_obj_p));
+  jcontext_raise_exception (context_p, ecma_make_object_value (error_obj_p));
   return ECMA_VALUE_ERROR;
 } /* ecma_raise_standard_error_with_format */
 
@@ -539,8 +540,10 @@ ecma_value_t
 ecma_raise_aggregate_error (ecma_value_t error_list_val, /**< errors list */
                             ecma_value_t message_val) /**< error message */
 {
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
   ecma_value_t aggre_val = ecma_new_aggregate_error (error_list_val, message_val, ECMA_VALUE_UNDEFINED);
-  jcontext_raise_exception (aggre_val);
+  jcontext_raise_exception (context_p, aggre_val);
 
   return ECMA_VALUE_ERROR;
 } /* ecma_raise_aggregate_error */

@@ -20,6 +20,7 @@
 
 #include "jmem.h"
 #include "jrt.h"
+#include "jcontext.h"
 
 JJS_STATIC_ASSERT (sizeof (ecma_property_value_t) == sizeof (ecma_value_t),
                      size_of_ecma_property_value_t_must_be_equal_to_size_of_ecma_value_t);
@@ -56,7 +57,7 @@ JJS_STATIC_ASSERT (sizeof (ecma_extended_object_t) - sizeof (ecma_object_t) <= s
 extern inline ecma_number_t *JJS_ATTR_ALWAYS_INLINE
 ecma_alloc_number (void)
 {
-  return (ecma_number_t *) jmem_pools_alloc (sizeof (ecma_number_t));
+  return (ecma_number_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_number_t));
 } /* ecma_alloc_number */
 
 /**
@@ -65,7 +66,7 @@ ecma_alloc_number (void)
 extern inline void JJS_ATTR_ALWAYS_INLINE
 ecma_dealloc_number (ecma_number_t *number_p) /**< number to be freed */
 {
-  jmem_pools_free ((uint8_t *) number_p, sizeof (ecma_number_t));
+  jmem_pools_free (&JJS_CONTEXT_STRUCT, (uint8_t *) number_p, sizeof (ecma_number_t));
 } /* ecma_dealloc_number */
 
 /**
@@ -80,7 +81,7 @@ ecma_alloc_object (void)
   jmem_stats_allocate_object_bytes (sizeof (ecma_object_t));
 #endif /* JJS_MEM_STATS */
 
-  return (ecma_object_t *) jmem_pools_alloc (sizeof (ecma_object_t));
+  return (ecma_object_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_object_t));
 } /* ecma_alloc_object */
 
 /**
@@ -93,7 +94,7 @@ ecma_dealloc_object (ecma_object_t *object_p) /**< object to be freed */
   jmem_stats_free_object_bytes (sizeof (ecma_object_t));
 #endif /* JJS_MEM_STATS */
 
-  jmem_pools_free (object_p, sizeof (ecma_object_t));
+  jmem_pools_free (&JJS_CONTEXT_STRUCT, object_p, sizeof (ecma_object_t));
 } /* ecma_dealloc_object */
 
 /**
@@ -137,7 +138,7 @@ ecma_alloc_string (void)
   jmem_stats_allocate_string_bytes (sizeof (ecma_string_t));
 #endif /* JJS_MEM_STATS */
 
-  return (ecma_string_t *) jmem_pools_alloc (sizeof (ecma_string_t));
+  return (ecma_string_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_string_t));
 } /* ecma_alloc_string */
 
 /**
@@ -150,7 +151,7 @@ ecma_dealloc_string (ecma_string_t *string_p) /**< string to be freed */
   jmem_stats_free_string_bytes (sizeof (ecma_string_t));
 #endif /* JJS_MEM_STATS */
 
-  jmem_pools_free (string_p, sizeof (ecma_string_t));
+  jmem_pools_free (&JJS_CONTEXT_STRUCT, string_p, sizeof (ecma_string_t));
 } /* ecma_dealloc_string */
 
 /**

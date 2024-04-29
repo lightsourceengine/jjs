@@ -471,7 +471,7 @@ ecma_op_create_dynamic_function (const ecma_value_t *arguments_list_p, /**< argu
 
   parse_opts |= ECMA_PARSE_HAS_SOURCE_VALUE | ECMA_PARSE_HAS_ARGUMENT_LIST_VALUE;
 
-  ecma_compiled_code_t *bytecode_p = parser_parse_script ((void *) source, parse_opts, NULL);
+  ecma_compiled_code_t *bytecode_p = parser_parse_script (&JJS_CONTEXT_STRUCT, (void *) source, parse_opts, NULL);
 
   ecma_deref_ecma_string (arguments_str_p);
   ecma_deref_ecma_string (function_body_str_p);

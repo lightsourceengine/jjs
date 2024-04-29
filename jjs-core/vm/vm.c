@@ -3166,7 +3166,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         }
         case VM_OC_THROW:
         {
-          jcontext_raise_exception (left_value);
+          jcontext_raise_exception (context_p, left_value);
 
           result = ECMA_VALUE_ERROR;
           left_value = ECMA_VALUE_UNDEFINED;
@@ -3425,7 +3425,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
 
             if (ref_base_lex_env_p == NULL)
             {
-              jcontext_release_exception ();
+              jcontext_release_exception (context_p);
               result = ECMA_VALUE_UNDEFINED;
             }
             else if (ECMA_IS_VALUE_ERROR (result))
@@ -4467,7 +4467,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
 
           if (context_type == VM_CONTEXT_FINALLY_THROW)
           {
-            jcontext_raise_exception (*stack_top_p);
+            jcontext_raise_exception (context_p, *stack_top_p);
 #if JJS_VM_THROW
             context_p->status_flags |= ECMA_STATUS_ERROR_THROWN;
 #endif /* JJS_VM_THROW */
@@ -4484,7 +4484,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
           uint32_t jump_target = *stack_top_p;
 
           vm_stack_found_type type =
-            vm_stack_find_finally (frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_JUMP, jump_target);
+            vm_stack_find_finally (context_p, frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_JUMP, jump_target);
           stack_top_p = frame_ctx_p->stack_top_p;
           switch (type)
           {
@@ -4498,7 +4498,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
             }
             case VM_CONTEXT_FOUND_ERROR:
             {
-              JJS_ASSERT (jcontext_has_pending_exception ());
+              JJS_ASSERT (jcontext_has_pending_exception (context_p));
               result = ECMA_VALUE_ERROR;
               goto error;
             }
@@ -4521,12 +4521,12 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         case VM_OC_JUMP_AND_EXIT_CONTEXT:
         {
           JJS_ASSERT (VM_GET_REGISTERS (frame_ctx_p) + register_end + frame_ctx_p->context_depth == stack_top_p);
-          JJS_ASSERT (!jcontext_has_pending_exception ());
+          JJS_ASSERT (!jcontext_has_pending_exception (context_p));
 
           branch_offset += (int32_t) (byte_code_start_p - frame_ctx_p->byte_code_start_p);
 
           vm_stack_found_type type =
-            vm_stack_find_finally (frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_JUMP, (uint32_t) branch_offset);
+            vm_stack_find_finally (context_p, frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_JUMP, (uint32_t) branch_offset);
           stack_top_p = frame_ctx_p->stack_top_p;
           switch (type)
           {
@@ -4540,7 +4540,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
             }
             case VM_CONTEXT_FOUND_ERROR:
             {
-              JJS_ASSERT (jcontext_has_pending_exception ());
+              JJS_ASSERT (jcontext_has_pending_exception (context_p));
               result = ECMA_VALUE_ERROR;
               goto error;
             }
@@ -4808,7 +4808,7 @@ error:
 
     if (ECMA_IS_VALUE_ERROR (result))
     {
-      JJS_ASSERT (jcontext_has_pending_exception ());
+      JJS_ASSERT (jcontext_has_pending_exception (context_p));
       ecma_value_t *stack_bottom_p = VM_GET_REGISTERS (frame_ctx_p) + register_end + frame_ctx_p->context_depth;
 
       while (stack_top_p > stack_bottom_p)
@@ -4880,7 +4880,7 @@ error:
 
     if (!ECMA_IS_VALUE_ERROR (result))
     {
-      switch (vm_stack_find_finally (frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_RETURN, 0))
+      switch (vm_stack_find_finally (context_p, frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_RETURN, 0))
       {
         case VM_CONTEXT_FOUND_FINALLY:
         {
@@ -4894,7 +4894,7 @@ error:
         }
         case VM_CONTEXT_FOUND_ERROR:
         {
-          JJS_ASSERT (jcontext_has_pending_exception ());
+          JJS_ASSERT (jcontext_has_pending_exception (context_p));
 
           ecma_free_value (result);
           stack_top_p = frame_ctx_p->stack_top_p;
@@ -4916,11 +4916,11 @@ error:
       }
     }
 
-    JJS_ASSERT (jcontext_has_pending_exception ());
+    JJS_ASSERT (jcontext_has_pending_exception (context_p));
 
-    if (!jcontext_has_pending_abort ())
+    if (!jcontext_has_pending_abort (context_p))
     {
-      switch (vm_stack_find_finally (frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_THROW, 0))
+      switch (vm_stack_find_finally (context_p, frame_ctx_p, stack_top_p, VM_CONTEXT_FINALLY_THROW, 0))
       {
         case VM_CONTEXT_FOUND_FINALLY:
         {
@@ -4934,7 +4934,7 @@ error:
           JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_VM_EXCEPTION_THROWN);
 #endif /* JJS_DEBUGGER */
 
-          result = jcontext_take_exception ();
+          result = jcontext_take_exception (context_p);
 
           if (VM_GET_CONTEXT_TYPE (stack_top_p[-1]) == VM_CONTEXT_FINALLY_THROW)
           {

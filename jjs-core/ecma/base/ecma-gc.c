@@ -1582,7 +1582,7 @@ ecma_gc_free_property (ecma_object_t *object_p, /**< object */
     ecma_getter_setter_pointers_t *getter_setter_pair_p;
     getter_setter_pair_p =
       ECMA_GET_NON_NULL_POINTER (ecma_getter_setter_pointers_t, prop_pair_p->values[index].getter_setter_pair_cp);
-    jmem_pools_free (getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
+    jmem_pools_free (&JJS_CONTEXT_STRUCT, getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
 #endif /* JJS_CPOINTER_32_BIT */
     return;
   }
@@ -2128,23 +2128,23 @@ ecma_gc_free_object (ecma_object_t *object_p) /**< object to free */
  * Run garbage collection, freeing objects that are no longer referenced.
  */
 void
-ecma_gc_run (void)
+ecma_gc_run (ecma_context_t *context_p) /**< JJS context */
 {
-  uint32_t gc_mark_limit = JJS_CONTEXT (gc_mark_limit);
+  uint32_t gc_mark_limit = context_p->gc_mark_limit;
 
   if (gc_mark_limit != 0)
   {
-    JJS_ASSERT (JJS_CONTEXT (ecma_gc_mark_recursion_limit) == gc_mark_limit);
+    JJS_ASSERT (context_p->ecma_gc_mark_recursion_limit == gc_mark_limit);
   }
 
-  JJS_CONTEXT (ecma_gc_new_objects) = 0;
+  context_p->ecma_gc_new_objects = 0;
 
   ecma_object_t black_list_head;
   black_list_head.gc_next_cp = JMEM_CP_NULL;
   ecma_object_t *black_end_p = &black_list_head;
 
   ecma_object_t white_gray_list_head;
-  white_gray_list_head.gc_next_cp = JJS_CONTEXT (ecma_gc_objects_cp);
+  white_gray_list_head.gc_next_cp = context_p->ecma_gc_objects_cp;
 
   ecma_object_t *obj_prev_p = &white_gray_list_head;
   jmem_cpointer_t obj_iter_cp = obj_prev_p->gc_next_cp;
@@ -2194,7 +2194,7 @@ ecma_gc_run (void)
   {
     if (gc_mark_limit != 0)
     {
-      JJS_ASSERT (JJS_CONTEXT (ecma_gc_mark_recursion_limit) == gc_mark_limit);
+      JJS_ASSERT (context_p->ecma_gc_mark_recursion_limit == gc_mark_limit);
     }
 
     marked_anything_during_current_iteration = false;
@@ -2218,7 +2218,7 @@ ecma_gc_run (void)
         black_end_p->gc_next_cp = obj_iter_cp;
         black_end_p = obj_iter_p;
 
-        if (JJS_CONTEXT (gc_mark_limit) != 0)
+        if (context_p->gc_mark_limit != 0)
         {
           if (obj_iter_p->type_flags_refs >= ECMA_OBJECT_REF_ONE)
           {
@@ -2242,7 +2242,7 @@ ecma_gc_run (void)
   } while (marked_anything_during_current_iteration);
 
   black_end_p->gc_next_cp = JMEM_CP_NULL;
-  JJS_CONTEXT (ecma_gc_objects_cp) = black_list_head.gc_next_cp;
+  context_p->ecma_gc_objects_cp = black_list_head.gc_next_cp;
 
   /* Sweep objects that are currently unmarked. */
   obj_iter_cp = white_gray_list_head.gc_next_cp;
@@ -2270,11 +2270,12 @@ ecma_gc_run (void)
  * When called with JMEM_PRESSURE_FULL, the engine will be terminated with JJS_FATAL_OUT_OF_MEMORY.
  */
 void
-ecma_free_unused_memory (jmem_pressure_t pressure) /**< current pressure */
+ecma_free_unused_memory (ecma_context_t *context_p, /**< JJS context */
+                         jmem_pressure_t pressure) /**< current pressure */
 {
 #if JJS_DEBUGGER
-  while ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
-         && JJS_CONTEXT (debugger_byte_code_free_tail) != ECMA_NULL_POINTER)
+  while ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
+         && context_p->debugger_byte_code_free_tail != ECMA_NULL_POINTER)
   {
     /* Wait until all byte code is freed or the connection is aborted. */
     jjs_debugger_receive (&JJS_CONTEXT_STRUCT, NULL);
@@ -2284,19 +2285,19 @@ ecma_free_unused_memory (jmem_pressure_t pressure) /**< current pressure */
   if (JJS_LIKELY (pressure == JMEM_PRESSURE_LOW))
   {
 #if JJS_PROPERTY_HASHMAP
-    if (JJS_CONTEXT (ecma_prop_hashmap_alloc_state) > ECMA_PROP_HASHMAP_ALLOC_ON)
+    if (context_p->ecma_prop_hashmap_alloc_state > ECMA_PROP_HASHMAP_ALLOC_ON)
     {
-      --JJS_CONTEXT (ecma_prop_hashmap_alloc_state);
+      --context_p->ecma_prop_hashmap_alloc_state;
     }
-    JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_HIGH_PRESSURE_GC;
+    context_p->status_flags &= (uint32_t) ~ECMA_STATUS_HIGH_PRESSURE_GC;
 #endif /* JJS_PROPERTY_HASHMAP */
     /*
      * If there is enough newly allocated objects since last GC, probably it is worthwhile to start GC now.
      * Otherwise, probability to free sufficient space is considered to be low.
      */
-    if (JJS_CONTEXT (ecma_gc_new_objects) * JJS_CONTEXT (gc_new_objects_fraction) > JJS_CONTEXT (ecma_gc_objects_number))
+    if (context_p->ecma_gc_new_objects * context_p->gc_new_objects_fraction > context_p->ecma_gc_objects_number)
     {
-      ecma_gc_run ();
+      ecma_gc_run (context_p);
     }
 
     return;
@@ -2305,22 +2306,22 @@ ecma_free_unused_memory (jmem_pressure_t pressure) /**< current pressure */
   {
     /* Freeing as much memory as we currently can */
 #if JJS_PROPERTY_HASHMAP
-    if (JJS_CONTEXT (status_flags) & ECMA_STATUS_HIGH_PRESSURE_GC)
+    if (context_p->status_flags & ECMA_STATUS_HIGH_PRESSURE_GC)
     {
-      JJS_CONTEXT (ecma_prop_hashmap_alloc_state) = ECMA_PROP_HASHMAP_ALLOC_MAX;
+      context_p->ecma_prop_hashmap_alloc_state = ECMA_PROP_HASHMAP_ALLOC_MAX;
     }
-    else if (JJS_CONTEXT (ecma_prop_hashmap_alloc_state) < ECMA_PROP_HASHMAP_ALLOC_MAX)
+    else if (context_p->ecma_prop_hashmap_alloc_state < ECMA_PROP_HASHMAP_ALLOC_MAX)
     {
-      ++JJS_CONTEXT (ecma_prop_hashmap_alloc_state);
-      JJS_CONTEXT (status_flags) |= ECMA_STATUS_HIGH_PRESSURE_GC;
+      ++context_p->ecma_prop_hashmap_alloc_state;
+      context_p->status_flags |= ECMA_STATUS_HIGH_PRESSURE_GC;
     }
 #endif /* JJS_PROPERTY_HASHMAP */
 
-    ecma_gc_run ();
+    ecma_gc_run (context_p);
 
 #if JJS_PROPERTY_HASHMAP
     /* Free hashmaps of remaining objects. */
-    jmem_cpointer_t obj_iter_cp = JJS_CONTEXT (ecma_gc_objects_cp);
+    jmem_cpointer_t obj_iter_cp = context_p->ecma_gc_objects_cp;
 
     while (obj_iter_cp != JMEM_CP_NULL)
     {
@@ -2352,7 +2353,7 @@ ecma_free_unused_memory (jmem_pressure_t pressure) /**< current pressure */
     }
 #endif /* JJS_PROPERTY_HASHMAP */
 
-    jmem_pools_collect_empty ();
+    jmem_pools_collect_empty (context_p);
     return;
   }
   else if (JJS_UNLIKELY (pressure == JMEM_PRESSURE_FULL))

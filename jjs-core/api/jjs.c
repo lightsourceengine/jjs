@@ -155,8 +155,8 @@ jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context
   jjs_context_t* ctx_p = &JJS_CONTEXT_STRUCT;
 
   jjs_api_enable (ctx_p);
-  jmem_init ();
-  ecma_init ();
+  jmem_init (ctx_p);
+  ecma_init (ctx_p);
   jjs_api_object_init (ctx_p, ecma_make_object_value (ecma_builtin_get_global ()));
   jjs_annex_init (ctx_p);
   jjs_annex_init_realm (ctx_p, ctx_p->global_object_p);
@@ -196,7 +196,7 @@ jjs_context_free (jjs_context_t* context_p)
 
   ecma_free_all_enqueued_jobs ();
   jjs_annex_finalize (context_p);
-  ecma_finalize ();
+  ecma_finalize (context_p);
   jjs_api_disable (context_p);
 
   for (jjs_context_data_header_t *this_p = context_p->context_data_p, *next_p = NULL; this_p != NULL;
@@ -287,11 +287,11 @@ jjs_heap_gc (jjs_context_t* context_p, /**< JJS context */
   if (mode == JJS_GC_PRESSURE_LOW)
   {
     /* Call GC directly, because 'ecma_free_unused_memory' might decide it's not yet worth it. */
-    ecma_gc_run ();
+    ecma_gc_run (context_p);
     return;
   }
 
-  ecma_free_unused_memory (JMEM_PRESSURE_HIGH);
+  ecma_free_unused_memory (context_p, JMEM_PRESSURE_HIGH);
 } /* jjs_heap_gc */
 
 /**
@@ -389,7 +389,7 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
   }
 
   ecma_compiled_code_t *bytecode_data_p;
-  bytecode_data_p = parser_parse_script (source_p, parse_opts, options_p);
+  bytecode_data_p = parser_parse_script (context_p, source_p, parse_opts, options_p);
 
   if (JJS_UNLIKELY (bytecode_data_p == NULL))
   {
@@ -4303,7 +4303,7 @@ jjs_object_foreach (jjs_context_t* context_p, /**< JJS context */
   if (names_p == NULL)
   {
     // TODO: Due to Proxies the return value must be changed to jjs_value_t on next release
-    jcontext_release_exception ();
+    jcontext_release_exception (context_p);
     return false;
   }
 #endif /* JJS_BUILTIN_PROXY */
@@ -4336,7 +4336,7 @@ jjs_object_foreach (jjs_context_t* context_p, /**< JJS context */
     return true;
   }
 
-  jcontext_release_exception ();
+  jcontext_release_exception (context_p);
   return false;
 } /* jjs_object_foreach */
 

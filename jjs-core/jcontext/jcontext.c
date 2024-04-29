@@ -26,9 +26,9 @@
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_ALWAYS_INLINE
-jcontext_has_pending_exception (void)
+jcontext_has_pending_exception (jjs_context_t *context_p)
 {
-  return JJS_CONTEXT (status_flags) & ECMA_STATUS_EXCEPTION;
+  return context_p->status_flags & ECMA_STATUS_EXCEPTION;
 } /* jcontext_has_pending_exception */
 
 /**
@@ -38,27 +38,28 @@ jcontext_has_pending_exception (void)
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_ALWAYS_INLINE
-jcontext_has_pending_abort (void)
+jcontext_has_pending_abort (jjs_context_t *context_p) /**< JJS context */
 {
-  return JJS_CONTEXT (status_flags) & ECMA_STATUS_ABORT;
+  return context_p->status_flags & ECMA_STATUS_ABORT;
 } /* jcontext_has_pending_abort */
 
 /**
  * Set the abort flag for the context.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-jcontext_set_abort_flag (bool is_abort) /**< true - if the abort flag should be set
+jcontext_set_abort_flag (jjs_context_t *context_p, /**< JJS context */
+                         bool is_abort) /**< true - if the abort flag should be set
                                          *   false - if the abort flag should be removed */
 {
-  JJS_ASSERT (jcontext_has_pending_exception ());
+  JJS_ASSERT (jcontext_has_pending_exception (context_p));
 
   if (is_abort)
   {
-    JJS_CONTEXT (status_flags) |= ECMA_STATUS_ABORT;
+    context_p->status_flags |= ECMA_STATUS_ABORT;
   }
   else
   {
-    JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_ABORT;
+    context_p->status_flags &= (uint32_t) ~ECMA_STATUS_ABORT;
   }
 } /* jcontext_set_abort_flag */
 
@@ -66,16 +67,17 @@ jcontext_set_abort_flag (bool is_abort) /**< true - if the abort flag should be 
  * Set the exception flag for the context.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-jcontext_set_exception_flag (bool is_exception) /**< true - if the exception flag should be set
+jcontext_set_exception_flag (jjs_context_t *context_p, /**< JJS context */
+                             bool is_exception) /**< true - if the exception flag should be set
                                                  *   false - if the exception flag should be removed */
 {
   if (is_exception)
   {
-    JJS_CONTEXT (status_flags) |= ECMA_STATUS_EXCEPTION;
+    context_p->status_flags |= ECMA_STATUS_EXCEPTION;
   }
   else
   {
-    JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_EXCEPTION;
+    context_p->status_flags &= (uint32_t) ~ECMA_STATUS_EXCEPTION;
   }
 } /* jcontext_set_exception_flag */
 
@@ -83,24 +85,25 @@ jcontext_set_exception_flag (bool is_exception) /**< true - if the exception fla
  * Raise exception from the given error value.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-jcontext_raise_exception (ecma_value_t error) /**< error to raise */
+jcontext_raise_exception (jjs_context_t *context_p, /**< JJS context */
+                          ecma_value_t error) /**< error to raise */
 {
-  JJS_ASSERT (!jcontext_has_pending_exception ());
-  JJS_ASSERT (!jcontext_has_pending_abort ());
+  JJS_ASSERT (!jcontext_has_pending_exception (context_p));
+  JJS_ASSERT (!jcontext_has_pending_abort (context_p));
 
-  JJS_CONTEXT (error_value) = error;
-  jcontext_set_exception_flag (true);
+  context_p->error_value = error;
+  jcontext_set_exception_flag (context_p, true);
 } /* jcontext_raise_exception */
 
 /**
  * Release the current exception/abort of the context.
  */
 void
-jcontext_release_exception (void)
+jcontext_release_exception (jjs_context_t *context_p) /**< JJS context */
 {
-  JJS_ASSERT (jcontext_has_pending_exception ());
+  JJS_ASSERT (jcontext_has_pending_exception (context_p));
 
-  ecma_free_value (jcontext_take_exception ());
+  ecma_free_value (jcontext_take_exception (context_p));
 } /* jcontext_release_exception */
 
 /**
@@ -109,16 +112,16 @@ jcontext_release_exception (void)
  * @return current exception as an ecma-value
  */
 ecma_value_t
-jcontext_take_exception (void)
+jcontext_take_exception (jjs_context_t *context_p)
 {
-  JJS_ASSERT (jcontext_has_pending_exception ());
+  JJS_ASSERT (jcontext_has_pending_exception (context_p));
 
-  JJS_CONTEXT (status_flags) &= (uint32_t) ~(ECMA_STATUS_EXCEPTION
+  context_p->status_flags &= (uint32_t) ~(ECMA_STATUS_EXCEPTION
 #if JJS_VM_THROW
                                                | ECMA_STATUS_ERROR_THROWN
 #endif /* JJS_VM_THROW */
                                                | ECMA_STATUS_ABORT);
-  return JJS_CONTEXT (error_value);
+  return context_p->error_value;
 } /* jcontext_take_exception */
 
 /**

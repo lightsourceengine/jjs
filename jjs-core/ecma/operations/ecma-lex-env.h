@@ -31,8 +31,8 @@
  * @{
  */
 
-void ecma_init_global_environment (void);
-void ecma_finalize_global_environment (void);
+void ecma_init_global_environment (ecma_context_t *context_p);
+void ecma_finalize_global_environment (ecma_context_t *context_p);
 ecma_object_t *ecma_get_global_environment (ecma_object_t *global_object_p);
 ecma_object_t *ecma_get_global_scope (ecma_object_t *global_object_p);
 void ecma_create_global_lexical_block (ecma_object_t *global_object_p);

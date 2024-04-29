@@ -40,31 +40,31 @@
  * Initialize ECMA components
  */
 void
-ecma_init (void)
+ecma_init (ecma_context_t *context_p)
 {
-  if (JJS_CONTEXT(gc_mark_limit) != 0)
+  if (context_p->gc_mark_limit != 0)
   {
-    JJS_CONTEXT (ecma_gc_mark_recursion_limit) = JJS_CONTEXT(gc_mark_limit);
+    context_p->ecma_gc_mark_recursion_limit = context_p->gc_mark_limit;
   }
-  ecma_init_global_environment ();
+  ecma_init_global_environment (context_p);
 
 #if JJS_PROPERTY_HASHMAP
-  JJS_CONTEXT (ecma_prop_hashmap_alloc_state) = ECMA_PROP_HASHMAP_ALLOC_ON;
-  JJS_CONTEXT (status_flags) &= (uint32_t) ~ECMA_STATUS_HIGH_PRESSURE_GC;
+  context_p->ecma_prop_hashmap_alloc_state = ECMA_PROP_HASHMAP_ALLOC_ON;
+  context_p->status_flags &= (uint32_t) ~ECMA_STATUS_HIGH_PRESSURE_GC;
 #endif /* JJS_PROPERTY_HASHMAP */
 
-  if (JJS_CONTEXT(vm_stack_limit) != 0)
+  if (context_p->vm_stack_limit != 0)
   {
     volatile int sp;
-    JJS_CONTEXT (stack_base) = (uintptr_t) &sp;
+    context_p->stack_base = (uintptr_t) &sp;
   }
 
   ecma_job_queue_init ();
 
-  JJS_CONTEXT (current_new_target_p) = NULL;
+  context_p->current_new_target_p = NULL;
 
 #if JJS_BUILTIN_TYPEDARRAY
-  JJS_CONTEXT (arraybuffer_compact_allocation_limit) = 256;
+  context_p->arraybuffer_compact_allocation_limit = 256;
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* ecma_init */
 
@@ -72,23 +72,23 @@ ecma_init (void)
  * Finalize ECMA components
  */
 void
-ecma_finalize (void)
+ecma_finalize (ecma_context_t *context_p)
 {
-  JJS_ASSERT (JJS_CONTEXT (current_new_target_p) == NULL);
+  JJS_ASSERT (context_p->current_new_target_p == NULL);
 
-  ecma_finalize_global_environment ();
+  ecma_finalize_global_environment (context_p);
   uint8_t runs = 0;
 
   do
   {
-    ecma_gc_run ();
+    ecma_gc_run (context_p);
     if (++runs >= JJS_GC_LOOP_LIMIT)
     {
       jjs_fatal (JJS_FATAL_UNTERMINATED_GC_LOOPS);
     }
-  } while (JJS_CONTEXT (ecma_gc_new_objects) != 0);
+  } while (context_p->ecma_gc_new_objects != 0);
 
-  jmem_cpointer_t *global_symbols_cp = JJS_CONTEXT (global_symbols_cp);
+  jmem_cpointer_t *global_symbols_cp = context_p->global_symbols_cp;
 
   for (uint32_t i = 0; i < ECMA_BUILTIN_GLOBAL_SYMBOL_COUNT; i++)
   {

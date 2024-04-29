@@ -274,7 +274,7 @@ typedef struct
   (uint16_t) ((opcode) - (CBC_PUSH_PROP_REFERENCE - CBC_PUSH_PROP))
 
 #define PARSER_GET_LITERAL(literal_index) \
-  ((lexer_literal_t *) parser_list_get (&context_p->literal_pool, (literal_index)))
+  ((lexer_literal_t *) parser_list_get (&parser_context_p->literal_pool, (literal_index)))
 
 #define PARSER_TO_BINARY_OPERATION_WITH_RESULT(opcode) \
   (PARSER_TO_EXT_OPCODE (opcode) - CBC_ASSIGN_ADD + CBC_EXT_ASSIGN_ADD_PUSH_RESULT)
@@ -616,6 +616,8 @@ typedef struct
   const uint8_t *function_start_p; /**< start position of the function which will be parsed */
   const uint8_t *function_end_p; /**< end position of the current function */
 #endif /* JJS_FUNCTION_TO_STRING */
+
+  ecma_context_t *context_p; /**< JJS engine context */
 } parser_context_t;
 
 /**
@@ -657,17 +659,17 @@ void *parser_list_iterator_next (parser_list_iterator_t *iterator_p);
 /* Parser stack. Optimized for pushing bytes.
  * Pop functions never throws error. */
 
-void parser_stack_init (parser_context_t *context_p);
-void parser_stack_free (parser_context_t *context_p);
-void parser_stack_push_uint8 (parser_context_t *context_p, uint8_t uint8_value);
-void parser_stack_pop_uint8 (parser_context_t *context_p);
-void parser_stack_change_last_uint8 (parser_context_t *context_p, uint8_t new_value);
-uint8_t *parser_stack_get_prev_uint8 (parser_context_t *context_p);
-void parser_stack_push_uint16 (parser_context_t *context_p, uint16_t uint16_value);
-uint16_t parser_stack_pop_uint16 (parser_context_t *context_p);
-void parser_stack_push (parser_context_t *context_p, const void *data_p, uint32_t length);
-void parser_stack_pop (parser_context_t *context_p, void *data_p, uint32_t length);
-void parser_stack_iterator_init (parser_context_t *context_p, parser_stack_iterator_t *iterator);
+void parser_stack_init (parser_context_t *parser_context_p);
+void parser_stack_free (parser_context_t *parser_context_p);
+void parser_stack_push_uint8 (parser_context_t *parser_context_p, uint8_t uint8_value);
+void parser_stack_pop_uint8 (parser_context_t *parser_context_p);
+void parser_stack_change_last_uint8 (parser_context_t *parser_context_p, uint8_t new_value);
+uint8_t *parser_stack_get_prev_uint8 (parser_context_t *parser_context_p);
+void parser_stack_push_uint16 (parser_context_t *parser_context_p, uint16_t uint16_value);
+uint16_t parser_stack_pop_uint16 (parser_context_t *parser_context_p);
+void parser_stack_push (parser_context_t *parser_context_p, const void *data_p, uint32_t length);
+void parser_stack_pop (parser_context_t *parser_context_p, void *data_p, uint32_t length);
+void parser_stack_iterator_init (parser_context_t *parser_context_p, parser_stack_iterator_t *iterator);
 uint8_t parser_stack_iterator_read_uint8 (parser_stack_iterator_t *iterator);
 void parser_stack_iterator_skip (parser_stack_iterator_t *iterator, size_t length);
 void parser_stack_iterator_read (parser_stack_iterator_t *iterator, void *data_p, size_t length);
@@ -689,38 +691,38 @@ void parser_stack_iterator_write (parser_stack_iterator_t *iterator, const void 
 
 /* Compact byte code emitting functions. */
 
-void parser_flush_cbc (parser_context_t *context_p);
-void parser_emit_cbc (parser_context_t *context_p, uint16_t opcode);
-void parser_emit_cbc_literal (parser_context_t *context_p, uint16_t opcode, uint16_t literal_index);
+void parser_flush_cbc (parser_context_t *parser_context_p);
+void parser_emit_cbc (parser_context_t *parser_context_p, uint16_t opcode);
+void parser_emit_cbc_literal (parser_context_t *parser_context_p, uint16_t opcode, uint16_t literal_index);
 void
-parser_emit_cbc_literal_value (parser_context_t *context_p, uint16_t opcode, uint16_t literal_index, uint16_t value);
-void parser_emit_cbc_literal_from_token (parser_context_t *context_p, uint16_t opcode);
-void parser_emit_cbc_call (parser_context_t *context_p, uint16_t opcode, size_t call_arguments);
-void parser_emit_cbc_push_number (parser_context_t *context_p, bool is_negative_number);
-void parser_emit_cbc_forward_branch (parser_context_t *context_p, uint16_t opcode, parser_branch_t *branch_p);
+parser_emit_cbc_literal_value (parser_context_t *parser_context_p, uint16_t opcode, uint16_t literal_index, uint16_t value);
+void parser_emit_cbc_literal_from_token (parser_context_t *parser_context_p, uint16_t opcode);
+void parser_emit_cbc_call (parser_context_t *parser_context_p, uint16_t opcode, size_t call_arguments);
+void parser_emit_cbc_push_number (parser_context_t *parser_context_p, bool is_negative_number);
+void parser_emit_cbc_forward_branch (parser_context_t *parser_context_p, uint16_t opcode, parser_branch_t *branch_p);
 parser_branch_node_t *
-parser_emit_cbc_forward_branch_item (parser_context_t *context_p, uint16_t opcode, parser_branch_node_t *next_p);
-void parser_emit_cbc_backward_branch (parser_context_t *context_p, uint16_t opcode, uint32_t offset);
+parser_emit_cbc_forward_branch_item (parser_context_t *parser_context_p, uint16_t opcode, parser_branch_node_t *next_p);
+void parser_emit_cbc_backward_branch (parser_context_t *parser_context_p, uint16_t opcode, uint32_t offset);
 ecma_string_t *parser_new_ecma_string_from_literal (lexer_literal_t *literal_p);
-void parser_set_branch_to_current_position (parser_context_t *context_p, parser_branch_t *branch_p);
-void parser_set_breaks_to_current_position (parser_context_t *context_p, parser_branch_node_t *current_p);
-void parser_set_continues_to_current_position (parser_context_t *context_p, parser_branch_node_t *current_p);
-void parser_reverse_class_fields (parser_context_t *context_p, size_t fields_size);
+void parser_set_branch_to_current_position (parser_context_t *parser_context_p, parser_branch_t *branch_p);
+void parser_set_breaks_to_current_position (parser_context_t *parser_context_p, parser_branch_node_t *current_p);
+void parser_set_continues_to_current_position (parser_context_t *parser_context_p, parser_branch_node_t *current_p);
+void parser_reverse_class_fields (parser_context_t *parser_context_p, size_t fields_size);
 
 /* Convenience macros. */
-#define parser_emit_cbc_ext(context_p, opcode) parser_emit_cbc ((context_p), PARSER_TO_EXT_OPCODE (opcode))
-#define parser_emit_cbc_ext_literal(context_p, opcode, literal_index) \
-  parser_emit_cbc_literal ((context_p), PARSER_TO_EXT_OPCODE (opcode), (literal_index))
-#define parser_emit_cbc_ext_literal_from_token(context_p, opcode) \
-  parser_emit_cbc_literal_from_token ((context_p), PARSER_TO_EXT_OPCODE (opcode))
-#define parser_emit_cbc_ext_call(context_p, opcode, call_arguments) \
-  parser_emit_cbc_call ((context_p), PARSER_TO_EXT_OPCODE (opcode), (call_arguments))
-#define parser_emit_cbc_ext_call(context_p, opcode, call_arguments) \
-  parser_emit_cbc_call ((context_p), PARSER_TO_EXT_OPCODE (opcode), (call_arguments))
-#define parser_emit_cbc_ext_forward_branch(context_p, opcode, branch_p) \
-  parser_emit_cbc_forward_branch ((context_p), PARSER_TO_EXT_OPCODE (opcode), (branch_p))
-#define parser_emit_cbc_ext_backward_branch(context_p, opcode, offset) \
-  parser_emit_cbc_backward_branch ((context_p), PARSER_TO_EXT_OPCODE (opcode), (offset))
+#define parser_emit_cbc_ext(parser_context_p, opcode) parser_emit_cbc ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode))
+#define parser_emit_cbc_ext_literal(parser_context_p, opcode, literal_index) \
+  parser_emit_cbc_literal ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode), (literal_index))
+#define parser_emit_cbc_ext_literal_from_token(parser_context_p, opcode) \
+  parser_emit_cbc_literal_from_token ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode))
+#define parser_emit_cbc_ext_call(parser_context_p, opcode, call_arguments) \
+  parser_emit_cbc_call ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode), (call_arguments))
+#define parser_emit_cbc_ext_call(parser_context_p, opcode, call_arguments) \
+  parser_emit_cbc_call ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode), (call_arguments))
+#define parser_emit_cbc_ext_forward_branch(parser_context_p, opcode, branch_p) \
+  parser_emit_cbc_forward_branch ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode), (branch_p))
+#define parser_emit_cbc_ext_backward_branch(parser_context_p, opcode, offset) \
+  parser_emit_cbc_backward_branch ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode), (offset))
 
 /**
  * @}
@@ -731,53 +733,53 @@ void parser_reverse_class_fields (parser_context_t *context_p, size_t fields_siz
 
 /* Lexer functions */
 
-void lexer_skip_hashbang (parser_context_t *context_p);
-void lexer_next_token (parser_context_t *context_p);
-bool lexer_check_next_character (parser_context_t *context_p, lit_utf8_byte_t character);
-bool lexer_check_next_characters (parser_context_t *context_p, lit_utf8_byte_t character1, lit_utf8_byte_t character2);
-uint8_t lexer_consume_next_character (parser_context_t *context_p);
-bool lexer_check_post_primary_exp (parser_context_t *context_p);
-lit_code_point_t lexer_peek_next_character (parser_context_t *context_p);
-void lexer_skip_empty_statements (parser_context_t *context_p);
-bool lexer_check_arrow (parser_context_t *context_p);
-bool lexer_check_arrow_param (parser_context_t *context_p);
-bool lexer_check_yield_no_arg (parser_context_t *context_p);
-bool lexer_consume_generator (parser_context_t *context_p);
-bool lexer_consume_assign (parser_context_t *context_p);
-void lexer_update_await_yield (parser_context_t *context_p, uint32_t status_flags);
-bool lexer_scan_private_identifier (parser_context_t *context_p);
-void lexer_parse_string (parser_context_t *context_p, lexer_string_options_t opts);
-void lexer_expect_identifier (parser_context_t *context_p, uint8_t literal_type);
-bool lexer_scan_identifier (parser_context_t *context_p, lexer_parse_options_t opts);
-void lexer_check_property_modifier (parser_context_t *context_p);
+void lexer_skip_hashbang (parser_context_t *parser_context_p);
+void lexer_next_token (parser_context_t *parser_context_p);
+bool lexer_check_next_character (parser_context_t *parser_context_p, lit_utf8_byte_t character);
+bool lexer_check_next_characters (parser_context_t *parser_context_p, lit_utf8_byte_t character1, lit_utf8_byte_t character2);
+uint8_t lexer_consume_next_character (parser_context_t *parser_context_p);
+bool lexer_check_post_primary_exp (parser_context_t *parser_context_p);
+lit_code_point_t lexer_peek_next_character (parser_context_t *parser_context_p);
+void lexer_skip_empty_statements (parser_context_t *parser_context_p);
+bool lexer_check_arrow (parser_context_t *parser_context_p);
+bool lexer_check_arrow_param (parser_context_t *parser_context_p);
+bool lexer_check_yield_no_arg (parser_context_t *parser_context_p);
+bool lexer_consume_generator (parser_context_t *parser_context_p);
+bool lexer_consume_assign (parser_context_t *parser_context_p);
+void lexer_update_await_yield (parser_context_t *parser_context_p, uint32_t status_flags);
+bool lexer_scan_private_identifier (parser_context_t *parser_context_p);
+void lexer_parse_string (parser_context_t *parser_context_p, lexer_string_options_t opts);
+void lexer_expect_identifier (parser_context_t *parser_context_p, uint8_t literal_type);
+bool lexer_scan_identifier (parser_context_t *parser_context_p, lexer_parse_options_t opts);
+void lexer_check_property_modifier (parser_context_t *parser_context_p);
 void lexer_convert_ident_to_cesu8 (uint8_t *destination_p, const uint8_t *source_p, prop_length_t length);
 
-const uint8_t *lexer_convert_literal_to_chars (parser_context_t *context_p,
+const uint8_t *lexer_convert_literal_to_chars (parser_context_t *parser_context_p,
                                                const lexer_lit_location_t *literal_p,
                                                uint8_t *local_byte_array_p,
                                                lexer_string_options_t opts);
-void lexer_expect_object_literal_id (parser_context_t *context_p, uint32_t ident_opts);
-lexer_literal_t *lexer_construct_unused_literal (parser_context_t *context_p);
-void lexer_construct_literal_object (parser_context_t *context_p,
+void lexer_expect_object_literal_id (parser_context_t *parser_context_p, uint32_t ident_opts);
+lexer_literal_t *lexer_construct_unused_literal (parser_context_t *parser_context_p);
+void lexer_construct_literal_object (parser_context_t *parser_context_p,
                                      const lexer_lit_location_t *lit_location_p,
                                      uint8_t literal_type);
-bool lexer_construct_number_object (parser_context_t *context_p, bool is_expr, bool is_negative_number);
-void lexer_convert_push_number_to_push_literal (parser_context_t *context_p);
-uint16_t lexer_construct_function_object (parser_context_t *context_p, uint32_t extra_status_flags);
-uint16_t lexer_construct_class_static_block_function (parser_context_t *context_p);
-void lexer_construct_regexp_object (parser_context_t *context_p, bool parse_only);
+bool lexer_construct_number_object (parser_context_t *parser_context_p, bool is_expr, bool is_negative_number);
+void lexer_convert_push_number_to_push_literal (parser_context_t *parser_context_p);
+uint16_t lexer_construct_function_object (parser_context_t *parser_context_p, uint32_t extra_status_flags);
+uint16_t lexer_construct_class_static_block_function (parser_context_t *parser_context_p);
+void lexer_construct_regexp_object (parser_context_t *parser_context_p, bool parse_only);
 bool lexer_compare_identifier_to_string (const lexer_lit_location_t *left_p, const uint8_t *right_p, size_t size);
-bool lexer_compare_identifiers (parser_context_t *context_p,
+bool lexer_compare_identifiers (parser_context_t *parser_context_p,
                                 const lexer_lit_location_t *left_p,
                                 const lexer_lit_location_t *right_p);
-bool lexer_current_is_literal (parser_context_t *context_p, const lexer_lit_location_t *right_ident_p);
-bool lexer_string_is_use_strict (parser_context_t *context_p);
-bool lexer_string_is_directive (parser_context_t *context_p);
-bool lexer_token_is_identifier (parser_context_t *context_p, const char *identifier_p, size_t identifier_length);
-bool lexer_token_is_let (parser_context_t *context_p);
-bool lexer_token_is_async (parser_context_t *context_p);
-bool lexer_compare_literal_to_string (parser_context_t *context_p, const char *string_p, size_t string_length);
-void lexer_init_line_info (parser_context_t *context_p);
+bool lexer_current_is_literal (parser_context_t *parser_context_p, const lexer_lit_location_t *right_ident_p);
+bool lexer_string_is_use_strict (parser_context_t *parser_context_p);
+bool lexer_string_is_directive (parser_context_t *parser_context_p);
+bool lexer_token_is_identifier (parser_context_t *parser_context_p, const char *identifier_p, size_t identifier_length);
+bool lexer_token_is_let (parser_context_t *parser_context_p);
+bool lexer_token_is_async (parser_context_t *parser_context_p);
+bool lexer_compare_literal_to_string (parser_context_t *parser_context_p, const char *string_p, size_t string_length);
+void lexer_init_line_info (parser_context_t *parser_context_p);
 uint8_t lexer_convert_binary_lvalue_token_to_binary (uint8_t token);
 
 /**
@@ -789,17 +791,17 @@ uint8_t lexer_convert_binary_lvalue_token_to_binary (uint8_t token);
 
 /* Parser functions. */
 
-void parser_parse_block_expression (parser_context_t *context_p, int options);
-void parser_parse_expression_statement (parser_context_t *context_p, int options);
-void parser_parse_expression (parser_context_t *context_p, int options);
-void parser_resolve_private_identifier (parser_context_t *context_p);
-void parser_save_private_context (parser_context_t *context_p,
+void parser_parse_block_expression (parser_context_t *parser_context_p, int options);
+void parser_parse_expression_statement (parser_context_t *parser_context_p, int options);
+void parser_parse_expression (parser_context_t *parser_context_p, int options);
+void parser_resolve_private_identifier (parser_context_t *parser_context_p);
+void parser_save_private_context (parser_context_t *parser_context_p,
                                   parser_private_context_t *private_ctx_p,
                                   scanner_class_info_t *class_info_p);
-void parser_restore_private_context (parser_context_t *context_p, parser_private_context_t *private_ctx_p);
-void parser_parse_class (parser_context_t *context_p, bool is_statement);
-void parser_parse_initializer (parser_context_t *context_p, parser_pattern_flags_t flags);
-void parser_parse_initializer_by_next_char (parser_context_t *context_p, parser_pattern_flags_t flags);
+void parser_restore_private_context (parser_context_t *parser_context_p, parser_private_context_t *private_ctx_p);
+void parser_parse_class (parser_context_t *parser_context_p, bool is_statement);
+void parser_parse_initializer (parser_context_t *parser_context_p, parser_pattern_flags_t flags);
+void parser_parse_initializer_by_next_char (parser_context_t *parser_context_p, parser_pattern_flags_t flags);
 /**
  * @}
  *
@@ -807,30 +809,30 @@ void parser_parse_initializer_by_next_char (parser_context_t *context_p, parser_
  * @{
  */
 
-void scanner_release_next (parser_context_t *context_p, size_t size);
-void scanner_set_active (parser_context_t *context_p);
-void scanner_revert_active (parser_context_t *context_p);
-void scanner_release_active (parser_context_t *context_p, size_t size);
+void scanner_release_next (parser_context_t *parser_context_p, size_t size);
+void scanner_set_active (parser_context_t *parser_context_p);
+void scanner_revert_active (parser_context_t *parser_context_p);
+void scanner_release_active (parser_context_t *parser_context_p, size_t size);
 void scanner_release_switch_cases (scanner_case_info_t *case_p);
 void scanner_release_private_fields (scanner_class_private_member_t *member_p);
-void scanner_seek (parser_context_t *context_p);
-void scanner_reverse_info_list (parser_context_t *context_p);
-void scanner_cleanup (parser_context_t *context_p);
+void scanner_seek (parser_context_t *parser_context_p);
+void scanner_reverse_info_list (parser_context_t *parser_context_p);
+void scanner_cleanup (parser_context_t *parser_context_p);
 
-bool scanner_is_context_needed (parser_context_t *context_p, parser_check_context_type_t check_type);
-bool scanner_try_scan_new_target (parser_context_t *context_p);
-void scanner_check_variables (parser_context_t *context_p);
-void scanner_create_variables (parser_context_t *context_p, uint32_t option_flags);
+bool scanner_is_context_needed (parser_context_t *parser_context_p, parser_check_context_type_t check_type);
+bool scanner_try_scan_new_target (parser_context_t *parser_context_p);
+void scanner_check_variables (parser_context_t *parser_context_p);
+void scanner_create_variables (parser_context_t *parser_context_p, uint32_t option_flags);
 
-void scanner_get_location (scanner_location_t *location_p, parser_context_t *context_p);
-void scanner_set_location (parser_context_t *context_p, scanner_location_t *location_p);
+void scanner_get_location (scanner_location_t *location_p, parser_context_t *parser_context_p);
+void scanner_set_location (parser_context_t *parser_context_p, scanner_location_t *location_p);
 uint16_t scanner_decode_map_to (parser_scope_stack_t *stack_item_p);
-uint16_t scanner_save_literal (parser_context_t *context_p, uint16_t ident_index);
-bool scanner_literal_is_const_reg (parser_context_t *context_p, uint16_t literal_index);
-bool scanner_literal_is_created (parser_context_t *context_p, uint16_t literal_index);
+uint16_t scanner_save_literal (parser_context_t *parser_context_p, uint16_t ident_index);
+bool scanner_literal_is_const_reg (parser_context_t *parser_context_p, uint16_t literal_index);
+bool scanner_literal_is_created (parser_context_t *parser_context_p, uint16_t literal_index);
 bool scanner_literal_exists (parser_context_t *context_p, uint16_t literal_index);
 
-void scanner_scan_all (parser_context_t *context_p);
+void scanner_scan_all (parser_context_t *parser_context_p);
 
 /**
  * @}
@@ -839,7 +841,7 @@ void scanner_scan_all (parser_context_t *context_p);
  * @{
  */
 
-void parser_parse_statements (parser_context_t *context_p);
+void parser_parse_statements (parser_context_t *parser_context_p);
 void parser_free_jumps (parser_stack_iterator_t iterator);
 
 #if JJS_MODULE_SYSTEM
@@ -851,19 +853,22 @@ void parser_free_jumps (parser_stack_iterator_t iterator);
  */
 
 extern const lexer_lit_location_t lexer_default_literal;
-void parser_module_check_request_place (parser_context_t *context_p);
-void parser_module_context_init (parser_context_t *context_p);
-void parser_module_append_names (parser_context_t *context_p, ecma_module_names_t **module_names_p);
-void parser_module_handle_module_specifier (parser_context_t *context_p, ecma_module_node_t **node_list_p);
-void parser_module_handle_requests (parser_context_t *context_p);
-void parser_module_parse_export_clause (parser_context_t *context_p);
-void parser_module_parse_import_clause (parser_context_t *context_p);
-void parser_module_set_default (parser_context_t *context_p);
-bool parser_module_check_duplicate_import (parser_context_t *context_p, ecma_string_t *local_name_p);
-bool parser_module_check_duplicate_export (parser_context_t *context_p, ecma_string_t *export_name_p);
-void parser_module_append_export_name (parser_context_t *context_p);
+void parser_module_check_request_place (parser_context_t *parser_context_p);
+
+void parser_module_append_names (parser_context_t *parser_context_p, ecma_module_names_t **module_names_p);
+void parser_module_handle_module_specifier (parser_context_t *parser_context_p, ecma_module_node_t **node_list_p);
+void parser_module_parse_export_clause (parser_context_t *parser_context_p);
+void parser_module_parse_import_clause (parser_context_t *parser_context_p);
+bool parser_module_check_duplicate_import (parser_context_t *parser_context_p, ecma_string_t *local_name_p);
+bool parser_module_check_duplicate_export (parser_context_t *parser_context_p, ecma_string_t *export_name_p);
+void parser_module_append_export_name (parser_context_t *parser_context_p);
 void
-parser_module_add_names_to_node (parser_context_t *context_p, ecma_string_t *imex_name_p, ecma_string_t *local_name_p);
+parser_module_add_names_to_node (parser_context_t *parser_context_p, ecma_string_t *imex_name_p, ecma_string_t *local_name_p);
+
+// TODO: no longer in use?
+void parser_module_context_init (parser_context_t *parser_context_p);
+void parser_module_handle_requests (parser_context_t *parser_context_p);
+void parser_module_set_default (parser_context_t *parser_context_p);
 
 #endif /* JJS_MODULE_SYSTEM */
 
@@ -876,8 +881,8 @@ parser_module_add_names_to_node (parser_context_t *context_p, ecma_string_t *ime
 
 #if JJS_LINE_INFO
 void parser_line_info_free (parser_line_info_data_t *line_info_p);
-void parser_line_info_append (parser_context_t *context_p, parser_line_counter_t line, parser_line_counter_t column);
-uint8_t *parser_line_info_generate (parser_context_t *context_p);
+void parser_line_info_append (parser_context_t *parser_context_p, parser_line_counter_t line, parser_line_counter_t column);
+uint8_t *parser_line_info_generate (parser_context_t *parser_context_p);
 #endif /* JJS_LINE_INFO */
 
 /**
@@ -887,29 +892,29 @@ uint8_t *parser_line_info_generate (parser_context_t *context_p);
  * @{
  */
 
-ecma_compiled_code_t *parser_parse_function (parser_context_t *context_p, uint32_t status_flags);
-ecma_compiled_code_t *parser_parse_class_static_block (parser_context_t *context_p);
-ecma_compiled_code_t *parser_parse_arrow_function (parser_context_t *context_p, uint32_t status_flags);
-ecma_compiled_code_t *parser_parse_class_fields (parser_context_t *context_p);
-void parser_set_function_name (parser_context_t *context_p,
+ecma_compiled_code_t *parser_parse_function (parser_context_t *parser_context_p, uint32_t status_flags);
+ecma_compiled_code_t *parser_parse_class_static_block (parser_context_t *parser_context_p);
+ecma_compiled_code_t *parser_parse_arrow_function (parser_context_t *parser_context_p, uint32_t status_flags);
+ecma_compiled_code_t *parser_parse_class_fields (parser_context_t *parser_context_p);
+void parser_set_function_name (parser_context_t *parser_context_p,
                                uint16_t function_literal_index,
                                uint16_t name_index,
                                uint32_t status_flags);
-void parser_compiled_code_set_function_name (parser_context_t *context_p,
+void parser_compiled_code_set_function_name (parser_context_t *parser_context_p,
                                              ecma_compiled_code_t *bytecode_p,
                                              uint16_t name_index,
                                              uint32_t status_flags);
-uint16_t parser_check_anonymous_function_declaration (parser_context_t *context_p);
+uint16_t parser_check_anonymous_function_declaration (parser_context_t *parser_context_p);
 
 /* Error management. */
 
-void parser_raise_error (parser_context_t *context_p, parser_error_msg_t error);
+void parser_raise_error (parser_context_t *parser_context_p, parser_error_msg_t error);
 
 /* Debug functions. */
 
 #if JJS_DEBUGGER
 
-void parser_append_breakpoint_info (parser_context_t *context_p, jjs_debugger_header_type_t type, uint32_t value);
+void parser_append_breakpoint_info (parser_context_t *parser_context_p, jjs_debugger_header_type_t type, uint32_t value);
 
 #endif /* JJS_DEBUGGER */
 

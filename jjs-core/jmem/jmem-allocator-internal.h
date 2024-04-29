@@ -47,8 +47,8 @@
 #endif /* JJS_VALGRIND */
 /** @} */
 
-void jmem_heap_init (void);
-void jmem_heap_finalize (void);
+void jmem_heap_init (jjs_context_t *context_p);
+void jmem_heap_finalize (jjs_context_t *context_p);
 bool jmem_is_heap_pointer (const void *pointer);
 void *jmem_heap_alloc_block_internal (const size_t size);
 void jmem_heap_free_block_internal (void *ptr, const size_t size);
@@ -58,7 +58,7 @@ void jmem_heap_free_block_internal (void *ptr, const size_t size);
  * @{
  */
 
-void jmem_pools_finalize (void);
+void jmem_pools_finalize (jjs_context_t *context_p);
 
 /**
  * @}

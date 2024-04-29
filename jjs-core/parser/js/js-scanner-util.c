@@ -254,52 +254,52 @@ scanner_insert_info_before (parser_context_t *context_p, /**< context */
  * Release the next scanner info.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-scanner_release_next (parser_context_t *context_p, /**< context */
+scanner_release_next (parser_context_t *parser_context_p, /**< context */
                       size_t size) /**< size of the memory block */
 {
-  scanner_info_t *next_p = context_p->next_scanner_info_p->next_p;
+  scanner_info_t *next_p = parser_context_p->next_scanner_info_p->next_p;
 
-  jmem_heap_free_block (context_p->next_scanner_info_p, size);
-  context_p->next_scanner_info_p = next_p;
+  jmem_heap_free_block (parser_context_p->next_scanner_info_p, size);
+  parser_context_p->next_scanner_info_p = next_p;
 } /* scanner_release_next */
 
 /**
  * Set the active scanner info to the next scanner info.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-scanner_set_active (parser_context_t *context_p) /**< context */
+scanner_set_active (parser_context_t *parser_context_p) /**< context */
 {
-  scanner_info_t *scanner_info_p = context_p->next_scanner_info_p;
+  scanner_info_t *scanner_info_p = parser_context_p->next_scanner_info_p;
 
-  context_p->next_scanner_info_p = scanner_info_p->next_p;
-  scanner_info_p->next_p = context_p->active_scanner_info_p;
-  context_p->active_scanner_info_p = scanner_info_p;
+  parser_context_p->next_scanner_info_p = scanner_info_p->next_p;
+  scanner_info_p->next_p = parser_context_p->active_scanner_info_p;
+  parser_context_p->active_scanner_info_p = scanner_info_p;
 } /* scanner_set_active */
 
 /**
  * Set the next scanner info to the active scanner info.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-scanner_revert_active (parser_context_t *context_p) /**< context */
+scanner_revert_active (parser_context_t *parser_context_p) /**< context */
 {
-  scanner_info_t *scanner_info_p = context_p->active_scanner_info_p;
+  scanner_info_t *scanner_info_p = parser_context_p->active_scanner_info_p;
 
-  context_p->active_scanner_info_p = scanner_info_p->next_p;
-  scanner_info_p->next_p = context_p->next_scanner_info_p;
-  context_p->next_scanner_info_p = scanner_info_p;
+  parser_context_p->active_scanner_info_p = scanner_info_p->next_p;
+  scanner_info_p->next_p = parser_context_p->next_scanner_info_p;
+  parser_context_p->next_scanner_info_p = scanner_info_p;
 } /* scanner_revert_active */
 
 /**
  * Release the active scanner info.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-scanner_release_active (parser_context_t *context_p, /**< context */
+scanner_release_active (parser_context_t *parser_context_p, /**< context */
                         size_t size) /**< size of the memory block */
 {
-  scanner_info_t *next_p = context_p->active_scanner_info_p->next_p;
+  scanner_info_t *next_p = parser_context_p->active_scanner_info_p->next_p;
 
-  jmem_heap_free_block (context_p->active_scanner_info_p, size);
-  context_p->active_scanner_info_p = next_p;
+  jmem_heap_free_block (parser_context_p->active_scanner_info_p, size);
+  parser_context_p->active_scanner_info_p = next_p;
 } /* scanner_release_active */
 
 /**
@@ -336,45 +336,45 @@ scanner_release_private_fields (scanner_class_private_member_t *member_p) /**< p
  * Seek to correct position in the scanner info list.
  */
 void
-scanner_seek (parser_context_t *context_p) /**< context */
+scanner_seek (parser_context_t *parser_context_p) /**< context */
 {
-  const uint8_t *source_p = context_p->source_p;
+  const uint8_t *source_p = parser_context_p->source_p;
   scanner_info_t *prev_p;
 
-  if (context_p->skipped_scanner_info_p != NULL)
+  if (parser_context_p->skipped_scanner_info_p != NULL)
   {
-    JJS_ASSERT (context_p->skipped_scanner_info_p->source_p != NULL);
+    JJS_ASSERT (parser_context_p->skipped_scanner_info_p->source_p != NULL);
 
-    context_p->skipped_scanner_info_end_p->next_p = context_p->next_scanner_info_p;
+    parser_context_p->skipped_scanner_info_end_p->next_p = parser_context_p->next_scanner_info_p;
 
-    if (context_p->skipped_scanner_info_end_p->source_p <= source_p)
+    if (parser_context_p->skipped_scanner_info_end_p->source_p <= source_p)
     {
-      prev_p = context_p->skipped_scanner_info_end_p;
+      prev_p = parser_context_p->skipped_scanner_info_end_p;
     }
     else
     {
-      prev_p = context_p->skipped_scanner_info_p;
+      prev_p = parser_context_p->skipped_scanner_info_p;
 
       if (prev_p->source_p > source_p)
       {
-        context_p->next_scanner_info_p = prev_p;
-        context_p->skipped_scanner_info_p = NULL;
+        parser_context_p->next_scanner_info_p = prev_p;
+        parser_context_p->skipped_scanner_info_p = NULL;
         return;
       }
 
-      context_p->skipped_scanner_info_p = prev_p;
+      parser_context_p->skipped_scanner_info_p = prev_p;
     }
   }
   else
   {
-    prev_p = context_p->next_scanner_info_p;
+    prev_p = parser_context_p->next_scanner_info_p;
 
     if (prev_p->source_p == NULL || prev_p->source_p > source_p)
     {
       return;
     }
 
-    context_p->skipped_scanner_info_p = prev_p;
+    parser_context_p->skipped_scanner_info_p = prev_p;
   }
 
   while (prev_p->next_p->source_p != NULL && prev_p->next_p->source_p <= source_p)
@@ -382,8 +382,8 @@ scanner_seek (parser_context_t *context_p) /**< context */
     prev_p = prev_p->next_p;
   }
 
-  context_p->skipped_scanner_info_end_p = prev_p;
-  context_p->next_scanner_info_p = prev_p->next_p;
+  parser_context_p->skipped_scanner_info_end_p = prev_p;
+  parser_context_p->next_scanner_info_p = prev_p->next_p;
 } /* scanner_seek */
 
 /**
@@ -401,9 +401,9 @@ scanner_literal_is_arguments (lexer_lit_location_t *literal_p) /**< literal */
  * @return true - if there are duplicates, false - otherwise
  */
 static bool
-scanner_find_duplicated_arg (parser_context_t *context_p, lexer_lit_location_t *lit_loc_p)
+scanner_find_duplicated_arg (parser_context_t *parser_context_p, lexer_lit_location_t *lit_loc_p)
 {
-  if (!(context_p->status_flags & PARSER_FUNCTION_IS_PARSING_ARGS))
+  if (!(parser_context_p->status_flags & PARSER_FUNCTION_IS_PARSING_ARGS))
   {
     return false;
   }
@@ -416,8 +416,9 @@ scanner_find_duplicated_arg (parser_context_t *context_p, lexer_lit_location_t *
   uint16_t register_end, encoding_limit, encoding_delta;
   ecma_value_t *literal_p;
   ecma_value_t *literal_start_p;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
-  const ecma_compiled_code_t *bytecode_header_p = JJS_CONTEXT (vm_top_context_p)->shared_p->bytecode_header_p;
+  const ecma_compiled_code_t *bytecode_header_p = context_p->vm_top_context_p->shared_p->bytecode_header_p;
 
   if (bytecode_header_p->status_flags & CBC_CODE_FLAGS_UINT16_ARGUMENTS)
   {
@@ -468,7 +469,7 @@ scanner_find_duplicated_arg (parser_context_t *context_p, lexer_lit_location_t *
     }
 
     ecma_string_t *arg_string = ecma_get_string_from_value (literal_start_p[literal_index]);
-    uint8_t *destination_p = (uint8_t *) parser_malloc (context_p, lit_loc_p->length);
+    uint8_t *destination_p = (uint8_t *) parser_malloc (parser_context_p, lit_loc_p->length);
     lexer_convert_ident_to_cesu8 (destination_p, lit_loc_p->char_p, lit_loc_p->length);
     ecma_string_t *search_key_p = ecma_new_ecma_string_from_utf8 (destination_p, lit_loc_p->length);
     scanner_free (destination_p, lit_loc_p->length);
@@ -491,13 +492,13 @@ scanner_find_duplicated_arg (parser_context_t *context_p, lexer_lit_location_t *
  * @return true - if the literal is found, false - otherwise
  */
 static bool
-scanner_scope_find_lexical_declaration (parser_context_t *context_p, /**< context */
+scanner_scope_find_lexical_declaration (parser_context_t *parser_context_p, /**< parser context */
                                         lexer_lit_location_t *literal_p) /**< literal */
 {
   ecma_string_t *name_p;
-  uint32_t flags = context_p->global_status_flags;
+  uint32_t flags = parser_context_p->global_status_flags;
 
-  if (!(flags & ECMA_PARSE_EVAL) || (!(flags & ECMA_PARSE_DIRECT_EVAL) && (context_p->status_flags & PARSER_IS_STRICT)))
+  if (!(flags & ECMA_PARSE_EVAL) || (!(flags & ECMA_PARSE_DIRECT_EVAL) && (parser_context_p->status_flags & PARSER_IS_STRICT)))
   {
     return false;
   }
@@ -508,7 +509,7 @@ scanner_scope_find_lexical_declaration (parser_context_t *context_p, /**< contex
   }
   else
   {
-    uint8_t *destination_p = (uint8_t *) scanner_malloc (context_p, literal_p->length);
+    uint8_t *destination_p = (uint8_t *) scanner_malloc (parser_context_p, literal_p->length);
 
     lexer_convert_ident_to_cesu8 (destination_p, literal_p->char_p, literal_p->length);
 
@@ -521,7 +522,8 @@ scanner_scope_find_lexical_declaration (parser_context_t *context_p, /**< contex
 
   if (flags & ECMA_PARSE_DIRECT_EVAL)
   {
-    lex_env_p = JJS_CONTEXT (vm_top_context_p)->lex_env_p;
+    ecma_context_t *context_p = parser_context_p->context_p;
+    lex_env_p = context_p->vm_top_context_p->lex_env_p;
 
     while (lex_env_p->type_flags_refs & ECMA_OBJECT_FLAG_BLOCK)
     {
@@ -550,7 +552,7 @@ scanner_scope_find_lexical_declaration (parser_context_t *context_p, /**< contex
     ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
 
     if (property_p != NULL
-        && (ecma_is_property_enumerable (*property_p) || scanner_find_duplicated_arg (context_p, literal_p)))
+        && (ecma_is_property_enumerable (*property_p) || scanner_find_duplicated_arg (parser_context_p, literal_p)))
     {
       ecma_deref_ecma_string (name_p);
       return true;
@@ -1907,9 +1909,9 @@ scanner_append_hole (parser_context_t *context_p, scanner_context_t *scanner_con
  * Reverse the scanner info chain after the scanning is completed.
  */
 void
-scanner_reverse_info_list (parser_context_t *context_p) /**< context */
+scanner_reverse_info_list (parser_context_t *parser_context_p) /**< context */
 {
-  scanner_info_t *scanner_info_p = context_p->next_scanner_info_p;
+  scanner_info_t *scanner_info_p = parser_context_p->next_scanner_info_p;
   scanner_info_t *last_scanner_info_p = NULL;
 
   if (scanner_info_p->type == SCANNER_TYPE_END)
@@ -1926,8 +1928,8 @@ scanner_reverse_info_list (parser_context_t *context_p) /**< context */
     scanner_info_p = next_scanner_info_p;
   } while (scanner_info_p->type != SCANNER_TYPE_END);
 
-  context_p->next_scanner_info_p->next_p = scanner_info_p;
-  context_p->next_scanner_info_p = last_scanner_info_p;
+  parser_context_p->next_scanner_info_p->next_p = scanner_info_p;
+  parser_context_p->next_scanner_info_p = last_scanner_info_p;
 } /* scanner_reverse_info_list */
 
 /**
@@ -1935,16 +1937,16 @@ scanner_reverse_info_list (parser_context_t *context_p) /**< context */
  * This should happen only if an error is occurred.
  */
 void
-scanner_cleanup (parser_context_t *context_p) /**< context */
+scanner_cleanup (parser_context_t *parser_context_p) /**< context */
 {
-  if (context_p->skipped_scanner_info_p != NULL)
+  if (parser_context_p->skipped_scanner_info_p != NULL)
   {
-    context_p->skipped_scanner_info_end_p->next_p = context_p->next_scanner_info_p;
-    context_p->next_scanner_info_p = context_p->skipped_scanner_info_p;
-    context_p->skipped_scanner_info_p = NULL;
+    parser_context_p->skipped_scanner_info_end_p->next_p = parser_context_p->next_scanner_info_p;
+    parser_context_p->next_scanner_info_p = parser_context_p->skipped_scanner_info_p;
+    parser_context_p->skipped_scanner_info_p = NULL;
   }
 
-  scanner_info_t *scanner_info_p = context_p->next_scanner_info_p;
+  scanner_info_t *scanner_info_p = parser_context_p->next_scanner_info_p;
 
   while (scanner_info_p != NULL)
   {
@@ -1956,7 +1958,7 @@ scanner_cleanup (parser_context_t *context_p) /**< context */
     {
       case SCANNER_TYPE_END:
       {
-        scanner_info_p = context_p->active_scanner_info_p;
+        scanner_info_p = parser_context_p->active_scanner_info_p;
         continue;
       }
       case SCANNER_TYPE_FUNCTION:
@@ -2008,8 +2010,8 @@ scanner_cleanup (parser_context_t *context_p) /**< context */
     scanner_info_p = next_scanner_info_p;
   }
 
-  context_p->next_scanner_info_p = NULL;
-  context_p->active_scanner_info_p = NULL;
+  parser_context_p->next_scanner_info_p = NULL;
+  parser_context_p->active_scanner_info_p = NULL;
 } /* scanner_cleanup */
 
 /**
@@ -2019,10 +2021,10 @@ scanner_cleanup (parser_context_t *context_p) /**< context */
  *         false - otherwise
  */
 bool
-scanner_is_context_needed (parser_context_t *context_p, /**< context */
+scanner_is_context_needed (parser_context_t *parser_context_p, /**< context */
                            parser_check_context_type_t check_type) /**< context type */
 {
-  scanner_info_t *info_p = context_p->next_scanner_info_p;
+  scanner_info_t *info_p = parser_context_p->next_scanner_info_p;
   const uint8_t *data_p = (const uint8_t *) (info_p + 1);
 
   JJS_UNUSED (check_type);
@@ -2031,7 +2033,7 @@ scanner_is_context_needed (parser_context_t *context_p, /**< context */
                                                           : info_p->type == SCANNER_TYPE_FUNCTION));
 
   uint32_t scope_stack_reg_top =
-    (check_type != PARSER_CHECK_GLOBAL_CONTEXT ? context_p->scope_stack_reg_top : 1); /* block result */
+    (check_type != PARSER_CHECK_GLOBAL_CONTEXT ? parser_context_p->scope_stack_reg_top : 1); /* block result */
 
   while (data_p[0] != SCANNER_STREAM_TYPE_END)
   {
@@ -2081,7 +2083,7 @@ scanner_is_context_needed (parser_context_t *context_p, /**< context */
 
       /* Only let/const can be stored in registers */
       JJS_ASSERT ((data & SCANNER_STREAM_NO_REG)
-                    || (type == SCANNER_STREAM_TYPE_FUNC && (context_p->global_status_flags & ECMA_PARSE_DIRECT_EVAL))
+                    || (type == SCANNER_STREAM_TYPE_FUNC && (parser_context_p->global_status_flags & ECMA_PARSE_DIRECT_EVAL))
                     || type == SCANNER_STREAM_TYPE_LET || type == SCANNER_STREAM_TYPE_CONST);
     }
     else
@@ -2120,7 +2122,7 @@ scanner_is_context_needed (parser_context_t *context_p, /**< context */
 
     if (JJS_UNLIKELY (check_type == PARSER_CHECK_GLOBAL_CONTEXT)
         && (type == SCANNER_STREAM_TYPE_VAR
-            || (type == SCANNER_STREAM_TYPE_FUNC && !(context_p->global_status_flags & ECMA_PARSE_EVAL)) || is_import))
+            || (type == SCANNER_STREAM_TYPE_FUNC && !(parser_context_p->global_status_flags & ECMA_PARSE_EVAL)) || is_import))
     {
       continue;
     }
@@ -2171,22 +2173,22 @@ scanner_is_context_needed (parser_context_t *context_p, /**< context */
  *          false if there is no "." after the new.
  */
 bool
-scanner_try_scan_new_target (parser_context_t *context_p) /**< parser/scanner context */
+scanner_try_scan_new_target (parser_context_t *parser_context_p) /**< parser/scanner context */
 {
-  JJS_ASSERT (context_p->token.type == LEXER_KEYW_NEW);
+  JJS_ASSERT (parser_context_p->token.type == LEXER_KEYW_NEW);
 
-  if (lexer_check_next_character (context_p, LIT_CHAR_DOT))
+  if (lexer_check_next_character (parser_context_p, LIT_CHAR_DOT))
   {
-    lexer_next_token (context_p);
-    if (context_p->token.type != LEXER_DOT)
+    lexer_next_token (parser_context_p);
+    if (parser_context_p->token.type != LEXER_DOT)
     {
-      parser_raise_error (context_p, PARSER_ERR_INVALID_CHARACTER);
+      parser_raise_error (parser_context_p, PARSER_ERR_INVALID_CHARACTER);
     }
 
-    lexer_next_token (context_p);
-    if (!lexer_token_is_identifier (context_p, "target", 6))
+    lexer_next_token (parser_context_p);
+    if (!lexer_token_is_identifier (parser_context_p, "target", 6))
     {
-      parser_raise_error (context_p, PARSER_ERR_NEW_TARGET_EXPECTED);
+      parser_raise_error (parser_context_p, PARSER_ERR_NEW_TARGET_EXPECTED);
     }
 
     return true;
@@ -2226,9 +2228,9 @@ scanner_create_unused_literal (parser_context_t *context_p, /**< context */
  * Emit checks for redeclared bindings in the global lexical scope.
  */
 void
-scanner_check_variables (parser_context_t *context_p) /**< context */
+scanner_check_variables (parser_context_t *parser_context_p) /**< context */
 {
-  scanner_info_t *info_p = context_p->next_scanner_info_p;
+  scanner_info_t *info_p = parser_context_p->next_scanner_info_p;
   const uint8_t *next_data_p = (const uint8_t *) (info_p + 1);
   lexer_lit_location_t literal;
 
@@ -2276,7 +2278,7 @@ scanner_check_variables (parser_context_t *context_p) /**< context */
     literal.status_flags =
       ((data_p[0] & SCANNER_STREAM_HAS_ESCAPE) ? LEXER_LIT_LOCATION_HAS_ESCAPE : LEXER_LIT_LOCATION_NO_OPTS);
 
-    lexer_construct_literal_object (context_p, &literal, LEXER_NEW_IDENT_LITERAL);
+    lexer_construct_literal_object (parser_context_p, &literal, LEXER_NEW_IDENT_LITERAL);
     literal.char_p += data_p[1];
 
 #if JJS_MODULE_SYSTEM
@@ -2286,7 +2288,7 @@ scanner_check_variables (parser_context_t *context_p) /**< context */
     }
 #endif /* JJS_MODULE_SYSTEM */
 
-    context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_USED;
+    parser_context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_USED;
 
     uint16_t opcode;
     if (type == SCANNER_STREAM_TYPE_VAR || type == SCANNER_STREAM_TYPE_FUNC)
@@ -2298,20 +2300,20 @@ scanner_check_variables (parser_context_t *context_p) /**< context */
       opcode = CBC_CHECK_LET;
     }
 
-    parser_emit_cbc_literal (context_p, opcode, context_p->lit_object.index);
+    parser_emit_cbc_literal (parser_context_p, opcode, parser_context_p->lit_object.index);
   }
 
-  parser_flush_cbc (context_p);
+  parser_flush_cbc (parser_context_p);
 } /* scanner_check_variables */
 
 /**
  * Create and/or initialize var/let/const/function/etc. variables.
  */
 void
-scanner_create_variables (parser_context_t *context_p, /**< context */
+scanner_create_variables (parser_context_t *parser_context_p, /**< context */
                           uint32_t option_flags) /**< combination of scanner_create_variables_flags_t bits */
 {
-  scanner_info_t *info_p = context_p->next_scanner_info_p;
+  scanner_info_t *info_p = parser_context_p->next_scanner_info_p;
   const uint8_t *next_data_p = (const uint8_t *) (info_p + 1);
   uint8_t info_type = info_p->type;
   uint8_t info_u8_arg = info_p->u8_arg;
@@ -2325,24 +2327,24 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
   JJS_ASSERT (info_type == SCANNER_TYPE_FUNCTION
                 || !(option_flags & (SCANNER_CREATE_VARS_IS_FUNCTION_ARGS | SCANNER_CREATE_VARS_IS_FUNCTION_BODY)));
 
-  uint32_t scope_stack_reg_top = context_p->scope_stack_reg_top;
+  uint32_t scope_stack_reg_top = parser_context_p->scope_stack_reg_top;
 
   if (info_type == SCANNER_TYPE_FUNCTION && !(option_flags & SCANNER_CREATE_VARS_IS_FUNCTION_BODY))
   {
-    JJS_ASSERT (context_p->scope_stack_p == NULL);
+    JJS_ASSERT (parser_context_p->scope_stack_p == NULL);
 
     size_t stack_size = info_p->u16_arg * sizeof (parser_scope_stack_t);
-    context_p->scope_stack_size = info_p->u16_arg;
+    parser_context_p->scope_stack_size = info_p->u16_arg;
 
     scope_stack_p = NULL;
 
     if (stack_size > 0)
     {
-      scope_stack_p = (parser_scope_stack_t *) parser_malloc (context_p, stack_size);
+      scope_stack_p = (parser_scope_stack_t *) parser_malloc (parser_context_p, stack_size);
     }
 
-    context_p->scope_stack_p = scope_stack_p;
-    scope_stack_end_p = scope_stack_p ? scope_stack_p + context_p->scope_stack_size : NULL;
+    parser_context_p->scope_stack_p = scope_stack_p;
+    scope_stack_end_p = scope_stack_p ? scope_stack_p + parser_context_p->scope_stack_size : NULL;
 
     if (option_flags & (SCANNER_CREATE_VARS_IS_SCRIPT | SCANNER_CREATE_VARS_IS_MODULE))
     {
@@ -2351,11 +2353,11 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
   }
   else
   {
-    JJS_ASSERT (context_p->scope_stack_p != NULL || context_p->scope_stack_size == 0);
+    JJS_ASSERT (parser_context_p->scope_stack_p != NULL || parser_context_p->scope_stack_size == 0);
 
-    scope_stack_p = context_p->scope_stack_p;
-    scope_stack_end_p = scope_stack_p + context_p->scope_stack_size;
-    scope_stack_p += context_p->scope_stack_top;
+    scope_stack_p = parser_context_p->scope_stack_p;
+    scope_stack_end_p = scope_stack_p + parser_context_p->scope_stack_size;
+    scope_stack_p += parser_context_p->scope_stack_top;
   }
 
   literal.char_p = info_p->source_p - 1;
@@ -2385,9 +2387,9 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
 
       uint8_t mask = SCANNER_FUNCTION_ARGUMENTS_NEEDED | SCANNER_FUNCTION_HAS_COMPLEX_ARGUMENT;
 
-      if (!(context_p->status_flags & PARSER_IS_STRICT) && (info_u8_arg & mask) == SCANNER_FUNCTION_ARGUMENTS_NEEDED)
+      if (!(parser_context_p->status_flags & PARSER_IS_STRICT) && (info_u8_arg & mask) == SCANNER_FUNCTION_ARGUMENTS_NEEDED)
       {
-        scanner_create_unused_literal (context_p, LEXER_FLAG_FUNCTION_ARGUMENT);
+        scanner_create_unused_literal (parser_context_p, LEXER_FLAG_FUNCTION_ARGUMENT);
       }
 
       if (scope_stack_reg_top < PARSER_MAXIMUM_NUMBER_OF_REGISTERS)
@@ -2407,16 +2409,16 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
         continue;
       }
 
-      context_p->status_flags |= PARSER_ARGUMENTS_NEEDED;
+      parser_context_p->status_flags |= PARSER_ARGUMENTS_NEEDED;
 
       if (JJS_UNLIKELY (scope_stack_p >= scope_stack_end_p))
       {
-        JJS_ASSERT (context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
-        parser_raise_error (context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
+        JJS_ASSERT (parser_context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
+        parser_raise_error (parser_context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
       }
 
-      lexer_construct_literal_object (context_p, &lexer_arguments_literal, LEXER_NEW_IDENT_LITERAL);
-      scope_stack_p->map_from = context_p->lit_object.index;
+      lexer_construct_literal_object (parser_context_p, &lexer_arguments_literal, LEXER_NEW_IDENT_LITERAL);
+      scope_stack_p->map_from = parser_context_p->lit_object.index;
 
       uint16_t map_to;
 
@@ -2429,14 +2431,14 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
       }
       else
       {
-        context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_USED;
-        map_to = context_p->lit_object.index;
+        parser_context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_USED;
+        map_to = parser_context_p->lit_object.index;
 
-        context_p->status_flags |= PARSER_LEXICAL_ENV_NEEDED;
+        parser_context_p->status_flags |= PARSER_LEXICAL_ENV_NEEDED;
 
         if (data_p[0] & SCANNER_STREAM_LOCAL_ARGUMENTS)
         {
-          context_p->status_flags |= PARSER_LEXICAL_BLOCK_NEEDED;
+          parser_context_p->status_flags |= PARSER_LEXICAL_BLOCK_NEEDED;
         }
 
         scope_stack_p->map_to = 0;
@@ -2448,21 +2450,21 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
       context_p->scope_stack_top = (uint16_t) (scope_stack_p - context_p->scope_stack_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
-      parser_emit_cbc_ext_literal (context_p, CBC_EXT_CREATE_ARGUMENTS, map_to);
+      parser_emit_cbc_ext_literal (parser_context_p, CBC_EXT_CREATE_ARGUMENTS, map_to);
 
       if (type == SCANNER_STREAM_TYPE_ARGUMENTS_FUNC)
       {
         if (JJS_UNLIKELY (scope_stack_p >= scope_stack_end_p))
         {
-          JJS_ASSERT (context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
-          parser_raise_error (context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
+          JJS_ASSERT (parser_context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
+          parser_raise_error (parser_context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
         }
 
         scope_stack_p->map_from = PARSER_SCOPE_STACK_FUNC;
-        scope_stack_p->map_to = context_p->literal_count;
+        scope_stack_p->map_to = parser_context_p->literal_count;
         scope_stack_p++;
 
-        scanner_create_unused_literal (context_p, 0);
+        scanner_create_unused_literal (parser_context_p, 0);
       }
 
       if (option_flags & SCANNER_CREATE_VARS_IS_FUNCTION_ARGS)
@@ -2472,7 +2474,7 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
       continue;
     }
 
-    JJS_ASSERT (context_p->scope_stack_size != 0);
+    JJS_ASSERT (parser_context_p->scope_stack_size != 0);
 
     if (!(data_p[0] & SCANNER_STREAM_UINT16_DIFF))
     {
@@ -2504,7 +2506,7 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
     {
       if (option_flags & SCANNER_CREATE_VARS_IS_FUNCTION_BODY)
       {
-        if ((context_p->status_flags & PARSER_LEXICAL_BLOCK_NEEDED)
+        if ((parser_context_p->status_flags & PARSER_LEXICAL_BLOCK_NEEDED)
             && (type == SCANNER_STREAM_TYPE_ARG_VAR || type == SCANNER_STREAM_TYPE_DESTRUCTURED_ARG_VAR))
         {
           literal.length = data_p[1];
@@ -2513,11 +2515,11 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
             ((data_p[0] & SCANNER_STREAM_HAS_ESCAPE) ? LEXER_LIT_LOCATION_HAS_ESCAPE : LEXER_LIT_LOCATION_NO_OPTS);
 
           /* Literal must be exists. */
-          lexer_construct_literal_object (context_p, &literal, LEXER_IDENT_LITERAL);
+          lexer_construct_literal_object (parser_context_p, &literal, LEXER_IDENT_LITERAL);
 
-          if (context_p->lit_object.index < PARSER_REGISTER_START)
+          if (parser_context_p->lit_object.index < PARSER_REGISTER_START)
           {
-            parser_emit_cbc_ext_literal_from_token (context_p, CBC_EXT_COPY_FROM_ARG);
+            parser_emit_cbc_ext_literal_from_token (parser_context_p, CBC_EXT_COPY_FROM_ARG);
           }
         }
 
@@ -2536,36 +2538,36 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
     literal.status_flags =
       ((data_p[0] & SCANNER_STREAM_HAS_ESCAPE) ? LEXER_LIT_LOCATION_HAS_ESCAPE : LEXER_LIT_LOCATION_NO_OPTS);
 
-    lexer_construct_literal_object (context_p, &literal, LEXER_NEW_IDENT_LITERAL);
+    lexer_construct_literal_object (parser_context_p, &literal, LEXER_NEW_IDENT_LITERAL);
     literal.char_p += data_p[1];
 
     if (SCANNER_STREAM_TYPE_IS_ARG_FUNC (type) && (option_flags & SCANNER_CREATE_VARS_IS_FUNCTION_BODY))
     {
-      JJS_ASSERT (scope_stack_p >= context_p->scope_stack_p + 2);
-      JJS_ASSERT (context_p->status_flags & PARSER_IS_FUNCTION);
-      JJS_ASSERT (!(context_p->status_flags & PARSER_FUNCTION_IS_PARSING_ARGS));
+      JJS_ASSERT (scope_stack_p >= parser_context_p->scope_stack_p + 2);
+      JJS_ASSERT (parser_context_p->status_flags & PARSER_IS_FUNCTION);
+      JJS_ASSERT (!(parser_context_p->status_flags & PARSER_FUNCTION_IS_PARSING_ARGS));
 
       parser_scope_stack_t *function_map_p = scope_stack_p - 2;
-      uint16_t literal_index = context_p->lit_object.index;
+      uint16_t literal_index = parser_context_p->lit_object.index;
 
       while (literal_index != function_map_p->map_from)
       {
         function_map_p--;
 
-        JJS_ASSERT (function_map_p >= context_p->scope_stack_p);
+        JJS_ASSERT (function_map_p >= parser_context_p->scope_stack_p);
       }
 
       JJS_ASSERT (function_map_p[1].map_from == PARSER_SCOPE_STACK_FUNC);
 
       cbc_opcode_t opcode = CBC_SET_VAR_FUNC;
 
-      if (JJS_UNLIKELY (context_p->status_flags & PARSER_LEXICAL_BLOCK_NEEDED)
+      if (JJS_UNLIKELY (parser_context_p->status_flags & PARSER_LEXICAL_BLOCK_NEEDED)
           && (function_map_p[0].map_to & PARSER_SCOPE_STACK_REGISTER_MASK) == 0)
       {
         opcode = CBC_INIT_ARG_OR_FUNC;
       }
 
-      parser_emit_cbc_literal_value (context_p,
+      parser_emit_cbc_literal_value (parser_context_p,
                                      (uint16_t) opcode,
                                      function_map_p[1].map_to,
                                      scanner_decode_map_to (function_map_p));
@@ -2574,11 +2576,11 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
 
     if (JJS_UNLIKELY (scope_stack_p >= scope_stack_end_p))
     {
-      JJS_ASSERT (context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
-      parser_raise_error (context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
+      JJS_ASSERT (parser_context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
+      parser_raise_error (parser_context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
     }
 
-    scope_stack_p->map_from = context_p->lit_object.index;
+    scope_stack_p->map_from = parser_context_p->lit_object.index;
 
     if (info_type == SCANNER_TYPE_FUNCTION)
     {
@@ -2588,7 +2590,7 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
 #endif /* JJS_MODULE_SYSTEM */
           && type != SCANNER_STREAM_TYPE_CONST)
       {
-        context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_GLOBAL;
+        parser_context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_GLOBAL;
       }
     }
 
@@ -2625,14 +2627,14 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
     }
     else
     {
-      context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_USED;
-      map_to = context_p->lit_object.index;
+      parser_context_p->lit_object.literal_p->status_flags |= LEXER_FLAG_USED;
+      map_to = parser_context_p->lit_object.index;
 
       uint16_t scope_stack_map_to = 0;
 
       if (info_type == SCANNER_TYPE_FUNCTION)
       {
-        context_p->status_flags |= PARSER_LEXICAL_ENV_NEEDED;
+        parser_context_p->status_flags |= PARSER_LEXICAL_ENV_NEEDED;
       }
 
       switch (type)
@@ -2680,8 +2682,8 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
               {
                 opcode = CBC_CREATE_VAR_EVAL;
 
-                if ((context_p->global_status_flags & ECMA_PARSE_FUNCTION_CONTEXT)
-                    && !(context_p->status_flags & PARSER_IS_STRICT))
+                if ((parser_context_p->global_status_flags & ECMA_PARSE_FUNCTION_CONTEXT)
+                    && !(parser_context_p->status_flags & PARSER_IS_STRICT))
                 {
                   opcode = PARSER_TO_EXT_OPCODE (CBC_EXT_CREATE_VAR_EVAL);
                 }
@@ -2699,7 +2701,7 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
             }
           }
 
-          parser_emit_cbc_literal (context_p, opcode, map_to);
+          parser_emit_cbc_literal (parser_context_p, opcode, map_to);
           break;
         }
         case SCANNER_STREAM_TYPE_ARG:
@@ -2716,14 +2718,14 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
            * generated here. The other initializers are handled by parser_parse_function_arguments(). */
           if (!(info_u8_arg & SCANNER_FUNCTION_HAS_COMPLEX_ARGUMENT))
           {
-            parser_emit_cbc_literal_value (context_p,
+            parser_emit_cbc_literal_value (parser_context_p,
                                            CBC_INIT_ARG_OR_FUNC,
                                            (uint16_t) (PARSER_REGISTER_START + scope_stack_reg_top),
                                            map_to);
           }
           else if (data_p[0] & SCANNER_STREAM_EARLY_CREATE)
           {
-            parser_emit_cbc_literal (context_p, CBC_CREATE_LOCAL, map_to);
+            parser_emit_cbc_literal (parser_context_p, CBC_CREATE_LOCAL, map_to);
             scope_stack_map_to |= PARSER_SCOPE_STACK_IS_LOCAL_CREATED;
           }
 
@@ -2747,8 +2749,8 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
 
     if (JJS_UNLIKELY (scope_stack_p >= scope_stack_end_p))
     {
-      JJS_ASSERT (context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
-      parser_raise_error (context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
+      JJS_ASSERT (parser_context_p->scope_stack_size == PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK);
+      parser_raise_error (parser_context_p, PARSER_ERR_SCOPE_STACK_LIMIT_REACHED);
     }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
@@ -2761,11 +2763,11 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
       {
         literal.char_p -= data_p[1];
 
-        if (!scanner_scope_find_lexical_declaration (context_p, &literal))
+        if (!scanner_scope_find_lexical_declaration (parser_context_p, &literal))
         {
           func_init_opcode = CBC_CREATE_VAR_FUNC_EVAL;
 
-          if (context_p->global_status_flags & ECMA_PARSE_FUNCTION_CONTEXT)
+          if (parser_context_p->global_status_flags & ECMA_PARSE_FUNCTION_CONTEXT)
           {
             func_init_opcode = PARSER_TO_EXT_OPCODE (CBC_EXT_CREATE_VAR_FUNC_EVAL);
           }
@@ -2773,34 +2775,34 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
         literal.char_p += data_p[1];
       }
 
-      parser_emit_cbc_literal_value (context_p, func_init_opcode, context_p->literal_count, map_to);
+      parser_emit_cbc_literal_value (parser_context_p, func_init_opcode, parser_context_p->literal_count, map_to);
     }
 
     scope_stack_p->map_from = PARSER_SCOPE_STACK_FUNC;
-    scope_stack_p->map_to = context_p->literal_count;
+    scope_stack_p->map_to = parser_context_p->literal_count;
     scope_stack_p++;
 
-    scanner_create_unused_literal (context_p, 0);
+    scanner_create_unused_literal (parser_context_p, 0);
   }
 
-  context_p->scope_stack_top = (uint16_t) (scope_stack_p - context_p->scope_stack_p);
-  context_p->scope_stack_reg_top = (uint16_t) scope_stack_reg_top;
+  parser_context_p->scope_stack_top = (uint16_t) (scope_stack_p - parser_context_p->scope_stack_p);
+  parser_context_p->scope_stack_reg_top = (uint16_t) scope_stack_reg_top;
 
   if (info_type == SCANNER_TYPE_FUNCTION)
   {
-    context_p->scope_stack_global_end = context_p->scope_stack_top;
+    parser_context_p->scope_stack_global_end = parser_context_p->scope_stack_top;
   }
 
-  if (context_p->register_count < scope_stack_reg_top)
+  if (parser_context_p->register_count < scope_stack_reg_top)
   {
-    context_p->register_count = (uint16_t) scope_stack_reg_top;
+    parser_context_p->register_count = (uint16_t) scope_stack_reg_top;
   }
 
   if (!(option_flags & SCANNER_CREATE_VARS_IS_FUNCTION_ARGS))
   {
-    scanner_release_next (context_p, (size_t) (next_data_p + 1 - ((const uint8_t *) info_p)));
+    scanner_release_next (parser_context_p, (size_t) (next_data_p + 1 - ((const uint8_t *) info_p)));
   }
-  parser_flush_cbc (context_p);
+  parser_flush_cbc (parser_context_p);
 } /* scanner_create_variables */
 
 /**
@@ -2808,23 +2810,23 @@ scanner_create_variables (parser_context_t *context_p, /**< context */
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
 scanner_get_location (scanner_location_t *location_p, /**< location */
-                      parser_context_t *context_p) /**< context */
+                      parser_context_t *parser_context_p) /**< context */
 {
-  location_p->source_p = context_p->source_p;
-  location_p->line = context_p->line;
-  location_p->column = context_p->column;
+  location_p->source_p = parser_context_p->source_p;
+  location_p->line = parser_context_p->line;
+  location_p->column = parser_context_p->column;
 } /* scanner_get_location */
 
 /**
  * Set context location.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-scanner_set_location (parser_context_t *context_p, /**< context */
+scanner_set_location (parser_context_t *parser_context_p, /**< context */
                       scanner_location_t *location_p) /**< location */
 {
-  context_p->source_p = location_p->source_p;
-  context_p->line = location_p->line;
-  context_p->column = location_p->column;
+  parser_context_p->source_p = location_p->source_p;
+  parser_context_p->line = location_p->line;
+  parser_context_p->column = location_p->column;
 } /* scanner_set_location */
 
 /**
@@ -2847,19 +2849,19 @@ scanner_decode_map_to (parser_scope_stack_t *stack_item_p) /**< scope stack item
  *         literal index on which literal index has been mapped - otherwise
  */
 uint16_t
-scanner_save_literal (parser_context_t *context_p, /**< context */
+scanner_save_literal (parser_context_t *parser_context_p, /**< context */
                       uint16_t literal_index) /**< literal index */
 {
   if (literal_index >= PARSER_REGISTER_START)
   {
     literal_index = (uint16_t) (literal_index - (PARSER_REGISTER_START - 1));
 
-    parser_scope_stack_t *scope_stack_p = context_p->scope_stack_p + context_p->scope_stack_top;
+    parser_scope_stack_t *scope_stack_p = parser_context_p->scope_stack_p + parser_context_p->scope_stack_top;
 
     do
     {
       /* Registers must be found in the scope stack. */
-      JJS_ASSERT (scope_stack_p > context_p->scope_stack_p);
+      JJS_ASSERT (scope_stack_p > parser_context_p->scope_stack_p);
       scope_stack_p--;
     } while (scope_stack_p->map_from == PARSER_SCOPE_STACK_FUNC
              || literal_index != (scope_stack_p->map_to & PARSER_SCOPE_STACK_REGISTER_MASK));
@@ -2877,7 +2879,7 @@ scanner_save_literal (parser_context_t *context_p, /**< context */
  * @return true if the literal is a const, false otherwise
  */
 bool
-scanner_literal_is_const_reg (parser_context_t *context_p, /**< context */
+scanner_literal_is_const_reg (parser_context_t *parser_context_p, /**< context */
                               uint16_t literal_index) /**< literal index */
 {
   if (literal_index < PARSER_REGISTER_START)
@@ -2886,14 +2888,14 @@ scanner_literal_is_const_reg (parser_context_t *context_p, /**< context */
     return false;
   }
 
-  parser_scope_stack_t *scope_stack_p = context_p->scope_stack_p + context_p->scope_stack_top;
+  parser_scope_stack_t *scope_stack_p = parser_context_p->scope_stack_p + parser_context_p->scope_stack_top;
 
   literal_index = (uint16_t) (literal_index - (PARSER_REGISTER_START - 1));
 
   do
   {
     /* Registers must be found in the scope stack. */
-    JJS_ASSERT (scope_stack_p > context_p->scope_stack_p);
+    JJS_ASSERT (scope_stack_p > parser_context_p->scope_stack_p);
     scope_stack_p--;
   } while (scope_stack_p->map_from == PARSER_SCOPE_STACK_FUNC
            || literal_index != (scope_stack_p->map_to & PARSER_SCOPE_STACK_REGISTER_MASK));
@@ -2907,17 +2909,17 @@ scanner_literal_is_const_reg (parser_context_t *context_p, /**< context */
  * @return true if the literal is created before, false otherwise
  */
 bool
-scanner_literal_is_created (parser_context_t *context_p, /**< context */
+scanner_literal_is_created (parser_context_t *parser_context_p, /**< context */
                             uint16_t literal_index) /**< literal index */
 {
   JJS_ASSERT (literal_index < PARSER_REGISTER_START);
 
-  parser_scope_stack_t *scope_stack_p = context_p->scope_stack_p + context_p->scope_stack_top;
+  parser_scope_stack_t *scope_stack_p = parser_context_p->scope_stack_p + parser_context_p->scope_stack_top;
 
   do
   {
     /* These literals must be found in the scope stack. */
-    JJS_ASSERT (scope_stack_p > context_p->scope_stack_p);
+    JJS_ASSERT (scope_stack_p > parser_context_p->scope_stack_p);
     scope_stack_p--;
   } while (literal_index != scope_stack_p->map_from);
 

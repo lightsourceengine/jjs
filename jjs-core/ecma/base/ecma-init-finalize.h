@@ -16,6 +16,8 @@
 #ifndef ECMA_INIT_FINALIZE_H
 #define ECMA_INIT_FINALIZE_H
 
+#include "ecma-globals.h"
+
 /** \addtogroup ecma ECMA
  * @{
  *
@@ -23,8 +25,8 @@
  * @{
  */
 
-void ecma_init (void);
-void ecma_finalize (void);
+void ecma_init (ecma_context_t *context_p);
+void ecma_finalize (ecma_context_t *context_p);
 
 /**
  * @}

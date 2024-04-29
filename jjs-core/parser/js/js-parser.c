@@ -52,7 +52,7 @@ JJS_STATIC_ASSERT (PARSER_RESTORE_STATUS_FLAGS (ECMA_PARSE_FUNCTION_CONTEXT) == 
  * @return length of the prefix opcodes
  */
 static void
-parser_compute_indicies (parser_context_t *context_p, /**< context */
+parser_compute_indicies (parser_context_t *context_p, /**< parser context */
                          uint16_t *ident_end, /**< end of the identifier group */
                          uint16_t *const_literal_end) /**< end of the const literal group */
 {
@@ -201,7 +201,7 @@ parser_compute_indicies (parser_context_t *context_p, /**< context */
  * Initialize literal pool.
  */
 static void
-parser_init_literal_pool (parser_context_t *context_p, /**< context */
+parser_init_literal_pool (parser_context_t *context_p, /**< parser context */
                           ecma_value_t *literal_pool_p) /**< start of literal pool */
 {
   parser_list_iterator_t literal_iterator;
@@ -359,7 +359,7 @@ parser_update_backward_branch (parser_mem_page_t *page_p, /**< current page */
  * Update targets of all branches in one step.
  */
 static void
-parse_update_branches (parser_context_t *context_p, /**< context */
+parse_update_branches (parser_context_t *context_p, /**< parser context */
                        uint8_t *byte_code_p) /**< byte code */
 {
   parser_mem_page_t *page_p = context_p->byte_code.first_p;
@@ -491,39 +491,43 @@ parse_update_branches (parser_context_t *context_p, /**< context */
  * Send current breakpoint list.
  */
 static void
-parser_send_breakpoints (parser_context_t *parse_context_p, /**< context */
+parser_send_breakpoints (parser_context_t *parser_context_p, /**< parser context */
                          jjs_debugger_header_type_t type) /**< message type */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
-  JJS_ASSERT (parse_context_p->breakpoint_info_count > 0);
+  ecma_context_t *context_p = parser_context_p->context_p;
 
-  jjs_debugger_send_data (&JJS_CONTEXT_STRUCT,
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
+  JJS_ASSERT (parser_context_p->breakpoint_info_count > 0);
+
+  jjs_debugger_send_data (context_p,
                           type,
-                          parse_context_p->breakpoint_info,
-                          parse_context_p->breakpoint_info_count * sizeof (parser_breakpoint_info_t));
+                          parser_context_p->breakpoint_info,
+                          parser_context_p->breakpoint_info_count * sizeof (parser_breakpoint_info_t));
 
-  parse_context_p->breakpoint_info_count = 0;
+  parser_context_p->breakpoint_info_count = 0;
 } /* parser_send_breakpoints */
 
 /**
  * Append a breakpoint info.
  */
 void
-parser_append_breakpoint_info (parser_context_t *context_p, /**< context */
+parser_append_breakpoint_info (parser_context_t *parser_context_p, /**< parser context */
                                jjs_debugger_header_type_t type, /**< message type */
                                uint32_t value) /**< line or offset of the breakpoint */
 {
-  JJS_ASSERT (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED);
+  ecma_context_t *context_p = parser_context_p->context_p;
 
-  context_p->status_flags |= PARSER_DEBUGGER_BREAKPOINT_APPENDED;
+  JJS_ASSERT (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED);
 
-  if (context_p->breakpoint_info_count >= JJS_DEBUGGER_SEND_MAX (&JJS_CONTEXT_STRUCT, parser_breakpoint_info_t))
+  parser_context_p->status_flags |= PARSER_DEBUGGER_BREAKPOINT_APPENDED;
+
+  if (parser_context_p->breakpoint_info_count >= JJS_DEBUGGER_SEND_MAX (context_p, parser_breakpoint_info_t))
   {
-    parser_send_breakpoints (context_p, type);
+    parser_send_breakpoints (parser_context_p, type);
   }
 
-  context_p->breakpoint_info[context_p->breakpoint_info_count].value = value;
-  context_p->breakpoint_info_count = (uint16_t) (context_p->breakpoint_info_count + 1);
+  parser_context_p->breakpoint_info[parser_context_p->breakpoint_info_count].value = value;
+  parser_context_p->breakpoint_info_count = (uint16_t) (parser_context_p->breakpoint_info_count + 1);
 } /* parser_append_breakpoint_info */
 
 #endif /* JJS_DEBUGGER */
@@ -569,7 +573,7 @@ parser_append_breakpoint_info (parser_context_t *context_p, /**< context */
  * @return compiled code
  */
 static ecma_compiled_code_t *
-parser_post_processing (parser_context_t *context_p) /**< context */
+parser_post_processing (parser_context_t *parser_context_p) /**< parser context */
 {
   uint16_t literal_one_byte_limit;
   uint16_t ident_end;
@@ -588,93 +592,96 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   ecma_compiled_code_t *compiled_code_p;
   ecma_value_t *literal_pool_p;
   uint8_t *dst_p;
+#if JJS_DEBUGGER
+  ecma_context_t *context_p = parser_context_p->context_p;
+#endif /* JJS_DEBUGGER */
 
-  if ((context_p->status_flags & (PARSER_IS_FUNCTION | PARSER_LEXICAL_BLOCK_NEEDED))
+  if ((parser_context_p->status_flags & (PARSER_IS_FUNCTION | PARSER_LEXICAL_BLOCK_NEEDED))
       == (PARSER_IS_FUNCTION | PARSER_LEXICAL_BLOCK_NEEDED))
   {
-    PARSER_MINUS_EQUAL_U16 (context_p->stack_depth, PARSER_BLOCK_CONTEXT_STACK_ALLOCATION);
+    PARSER_MINUS_EQUAL_U16 (parser_context_p->stack_depth, PARSER_BLOCK_CONTEXT_STACK_ALLOCATION);
 #ifndef JJS_NDEBUG
-    PARSER_MINUS_EQUAL_U16 (context_p->context_stack_depth, PARSER_BLOCK_CONTEXT_STACK_ALLOCATION);
+    PARSER_MINUS_EQUAL_U16 (parser_context_p->context_stack_depth, PARSER_BLOCK_CONTEXT_STACK_ALLOCATION);
 #endif /* !JJS_NDEBUG */
 
-    context_p->status_flags &= (uint32_t) ~PARSER_LEXICAL_BLOCK_NEEDED;
+    parser_context_p->status_flags &= (uint32_t) ~PARSER_LEXICAL_BLOCK_NEEDED;
 
-    parser_emit_cbc (context_p, CBC_CONTEXT_END);
+    parser_emit_cbc (parser_context_p, CBC_CONTEXT_END);
 
     parser_branch_t branch;
-    parser_stack_pop (context_p, &branch, sizeof (parser_branch_t));
-    parser_set_branch_to_current_position (context_p, &branch);
+    parser_stack_pop (parser_context_p, &branch, sizeof (parser_branch_t));
+    parser_set_branch_to_current_position (parser_context_p, &branch);
 
-    JJS_ASSERT (!(context_p->status_flags & PARSER_NO_END_LABEL));
+    JJS_ASSERT (!(parser_context_p->status_flags & PARSER_NO_END_LABEL));
   }
 
-  if (PARSER_IS_NORMAL_ASYNC_FUNCTION (context_p->status_flags))
+  if (PARSER_IS_NORMAL_ASYNC_FUNCTION (parser_context_p->status_flags))
   {
-    PARSER_MINUS_EQUAL_U16 (context_p->stack_depth, PARSER_TRY_CONTEXT_STACK_ALLOCATION);
+    PARSER_MINUS_EQUAL_U16 (parser_context_p->stack_depth, PARSER_TRY_CONTEXT_STACK_ALLOCATION);
 #ifndef JJS_NDEBUG
-    PARSER_MINUS_EQUAL_U16 (context_p->context_stack_depth, PARSER_TRY_CONTEXT_STACK_ALLOCATION);
+    PARSER_MINUS_EQUAL_U16 (parser_context_p->context_stack_depth, PARSER_TRY_CONTEXT_STACK_ALLOCATION);
 #endif /* !JJS_NDEBUG */
 
-    if (context_p->stack_limit < PARSER_FINALLY_CONTEXT_STACK_ALLOCATION)
+    if (parser_context_p->stack_limit < PARSER_FINALLY_CONTEXT_STACK_ALLOCATION)
     {
-      context_p->stack_limit = PARSER_FINALLY_CONTEXT_STACK_ALLOCATION;
+      parser_context_p->stack_limit = PARSER_FINALLY_CONTEXT_STACK_ALLOCATION;
     }
 
     parser_branch_t branch;
 
-    parser_stack_pop (context_p, &branch, sizeof (parser_branch_t));
-    parser_set_branch_to_current_position (context_p, &branch);
+    parser_stack_pop (parser_context_p, &branch, sizeof (parser_branch_t));
+    parser_set_branch_to_current_position (parser_context_p, &branch);
 
-    JJS_ASSERT (!(context_p->status_flags & PARSER_NO_END_LABEL));
+    JJS_ASSERT (!(parser_context_p->status_flags & PARSER_NO_END_LABEL));
   }
 
 #if JJS_LINE_INFO
-  JJS_ASSERT (context_p->line_info_p != NULL);
+  JJS_ASSERT (parser_context_p->line_info_p != NULL);
 #endif /* JJS_LINE_INFO */
 
-  JJS_ASSERT (context_p->stack_depth == 0);
+  JJS_ASSERT (parser_context_p->stack_depth == 0);
 #ifndef JJS_NDEBUG
-  JJS_ASSERT (context_p->context_stack_depth == 0);
+  JJS_ASSERT (parser_context_p->context_stack_depth == 0);
 #endif /* !JJS_NDEBUG */
 
-  if ((size_t) context_p->stack_limit + (size_t) context_p->register_count > PARSER_MAXIMUM_STACK_LIMIT)
+  if ((size_t) parser_context_p->stack_limit + (size_t) parser_context_p->register_count > PARSER_MAXIMUM_STACK_LIMIT)
   {
-    parser_raise_error (context_p, PARSER_ERR_STACK_LIMIT_REACHED);
+    parser_raise_error (parser_context_p, PARSER_ERR_STACK_LIMIT_REACHED);
   }
 
-  if (JJS_UNLIKELY (context_p->script_p->refs_and_type >= CBC_SCRIPT_REF_MAX))
+  if (JJS_UNLIKELY (parser_context_p->script_p->refs_and_type >= CBC_SCRIPT_REF_MAX))
   {
     /* This is probably never happens in practice. */
     jjs_fatal (JJS_FATAL_REF_COUNT_LIMIT);
   }
 
-  context_p->script_p->refs_and_type += CBC_SCRIPT_REF_ONE;
+  parser_context_p->script_p->refs_and_type += CBC_SCRIPT_REF_ONE;
 
-  JJS_ASSERT (context_p->literal_count <= PARSER_MAXIMUM_NUMBER_OF_LITERALS);
+  JJS_ASSERT (parser_context_p->literal_count <= PARSER_MAXIMUM_NUMBER_OF_LITERALS);
 
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
-      && !(context_p->status_flags & PARSER_DEBUGGER_BREAKPOINT_APPENDED))
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
+      && !(parser_context_p->status_flags & PARSER_DEBUGGER_BREAKPOINT_APPENDED))
   {
     /* Always provide at least one breakpoint. */
-    parser_emit_cbc (context_p, CBC_BREAKPOINT_DISABLED);
-    parser_flush_cbc (context_p);
+    parser_emit_cbc (parser_context_p, CBC_BREAKPOINT_DISABLED);
+    parser_flush_cbc (parser_context_p);
 
-    parser_append_breakpoint_info (context_p, JJS_DEBUGGER_BREAKPOINT_LIST, context_p->token.line);
+    parser_append_breakpoint_info (parser_context_p, JJS_DEBUGGER_BREAKPOINT_LIST, parser_context_p->token.line);
 
-    context_p->last_breakpoint_line = context_p->token.line;
+    parser_context_p->last_breakpoint_line = parser_context_p->token.line;
   }
 
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED) && context_p->breakpoint_info_count > 0)
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) && parser_context_p->breakpoint_info_count > 0)
   {
-    parser_send_breakpoints (context_p, JJS_DEBUGGER_BREAKPOINT_LIST);
-    JJS_ASSERT (context_p->breakpoint_info_count == 0);
+    parser_send_breakpoints (parser_context_p, JJS_DEBUGGER_BREAKPOINT_LIST);
+    JJS_ASSERT (parser_context_p->breakpoint_info_count == 0);
   }
 #endif /* JJS_DEBUGGER */
 
-  parser_compute_indicies (context_p, &ident_end, &const_literal_end);
+  parser_compute_indicies (parser_context_p, &ident_end, &const_literal_end);
 
-  if (context_p->literal_count <= CBC_MAXIMUM_SMALL_VALUE)
+  if (parser_context_p->literal_count <= CBC_MAXIMUM_SMALL_VALUE)
   {
     literal_one_byte_limit = CBC_MAXIMUM_BYTE_VALUE - 1;
   }
@@ -683,8 +690,8 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     literal_one_byte_limit = CBC_LOWER_SEVEN_BIT_MASK;
   }
 
-  last_page_p = context_p->byte_code.last_p;
-  last_position = context_p->byte_code.last_position;
+  last_page_p = parser_context_p->byte_code.last_p;
+  last_position = parser_context_p->byte_code.last_position;
 
   if (last_position >= PARSER_CBC_STREAM_PAGE_SIZE)
   {
@@ -692,7 +699,7 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     last_position = 0;
   }
 
-  page_p = context_p->byte_code.first_p;
+  page_p = parser_context_p->byte_code.first_p;
   offset = 0;
   length = 0;
 
@@ -773,7 +780,7 @@ parser_post_processing (parser_context_t *context_p) /**< context */
       }
       else
       {
-        if (context_p->literal_count <= CBC_MAXIMUM_SMALL_VALUE)
+        if (parser_context_p->literal_count <= CBC_MAXIMUM_SMALL_VALUE)
         {
           JJS_ASSERT (literal_index <= CBC_MAXIMUM_SMALL_VALUE);
           *first_byte = CBC_MAXIMUM_BYTE_VALUE;
@@ -860,11 +867,11 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     }
   }
 
-  if (!(context_p->status_flags & PARSER_NO_END_LABEL) || !(PARSER_OPCODE_IS_RETURN (last_opcode)))
+  if (!(parser_context_p->status_flags & PARSER_NO_END_LABEL) || !(PARSER_OPCODE_IS_RETURN (last_opcode)))
   {
-    context_p->status_flags &= (uint32_t) ~PARSER_NO_END_LABEL;
+    parser_context_p->status_flags &= (uint32_t) ~PARSER_NO_END_LABEL;
 
-    if (PARSER_IS_NORMAL_ASYNC_FUNCTION (context_p->status_flags))
+    if (PARSER_IS_NORMAL_ASYNC_FUNCTION (parser_context_p->status_flags))
     {
       length++;
     }
@@ -875,29 +882,29 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   needs_uint16_arguments = false;
   total_size = sizeof (cbc_uint8_arguments_t);
 
-  if (context_p->stack_limit > CBC_MAXIMUM_BYTE_VALUE || context_p->register_count > CBC_MAXIMUM_BYTE_VALUE
-      || context_p->literal_count > CBC_MAXIMUM_BYTE_VALUE)
+  if (parser_context_p->stack_limit > CBC_MAXIMUM_BYTE_VALUE || parser_context_p->register_count > CBC_MAXIMUM_BYTE_VALUE
+      || parser_context_p->literal_count > CBC_MAXIMUM_BYTE_VALUE)
   {
     needs_uint16_arguments = true;
     total_size = sizeof (cbc_uint16_arguments_t);
   }
 
-  literal_length = (size_t) (context_p->literal_count - context_p->register_count) * sizeof (ecma_value_t);
+  literal_length = (size_t) (parser_context_p->literal_count - parser_context_p->register_count) * sizeof (ecma_value_t);
 
   total_size += literal_length + length;
 
-  if (PARSER_NEEDS_MAPPED_ARGUMENTS (context_p->status_flags))
+  if (PARSER_NEEDS_MAPPED_ARGUMENTS (parser_context_p->status_flags))
   {
-    total_size += context_p->argument_count * sizeof (ecma_value_t);
+    total_size += parser_context_p->argument_count * sizeof (ecma_value_t);
   }
 
   /* function.name */
-  if (!(context_p->status_flags & PARSER_CLASS_CONSTRUCTOR))
+  if (!(parser_context_p->status_flags & PARSER_CLASS_CONSTRUCTOR))
   {
     total_size += sizeof (ecma_value_t);
   }
 
-  if (context_p->tagged_template_literal_cp != JMEM_CP_NULL)
+  if (parser_context_p->tagged_template_literal_cp != JMEM_CP_NULL)
   {
     total_size += sizeof (ecma_value_t);
   }
@@ -907,30 +914,30 @@ parser_post_processing (parser_context_t *context_p) /**< context */
 
   uint8_t extended_info = 0;
 
-  if (context_p->argument_length != UINT16_MAX)
+  if (parser_context_p->argument_length != UINT16_MAX)
   {
     extended_info |= CBC_EXTENDED_CODE_FLAGS_HAS_ARGUMENT_LENGTH;
-    total_size += ecma_extended_info_get_encoded_length (context_p->argument_length);
+    total_size += ecma_extended_info_get_encoded_length (parser_context_p->argument_length);
   }
 #if JJS_FUNCTION_TO_STRING
-  if (context_p->last_context_p != NULL)
+  if (parser_context_p->last_context_p != NULL)
   {
     extended_info |= CBC_EXTENDED_CODE_FLAGS_HAS_SOURCE_CODE_RANGE;
 
-    const uint8_t *start_p = context_p->source_start_p;
-    const uint8_t *function_start_p = context_p->last_context_p->function_start_p;
+    const uint8_t *start_p = parser_context_p->source_start_p;
+    const uint8_t *function_start_p = parser_context_p->last_context_p->function_start_p;
 
-    if (function_start_p < start_p || function_start_p >= start_p + context_p->source_size)
+    if (function_start_p < start_p || function_start_p >= start_p + parser_context_p->source_size)
     {
-      JJS_ASSERT (context_p->arguments_start_p != NULL && function_start_p >= context_p->arguments_start_p
-                    && function_start_p < context_p->arguments_start_p + context_p->arguments_size);
+      JJS_ASSERT (parser_context_p->arguments_start_p != NULL && function_start_p >= parser_context_p->arguments_start_p
+                    && function_start_p < parser_context_p->arguments_start_p + parser_context_p->arguments_size);
 
-      start_p = context_p->arguments_start_p;
+      start_p = parser_context_p->arguments_start_p;
       extended_info |= CBC_EXTENDED_CODE_FLAGS_SOURCE_CODE_IN_ARGUMENTS;
     }
 
     total_size += ecma_extended_info_get_encoded_length ((uint32_t) (function_start_p - start_p));
-    total_size += ecma_extended_info_get_encoded_length ((uint32_t) (context_p->function_end_p - function_start_p));
+    total_size += ecma_extended_info_get_encoded_length ((uint32_t) (parser_context_p->function_end_p - function_start_p));
   }
 #endif /* JJS_FUNCTION_TO_STRING */
   if (extended_info != 0)
@@ -939,7 +946,7 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   }
 
   total_size = JJS_ALIGNUP (total_size, JMEM_ALIGNMENT);
-  compiled_code_p = (ecma_compiled_code_t *) parser_malloc (context_p, total_size);
+  compiled_code_p = (ecma_compiled_code_t *) parser_malloc (parser_context_p, total_size);
 
 #if JJS_SNAPSHOT_SAVE || JJS_PARSER_DUMP_BYTE_CODE
   // Avoid getting junk bytes
@@ -955,23 +962,23 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   compiled_code_p->refs = 1;
   compiled_code_p->status_flags = 0;
 
-  if (context_p->status_flags & PARSER_FUNCTION_HAS_REST_PARAM)
+  if (parser_context_p->status_flags & PARSER_FUNCTION_HAS_REST_PARAM)
   {
-    JJS_ASSERT (context_p->argument_count > 0);
-    context_p->argument_count--;
+    JJS_ASSERT (parser_context_p->argument_count > 0);
+    parser_context_p->argument_count--;
   }
 
   if (needs_uint16_arguments)
   {
     cbc_uint16_arguments_t *args_p = (cbc_uint16_arguments_t *) compiled_code_p;
 
-    args_p->stack_limit = context_p->stack_limit;
-    args_p->script_value = context_p->script_value;
-    args_p->argument_end = context_p->argument_count;
-    args_p->register_end = context_p->register_count;
+    args_p->stack_limit = parser_context_p->stack_limit;
+    args_p->script_value = parser_context_p->script_value;
+    args_p->argument_end = parser_context_p->argument_count;
+    args_p->register_end = parser_context_p->register_count;
     args_p->ident_end = ident_end;
     args_p->const_literal_end = const_literal_end;
-    args_p->literal_end = context_p->literal_count;
+    args_p->literal_end = parser_context_p->literal_count;
 
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_UINT16_ARGUMENTS;
     byte_code_p += sizeof (cbc_uint16_arguments_t);
@@ -980,13 +987,13 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   {
     cbc_uint8_arguments_t *args_p = (cbc_uint8_arguments_t *) compiled_code_p;
 
-    args_p->stack_limit = (uint8_t) context_p->stack_limit;
-    args_p->argument_end = (uint8_t) context_p->argument_count;
-    args_p->script_value = context_p->script_value;
-    args_p->register_end = (uint8_t) context_p->register_count;
+    args_p->stack_limit = (uint8_t) parser_context_p->stack_limit;
+    args_p->argument_end = (uint8_t) parser_context_p->argument_count;
+    args_p->script_value = parser_context_p->script_value;
+    args_p->register_end = (uint8_t) parser_context_p->register_count;
     args_p->ident_end = (uint8_t) ident_end;
     args_p->const_literal_end = (uint8_t) const_literal_end;
-    args_p->literal_end = (uint8_t) context_p->literal_count;
+    args_p->literal_end = (uint8_t) parser_context_p->literal_count;
 
     byte_code_p += sizeof (cbc_uint8_arguments_t);
   }
@@ -994,7 +1001,7 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   uint16_t encoding_limit;
   uint16_t encoding_delta;
 
-  if (context_p->literal_count > CBC_MAXIMUM_SMALL_VALUE)
+  if (parser_context_p->literal_count > CBC_MAXIMUM_SMALL_VALUE)
   {
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_FULL_LITERAL_ENCODING;
     encoding_limit = CBC_FULL_LITERAL_ENCODING_LIMIT;
@@ -1006,34 +1013,34 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     encoding_delta = CBC_SMALL_LITERAL_ENCODING_DELTA;
   }
 
-  if (context_p->status_flags & PARSER_IS_STRICT)
+  if (parser_context_p->status_flags & PARSER_IS_STRICT)
   {
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_STRICT_MODE;
   }
 
-  if ((context_p->status_flags & PARSER_ARGUMENTS_NEEDED) && PARSER_NEEDS_MAPPED_ARGUMENTS (context_p->status_flags))
+  if ((parser_context_p->status_flags & PARSER_ARGUMENTS_NEEDED) && PARSER_NEEDS_MAPPED_ARGUMENTS (parser_context_p->status_flags))
   {
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_MAPPED_ARGUMENTS_NEEDED;
   }
 
-  if (!(context_p->status_flags & PARSER_LEXICAL_ENV_NEEDED))
+  if (!(parser_context_p->status_flags & PARSER_LEXICAL_ENV_NEEDED))
   {
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_LEXICAL_ENV_NOT_NEEDED;
   }
 
   uint16_t function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_NORMAL);
 
-  if (context_p->status_flags & (PARSER_IS_PROPERTY_GETTER | PARSER_IS_PROPERTY_SETTER))
+  if (parser_context_p->status_flags & (PARSER_IS_PROPERTY_GETTER | PARSER_IS_PROPERTY_SETTER))
   {
     function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_ACCESSOR);
   }
-  else if (!(context_p->status_flags & PARSER_IS_FUNCTION))
+  else if (!(parser_context_p->status_flags & PARSER_IS_FUNCTION))
   {
     function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_SCRIPT);
   }
-  else if (context_p->status_flags & PARSER_IS_ARROW_FUNCTION)
+  else if (parser_context_p->status_flags & PARSER_IS_ARROW_FUNCTION)
   {
-    if (context_p->status_flags & PARSER_IS_ASYNC_FUNCTION)
+    if (parser_context_p->status_flags & PARSER_IS_ASYNC_FUNCTION)
     {
       function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_ASYNC_ARROW);
     }
@@ -1042,9 +1049,9 @@ parser_post_processing (parser_context_t *context_p) /**< context */
       function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_ARROW);
     }
   }
-  else if (context_p->status_flags & PARSER_IS_GENERATOR_FUNCTION)
+  else if (parser_context_p->status_flags & PARSER_IS_GENERATOR_FUNCTION)
   {
-    if (context_p->status_flags & PARSER_IS_ASYNC_FUNCTION)
+    if (parser_context_p->status_flags & PARSER_IS_ASYNC_FUNCTION)
     {
       function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_ASYNC_GENERATOR);
     }
@@ -1053,22 +1060,22 @@ parser_post_processing (parser_context_t *context_p) /**< context */
       function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_GENERATOR);
     }
   }
-  else if (context_p->status_flags & PARSER_IS_ASYNC_FUNCTION)
+  else if (parser_context_p->status_flags & PARSER_IS_ASYNC_FUNCTION)
   {
     function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_ASYNC);
   }
-  else if (context_p->status_flags & PARSER_CLASS_CONSTRUCTOR)
+  else if (parser_context_p->status_flags & PARSER_CLASS_CONSTRUCTOR)
   {
     function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_CONSTRUCTOR);
   }
-  else if (context_p->status_flags & PARSER_IS_METHOD)
+  else if (parser_context_p->status_flags & PARSER_IS_METHOD)
   {
     function_type = CBC_FUNCTION_TO_TYPE_BITS (CBC_FUNCTION_METHOD);
   }
 
-  if (context_p->status_flags & PARSER_LEXICAL_BLOCK_NEEDED)
+  if (parser_context_p->status_flags & PARSER_LEXICAL_BLOCK_NEEDED)
   {
-    JJS_ASSERT (!(context_p->status_flags & PARSER_IS_FUNCTION));
+    JJS_ASSERT (!(parser_context_p->status_flags & PARSER_IS_FUNCTION));
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_LEXICAL_BLOCK_NEEDED;
   }
 
@@ -1078,17 +1085,17 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   compiled_code_p->status_flags |= CBC_CODE_FLAGS_USING_LINE_INFO;
 #endif /* JJS_LINE_INFO */
 
-  literal_pool_p = ((ecma_value_t *) byte_code_p) - context_p->register_count;
+  literal_pool_p = ((ecma_value_t *) byte_code_p) - parser_context_p->register_count;
   byte_code_p += literal_length;
   dst_p = byte_code_p;
 
-  parser_init_literal_pool (context_p, literal_pool_p);
+  parser_init_literal_pool (parser_context_p, literal_pool_p);
 
-  page_p = context_p->byte_code.first_p;
+  page_p = parser_context_p->byte_code.first_p;
   offset = 0;
   real_offset = 0;
   uint8_t last_register_index =
-    (uint8_t) JJS_MIN (context_p->register_count, (PARSER_MAXIMUM_NUMBER_OF_REGISTERS - 1));
+    (uint8_t) JJS_MIN (parser_context_p->register_count, (PARSER_MAXIMUM_NUMBER_OF_REGISTERS - 1));
 
   while (page_p != last_page_p || offset < last_position)
   {
@@ -1126,7 +1133,7 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     if (opcode == CBC_BREAKPOINT_DISABLED)
     {
       uint32_t bp_offset = (uint32_t) (((uint8_t *) dst_p) - ((uint8_t *) compiled_code_p) - 1);
-      parser_append_breakpoint_info (context_p, JJS_DEBUGGER_BREAKPOINT_OFFSET_LIST, bp_offset);
+      parser_append_breakpoint_info (parser_context_p, JJS_DEBUGGER_BREAKPOINT_OFFSET_LIST, bp_offset);
     }
 #endif /* JJS_DEBUGGER */
 
@@ -1234,18 +1241,18 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   }
 
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED) && context_p->breakpoint_info_count > 0)
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) && parser_context_p->breakpoint_info_count > 0)
   {
-    parser_send_breakpoints (context_p, JJS_DEBUGGER_BREAKPOINT_OFFSET_LIST);
-    JJS_ASSERT (context_p->breakpoint_info_count == 0);
+    parser_send_breakpoints (parser_context_p, JJS_DEBUGGER_BREAKPOINT_OFFSET_LIST);
+    JJS_ASSERT (parser_context_p->breakpoint_info_count == 0);
   }
 #endif /* JJS_DEBUGGER */
 
-  if (!(context_p->status_flags & PARSER_NO_END_LABEL))
+  if (!(parser_context_p->status_flags & PARSER_NO_END_LABEL))
   {
     *dst_p++ = CBC_RETURN_FUNCTION_END;
 
-    if (PARSER_IS_NORMAL_ASYNC_FUNCTION (context_p->status_flags))
+    if (PARSER_IS_NORMAL_ASYNC_FUNCTION (parser_context_p->status_flags))
     {
       dst_p[-1] = CBC_EXT_OPCODE;
       dst_p[0] = CBC_EXT_ASYNC_EXIT;
@@ -1255,26 +1262,26 @@ parser_post_processing (parser_context_t *context_p) /**< context */
   JJS_ASSERT (dst_p == byte_code_p + length);
 
 #if JJS_LINE_INFO
-  uint8_t *line_info_p = parser_line_info_generate (context_p);
+  uint8_t *line_info_p = parser_line_info_generate (parser_context_p);
 #endif /* JJS_LINE_INFO */
 
-  parse_update_branches (context_p, byte_code_p);
+  parse_update_branches (parser_context_p, byte_code_p);
 
-  parser_cbc_stream_free (&context_p->byte_code);
+  parser_cbc_stream_free (&parser_context_p->byte_code);
 
-  if (context_p->status_flags & PARSER_HAS_LATE_LIT_INIT)
+  if (parser_context_p->status_flags & PARSER_HAS_LATE_LIT_INIT)
   {
     parser_list_iterator_t literal_iterator;
     lexer_literal_t *literal_p;
-    uint16_t register_count = context_p->register_count;
+    uint16_t register_count = parser_context_p->register_count;
 
-    parser_list_iterator_init (&context_p->literal_pool, &literal_iterator);
+    parser_list_iterator_init (&parser_context_p->literal_pool, &literal_iterator);
     while ((literal_p = (lexer_literal_t *) parser_list_iterator_next (&literal_iterator)))
     {
       if ((literal_p->status_flags & LEXER_FLAG_LATE_INIT) && literal_p->prop.index >= register_count)
       {
         uint32_t source_data = literal_p->u.source_data;
-        const uint8_t *char_p = context_p->source_end_p - (source_data & 0xfffff);
+        const uint8_t *char_p = parser_context_p->source_end_p - (source_data & 0xfffff);
         ecma_value_t lit_value = ecma_find_or_create_literal_string (char_p,
                                                                      source_data >> 20,
                                                                      (literal_p->status_flags & LEXER_FLAG_ASCII) != 0);
@@ -1285,15 +1292,15 @@ parser_post_processing (parser_context_t *context_p) /**< context */
 
   ecma_value_t *base_p = (ecma_value_t *) (((uint8_t *) compiled_code_p) + total_size);
 
-  if (PARSER_NEEDS_MAPPED_ARGUMENTS (context_p->status_flags))
+  if (PARSER_NEEDS_MAPPED_ARGUMENTS (parser_context_p->status_flags))
   {
     parser_list_iterator_t literal_iterator;
     uint16_t argument_count = 0;
-    uint16_t register_count = context_p->register_count;
-    base_p -= context_p->argument_count;
+    uint16_t register_count = parser_context_p->register_count;
+    base_p -= parser_context_p->argument_count;
 
-    parser_list_iterator_init (&context_p->literal_pool, &literal_iterator);
-    while (argument_count < context_p->argument_count)
+    parser_list_iterator_init (&parser_context_p->literal_pool, &literal_iterator);
+    while (argument_count < parser_context_p->argument_count)
     {
       lexer_literal_t *literal_p;
       literal_p = (lexer_literal_t *) parser_list_iterator_next (&literal_iterator);
@@ -1322,15 +1329,15 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     }
   }
 
-  if (!(context_p->status_flags & PARSER_CLASS_CONSTRUCTOR))
+  if (!(parser_context_p->status_flags & PARSER_CLASS_CONSTRUCTOR))
   {
     *(--base_p) = ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
   }
 
-  if (context_p->tagged_template_literal_cp != JMEM_CP_NULL)
+  if (parser_context_p->tagged_template_literal_cp != JMEM_CP_NULL)
   {
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_HAS_TAGGED_LITERALS;
-    *(--base_p) = (ecma_value_t) context_p->tagged_template_literal_cp;
+    *(--base_p) = (ecma_value_t) parser_context_p->tagged_template_literal_cp;
   }
 
 #if JJS_LINE_INFO
@@ -1349,25 +1356,25 @@ parser_post_processing (parser_context_t *context_p) /**< context */
     compiled_code_p->status_flags |= CBC_CODE_FLAGS_HAS_EXTENDED_INFO;
     *extended_info_p = extended_info;
 
-    if (context_p->argument_length != UINT16_MAX)
+    if (parser_context_p->argument_length != UINT16_MAX)
     {
-      ecma_extended_info_encode_vlq (&extended_info_p, context_p->argument_length);
+      ecma_extended_info_encode_vlq (&extended_info_p, parser_context_p->argument_length);
     }
 
 #if JJS_FUNCTION_TO_STRING
-    if (context_p->last_context_p != NULL)
+    if (parser_context_p->last_context_p != NULL)
     {
-      const uint8_t *start_p = context_p->source_start_p;
+      const uint8_t *start_p = parser_context_p->source_start_p;
 
       if (extended_info & CBC_EXTENDED_CODE_FLAGS_SOURCE_CODE_IN_ARGUMENTS)
       {
-        start_p = context_p->arguments_start_p;
+        start_p = parser_context_p->arguments_start_p;
       }
 
-      const uint8_t *function_start_p = context_p->last_context_p->function_start_p;
+      const uint8_t *function_start_p = parser_context_p->last_context_p->function_start_p;
 
       ecma_extended_info_encode_vlq (&extended_info_p, (uint32_t) (function_start_p - start_p));
-      ecma_extended_info_encode_vlq (&extended_info_p, (uint32_t) (context_p->function_end_p - function_start_p));
+      ecma_extended_info_encode_vlq (&extended_info_p, (uint32_t) (parser_context_p->function_end_p - function_start_p));
     }
 #endif /* JJS_FUNCTION_TO_STRING */
   }
@@ -1382,9 +1389,9 @@ parser_post_processing (parser_context_t *context_p) /**< context */
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_function_cp (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_BYTE_CODE_CP, compiled_code_p);
+    jjs_debugger_send_function_cp (context_p, JJS_DEBUGGER_BYTE_CODE_CP, compiled_code_p);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -1398,20 +1405,21 @@ parser_post_processing (parser_context_t *context_p) /**< context */
  * Resolve private identifier in direct eval context
  */
 static bool
-parser_resolve_private_identifier_eval (parser_context_t *context_p) /**< context */
+parser_resolve_private_identifier_eval (parser_context_t *parser_context_p) /**< parser context */
 {
   ecma_string_t *search_key_p;
-  uint8_t *destination_p = (uint8_t *) parser_malloc (context_p, context_p->token.lit_location.length);
+  uint8_t *destination_p = (uint8_t *) parser_malloc (parser_context_p, parser_context_p->token.lit_location.length);
 
   lexer_convert_ident_to_cesu8 (destination_p,
-                                context_p->token.lit_location.char_p,
-                                context_p->token.lit_location.length);
+                                parser_context_p->token.lit_location.char_p,
+                                parser_context_p->token.lit_location.length);
 
-  search_key_p = ecma_new_ecma_string_from_utf8 (destination_p, context_p->token.lit_location.length);
+  search_key_p = ecma_new_ecma_string_from_utf8 (destination_p, parser_context_p->token.lit_location.length);
 
-  parser_free (destination_p, context_p->token.lit_location.length);
+  parser_free (destination_p, parser_context_p->token.lit_location.length);
 
-  ecma_object_t *lex_env_p = JJS_CONTEXT (vm_top_context_p)->lex_env_p;
+  ecma_context_t *context_p = parser_context_p->context_p;
+  ecma_object_t *lex_env_p = context_p->vm_top_context_p->lex_env_p;
 
   while (true)
   {
@@ -1447,7 +1455,7 @@ parser_resolve_private_identifier_eval (parser_context_t *context_p) /**< contex
           if (ecma_compare_ecma_strings (private_key_desc_p, search_key_p))
           {
             ecma_deref_ecma_string (search_key_p);
-            lexer_construct_literal_object (context_p, &context_p->token.lit_location, LEXER_STRING_LITERAL);
+            lexer_construct_literal_object (parser_context_p, &parser_context_p->token.lit_location, LEXER_STRING_LITERAL);
             return true;
           }
         }
@@ -1470,25 +1478,25 @@ parser_resolve_private_identifier_eval (parser_context_t *context_p) /**< contex
  * Resolve private identifier
  */
 void
-parser_resolve_private_identifier (parser_context_t *context_p) /**< context */
+parser_resolve_private_identifier (parser_context_t *parser_context_p) /**< parser context */
 {
-  if ((context_p->global_status_flags & ECMA_PARSE_DIRECT_EVAL) && parser_resolve_private_identifier_eval (context_p))
+  if ((parser_context_p->global_status_flags & ECMA_PARSE_DIRECT_EVAL) && parser_resolve_private_identifier_eval (parser_context_p))
   {
     return;
   }
 
-  parser_private_context_t *context_iter_p = context_p->private_context_p;
+  parser_private_context_t *context_iter_p = parser_context_p->private_context_p;
 
   while (context_iter_p)
   {
     if (context_iter_p == NULL || !(context_iter_p->opts & SCANNER_PRIVATE_FIELD_ACTIVE))
     {
-      parser_raise_error (context_p, PARSER_ERR_UNDECLARED_PRIVATE_FIELD);
+      parser_raise_error (parser_context_p, PARSER_ERR_UNDECLARED_PRIVATE_FIELD);
     }
 
     if (!(context_iter_p->opts & SCANNER_SUCCESSFUL_CLASS_SCAN))
     {
-      lexer_construct_literal_object (context_p, &context_p->token.lit_location, LEXER_STRING_LITERAL);
+      lexer_construct_literal_object (parser_context_p, &parser_context_p->token.lit_location, LEXER_STRING_LITERAL);
       return;
     }
 
@@ -1496,16 +1504,16 @@ parser_resolve_private_identifier (parser_context_t *context_p) /**< context */
 
     if (private_context_p == NULL)
     {
-      parser_raise_error (context_p, PARSER_ERR_UNDECLARED_PRIVATE_FIELD);
+      parser_raise_error (parser_context_p, PARSER_ERR_UNDECLARED_PRIVATE_FIELD);
     }
 
     scanner_class_private_member_t *ident_iter = private_context_p->members_p;
 
     while (ident_iter)
     {
-      if (lexer_compare_identifiers (context_p, &context_p->token.lit_location, &ident_iter->loc))
+      if (lexer_compare_identifiers (parser_context_p, &parser_context_p->token.lit_location, &ident_iter->loc))
       {
-        lexer_construct_literal_object (context_p, &context_p->token.lit_location, LEXER_STRING_LITERAL);
+        lexer_construct_literal_object (parser_context_p, &parser_context_p->token.lit_location, LEXER_STRING_LITERAL);
         return;
       }
 
@@ -1515,22 +1523,22 @@ parser_resolve_private_identifier (parser_context_t *context_p) /**< context */
     context_iter_p = context_iter_p->prev_p;
   }
 
-  parser_raise_error (context_p, PARSER_ERR_UNDECLARED_PRIVATE_FIELD);
+  parser_raise_error (parser_context_p, PARSER_ERR_UNDECLARED_PRIVATE_FIELD);
 } /* parser_resolve_private_identifier */
 
 /**
  * Save private field context
  */
 void
-parser_save_private_context (parser_context_t *context_p, /**< context */
+parser_save_private_context (parser_context_t *parser_context_p, /**< parser context */
                              parser_private_context_t *private_ctx_p, /**< private context */
                              scanner_class_info_t *class_info_p) /**< class scanner info */
 {
-  private_ctx_p->prev_p = context_p->private_context_p;
-  context_p->private_context_p = private_ctx_p;
+  private_ctx_p->prev_p = parser_context_p->private_context_p;
+  parser_context_p->private_context_p = private_ctx_p;
 
-  context_p->private_context_p->members_p = class_info_p->members;
-  context_p->private_context_p->opts = class_info_p->info.u8_arg;
+  parser_context_p->private_context_p->members_p = class_info_p->members;
+  parser_context_p->private_context_p->opts = class_info_p->info.u8_arg;
   class_info_p->members = NULL;
 } /* parser_save_private_context */
 
@@ -1538,7 +1546,7 @@ parser_save_private_context (parser_context_t *context_p, /**< context */
  * Release contexts private fields
  */
 static void
-parser_free_private_fields (parser_context_t *context_p) /**< context */
+parser_free_private_fields (parser_context_t *context_p) /**< parser context */
 {
   parser_private_context_t *iter = context_p->private_context_p;
 
@@ -1554,11 +1562,11 @@ parser_free_private_fields (parser_context_t *context_p) /**< context */
  * Restore contexts private fields
  */
 void
-parser_restore_private_context (parser_context_t *context_p, /**< context */
+parser_restore_private_context (parser_context_t *parser_context_p, /**< parser context */
                                 parser_private_context_t *private_ctx_p) /**< private context */
 {
-  scanner_release_private_fields (context_p->private_context_p->members_p);
-  context_p->private_context_p = private_ctx_p->prev_p;
+  scanner_release_private_fields (parser_context_p->private_context_p->members_p);
+  parser_context_p->private_context_p = private_ctx_p->prev_p;
 } /* parser_restore_private_context */
 
 /**
@@ -1583,7 +1591,7 @@ parser_free_literals (parser_list_t *literal_pool_p) /**< literals */
  * Parse function arguments
  */
 static void
-parser_parse_function_arguments (parser_context_t *context_p, /**< context */
+parser_parse_function_arguments (parser_context_t *context_p, /**< parser context */
                                  lexer_token_type_t end_type) /**< expected end type */
 {
   JJS_ASSERT (context_p->next_scanner_info_p->type == SCANNER_TYPE_FUNCTION);
@@ -1926,7 +1934,7 @@ JJS_STATIC_ASSERT (PARSER_SCANNING_SUCCESSFUL == PARSER_HAS_LATE_LIT_INIT,
  * Parser script size
  */
 static size_t
-parser_script_size (parser_context_t *context_p) /**< context */
+parser_script_size (parser_context_t *context_p) /**< parser context */
 {
   size_t script_size = sizeof (cbc_script_t);
 
@@ -1956,7 +1964,7 @@ parser_script_size (parser_context_t *context_p) /**< context */
  * Parser resource name
  */
 static ecma_value_t
-parser_source_name (parser_context_t *context_p) /**< context */
+parser_source_name (parser_context_t *context_p) /**< parser context */
 {
   if (context_p->options_p != NULL && (context_p->options_p->options & JJS_PARSE_HAS_SOURCE_NAME))
   {
@@ -1983,13 +1991,15 @@ parser_source_name (parser_context_t *context_p) /**< context */
  * @return compiled code
  */
 static ecma_compiled_code_t *
-parser_parse_source (void *source_p, /**< source code */
+parser_parse_source (ecma_context_t *context_p, /**< JJS context */
+                     void *source_p, /**< source code */
                      uint32_t parse_opts, /**< ecma_parse_opts_t option bits */
                      const jjs_parse_options_t *options_p) /**< additional configuration options */
 {
   parser_context_t context;
   ecma_compiled_code_t *compiled_code_p;
 
+  context.context_p = context_p;
   context.error = PARSER_ERR_NO_ERROR;
   context.status_flags = parse_opts & PARSER_STRICT_MODE_MASK;
   context.global_status_flags = parse_opts;
@@ -2073,9 +2083,9 @@ parser_parse_source (void *source_p, /**< source code */
   }
 
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_string (&JJS_CONTEXT_STRUCT,
+    jjs_debugger_send_string (context_p,
                               JJS_DEBUGGER_SOURCE_CODE,
                               JJS_DEBUGGER_NO_SUBTYPE,
                               context.source_start_p,
@@ -2085,9 +2095,9 @@ parser_parse_source (void *source_p, /**< source code */
 
   context.user_value = ECMA_VALUE_EMPTY;
 
-  if ((context.global_status_flags & ECMA_PARSE_EVAL) && JJS_CONTEXT (vm_top_context_p) != NULL)
+  if ((context.global_status_flags & ECMA_PARSE_EVAL) && context_p->vm_top_context_p != NULL)
   {
-    const ecma_compiled_code_t *bytecode_header_p = JJS_CONTEXT (vm_top_context_p)->shared_p->bytecode_header_p;
+    const ecma_compiled_code_t *bytecode_header_p = context_p->vm_top_context_p->shared_p->bytecode_header_p;
 
 #if JJS_SNAPSHOT_EXEC
     if (JJS_LIKELY (!(bytecode_header_p->status_flags & CBC_CODE_FLAGS_STATIC_FUNCTION)))
@@ -2158,7 +2168,7 @@ parser_parse_source (void *source_p, /**< source code */
 #endif /* JJS_FUNCTION_TO_STRING */
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  context.is_show_opcodes = (JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_SHOW_OPCODES);
+  context.is_show_opcodes = (context_p->context_flags & JJS_CONTEXT_FLAG_SHOW_OPCODES);
   context.total_byte_code_size = 0;
 
   if (context.is_show_opcodes)
@@ -2175,7 +2185,7 @@ parser_parse_source (void *source_p, /**< source code */
 
     /* It is unlikely that memory can be allocated in an out-of-memory
      * situation. However, a simple value can still be thrown. */
-    jcontext_raise_exception (ECMA_VALUE_NULL);
+    jcontext_raise_exception (context_p, ECMA_VALUE_NULL);
     return NULL;
   }
 
@@ -2220,7 +2230,7 @@ parser_parse_source (void *source_p, /**< source code */
     }
 
 #if JJS_BUILTIN_REALMS
-    context.script_p->realm_p = (ecma_object_t *) JJS_CONTEXT (global_object_p);
+    context.script_p->realm_p = (ecma_object_t *) context_p->global_object_p;
 #endif /* JJS_BUILTIN_REALMS */
 
 #if JJS_SOURCE_NAME
@@ -2323,7 +2333,7 @@ parser_parse_source (void *source_p, /**< source code */
     if (context.global_status_flags & ECMA_PARSE_INTERNAL_HAS_IMPORT_META)
     {
       int idx = (context.user_value != ECMA_VALUE_EMPTY) ? 1 : 0;
-      ecma_value_t module = ecma_make_object_value ((ecma_object_t *) JJS_CONTEXT (module_current_p));
+      ecma_value_t module = ecma_make_object_value ((ecma_object_t *) context_p->module_current_p);
 
       CBC_SCRIPT_GET_OPTIONAL_VALUES (context.script_p)[idx] = module;
       context.script_p->refs_and_type |= CBC_SCRIPT_HAS_IMPORT_META;
@@ -2442,9 +2452,9 @@ parser_parse_source (void *source_p, /**< source code */
   }
 
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_type (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_PARSE_ERROR);
+    jjs_debugger_send_type (context_p, JJS_DEBUGGER_PARSE_ERROR);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -2452,10 +2462,10 @@ parser_parse_source (void *source_p, /**< source code */
   {
     /* It is unlikely that memory can be allocated in an out-of-memory
      * situation. However, a simple value can still be thrown. */
-    jcontext_raise_exception (ECMA_VALUE_NULL);
+    jcontext_raise_exception (context_p, ECMA_VALUE_NULL);
     return NULL;
   }
-  if (JJS_CONTEXT (vm_stack_limit) != 0)
+  if (context_p->vm_stack_limit != 0)
   {
     if (context.error == PARSER_ERR_STACK_OVERFLOW)
     {
@@ -2469,7 +2479,7 @@ parser_parse_source (void *source_p, /**< source code */
 
   if (context.error == PARSER_ERR_INVALID_REGEXP)
   {
-    ecma_value_t error = jcontext_take_exception ();
+    ecma_value_t error = jcontext_take_exception (context_p);
     ecma_property_t *prop_p =
       ecma_find_named_property (ecma_get_object_from_value (error), ecma_get_magic_string (LIT_MAGIC_STRING_MESSAGE));
     ecma_free_value (error);
@@ -2515,88 +2525,90 @@ parser_parse_source (void *source_p, /**< source code */
  * Save parser context before function parsing.
  */
 static void
-parser_save_context (parser_context_t *context_p, /**< context */
+parser_save_context (parser_context_t *parser_context_p, /**< parser context */
                      parser_saved_context_t *saved_context_p) /**< target for saving the context */
 {
-  JJS_ASSERT (context_p->last_cbc_opcode == PARSER_CBC_UNAVAILABLE);
+  JJS_ASSERT (parser_context_p->last_cbc_opcode == PARSER_CBC_UNAVAILABLE);
 
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED) && context_p->breakpoint_info_count > 0)
+  ecma_context_t *context_p = parser_context_p->context_p;
+
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) && parser_context_p->breakpoint_info_count > 0)
   {
-    parser_send_breakpoints (context_p, JJS_DEBUGGER_BREAKPOINT_LIST);
-    context_p->breakpoint_info_count = 0;
+    parser_send_breakpoints (parser_context_p, JJS_DEBUGGER_BREAKPOINT_LIST);
+    parser_context_p->breakpoint_info_count = 0;
   }
 #endif /* JJS_DEBUGGER */
 
-  if (context_p->status_flags & PARSER_FUNCTION_IS_PARSING_ARGS)
+  if (parser_context_p->status_flags & PARSER_FUNCTION_IS_PARSING_ARGS)
   {
-    context_p->status_flags |= PARSER_LEXICAL_BLOCK_NEEDED;
+    parser_context_p->status_flags |= PARSER_LEXICAL_BLOCK_NEEDED;
   }
 
   /* Save private part of the context. */
 
-  saved_context_p->status_flags = context_p->status_flags;
-  saved_context_p->stack_depth = context_p->stack_depth;
-  saved_context_p->stack_limit = context_p->stack_limit;
-  saved_context_p->prev_context_p = context_p->last_context_p;
-  saved_context_p->last_statement = context_p->last_statement;
+  saved_context_p->status_flags = parser_context_p->status_flags;
+  saved_context_p->stack_depth = parser_context_p->stack_depth;
+  saved_context_p->stack_limit = parser_context_p->stack_limit;
+  saved_context_p->prev_context_p = parser_context_p->last_context_p;
+  saved_context_p->last_statement = parser_context_p->last_statement;
 
-  saved_context_p->argument_count = context_p->argument_count;
-  saved_context_p->argument_length = context_p->argument_length;
-  saved_context_p->register_count = context_p->register_count;
-  saved_context_p->literal_count = context_p->literal_count;
+  saved_context_p->argument_count = parser_context_p->argument_count;
+  saved_context_p->argument_length = parser_context_p->argument_length;
+  saved_context_p->register_count = parser_context_p->register_count;
+  saved_context_p->literal_count = parser_context_p->literal_count;
 
-  saved_context_p->byte_code = context_p->byte_code;
-  saved_context_p->byte_code_size = context_p->byte_code_size;
-  saved_context_p->literal_pool_data = context_p->literal_pool.data;
-  saved_context_p->scope_stack_p = context_p->scope_stack_p;
-  saved_context_p->scope_stack_size = context_p->scope_stack_size;
-  saved_context_p->scope_stack_top = context_p->scope_stack_top;
-  saved_context_p->scope_stack_reg_top = context_p->scope_stack_reg_top;
-  saved_context_p->scope_stack_global_end = context_p->scope_stack_global_end;
-  saved_context_p->tagged_template_literal_cp = context_p->tagged_template_literal_cp;
+  saved_context_p->byte_code = parser_context_p->byte_code;
+  saved_context_p->byte_code_size = parser_context_p->byte_code_size;
+  saved_context_p->literal_pool_data = parser_context_p->literal_pool.data;
+  saved_context_p->scope_stack_p = parser_context_p->scope_stack_p;
+  saved_context_p->scope_stack_size = parser_context_p->scope_stack_size;
+  saved_context_p->scope_stack_top = parser_context_p->scope_stack_top;
+  saved_context_p->scope_stack_reg_top = parser_context_p->scope_stack_reg_top;
+  saved_context_p->scope_stack_global_end = parser_context_p->scope_stack_global_end;
+  saved_context_p->tagged_template_literal_cp = parser_context_p->tagged_template_literal_cp;
 
 #ifndef JJS_NDEBUG
-  saved_context_p->context_stack_depth = context_p->context_stack_depth;
+  saved_context_p->context_stack_depth = parser_context_p->context_stack_depth;
 #endif /* !JJS_NDEBUG */
 
 #if JJS_LINE_INFO
-  saved_context_p->line_info_p = context_p->line_info_p;
+  saved_context_p->line_info_p = parser_context_p->line_info_p;
 #endif /* JJS_LINE_INFO */
 
 #if JJS_FUNCTION_TO_STRING
-  saved_context_p->function_start_p = context_p->function_start_p;
+  saved_context_p->function_start_p = parser_context_p->function_start_p;
 #endif /* JJS_FUNCTION_TO_STRING */
 
   /* Reset private part of the context. */
 
-  context_p->status_flags &= PARSER_IS_STRICT;
-  context_p->stack_depth = 0;
-  context_p->stack_limit = 0;
-  context_p->last_context_p = saved_context_p;
-  context_p->last_statement.current_p = NULL;
+  parser_context_p->status_flags &= PARSER_IS_STRICT;
+  parser_context_p->stack_depth = 0;
+  parser_context_p->stack_limit = 0;
+  parser_context_p->last_context_p = saved_context_p;
+  parser_context_p->last_statement.current_p = NULL;
 
-  context_p->argument_count = 0;
-  context_p->argument_length = UINT16_MAX;
-  context_p->register_count = 0;
-  context_p->literal_count = 0;
+  parser_context_p->argument_count = 0;
+  parser_context_p->argument_length = UINT16_MAX;
+  parser_context_p->register_count = 0;
+  parser_context_p->literal_count = 0;
 
-  parser_cbc_stream_init (&context_p->byte_code);
-  context_p->byte_code_size = 0;
-  parser_list_reset (&context_p->literal_pool);
-  context_p->scope_stack_p = NULL;
-  context_p->scope_stack_size = 0;
-  context_p->scope_stack_top = 0;
-  context_p->scope_stack_reg_top = 0;
-  context_p->scope_stack_global_end = 0;
-  context_p->tagged_template_literal_cp = JMEM_CP_NULL;
+  parser_cbc_stream_init (&parser_context_p->byte_code);
+  parser_context_p->byte_code_size = 0;
+  parser_list_reset (&parser_context_p->literal_pool);
+  parser_context_p->scope_stack_p = NULL;
+  parser_context_p->scope_stack_size = 0;
+  parser_context_p->scope_stack_top = 0;
+  parser_context_p->scope_stack_reg_top = 0;
+  parser_context_p->scope_stack_global_end = 0;
+  parser_context_p->tagged_template_literal_cp = JMEM_CP_NULL;
 
 #ifndef JJS_NDEBUG
-  context_p->context_stack_depth = 0;
+  parser_context_p->context_stack_depth = 0;
 #endif /* !JJS_NDEBUG */
 
 #if JJS_LINE_INFO
-  context_p->line_info_p = NULL;
+  parser_context_p->line_info_p = NULL;
 #endif /* JJS_LINE_INFO */
 } /* parser_save_context */
 
@@ -2604,51 +2616,51 @@ parser_save_context (parser_context_t *context_p, /**< context */
  * Restore parser context after function parsing.
  */
 static void
-parser_restore_context (parser_context_t *context_p, /**< context */
+parser_restore_context (parser_context_t *parser_context_p, /**< parser context */
                         parser_saved_context_t *saved_context_p) /**< target for saving the context */
 {
-  parser_list_free (&context_p->literal_pool);
+  parser_list_free (&parser_context_p->literal_pool);
 
-  if (context_p->scope_stack_p != NULL)
+  if (parser_context_p->scope_stack_p != NULL)
   {
-    parser_free (context_p->scope_stack_p, context_p->scope_stack_size * sizeof (parser_scope_stack_t));
+    parser_free (parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
   }
 
 #if JJS_LINE_INFO
-  parser_line_info_free (context_p->line_info_p);
+  parser_line_info_free (parser_context_p->line_info_p);
 #endif /* JJS_LINE_INFO */
 
   /* Restore private part of the context. */
 
-  JJS_ASSERT (context_p->last_cbc_opcode == PARSER_CBC_UNAVAILABLE);
+  JJS_ASSERT (parser_context_p->last_cbc_opcode == PARSER_CBC_UNAVAILABLE);
 
-  context_p->status_flags = saved_context_p->status_flags;
-  context_p->stack_depth = saved_context_p->stack_depth;
-  context_p->stack_limit = saved_context_p->stack_limit;
-  context_p->last_context_p = saved_context_p->prev_context_p;
-  context_p->last_statement = saved_context_p->last_statement;
+  parser_context_p->status_flags = saved_context_p->status_flags;
+  parser_context_p->stack_depth = saved_context_p->stack_depth;
+  parser_context_p->stack_limit = saved_context_p->stack_limit;
+  parser_context_p->last_context_p = saved_context_p->prev_context_p;
+  parser_context_p->last_statement = saved_context_p->last_statement;
 
-  context_p->argument_count = saved_context_p->argument_count;
-  context_p->argument_length = saved_context_p->argument_length;
-  context_p->register_count = saved_context_p->register_count;
-  context_p->literal_count = saved_context_p->literal_count;
+  parser_context_p->argument_count = saved_context_p->argument_count;
+  parser_context_p->argument_length = saved_context_p->argument_length;
+  parser_context_p->register_count = saved_context_p->register_count;
+  parser_context_p->literal_count = saved_context_p->literal_count;
 
-  context_p->byte_code = saved_context_p->byte_code;
-  context_p->byte_code_size = saved_context_p->byte_code_size;
-  context_p->literal_pool.data = saved_context_p->literal_pool_data;
-  context_p->scope_stack_p = saved_context_p->scope_stack_p;
-  context_p->scope_stack_size = saved_context_p->scope_stack_size;
-  context_p->scope_stack_top = saved_context_p->scope_stack_top;
-  context_p->scope_stack_reg_top = saved_context_p->scope_stack_reg_top;
-  context_p->scope_stack_global_end = saved_context_p->scope_stack_global_end;
-  context_p->tagged_template_literal_cp = saved_context_p->tagged_template_literal_cp;
+  parser_context_p->byte_code = saved_context_p->byte_code;
+  parser_context_p->byte_code_size = saved_context_p->byte_code_size;
+  parser_context_p->literal_pool.data = saved_context_p->literal_pool_data;
+  parser_context_p->scope_stack_p = saved_context_p->scope_stack_p;
+  parser_context_p->scope_stack_size = saved_context_p->scope_stack_size;
+  parser_context_p->scope_stack_top = saved_context_p->scope_stack_top;
+  parser_context_p->scope_stack_reg_top = saved_context_p->scope_stack_reg_top;
+  parser_context_p->scope_stack_global_end = saved_context_p->scope_stack_global_end;
+  parser_context_p->tagged_template_literal_cp = saved_context_p->tagged_template_literal_cp;
 
 #ifndef JJS_NDEBUG
-  context_p->context_stack_depth = saved_context_p->context_stack_depth;
+  parser_context_p->context_stack_depth = saved_context_p->context_stack_depth;
 #endif /* !JJS_NDEBUG */
 
 #if JJS_LINE_INFO
-  context_p->line_info_p = saved_context_p->line_info_p;
+  parser_context_p->line_info_p = saved_context_p->line_info_p;
 #endif /* JJS_LINE_INFO */
 } /* parser_restore_context */
 
@@ -2658,16 +2670,16 @@ parser_restore_context (parser_context_t *context_p, /**< context */
  * @return compiled code
  */
 ecma_compiled_code_t *
-parser_parse_function (parser_context_t *context_p, /**< context */
+parser_parse_function (parser_context_t *parser_context_p, /**< parser context */
                        uint32_t status_flags) /**< extra status flags */
 {
   parser_saved_context_t saved_context;
   ecma_compiled_code_t *compiled_code_p;
 
   JJS_ASSERT (status_flags & PARSER_IS_FUNCTION);
-  parser_save_context (context_p, &saved_context);
-  context_p->status_flags |= status_flags;
-  context_p->status_flags |= PARSER_ALLOW_NEW_TARGET;
+  parser_save_context (parser_context_p, &saved_context);
+  parser_context_p->status_flags |= status_flags;
+  parser_context_p->status_flags |= PARSER_ALLOW_NEW_TARGET;
 
 #if JJS_PARSER_DUMP_BYTE_CODE
   if (context_p->is_show_opcodes)
@@ -2678,38 +2690,42 @@ parser_parse_function (parser_context_t *context_p, /**< context */
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  ecma_context_t *context_p = parser_context_p->context_p;
+
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_parse_function (&JJS_CONTEXT_STRUCT, context_p->token.line, context_p->token.column);
+    jjs_debugger_send_parse_function (context_p,
+                                      parser_context_p->token.line,
+                                      parser_context_p->token.column);
   }
 #endif /* JJS_DEBUGGER */
 
-  lexer_next_token (context_p);
+  lexer_next_token (parser_context_p);
 
-  if (context_p->token.type != LEXER_LEFT_PAREN)
+  if (parser_context_p->token.type != LEXER_LEFT_PAREN)
   {
-    parser_raise_error (context_p, PARSER_ERR_ARGUMENT_LIST_EXPECTED);
+    parser_raise_error (parser_context_p, PARSER_ERR_ARGUMENT_LIST_EXPECTED);
   }
 
-  lexer_next_token (context_p);
+  lexer_next_token (parser_context_p);
 
-  parser_parse_function_arguments (context_p, LEXER_RIGHT_PAREN);
-  lexer_next_token (context_p);
+  parser_parse_function_arguments (parser_context_p, LEXER_RIGHT_PAREN);
+  lexer_next_token (parser_context_p);
 
-  if ((context_p->status_flags & PARSER_IS_PROPERTY_GETTER) && context_p->argument_count != 0)
+  if ((parser_context_p->status_flags & PARSER_IS_PROPERTY_GETTER) && parser_context_p->argument_count != 0)
   {
-    parser_raise_error (context_p, PARSER_ERR_NO_ARGUMENTS_EXPECTED);
+    parser_raise_error (parser_context_p, PARSER_ERR_NO_ARGUMENTS_EXPECTED);
   }
 
-  if ((context_p->status_flags & PARSER_IS_PROPERTY_SETTER) && context_p->argument_count != 1)
+  if ((parser_context_p->status_flags & PARSER_IS_PROPERTY_SETTER) && parser_context_p->argument_count != 1)
   {
-    parser_raise_error (context_p, PARSER_ERR_ONE_ARGUMENT_EXPECTED);
+    parser_raise_error (parser_context_p, PARSER_ERR_ONE_ARGUMENT_EXPECTED);
   }
 
-  if ((context_p->status_flags & (PARSER_CLASS_CONSTRUCTOR | PARSER_ALLOW_SUPER_CALL)) == PARSER_CLASS_CONSTRUCTOR)
+  if ((parser_context_p->status_flags & (PARSER_CLASS_CONSTRUCTOR | PARSER_ALLOW_SUPER_CALL)) == PARSER_CLASS_CONSTRUCTOR)
   {
-    parser_emit_cbc_ext (context_p, CBC_EXT_RUN_FIELD_INIT);
-    parser_flush_cbc (context_p);
+    parser_emit_cbc_ext (parser_context_p, CBC_EXT_RUN_FIELD_INIT);
+    parser_flush_cbc (parser_context_p);
   }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
@@ -2719,14 +2735,14 @@ parser_parse_function (parser_context_t *context_p, /**< context */
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
-  if (context_p->token.type != LEXER_LEFT_BRACE)
+  if (parser_context_p->token.type != LEXER_LEFT_BRACE)
   {
-    parser_raise_error (context_p, PARSER_ERR_LEFT_BRACE_EXPECTED);
+    parser_raise_error (parser_context_p, PARSER_ERR_LEFT_BRACE_EXPECTED);
   }
 
-  lexer_next_token (context_p);
-  parser_parse_statements (context_p);
-  compiled_code_p = parser_post_processing (context_p);
+  lexer_next_token (parser_context_p);
+  parser_parse_statements (parser_context_p);
+  compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
   if (context_p->is_show_opcodes)
@@ -2736,7 +2752,7 @@ parser_parse_function (parser_context_t *context_p, /**< context */
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
-  parser_restore_context (context_p, &saved_context);
+  parser_restore_context (parser_context_p, &saved_context);
 
   return compiled_code_p;
 } /* parser_parse_function */
@@ -2747,13 +2763,13 @@ parser_parse_function (parser_context_t *context_p, /**< context */
  * @return compiled code
  */
 ecma_compiled_code_t *
-parser_parse_class_static_block (parser_context_t *context_p) /**< context */
+parser_parse_class_static_block (parser_context_t *parser_context_p) /**< parser context */
 {
   parser_saved_context_t saved_context;
   ecma_compiled_code_t *compiled_code_p;
 
-  parser_save_context (context_p, &saved_context);
-  context_p->status_flags |= (PARSER_IS_CLASS_STATIC_BLOCK | PARSER_FUNCTION_CLOSURE | PARSER_ALLOW_SUPER
+  parser_save_context (parser_context_p, &saved_context);
+  parser_context_p->status_flags |= (PARSER_IS_CLASS_STATIC_BLOCK | PARSER_FUNCTION_CLOSURE | PARSER_ALLOW_SUPER
                               | PARSER_INSIDE_CLASS_FIELD | PARSER_ALLOW_NEW_TARGET | PARSER_DISALLOW_AWAIT_YIELD);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
@@ -2763,11 +2779,11 @@ parser_parse_class_static_block (parser_context_t *context_p) /**< context */
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
-  scanner_create_variables (context_p, SCANNER_CREATE_VARS_NO_OPTS);
-  lexer_next_token (context_p);
+  scanner_create_variables (parser_context_p, SCANNER_CREATE_VARS_NO_OPTS);
+  lexer_next_token (parser_context_p);
 
-  parser_parse_statements (context_p);
-  compiled_code_p = parser_post_processing (context_p);
+  parser_parse_statements (parser_context_p);
+  compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
   if (context_p->is_show_opcodes)
@@ -2776,7 +2792,7 @@ parser_parse_class_static_block (parser_context_t *context_p) /**< context */
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
-  parser_restore_context (context_p, &saved_context);
+  parser_restore_context (parser_context_p, &saved_context);
 
   return compiled_code_p;
 } /* parser_parse_class_static_block */
@@ -2787,7 +2803,7 @@ parser_parse_class_static_block (parser_context_t *context_p) /**< context */
  * @return compiled code
  */
 ecma_compiled_code_t *
-parser_parse_arrow_function (parser_context_t *context_p, /**< context */
+parser_parse_arrow_function (parser_context_t *parser_context_p, /**< parser context */
                              uint32_t status_flags) /**< extra status flags */
 {
   parser_saved_context_t saved_context;
@@ -2795,9 +2811,9 @@ parser_parse_arrow_function (parser_context_t *context_p, /**< context */
 
   JJS_ASSERT (status_flags & PARSER_IS_FUNCTION);
   JJS_ASSERT (status_flags & PARSER_IS_ARROW_FUNCTION);
-  parser_save_context (context_p, &saved_context);
-  context_p->status_flags |= status_flags;
-  context_p->status_flags |=
+  parser_save_context (parser_context_p, &saved_context);
+  parser_context_p->status_flags |= status_flags;
+  parser_context_p->status_flags |=
     saved_context.status_flags & (PARSER_ALLOW_NEW_TARGET | PARSER_ALLOW_SUPER | PARSER_ALLOW_SUPER_CALL);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
@@ -2808,77 +2824,81 @@ parser_parse_arrow_function (parser_context_t *context_p, /**< context */
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  ecma_context_t *context_p = parser_context_p->context_p;
+
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_parse_function (&JJS_CONTEXT_STRUCT, context_p->token.line, context_p->token.column);
+    jjs_debugger_send_parse_function (context_p,
+                                      parser_context_p->token.line,
+                                      parser_context_p->token.column);
   }
 #endif /* JJS_DEBUGGER */
 
   /* The `await` keyword is disallowed in the IdentifierReference position */
   if (status_flags & PARSER_IS_CLASS_STATIC_BLOCK)
   {
-    context_p->status_flags |= PARSER_DISALLOW_AWAIT_YIELD;
+    parser_context_p->status_flags |= PARSER_DISALLOW_AWAIT_YIELD;
   }
 
-  if (context_p->token.type == LEXER_LEFT_PAREN)
+  if (parser_context_p->token.type == LEXER_LEFT_PAREN)
   {
-    lexer_next_token (context_p);
-    parser_parse_function_arguments (context_p, LEXER_RIGHT_PAREN);
-    lexer_next_token (context_p);
+    lexer_next_token (parser_context_p);
+    parser_parse_function_arguments (parser_context_p, LEXER_RIGHT_PAREN);
+    lexer_next_token (parser_context_p);
   }
   else
   {
-    parser_parse_function_arguments (context_p, LEXER_ARROW);
+    parser_parse_function_arguments (parser_context_p, LEXER_ARROW);
   }
 
   /* The `await` keyword is interpreted as an identifier within the body of arrow functions */
   if (status_flags & PARSER_IS_CLASS_STATIC_BLOCK)
   {
-    context_p->status_flags &= (uint32_t) ~(PARSER_DISALLOW_AWAIT_YIELD | PARSER_IS_CLASS_STATIC_BLOCK);
+    parser_context_p->status_flags &= (uint32_t) ~(PARSER_DISALLOW_AWAIT_YIELD | PARSER_IS_CLASS_STATIC_BLOCK);
   }
 
-  JJS_ASSERT (context_p->token.type == LEXER_ARROW);
+  JJS_ASSERT (parser_context_p->token.type == LEXER_ARROW);
 
-  lexer_next_token (context_p);
+  lexer_next_token (parser_context_p);
 
-  if (context_p->token.type == LEXER_LEFT_BRACE)
+  if (parser_context_p->token.type == LEXER_LEFT_BRACE)
   {
-    lexer_next_token (context_p);
+    lexer_next_token (parser_context_p);
 
-    context_p->status_flags |= PARSER_IS_CLOSURE;
-    parser_parse_statements (context_p);
+    parser_context_p->status_flags |= PARSER_IS_CLOSURE;
+    parser_parse_statements (parser_context_p);
 
     /* Unlike normal function, arrow functions consume their close brace. */
-    JJS_ASSERT (context_p->token.type == LEXER_RIGHT_BRACE);
-    lexer_next_token (context_p);
+    JJS_ASSERT (parser_context_p->token.type == LEXER_RIGHT_BRACE);
+    lexer_next_token (parser_context_p);
   }
   else
   {
-    if (context_p->status_flags & PARSER_IS_STRICT && context_p->status_flags & PARSER_HAS_NON_STRICT_ARG)
+    if (parser_context_p->status_flags & PARSER_IS_STRICT && parser_context_p->status_flags & PARSER_HAS_NON_STRICT_ARG)
     {
-      parser_raise_error (context_p, PARSER_ERR_NON_STRICT_ARG_DEFINITION);
+      parser_raise_error (parser_context_p, PARSER_ERR_NON_STRICT_ARG_DEFINITION);
     }
 
 #if JJS_LINE_INFO
-    parser_line_info_append (context_p, context_p->token.line, context_p->token.column);
+    parser_line_info_append (parser_context_p, parser_context_p->token.line, parser_context_p->token.column);
 #endif /* JJS_LINE_INFO */
 
-    parser_parse_expression (context_p, PARSE_EXPR_NO_COMMA);
+    parser_parse_expression (parser_context_p, PARSE_EXPR_NO_COMMA);
 
-    if (context_p->last_cbc_opcode == CBC_PUSH_LITERAL)
+    if (parser_context_p->last_cbc_opcode == CBC_PUSH_LITERAL)
     {
-      context_p->last_cbc_opcode = CBC_RETURN_WITH_LITERAL;
+      parser_context_p->last_cbc_opcode = CBC_RETURN_WITH_LITERAL;
     }
     else
     {
-      parser_emit_cbc (context_p, CBC_RETURN);
+      parser_emit_cbc (parser_context_p, CBC_RETURN);
     }
-    parser_flush_cbc (context_p);
+    parser_flush_cbc (parser_context_p);
 
-    lexer_update_await_yield (context_p, saved_context.status_flags);
+    lexer_update_await_yield (parser_context_p, saved_context.status_flags);
   }
 
-  compiled_code_p = parser_post_processing (context_p);
+  compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
   if (context_p->is_show_opcodes)
@@ -2887,7 +2907,7 @@ parser_parse_arrow_function (parser_context_t *context_p, /**< context */
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
-  parser_restore_context (context_p, &saved_context);
+  parser_restore_context (parser_context_p, &saved_context);
 
   return compiled_code_p;
 } /* parser_parse_arrow_function */
@@ -2898,15 +2918,15 @@ parser_parse_arrow_function (parser_context_t *context_p, /**< context */
  * @return compiled code
  */
 ecma_compiled_code_t *
-parser_parse_class_fields (parser_context_t *context_p) /**< context */
+parser_parse_class_fields (parser_context_t *parser_context_p) /**< parser context */
 {
   parser_saved_context_t saved_context;
   ecma_compiled_code_t *compiled_code_p;
 
-  uint32_t extra_status_flags = context_p->status_flags & PARSER_INSIDE_WITH;
+  uint32_t extra_status_flags = parser_context_p->status_flags & PARSER_INSIDE_WITH;
 
-  parser_save_context (context_p, &saved_context);
-  context_p->status_flags |= (PARSER_IS_FUNCTION | PARSER_ALLOW_SUPER | PARSER_INSIDE_CLASS_FIELD
+  parser_save_context (parser_context_p, &saved_context);
+  parser_context_p->status_flags |= (PARSER_IS_FUNCTION | PARSER_ALLOW_SUPER | PARSER_INSIDE_CLASS_FIELD
                               | PARSER_ALLOW_NEW_TARGET | extra_status_flags);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
@@ -2917,31 +2937,35 @@ parser_parse_class_fields (parser_context_t *context_p) /**< context */
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_DEBUGGER
-  if (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+  ecma_context_t *context_p = parser_context_p->context_p;
+
+  if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
-    jjs_debugger_send_parse_function (&JJS_CONTEXT_STRUCT, context_p->token.line, context_p->token.column);
+    jjs_debugger_send_parse_function (context_p,
+                                      parser_context_p->token.line,
+                                      parser_context_p->token.column);
   }
 #endif /* JJS_DEBUGGER */
 
-  const uint8_t *source_end_p = context_p->source_end_p;
+  const uint8_t *source_end_p = parser_context_p->source_end_p;
   bool first_computed_class_field = true;
   scanner_location_t end_location;
-  scanner_get_location (&end_location, context_p);
+  scanner_get_location (&end_location, parser_context_p);
 
   do
   {
-    uint8_t class_field_type = context_p->stack_top_uint8;
-    parser_stack_pop_uint8 (context_p);
+    uint8_t class_field_type = parser_context_p->stack_top_uint8;
+    parser_stack_pop_uint8 (parser_context_p);
 
     scanner_range_t range = { 0 };
 
     if (class_field_type & PARSER_CLASS_FIELD_INITIALIZED)
     {
-      parser_stack_pop (context_p, &range, sizeof (scanner_range_t));
+      parser_stack_pop (parser_context_p, &range, sizeof (scanner_range_t));
     }
     else if (class_field_type & PARSER_CLASS_FIELD_NORMAL)
     {
-      parser_stack_pop (context_p, &range.start_location, sizeof (scanner_location_t));
+      parser_stack_pop (parser_context_p, &range.start_location, sizeof (scanner_location_t));
     }
 
     uint16_t literal_index = 0;
@@ -2949,45 +2973,45 @@ parser_parse_class_fields (parser_context_t *context_p) /**< context */
 
     if (class_field_type & PARSER_CLASS_FIELD_NORMAL)
     {
-      scanner_set_location (context_p, &range.start_location);
+      scanner_set_location (parser_context_p, &range.start_location);
 
       if (class_field_type & PARSER_CLASS_FIELD_STATIC_BLOCK)
       {
-        scanner_seek (context_p);
-        JJS_ASSERT (context_p->source_p[1] == LIT_CHAR_LEFT_BRACE);
-        context_p->source_p += 2;
-        context_p->source_end_p = source_end_p;
+        scanner_seek (parser_context_p);
+        JJS_ASSERT (parser_context_p->source_p[1] == LIT_CHAR_LEFT_BRACE);
+        parser_context_p->source_p += 2;
+        parser_context_p->source_end_p = source_end_p;
 
-        uint16_t func_index = lexer_construct_class_static_block_function (context_p);
+        uint16_t func_index = lexer_construct_class_static_block_function (parser_context_p);
 
-        parser_emit_cbc_ext_literal (context_p, CBC_EXT_CLASS_CALL_STATIC_BLOCK, func_index);
+        parser_emit_cbc_ext_literal (parser_context_p, CBC_EXT_CLASS_CALL_STATIC_BLOCK, func_index);
         continue;
       }
 
       uint32_t ident_opts = LEXER_OBJ_IDENT_ONLY_IDENTIFIERS;
-      is_private = context_p->source_p[-1] == LIT_CHAR_HASHMARK;
+      is_private = parser_context_p->source_p[-1] == LIT_CHAR_HASHMARK;
 
       if (is_private)
       {
         ident_opts |= LEXER_OBJ_IDENT_CLASS_PRIVATE;
       }
 
-      context_p->source_end_p = source_end_p;
-      scanner_seek (context_p);
+      parser_context_p->source_end_p = source_end_p;
+      scanner_seek (parser_context_p);
 
-      lexer_expect_object_literal_id (context_p, ident_opts);
+      lexer_expect_object_literal_id (parser_context_p, ident_opts);
 
-      literal_index = context_p->lit_object.index;
+      literal_index = parser_context_p->lit_object.index;
 
       if (class_field_type & PARSER_CLASS_FIELD_INITIALIZED)
       {
-        lexer_next_token (context_p);
-        JJS_ASSERT (context_p->token.type == LEXER_ASSIGN);
+        lexer_next_token (parser_context_p);
+        JJS_ASSERT (parser_context_p->token.type == LEXER_ASSIGN);
       }
     }
     else if (first_computed_class_field)
     {
-      parser_emit_cbc (context_p, CBC_PUSH_NUMBER_0);
+      parser_emit_cbc (parser_context_p, CBC_PUSH_NUMBER_0);
       first_computed_class_field = false;
     }
 
@@ -2995,62 +3019,62 @@ parser_parse_class_fields (parser_context_t *context_p) /**< context */
     {
       if (!(class_field_type & PARSER_CLASS_FIELD_NORMAL))
       {
-        scanner_set_location (context_p, &range.start_location);
-        scanner_seek (context_p);
+        scanner_set_location (parser_context_p, &range.start_location);
+        scanner_seek (parser_context_p);
       }
 
-      context_p->source_end_p = range.source_end_p;
-      lexer_next_token (context_p);
+      parser_context_p->source_end_p = range.source_end_p;
+      lexer_next_token (parser_context_p);
 
 #if JJS_LINE_INFO
-      parser_line_info_append (context_p, context_p->token.line, context_p->token.column);
+      parser_line_info_append (parser_context_p, parser_context_p->token.line, parser_context_p->token.column);
 #endif /* JJS_LINE_INFO */
 
-      parser_parse_expression (context_p, PARSE_EXPR_NO_COMMA);
+      parser_parse_expression (parser_context_p, PARSE_EXPR_NO_COMMA);
 
-      if (context_p->token.type != LEXER_EOS)
+      if (parser_context_p->token.type != LEXER_EOS)
       {
-        parser_raise_error (context_p, PARSER_ERR_SEMICOLON_EXPECTED);
+        parser_raise_error (parser_context_p, PARSER_ERR_SEMICOLON_EXPECTED);
       }
     }
     else
     {
-      parser_emit_cbc (context_p, CBC_PUSH_UNDEFINED);
+      parser_emit_cbc (parser_context_p, CBC_PUSH_UNDEFINED);
     }
 
     if (class_field_type & PARSER_CLASS_FIELD_NORMAL)
     {
-      uint16_t function_literal_index = parser_check_anonymous_function_declaration (context_p);
+      uint16_t function_literal_index = parser_check_anonymous_function_declaration (parser_context_p);
 
       if (function_literal_index == PARSER_ANONYMOUS_CLASS)
       {
-        parser_emit_cbc_ext_literal (context_p, CBC_EXT_SET_CLASS_NAME, literal_index);
+        parser_emit_cbc_ext_literal (parser_context_p, CBC_EXT_SET_CLASS_NAME, literal_index);
       }
       else if (function_literal_index < PARSER_NAMED_FUNCTION)
       {
         uint32_t function_name_status_flags = is_private ? PARSER_PRIVATE_FUNCTION_NAME : 0;
-        parser_set_function_name (context_p, function_literal_index, literal_index, function_name_status_flags);
+        parser_set_function_name (parser_context_p, function_literal_index, literal_index, function_name_status_flags);
       }
 
       if (is_private)
       {
-        parser_emit_cbc_ext_literal (context_p, CBC_EXT_PRIVATE_FIELD_ADD, literal_index);
+        parser_emit_cbc_ext_literal (parser_context_p, CBC_EXT_PRIVATE_FIELD_ADD, literal_index);
       }
       else
       {
-        parser_emit_cbc_ext_literal (context_p, CBC_EXT_DEFINE_FIELD, literal_index);
+        parser_emit_cbc_ext_literal (parser_context_p, CBC_EXT_DEFINE_FIELD, literal_index);
       }
 
       /* Prepare stack slot for assignment property reference base. Needed by vm.c */
-      if (context_p->stack_limit == context_p->stack_depth)
+      if (parser_context_p->stack_limit == parser_context_p->stack_depth)
       {
-        context_p->stack_limit++;
-        JJS_ASSERT (context_p->stack_limit <= PARSER_MAXIMUM_STACK_LIMIT);
+        parser_context_p->stack_limit++;
+        JJS_ASSERT (parser_context_p->stack_limit <= PARSER_MAXIMUM_STACK_LIMIT);
       }
     }
     else
     {
-      uint16_t function_literal_index = parser_check_anonymous_function_declaration (context_p);
+      uint16_t function_literal_index = parser_check_anonymous_function_declaration (parser_context_p);
       uint16_t opcode = CBC_EXT_SET_NEXT_COMPUTED_FIELD;
 
       if (function_literal_index < PARSER_NAMED_FUNCTION || function_literal_index == PARSER_ANONYMOUS_CLASS)
@@ -3058,39 +3082,39 @@ parser_parse_class_fields (parser_context_t *context_p) /**< context */
         opcode = CBC_EXT_SET_NEXT_COMPUTED_FIELD_ANONYMOUS_FUNC;
       }
 
-      parser_flush_cbc (context_p);
+      parser_flush_cbc (parser_context_p);
 
       /* The next opcode pushes two more temporary values onto the stack */
-      if (context_p->stack_depth + 1 > context_p->stack_limit)
+      if (parser_context_p->stack_depth + 1 > parser_context_p->stack_limit)
       {
-        context_p->stack_limit = (uint16_t) (context_p->stack_depth + 1);
-        if (context_p->stack_limit > PARSER_MAXIMUM_STACK_LIMIT)
+        parser_context_p->stack_limit = (uint16_t) (parser_context_p->stack_depth + 1);
+        if (parser_context_p->stack_limit > PARSER_MAXIMUM_STACK_LIMIT)
         {
-          parser_raise_error (context_p, PARSER_ERR_STACK_LIMIT_REACHED);
+          parser_raise_error (parser_context_p, PARSER_ERR_STACK_LIMIT_REACHED);
         }
       }
 
-      parser_emit_cbc_ext (context_p, opcode);
+      parser_emit_cbc_ext (parser_context_p, opcode);
     }
-  } while (!(context_p->stack_top_uint8 & PARSER_CLASS_FIELD_END));
+  } while (!(parser_context_p->stack_top_uint8 & PARSER_CLASS_FIELD_END));
 
   if (!first_computed_class_field)
   {
-    parser_emit_cbc (context_p, CBC_POP);
+    parser_emit_cbc (parser_context_p, CBC_POP);
   }
 
-  parser_flush_cbc (context_p);
-  context_p->source_end_p = source_end_p;
-  scanner_set_location (context_p, &end_location);
+  parser_flush_cbc (parser_context_p);
+  parser_context_p->source_end_p = source_end_p;
+  scanner_set_location (parser_context_p, &end_location);
 
 #if JJS_LINE_INFO
-  if (context_p->line_info_p == NULL)
+  if (parser_context_p->line_info_p == NULL)
   {
-    parser_line_info_append (context_p, context_p->token.line, context_p->token.column);
+    parser_line_info_append (parser_context_p, parser_context_p->token.line, parser_context_p->token.column);
   }
 #endif /* JJS_LINE_INFO */
 
-  compiled_code_p = parser_post_processing (context_p);
+  compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
   if (context_p->is_show_opcodes)
@@ -3099,7 +3123,7 @@ parser_parse_class_fields (parser_context_t *context_p) /**< context */
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
-  parser_restore_context (context_p, &saved_context);
+  parser_restore_context (parser_context_p, &saved_context);
 
   return compiled_code_p;
 } /* parser_parse_class_fields */
@@ -3113,31 +3137,31 @@ parser_parse_class_fields (parser_context_t *context_p) /**< context */
  *         literal index of the anonymous function literal - otherwise
  */
 uint16_t
-parser_check_anonymous_function_declaration (parser_context_t *context_p) /**< context */
+parser_check_anonymous_function_declaration (parser_context_t *parser_context_p) /**< parser context */
 {
-  if (context_p->last_cbc_opcode == PARSER_TO_EXT_OPCODE (CBC_EXT_FINALIZE_ANONYMOUS_CLASS))
+  if (parser_context_p->last_cbc_opcode == PARSER_TO_EXT_OPCODE (CBC_EXT_FINALIZE_ANONYMOUS_CLASS))
   {
     return PARSER_ANONYMOUS_CLASS;
   }
 
-  if (context_p->last_cbc.literal_type != LEXER_FUNCTION_LITERAL)
+  if (parser_context_p->last_cbc.literal_type != LEXER_FUNCTION_LITERAL)
   {
     return PARSER_NOT_FUNCTION_LITERAL;
   }
 
   uint16_t literal_index = PARSER_NOT_FUNCTION_LITERAL;
 
-  if (context_p->last_cbc_opcode == CBC_PUSH_LITERAL)
+  if (parser_context_p->last_cbc_opcode == CBC_PUSH_LITERAL)
   {
-    literal_index = context_p->last_cbc.literal_index;
+    literal_index = parser_context_p->last_cbc.literal_index;
   }
-  else if (context_p->last_cbc_opcode == CBC_PUSH_TWO_LITERALS)
+  else if (parser_context_p->last_cbc_opcode == CBC_PUSH_TWO_LITERALS)
   {
-    literal_index = context_p->last_cbc.value;
+    literal_index = parser_context_p->last_cbc.value;
   }
-  else if (context_p->last_cbc_opcode == CBC_PUSH_THREE_LITERALS)
+  else if (parser_context_p->last_cbc_opcode == CBC_PUSH_THREE_LITERALS)
   {
-    literal_index = context_p->last_cbc.third_literal_index;
+    literal_index = parser_context_p->last_cbc.third_literal_index;
   }
   else
   {
@@ -3157,7 +3181,7 @@ parser_check_anonymous_function_declaration (parser_context_t *context_p) /**< c
  * to the given character buffer of literal corresponds to the given name index.
  */
 void
-parser_set_function_name (parser_context_t *context_p, /**< context */
+parser_set_function_name (parser_context_t *parser_context_p, /**< parser context */
                           uint16_t function_literal_index, /**< function literal index */
                           uint16_t name_index, /**< function name literal index */
                           uint32_t status_flags) /**< status flags */
@@ -3165,7 +3189,7 @@ parser_set_function_name (parser_context_t *context_p, /**< context */
   ecma_compiled_code_t *bytecode_p;
   bytecode_p = (ecma_compiled_code_t *) (PARSER_GET_LITERAL (function_literal_index)->u.bytecode_p);
 
-  parser_compiled_code_set_function_name (context_p, bytecode_p, name_index, status_flags);
+  parser_compiled_code_set_function_name (parser_context_p, bytecode_p, name_index, status_flags);
 } /* parser_set_function_name */
 
 /**
@@ -3174,14 +3198,14 @@ parser_set_function_name (parser_context_t *context_p, /**< context */
  * @return pointer to the newly allocated buffer
  */
 static uint8_t *
-parser_add_function_name_prefix (parser_context_t *context_p, /**< context */
+parser_add_function_name_prefix (parser_context_t *parser_context_p, /**< parser context */
                                  const char *prefix_p, /**< prefix */
                                  uint32_t prefix_size, /**< prefix's length */
                                  uint32_t *name_length_p, /**< [out] function name's size */
                                  lexer_literal_t *name_lit_p) /**< function name literal */
 {
   *name_length_p += prefix_size;
-  uint8_t *name_buffer_p = (uint8_t *) parser_malloc (context_p, *name_length_p * sizeof (uint8_t));
+  uint8_t *name_buffer_p = (uint8_t *) parser_malloc (parser_context_p, *name_length_p * sizeof (uint8_t));
   memcpy (name_buffer_p, prefix_p, prefix_size);
   memcpy (name_buffer_p + prefix_size, name_lit_p->u.char_p, name_lit_p->prop.length);
 
@@ -3193,7 +3217,7 @@ parser_add_function_name_prefix (parser_context_t *context_p, /**< context */
  * to the given character buffer of literal corresponds to the given name index.
  */
 void
-parser_compiled_code_set_function_name (parser_context_t *context_p, /**< context */
+parser_compiled_code_set_function_name (parser_context_t *parser_context_p, /**< parser context */
                                         ecma_compiled_code_t *bytecode_p, /**< function literal index */
                                         uint16_t name_index, /**< function name literal index */
                                         uint32_t status_flags) /**< status flags */
@@ -3206,8 +3230,8 @@ parser_compiled_code_set_function_name (parser_context_t *context_p, /**< contex
     return;
   }
 
-  parser_scope_stack_t *scope_stack_start_p = context_p->scope_stack_p;
-  parser_scope_stack_t *scope_stack_p = scope_stack_start_p ? scope_stack_start_p + context_p->scope_stack_top : NULL;
+  parser_scope_stack_t *scope_stack_start_p = parser_context_p->scope_stack_p;
+  parser_scope_stack_t *scope_stack_p = scope_stack_start_p ? scope_stack_start_p + parser_context_p->scope_stack_top : NULL;
 
   while (scope_stack_p > scope_stack_start_p)
   {
@@ -3232,11 +3256,11 @@ parser_compiled_code_set_function_name (parser_context_t *context_p, /**< contex
 
   if (status_flags & PARSER_PRIVATE_FUNCTION_NAME)
   {
-    name_buffer_p = parser_add_function_name_prefix (context_p, "#", 1, &name_length, name_lit_p);
+    name_buffer_p = parser_add_function_name_prefix (parser_context_p, "#", 1, &name_length, name_lit_p);
   }
   else if (status_flags & (PARSER_IS_PROPERTY_GETTER | PARSER_IS_PROPERTY_SETTER))
   {
-    name_buffer_p = parser_add_function_name_prefix (context_p,
+    name_buffer_p = parser_add_function_name_prefix (parser_context_p,
                                                      (status_flags & PARSER_IS_PROPERTY_GETTER) ? "get " : "set ",
                                                      4,
                                                      &name_length,
@@ -3256,12 +3280,12 @@ parser_compiled_code_set_function_name (parser_context_t *context_p, /**< contex
  * Raise a parse error.
  */
 void
-parser_raise_error (parser_context_t *context_p, /**< context */
+parser_raise_error (parser_context_t *parser_context_p, /**< parser context */
                     parser_error_msg_t error) /**< error code */
 {
   /* Must be compatible with the scanner because
    * the lexer might throws errors during prescanning. */
-  parser_saved_context_t *saved_context_p = context_p->last_context_p;
+  parser_saved_context_t *saved_context_p = parser_context_p->last_context_p;
 
   while (saved_context_p != NULL)
   {
@@ -3272,15 +3296,15 @@ parser_raise_error (parser_context_t *context_p, /**< context */
      * are not used anymore, this is a valid replacement. The last pool
      * is freed by parser_parse_source. */
 
-    parser_free_literals (&context_p->literal_pool);
-    context_p->literal_pool.data = saved_context_p->literal_pool_data;
+    parser_free_literals (&parser_context_p->literal_pool);
+    parser_context_p->literal_pool.data = saved_context_p->literal_pool_data;
 
-    if (context_p->scope_stack_p != NULL)
+    if (parser_context_p->scope_stack_p != NULL)
     {
-      parser_free (context_p->scope_stack_p, context_p->scope_stack_size * sizeof (parser_scope_stack_t));
+      parser_free (parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
     }
-    context_p->scope_stack_p = saved_context_p->scope_stack_p;
-    context_p->scope_stack_size = saved_context_p->scope_stack_size;
+    parser_context_p->scope_stack_p = saved_context_p->scope_stack_p;
+    parser_context_p->scope_stack_size = saved_context_p->scope_stack_size;
 
     if (saved_context_p->last_statement.current_p != NULL)
     {
@@ -3301,17 +3325,17 @@ parser_raise_error (parser_context_t *context_p, /**< context */
     saved_context_p = saved_context_p->prev_context_p;
   }
 
-  parser_free_private_fields (context_p);
+  parser_free_private_fields (parser_context_p);
 
-  if (context_p->tagged_template_literal_cp != JMEM_CP_NULL)
+  if (parser_context_p->tagged_template_literal_cp != JMEM_CP_NULL)
   {
     ecma_collection_t *collection =
-      ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, context_p->tagged_template_literal_cp);
+      ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, parser_context_p->tagged_template_literal_cp);
     ecma_collection_free_template_literal (collection);
   }
 
-  context_p->error = error;
-  PARSER_THROW (context_p->try_buffer);
+  parser_context_p->error = error;
+  PARSER_THROW (parser_context_p->try_buffer);
   /* Should never been reached. */
   JJS_ASSERT (0);
 } /* parser_raise_error */
@@ -3329,12 +3353,13 @@ parser_raise_error (parser_context_t *context_p, /**< context */
  *         NULL - otherwise
  */
 ecma_compiled_code_t *
-parser_parse_script (void *source_p, /**< source code */
+parser_parse_script (ecma_context_t *context_p, /**< JJS context */
+                     void *source_p, /**< source code */
                      uint32_t parse_opts, /**< ecma_parse_opts_t option bits */
                      const jjs_parse_options_t *options_p) /**< additional configuration options */
 {
 #if JJS_PARSER
-  ecma_compiled_code_t *bytecode_p = parser_parse_source (source_p, parse_opts, options_p);
+  ecma_compiled_code_t *bytecode_p = parser_parse_source (context_p, source_p, parse_opts, options_p);
 
   if (JJS_UNLIKELY (bytecode_p == NULL))
   {
@@ -3343,28 +3368,29 @@ parser_parse_script (void *source_p, /**< source code */
   }
 
 #if JJS_DEBUGGER
-  if ((JJS_CONTEXT (debugger_flags) & (JJS_DEBUGGER_CONNECTED | JJS_DEBUGGER_PARSER_WAIT))
+  if ((context_p->debugger_flags & (JJS_DEBUGGER_CONNECTED | JJS_DEBUGGER_PARSER_WAIT))
       == (JJS_DEBUGGER_CONNECTED | JJS_DEBUGGER_PARSER_WAIT))
   {
-    JJS_DEBUGGER_SET_FLAGS (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_PARSER_WAIT_MODE);
-    jjs_debugger_send_type (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_WAITING_AFTER_PARSE);
+    JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_PARSER_WAIT_MODE);
+    jjs_debugger_send_type (context_p, JJS_DEBUGGER_WAITING_AFTER_PARSE);
 
-    while (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_PARSER_WAIT_MODE)
+    while (context_p->debugger_flags & JJS_DEBUGGER_PARSER_WAIT_MODE)
     {
-      jjs_debugger_receive (&JJS_CONTEXT_STRUCT, NULL);
+      jjs_debugger_receive (context_p, NULL);
 
-      if (!(JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED))
+      if (!(context_p->debugger_flags & JJS_DEBUGGER_CONNECTED))
       {
         break;
       }
 
-      jjs_debugger_transport_sleep (&JJS_CONTEXT_STRUCT);
+      jjs_debugger_transport_sleep (context_p);
     }
   }
 #endif /* JJS_DEBUGGER */
 
   return bytecode_p;
 #else /* !JJS_PARSER */
+  JJS_UNUSED (context_p);
   JJS_UNUSED (arg_list_p);
   JJS_UNUSED (arg_list_size);
   JJS_UNUSED (source_p);

@@ -29,7 +29,7 @@
  */
 
 /* Note: source must be a valid UTF-8 string */
-ecma_compiled_code_t *parser_parse_script (void *source_p, uint32_t parse_opts, const jjs_parse_options_t *options_p);
+ecma_compiled_code_t *parser_parse_script (ecma_context_t *context_p, void *source_p, uint32_t parse_opts, const jjs_parse_options_t *options_p);
 
 /**
  * @}

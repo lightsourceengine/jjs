@@ -459,15 +459,17 @@ ecma_op_iterator_value (ecma_value_t iter_result) /**< iterator value */
 ecma_value_t
 ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
 {
+  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
   /* 1. */
   JJS_ASSERT (ecma_is_value_object (iterator));
 
   /* 2. */
   ecma_value_t completion = ECMA_VALUE_EMPTY;
 
-  if (jcontext_has_pending_exception ())
+  if (jcontext_has_pending_exception (context_p))
   {
-    completion = jcontext_take_exception ();
+    completion = jcontext_take_exception (context_p);
   }
 
   /* 3. */
@@ -488,7 +490,7 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
       return ECMA_VALUE_UNDEFINED;
     }
 
-    jcontext_raise_exception (completion);
+    jcontext_raise_exception (context_p, completion);
     return ECMA_VALUE_ERROR;
   }
 
@@ -502,14 +504,14 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
   {
     if (ECMA_IS_VALUE_ERROR (inner_result))
     {
-      jcontext_release_exception ();
+      jcontext_release_exception (context_p);
     }
     else
     {
       ecma_free_value (inner_result);
     }
 
-    jcontext_raise_exception (completion);
+    jcontext_raise_exception (context_p, completion);
     return ECMA_VALUE_ERROR;
   }
 
@@ -536,7 +538,7 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
     return ECMA_VALUE_UNDEFINED;
   }
 
-  jcontext_raise_exception (completion);
+  jcontext_raise_exception (context_p, completion);
   return ECMA_VALUE_ERROR;
 } /* ecma_op_iterator_close */
 

@@ -206,7 +206,8 @@ static const uint8_t vm_stack_resume_executable_object_with_context_end[1] = { C
  * @return value specified in vm_stack_found_type
  */
 vm_stack_found_type
-vm_stack_find_finally (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
+vm_stack_find_finally (jjs_context_t *context_p, /**< JJS context */
+                       vm_frame_ctx_t *frame_ctx_p, /**< frame context */
                        ecma_value_t *stack_top_p, /**< current stack top */
                        vm_stack_context_type_t finally_type, /**< searching this finally */
                        uint32_t search_limit) /**< search up-to this byte code */
@@ -328,12 +329,12 @@ vm_stack_find_finally (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
     {
       JJS_ASSERT (context_type == VM_CONTEXT_FOR_OF || context_type == VM_CONTEXT_FOR_AWAIT_OF
                     || context_type == VM_CONTEXT_ITERATOR);
-      JJS_ASSERT (finally_type == VM_CONTEXT_FINALLY_THROW || !jcontext_has_pending_exception ());
+      JJS_ASSERT (finally_type == VM_CONTEXT_FINALLY_THROW || !jcontext_has_pending_exception (context_p));
 
       ecma_value_t exception = ECMA_VALUE_UNDEFINED;
       if (finally_type == VM_CONTEXT_FINALLY_THROW)
       {
-        exception = jcontext_take_exception ();
+        exception = jcontext_take_exception (context_p);
       }
 
       ecma_value_t result;
@@ -408,12 +409,12 @@ vm_stack_find_finally (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
           return VM_CONTEXT_FOUND_ERROR;
         }
 
-        ecma_free_value (jcontext_take_exception ());
-        jcontext_raise_exception (exception);
+        ecma_free_value (jcontext_take_exception (context_p));
+        jcontext_raise_exception (context_p, exception);
       }
       else if (finally_type == VM_CONTEXT_FINALLY_THROW)
       {
-        jcontext_raise_exception (exception);
+        jcontext_raise_exception (context_p, exception);
       }
     }
 

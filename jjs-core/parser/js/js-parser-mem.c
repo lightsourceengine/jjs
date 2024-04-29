@@ -337,23 +337,23 @@ parser_list_iterator_next (parser_list_iterator_t *iterator_p) /**< iterator */
  * Initialize parser stack.
  */
 void
-parser_stack_init (parser_context_t *context_p) /**< context */
+parser_stack_init (parser_context_t *parser_context_p) /**< context */
 {
-  parser_data_init (&context_p->stack, PARSER_STACK_PAGE_SIZE);
-  context_p->free_page_p = NULL;
+  parser_data_init (&parser_context_p->stack, PARSER_STACK_PAGE_SIZE);
+  parser_context_p->free_page_p = NULL;
 } /* parser_stack_init */
 
 /**
  * Free parser stack.
  */
 void
-parser_stack_free (parser_context_t *context_p) /**< context */
+parser_stack_free (parser_context_t *parser_context_p) /**< context */
 {
-  parser_data_free (&context_p->stack, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
+  parser_data_free (&parser_context_p->stack, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
 
-  if (context_p->free_page_p != NULL)
+  if (parser_context_p->free_page_p != NULL)
   {
-    parser_free (context_p->free_page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
+    parser_free (parser_context_p->free_page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
   }
 } /* parser_stack_free */
 
@@ -361,85 +361,85 @@ parser_stack_free (parser_context_t *context_p) /**< context */
  * Pushes an uint8_t value onto the stack.
  */
 void
-parser_stack_push_uint8 (parser_context_t *context_p, /**< context */
+parser_stack_push_uint8 (parser_context_t *parser_context_p, /**< context */
                          uint8_t uint8_value) /**< value pushed onto the stack */
 {
-  parser_mem_page_t *page_p = context_p->stack.first_p;
+  parser_mem_page_t *page_p = parser_context_p->stack.first_p;
 
   /* This assert might trigger false positive valgrind errors, when
    * parser_stack_push() pushes not fully initialized structures.
    * More precisely when the last byte of the structure is uninitialized. */
-  JJS_ASSERT (page_p == NULL || context_p->stack_top_uint8 == page_p->bytes[context_p->stack.last_position - 1]);
+  JJS_ASSERT (page_p == NULL || parser_context_p->stack_top_uint8 == page_p->bytes[parser_context_p->stack.last_position - 1]);
 
-  if (context_p->stack.last_position >= PARSER_STACK_PAGE_SIZE)
+  if (parser_context_p->stack.last_position >= PARSER_STACK_PAGE_SIZE)
   {
-    if (context_p->free_page_p != NULL)
+    if (parser_context_p->free_page_p != NULL)
     {
-      page_p = context_p->free_page_p;
-      context_p->free_page_p = NULL;
+      page_p = parser_context_p->free_page_p;
+      parser_context_p->free_page_p = NULL;
     }
     else
     {
       size_t size = sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE;
-      page_p = (parser_mem_page_t *) parser_malloc (context_p, size);
+      page_p = (parser_mem_page_t *) parser_malloc (parser_context_p, size);
     }
 
-    page_p->next_p = context_p->stack.first_p;
-    context_p->stack.last_position = 0;
-    context_p->stack.first_p = page_p;
+    page_p->next_p = parser_context_p->stack.first_p;
+    parser_context_p->stack.last_position = 0;
+    parser_context_p->stack.first_p = page_p;
   }
 
-  page_p->bytes[context_p->stack.last_position++] = uint8_value;
-  context_p->stack_top_uint8 = uint8_value;
+  page_p->bytes[parser_context_p->stack.last_position++] = uint8_value;
+  parser_context_p->stack_top_uint8 = uint8_value;
 } /* parser_stack_push_uint8 */
 
 /**
  * Pops the last uint8_t value from the stack.
  */
 void
-parser_stack_pop_uint8 (parser_context_t *context_p) /**< context */
+parser_stack_pop_uint8 (parser_context_t *parser_context_p) /**< context */
 {
-  parser_mem_page_t *page_p = context_p->stack.first_p;
+  parser_mem_page_t *page_p = parser_context_p->stack.first_p;
 
-  JJS_ASSERT (page_p != NULL && context_p->stack_top_uint8 == page_p->bytes[context_p->stack.last_position - 1]);
+  JJS_ASSERT (page_p != NULL && parser_context_p->stack_top_uint8 == page_p->bytes[parser_context_p->stack.last_position - 1]);
 
-  context_p->stack.last_position--;
+  parser_context_p->stack.last_position--;
 
-  if (context_p->stack.last_position == 0)
+  if (parser_context_p->stack.last_position == 0)
   {
-    context_p->stack.first_p = page_p->next_p;
-    context_p->stack.last_position = PARSER_STACK_PAGE_SIZE;
+    parser_context_p->stack.first_p = page_p->next_p;
+    parser_context_p->stack.last_position = PARSER_STACK_PAGE_SIZE;
 
-    if (context_p->free_page_p == NULL)
+    if (parser_context_p->free_page_p == NULL)
     {
-      context_p->free_page_p = page_p;
+      parser_context_p->free_page_p = page_p;
     }
     else
     {
       parser_free (page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
     }
 
-    page_p = context_p->stack.first_p;
+    page_p = parser_context_p->stack.first_p;
 
     JJS_ASSERT (page_p != NULL);
   }
 
-  context_p->stack_top_uint8 = page_p->bytes[context_p->stack.last_position - 1];
+  parser_context_p->stack_top_uint8 = page_p->bytes[parser_context_p->stack.last_position - 1];
 } /* parser_stack_pop_uint8 */
 
 /**
  * Change last byte of the stack.
  */
 void
-parser_stack_change_last_uint8 (parser_context_t *context_p, /**< context */
+parser_stack_change_last_uint8 (parser_context_t *parser_context_p, /**< context */
                                 uint8_t new_value) /**< new value */
 {
-  parser_mem_page_t *page_p = context_p->stack.first_p;
+  parser_mem_page_t *page_p = parser_context_p->stack.first_p;
 
-  JJS_ASSERT (page_p != NULL && context_p->stack_top_uint8 == page_p->bytes[context_p->stack.last_position - 1]);
+  JJS_ASSERT (page_p != NULL && parser_context_p->stack_top_uint8 == page_p->bytes[parser_context_p->stack.last_position - 1]);
 
-  page_p->bytes[context_p->stack.last_position - 1] = new_value;
-  context_p->stack_top_uint8 = new_value;
+  page_p->bytes[parser_context_p->stack.last_position - 1] = new_value;
+  parser_context_p->stack_top_uint8 = new_value;
 } /* parser_stack_change_last_uint8 */
 
 /**
@@ -448,15 +448,15 @@ parser_stack_change_last_uint8 (parser_context_t *context_p, /**< context */
  * Pointer to the uint8 value
  */
 uint8_t *
-parser_stack_get_prev_uint8 (parser_context_t *context_p) /**< context */
+parser_stack_get_prev_uint8 (parser_context_t *parser_context_p) /**< context */
 {
-  parser_mem_page_t *page_p = context_p->stack.first_p;
+  parser_mem_page_t *page_p = parser_context_p->stack.first_p;
 
-  JJS_ASSERT (page_p != NULL && (context_p->stack.last_position >= 2 || page_p->next_p != NULL));
+  JJS_ASSERT (page_p != NULL && (parser_context_p->stack.last_position >= 2 || page_p->next_p != NULL));
 
-  if (context_p->stack.last_position >= 2)
+  if (parser_context_p->stack.last_position >= 2)
   {
-    return page_p->bytes + (context_p->stack.last_position - 2);
+    return page_p->bytes + (parser_context_p->stack.last_position - 2);
   }
 
   return page_p->next_p->bytes + (PARSER_STACK_PAGE_SIZE - 1);
@@ -466,23 +466,23 @@ parser_stack_get_prev_uint8 (parser_context_t *context_p) /**< context */
  * Pushes an uint16_t value onto the stack.
  */
 void
-parser_stack_push_uint16 (parser_context_t *context_p, /**< context */
+parser_stack_push_uint16 (parser_context_t *parser_context_p, /**< context */
                           uint16_t uint16_value) /**< value pushed onto the stack */
 {
-  if (context_p->stack.last_position + 2 <= PARSER_STACK_PAGE_SIZE)
+  if (parser_context_p->stack.last_position + 2 <= PARSER_STACK_PAGE_SIZE)
   {
-    parser_mem_page_t *page_p = context_p->stack.first_p;
+    parser_mem_page_t *page_p = parser_context_p->stack.first_p;
 
-    JJS_ASSERT (page_p != NULL && context_p->stack_top_uint8 == page_p->bytes[context_p->stack.last_position - 1]);
+    JJS_ASSERT (page_p != NULL && parser_context_p->stack_top_uint8 == page_p->bytes[parser_context_p->stack.last_position - 1]);
 
-    page_p->bytes[context_p->stack.last_position++] = (uint8_t) (uint16_value >> 8);
-    page_p->bytes[context_p->stack.last_position++] = (uint8_t) uint16_value;
-    context_p->stack_top_uint8 = (uint8_t) uint16_value;
+    page_p->bytes[parser_context_p->stack.last_position++] = (uint8_t) (uint16_value >> 8);
+    page_p->bytes[parser_context_p->stack.last_position++] = (uint8_t) uint16_value;
+    parser_context_p->stack_top_uint8 = (uint8_t) uint16_value;
   }
   else
   {
-    parser_stack_push_uint8 (context_p, (uint8_t) (uint16_value >> 8));
-    parser_stack_push_uint8 (context_p, (uint8_t) uint16_value);
+    parser_stack_push_uint8 (parser_context_p, (uint8_t) (uint16_value >> 8));
+    parser_stack_push_uint8 (parser_context_p, (uint8_t) uint16_value);
   }
 } /* parser_stack_push_uint16 */
 
@@ -492,25 +492,25 @@ parser_stack_push_uint16 (parser_context_t *context_p, /**< context */
  * @return the value popped from the stack.
  */
 uint16_t
-parser_stack_pop_uint16 (parser_context_t *context_p) /**< context */
+parser_stack_pop_uint16 (parser_context_t *parser_context_p) /**< context */
 {
-  uint32_t value = context_p->stack_top_uint8;
+  uint32_t value = parser_context_p->stack_top_uint8;
 
-  if (context_p->stack.last_position >= 3)
+  if (parser_context_p->stack.last_position >= 3)
   {
-    parser_mem_page_t *page_p = context_p->stack.first_p;
+    parser_mem_page_t *page_p = parser_context_p->stack.first_p;
 
-    JJS_ASSERT (page_p != NULL && context_p->stack_top_uint8 == page_p->bytes[context_p->stack.last_position - 1]);
+    JJS_ASSERT (page_p != NULL && parser_context_p->stack_top_uint8 == page_p->bytes[parser_context_p->stack.last_position - 1]);
 
-    value |= ((uint32_t) page_p->bytes[context_p->stack.last_position - 2]) << 8;
-    context_p->stack_top_uint8 = page_p->bytes[context_p->stack.last_position - 3];
-    context_p->stack.last_position -= 2;
+    value |= ((uint32_t) page_p->bytes[parser_context_p->stack.last_position - 2]) << 8;
+    parser_context_p->stack_top_uint8 = page_p->bytes[parser_context_p->stack.last_position - 3];
+    parser_context_p->stack.last_position -= 2;
   }
   else
   {
-    parser_stack_pop_uint8 (context_p);
-    value |= ((uint32_t) context_p->stack_top_uint8) << 8;
-    parser_stack_pop_uint8 (context_p);
+    parser_stack_pop_uint8 (parser_context_p);
+    value |= ((uint32_t) parser_context_p->stack_top_uint8) << 8;
+    parser_stack_pop_uint8 (parser_context_p);
   }
   return (uint16_t) value;
 } /* parser_stack_pop_uint16 */
@@ -519,17 +519,17 @@ parser_stack_pop_uint16 (parser_context_t *context_p) /**< context */
  * Pushes a data onto the stack.
  */
 void
-parser_stack_push (parser_context_t *context_p, /**< context */
+parser_stack_push (parser_context_t *parser_context_p, /**< context */
                    const void *data_p, /**< data pushed onto the stack */
                    uint32_t length) /**< length of the data */
 {
-  uint32_t fragment_length = PARSER_STACK_PAGE_SIZE - context_p->stack.last_position;
+  uint32_t fragment_length = PARSER_STACK_PAGE_SIZE - parser_context_p->stack.last_position;
   const uint8_t *bytes_p = (const uint8_t *) data_p;
   parser_mem_page_t *page_p;
 
   JJS_ASSERT (length < PARSER_STACK_PAGE_SIZE && length > 0);
 
-  context_p->stack_top_uint8 = bytes_p[length - 1];
+  parser_context_p->stack_top_uint8 = bytes_p[length - 1];
 
   if (fragment_length > 0)
   {
@@ -539,11 +539,11 @@ parser_stack_push (parser_context_t *context_p, /**< context */
       fragment_length = length;
     }
 
-    memcpy (context_p->stack.first_p->bytes + context_p->stack.last_position, bytes_p, fragment_length);
+    memcpy (parser_context_p->stack.first_p->bytes + parser_context_p->stack.last_position, bytes_p, fragment_length);
 
     if (fragment_length == length)
     {
-      context_p->stack.last_position += length;
+      parser_context_p->stack.last_position += length;
       return;
     }
 
@@ -551,74 +551,74 @@ parser_stack_push (parser_context_t *context_p, /**< context */
     length -= fragment_length;
   }
 
-  if (context_p->free_page_p != NULL)
+  if (parser_context_p->free_page_p != NULL)
   {
-    page_p = context_p->free_page_p;
-    context_p->free_page_p = NULL;
+    page_p = parser_context_p->free_page_p;
+    parser_context_p->free_page_p = NULL;
   }
   else
   {
     size_t size = sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE;
 
-    page_p = (parser_mem_page_t *) parser_malloc (context_p, size);
+    page_p = (parser_mem_page_t *) parser_malloc (parser_context_p, size);
   }
 
-  page_p->next_p = context_p->stack.first_p;
+  page_p->next_p = parser_context_p->stack.first_p;
 
-  context_p->stack.first_p = page_p;
+  parser_context_p->stack.first_p = page_p;
 
   memcpy (page_p->bytes, bytes_p, length);
-  context_p->stack.last_position = length;
+  parser_context_p->stack.last_position = length;
 } /* parser_stack_push */
 
 /**
  * Pop bytes from the top of the stack.
  */
 void
-parser_stack_pop (parser_context_t *context_p, /**< context */
+parser_stack_pop (parser_context_t *parser_context_p, /**< context */
                   void *data_p, /**< destination buffer, can be NULL */
                   uint32_t length) /**< length of the data */
 {
   uint8_t *bytes_p = (uint8_t *) data_p;
-  parser_mem_page_t *page_p = context_p->stack.first_p;
+  parser_mem_page_t *page_p = parser_context_p->stack.first_p;
 
   JJS_ASSERT (length < PARSER_STACK_PAGE_SIZE && length > 0);
 
-  if (context_p->stack.last_position > length)
+  if (parser_context_p->stack.last_position > length)
   {
-    context_p->stack.last_position -= length;
-    context_p->stack_top_uint8 = page_p->bytes[context_p->stack.last_position - 1];
+    parser_context_p->stack.last_position -= length;
+    parser_context_p->stack_top_uint8 = page_p->bytes[parser_context_p->stack.last_position - 1];
 
     if (bytes_p != NULL)
     {
-      memcpy (bytes_p, context_p->stack.first_p->bytes + context_p->stack.last_position, length);
+      memcpy (bytes_p, parser_context_p->stack.first_p->bytes + parser_context_p->stack.last_position, length);
     }
     return;
   }
 
   JJS_ASSERT (page_p->next_p != NULL);
 
-  length -= context_p->stack.last_position;
+  length -= parser_context_p->stack.last_position;
 
   if (bytes_p != NULL)
   {
-    memcpy (bytes_p + length, page_p->bytes, context_p->stack.last_position);
+    memcpy (bytes_p + length, page_p->bytes, parser_context_p->stack.last_position);
   }
 
-  context_p->stack.first_p = page_p->next_p;
-  context_p->stack.last_position = PARSER_STACK_PAGE_SIZE - length;
-  context_p->stack_top_uint8 = page_p->next_p->bytes[context_p->stack.last_position - 1];
+  parser_context_p->stack.first_p = page_p->next_p;
+  parser_context_p->stack.last_position = PARSER_STACK_PAGE_SIZE - length;
+  parser_context_p->stack_top_uint8 = page_p->next_p->bytes[parser_context_p->stack.last_position - 1];
 
   if (bytes_p != NULL && length > 0)
   {
-    memcpy (bytes_p, page_p->next_p->bytes + context_p->stack.last_position, length);
+    memcpy (bytes_p, page_p->next_p->bytes + parser_context_p->stack.last_position, length);
   }
 
-  JJS_ASSERT (context_p->stack.last_position > 0);
+  JJS_ASSERT (parser_context_p->stack.last_position > 0);
 
-  if (context_p->free_page_p == NULL)
+  if (parser_context_p->free_page_p == NULL)
   {
-    context_p->free_page_p = page_p;
+    parser_context_p->free_page_p = page_p;
   }
   else
   {
@@ -630,11 +630,11 @@ parser_stack_pop (parser_context_t *context_p, /**< context */
  * Initialize stack iterator.
  */
 extern inline void
-parser_stack_iterator_init (parser_context_t *context_p, /**< context */
+parser_stack_iterator_init (parser_context_t *parser_context_p, /**< context */
                             parser_stack_iterator_t *iterator) /**< iterator */
 {
-  iterator->current_p = context_p->stack.first_p;
-  iterator->current_position = context_p->stack.last_position;
+  iterator->current_p = parser_context_p->stack.first_p;
+  iterator->current_position = parser_context_p->stack.last_position;
 } /* parser_stack_iterator_init */
 
 /**

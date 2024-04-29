@@ -103,18 +103,19 @@ ecma_module_cleanup_context (void)
 static void
 ecma_module_set_error_state (ecma_module_t *module_p) /**< module */
 {
+  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
   module_p->header.u.cls.u1.module_state = JJS_MODULE_STATE_ERROR;
 
-  if (JJS_CONTEXT (module_state_changed_callback_p) != NULL && !jcontext_has_pending_abort ())
+  if (context_p->module_state_changed_callback_p != NULL && !jcontext_has_pending_abort (context_p))
   {
-    jjs_value_t exception = jcontext_take_exception ();
+    jjs_value_t exception = jcontext_take_exception (context_p);
 
-    JJS_CONTEXT (module_state_changed_callback_p)
-    (JJS_MODULE_STATE_ERROR,
-     ecma_make_object_value (&module_p->header.object),
-     exception,
-     JJS_CONTEXT (module_state_changed_callback_user_p));
-    jcontext_raise_exception (exception);
+    context_p->module_state_changed_callback_p (JJS_MODULE_STATE_ERROR,
+                                                ecma_make_object_value (&module_p->header.object),
+                                                exception,
+                                                context_p->module_state_changed_callback_user_p);
+    jcontext_raise_exception (context_p, exception);
   }
 } /* ecma_module_set_error_state */
 
@@ -1361,19 +1362,19 @@ ecma_module_import (ecma_value_t specifier, /**< module specifier */
                     ecma_value_t user_value) /**< user value assigned to the script */
 {
   ecma_string_t *specifier_p = ecma_op_to_string (specifier);
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
 
   if (JJS_UNLIKELY (specifier_p == NULL))
   {
     goto error;
   }
 
-  if (JJS_CONTEXT (module_import_callback_p) == NULL)
+  if (context_p->module_import_callback_p == NULL)
   {
     ecma_deref_ecma_string (specifier_p);
     goto error_module_instantiate;
   }
 
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
   jjs_value_t result = context_p->module_import_callback_p (context_p,
                                                             ecma_make_string_value (specifier_p),
                                                             user_value,
@@ -1414,12 +1415,12 @@ error_module_instantiate:
   ecma_raise_range_error (ECMA_ERR_MODULE_CANNOT_BE_INSTANTIATED);
 
 error:
-  if (jcontext_has_pending_abort ())
+  if (jcontext_has_pending_abort (context_p))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  ecma_value_t exception = jcontext_take_exception ();
+  ecma_value_t exception = jcontext_take_exception (context_p);
 
   ecma_value_t promise = ecma_op_create_promise_object (ECMA_VALUE_EMPTY, ECMA_VALUE_UNDEFINED, NULL);
   ecma_reject_promise (promise, exception);

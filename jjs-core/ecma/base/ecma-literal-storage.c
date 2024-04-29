@@ -51,7 +51,7 @@ ecma_free_symbol_list (jmem_cpointer_t symbol_list_cp) /**< symbol list */
     }
 
     jmem_cpointer_t next_item_cp = symbol_list_p->next_cp;
-    jmem_pools_free (symbol_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (&JJS_CONTEXT_STRUCT, symbol_list_p, sizeof (ecma_lit_storage_item_t));
     symbol_list_cp = next_item_cp;
   }
 } /* ecma_free_symbol_list */
@@ -78,7 +78,7 @@ ecma_free_string_list (jmem_cpointer_t string_list_cp) /**< string list */
     }
 
     jmem_cpointer_t next_item_cp = string_list_p->next_cp;
-    jmem_pools_free (string_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (&JJS_CONTEXT_STRUCT, string_list_p, sizeof (ecma_lit_storage_item_t));
     string_list_cp = next_item_cp;
   }
 } /* ecma_free_string_list */
@@ -102,7 +102,7 @@ ecma_free_number_list (jmem_cpointer_t number_list_cp) /**< number list */
     }
 
     jmem_cpointer_t next_item_cp = number_list_p->next_cp;
-    jmem_pools_free (number_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (&JJS_CONTEXT_STRUCT, number_list_p, sizeof (ecma_lit_storage_item_t));
     number_list_cp = next_item_cp;
   }
 } /* ecma_free_number_list */
@@ -131,7 +131,7 @@ ecma_free_bigint_list (jmem_cpointer_t bigint_list_cp) /**< bigint list */
     }
 
     jmem_cpointer_t next_item_cp = bigint_list_p->next_cp;
-    jmem_pools_free (bigint_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (&JJS_CONTEXT_STRUCT, bigint_list_p, sizeof (ecma_lit_storage_item_t));
     bigint_list_cp = next_item_cp;
   }
 } /* ecma_free_bigint_list */
@@ -213,7 +213,7 @@ ecma_find_or_create_literal_string (const lit_utf8_byte_t *chars_p, /**< string 
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
@@ -285,7 +285,7 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
@@ -359,7 +359,7 @@ ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searc
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)

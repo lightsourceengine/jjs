@@ -85,6 +85,8 @@ ecma_builtin_generator_prototype_object_do (vm_executable_object_t *generator_ob
                                             ecma_value_t arg, /**< argument */
                                             ecma_iterator_command_type_t resume_mode) /**< resume mode */
 {
+  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
+
   arg = ecma_copy_value (arg);
 
   while (true)
@@ -134,7 +136,7 @@ ecma_builtin_generator_prototype_object_do (vm_executable_object_t *generator_ob
 
       if (ECMA_IS_VALUE_ERROR (arg))
       {
-        arg = jcontext_take_exception ();
+        arg = jcontext_take_exception (context_p);
         resume_mode = ECMA_ITERATOR_THROW;
       }
     }
@@ -174,7 +176,7 @@ ecma_builtin_generator_prototype_object_do (vm_executable_object_t *generator_ob
         if (ECMA_IS_VALUE_ERROR (iterator))
         {
           resume_mode = ECMA_ITERATOR_THROW;
-          arg = jcontext_take_exception ();
+          arg = jcontext_take_exception (context_p);
           continue;
         }
 
@@ -214,6 +216,7 @@ ecma_builtin_generator_prototype_dispatch_routine (uint8_t builtin_routine_id, /
                                                    uint32_t arguments_number) /**< length of arguments' list */
 {
   JJS_UNUSED (arguments_number);
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
 
   vm_executable_object_t *executable_object_p = NULL;
 
@@ -244,7 +247,7 @@ ecma_builtin_generator_prototype_dispatch_routine (uint8_t builtin_routine_id, /
       return ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
     }
 
-    jcontext_raise_exception (ecma_copy_value (arguments_list_p[0]));
+    jcontext_raise_exception (context_p, ecma_copy_value (arguments_list_p[0]));
     return ECMA_VALUE_ERROR;
   }
 

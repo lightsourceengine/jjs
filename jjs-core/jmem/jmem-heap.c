@@ -39,7 +39,7 @@
  */
 #define JMEM_HEAP_END_OF_LIST ((uint32_t) 0xffffffff)
 
-#define JMEM_HEAP_AREA_SIZE (JJS_CONTEXT(vm_heap_size) - JMEM_ALIGNMENT)
+#define JMEM_HEAP_AREA_SIZE(ctx) ((ctx)->vm_heap_size - JMEM_ALIGNMENT)
 
 /**
  * @{
@@ -71,31 +71,31 @@ jmem_heap_get_region_end (jmem_heap_free_t *curr_p) /**< current region */
  * Startup initialization of heap
  */
 void
-jmem_heap_init (void)
+jmem_heap_init (jjs_context_t *context_p)
 {
 #if !JJS_CPOINTER_32_BIT
   /* the maximum heap size for 16bit compressed pointers should be 512K */
-  JJS_ASSERT (((UINT16_MAX + 1) << JMEM_ALIGNMENT_LOG) >= JJS_CONTEXT(vm_heap_size));
+  JJS_ASSERT (((UINT16_MAX + 1) << JMEM_ALIGNMENT_LOG) >= context_p->vm_heap_size);
 #endif /* !JJS_CPOINTER_32_BIT */
-  JJS_ASSERT ((uintptr_t) JJS_HEAP_CONTEXT (area) % JMEM_ALIGNMENT == 0);
+  JJS_ASSERT ((uintptr_t) (context_p->heap_p->area) % JMEM_ALIGNMENT == 0);
 
-  JJS_CONTEXT (jmem_heap_limit) = JJS_CONTEXT(gc_limit);
+  context_p->jmem_heap_limit = context_p->gc_limit;
 
-  jmem_heap_free_t *const region_p = (jmem_heap_free_t *) JJS_HEAP_CONTEXT (area);
-  const uint32_t heap_area_size = JMEM_HEAP_AREA_SIZE;
+  jmem_heap_free_t *const region_p = (jmem_heap_free_t *) context_p->heap_p->area;
+  const uint32_t heap_area_size = JMEM_HEAP_AREA_SIZE (context_p);
 
-  JJS_CONTEXT(jmem_area_end) = JJS_HEAP_CONTEXT(area) + heap_area_size;
+  context_p->jmem_area_end = context_p->heap_p->area + heap_area_size;
 
   region_p->size = heap_area_size;
   region_p->next_offset = JMEM_HEAP_END_OF_LIST;
 
-  JJS_HEAP_CONTEXT (first).size = 0;
-  JJS_HEAP_CONTEXT (first).next_offset = JMEM_HEAP_GET_OFFSET_FROM_ADDR (region_p);
+  context_p->heap_p->first.size = 0;
+  context_p->heap_p->first.next_offset = JMEM_HEAP_GET_OFFSET_FROM_ADDR (region_p);
 
-  JJS_CONTEXT (jmem_heap_list_skip_p) = &JJS_HEAP_CONTEXT (first);
+  context_p->jmem_heap_list_skip_p = &context_p->heap_p->first;
 
-  JMEM_VALGRIND_NOACCESS_SPACE (&JJS_HEAP_CONTEXT (first), sizeof (jmem_heap_free_t));
-  JMEM_VALGRIND_NOACCESS_SPACE (JJS_HEAP_CONTEXT (area), heap_area_size);
+  JMEM_VALGRIND_NOACCESS_SPACE (&context_p->heap_p->first, sizeof (jmem_heap_free_t));
+  JMEM_VALGRIND_NOACCESS_SPACE (context_p->heap_p->area, heap_area_size);
 
   JMEM_HEAP_STAT_INIT ();
 } /* jmem_heap_init */
@@ -104,10 +104,10 @@ jmem_heap_init (void)
  * Finalize heap
  */
 void
-jmem_heap_finalize (void)
+jmem_heap_finalize (jjs_context_t *context_p)
 {
-  JJS_ASSERT (JJS_CONTEXT (jmem_heap_allocated_size) == 0);
-  JMEM_VALGRIND_NOACCESS_SPACE (&JJS_HEAP_CONTEXT (first), JJS_CONTEXT (vm_heap_size));
+  JJS_ASSERT (context_p->jmem_heap_allocated_size == 0);
+  JMEM_VALGRIND_NOACCESS_SPACE (&context_p->heap_p->first, context_p->vm_heap_size);
 } /* jmem_heap_finalize */
 
 /**
@@ -270,7 +270,7 @@ jmem_heap_gc_and_alloc_block (const size_t size, /**< required memory size */
   if (JJS_CONTEXT (jmem_heap_allocated_size) + size >= JJS_CONTEXT (jmem_heap_limit))
   {
     pressure = JMEM_PRESSURE_LOW;
-    ecma_free_unused_memory (pressure);
+    ecma_free_unused_memory (&JJS_CONTEXT_STRUCT, pressure);
   }
 #else /* !JJS_MEM_GC_BEFORE_EACH_ALLOC */
   ecma_gc_run ();
@@ -281,7 +281,7 @@ jmem_heap_gc_and_alloc_block (const size_t size, /**< required memory size */
   while (JJS_UNLIKELY (data_space_p == NULL) && JJS_LIKELY (pressure < max_pressure))
   {
     pressure++;
-    ecma_free_unused_memory (pressure);
+    ecma_free_unused_memory (&JJS_CONTEXT_STRUCT, pressure);
     data_space_p = jmem_heap_alloc (size);
   }
 
@@ -522,7 +522,7 @@ jmem_heap_realloc_block (void *ptr, /**< memory region to reallocate */
 #if !JJS_MEM_GC_BEFORE_EACH_ALLOC
   if (JJS_CONTEXT (jmem_heap_allocated_size) + required_size >= JJS_CONTEXT (jmem_heap_limit))
   {
-    ecma_free_unused_memory (JMEM_PRESSURE_LOW);
+    ecma_free_unused_memory (&JJS_CONTEXT_STRUCT, JMEM_PRESSURE_LOW);
   }
 #else /* !JJS_MEM_GC_BEFORE_EACH_ALLOC */
   ecma_gc_run ();
@@ -710,7 +710,7 @@ jmem_heap_stats_print (void)
 void
 jmem_heap_stat_init (void)
 {
-  JJS_CONTEXT (jmem_heap_stats).size = JMEM_HEAP_AREA_SIZE;
+  JJS_CONTEXT (jmem_heap_stats).size = JMEM_HEAP_AREA_SIZE (&JJS_CONTEXT_STRUCT);
 } /* jmem_heap_stat_init */
 
 /**

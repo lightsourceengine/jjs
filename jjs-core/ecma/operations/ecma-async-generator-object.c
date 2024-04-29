@@ -183,6 +183,7 @@ ecma_async_generator_run (vm_executable_object_t *async_generator_object_p) /**<
   JJS_ASSERT (async_generator_object_p->extended_object.u.cls.type == ECMA_OBJECT_CLASS_ASYNC_GENERATOR);
   JJS_ASSERT (!ECMA_IS_INTERNAL_VALUE_NULL (async_generator_object_p->extended_object.u.cls.u3.head));
 
+  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_value_t head = async_generator_object_p->extended_object.u.cls.u3.head;
   ecma_async_generator_task_t *task_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_async_generator_task_t, head);
   ecma_value_t result;
@@ -253,7 +254,7 @@ ecma_async_generator_run (vm_executable_object_t *async_generator_object_p) /**<
                   || ecma_is_value_object (async_generator_object_p->frame_ctx.stack_top_p[-1]));
     async_generator_object_p->frame_ctx.stack_top_p--;
 
-    result = jcontext_take_exception ();
+    result = jcontext_take_exception (context_p);
   }
   else
   {
@@ -290,12 +291,13 @@ void
 ecma_async_generator_finalize (vm_executable_object_t *async_generator_object_p, /**< async generator */
                                ecma_value_t value) /**< final value (takes reference) */
 {
+  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_value_t next = async_generator_object_p->extended_object.u.cls.u3.head;
   ecma_async_generator_task_t *task_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_async_generator_task_t, next);
 
   if (ECMA_IS_VALUE_ERROR (value))
   {
-    value = jcontext_take_exception ();
+    value = jcontext_take_exception (context_p);
     ecma_reject_promise (task_p->promise, value);
   }
   else

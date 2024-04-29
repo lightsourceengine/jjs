@@ -204,9 +204,7 @@ ecma_free_microtask_job (ecma_job_microtask_t *job_p) /**< job pointer */
 static ecma_value_t
 ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the job to be operated */
 {
-#if JJS_PROMISE_CALLBACK
   jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-#endif /* JJS_PROMISE_CALLBACK */
 
   /* 2. */
   JJS_ASSERT (
@@ -251,7 +249,7 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
   {
     if (ECMA_IS_VALUE_ERROR (handler_result))
     {
-      handler_result = jcontext_take_exception ();
+      handler_result = jcontext_take_exception (context_p);
     }
 
     /* 7. */
@@ -297,9 +295,9 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
 static ecma_value_t
 ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_p) /**< the job to be operated */
 {
-#if JJS_PROMISE_CALLBACK
   jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
 
+#if JJS_PROMISE_CALLBACK
   if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB))
   {
     jjs_promise_event_type_t type = JJS_PROMISE_EVENT_ASYNC_BEFORE_RESOLVE;
@@ -365,7 +363,7 @@ ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_
 
     if (ECMA_IS_VALUE_ERROR (job_p->argument))
     {
-      job_p->argument = jcontext_take_exception ();
+      job_p->argument = jcontext_take_exception (context_p);
       executable_object_p->frame_ctx.byte_code_p = opfunc_resume_executable_object_with_throw;
     }
     else if (executable_object_p->extended_object.u.cls.u2.executable_obj_flags
@@ -456,6 +454,7 @@ ecma_process_promise_async_generator_job (ecma_job_promise_async_generator_t *jo
 static ecma_value_t
 ecma_process_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *job_p) /**< the job to be operated */
 {
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_promise_object_t *promise_p = (ecma_promise_object_t *) ecma_get_object_from_value (job_p->promise);
 
   promise_p->header.u.cls.u1.promise_flags &= (uint8_t) ~ECMA_PROMISE_ALREADY_RESOLVED;
@@ -464,7 +463,7 @@ ecma_process_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *
 
   if (ECMA_IS_VALUE_ERROR (ret))
   {
-    ret = jcontext_take_exception ();
+    ret = jcontext_take_exception (context_p);
     ecma_reject_promise_with_checks (job_p->promise, ret);
     ecma_free_value (ret);
     ret = ECMA_VALUE_UNDEFINED;

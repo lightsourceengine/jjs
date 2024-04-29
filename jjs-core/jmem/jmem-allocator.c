@@ -148,27 +148,27 @@ jmem_stats_free_property_bytes (size_t property_size)
  * Initialize memory allocators.
  */
 void
-jmem_init (void)
+jmem_init (jjs_context_t *context_p)
 {
-  jmem_heap_init ();
+  jmem_heap_init (context_p);
 } /* jmem_init */
 
 /**
  * Finalize memory allocators.
  */
 void
-jmem_finalize (void)
+jmem_finalize (jjs_context_t *context_p)
 {
-  jmem_pools_finalize ();
+  jmem_pools_finalize (context_p);
 
 #if JJS_MEM_STATS
-  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_MEM_STATS)
+  if (context_p->context_flags & JJS_CONTEXT_FLAG_MEM_STATS)
   {
     jmem_heap_stats_print ();
   }
 #endif /* JJS_MEM_STATS */
 
-  jmem_heap_finalize ();
+  jmem_heap_finalize (context_p);
 } /* jmem_finalize */
 
 /**

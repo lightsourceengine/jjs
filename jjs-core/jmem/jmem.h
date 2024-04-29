@@ -139,8 +139,8 @@ typedef struct
   uint32_t size; /**< Size of region */
 } jmem_heap_free_t;
 
-void jmem_init (void);
-void jmem_finalize (void);
+void jmem_init (jjs_context_t *context_p);
+void jmem_finalize (jjs_context_t *context_p);
 
 void *jmem_heap_alloc_block (const size_t size);
 void *jmem_heap_alloc_block_null_on_error (const size_t size);
@@ -310,9 +310,9 @@ void *JJS_ATTR_PURE jmem_decompress_pointer (uintptr_t compressed_pointer);
  * @{
  */
 
-void *jmem_pools_alloc (size_t size);
-void jmem_pools_free (void *chunk_p, size_t size);
-void jmem_pools_collect_empty (void);
+void *jmem_pools_alloc (jjs_context_t *context_p, size_t size);
+void jmem_pools_free (jjs_context_t *context_p, void *chunk_p, size_t size);
+void jmem_pools_collect_empty (jjs_context_t *context_p);
 
 /**
  * @}

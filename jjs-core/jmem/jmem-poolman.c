@@ -39,13 +39,13 @@
  * Finalize pool manager
  */
 void
-jmem_pools_finalize (void)
+jmem_pools_finalize (jjs_context_t *context_p)
 {
-  jmem_pools_collect_empty ();
+  jmem_pools_collect_empty (context_p);
 
-  JJS_ASSERT (JJS_CONTEXT (jmem_free_8_byte_chunk_p) == NULL);
+  JJS_ASSERT (context_p->jmem_free_8_byte_chunk_p == NULL);
 #if JJS_CPOINTER_32_BIT
-  JJS_ASSERT (JJS_CONTEXT (jmem_free_16_byte_chunk_p) == NULL);
+  JJS_ASSERT (context_p->jmem_free_16_byte_chunk_p == NULL);
 #endif /* JJS_CPOINTER_32_BIT */
 } /* jmem_pools_finalize */
 
@@ -56,7 +56,7 @@ jmem_pools_finalize (void)
  *         or NULL - if not enough memory.
  */
 extern inline void *JJS_ATTR_HOT JJS_ATTR_ALWAYS_INLINE
-jmem_pools_alloc (size_t size) /**< size of the chunk */
+jmem_pools_alloc (jjs_context_t *context_p, size_t size) /**< size of the chunk */
 {
 #if JJS_MEM_GC_BEFORE_EACH_ALLOC
   ecma_gc_run ();
@@ -69,12 +69,12 @@ jmem_pools_alloc (size_t size) /**< size of the chunk */
   JJS_ASSERT (size <= 8);
 #endif /* JJS_CPOINTER_32_BIT */
 
-    if (JJS_CONTEXT (jmem_free_8_byte_chunk_p) != NULL)
+    if (context_p->jmem_free_8_byte_chunk_p != NULL)
     {
-      const jmem_pools_chunk_t *const chunk_p = JJS_CONTEXT (jmem_free_8_byte_chunk_p);
+      const jmem_pools_chunk_t *const chunk_p = context_p->jmem_free_8_byte_chunk_p;
 
       JMEM_VALGRIND_DEFINED_SPACE (chunk_p, sizeof (jmem_pools_chunk_t));
-      JJS_CONTEXT (jmem_free_8_byte_chunk_p) = chunk_p->next_p;
+      context_p->jmem_free_8_byte_chunk_p = chunk_p->next_p;
       JMEM_VALGRIND_UNDEFINED_SPACE (chunk_p, sizeof (jmem_pools_chunk_t));
 
       JMEM_HEAP_STAT_ALLOC (8);
@@ -92,12 +92,12 @@ jmem_pools_alloc (size_t size) /**< size of the chunk */
 
   JJS_ASSERT (size <= 16);
 
-  if (JJS_CONTEXT (jmem_free_16_byte_chunk_p) != NULL)
+  if (context_p->jmem_free_16_byte_chunk_p != NULL)
   {
-    const jmem_pools_chunk_t *const chunk_p = JJS_CONTEXT (jmem_free_16_byte_chunk_p);
+    const jmem_pools_chunk_t *const chunk_p = context_p->jmem_free_16_byte_chunk_p;
 
     JMEM_VALGRIND_DEFINED_SPACE (chunk_p, sizeof (jmem_pools_chunk_t));
-    JJS_CONTEXT (jmem_free_16_byte_chunk_p) = chunk_p->next_p;
+    context_p->jmem_free_16_byte_chunk_p = chunk_p->next_p;
     JMEM_VALGRIND_UNDEFINED_SPACE (chunk_p, sizeof (jmem_pools_chunk_t));
 
     JMEM_HEAP_STAT_ALLOC (16);
@@ -116,7 +116,8 @@ jmem_pools_alloc (size_t size) /**< size of the chunk */
  * Free the chunk
  */
 extern inline void JJS_ATTR_HOT JJS_ATTR_ALWAYS_INLINE
-jmem_pools_free (void *chunk_p, /**< pointer to the chunk */
+jmem_pools_free (jjs_context_t *context_p, /**< JJS context */
+                 void *chunk_p, /**< pointer to the chunk */
                  size_t size) /**< size of the chunk */
 {
   JJS_ASSERT (chunk_p != NULL);
@@ -133,8 +134,8 @@ jmem_pools_free (void *chunk_p, /**< pointer to the chunk */
   JJS_ASSERT (size <= 8);
 #endif /* JJS_CPOINTER_32_BIT */
 
-    chunk_to_free_p->next_p = JJS_CONTEXT (jmem_free_8_byte_chunk_p);
-    JJS_CONTEXT (jmem_free_8_byte_chunk_p) = chunk_to_free_p;
+    chunk_to_free_p->next_p = context_p->jmem_free_8_byte_chunk_p;
+    context_p->jmem_free_8_byte_chunk_p = chunk_to_free_p;
 
 #if JJS_CPOINTER_32_BIT
   }
@@ -142,8 +143,8 @@ jmem_pools_free (void *chunk_p, /**< pointer to the chunk */
   {
     JJS_ASSERT (size <= 16);
 
-    chunk_to_free_p->next_p = JJS_CONTEXT (jmem_free_16_byte_chunk_p);
-    JJS_CONTEXT (jmem_free_16_byte_chunk_p) = chunk_to_free_p;
+    chunk_to_free_p->next_p = context_p->jmem_free_16_byte_chunk_p;
+    context_p->jmem_free_16_byte_chunk_p = chunk_to_free_p;
   }
 #endif /* JJS_CPOINTER_32_BIT */
 
@@ -154,10 +155,10 @@ jmem_pools_free (void *chunk_p, /**< pointer to the chunk */
  *  Collect empty pool chunks
  */
 void
-jmem_pools_collect_empty (void)
+jmem_pools_collect_empty (jjs_context_t *context_p)
 {
-  jmem_pools_chunk_t *chunk_p = JJS_CONTEXT (jmem_free_8_byte_chunk_p);
-  JJS_CONTEXT (jmem_free_8_byte_chunk_p) = NULL;
+  jmem_pools_chunk_t *chunk_p = context_p->jmem_free_8_byte_chunk_p;
+  context_p->jmem_free_8_byte_chunk_p = NULL;
 
   while (chunk_p)
   {
@@ -170,8 +171,8 @@ jmem_pools_collect_empty (void)
   }
 
 #if JJS_CPOINTER_32_BIT
-  chunk_p = JJS_CONTEXT (jmem_free_16_byte_chunk_p);
-  JJS_CONTEXT (jmem_free_16_byte_chunk_p) = NULL;
+  chunk_p = context_p->jmem_free_16_byte_chunk_p;
+  context_p->jmem_free_16_byte_chunk_p = NULL;
 
   while (chunk_p)
   {

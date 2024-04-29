@@ -263,19 +263,19 @@ extern jjs_context_t jjs_global_context;
  */
 #define JJS_HEAP_CONTEXT(field) (jjs_global_context.heap_p->field)
 
-void jcontext_set_exception_flag (bool is_exception);
+void jcontext_set_exception_flag (jjs_context_t *context_p, bool is_exception);
 
-void jcontext_set_abort_flag (bool is_abort);
+void jcontext_set_abort_flag (jjs_context_t *context_p, bool is_abort);
 
-bool jcontext_has_pending_exception (void);
+bool jcontext_has_pending_exception (jjs_context_t *context_p);
 
-bool jcontext_has_pending_abort (void);
+bool jcontext_has_pending_abort (jjs_context_t *context_p);
 
-void jcontext_raise_exception (ecma_value_t error);
+void jcontext_raise_exception (jjs_context_t *context_p, ecma_value_t error);
 
-void jcontext_release_exception (void);
+void jcontext_release_exception (jjs_context_t *context_p);
 
-ecma_value_t jcontext_take_exception (void);
+ecma_value_t jcontext_take_exception (jjs_context_t *context_p);
 
 /**
  * @}

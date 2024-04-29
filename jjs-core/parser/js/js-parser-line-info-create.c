@@ -256,16 +256,16 @@ parser_line_info_append_number (parser_context_t *context_p, /**< context */
  * Updates the current line information data.
  */
 void
-parser_line_info_append (parser_context_t *context_p, /**< context */
+parser_line_info_append (parser_context_t *parser_context_p, /**< context */
                          parser_line_counter_t line, /**< line */
                          parser_line_counter_t column) /**< column */
 {
-  parser_line_info_data_t *line_info_p = context_p->line_info_p;
+  parser_line_info_data_t *line_info_p = parser_context_p->line_info_p;
   uint32_t value;
 
   if (line_info_p != NULL)
   {
-    if (line_info_p->byte_code_position == context_p->byte_code_size
+    if (line_info_p->byte_code_position == parser_context_p->byte_code_size
         || (line_info_p->line == line && line_info_p->column == column))
     {
       return;
@@ -276,8 +276,8 @@ parser_line_info_append (parser_context_t *context_p, /**< context */
   }
   else
   {
-    line_info_p = (parser_line_info_data_t *) parser_malloc (context_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
-    context_p->line_info_p = line_info_p;
+    line_info_p = (parser_line_info_data_t *) parser_malloc (parser_context_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
+    parser_context_p->line_info_p = line_info_p;
 
     parser_mem_page_t *page_p = PARSER_LINE_INFO_GET_FIRST_PAGE (line_info_p);
     page_p->next_p = NULL;
@@ -292,20 +292,20 @@ parser_line_info_append (parser_context_t *context_p, /**< context */
     value = (uint32_t) (line != 1);
   }
 
-  value |= ((context_p->byte_code_size - line_info_p->byte_code_position) << 1);
+  value |= ((parser_context_p->byte_code_size - line_info_p->byte_code_position) << 1);
 
-  parser_line_info_append_number (context_p, value);
-  line_info_p->byte_code_position = context_p->byte_code_size;
+  parser_line_info_append_number (parser_context_p, value);
+  line_info_p->byte_code_position = parser_context_p->byte_code_size;
 
   if (value & ECMA_LINE_INFO_HAS_LINE)
   {
     value = parser_line_info_difference_get (line, line_info_p->line);
-    parser_line_info_append_number (context_p, value);
+    parser_line_info_append_number (parser_context_p, value);
     line_info_p->line = line;
   }
 
   value = parser_line_info_difference_get (column, line_info_p->column);
-  parser_line_info_append_number (context_p, value);
+  parser_line_info_append_number (parser_context_p, value);
   line_info_p->column = column;
 } /* parser_line_info_append */
 
@@ -347,7 +347,7 @@ parser_line_info_iterator_get (parser_line_info_iterator_t *iterator_p) /**< ite
  * @return generated line info data
  */
 uint8_t *
-parser_line_info_generate (parser_context_t *context_p) /**< context */
+parser_line_info_generate (parser_context_t *parser_context_p) /**< context */
 {
   parser_line_info_iterator_t iterator;
   uint8_t *line_info_p = NULL;
@@ -360,7 +360,7 @@ parser_line_info_generate (parser_context_t *context_p) /**< context */
     /* The following code runs twice: first the size of the data,
      * is computed and the data is generated during the second run.
      * Note: line_info_p is NULL during the first run. */
-    parser_mem_page_t *iterator_byte_code_page_p = context_p->byte_code.first_p;
+    parser_mem_page_t *iterator_byte_code_page_p = parser_context_p->byte_code.first_p;
     uint32_t iterator_byte_code_page_offset = 0;
     uint32_t iterator_byte_code_base = 0;
     uint32_t iterator_last_byte_code_offset = UINT32_MAX;
@@ -382,7 +382,7 @@ parser_line_info_generate (parser_context_t *context_p) /**< context */
     uint32_t stream_value_count = 0;
     uint32_t value;
 
-    iterator.current_page_p = PARSER_LINE_INFO_GET_FIRST_PAGE (context_p->line_info_p);
+    iterator.current_page_p = PARSER_LINE_INFO_GET_FIRST_PAGE (parser_context_p->line_info_p);
     iterator.offset = 1;
 
     do

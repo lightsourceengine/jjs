@@ -567,8 +567,8 @@ jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
       JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_VM_STOP);
       context_p->debugger_stop_context = NULL;
 
-      jcontext_raise_exception (result);
-      jcontext_set_abort_flag (eval_string_p[4] == JJS_DEBUGGER_EVAL_ABORT);
+      jcontext_raise_exception (context_p, result);
+      jcontext_set_abort_flag (context_p, eval_string_p[4] == JJS_DEBUGGER_EVAL_ABORT);
 
       return true;
     }
@@ -1521,7 +1521,7 @@ jjs_debugger_exception_object_to_string (jjs_context_t* context_p, /**< JJS cont
 bool
 jjs_debugger_send_exception_string (jjs_context_t* context_p, ecma_value_t exception_value)
 {
-  JJS_ASSERT (jcontext_has_pending_exception ());
+  JJS_ASSERT (jcontext_has_pending_exception (context_p));
   ecma_string_t *string_p = NULL;
 
   if (ecma_is_value_object (exception_value))

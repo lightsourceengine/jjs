@@ -244,6 +244,7 @@ void
 ecma_fulfill_promise (ecma_value_t promise, /**< promise */
                       ecma_value_t value) /**< fulfilled value */
 {
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_object_t *obj_p = ecma_get_object_from_value (promise);
 
   JJS_ASSERT (ecma_promise_get_flags (obj_p) & ECMA_PROMISE_IS_PENDING);
@@ -251,7 +252,7 @@ ecma_fulfill_promise (ecma_value_t promise, /**< promise */
   if (promise == value)
   {
     ecma_raise_type_error (ECMA_ERR_PROMISE_RESOLVE_ITSELF);
-    ecma_value_t exception = jcontext_take_exception ();
+    ecma_value_t exception = jcontext_take_exception (context_p);
     ecma_reject_promise (promise, exception);
     ecma_free_value (exception);
     return;
@@ -263,7 +264,7 @@ ecma_fulfill_promise (ecma_value_t promise, /**< promise */
 
     if (ECMA_IS_VALUE_ERROR (then))
     {
-      then = jcontext_take_exception ();
+      then = jcontext_take_exception (context_p);
       ecma_reject_promise (promise, then);
       ecma_free_value (then);
       return;
@@ -280,8 +281,6 @@ ecma_fulfill_promise (ecma_value_t promise, /**< promise */
   }
 
 #if JJS_PROMISE_CALLBACK
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_RESOLVE))
   {
     JJS_ASSERT (context_p->promise_callback != NULL);
@@ -482,6 +481,7 @@ ecma_op_create_promise_object (ecma_value_t executor, /**< the executor function
                                ecma_object_t *new_target_p) /**< new.target value */
 {
   JJS_UNUSED (parent);
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
 
   if (new_target_p == NULL)
   {
@@ -513,8 +513,6 @@ ecma_op_create_promise_object (ecma_value_t executor, /**< the executor function
   promise_object_p->reactions = reactions;
 
 #if JJS_PROMISE_CALLBACK
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_CREATE))
   {
     JJS_ASSERT (context_p->promise_callback != NULL);
@@ -541,7 +539,7 @@ ecma_op_create_promise_object (ecma_value_t executor, /**< the executor function
   if (ECMA_IS_VALUE_ERROR (completion))
   {
     /* 10.a. */
-    completion = jcontext_take_exception ();
+    completion = jcontext_take_exception (context_p);
     ecma_reject_promise_with_checks (ecma_make_object_value (object_p), completion);
   }
 
@@ -1001,10 +999,11 @@ ecma_value_thunk_thrower_cb (ecma_object_t *function_obj_p, /**< function object
                              const uint32_t args_count) /**< argument number */
 {
   JJS_UNUSED_2 (args_p, args_count);
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
 
   ecma_promise_value_thunk_t *value_thunk_obj_p = (ecma_promise_value_thunk_t *) function_obj_p;
 
-  jcontext_raise_exception (ecma_copy_value (value_thunk_obj_p->value));
+  jcontext_raise_exception (context_p, ecma_copy_value (value_thunk_obj_p->value));
 
   return ECMA_VALUE_ERROR;
 } /* ecma_value_thunk_thrower_cb */
@@ -1270,6 +1269,7 @@ ecma_value_t
 ecma_op_if_abrupt_reject_promise (ecma_value_t *value_p, /**< [in - out] completion value */
                                   ecma_object_t *capability_obj_p) /**< capability */
 {
+  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
   JJS_ASSERT (ecma_object_class_is (capability_obj_p, ECMA_OBJECT_CLASS_PROMISE_CAPABILITY));
 
   if (!ECMA_IS_VALUE_ERROR (*value_p))
@@ -1277,7 +1277,7 @@ ecma_op_if_abrupt_reject_promise (ecma_value_t *value_p, /**< [in - out] complet
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_value_t reason = jcontext_take_exception ();
+  ecma_value_t reason = jcontext_take_exception (context_p);
 
   ecma_promise_capabality_t *capability_p = (ecma_promise_capabality_t *) capability_obj_p;
   ecma_value_t call_ret =

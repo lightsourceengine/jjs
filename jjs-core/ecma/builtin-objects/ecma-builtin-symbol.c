@@ -181,7 +181,7 @@ ecma_builtin_symbol_for_helper (ecma_value_t value_to_find) /**< symbol or ecma-
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)

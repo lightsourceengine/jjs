@@ -40,20 +40,20 @@
  * Initialize Global environment
  */
 void
-ecma_init_global_environment (void)
+ecma_init_global_environment (ecma_context_t *context_p)
 {
-  JJS_CONTEXT (global_object_p) = ecma_builtin_create_global_object ();
+  context_p->global_object_p = ecma_builtin_create_global_object ();
 } /* ecma_init_global_environment */
 
 /**
  * Finalize Global environment
  */
 void
-ecma_finalize_global_environment (void)
+ecma_finalize_global_environment (ecma_context_t *context_p)
 {
   /* After this point the gc can free the global object, but the global_object_p pointer
    * is not set to NULL because the global object might still be used before the free. */
-  ecma_deref_object ((ecma_object_t *) JJS_CONTEXT (global_object_p));
+  ecma_deref_object ((ecma_object_t *) context_p->global_object_p);
 } /* ecma_finalize_global_environment */
 
 /**
