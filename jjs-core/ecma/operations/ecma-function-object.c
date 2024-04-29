@@ -1033,7 +1033,7 @@ ecma_op_function_call_constructor (vm_frame_ctx_shared_args_t *shared_args_p, /*
   JJS_CONTEXT (global_object_p) = ecma_op_function_get_realm (shared_args_p->header.bytecode_header_p);
 #endif /* JJS_BUILTIN_REALMS */
 
-  ret_value = vm_run (&JJS_CONTEXT_STRUCT, &shared_args_p->header, this_binding, scope_p);
+  ret_value = vm_run (&shared_args_p->header, this_binding, scope_p);
 
 #if JJS_BUILTIN_REALMS
   JJS_CONTEXT (global_object_p) = saved_global_object_p;
@@ -1083,6 +1083,7 @@ ecma_op_function_call_simple (ecma_object_t *func_obj_p, /**< Function object */
   vm_frame_ctx_shared_args_t shared_args;
   shared_args.header.status_flags = VM_FRAME_CTX_SHARED_HAS_ARG_LIST;
   shared_args.header.function_object_p = func_obj_p;
+  shared_args.header.context_p = &JJS_CONTEXT_STRUCT;
   shared_args.arg_list_p = arguments_list_p;
   shared_args.arg_list_len = arguments_list_len;
 
@@ -1173,7 +1174,7 @@ ecma_op_function_call_simple (ecma_object_t *func_obj_p, /**< Function object */
   JJS_CONTEXT (global_object_p) = realm_p;
 #endif /* JJS_BUILTIN_REALMS */
 
-  ecma_value_t ret_value = vm_run (&JJS_CONTEXT_STRUCT, &shared_args.header, this_binding, scope_p);
+  ecma_value_t ret_value = vm_run (&shared_args.header, this_binding, scope_p);
 
 #if JJS_BUILTIN_REALMS
   JJS_CONTEXT (global_object_p) = saved_global_object_p;
@@ -1595,6 +1596,7 @@ ecma_op_function_construct_constructor (ecma_object_t *func_obj_p, /**< Function
 {
   JJS_ASSERT (ecma_get_object_type (func_obj_p) == ECMA_OBJECT_TYPE_CONSTRUCTOR_FUNCTION);
 
+  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
   ecma_extended_object_t *constructor_object_p = (ecma_extended_object_t *) func_obj_p;
 
   if (!(constructor_object_p->u.constructor_function.flags & ECMA_CONSTRUCTOR_FUNCTION_HAS_HERITAGE))
@@ -1610,7 +1612,7 @@ ecma_op_function_construct_constructor (ecma_object_t *func_obj_p, /**< Function
     ecma_deref_object (proto_p);
 
     jjs_value_t new_this_value = ecma_make_object_value (new_this_object_p);
-    jjs_value_t ret_value = opfunc_init_class_fields (func_obj_p, new_this_value);
+    jjs_value_t ret_value = opfunc_init_class_fields (context_p, func_obj_p, new_this_value);
 
     if (ECMA_IS_VALUE_ERROR (ret_value))
     {
@@ -1634,7 +1636,7 @@ ecma_op_function_construct_constructor (ecma_object_t *func_obj_p, /**< Function
 
   if (ecma_is_value_object (result))
   {
-    ecma_value_t fields_value = opfunc_init_class_fields (func_obj_p, result);
+    ecma_value_t fields_value = opfunc_init_class_fields (context_p, func_obj_p, result);
 
     if (ECMA_IS_VALUE_ERROR (fields_value))
     {

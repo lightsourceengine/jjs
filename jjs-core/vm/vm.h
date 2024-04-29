@@ -419,8 +419,8 @@ ecma_value_t vm_run_module (jjs_context_t* context_p, ecma_module_t *module_p);
 ecma_value_t vm_init_module_scope (jjs_context_t* context_p, ecma_module_t *module_p);
 #endif /* JJS_MODULE_SYSTEM */
 
-ecma_value_t vm_run (jjs_context_t* context_p, vm_frame_ctx_shared_t *shared_p, ecma_value_t this_binding_value, ecma_object_t *lex_env_p);
-ecma_value_t vm_execute (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p);
+ecma_value_t vm_run (vm_frame_ctx_shared_t *shared_p, ecma_value_t this_binding_value, ecma_object_t *lex_env_p);
+ecma_value_t vm_execute (vm_frame_ctx_t *frame_ctx_p);
 
 bool vm_is_strict_mode (jjs_context_t* context_p);
 bool vm_is_direct_eval_form_call (jjs_context_t* context_p);

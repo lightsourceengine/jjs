@@ -382,7 +382,7 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
   if ((parse_opts & JJS_PARSE_MODULE) != 0)
   {
 #if JJS_MODULE_SYSTEM
-    context_p->module_current_p = ecma_module_create ();
+    context_p->module_current_p = ecma_module_create (context_p);
 #else /* !JJS_MODULE_SYSTEM */
     return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_MODULE_NOT_SUPPORTED));
 #endif /* JJS_MODULE_SYSTEM */
@@ -396,7 +396,7 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
 #if JJS_MODULE_SYSTEM
     if ((parse_opts & JJS_PARSE_MODULE) != 0)
     {
-      ecma_module_cleanup_context ();
+      ecma_module_cleanup_context (context_p);
     }
 #endif /* JJS_MODULE_SYSTEM */
 

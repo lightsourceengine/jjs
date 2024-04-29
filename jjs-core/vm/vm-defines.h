@@ -60,6 +60,7 @@ typedef struct
   const ecma_compiled_code_t *bytecode_header_p; /**< currently executed byte-code data */
   ecma_object_t *function_object_p; /**< function obj */
   uint32_t status_flags; /**< combination of vm_frame_ctx_shared_flags_t bits */
+  jjs_context_t *context_p; /**< JJS context */
 } vm_frame_ctx_shared_t;
 
 /**

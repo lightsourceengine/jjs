@@ -73,7 +73,7 @@ jjs_module_link (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_NOT_MODULE));
   }
 
-  return jjs_return (ecma_module_link (module_p, callback, user_p));
+  return jjs_return (ecma_module_link (context_p, module_p, callback, user_p));
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED_ALL (module, callback, user_p);
 
@@ -109,7 +109,7 @@ jjs_module_evaluate (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_MUST_BE_IN_LINKED_STATE));
   }
 
-  return jjs_return (ecma_module_evaluate (module_p));
+  return jjs_return (ecma_module_evaluate (context_p, module_p));
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (module);
 
@@ -419,7 +419,7 @@ jjs_synthetic_module (jjs_context_t* context_p, /**< JJS context */
     new_export_p->local_name_p = name_str_p;
   }
 
-  ecma_module_t *module_p = ecma_module_create ();
+  ecma_module_t *module_p = ecma_module_create (context_p);
 
   module_p->header.u.cls.u2.module_flags |= ECMA_MODULE_IS_SYNTHETIC;
   module_p->scope_p = scope_p;

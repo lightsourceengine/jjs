@@ -15,7 +15,6 @@
 
 #include "jjs-pack-lib.h"
 #include "jjs-pack.h"
-#include "jjs-port.h"
 
 #if JJS_PACK_PERFORMANCE
 

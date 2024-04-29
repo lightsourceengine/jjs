@@ -61,9 +61,9 @@ typedef struct
  * @return new module
  */
 ecma_module_t *
-ecma_module_create (void)
+ecma_module_create (ecma_context_t *context_p) /**< JJS context */
 {
-  JJS_ASSERT (JJS_CONTEXT (module_current_p) == NULL);
+  JJS_ASSERT (context_p->module_current_p == NULL);
 
   ecma_object_t *obj_p = ecma_create_object (NULL, sizeof (ecma_module_t), ECMA_OBJECT_TYPE_CLASS);
 
@@ -89,11 +89,11 @@ ecma_module_create (void)
  * Cleanup context variables for the root module.
  */
 void
-ecma_module_cleanup_context (void)
+ecma_module_cleanup_context (ecma_context_t *context_p) /**< JJS context */
 {
-  ecma_deref_object ((ecma_object_t *) JJS_CONTEXT (module_current_p));
+  ecma_deref_object ((ecma_object_t *) context_p->module_current_p);
 #ifndef JJS_NDEBUG
-  JJS_CONTEXT (module_current_p) = NULL;
+  context_p->module_current_p = NULL;
 #endif /* JJS_NDEBUG */
 } /* ecma_module_cleanup_context */
 
@@ -101,10 +101,9 @@ ecma_module_cleanup_context (void)
  * Sets module state to error.
  */
 static void
-ecma_module_set_error_state (ecma_module_t *module_p) /**< module */
+ecma_module_set_error_state (ecma_context_t *context_p, /**< JJS context */
+                             ecma_module_t *module_p) /**< module */
 {
-  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   module_p->header.u.cls.u1.module_state = JJS_MODULE_STATE_ERROR;
 
   if (context_p->module_state_changed_callback_p != NULL && !jcontext_has_pending_abort (context_p))
@@ -537,7 +536,8 @@ exit:
  *         ECMA_VALUE_EMPTY - otherwise
  */
 ecma_value_t
-ecma_module_evaluate (ecma_module_t *module_p) /**< module */
+ecma_module_evaluate (ecma_context_t *context_p, /**< JJS context */
+                      ecma_module_t *module_p) /**< module */
 {
   if (module_p->header.u.cls.u1.module_state == JJS_MODULE_STATE_ERROR)
   {
@@ -562,7 +562,7 @@ ecma_module_evaluate (ecma_module_t *module_p) /**< module */
 
     if (module_p->u.callback)
     {
-      ret_value = module_p->u.callback (&JJS_CONTEXT_STRUCT, ecma_make_object_value (&module_p->header.object));
+      ret_value = module_p->u.callback (context_p, ecma_make_object_value (&module_p->header.object));
 
       if (JJS_UNLIKELY (ecma_is_value_exception (ret_value)))
       {
@@ -573,25 +573,24 @@ ecma_module_evaluate (ecma_module_t *module_p) /**< module */
   }
   else
   {
-    ret_value = vm_run_module (&JJS_CONTEXT_STRUCT, module_p);
+    ret_value = vm_run_module (context_p, module_p);
   }
 
   if (JJS_LIKELY (!ECMA_IS_VALUE_ERROR (ret_value)))
   {
     module_p->header.u.cls.u1.module_state = JJS_MODULE_STATE_EVALUATED;
 
-    if (JJS_CONTEXT (module_state_changed_callback_p) != NULL)
+    if (context_p->module_state_changed_callback_p != NULL)
     {
-      JJS_CONTEXT (module_state_changed_callback_p)
-      (JJS_MODULE_STATE_EVALUATED,
-       ecma_make_object_value (&module_p->header.object),
-       ret_value,
-       JJS_CONTEXT (module_state_changed_callback_user_p));
+      context_p->module_state_changed_callback_p (JJS_MODULE_STATE_EVALUATED,
+                                                  ecma_make_object_value (&module_p->header.object),
+                                                  ret_value,
+                                                  context_p->module_state_changed_callback_user_p);
     }
   }
   else
   {
-    ecma_module_set_error_state (module_p);
+    ecma_module_set_error_state (context_p, module_p);
   }
 
   if (!(module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC))
@@ -1040,14 +1039,15 @@ ecma_module_connect_imports (ecma_module_t *module_p)
  *         ECMA_VALUE_EMPTY - otherwise
  */
 ecma_value_t
-ecma_module_initialize (ecma_module_t *module_p) /**< module */
+ecma_module_initialize (ecma_context_t *context_p, /**< JJS context */
+                        ecma_module_t *module_p) /**< module */
 {
   ecma_module_node_t *import_node_p = module_p->imports_p;
 
   while (import_node_p != NULL)
   {
     /* Module is evaluated even if it is used only in export-from statements. */
-    ecma_value_t result = ecma_module_evaluate (ecma_module_get_from_object (import_node_p->u.path_or_module));
+    ecma_value_t result = ecma_module_evaluate (context_p, ecma_module_get_from_object (import_node_p->u.path_or_module));
 
     if (ECMA_IS_VALUE_ERROR (result))
     {
@@ -1105,7 +1105,8 @@ typedef struct ecma_module_stack_item_t
  *         ECMA_VALUE_UNDEFINED - otherwise
  */
 ecma_value_t
-ecma_module_link (ecma_module_t *module_p, /**< root module */
+ecma_module_link (ecma_context_t *context_p, /**< JJS context */
+                  ecma_module_t *module_p, /**< root module */
                   jjs_module_link_cb_t callback, /**< resolve module callback */
                   void *user_p) /**< pointer passed to the resolve callback */
 {
@@ -1146,7 +1147,7 @@ restart:
     {
       JJS_ASSERT (ecma_is_value_string (node_p->u.path_or_module));
 
-      ecma_value_t resolve_result = callback (&JJS_CONTEXT_STRUCT, node_p->u.path_or_module, module_val, user_p);
+      ecma_value_t resolve_result = callback (context_p, node_p->u.path_or_module, module_val, user_p);
 
       if (JJS_UNLIKELY (ecma_is_value_exception (resolve_result)))
       {
@@ -1233,11 +1234,11 @@ restart:
       JJS_ASSERT (!(current_module_p->header.u.cls.u2.module_flags & ECMA_MODULE_IS_SYNTHETIC));
 
       /* Initialize scope for handling circular references. */
-      ecma_value_t result = vm_init_module_scope (&JJS_CONTEXT_STRUCT, current_module_p);
+      ecma_value_t result = vm_init_module_scope (context_p, current_module_p);
 
       if (ECMA_IS_VALUE_ERROR (result))
       {
-        ecma_module_set_error_state (current_module_p);
+        ecma_module_set_error_state (context_p, current_module_p);
         goto error;
       }
 
@@ -1284,7 +1285,7 @@ restart:
 
       if (ECMA_IS_VALUE_ERROR (ecma_module_create_namespace_object (iterator_p->module_p)))
       {
-        ecma_module_set_error_state (iterator_p->module_p);
+        ecma_module_set_error_state (context_p, iterator_p->module_p);
         goto error;
       }
 
@@ -1299,7 +1300,7 @@ restart:
 
       if (ECMA_IS_VALUE_ERROR (ecma_module_connect_imports (iterator_p->module_p)))
       {
-        ecma_module_set_error_state (iterator_p->module_p);
+        ecma_module_set_error_state (context_p, iterator_p->module_p);
         goto error;
       }
 
@@ -1313,13 +1314,12 @@ restart:
       JJS_ASSERT (last_p->module_p->header.u.cls.u1.module_state == JJS_MODULE_STATE_LINKING);
       last_p->module_p->header.u.cls.u1.module_state = JJS_MODULE_STATE_LINKED;
 
-      if (JJS_CONTEXT (module_state_changed_callback_p) != NULL)
+      if (context_p->module_state_changed_callback_p != NULL)
       {
-        JJS_CONTEXT (module_state_changed_callback_p)
-        (JJS_MODULE_STATE_LINKED,
-         ecma_make_object_value (&last_p->module_p->header.object),
-         ECMA_VALUE_UNDEFINED,
-         JJS_CONTEXT (module_state_changed_callback_user_p));
+        context_p->module_state_changed_callback_p (JJS_MODULE_STATE_LINKED,
+                                                    ecma_make_object_value (&last_p->module_p->header.object),
+                                                    ECMA_VALUE_UNDEFINED,
+                                                    context_p->module_state_changed_callback_user_p);
       }
 
       jmem_heap_free_block (last_p, sizeof (ecma_module_stack_item_t));
@@ -1358,11 +1358,11 @@ error:
  * @return promise object representing the result of the operation
  */
 ecma_value_t
-ecma_module_import (ecma_value_t specifier, /**< module specifier */
+ecma_module_import (ecma_context_t *context_p, /**< JJS context */
+                    ecma_value_t specifier, /**< module specifier */
                     ecma_value_t user_value) /**< user value assigned to the script */
 {
   ecma_string_t *specifier_p = ecma_op_to_string (specifier);
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
 
   if (JJS_UNLIKELY (specifier_p == NULL))
   {

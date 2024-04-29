@@ -86,9 +86,9 @@ ecma_value_t opfunc_instanceof (ecma_value_t left_value, ecma_value_t right_valu
 
 ecma_value_t opfunc_typeof (ecma_value_t left_value);
 
-void opfunc_set_data_property (ecma_object_t *object_p, ecma_string_t *prop_name_p, ecma_value_t value);
+void opfunc_set_data_property (ecma_context_t *context_p, ecma_object_t *object_p, ecma_string_t *prop_name_p, ecma_value_t value);
 
-void opfunc_set_accessor (bool is_getter, ecma_value_t object, ecma_string_t *accessor_name_p, ecma_value_t accessor);
+void opfunc_set_accessor (ecma_context_t *context_p, bool is_getter, ecma_value_t object, ecma_string_t *accessor_name_p, ecma_value_t accessor);
 
 ecma_value_t vm_op_delete_prop (ecma_value_t object, ecma_value_t property, bool is_strict);
 
@@ -112,9 +112,9 @@ void opfunc_async_generator_yield (ecma_extended_object_t *async_generator_objec
 
 ecma_value_t opfunc_async_create_and_await (vm_frame_ctx_t *frame_ctx_p, ecma_value_t value, uint16_t extra_flags);
 
-ecma_value_t opfunc_init_class_fields (ecma_object_t *class_object_p, ecma_value_t this_val);
+ecma_value_t opfunc_init_class_fields (ecma_context_t *context_p, ecma_object_t *class_object_p, ecma_value_t this_val);
 
-ecma_value_t opfunc_init_static_class_fields (ecma_value_t function_object, ecma_value_t this_val);
+ecma_value_t opfunc_init_static_class_fields (ecma_context_t *context_p, ecma_value_t function_object, ecma_value_t this_val);
 
 ecma_value_t opfunc_add_computed_field (ecma_value_t class_object, ecma_value_t name);
 
@@ -126,13 +126,13 @@ ecma_value_t opfunc_define_field (ecma_value_t base, ecma_value_t property, ecma
 
 ecma_string_t *opfunc_make_private_key (ecma_value_t descriptor);
 
-ecma_value_t opfunc_private_in (ecma_value_t base, ecma_value_t property);
+ecma_value_t opfunc_private_in (ecma_context_t *context_p, ecma_value_t base, ecma_value_t property);
 
-ecma_value_t opfunc_private_field_add (ecma_value_t base, ecma_value_t property, ecma_value_t value);
+ecma_value_t opfunc_private_field_add (ecma_context_t *context_p, ecma_value_t base, ecma_value_t property, ecma_value_t value);
 
-ecma_value_t opfunc_private_set (ecma_value_t base, ecma_value_t property, ecma_value_t value);
+ecma_value_t opfunc_private_set (ecma_context_t *context_p, ecma_value_t base, ecma_value_t property, ecma_value_t value);
 
-ecma_value_t opfunc_private_get (ecma_value_t base, ecma_value_t property);
+ecma_value_t opfunc_private_get (ecma_context_t *context_p, ecma_value_t base, ecma_value_t property);
 
 void opfunc_collect_private_properties (ecma_value_t constructor,
                                         ecma_value_t prop_name,
@@ -161,7 +161,7 @@ ecma_value_t
 opfunc_assign_super_reference (ecma_value_t **vm_stack_top_p, vm_frame_ctx_t *frame_ctx_p, uint32_t opcode_data);
 
 ecma_value_t
-opfunc_copy_data_properties (ecma_value_t target_object, ecma_value_t source_object, ecma_value_t filter_array);
+opfunc_copy_data_properties (ecma_context_t *context_p, ecma_value_t target_object, ecma_value_t source_object, ecma_value_t filter_array);
 
 ecma_value_t opfunc_lexical_scope_has_restricted_binding (vm_frame_ctx_t *vm_frame_ctx_p, ecma_string_t *name_p);
 

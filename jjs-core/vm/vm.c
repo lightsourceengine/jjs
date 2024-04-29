@@ -270,10 +270,12 @@ vm_run_global (jjs_context_t* context_p, /**< JJS context */
 
   ecma_object_t *const global_scope_p = ecma_get_global_scope (global_obj_p);
 
-  vm_frame_ctx_shared_t shared;
-  shared.bytecode_header_p = bytecode_p;
-  shared.function_object_p = function_object_p;
-  shared.status_flags = 0;
+  vm_frame_ctx_shared_t shared = {
+    .bytecode_header_p = bytecode_p,
+    .function_object_p = function_object_p,
+    .status_flags = 0,
+    .context_p = context_p,
+  };
 
 #if JJS_BUILTIN_REALMS
   ecma_value_t this_binding = ((ecma_global_object_t *) global_obj_p)->this_binding;
@@ -284,7 +286,7 @@ vm_run_global (jjs_context_t* context_p, /**< JJS context */
   ecma_value_t this_binding = ecma_make_object_value (global_obj_p);
 #endif /* JJS_BUILTIN_REALMS */
 
-  ecma_value_t result = vm_run (context_p, &shared, this_binding, global_scope_p);
+  ecma_value_t result = vm_run (&shared, this_binding, global_scope_p);
 
 #if JJS_BUILTIN_REALMS
   context_p->global_object_p = saved_global_object_p;
@@ -368,12 +370,14 @@ vm_run_eval (jjs_context_t* context_p, /**< JJS context */
     lex_env_p = lex_block_p;
   }
 
-  vm_frame_ctx_shared_t shared;
-  shared.bytecode_header_p = bytecode_data_p;
-  shared.function_object_p = NULL;
-  shared.status_flags = (parse_opts & ECMA_PARSE_DIRECT_EVAL) ? VM_FRAME_CTX_SHARED_DIRECT_EVAL : 0;
+  vm_frame_ctx_shared_t shared = {
+    .bytecode_header_p = bytecode_data_p,
+    .function_object_p = NULL,
+    .status_flags = (parse_opts & ECMA_PARSE_DIRECT_EVAL) ? VM_FRAME_CTX_SHARED_DIRECT_EVAL : 0,
+    .context_p = context_p,
+  };
 
-  ecma_value_t completion_value = vm_run (context_p, &shared, this_binding, lex_env_p);
+  ecma_value_t completion_value = vm_run (&shared, this_binding, lex_env_p);
 
   ecma_deref_object (lex_env_p);
   ecma_free_value (this_binding);
@@ -404,19 +408,21 @@ ecma_value_t
 vm_run_module (jjs_context_t* context_p, /**< JJS context */
                ecma_module_t *module_p) /**< module to be executed */
 {
-  const ecma_value_t module_init_result = ecma_module_initialize (module_p);
+  const ecma_value_t module_init_result = ecma_module_initialize (context_p, module_p);
 
   if (ECMA_IS_VALUE_ERROR (module_init_result))
   {
     return module_init_result;
   }
 
-  vm_frame_ctx_shared_t shared;
-  shared.bytecode_header_p = module_p->u.compiled_code_p;
-  shared.function_object_p = &module_p->header.object;
-  shared.status_flags = 0;
+  vm_frame_ctx_shared_t shared = {
+    .bytecode_header_p = module_p->u.compiled_code_p,
+    .function_object_p = &module_p->header.object,
+    .status_flags = 0,
+    .context_p = context_p,
+  };
 
-  return vm_run (context_p, &shared, ECMA_VALUE_UNDEFINED, module_p->scope_p);
+  return vm_run (&shared, ECMA_VALUE_UNDEFINED, module_p->scope_p);
 } /* vm_run_module */
 
 #endif /* JJS_MODULE_SYSTEM */
@@ -599,7 +605,7 @@ vm_super_call (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame
     ecma_op_bind_this_value (environment_record_p, completion_value);
     frame_ctx_p->this_binding = completion_value;
 
-    ecma_value_t fields_value = opfunc_init_class_fields (vm_get_class_function (frame_ctx_p), completion_value);
+    ecma_value_t fields_value = opfunc_init_class_fields (context_p, vm_get_class_function (frame_ctx_p), completion_value);
 
     if (ECMA_IS_VALUE_ERROR (fields_value))
     {
@@ -1859,7 +1865,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
             continue;
           }
 
-          result = opfunc_copy_data_properties (stack_top_p[-1], left_value, ECMA_VALUE_UNDEFINED);
+          result = opfunc_copy_data_properties (context_p, stack_top_p[-1], left_value, ECMA_VALUE_UNDEFINED);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -1902,7 +1908,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
 
           ecma_object_t *object_p = ecma_get_object_from_value (stack_top_p[index]);
 
-          opfunc_set_data_property (object_p, prop_name_p, left_value);
+          opfunc_set_data_property (context_p, object_p, prop_name_p, left_value);
           ecma_deref_ecma_string (prop_name_p);
 
           goto free_both_values;
@@ -1928,7 +1934,8 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
           }
 
           const int index = (int) (opcode_data >> VM_OC_NON_STATIC_SHIFT) - 2;
-          opfunc_set_accessor (VM_OC_GROUP_GET_INDEX (opcode_data) == VM_OC_SET_GETTER,
+          opfunc_set_accessor (context_p,
+                               VM_OC_GROUP_GET_INDEX (opcode_data) == VM_OC_SET_GETTER,
                                stack_top_p[index],
                                prop_name_p,
                                right_value);
@@ -2004,7 +2011,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         }
         case VM_OC_ASSIGN_PRIVATE:
         {
-          result = opfunc_private_set (stack_top_p[-3], stack_top_p[-2], stack_top_p[-1]);
+          result = opfunc_private_set (context_p, stack_top_p[-3], stack_top_p[-2], stack_top_p[-1]);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -2034,7 +2041,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         }
         case VM_OC_PRIVATE_FIELD_ADD:
         {
-          result = opfunc_private_field_add (frame_ctx_p->this_binding, right_value, left_value);
+          result = opfunc_private_field_add (context_p, frame_ctx_p->this_binding, right_value, left_value);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -2045,7 +2052,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         }
         case VM_OC_PRIVATE_PROP_GET:
         {
-          result = opfunc_private_get (left_value, right_value);
+          result = opfunc_private_get (context_p, left_value, right_value);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -2057,7 +2064,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         }
         case VM_OC_PRIVATE_PROP_REFERENCE:
         {
-          result = opfunc_private_get (stack_top_p[-1], left_value);
+          result = opfunc_private_get (context_p, stack_top_p[-1], left_value);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -2070,7 +2077,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         }
         case VM_OC_PRIVATE_IN:
         {
-          result = opfunc_private_in (left_value, right_value);
+          result = opfunc_private_in (context_p, left_value, right_value);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -2139,7 +2146,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         case VM_OC_RUN_FIELD_INIT:
         {
           JJS_ASSERT (frame_ctx_p->shared_p->status_flags & VM_FRAME_CTX_SHARED_NON_ARROW_FUNC);
-          result = opfunc_init_class_fields (frame_ctx_p->shared_p->function_object_p, frame_ctx_p->this_binding);
+          result = opfunc_init_class_fields (context_p, frame_ctx_p->shared_p->function_object_p, frame_ctx_p->this_binding);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -2153,7 +2160,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
           stack_top_p[-2] = stack_top_p[-1];
           stack_top_p--;
 
-          result = opfunc_init_static_class_fields (left_value, stack_top_p[-1]);
+          result = opfunc_init_static_class_fields (context_p, left_value, stack_top_p[-1]);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -2552,7 +2559,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
           ecma_object_t *result_object_p = ecma_create_object (prototype_p, 0, ECMA_OBJECT_TYPE_GENERAL);
 
           left_value = ecma_make_object_value (result_object_p);
-          result = opfunc_copy_data_properties (left_value, last_context_end_p[-2], last_context_end_p[-3]);
+          result = opfunc_copy_data_properties (context_p, left_value, last_context_end_p[-2], last_context_end_p[-3]);
 
           if (ECMA_IS_VALUE_ERROR (result))
           {
@@ -4582,7 +4589,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
           }
 #endif /* JJS_SNAPSHOT_EXEC */
 
-          result = ecma_module_import (left_value, user_value);
+          result = ecma_module_import (context_p, left_value, user_value);
           ecma_free_value (left_value);
 
           if (ECMA_IS_VALUE_ERROR (result))
@@ -5245,9 +5252,10 @@ vm_init_exec (jjs_context_t* context_p, /**< JJS context */
  * @return ecma value
  */
 ecma_value_t JJS_ATTR_NOINLINE
-vm_execute (jjs_context_t* context_p, /**< JJS context */
-            vm_frame_ctx_t *frame_ctx_p) /**< frame context */
+vm_execute (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 {
+  jjs_context_t* context_p = frame_ctx_p->shared_p->context_p;
+
   while (true)
   {
     ecma_value_t completion_value = vm_loop (context_p, frame_ctx_p);
@@ -5323,11 +5331,11 @@ vm_execute (jjs_context_t* context_p, /**< JJS context */
  * @return ecma value
  */
 ecma_value_t
-vm_run (jjs_context_t* context_p, /**< JJS context */
-        vm_frame_ctx_shared_t *shared_p, /**< shared data */
+vm_run (vm_frame_ctx_shared_t *shared_p, /**< shared data */
         ecma_value_t this_binding_value, /**< value of 'ThisBinding' */
         ecma_object_t *lex_env_p) /**< lexical environment to use */
 {
+  jjs_context_t* context_p = shared_p->context_p;
   const ecma_compiled_code_t *bytecode_header_p = shared_p->bytecode_header_p;
   vm_frame_ctx_t *frame_ctx_p;
   size_t frame_size;
@@ -5352,7 +5360,7 @@ vm_run (jjs_context_t* context_p, /**< JJS context */
   frame_ctx_p->this_binding = this_binding_value;
 
   vm_init_exec (context_p, frame_ctx_p);
-  return vm_execute (context_p, frame_ctx_p);
+  return vm_execute (frame_ctx_p);
 } /* vm_run */
 
 /**

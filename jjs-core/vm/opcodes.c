@@ -60,7 +60,8 @@ opfunc_typeof (ecma_value_t left_value) /**< left value */
  * Update data property for object literals.
  */
 void
-opfunc_set_data_property (ecma_object_t *object_p, /**< object */
+opfunc_set_data_property (ecma_context_t *context_p, /**< JJS context */
+                          ecma_object_t *object_p, /**< object */
                           ecma_string_t *prop_name_p, /**< data property name */
                           ecma_value_t value) /**< new value */
 {
@@ -86,7 +87,7 @@ opfunc_set_data_property (ecma_object_t *object_p, /**< object */
       ecma_getter_setter_pointers_t *getter_setter_pair_p;
       getter_setter_pair_p = ECMA_GET_NON_NULL_POINTER (ecma_getter_setter_pointers_t,
                                                         ECMA_PROPERTY_VALUE_PTR (property_p)->getter_setter_pair_cp);
-      jmem_pools_free (&JJS_CONTEXT_STRUCT, getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
+      jmem_pools_free (context_p, getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
 #endif /* JJS_CPOINTER_32_BIT */
 
       *property_p |= ECMA_PROPERTY_FLAG_DATA | ECMA_PROPERTY_FLAG_WRITABLE;
@@ -102,7 +103,8 @@ opfunc_set_data_property (ecma_object_t *object_p, /**< object */
  * Update getter or setter for object literals.
  */
 void
-opfunc_set_accessor (bool is_getter, /**< is getter accessor */
+opfunc_set_accessor (ecma_context_t *context_p, /**< JJS context */
+                     bool is_getter, /**< is getter accessor */
                      ecma_value_t object, /**< object value */
                      ecma_string_t *accessor_name_p, /**< accessor name */
                      ecma_value_t accessor) /**< accessor value */
@@ -145,7 +147,7 @@ opfunc_set_accessor (bool is_getter, /**< is getter accessor */
     {
 #if JJS_CPOINTER_32_BIT
       ecma_getter_setter_pointers_t *getter_setter_pair_p;
-      getter_setter_pair_p = jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_getter_setter_pointers_t));
+      getter_setter_pair_p = jmem_pools_alloc (context_p, sizeof (ecma_getter_setter_pointers_t));
 #endif /* JJS_CPOINTER_32_BIT */
 
       ecma_free_value_if_not_object (prop_value_p->value);
@@ -670,7 +672,9 @@ opfunc_create_executable_object (vm_frame_ctx_t *frame_ctx_p, /**< frame context
 
   new_frame_ctx_p->this_binding = ecma_copy_value_if_not_object (new_frame_ctx_p->this_binding);
 
-  JJS_CONTEXT (vm_top_context_p) = new_frame_ctx_p->prev_context_p;
+  ecma_context_t *context_p = frame_ctx_p->shared_p->context_p;
+
+  context_p->vm_top_context_p = new_frame_ctx_p->prev_context_p;
 
   return executable_object_p;
 } /* opfunc_create_executable_object */
@@ -694,6 +698,7 @@ ecma_value_t
 opfunc_resume_executable_object (vm_executable_object_t *executable_object_p, /**< executable object */
                                  ecma_value_t value) /**< value pushed onto the stack (takes the reference) */
 {
+  ecma_context_t *context_p = executable_object_p->shared.context_p;
   const ecma_compiled_code_t *bytecode_header_p = executable_object_p->shared.bytecode_header_p;
   ecma_value_t *register_p = VM_GET_REGISTERS (&executable_object_p->frame_ctx);
   ecma_value_t *register_end_p;
@@ -743,25 +748,25 @@ opfunc_resume_executable_object (vm_executable_object_t *executable_object_p, /*
 
   executable_object_p->extended_object.u.cls.u2.executable_obj_flags |= ECMA_EXECUTABLE_OBJECT_RUNNING;
 
-  executable_object_p->frame_ctx.prev_context_p = JJS_CONTEXT (vm_top_context_p);
-  JJS_CONTEXT (vm_top_context_p) = &executable_object_p->frame_ctx;
+  executable_object_p->frame_ctx.prev_context_p = context_p->vm_top_context_p;
+  context_p->vm_top_context_p = &executable_object_p->frame_ctx;
 
   /* inside the generators the "new.target" is always "undefined" as it can't be invoked with "new" */
-  ecma_object_t *old_new_target = JJS_CONTEXT (current_new_target_p);
-  JJS_CONTEXT (current_new_target_p) = NULL;
+  ecma_object_t *old_new_target = context_p->current_new_target_p;
+  context_p->current_new_target_p = NULL;
 
 #if JJS_BUILTIN_REALMS
-  ecma_global_object_t *saved_global_object_p = JJS_CONTEXT (global_object_p);
-  JJS_CONTEXT (global_object_p) = ecma_op_function_get_realm (bytecode_header_p);
+  ecma_global_object_t *saved_global_object_p = context_p->global_object_p;
+  context_p->global_object_p = ecma_op_function_get_realm (bytecode_header_p);
 #endif /* JJS_BUILTIN_REALMS */
 
-  ecma_value_t result = vm_execute (&JJS_CONTEXT_STRUCT, &executable_object_p->frame_ctx);
+  ecma_value_t result = vm_execute (&executable_object_p->frame_ctx);
 
 #if JJS_BUILTIN_REALMS
-  JJS_CONTEXT (global_object_p) = saved_global_object_p;
+  context_p->global_object_p = saved_global_object_p;
 #endif /* JJS_BUILTIN_REALMS */
 
-  JJS_CONTEXT (current_new_target_p) = old_new_target;
+  context_p->current_new_target_p = old_new_target;
   executable_object_p->extended_object.u.cls.u2.executable_obj_flags &= (uint8_t) ~ECMA_EXECUTABLE_OBJECT_RUNNING;
 
   if (executable_object_p->frame_ctx.call_operation != VM_EXEC_RETURN)
@@ -773,7 +778,7 @@ opfunc_resume_executable_object (vm_executable_object_t *executable_object_p, /*
     return result;
   }
 
-  JJS_CONTEXT (vm_top_context_p) = executable_object_p->frame_ctx.prev_context_p;
+  context_p->vm_top_context_p = executable_object_p->frame_ctx.prev_context_p;
 
   register_p = VM_GET_REGISTERS (&executable_object_p->frame_ctx);
   stack_top_p = executable_object_p->frame_ctx.stack_top_p;
@@ -993,7 +998,8 @@ opfunc_define_field (ecma_value_t base, /**< base */
  *         ECMA_VALUE_UNDEFINED - otherwise
  */
 ecma_value_t
-opfunc_init_class_fields (ecma_object_t *class_object_p, /**< the function itself */
+opfunc_init_class_fields (ecma_context_t *context_p, /**< JJS context */
+                          ecma_object_t *class_object_p, /**< the function itself */
                           ecma_value_t this_val) /**< this_arg of the function */
 {
   JJS_ASSERT (ecma_is_value_object (this_val));
@@ -1016,6 +1022,7 @@ opfunc_init_class_fields (ecma_object_t *class_object_p, /**< the function itsel
 
   vm_frame_ctx_shared_class_fields_t shared_class_fields;
   shared_class_fields.header.status_flags = VM_FRAME_CTX_SHARED_HAS_CLASS_FIELDS;
+  shared_class_fields.header.context_p = context_p;
   shared_class_fields.computed_class_fields_p = NULL;
 
   name_p = ecma_get_internal_string (LIT_INTERNAL_MAGIC_STRING_CLASS_FIELD_COMPUTED);
@@ -1038,7 +1045,7 @@ opfunc_init_class_fields (ecma_object_t *class_object_p, /**< the function itsel
   ecma_object_t *scope_p =
     ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_object_t, ext_function_p->u.function.scope_cp);
 
-  result = vm_run (&JJS_CONTEXT_STRUCT, &shared_class_fields.header, this_val, scope_p);
+  result = vm_run (&shared_class_fields.header, this_val, scope_p);
 
   JJS_ASSERT (ECMA_IS_VALUE_ERROR (result) || result == ECMA_VALUE_UNDEFINED);
   return result;
@@ -1051,7 +1058,8 @@ opfunc_init_class_fields (ecma_object_t *class_object_p, /**< the function itsel
  *         ECMA_VALUE_UNDEFINED - otherwise
  */
 ecma_value_t
-opfunc_init_static_class_fields (ecma_value_t function_object, /**< the function itself */
+opfunc_init_static_class_fields (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_value_t function_object, /**< the function itself */
                                  ecma_value_t this_val) /**< this_arg of the function */
 {
   JJS_ASSERT (ecma_op_is_callable (function_object));
@@ -1064,6 +1072,7 @@ opfunc_init_static_class_fields (ecma_value_t function_object, /**< the function
   vm_frame_ctx_shared_class_fields_t shared_class_fields;
   shared_class_fields.header.function_object_p = function_object_p;
   shared_class_fields.header.status_flags = VM_FRAME_CTX_SHARED_HAS_CLASS_FIELDS;
+  shared_class_fields.header.context_p = context_p;
   shared_class_fields.computed_class_fields_p = NULL;
 
   if (class_field_property_p != NULL)
@@ -1078,7 +1087,7 @@ opfunc_init_static_class_fields (ecma_value_t function_object, /**< the function
   ecma_object_t *scope_p =
     ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_object_t, ext_function_p->u.function.scope_cp);
 
-  ecma_value_t result = vm_run (&JJS_CONTEXT_STRUCT, &shared_class_fields.header, this_val, scope_p);
+  ecma_value_t result = vm_run (&shared_class_fields.header, this_val, scope_p);
 
   JJS_ASSERT (ECMA_IS_VALUE_ERROR (result) || result == ECMA_VALUE_UNDEFINED);
   return result;
@@ -1276,14 +1285,15 @@ opfunc_find_private_key (ecma_object_t *class_object_p, /**< class environment *
  *           ECMA_VALUE_EMPTY - otherwise
  */
 static ecma_property_t *
-opfunc_find_private_element (ecma_object_t *obj_p, /**< object */
+opfunc_find_private_element (ecma_context_t *context_p, /**< JJS context */
+                             ecma_object_t *obj_p, /**< object */
                              ecma_string_t *key_p, /**< key */
                              ecma_string_t **private_key_p, /**< [out] private key */
                              bool allow_heritage) /**< heritage flag */
 {
   JJS_ASSERT (private_key_p != NULL);
   JJS_ASSERT (*private_key_p == NULL);
-  ecma_object_t *lex_env_p = JJS_CONTEXT (vm_top_context_p)->lex_env_p;
+  ecma_object_t *lex_env_p = context_p->vm_top_context_p->lex_env_p;
 
   while (true)
   {
@@ -1330,7 +1340,8 @@ opfunc_find_private_element (ecma_object_t *obj_p, /**< object */
  *           ECMA_VALUE_FALSE - otherwise
  */
 ecma_value_t
-opfunc_private_in (ecma_value_t base, /**< base */
+opfunc_private_in (ecma_context_t *context_p, /**< JJS context */
+                   ecma_value_t base, /**< base */
                    ecma_value_t property) /**< property */
 {
   if (!ecma_is_value_object (base))
@@ -1342,7 +1353,7 @@ opfunc_private_in (ecma_value_t base, /**< base */
   ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (property);
   ecma_string_t *private_key_p = NULL;
 
-  ecma_property_t *prop_p = opfunc_find_private_element (obj_p, prop_name_p, &private_key_p, false);
+  ecma_property_t *prop_p = opfunc_find_private_element (context_p, obj_p, prop_name_p, &private_key_p, false);
 
   return ecma_make_boolean_value (prop_p != NULL);
 } /* opfunc_private_in */
@@ -1356,7 +1367,8 @@ opfunc_private_in (ecma_value_t base, /**< base */
  *           ECMA_VALUE_EMPTY - otherwise
  */
 ecma_value_t
-opfunc_private_field_add (ecma_value_t base, /**< base object */
+opfunc_private_field_add (ecma_context_t *context_p, /**< JJS context */
+                          ecma_value_t base, /**< base object */
                           ecma_value_t property, /**< property name */
                           ecma_value_t value) /**< ecma value */
 {
@@ -1364,7 +1376,7 @@ opfunc_private_field_add (ecma_value_t base, /**< base object */
   ecma_string_t *prop_name_p = ecma_get_string_from_value (property);
   ecma_string_t *private_key_p = NULL;
 
-  ecma_property_t *prop_p = opfunc_find_private_element (obj_p, prop_name_p, &private_key_p, false);
+  ecma_property_t *prop_p = opfunc_find_private_element (context_p, obj_p, prop_name_p, &private_key_p, false);
 
   if (prop_p != NULL)
   {
@@ -1388,7 +1400,8 @@ opfunc_private_field_add (ecma_value_t base, /**< base object */
  *           ECMA_VALUE_EMPTY - otherwise
  */
 ecma_value_t
-opfunc_private_set (ecma_value_t base, /**< this object */
+opfunc_private_set (ecma_context_t *context_p, /**< JJS context */
+                    ecma_value_t base, /**< this object */
                     ecma_value_t property, /**< property name */
                     ecma_value_t value) /**< ecma value */
 {
@@ -1403,7 +1416,7 @@ opfunc_private_set (ecma_value_t base, /**< this object */
   ecma_string_t *prop_name_p = ecma_get_string_from_value (property);
   ecma_string_t *private_key_p = NULL;
 
-  ecma_property_t *prop_p = opfunc_find_private_element (obj_p, prop_name_p, &private_key_p, true);
+  ecma_property_t *prop_p = opfunc_find_private_element (context_p, obj_p, prop_name_p, &private_key_p, true);
 
   ecma_value_t result;
 
@@ -1455,7 +1468,8 @@ opfunc_private_set (ecma_value_t base, /**< this object */
  *           private property value - otherwise
  */
 ecma_value_t
-opfunc_private_get (ecma_value_t base, /**< this object */
+opfunc_private_get (ecma_context_t *context_p, /**< JJS context */
+                    ecma_value_t base, /**< this object */
                     ecma_value_t property) /**< property name */
 {
   ecma_value_t base_obj = ecma_op_to_object (base);
@@ -1469,7 +1483,7 @@ opfunc_private_get (ecma_value_t base, /**< this object */
   ecma_string_t *prop_name_p = ecma_get_string_from_value (property);
   ecma_string_t *private_key_p = NULL;
 
-  ecma_property_t *prop_p = opfunc_find_private_element (obj_p, prop_name_p, &private_key_p, true);
+  ecma_property_t *prop_p = opfunc_find_private_element (context_p, obj_p, prop_name_p, &private_key_p, true);
 
   ecma_value_t result;
 
@@ -2109,7 +2123,8 @@ opfunc_assign_super_reference (ecma_value_t **vm_stack_top_p, /**< vm stack top 
  *         ECMA_VALUE_EMPTY - otherwise
  */
 ecma_value_t
-opfunc_copy_data_properties (ecma_value_t target_object, /**< target object */
+opfunc_copy_data_properties (ecma_context_t *context_p, /**< JJS context */
+                             ecma_value_t target_object, /**< target object */
                              ecma_value_t source_object, /**< source object */
                              ecma_value_t filter_array) /**< filter array */
 {
@@ -2216,7 +2231,7 @@ opfunc_copy_data_properties (ecma_value_t target_object, /**< target object */
       }
     }
 
-    opfunc_set_data_property (target_object_p, property_name_p, result);
+    opfunc_set_data_property (context_p, target_object_p, property_name_p, result);
     ecma_free_value (result);
 
     result = ECMA_VALUE_EMPTY;
@@ -2247,7 +2262,8 @@ opfunc_lexical_scope_has_restricted_binding (vm_frame_ctx_t *frame_ctx_p, /**< f
   JJS_ASSERT (ecma_get_lex_env_type (frame_ctx_p->lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE);
 
 #if JJS_BUILTIN_REALMS
-  JJS_ASSERT (frame_ctx_p->this_binding == JJS_CONTEXT (global_object_p)->this_binding);
+  ecma_context_t *context_p = frame_ctx_p->shared_p->context_p;
+  JJS_ASSERT (frame_ctx_p->this_binding == context_p->global_object_p->this_binding);
 #else /* !JJS_BUILTIN_REALMS */
   JJS_ASSERT (frame_ctx_p->this_binding == ecma_builtin_get_global ());
 #endif /* JJS_BUILTIN_REALMS */
@@ -2260,8 +2276,10 @@ opfunc_lexical_scope_has_restricted_binding (vm_frame_ctx_t *frame_ctx_p, /**< f
     return ECMA_VALUE_TRUE;
   }
 
+  ecma_object_t *global_obj_p = ecma_get_object_from_value (frame_ctx_p->this_binding);
+
 #if JJS_BUILTIN_REALMS
-  ecma_object_t *const global_scope_p = ecma_get_global_scope ((ecma_object_t *) JJS_CONTEXT (global_object_p));
+  ecma_object_t *const global_scope_p = ecma_get_global_scope ((ecma_object_t *) context_p->global_object_p);
 #else /* !JJS_BUILTIN_REALMS */
   ecma_object_t *const global_scope_p = ecma_get_global_scope (global_obj_p);
 #endif /* JJS_BUILTIN_REALMS */
@@ -2270,8 +2288,6 @@ opfunc_lexical_scope_has_restricted_binding (vm_frame_ctx_t *frame_ctx_p, /**< f
   {
     return ECMA_VALUE_FALSE;
   }
-
-  ecma_object_t *global_obj_p = ecma_get_object_from_value (frame_ctx_p->this_binding);
 
 #if JJS_BUILTIN_PROXY
   if (ECMA_OBJECT_IS_PROXY (global_obj_p))

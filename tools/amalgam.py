@@ -26,8 +26,6 @@ import shutil
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JJS_CORE = os.path.join(ROOT_DIR, 'jjs-core')
-JJS_PORT = os.path.join(ROOT_DIR, 'jjs-port')
-JJS_MATH = os.path.join(ROOT_DIR, 'jjs-math')
 JJS_PACK = os.path.join(ROOT_DIR, 'jjs-pack')
 
 
@@ -264,7 +262,6 @@ def amalgamate_jjs_core(output_dir):
             'jjs-core.h',
             'jjs-debugger.h',
             'jjs-debugger-transport.h',
-            'jjs-port.h',
             'jjs-snapshot.h',
             'config.h',
         ],
@@ -275,7 +272,6 @@ def amalgamate_jjs_core(output_dir):
         base_dir=JJS_CORE,
         input_files=[
             os.path.join(JJS_CORE, 'include', 'jjs.h'),
-            os.path.join(JJS_CORE, 'include', 'jjs-port.h'),
             os.path.join(JJS_CORE, 'include', 'jjs-debugger-transport.h'),
         ],
         output_file=os.path.join(output_dir, 'jjs.h'),
@@ -287,20 +283,6 @@ def amalgamate_jjs_core(output_dir):
                     os.path.join(output_dir, 'jjs-config.h'))
 
 
-def amalgamate_jjs_port(output_dir):
-    amalgamate(
-        base_dir=JJS_PORT,
-        output_file=os.path.join(output_dir, 'jjs-port.c'),
-        append_c_files=True,
-        remove_includes=[
-            'jjs-port.h',
-        ],
-        extra_includes=[
-            'jjs.h',
-        ],
-    )
-
-
 def amalgamate_jjs_pack(output_dir):
     amalgamate(
         base_dir=JJS_PACK,
@@ -308,7 +290,6 @@ def amalgamate_jjs_pack(output_dir):
         append_c_files=True,
         remove_includes=[
             'jjs.h',
-            'jjs-port.h',
             'jjs-pack-config.h',
         ],
         extra_includes=[
@@ -321,25 +302,10 @@ def amalgamate_jjs_pack(output_dir):
     shutil.copyfile(os.path.join(JJS_PACK, 'include', 'jjs-pack-config.h'),
                     os.path.join(output_dir, 'jjs-pack-config.h'))
 
-
-def amalgamate_jjs_math(output_dir):
-    amalgamate(
-        base_dir=JJS_MATH,
-        output_file=os.path.join(output_dir, 'jjs-math.c'),
-        append_c_files=True,
-    )
-
-    shutil.copyfile(os.path.join(JJS_MATH, 'include', 'math.h'),
-                    os.path.join(output_dir, 'math.h'))
-
 def main():
     parser = argparse.ArgumentParser(description='Generate amalgamated sources.')
     parser.add_argument('--jjs-core', action='store_true',
                         help='amalgamate jjs-core files')
-    parser.add_argument('--jjs-port', action='store_true',
-                        help='amalgamate jjs-port files')
-    parser.add_argument('--jjs-math', action='store_true',
-                        help='amalgamate jjs-math files')
     parser.add_argument('--jjs-pack', action='store_true',
                         help='amalgamate jjs-pack files')
     parser.add_argument('--output-dir', metavar='DIR', default='amalgam',
@@ -359,12 +325,6 @@ def main():
 
     if args.jjs_core:
         amalgamate_jjs_core(args.output_dir)
-
-    if args.jjs_port:
-        amalgamate_jjs_port(args.output_dir)
-
-    if args.jjs_math:
-        amalgamate_jjs_math(args.output_dir)
 
     if args.jjs_pack:
         amalgamate_jjs_pack(args.output_dir)
