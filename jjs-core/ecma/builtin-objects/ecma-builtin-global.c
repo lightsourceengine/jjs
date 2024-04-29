@@ -105,7 +105,7 @@ ecma_builtin_global_object_eval (ecma_value_t x) /**< routine's first argument *
 
   if (vm_is_direct_eval_form_call (context_p))
   {
-    parse_opts |= ECMA_GET_LOCAL_PARSE_OPTS ();
+    parse_opts |= ECMA_GET_LOCAL_PARSE_OPTS (context_p);
   }
 
   /* steps 2 to 8 */

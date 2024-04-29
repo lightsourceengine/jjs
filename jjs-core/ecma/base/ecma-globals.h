@@ -23,6 +23,9 @@
 #include "jrt.h"
 #include "lit-magic-strings.h"
 
+struct jjs_context_t;
+typedef struct jjs_context_t ecma_context_t;
+
 /** \addtogroup ecma ECMA
  * @{
  *
@@ -286,8 +289,6 @@ enum
  * Callback which tells whether the ECMAScript execution should be stopped.
  */
 typedef ecma_value_t (*ecma_vm_exec_stop_callback_t) (void *user_p);
-
-typedef struct ecma_context_s ecma_context_t;
 
 /**
  * Forward definition of jjs_call_info_t.
@@ -816,25 +817,25 @@ typedef enum
 /**
  * Set JJS_CONTEXT (status_flags) top 8 bits to the specified 'opts'.
  */
-#define ECMA_SET_LOCAL_PARSE_OPTS(opts)                                                                          \
-  do                                                                                                             \
-  {                                                                                                              \
-    JJS_CONTEXT (status_flags) |= ((uint32_t) opts << ECMA_LOCAL_PARSE_OPTS_OFFSET) | ECMA_STATUS_DIRECT_EVAL; \
+#define ECMA_SET_LOCAL_PARSE_OPTS(ctx, opts)                                                              \
+  do                                                                                                      \
+  {                                                                                                       \
+    (ctx)->status_flags |= ((uint32_t) opts << ECMA_LOCAL_PARSE_OPTS_OFFSET) | ECMA_STATUS_DIRECT_EVAL;   \
   } while (0)
 
 /**
  * Get JJS_CONTEXT (status_flags) top 8 bits.
  */
-#define ECMA_GET_LOCAL_PARSE_OPTS() \
-  (JJS_CONTEXT (status_flags) >> (ECMA_LOCAL_PARSE_OPTS_OFFSET - JJS_LOG2 (ECMA_PARSE_ALLOW_SUPER)))
+#define ECMA_GET_LOCAL_PARSE_OPTS(ctx) \
+  ((ctx)->status_flags >> (ECMA_LOCAL_PARSE_OPTS_OFFSET - JJS_LOG2 (ECMA_PARSE_ALLOW_SUPER)))
 
 /**
  * Clear JJS_CONTEXT (status_flags) top 8 bits.
  */
-#define ECMA_CLEAR_LOCAL_PARSE_OPTS()                                          \
+#define ECMA_CLEAR_LOCAL_PARSE_OPTS(ctx)                                       \
   do                                                                           \
   {                                                                            \
-    JJS_CONTEXT (status_flags) &= ((1 << ECMA_LOCAL_PARSE_OPTS_OFFSET) - 1); \
+    (ctx)->status_flags &= ((1 << ECMA_LOCAL_PARSE_OPTS_OFFSET) - 1);          \
   } while (0)
 
 /**

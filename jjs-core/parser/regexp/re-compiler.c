@@ -46,10 +46,11 @@
  *         NULL - otherwise
  */
 static re_compiled_code_t *
-re_cache_lookup (ecma_string_t *pattern_str_p, /**< pattern string */
+re_cache_lookup (ecma_context_t *context_p, /**< JJS engine context */
+                 ecma_string_t *pattern_str_p, /**< pattern string */
                  uint16_t flags) /**< flags */
 {
-  re_compiled_code_t **cache_p = JJS_CONTEXT (re_cache);
+  re_compiled_code_t **cache_p = context_p->re_cache;
 
   for (uint8_t idx = 0u; idx < RE_CACHE_SIZE; idx++)
   {
@@ -76,9 +77,9 @@ re_cache_lookup (ecma_string_t *pattern_str_p, /**< pattern string */
  * Run garbage collection in RegExp cache.
  */
 void
-re_cache_gc (void)
+re_cache_gc (ecma_context_t *context_p)
 {
-  re_compiled_code_t **cache_p = JJS_CONTEXT (re_cache);
+  re_compiled_code_t **cache_p = context_p->re_cache;
 
   for (uint32_t i = 0u; i < RE_CACHE_SIZE; i++)
   {
@@ -93,7 +94,7 @@ re_cache_gc (void)
     cache_p[i] = NULL;
   }
 
-  JJS_CONTEXT (re_cache_idx) = 0;
+  context_p->re_cache_idx = 0;
 } /* re_cache_gc */
 
 /**
@@ -103,10 +104,11 @@ re_cache_gc (void)
  *         NULL - otherwise
  */
 re_compiled_code_t *
-re_compile_bytecode (ecma_string_t *pattern_str_p, /**< pattern */
+re_compile_bytecode (ecma_context_t *context_p, /**< JJS engine context */
+                     ecma_string_t *pattern_str_p, /**< pattern */
                      uint16_t flags) /**< flags */
 {
-  re_compiled_code_t *cached_bytecode_p = re_cache_lookup (pattern_str_p, flags);
+  re_compiled_code_t *cached_bytecode_p = re_cache_lookup (context_p, pattern_str_p, flags);
 
   if (cached_bytecode_p != NULL)
   {
@@ -156,21 +158,21 @@ re_compile_bytecode (ecma_string_t *pattern_str_p, /**< pattern */
   re_compiled_code_p->non_captures_count = re_ctx.non_captures_count;
 
 #if JJS_REGEXP_DUMP_BYTE_CODE
-  if (JJS_CONTEXT (context_flags) & JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES)
+  if (context_p->context_flags & JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES)
   {
     re_dump_bytecode (&re_ctx);
   }
 #endif /* JJS_REGEXP_DUMP_BYTE_CODE */
 
-  uint8_t cache_idx = JJS_CONTEXT (re_cache_idx);
+  uint8_t cache_idx = context_p->re_cache_idx;
 
-  if (JJS_CONTEXT (re_cache)[cache_idx] != NULL)
+  if (context_p->re_cache[cache_idx] != NULL)
   {
-    ecma_bytecode_deref ((ecma_compiled_code_t *) JJS_CONTEXT (re_cache)[cache_idx]);
+    ecma_bytecode_deref ((ecma_compiled_code_t *) context_p->re_cache[cache_idx]);
   }
 
-  JJS_CONTEXT (re_cache)[cache_idx] = re_compiled_code_p;
-  JJS_CONTEXT (re_cache_idx) = (uint8_t) (cache_idx + 1) % RE_CACHE_SIZE;
+  context_p->re_cache[cache_idx] = re_compiled_code_p;
+  context_p->re_cache_idx = (uint8_t) (cache_idx + 1) % RE_CACHE_SIZE;
 
   return re_compiled_code_p;
 } /* re_compile_bytecode */

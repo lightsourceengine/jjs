@@ -96,7 +96,7 @@ jjs_api_object_init (jjs_context_t* context_p, ecma_value_t realm)
 {
   jjs_value_t jjs = jjs_object (context_p);
   ecma_object_t* jjs_p = ecma_get_object_from_value (jjs);
-  uint32_t exclusions = JJS_CONTEXT (jjs_namespace_exclusions);
+  uint32_t exclusions = context_p->jjs_namespace_exclusions;
 
   annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_VERSION, jjs_string_sz (context_p, JJS_API_VERSION_STRING), JJS_MOVE);
   annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_OS, jjs_platform_os (context_p), JJS_MOVE);

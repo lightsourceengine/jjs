@@ -2260,7 +2260,7 @@ ecma_gc_run (void)
 
 #if JJS_BUILTIN_REGEXP
   /* Free RegExp bytecodes stored in cache */
-  re_cache_gc ();
+  re_cache_gc (&JJS_CONTEXT_STRUCT);
 #endif /* JJS_BUILTIN_REGEXP */
 } /* ecma_gc_run */
 

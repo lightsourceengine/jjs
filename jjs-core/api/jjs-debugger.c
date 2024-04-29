@@ -45,7 +45,7 @@ jjs_debugger_stop (jjs_context_t* context_p) /**< JJS context */
   if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
       && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
-    JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
+    JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_VM_STOP);
     context_p->debugger_stop_context = NULL;
   }
 #else /* !JJS_DEBUGGER */
@@ -63,7 +63,7 @@ jjs_debugger_continue (jjs_context_t* context_p) /**< JJS context */
   if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
       && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
-    JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_VM_STOP);
+    JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_VM_STOP);
     context_p->debugger_stop_context = NULL;
   }
 #else /* !JJS_DEBUGGER */
@@ -84,11 +84,11 @@ jjs_debugger_stop_at_breakpoint (jjs_context_t* context_p, /**< JJS context */
   {
     if (enable_stop_at_breakpoint)
     {
-      JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_IGNORE);
+      JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_VM_IGNORE);
     }
     else
     {
-      JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_VM_IGNORE);
+      JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_VM_IGNORE);
     }
   }
 #else /* !JJS_DEBUGGER */
@@ -116,7 +116,7 @@ jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context 
   if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
       && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
-    JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_CLIENT_SOURCE_MODE);
+    JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_CLIENT_SOURCE_MODE);
     jjs_debugger_uint8_data_t *client_source_data_p = NULL;
     jjs_debugger_wait_for_source_status_t ret_type = JJS_DEBUGGER_SOURCE_RECEIVE_FAILED;
 
@@ -136,7 +136,7 @@ jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context 
         if ((context_p->debugger_flags & JJS_DEBUGGER_CONTEXT_RESET_MODE))
         {
           ret_type = JJS_DEBUGGER_CONTEXT_RESET_RECEIVED;
-          JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_CONTEXT_RESET_MODE);
+          JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_CONTEXT_RESET_MODE);
           break;
         }
 
@@ -144,7 +144,7 @@ jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context 
         if ((context_p->debugger_flags & JJS_DEBUGGER_CLIENT_NO_SOURCE))
         {
           ret_type = JJS_DEBUGGER_SOURCE_END;
-          JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_CLIENT_SOURCE_MODE);
+          JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_CLIENT_SOURCE_MODE);
           break;
         }
 

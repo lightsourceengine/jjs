@@ -60,7 +60,7 @@ jjs_debugger_transport_add (jjs_context_t* context_p, /**< JJS context */
   }
   else
   {
-    JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_CONNECTED);
+    JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_CONNECTED);
     payload_p = context_p->debugger_send_buffer;
     max_send_size = JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE;
     max_receive_size = JJS_DEBUGGER_TRANSPORT_MAX_BUFFER_SIZE;
@@ -99,7 +99,7 @@ jjs_debugger_transport_start (jjs_context_t* context_p) /**< JJS context */
 
   if (jjs_debugger_send_configuration (context_p, context_p->debugger_max_receive_size))
   {
-    JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_STOP);
+    JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_VM_STOP);
     context_p->debugger_stop_context = NULL;
   }
 } /* jjs_debugger_transport_start */

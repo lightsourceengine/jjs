@@ -420,7 +420,7 @@ static ecma_value_t load_module_exports_from_source (jjs_context_t* context_p, e
 
   jjs_parse_options_t parse_opts = {
     .options = JJS_PARSE_HAS_ARGUMENT_LIST | JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME,
-    .argument_list = JJS_CONTEXT (commonjs_args),
+    .argument_list = context_p->commonjs_args,
     .user_value = filename,
     .source_name = filename,
   };

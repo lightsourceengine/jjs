@@ -2973,7 +2973,7 @@ lexer_construct_regexp_object (parser_context_t *context_p, /**< context */
     pattern_str_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (regex_start_p, length);
   }
 
-  re_compiled_code_t *re_bytecode_p = re_compile_bytecode (pattern_str_p, current_flags);
+  re_compiled_code_t *re_bytecode_p = re_compile_bytecode (&JJS_CONTEXT_STRUCT, pattern_str_p, current_flags);
   ecma_deref_ecma_string (pattern_str_p);
 
   if (JJS_UNLIKELY (re_bytecode_p == NULL))

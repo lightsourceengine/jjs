@@ -1945,9 +1945,9 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
         }
         case VM_OC_LOCAL_EVAL:
         {
-          ECMA_CLEAR_LOCAL_PARSE_OPTS ();
+          ECMA_CLEAR_LOCAL_PARSE_OPTS (context_p);
           uint8_t parse_opts = *byte_code_p++;
-          ECMA_SET_LOCAL_PARSE_OPTS (parse_opts);
+          ECMA_SET_LOCAL_PARSE_OPTS (context_p, parse_opts);
           continue;
         }
         case VM_OC_SUPER_CALL:
@@ -4474,7 +4474,7 @@ vm_loop (jjs_context_t* context_p, vm_frame_ctx_t *frame_ctx_p) /**< frame conte
             result = ECMA_VALUE_ERROR;
 
 #if JJS_DEBUGGER
-            JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_EXCEPTION_THROWN);
+            JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_VM_EXCEPTION_THROWN);
 #endif /* JJS_DEBUGGER */
             goto error;
           }
@@ -4863,7 +4863,7 @@ error:
             context_p->error_value = current_error_value;
           }
 
-          JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_VM_EXCEPTION_THROWN);
+          JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_VM_EXCEPTION_THROWN);
         }
       }
 #endif /* JJS_DEBUGGER */
@@ -4931,7 +4931,7 @@ error:
           JJS_ASSERT (!(stack_top_p[-1] & VM_CONTEXT_HAS_LEX_ENV));
 
 #if JJS_DEBUGGER
-          JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_VM_EXCEPTION_THROWN);
+          JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_VM_EXCEPTION_THROWN);
 #endif /* JJS_DEBUGGER */
 
           result = jcontext_take_exception ();

@@ -539,7 +539,8 @@ jjs_snapshot_set_offsets (uint32_t *buffer_p, /**< buffer */
  * @return byte code
  */
 static ecma_compiled_code_t *
-snapshot_load_compiled_code (const uint8_t *base_addr_p, /**< base address of the
+snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
+                             const uint8_t *base_addr_p, /**< base address of the
                                                           *   current primary function */
                              const uint8_t *literal_base_p, /**< literal start */
                              cbc_script_t *script_p, /**< script */
@@ -556,7 +557,7 @@ snapshot_load_compiled_code (const uint8_t *base_addr_p, /**< base address of th
     /* Real size is stored in refs. */
     ecma_string_t *pattern_str_p = ecma_new_ecma_string_from_utf8 (regex_start_p, bytecode_p->refs);
 
-    const re_compiled_code_t *re_bytecode_p = re_compile_bytecode (pattern_str_p, bytecode_p->status_flags);
+    const re_compiled_code_t *re_bytecode_p = re_compile_bytecode (context_p, pattern_str_p, bytecode_p->status_flags);
     ecma_deref_ecma_string (pattern_str_p);
 
     return (ecma_compiled_code_t *) re_bytecode_p;
@@ -704,7 +705,7 @@ snapshot_load_compiled_code (const uint8_t *base_addr_p, /**< base address of th
     {
       ecma_compiled_code_t *literal_bytecode_p;
       literal_bytecode_p =
-        snapshot_load_compiled_code (base_addr_p + literal_offset, literal_base_p, script_p, copy_bytecode);
+        snapshot_load_compiled_code (context_p, base_addr_p + literal_offset, literal_base_p, script_p, copy_bytecode);
 
       ECMA_SET_INTERNAL_VALUE_POINTER (literal_start_p[i], literal_bytecode_p);
     }
@@ -971,7 +972,8 @@ jjs_exec_snapshot (jjs_context_t* context_p, /**< JJS context */
 
     const uint8_t *literal_base_p = snapshot_data_p + header_p->lit_table_offset;
 
-    bytecode_p = snapshot_load_compiled_code ((const uint8_t *) bytecode_p,
+    bytecode_p = snapshot_load_compiled_code (context_p,
+                                              (const uint8_t *) bytecode_p,
                                               literal_base_p,
                                               script_p,
                                               (exec_snapshot_opts & JJS_SNAPSHOT_EXEC_COPY_DATA) != 0);

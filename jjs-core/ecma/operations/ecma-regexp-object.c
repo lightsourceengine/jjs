@@ -226,7 +226,7 @@ ecma_op_create_regexp_from_pattern (ecma_object_t *regexp_obj_p, /**< RegExp obj
     JJS_ASSERT (ecma_is_value_empty (parse_flags_value));
   }
 
-  re_compiled_code_t *bc_p = re_compile_bytecode (pattern_str_p, flags);
+  re_compiled_code_t *bc_p = re_compile_bytecode (&JJS_CONTEXT_STRUCT, pattern_str_p, flags);
 
   if (JJS_UNLIKELY (bc_p == NULL))
   {
@@ -279,7 +279,7 @@ ecma_op_create_regexp_with_flags (ecma_object_t *regexp_obj_p, /**< RegExp objec
     return ECMA_VALUE_ERROR;
   }
 
-  re_compiled_code_t *bc_p = re_compile_bytecode (pattern_str_p, flags);
+  re_compiled_code_t *bc_p = re_compile_bytecode (&JJS_CONTEXT_STRUCT, pattern_str_p, flags);
   ecma_deref_ecma_string (pattern_str_p);
 
   if (JJS_UNLIKELY (bc_p == NULL))

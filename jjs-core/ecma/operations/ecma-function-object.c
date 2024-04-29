@@ -1264,7 +1264,7 @@ ecma_op_function_call_native (ecma_object_t *func_obj_p, /**< Function object */
   }
 
 #if JJS_DEBUGGER
-  JJS_DEBUGGER_CLEAR_FLAGS (JJS_DEBUGGER_VM_EXCEPTION_THROWN);
+  JJS_DEBUGGER_CLEAR_FLAGS (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_VM_EXCEPTION_THROWN);
 #endif /* JJS_DEBUGGER */
   return ret_value;
 } /* ecma_op_function_call_native */

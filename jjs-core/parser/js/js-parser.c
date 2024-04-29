@@ -517,7 +517,7 @@ parser_append_breakpoint_info (parser_context_t *context_p, /**< context */
 
   context_p->status_flags |= PARSER_DEBUGGER_BREAKPOINT_APPENDED;
 
-  if (context_p->breakpoint_info_count >= JJS_DEBUGGER_SEND_MAX (parser_breakpoint_info_t))
+  if (context_p->breakpoint_info_count >= JJS_DEBUGGER_SEND_MAX (&JJS_CONTEXT_STRUCT, parser_breakpoint_info_t))
   {
     parser_send_breakpoints (context_p, type);
   }
@@ -3346,7 +3346,7 @@ parser_parse_script (void *source_p, /**< source code */
   if ((JJS_CONTEXT (debugger_flags) & (JJS_DEBUGGER_CONNECTED | JJS_DEBUGGER_PARSER_WAIT))
       == (JJS_DEBUGGER_CONNECTED | JJS_DEBUGGER_PARSER_WAIT))
   {
-    JJS_DEBUGGER_SET_FLAGS (JJS_DEBUGGER_PARSER_WAIT_MODE);
+    JJS_DEBUGGER_SET_FLAGS (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_PARSER_WAIT_MODE);
     jjs_debugger_send_type (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_WAITING_AFTER_PARSE);
 
     while (JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_PARSER_WAIT_MODE)

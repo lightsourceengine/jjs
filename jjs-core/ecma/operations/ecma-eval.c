@@ -81,7 +81,7 @@ ecma_op_eval_chars_buffer (void *source_p, /**< source code */
 
   parse_opts |= ECMA_PARSE_EVAL;
 
-  ECMA_CLEAR_LOCAL_PARSE_OPTS ();
+  ECMA_CLEAR_LOCAL_PARSE_OPTS (&JJS_CONTEXT_STRUCT);
 
   ecma_compiled_code_t *bytecode_p = parser_parse_script (source_p, parse_opts, NULL);
 

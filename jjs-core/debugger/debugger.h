@@ -46,8 +46,8 @@
  * Calculate the maximum number of items for a given type
  * which can be transmitted in one message.
  */
-#define JJS_DEBUGGER_SEND_MAX(type) \
-  ((size_t) ((JJS_CONTEXT (debugger_max_send_size) - sizeof (jjs_debugger_send_type_t)) / sizeof (type)))
+#define JJS_DEBUGGER_SEND_MAX(ctx, type) \
+  ((size_t) ((((ctx)->debugger_max_send_size) - sizeof (jjs_debugger_send_type_t)) / sizeof (type)))
 
 /**
  * Calculate the size of a message when a count number of items transmitted.
@@ -100,21 +100,21 @@ typedef enum
 /**
  * Set debugger flags.
  */
-#define JJS_DEBUGGER_SET_FLAGS(flags) \
-  JJS_CONTEXT (debugger_flags) = (JJS_CONTEXT (debugger_flags) | (uint32_t) (flags))
+#define JJS_DEBUGGER_SET_FLAGS(ctx, flags) \
+  (ctx)->debugger_flags = (((ctx)->debugger_flags) | (uint32_t) (flags))
 
 /**
  * Clear debugger flags.
  */
-#define JJS_DEBUGGER_CLEAR_FLAGS(flags) \
-  JJS_CONTEXT (debugger_flags) = (JJS_CONTEXT (debugger_flags) & (uint32_t) ~(flags))
+#define JJS_DEBUGGER_CLEAR_FLAGS(ctx, flags) \
+  (ctx)->debugger_flags = (((ctx)->debugger_flags) & (uint32_t) ~(flags))
 
 /**
  * Set and clear debugger flags.
  */
-#define JJS_DEBUGGER_UPDATE_FLAGS(flags_to_set, flags_to_clear) \
-  JJS_CONTEXT (debugger_flags) =                                \
-    ((JJS_CONTEXT (debugger_flags) | (uint32_t) (flags_to_set)) & (uint32_t) ~(flags_to_clear))
+#define JJS_DEBUGGER_UPDATE_FLAGS(ctx, flags_to_set, flags_to_clear) \
+  (ctx)->debugger_flags =                                \
+    ((((ctx)->debugger_flags) | (uint32_t) (flags_to_set)) & (uint32_t) ~(flags_to_clear))
 
 /**
  * Types for the package.
