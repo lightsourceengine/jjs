@@ -57,21 +57,22 @@
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_shared_arraybuffer_prototype_bytelength_getter (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_shared_arraybuffer_prototype_bytelength_getter (ecma_context_t *context_p, /**< JJS context */
+                                                             ecma_value_t this_arg) /**< this argument */
 {
   if (ecma_is_value_object (this_arg))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER))
     {
-      uint32_t len = ecma_arraybuffer_get_length (object_p);
+      uint32_t len = ecma_arraybuffer_get_length (context_p, object_p);
 
-      return ecma_make_uint32_value (len);
+      return ecma_make_uint32_value (context_p, len);
     }
   }
 
-  return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_SHARED_ARRAY_BUFFER);
+  return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_SHARED_ARRAY_BUFFER);
 } /* ecma_builtin_shared_arraybuffer_prototype_bytelength_getter */
 
 /**
@@ -84,24 +85,25 @@ ecma_builtin_shared_arraybuffer_prototype_bytelength_getter (ecma_value_t this_a
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_shared_arraybuffer_prototype_object_slice (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_shared_arraybuffer_prototype_object_slice (ecma_context_t *context_p, /**< JJS context */
+                                                        ecma_value_t this_arg, /**< this argument */
                                                         const ecma_value_t *argument_list_p, /**< arguments list */
                                                         uint32_t arguments_number) /**< number of arguments */
 {
   if (!ecma_is_value_object (this_arg))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
   /* 2. */
   if (!ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_SHARED_ARRAY_BUFFER_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_SHARED_ARRAY_BUFFER_OBJECT);
   }
 
-  return ecma_builtin_arraybuffer_slice (this_arg, argument_list_p, arguments_number);
+  return ecma_builtin_arraybuffer_slice (context_p, this_arg, argument_list_p, arguments_number);
 } /* ecma_builtin_shared_arraybuffer_prototype_object_slice */
 
 /**

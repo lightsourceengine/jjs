@@ -61,7 +61,7 @@ ecma_arraybuffer_create_object (ecma_context_t *context_p, /**< JJS context */
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 
   ecma_object_t *object_p = ecma_create_object (context_p,
-                                                ecma_builtin_get (prototype_id),
+                                                ecma_builtin_get (context_p, prototype_id),
                                                 sizeof (ecma_extended_object_t) + length,
                                                 ECMA_OBJECT_TYPE_CLASS);
 
@@ -98,7 +98,7 @@ ecma_arraybuffer_create_object_with_buffer (ecma_context_t *context_p, /**< JJS 
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 
   ecma_object_t *object_p =
-    ecma_create_object (context_p, ecma_builtin_get (prototype_id), sizeof (ecma_arraybuffer_pointer_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, ecma_builtin_get (context_p, prototype_id), sizeof (ecma_arraybuffer_pointer_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_arraybuffer_pointer_t *arraybuffer_pointer_p = (ecma_arraybuffer_pointer_t *) object_p;
   arraybuffer_pointer_p->extended_object.u.cls.type = type;
@@ -455,7 +455,7 @@ ecma_builtin_arraybuffer_slice (ecma_context_t *context_p, /**< JJS context */
   if (arguments_number > 0)
   {
     /* 6-7. */
-    if (ECMA_IS_VALUE_ERROR (ecma_builtin_helper_uint32_index_normalize (argument_list_p[0], len, &start)))
+    if (ECMA_IS_VALUE_ERROR (ecma_builtin_helper_uint32_index_normalize (context_p, argument_list_p[0], len, &start)))
     {
       return ECMA_VALUE_ERROR;
     }
@@ -463,7 +463,7 @@ ecma_builtin_arraybuffer_slice (ecma_context_t *context_p, /**< JJS context */
     if (arguments_number > 1 && !ecma_is_value_undefined (argument_list_p[1]))
     {
       /* 8-9. */
-      if (ECMA_IS_VALUE_ERROR (ecma_builtin_helper_uint32_index_normalize (argument_list_p[1], len, &end)))
+      if (ECMA_IS_VALUE_ERROR (ecma_builtin_helper_uint32_index_normalize (context_p, argument_list_p[1], len, &end)))
       {
         return ECMA_VALUE_ERROR;
       }

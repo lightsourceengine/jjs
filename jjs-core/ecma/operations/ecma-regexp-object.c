@@ -143,7 +143,7 @@ ecma_op_regexp_alloc (ecma_context_t *context_p, /**< JJS context */
 {
   if (ctr_obj_p == NULL)
   {
-    ctr_obj_p = ecma_builtin_get (ECMA_BUILTIN_ID_REGEXP);
+    ctr_obj_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_REGEXP);
   }
 
   ecma_object_t *proto_obj_p = ecma_op_get_prototype_from_constructor (context_p, ctr_obj_p, ECMA_BUILTIN_ID_REGEXP_PROTOTYPE);
@@ -163,7 +163,8 @@ ecma_op_regexp_alloc (ecma_context_t *context_p, /**< JJS context */
   /* Class id will be initialized after the bytecode is compiled. */
   regexp_obj_p->u.cls.type = ECMA_OBJECT_CLASS__MAX;
 
-  ecma_value_t status = ecma_builtin_helper_def_prop (new_object_p,
+  ecma_value_t status = ecma_builtin_helper_def_prop (context_p,
+                                                      new_object_p,
                                                       ecma_get_magic_string (LIT_MAGIC_STRING_LASTINDEX_UL),
                                                       ecma_make_uint32_value (context_p, 0),
                                                       ECMA_PROPERTY_FLAG_WRITABLE | JJS_PROP_SHOULD_THROW);
@@ -1524,16 +1525,18 @@ ecma_regexp_create_result_object (ecma_context_t *context_p, /**< JJS context */
   for (uint32_t i = 0; i < re_ctx_p->captures_count; i++)
   {
     ecma_value_t capture_value = ecma_regexp_get_capture_value (context_p, re_ctx_p->captures_p + i);
-    ecma_builtin_helper_def_prop_by_index (result_p, i, capture_value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
+    ecma_builtin_helper_def_prop_by_index (context_p, result_p, i, capture_value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
     ecma_free_value (context_p, capture_value);
   }
 
-  ecma_builtin_helper_def_prop (result_p,
+  ecma_builtin_helper_def_prop (context_p,
+                                result_p,
                                 ecma_get_magic_string (LIT_MAGIC_STRING_INDEX),
                                 ecma_make_uint32_value (context_p, index),
                                 ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
 
-  ecma_builtin_helper_def_prop (result_p,
+  ecma_builtin_helper_def_prop (context_p,
+                                result_p,
                                 ecma_get_magic_string (LIT_MAGIC_STRING_INPUT),
                                 ecma_make_string_value (context_p, input_string_p),
                                 ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
@@ -2088,7 +2091,8 @@ ecma_regexp_split_helper (ecma_context_t *context_p, /**< JJS context */
 
     if (ecma_is_value_null (match))
     {
-      result = ecma_builtin_helper_def_prop_by_index (array_p,
+      result = ecma_builtin_helper_def_prop_by_index (context_p,
+                                                      array_p,
                                                       array_length,
                                                       ecma_make_string_value (context_p, string_p),
                                                       ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
@@ -2176,7 +2180,8 @@ ecma_regexp_split_helper (ecma_context_t *context_p, /**< JJS context */
     ecma_string_t *const split_str_p =
       ecma_string_substr (context_p, string_p, (lit_utf8_size_t) previous_index, (lit_utf8_size_t) current_index);
 
-    result = ecma_builtin_helper_def_prop_by_index (array_p,
+    result = ecma_builtin_helper_def_prop_by_index (context_p,
+                                                    array_p,
                                                     array_length++,
                                                     ecma_make_string_value (context_p, split_str_p),
                                                     ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
@@ -2220,7 +2225,8 @@ ecma_regexp_split_helper (ecma_context_t *context_p, /**< JJS context */
       const ecma_value_t capture = result;
 
       /* 24.f.iv.11.c. */
-      result = ecma_builtin_helper_def_prop_by_index (array_p,
+      result = ecma_builtin_helper_def_prop_by_index (context_p,
+                                                      array_p,
                                                       array_length++,
                                                       capture,
                                                       ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
@@ -2245,7 +2251,8 @@ ecma_regexp_split_helper (ecma_context_t *context_p, /**< JJS context */
 
   JJS_ASSERT (previous_index <= string_length);
   ecma_string_t *const end_str_p = ecma_string_substr (context_p, string_p, (lit_utf8_size_t) previous_index, string_length);
-  result = ecma_builtin_helper_def_prop_by_index (array_p,
+  result = ecma_builtin_helper_def_prop_by_index (context_p,
+                                                  array_p,
                                                   array_length++,
                                                   ecma_make_string_value (context_p, end_str_p),
                                                   ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
@@ -2383,7 +2390,7 @@ ecma_regexp_replace_helper_fast (ecma_context_t *context_p, /**< JJS context */
         ctx_p->matched_size = (lit_utf8_size_t) (global_capture_p->end_p - global_capture_p->begin_p);
         ctx_p->match_byte_pos = (lit_utf8_size_t) (current_p - re_ctx.input_start_p);
 
-        ecma_builtin_replace_substitute (ctx_p);
+        ecma_builtin_replace_substitute (context_p, ctx_p);
       }
       else
       {
@@ -2950,7 +2957,7 @@ ecma_regexp_replace_helper (ecma_context_t *context_p, /**< JJS context */
       if (should_replace)
       {
         replace_ctx.u.collection_p = arguments_p;
-        ecma_builtin_replace_substitute (&replace_ctx);
+        ecma_builtin_replace_substitute (context_p, &replace_ctx);
       }
 
       ecma_collection_free (context_p, arguments_p);
@@ -3101,7 +3108,8 @@ ecma_regexp_match_helper (ecma_context_t *context_p, /**< JJS context */
       goto result_cleanup;
     }
 
-    ecma_value_t new_prop = ecma_builtin_helper_def_prop_by_index (result_array_p,
+    ecma_value_t new_prop = ecma_builtin_helper_def_prop_by_index (context_p,
+                                                                   result_array_p,
                                                                    n,
                                                                    ecma_make_string_value (context_p, match_str_p),
                                                                    ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);

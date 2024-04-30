@@ -53,12 +53,13 @@
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_arraybuffer_object_is_view (ecma_value_t this_arg, /**< 'this' argument */
+ecma_builtin_arraybuffer_object_is_view (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_value_t this_arg, /**< 'this' argument */
                                          ecma_value_t arg) /**< argument 1 */
 {
   JJS_UNUSED (this_arg);
 
-  return ecma_make_boolean_value (ecma_is_typedarray (arg) || ecma_is_dataview (arg));
+  return ecma_make_boolean_value (ecma_is_typedarray (context_p, arg) || ecma_is_dataview (context_p, arg));
 } /* ecma_builtin_arraybuffer_object_is_view */
 
 /**
@@ -71,12 +72,13 @@ ecma_builtin_arraybuffer_object_is_view (ecma_value_t this_arg, /**< 'this' argu
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_arraybuffer_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_arraybuffer_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                        const ecma_value_t *arguments_list_p, /**< arguments list */
                                         uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_CONSTRUCTOR_ARRAYBUFFER_REQUIRES_NEW);
+  return ecma_raise_type_error (context_p, ECMA_ERR_CONSTRUCTOR_ARRAYBUFFER_REQUIRES_NEW);
 } /* ecma_builtin_arraybuffer_dispatch_call */
 
 /**
@@ -85,12 +87,13 @@ ecma_builtin_arraybuffer_dispatch_call (const ecma_value_t *arguments_list_p, /*
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_arraybuffer_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_arraybuffer_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                             const ecma_value_t *arguments_list_p, /**< arguments list */
                                              uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_op_create_arraybuffer_object (arguments_list_p, arguments_list_len);
+  return ecma_op_create_arraybuffer_object (context_p, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_arraybuffer_dispatch_construct */
 
 /**
@@ -100,9 +103,10 @@ ecma_builtin_arraybuffer_dispatch_construct (const ecma_value_t *arguments_list_
  *         returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_builtin_arraybuffer_species_get (ecma_value_t this_value) /**< This Value */
+ecma_builtin_arraybuffer_species_get (ecma_context_t *context_p, /**< JJS context */
+                                      ecma_value_t this_value) /**< This Value */
 {
-  return ecma_copy_value (this_value);
+  return ecma_copy_value (context_p, this_value);
 } /* ecma_builtin_arraybuffer_species_get */
 
 /**

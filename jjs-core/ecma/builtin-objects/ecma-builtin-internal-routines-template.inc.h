@@ -39,16 +39,16 @@
 #define ROUTINE_ARG_LIST_3         ROUTINE_ARG_LIST_2 ROUTINE_ARG (3)
 #define ROUTINE_ARG_LIST_NON_FIXED ROUTINE_ARG_LIST_0, const ecma_value_t *arguments_list_p, uint32_t arguments_list_len
 #define ROUTINE(name, c_function_name, args_number, length_prop_value) \
-  static ecma_value_t c_function_name (ROUTINE_ARG_LIST_##args_number);
+  static ecma_value_t c_function_name (ecma_context_t *context_p, ROUTINE_ARG_LIST_##args_number);
 #define ROUTINE_CONFIGURABLE_ONLY(name, c_function_name, args_number, length_prop_value) \
-  static ecma_value_t c_function_name (ROUTINE_ARG_LIST_##args_number);
+  static ecma_value_t c_function_name (ecma_context_t *context_p, ROUTINE_ARG_LIST_##args_number);
 #define ROUTINE_WITH_FLAGS(name, c_function_name, args_number, length_prop_value, flags) \
-  static ecma_value_t c_function_name (ROUTINE_ARG_LIST_##args_number);
+  static ecma_value_t c_function_name (ecma_context_t *context_p, ROUTINE_ARG_LIST_##args_number);
 #define ACCESSOR_READ_WRITE(name, c_getter_func_name, c_setter_func_name, prop_attributes) \
-  static ecma_value_t c_getter_func_name (ROUTINE_ARG_LIST_0);                             \
-  static ecma_value_t c_setter_func_name (ROUTINE_ARG_LIST_1);
+  static ecma_value_t c_getter_func_name (ecma_context_t *context_p, ROUTINE_ARG_LIST_0);                             \
+  static ecma_value_t c_setter_func_name (ecma_context_t *context_p, ROUTINE_ARG_LIST_1);
 #define ACCESSOR_READ_ONLY(name, c_getter_func_name, prop_attributes) \
-  static ecma_value_t c_getter_func_name (ROUTINE_ARG_LIST_0);
+  static ecma_value_t c_getter_func_name (ecma_context_t *context_p, ROUTINE_ARG_LIST_0);
 #include BUILTIN_INC_HEADER_NAME
 #undef ROUTINE_ARG_LIST_NON_FIXED
 #undef ROUTINE_ARG_LIST_3
@@ -162,7 +162,8 @@ const ecma_builtin_property_descriptor_t PROPERTY_DESCRIPTOR_LIST_NAME[] = {
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-DISPATCH_ROUTINE_ROUTINE_NAME (uint8_t builtin_routine_id, /**< built-in wide routine
+DISPATCH_ROUTINE_ROUTINE_NAME (ecma_context_t *context_p, /**< JJS context */
+                               uint8_t builtin_routine_id, /**< built-in wide routine
                                                                 identifier */
                                ecma_value_t this_arg_value, /**< 'this' argument
                                                                  value */
@@ -172,6 +173,7 @@ DISPATCH_ROUTINE_ROUTINE_NAME (uint8_t builtin_routine_id, /**< built-in wide ro
                                                            *   arguments' list */
 {
   /* the arguments may be unused for some built-ins */
+  JJS_UNUSED (context_p);
   JJS_UNUSED (this_arg_value);
   JJS_UNUSED (arguments_list);
   JJS_UNUSED (arguments_number);
@@ -187,31 +189,31 @@ DISPATCH_ROUTINE_ROUTINE_NAME (uint8_t builtin_routine_id, /**< built-in wide ro
 #define ROUTINE(name, c_function_name, args_number, length_prop_value)      \
   case ECMA_ROUTINE_##name##c_function_name:                                \
   {                                                                         \
-    return c_function_name (this_arg_value ROUTINE_ARG_LIST_##args_number); \
+    return c_function_name (context_p, this_arg_value ROUTINE_ARG_LIST_##args_number); \
   }
 #define ROUTINE_CONFIGURABLE_ONLY(name, c_function_name, args_number, length_prop_value) \
   case ECMA_ROUTINE_##name##c_function_name:                                             \
   {                                                                                      \
-    return c_function_name (this_arg_value ROUTINE_ARG_LIST_##args_number);              \
+    return c_function_name (context_p, this_arg_value ROUTINE_ARG_LIST_##args_number);              \
   }
 #define ROUTINE_WITH_FLAGS(name, c_function_name, args_number, length_prop_value, flags) \
   case ECMA_ROUTINE_##name##c_function_name:                                             \
   {                                                                                      \
-    return c_function_name (this_arg_value ROUTINE_ARG_LIST_##args_number);              \
+    return c_function_name (context_p, this_arg_value ROUTINE_ARG_LIST_##args_number);              \
   }
 #define ACCESSOR_READ_WRITE(name, c_getter_func_name, c_setter_func_name, prop_attributes) \
   case ECMA_ACCESSOR_##name##c_getter_func_name:                                           \
   {                                                                                        \
-    return c_getter_func_name (this_arg_value);                                            \
+    return c_getter_func_name (context_p, this_arg_value);                                            \
   }                                                                                        \
   case ECMA_ACCESSOR_##name##c_setter_func_name:                                           \
   {                                                                                        \
-    return c_setter_func_name (this_arg_value ROUTINE_ARG_LIST_1);                         \
+    return c_setter_func_name (context_p, this_arg_value ROUTINE_ARG_LIST_1);                         \
   }
 #define ACCESSOR_READ_ONLY(name, c_getter_func_name, prop_attributes) \
   case ECMA_ACCESSOR_##name##c_getter_func_name:                      \
   {                                                                   \
-    return c_getter_func_name (this_arg_value);                       \
+    return c_getter_func_name (context_p, this_arg_value);                       \
   }
 #include BUILTIN_INC_HEADER_NAME
 #undef ROUTINE_ARG

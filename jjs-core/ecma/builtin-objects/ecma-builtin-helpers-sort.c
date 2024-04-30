@@ -28,7 +28,8 @@
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_helper_array_merge_sort_bottom_up (ecma_value_t *source_array_p, /**< arrays to merge */
+ecma_builtin_helper_array_merge_sort_bottom_up (ecma_context_t *context_p, /**< JJS context */
+                                                ecma_value_t *source_array_p, /**< arrays to merge */
                                                 uint32_t left_idx, /**< first array begin */
                                                 uint32_t right_idx, /**< first array end */
                                                 uint32_t end_idx, /**< second array end */
@@ -42,11 +43,11 @@ ecma_builtin_helper_array_merge_sort_bottom_up (ecma_value_t *source_array_p, /*
 
   for (uint32_t k = left_idx; k < end_idx; k++)
   {
-    ecma_value_t compare_value = ecma_make_number_value (ECMA_NUMBER_ZERO);
+    ecma_value_t compare_value = ecma_make_number_value (context_p, ECMA_NUMBER_ZERO);
 
     if (i < right_idx && j < end_idx)
     {
-      compare_value = sort_cb (source_array_p[i], source_array_p[j], compare_func, array_buffer_p);
+      compare_value = sort_cb (context_p, source_array_p[i], source_array_p[j], compare_func, array_buffer_p);
       if (ECMA_IS_VALUE_ERROR (compare_value))
       {
         ret_value = ECMA_VALUE_ERROR;
@@ -54,7 +55,7 @@ ecma_builtin_helper_array_merge_sort_bottom_up (ecma_value_t *source_array_p, /*
       }
     }
 
-    if (i < right_idx && ecma_get_number_from_value (compare_value) <= ECMA_NUMBER_ZERO)
+    if (i < right_idx && ecma_get_number_from_value (context_p, compare_value) <= ECMA_NUMBER_ZERO)
     {
       output_array_p[k] = source_array_p[i];
       i++;
@@ -64,7 +65,7 @@ ecma_builtin_helper_array_merge_sort_bottom_up (ecma_value_t *source_array_p, /*
       output_array_p[k] = source_array_p[j];
       j++;
     }
-    ecma_free_value (compare_value);
+    ecma_free_value (context_p, compare_value);
   }
 
   return ret_value;
@@ -77,14 +78,15 @@ ecma_builtin_helper_array_merge_sort_bottom_up (ecma_value_t *source_array_p, /*
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_helper_array_merge_sort_helper (ecma_value_t *array_p, /**< array to sort */
+ecma_builtin_helper_array_merge_sort_helper (ecma_context_t *context_p, /**< JJS context */
+                                             ecma_value_t *array_p, /**< array to sort */
                                              uint32_t length, /**< length */
                                              ecma_value_t compare_func, /**< compare function */
                                              const ecma_builtin_helper_sort_compare_fn_t sort_cb, /**< sorting cb */
                                              ecma_object_t *array_buffer_p) /**< arrayBuffer */
 {
   ecma_value_t ret_value = ECMA_VALUE_EMPTY;
-  JMEM_DEFINE_LOCAL_ARRAY (dest_array_p, length, ecma_value_t);
+  JMEM_DEFINE_LOCAL_ARRAY (context_p, dest_array_p, length, ecma_value_t);
 
   ecma_value_t *temp_p;
   ecma_value_t *base_array_p = array_p;
@@ -109,7 +111,8 @@ ecma_builtin_helper_array_merge_sort_helper (ecma_value_t *array_p, /**< array t
       }
 
       // Merge two arrays
-      ret_value = ecma_builtin_helper_array_merge_sort_bottom_up (array_p,
+      ret_value = ecma_builtin_helper_array_merge_sort_bottom_up (context_p,
+                                                                  array_p,
                                                                   i,
                                                                   r,
                                                                   e,
@@ -150,7 +153,7 @@ ecma_builtin_helper_array_merge_sort_helper (ecma_value_t *array_p, /**< array t
     JJS_ASSERT (index == length);
   }
 
-  JMEM_FINALIZE_LOCAL_ARRAY (dest_array_p);
+  JMEM_FINALIZE_LOCAL_ARRAY (context_p, dest_array_p);
 
   return ret_value;
 } /* ecma_builtin_helper_array_merge_sort_helper */

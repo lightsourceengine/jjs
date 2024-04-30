@@ -625,7 +625,7 @@ jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
   jjs_debugger_send_string (context_p, JJS_DEBUGGER_EVAL_RESULT, type, buffer_p, buffer_size);
   ECMA_FINALIZE_UTF8_STRING (context_p, buffer_p, buffer_size);
 
-  ecma_free_value (message);
+  ecma_free_value (context_p, message);
 
   return false;
 } /* jjs_debugger_send_eval */
@@ -763,7 +763,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       }
 
 #if JJS_MEM_STATS
-      jmem_stats_free_byte_code_bytes (((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
+      jmem_stats_free_byte_code_bytes (context_p, ((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
 #endif /* JJS_MEM_STATS */
 
       jmem_heap_free_block (context_p, byte_code_free_p, ((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
@@ -1532,7 +1532,7 @@ jjs_debugger_send_exception_string (jjs_context_t* context_p, ecma_value_t excep
 
     if (string_p == NULL)
     {
-      string_p = ecma_get_string_from_value (context_p, ecma_builtin_helper_object_to_string (exception_value));
+      string_p = ecma_get_string_from_value (context_p, ecma_builtin_helper_object_to_string (context_p, exception_value));
     }
   }
   else if (ecma_is_value_string (exception_value))

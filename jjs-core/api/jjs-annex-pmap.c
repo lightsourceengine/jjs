@@ -115,7 +115,7 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
       if (ecma_is_value_empty (dirname))
       {
         jjs_value_free (context_p, dirname);
-        dirname = ecma_string_ascii_sz (".");
+        dirname = ecma_string_ascii_sz (context_p, ".");
       }
 
       JJS_DISOWN (context_p, root, root_o);
@@ -330,8 +330,8 @@ jjs_annex_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_mod
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap root has not been set");
   }
 
-  ecma_value_t packages = ecma_find_own_m (pmap, LIT_MAGIC_STRING_PACKAGES);
-  ecma_value_t package_info = ecma_find_own_v (packages, specifier);
+  ecma_value_t packages = ecma_find_own_m (context_p, pmap, LIT_MAGIC_STRING_PACKAGES);
+  ecma_value_t package_info = ecma_find_own_v (context_p, packages, specifier);
 
   if (package_info == ECMA_VALUE_NOT_FOUND)
   {
@@ -386,7 +386,7 @@ static ecma_value_t get_path_type (jjs_context_t *context_p, ecma_value_t object
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_value_t m = ecma_find_own_m (object, type);
+  ecma_value_t m = ecma_find_own_m (context_p, object, type);
 
   if (ecma_is_value_string (m))
   {
@@ -399,11 +399,11 @@ static ecma_value_t get_path_type (jjs_context_t *context_p, ecma_value_t object
 
   if (module_type == JJS_MODULE_TYPE_MODULE)
   {
-    module = ecma_find_own_m (object, LIT_MAGIC_STRING_MODULE);
+    module = ecma_find_own_m (context_p, object, LIT_MAGIC_STRING_MODULE);
   }
   else if (module_type == JJS_MODULE_TYPE_COMMONJS)
   {
-    module = ecma_find_own_m (object, LIT_MAGIC_STRING_COMMONJS);
+    module = ecma_find_own_m (context_p, object, LIT_MAGIC_STRING_COMMONJS);
   }
   else
   {
@@ -430,8 +430,8 @@ static jjs_value_t validate_path_or_main (jjs_context_t* context_p, ecma_value_t
   }
 
   jjs_value_t result;
-  ecma_value_t main_value = ecma_find_own_m (package_info, LIT_MAGIC_STRING_MAIN);
-  ecma_value_t path_value = ecma_find_own_m (package_info, LIT_MAGIC_STRING_PATH);
+  ecma_value_t main_value = ecma_find_own_m (context_p, package_info, LIT_MAGIC_STRING_MAIN);
+  ecma_value_t path_value = ecma_find_own_m (context_p, package_info, LIT_MAGIC_STRING_PATH);
 
   if (main_value == ECMA_VALUE_NOT_FOUND && path_value == ECMA_VALUE_NOT_FOUND)
   {
@@ -511,7 +511,7 @@ static jjs_value_t validate_module_type (jjs_context_t* context_p, ecma_value_t 
   }
 
   // Get module value.
-  ecma_value_t module_type_value = ecma_find_own_m (package_info, module_type_key);
+  ecma_value_t module_type_value = ecma_find_own_m (context_p, package_info, module_type_key);
 
   if (module_type_value == ECMA_VALUE_NOT_FOUND)
   {
@@ -557,7 +557,8 @@ static jjs_value_t validate_package_info (jjs_context_t* context_p, ecma_value_t
   if (commonjs_found || module_found)
   {
     // If a module type is present, ensure the package_info does not contain path or main.
-    if (ecma_has_own_m (package_info, LIT_MAGIC_STRING_PATH) || ecma_has_own_m (package_info, LIT_MAGIC_STRING_MAIN))
+    if (ecma_has_own_m (context_p, package_info, LIT_MAGIC_STRING_PATH)
+        || ecma_has_own_m (context_p, package_info, LIT_MAGIC_STRING_MAIN))
     {
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap package_info cannot have a path or main property if it has a module or commonjs property");
     }
@@ -581,7 +582,7 @@ static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap must be an object");
   }
 
-  ecma_value_t packages = ecma_find_own_m (pmap, LIT_MAGIC_STRING_PACKAGES);
+  ecma_value_t packages = ecma_find_own_m (context_p, pmap, LIT_MAGIC_STRING_PACKAGES);
 
   if (packages == ECMA_VALUE_NOT_FOUND)
   {
@@ -615,7 +616,7 @@ static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
       continue;
     }
 
-    ecma_value_t package_info = ecma_find_own_v (packages, key);
+    ecma_value_t package_info = ecma_find_own_v (context_p, packages, key);
     jjs_value_t package_info_result = validate_package_info (context_p, package_info, key);
 
     jjs_value_free (context_p, key);
@@ -646,7 +647,7 @@ last_index_of (jjs_context_t* context_p, ecma_value_t str, ecma_value_t search, 
   ecma_string_t* path_string_p = ecma_get_string_from_value (context_p, str);
   ecma_value_t position_value = ecma_make_uint32_value (context_p, position);
   ecma_value_t value = ecma_builtin_helper_string_prototype_object_index_of (
-    path_string_p, search, position_value, ECMA_STRING_LAST_INDEX_OF);
+    context_p, path_string_p, search, position_value, ECMA_STRING_LAST_INDEX_OF);
 
   int32_t result = ecma_is_value_integer_number (value) ? ecma_get_integer_from_value (value) : -1;
 
@@ -687,7 +688,7 @@ find_nearest_package_path (jjs_context_t* context_p, ecma_value_t packages, ecma
   while ((last_slash_index = last_index_of (context_p, specifier, slash, last_slash_index)) != UINT32_MAX)
   {
     ecma_value_t package = substr (context_p, specifier, 0, last_slash_index);
-    ecma_value_t package_info = ecma_find_own_v (packages, package);
+    ecma_value_t package_info = ecma_find_own_v (context_p, packages, package);
 
     if (package_info != ECMA_VALUE_NOT_FOUND)
     {

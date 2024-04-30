@@ -44,14 +44,16 @@
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_weakmap_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_weakmap_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                 uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                                  ecma_value_t this_arg, /**< 'this' argument value */
                                                  const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                                          *   passed to routine */
                                                  uint32_t arguments_number) /**< length of arguments' list */
 {
   JJS_UNUSED (arguments_number);
-  return ecma_builtin_container_dispatch_routine (builtin_routine_id,
+  return ecma_builtin_container_dispatch_routine (context_p,
+                                                  builtin_routine_id,
                                                   this_arg,
                                                   arguments_list_p,
                                                   LIT_MAGIC_STRING_WEAKMAP_UL);

@@ -103,7 +103,7 @@ jcontext_release_exception (jjs_context_t *context_p) /**< JJS context */
 {
   JJS_ASSERT (jcontext_has_pending_exception (context_p));
 
-  ecma_free_value (jcontext_take_exception (context_p));
+  ecma_free_value (context_p, jcontext_take_exception (context_p));
 } /* jcontext_release_exception */
 
 /**

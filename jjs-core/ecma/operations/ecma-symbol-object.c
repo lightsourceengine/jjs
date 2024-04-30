@@ -86,7 +86,7 @@ ecma_op_create_symbol_object (ecma_context_t *context_p, /**< JJS context */
 {
   JJS_ASSERT (ecma_is_value_symbol (value));
 
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (ECMA_BUILTIN_ID_SYMBOL_PROTOTYPE);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_SYMBOL_PROTOTYPE);
   ecma_object_t *object_p =
     ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
@@ -108,7 +108,7 @@ ecma_get_symbol_description (ecma_context_t *context_p, /**< JJS context */
 {
   JJS_UNUSED (context_p);
   JJS_ASSERT (symbol_p != NULL);
-  JJS_ASSERT (ecma_prop_name_is_symbol (context_p, symbol_p));
+  JJS_ASSERT (ecma_prop_name_is_symbol (symbol_p));
 
   return ((ecma_extended_string_t *) symbol_p)->u.symbol_descriptor;
 } /* ecma_get_symbol_description */

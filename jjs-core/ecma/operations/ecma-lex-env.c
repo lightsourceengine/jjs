@@ -42,7 +42,7 @@
 void
 ecma_init_global_environment (ecma_context_t *context_p)
 {
-  context_p->global_object_p = ecma_builtin_create_global_object ();
+  context_p->global_object_p = ecma_builtin_create_global_object (context_p);
 } /* ecma_init_global_environment */
 
 /**
@@ -66,7 +66,7 @@ ecma_object_t *
 ecma_get_global_environment (ecma_context_t *context_p, /**< JJS context */
                              ecma_object_t *global_object_p) /**< global object */
 {
-  JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (global_object_p));
+  JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (context_p, global_object_p));
   return ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, ((ecma_global_object_t *) global_object_p)->global_env_cp);
 } /* ecma_get_global_environment */
 
@@ -77,7 +77,7 @@ void
 ecma_create_global_lexical_block (ecma_context_t *context_p, /**< JJS context */
                                   ecma_object_t *global_object_p) /**< global object */
 {
-  JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (global_object_p));
+  JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (context_p, global_object_p));
 
   ecma_global_object_t *real_global_object_p = (ecma_global_object_t *) global_object_p;
 
@@ -135,7 +135,7 @@ ecma_object_t *
 ecma_get_global_scope (ecma_context_t *context_p, /**< JJS context */
                        ecma_object_t *global_object_p) /**< global object */
 {
-  JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (global_object_p));
+  JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (context_p, global_object_p));
   return ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, ((ecma_global_object_t *) global_object_p)->global_scope_cp);
 } /* ecma_get_global_scope */
 
@@ -253,7 +253,8 @@ ecma_op_create_mutable_binding (ecma_context_t *context_p, /**< JJS context */
     const uint32_t flags = ECMA_PROPERTY_ENUMERABLE_WRITABLE | JJS_PROP_SHOULD_THROW;
 
     ecma_value_t completion =
-      ecma_builtin_helper_def_prop (binding_obj_p,
+      ecma_builtin_helper_def_prop (context_p,
+                                    binding_obj_p,
                                     name_p,
                                     ECMA_VALUE_UNDEFINED,
                                     is_deletable ? flags | ECMA_PROPERTY_FLAG_CONFIGURABLE : flags);

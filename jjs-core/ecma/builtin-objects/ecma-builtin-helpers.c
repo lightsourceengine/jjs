@@ -48,18 +48,19 @@
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_helper_object_to_string_tag_helper (ecma_value_t tag_value) /**< string tag */
+ecma_builtin_helper_object_to_string_tag_helper (ecma_context_t *context_p, /**< JJS context */
+                                                 ecma_value_t tag_value) /**< string tag */
 {
   JJS_ASSERT (ecma_is_value_string (tag_value));
 
-  ecma_string_t *tag_str_p = ecma_get_string_from_value (tag_value);
-  lit_utf8_size_t tag_str_size = ecma_string_get_size (tag_str_p);
+  ecma_string_t *tag_str_p = ecma_get_string_from_value (context_p, tag_value);
+  lit_utf8_size_t tag_str_size = ecma_string_get_size (context_p, tag_str_p);
   ecma_string_t *ret_string_p;
 
   /* Building string "[object #@@toStringTag#]"
      The string size will be size("[object ") + size(#@@toStringTag#) + size ("]"). */
   const lit_utf8_size_t buffer_size = 9 + tag_str_size;
-  JMEM_DEFINE_LOCAL_ARRAY (str_buffer, buffer_size, lit_utf8_byte_t);
+  JMEM_DEFINE_LOCAL_ARRAY (context_p, str_buffer, buffer_size, lit_utf8_byte_t);
 
   lit_utf8_byte_t *buffer_ptr = str_buffer;
 
@@ -80,7 +81,7 @@ ecma_builtin_helper_object_to_string_tag_helper (ecma_value_t tag_value) /**< st
   }
 
   /* Copy to buffer the #@@toStringTag# string */
-  ecma_string_to_cesu8_bytes (tag_str_p, buffer_ptr, tag_str_size);
+  ecma_string_to_cesu8_bytes (context_p, tag_str_p, buffer_ptr, tag_str_size);
   buffer_ptr += tag_str_size;
 
   JJS_ASSERT (buffer_ptr <= str_buffer + buffer_size);
@@ -92,12 +93,12 @@ ecma_builtin_helper_object_to_string_tag_helper (ecma_value_t tag_value) /**< st
 
   JJS_ASSERT (buffer_ptr <= str_buffer + buffer_size);
 
-  ret_string_p = ecma_new_ecma_string_from_utf8 (str_buffer, (lit_utf8_size_t) (buffer_ptr - str_buffer));
+  ret_string_p = ecma_new_ecma_string_from_utf8 (context_p, str_buffer, (lit_utf8_size_t) (buffer_ptr - str_buffer));
 
-  JMEM_FINALIZE_LOCAL_ARRAY (str_buffer);
-  ecma_deref_ecma_string (tag_str_p);
+  JMEM_FINALIZE_LOCAL_ARRAY (context_p, str_buffer);
+  ecma_deref_ecma_string (context_p, tag_str_p);
 
-  return ecma_make_string_value (ret_string_p);
+  return ecma_make_string_value (context_p, ret_string_p);
 } /* ecma_builtin_helper_object_to_string_tag_helper */
 
 /**
@@ -115,7 +116,8 @@ ecma_builtin_helper_object_to_string_tag_helper (ecma_value_t tag_value) /**< st
  */
 
 ecma_value_t
-ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this argument */
+ecma_builtin_helper_object_to_string (ecma_context_t *context_p, /**< JJS context */
+                                      const ecma_value_t this_arg) /**< this argument */
 {
   lit_magic_string_id_t builtin_tag;
 
@@ -129,7 +131,7 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
   }
   else
   {
-    ecma_value_t obj_this = ecma_op_to_object (this_arg);
+    ecma_value_t obj_this = ecma_op_to_object (context_p, this_arg);
 
     if (ECMA_IS_VALUE_ERROR (obj_this))
     {
@@ -138,11 +140,11 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
 
     JJS_ASSERT (ecma_is_value_object (obj_this));
 
-    ecma_object_t *obj_p = ecma_get_object_from_value (obj_this);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, obj_this);
 
-    builtin_tag = ecma_object_get_class_name (obj_p);
+    builtin_tag = ecma_object_get_class_name (context_p, obj_p);
 
-    ecma_value_t is_array = ecma_is_value_array (obj_this);
+    ecma_value_t is_array = ecma_is_value_array (context_p, obj_this);
 
     if (ECMA_IS_VALUE_ERROR (is_array))
     {
@@ -155,7 +157,7 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
       builtin_tag = LIT_MAGIC_STRING_ARRAY_UL;
     }
 
-    ecma_value_t tag = ecma_op_object_get_by_symbol_id (obj_p, LIT_GLOBAL_SYMBOL_TO_STRING_TAG);
+    ecma_value_t tag = ecma_op_object_get_by_symbol_id (context_p, obj_p, LIT_GLOBAL_SYMBOL_TO_STRING_TAG);
 
     if (ECMA_IS_VALUE_ERROR (tag))
     {
@@ -166,7 +168,7 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
     if (ecma_is_value_string (tag))
     {
       ecma_deref_object (obj_p);
-      return ecma_builtin_helper_object_to_string_tag_helper (tag);
+      return ecma_builtin_helper_object_to_string_tag_helper (context_p, tag);
     }
     else if (builtin_tag != LIT_MAGIC_STRING_ARGUMENTS_UL && builtin_tag != LIT_MAGIC_STRING_FUNCTION_UL
              && builtin_tag != LIT_MAGIC_STRING_ERROR_UL && builtin_tag != LIT_MAGIC_STRING_BOOLEAN_UL
@@ -177,7 +179,7 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
       builtin_tag = LIT_MAGIC_STRING_OBJECT_UL;
     }
 
-    ecma_free_value (tag);
+    ecma_free_value (context_p, tag);
     ecma_deref_object (obj_p);
   }
 
@@ -193,9 +195,9 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
     1, // lit_get_magic_string_size (LIT_MAGIC_STRING_RIGHT_SQUARE_CHAR)
   };
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (strings_p, string_sizes_p, sizeof (strings_p) / sizeof (strings_p[0]));
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (context_p, strings_p, string_sizes_p, sizeof (strings_p) / sizeof (strings_p[0]));
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_helper_object_to_string */
 
 /**
@@ -208,10 +210,11 @@ ecma_builtin_helper_object_to_string (const ecma_value_t this_arg) /**< this arg
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_string_t *
-ecma_builtin_helper_get_to_locale_string_at_index (ecma_object_t *obj_p, /**< this object */
+ecma_builtin_helper_get_to_locale_string_at_index (ecma_context_t *context_p, /**< JJS context */
+                                                   ecma_object_t *obj_p, /**< this object */
                                                    ecma_length_t index) /**< array index */
 {
-  ecma_value_t index_value = ecma_op_object_get_by_index (obj_p, index);
+  ecma_value_t index_value = ecma_op_object_get_by_index (context_p, obj_p, index);
 
   if (ECMA_IS_VALUE_ERROR (index_value))
   {
@@ -223,18 +226,18 @@ ecma_builtin_helper_get_to_locale_string_at_index (ecma_object_t *obj_p, /**< th
     return ecma_get_magic_string (LIT_MAGIC_STRING__EMPTY);
   }
 
-  ecma_value_t call_value = ecma_op_invoke_by_magic_id (index_value, LIT_MAGIC_STRING_TO_LOCALE_STRING_UL, NULL, 0);
+  ecma_value_t call_value = ecma_op_invoke_by_magic_id (context_p, index_value, LIT_MAGIC_STRING_TO_LOCALE_STRING_UL, NULL, 0);
 
-  ecma_free_value (index_value);
+  ecma_free_value (context_p, index_value);
 
   if (ECMA_IS_VALUE_ERROR (call_value))
   {
     return NULL;
   }
 
-  ecma_string_t *ret_string_p = ecma_op_to_string (call_value);
+  ecma_string_t *ret_string_p = ecma_op_to_string (context_p, call_value);
 
-  ecma_free_value (call_value);
+  ecma_free_value (context_p, call_value);
 
   return ret_string_p;
 } /* ecma_builtin_helper_get_to_locale_string_at_index */
@@ -259,13 +262,14 @@ ecma_builtin_helper_get_to_locale_string_at_index (ecma_object_t *obj_p, /**< th
  *         conversion error otherwise
  */
 ecma_value_t
-ecma_builtin_helper_array_index_normalize (ecma_value_t arg, /**< index */
+ecma_builtin_helper_array_index_normalize (ecma_context_t *context_p, /**< JJS context */
+                                           ecma_value_t arg, /**< index */
                                            ecma_length_t length, /**< array's length */
                                            ecma_length_t *number_p) /**< [out] ecma_length_t */
 {
   ecma_number_t to_int;
 
-  if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (arg, &to_int)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (context_p, arg, &to_int)))
   {
     return ECMA_VALUE_ERROR;
   }
@@ -300,13 +304,14 @@ ecma_builtin_helper_array_index_normalize (ecma_value_t arg, /**< index */
  *         conversion error otherwise
  */
 ecma_value_t
-ecma_builtin_helper_uint32_index_normalize (ecma_value_t arg, /**< index */
+ecma_builtin_helper_uint32_index_normalize (ecma_context_t *context_p, /**< JJS context */
+                                            ecma_value_t arg, /**< index */
                                             uint32_t length, /**< array's length */
                                             uint32_t *number_p) /**< [out] uint32_t number */
 {
   ecma_number_t to_int;
 
-  if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (arg, &to_int)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (context_p, arg, &to_int)))
   {
     return ECMA_VALUE_ERROR;
   }
@@ -330,12 +335,13 @@ ecma_builtin_helper_uint32_index_normalize (ecma_value_t arg, /**< index */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_helper_array_concat_value (ecma_object_t *array_obj_p, /**< array */
+ecma_builtin_helper_array_concat_value (ecma_context_t *context_p, /**< JJS context */
+                                        ecma_object_t *array_obj_p, /**< array */
                                         ecma_length_t *length_p, /**< [in,out] array's length */
                                         ecma_value_t value) /**< value to concat */
 {
   /* 5.b */
-  ecma_value_t is_spreadable = ecma_op_is_concat_spreadable (value);
+  ecma_value_t is_spreadable = ecma_op_is_concat_spreadable (context_p, value);
 
   if (ECMA_IS_VALUE_ERROR (is_spreadable))
   {
@@ -348,10 +354,10 @@ ecma_builtin_helper_array_concat_value (ecma_object_t *array_obj_p, /**< array *
 
   if (spread_object)
   {
-    ecma_object_t *obj_p = ecma_get_object_from_value (value);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, value);
 
     ecma_length_t arg_len;
-    ecma_value_t error = ecma_op_object_get_length (obj_p, &arg_len);
+    ecma_value_t error = ecma_op_object_get_length (context_p, obj_p, &arg_len);
 
     if (ECMA_IS_VALUE_ERROR (error))
     {
@@ -361,14 +367,14 @@ ecma_builtin_helper_array_concat_value (ecma_object_t *array_obj_p, /**< array *
     /* 4 . */
     if ((ecma_number_t) (*length_p + arg_len) > ECMA_NUMBER_MAX_SAFE_INTEGER)
     {
-      return ecma_raise_type_error (ECMA_ERR_INVALID_ARRAY_LENGTH);
+      return ecma_raise_type_error (context_p, ECMA_ERR_INVALID_ARRAY_LENGTH);
     }
 
     /* 5.b.iii */
     for (ecma_length_t array_index = 0; array_index < arg_len; array_index++)
     {
       /* 5.b.iii.2 */
-      ecma_value_t get_value = ecma_op_object_find_by_index (obj_p, array_index);
+      ecma_value_t get_value = ecma_op_object_find_by_index (context_p, obj_p, array_index);
 
       if (ECMA_IS_VALUE_ERROR (get_value))
       {
@@ -383,8 +389,8 @@ ecma_builtin_helper_array_concat_value (ecma_object_t *array_obj_p, /**< array *
       /* 5.b.iii.3.b */
       /* This will always be a simple value since 'is_throw' is false, so no need to free. */
       ecma_value_t put_comp =
-        ecma_builtin_helper_def_prop_by_index (array_obj_p, *length_p + array_index, get_value, prop_flags);
-      ecma_free_value (get_value);
+        ecma_builtin_helper_def_prop_by_index (context_p, array_obj_p, *length_p + array_index, get_value, prop_flags);
+      ecma_free_value (context_p, get_value);
 
       if (ECMA_IS_VALUE_ERROR (put_comp))
       {
@@ -398,7 +404,7 @@ ecma_builtin_helper_array_concat_value (ecma_object_t *array_obj_p, /**< array *
 
   /* 5.c.i */
   /* This will always be a simple value since 'is_throw' is false, so no need to free. */
-  ecma_value_t put_comp = ecma_builtin_helper_def_prop_by_index (array_obj_p, (*length_p)++, value, prop_flags);
+  ecma_value_t put_comp = ecma_builtin_helper_def_prop_by_index (context_p, array_obj_p, (*length_p)++, value, prop_flags);
 
   if (ECMA_IS_VALUE_ERROR (put_comp))
   {
@@ -476,7 +482,8 @@ ecma_builtin_helper_string_index_normalize (ecma_number_t index, /**< index */
  * @return uint32_t - whether there is a match for the search string
  */
 static uint32_t
-ecma_builtin_helper_string_find_last_index (ecma_string_t *original_str_p, /**< original string */
+ecma_builtin_helper_string_find_last_index (ecma_context_t *context_p, /**< JJS context */
+                                            ecma_string_t *original_str_p, /**< original string */
                                             ecma_string_t *search_str_p, /**< search string */
                                             uint32_t position) /**< start_position */
 {
@@ -485,10 +492,10 @@ ecma_builtin_helper_string_find_last_index (ecma_string_t *original_str_p, /**< 
     return position;
   }
 
-  uint32_t original_length = ecma_string_get_length (original_str_p);
+  uint32_t original_length = ecma_string_get_length (context_p, original_str_p);
 
-  ECMA_STRING_TO_UTF8_STRING (search_str_p, search_str_utf8_p, search_str_size);
-  ECMA_STRING_TO_UTF8_STRING (original_str_p, original_str_utf8_p, original_str_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, search_str_p, search_str_utf8_p, search_str_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, original_str_p, original_str_utf8_p, original_str_size);
 
   uint32_t ret_value = UINT32_MAX;
 
@@ -525,8 +532,8 @@ ecma_builtin_helper_string_find_last_index (ecma_string_t *original_str_p, /**< 
       position--;
     }
   }
-  ECMA_FINALIZE_UTF8_STRING (original_str_utf8_p, original_str_size);
-  ECMA_FINALIZE_UTF8_STRING (search_str_utf8_p, search_str_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, original_str_utf8_p, original_str_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, search_str_utf8_p, search_str_size);
 
   return ret_value;
 } /* ecma_builtin_helper_string_find_last_index */
@@ -552,18 +559,19 @@ ecma_builtin_helper_string_find_last_index (ecma_string_t *original_str_p, /**< 
  *                        boolean value
  */
 ecma_value_t
-ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_str_p, /**< this argument */
+ecma_builtin_helper_string_prototype_object_index_of (ecma_context_t *context_p, /**< JJS context */
+                                                      ecma_string_t *original_str_p, /**< this argument */
                                                       ecma_value_t arg1, /**< routine's first argument */
                                                       ecma_value_t arg2, /**< routine's second argument */
                                                       ecma_string_index_of_mode_t mode) /**< routine's mode */
 {
   /* 5 (indexOf) -- 6 (lastIndexOf) */
-  const lit_utf8_size_t original_len = ecma_string_get_length (original_str_p);
+  const lit_utf8_size_t original_len = ecma_string_get_length (context_p, original_str_p);
 
   /* 4, 6 (startsWith, includes, endsWith) */
   if (mode >= ECMA_STRING_STARTS_WITH)
   {
-    ecma_value_t regexp = ecma_op_is_regexp (arg1);
+    ecma_value_t regexp = ecma_op_is_regexp (context_p, arg1);
 
     if (ECMA_IS_VALUE_ERROR (regexp))
     {
@@ -573,12 +581,12 @@ ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_st
     if (regexp == ECMA_VALUE_TRUE)
     {
       JJS_ASSERT (ECMA_STRING_LAST_INDEX_OF < mode && mode <= ECMA_STRING_ENDS_WITH);
-      return ecma_raise_type_error (ECMA_ERR_SEARCH_STRING_CANNOT_BE_OF_TYPE_REGEXP);
+      return ecma_raise_type_error (context_p, ECMA_ERR_SEARCH_STRING_CANNOT_BE_OF_TYPE_REGEXP);
     }
   }
 
   /* 7, 8 */
-  ecma_string_t *search_str_p = ecma_op_to_string (arg1);
+  ecma_string_t *search_str_p = ecma_op_to_string (context_p, arg1);
 
   if (JJS_UNLIKELY (search_str_p == NULL))
   {
@@ -592,17 +600,17 @@ ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_st
 
   if (mode > ECMA_STRING_LAST_INDEX_OF)
   {
-    ret_value = ecma_op_to_integer (arg2, &pos_num);
+    ret_value = ecma_op_to_integer (context_p, arg2, &pos_num);
   }
   else
   {
-    ret_value = ecma_op_to_number (arg2, &pos_num);
+    ret_value = ecma_op_to_number (context_p, arg2, &pos_num);
   }
 
   /* 10 (startsWith, includes), 11 (endsWith) */
   if (ECMA_IS_VALUE_ERROR (ret_value))
   {
-    ecma_deref_ecma_string (search_str_p);
+    ecma_deref_ecma_string (context_p, search_str_p);
     return ret_value;
   }
 
@@ -624,13 +632,13 @@ ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_st
         break;
       }
       /* 15, 16 (startsWith) */
-      uint32_t index = ecma_builtin_helper_string_find_index (original_str_p, search_str_p, start);
+      uint32_t index = ecma_builtin_helper_string_find_index (context_p, original_str_p, search_str_p, start);
       ret_value = ecma_make_boolean_value (index == start);
       break;
     }
     case ECMA_STRING_INCLUDES:
     {
-      if (ecma_builtin_helper_string_find_index (original_str_p, search_str_p, start) != UINT32_MAX)
+      if (ecma_builtin_helper_string_find_index (context_p, original_str_p, search_str_p, start) != UINT32_MAX)
       {
         ret_value = ECMA_VALUE_TRUE;
       }
@@ -643,7 +651,7 @@ ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_st
         start = original_len;
       }
 
-      lit_utf8_size_t search_str_len = ecma_string_get_length (search_str_p);
+      lit_utf8_size_t search_str_len = ecma_string_get_length (context_p, search_str_p);
 
       if (search_str_len == 0)
       {
@@ -657,32 +665,32 @@ ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_st
       {
         break;
       }
-      uint32_t index = ecma_builtin_helper_string_find_index (original_str_p, search_str_p, (uint32_t) start_ends_with);
+      uint32_t index = ecma_builtin_helper_string_find_index (context_p, original_str_p, search_str_p, (uint32_t) start_ends_with);
       ret_value = ecma_make_boolean_value (index == (uint32_t) start_ends_with);
       break;
     }
     case ECMA_STRING_INDEX_OF:
     {
       /* 8 (indexOf) -- 9 (lastIndexOf) */
-      ecma_value_t find_index = ecma_builtin_helper_string_find_index (original_str_p, search_str_p, start);
+      ecma_value_t find_index = ecma_builtin_helper_string_find_index (context_p, original_str_p, search_str_p, start);
 
       if (find_index != UINT32_MAX)
       {
         ret_num = ((ecma_number_t) find_index);
       }
-      ret_value = ecma_make_number_value (ret_num);
+      ret_value = ecma_make_number_value (context_p, ret_num);
       break;
     }
 
     case ECMA_STRING_LAST_INDEX_OF:
     {
-      uint32_t index = ecma_builtin_helper_string_find_last_index (original_str_p, search_str_p, start);
+      uint32_t index = ecma_builtin_helper_string_find_last_index (context_p, original_str_p, search_str_p, start);
 
       if (index != UINT32_MAX)
       {
         ret_num = ((ecma_number_t) index);
       }
-      ret_value = ecma_make_number_value (ret_num);
+      ret_value = ecma_make_number_value (context_p, ret_num);
       break;
     }
 
@@ -692,7 +700,7 @@ ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_st
     }
   }
 
-  ecma_deref_ecma_string (search_str_p);
+  ecma_deref_ecma_string (context_p, search_str_p);
 
   return ret_value;
 } /* ecma_builtin_helper_string_prototype_object_index_of */
@@ -714,7 +722,8 @@ ecma_builtin_helper_string_prototype_object_index_of (ecma_string_t *original_st
  * @return uint32_t - whether there is a match for the search string
  */
 uint32_t
-ecma_builtin_helper_string_find_index (ecma_string_t *original_str_p, /**< index */
+ecma_builtin_helper_string_find_index (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_string_t *original_str_p, /**< index */
                                        ecma_string_t *search_str_p, /**< string's length */
                                        uint32_t start_pos) /**< start position */
 {
@@ -725,8 +734,8 @@ ecma_builtin_helper_string_find_index (ecma_string_t *original_str_p, /**< index
     return start_pos;
   }
 
-  ECMA_STRING_TO_UTF8_STRING (search_str_p, search_str_utf8_p, search_str_size);
-  ECMA_STRING_TO_UTF8_STRING (original_str_p, original_str_utf8_p, original_str_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, search_str_p, search_str_utf8_p, search_str_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, original_str_p, original_str_utf8_p, original_str_size);
 
   const lit_utf8_byte_t *str_current_p = original_str_utf8_p;
 
@@ -749,8 +758,8 @@ ecma_builtin_helper_string_find_index (ecma_string_t *original_str_p, /**< index
     start_pos++;
   }
 
-  ECMA_FINALIZE_UTF8_STRING (original_str_utf8_p, original_str_size);
-  ECMA_FINALIZE_UTF8_STRING (search_str_utf8_p, search_str_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, original_str_utf8_p, original_str_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, search_str_utf8_p, search_str_size);
 
   return match_found;
 } /* ecma_builtin_helper_string_find_index */
@@ -764,19 +773,20 @@ ecma_builtin_helper_string_find_index (ecma_string_t *original_str_p, /**< index
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_helper_def_prop_by_index (ecma_object_t *obj_p, /**< object */
+ecma_builtin_helper_def_prop_by_index (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_object_t *obj_p, /**< object */
                                        ecma_length_t index, /**< property index */
                                        ecma_value_t value, /**< value */
                                        uint32_t opts) /**< any combination of ecma_property_flag_t bits */
 {
   if (JJS_LIKELY (index <= ECMA_DIRECT_STRING_MAX_IMM))
   {
-    return ecma_builtin_helper_def_prop (obj_p, ECMA_CREATE_DIRECT_UINT32_STRING (index), value, opts);
+    return ecma_builtin_helper_def_prop (context_p, obj_p, ECMA_CREATE_DIRECT_UINT32_STRING (index), value, opts);
   }
 
-  ecma_string_t *index_str_p = ecma_new_ecma_string_from_length (index);
-  ecma_value_t ret_value = ecma_builtin_helper_def_prop (obj_p, index_str_p, value, opts);
-  ecma_deref_ecma_string (index_str_p);
+  ecma_string_t *index_str_p = ecma_new_ecma_string_from_length (context_p, index);
+  ecma_value_t ret_value = ecma_builtin_helper_def_prop (context_p, obj_p, index_str_p, value, opts);
+  ecma_deref_ecma_string (context_p, index_str_p);
 
   return ret_value;
 } /* ecma_builtin_helper_def_prop_by_index */
@@ -797,14 +807,15 @@ ecma_builtin_helper_def_prop_by_index (ecma_object_t *obj_p, /**< object */
  *         ECMA_VALUE_EMPTY - otherwise
  */
 ecma_value_t
-ecma_builtin_helper_calculate_index (ecma_value_t index, /**< relative index argument */
+ecma_builtin_helper_calculate_index (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_value_t index, /**< relative index argument */
                                      ecma_length_t length, /**< object's length */
                                      ecma_length_t *out_index) /**< calculated index */
 {
   JJS_ASSERT (out_index != NULL);
 
   ecma_number_t relative_index;
-  ecma_value_t conversion_result = ecma_op_to_integer (index, &relative_index);
+  ecma_value_t conversion_result = ecma_op_to_integer (context_p, index, &relative_index);
 
   /* 4. */
   if (ECMA_IS_VALUE_ERROR (conversion_result))
@@ -846,7 +857,8 @@ ecma_builtin_helper_calculate_index (ecma_value_t index, /**< relative index arg
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_helper_def_prop (ecma_object_t *obj_p, /**< object */
+ecma_builtin_helper_def_prop (ecma_context_t *context_p, /**< JJS context */
+                              ecma_object_t *obj_p, /**< object */
                               ecma_string_t *name_p, /**< name string */
                               ecma_value_t value, /**< value */
                               uint32_t opts) /**< any combination of ecma_property_descriptor_status_flags_t bits */
@@ -857,7 +869,7 @@ ecma_builtin_helper_def_prop (ecma_object_t *obj_p, /**< object */
 
   prop_desc.value = value;
 
-  return ecma_op_object_define_own_property (obj_p, name_p, &prop_desc);
+  return ecma_op_object_define_own_property (context_p, obj_p, name_p, &prop_desc);
 } /* ecma_builtin_helper_def_prop */
 
 /**
@@ -867,7 +879,8 @@ ecma_builtin_helper_def_prop (ecma_object_t *obj_p, /**< object */
  *     ECMA-262 v6.0 21.1.3.14.1
  */
 void
-ecma_builtin_replace_substitute (ecma_replace_context_t *ctx_p) /**< replace context */
+ecma_builtin_replace_substitute (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_replace_context_t *ctx_p) /**< replace context */
 {
   JJS_ASSERT (ctx_p->string_p != NULL);
   JJS_ASSERT (ctx_p->matched_p == NULL
@@ -876,7 +889,7 @@ ecma_builtin_replace_substitute (ecma_replace_context_t *ctx_p) /**< replace con
   lit_utf8_size_t replace_size;
   uint8_t replace_flags = ECMA_STRING_FLAG_IS_ASCII;
   const lit_utf8_byte_t *replace_buf_p =
-    ecma_string_get_chars (ctx_p->replace_str_p, &replace_size, NULL, NULL, &replace_flags);
+    ecma_string_get_chars (context_p, ctx_p->replace_str_p, &replace_size, NULL, NULL, &replace_flags);
 
   const lit_utf8_byte_t *const replace_end_p = replace_buf_p + replace_size;
   const lit_utf8_byte_t *curr_p = replace_buf_p;
@@ -914,7 +927,7 @@ ecma_builtin_replace_substitute (ecma_replace_context_t *ctx_p) /**< replace con
             const ecma_value_t match_value = ctx_p->u.collection_p->buffer_p[0];
 
             JJS_ASSERT (ecma_is_value_string (match_value));
-            ecma_stringbuilder_append (&(ctx_p->builder), ecma_get_string_from_value (match_value));
+            ecma_stringbuilder_append (&(ctx_p->builder), ecma_get_string_from_value (context_p, match_value));
             break;
           }
 
@@ -937,8 +950,8 @@ ecma_builtin_replace_substitute (ecma_replace_context_t *ctx_p) /**< replace con
             const ecma_value_t match_value = ctx_p->u.collection_p->buffer_p[0];
 
             JJS_ASSERT (ecma_is_value_string (match_value));
-            const ecma_string_t *const matched_p = ecma_get_string_from_value (match_value);
-            const lit_utf8_size_t match_size = ecma_string_get_size (matched_p);
+            const ecma_string_t *const matched_p = ecma_get_string_from_value (context_p, match_value);
+            const lit_utf8_size_t match_size = ecma_string_get_size (context_p, matched_p);
             const lit_utf8_byte_t *const begin_p = ctx_p->string_p + ctx_p->match_byte_pos + match_size;
 
             ecma_stringbuilder_append_raw (&(ctx_p->builder),
@@ -1000,7 +1013,7 @@ ecma_builtin_replace_substitute (ecma_replace_context_t *ctx_p) /**< replace con
                 const ecma_value_t capture_value = ctx_p->u.collection_p->buffer_p[idx];
                 if (!ecma_is_value_undefined (capture_value))
                 {
-                  ecma_stringbuilder_append (&(ctx_p->builder), ecma_get_string_from_value (capture_value));
+                  ecma_stringbuilder_append (&(ctx_p->builder), ecma_get_string_from_value (context_p, capture_value));
                 }
 
                 break;
@@ -1024,7 +1037,7 @@ ecma_builtin_replace_substitute (ecma_replace_context_t *ctx_p) /**< replace con
 
   if (replace_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
   {
-    jmem_heap_free_block ((void *) replace_buf_p, replace_size);
+    jmem_heap_free_block (context_p, (void *) replace_buf_p, replace_size);
   }
 } /* ecma_builtin_replace_substitute */
 

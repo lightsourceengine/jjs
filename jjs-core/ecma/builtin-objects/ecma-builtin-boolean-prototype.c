@@ -69,7 +69,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_boolean_prototype_object_value_of (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_boolean_prototype_object_value_of (ecma_context_t *context_p, /**< JJS context */
+                                                ecma_value_t this_arg) /**< this argument */
 {
   if (ecma_is_value_boolean (this_arg))
   {
@@ -77,7 +78,7 @@ ecma_builtin_boolean_prototype_object_value_of (ecma_value_t this_arg) /**< this
   }
   else if (ecma_is_value_object (this_arg))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_BOOLEAN))
     {
@@ -89,7 +90,7 @@ ecma_builtin_boolean_prototype_object_value_of (ecma_value_t this_arg) /**< this
     }
   }
 
-  return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_BOOLEAN_OBJECT);
+  return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_BOOLEAN_OBJECT);
 } /* ecma_builtin_boolean_prototype_object_value_of */
 
 /**
@@ -99,7 +100,8 @@ ecma_builtin_boolean_prototype_object_value_of (ecma_value_t this_arg) /**< this
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_boolean_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_boolean_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                 uint8_t builtin_routine_id, /**< built-in wide routine
                                                                               *   identifier */
                                                  ecma_value_t this_arg, /**< 'this' argument value */
                                                  const ecma_value_t arguments_list_p[], /**< list of arguments
@@ -108,7 +110,7 @@ ecma_builtin_boolean_prototype_dispatch_routine (uint8_t builtin_routine_id, /**
 {
   JJS_UNUSED_2 (arguments_number, arguments_list_p);
 
-  ecma_value_t value_of_ret = ecma_builtin_boolean_prototype_object_value_of (this_arg);
+  ecma_value_t value_of_ret = ecma_builtin_boolean_prototype_object_value_of (context_p, this_arg);
   if (builtin_routine_id == ECMA_BOOLEAN_PROTOTYPE_ROUTINE_VALUE_OF)
   {
     return value_of_ret;

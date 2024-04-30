@@ -1853,7 +1853,7 @@ ecma_gc_free_object (ecma_context_t *context_p, /**< JJS context */
         case ECMA_OBJECT_CLASS_REGEXP:
         {
           ecma_compiled_code_t *bytecode_p =
-            ECMA_GET_INTERNAL_VALUE_ANY_POINTER (ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
+            ECMA_GET_INTERNAL_VALUE_ANY_POINTER (context_p, ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
 
           ecma_bytecode_deref (context_p, bytecode_p);
 
@@ -2037,7 +2037,7 @@ ecma_gc_free_object (ecma_context_t *context_p, /**< JJS context */
     {
       ecma_extended_object_t *extended_func_p = (ecma_extended_object_t *) object_p;
 
-      if (!ecma_builtin_function_is_routine (object_p))
+      if (!ecma_builtin_function_is_routine (context_p, object_p))
       {
         uint8_t bitset_size = extended_func_p->u.built_in.u.length_and_bitset_size;
         ext_object_size += sizeof (uint64_t) * (bitset_size >> ECMA_BUILT_IN_BITSET_SHIFT);
@@ -2178,7 +2178,7 @@ ecma_gc_run (ecma_context_t *context_p) /**< JJS context */
     const jmem_cpointer_t obj_next_cp = obj_iter_p->gc_next_cp;
 
     JJS_ASSERT (obj_prev_p == NULL
-                  || ECMA_GET_NON_NULL_POINTER (ecma_object_t, obj_prev_p->gc_next_cp) == obj_iter_p);
+                  || ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, obj_prev_p->gc_next_cp) == obj_iter_p);
 
     if (obj_iter_p->type_flags_refs >= ECMA_OBJECT_REF_ONE)
     {
@@ -2229,7 +2229,7 @@ ecma_gc_run (ecma_context_t *context_p) /**< JJS context */
       const jmem_cpointer_t obj_next_cp = obj_iter_p->gc_next_cp;
 
       JJS_ASSERT (obj_prev_p == NULL
-                    || ECMA_GET_NON_NULL_POINTER (ecma_object_t, obj_prev_p->gc_next_cp) == obj_iter_p);
+                    || ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, obj_prev_p->gc_next_cp) == obj_iter_p);
 
       if (ecma_gc_is_object_visited (obj_iter_p))
       {

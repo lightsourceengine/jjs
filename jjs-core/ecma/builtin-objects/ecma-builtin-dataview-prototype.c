@@ -99,10 +99,11 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_dataview_prototype_object_getters (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_dataview_prototype_object_getters (ecma_context_t *context_p, /**< JJS context */
+                                                ecma_value_t this_arg, /**< this argument */
                                                 uint16_t builtin_routine_id) /**< built-in wide routine identifier */
 {
-  ecma_dataview_object_t *obj_p = ecma_op_dataview_get_object (this_arg);
+  ecma_dataview_object_t *obj_p = ecma_op_dataview_get_object (context_p, this_arg);
 
   if (JJS_UNLIKELY (obj_p == NULL))
   {
@@ -116,25 +117,25 @@ ecma_builtin_dataview_prototype_object_getters (ecma_value_t this_arg, /**< this
       ecma_object_t *buffer_p = obj_p->buffer_p;
       ecma_ref_object (buffer_p);
 
-      return ecma_make_object_value (buffer_p);
+      return ecma_make_object_value (context_p, buffer_p);
     }
     case ECMA_DATAVIEW_PROTOTYPE_BYTE_LENGTH_GETTER:
     {
-      if (ecma_arraybuffer_is_detached (obj_p->buffer_p))
+      if (ecma_arraybuffer_is_detached (context_p, obj_p->buffer_p))
       {
-        return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+        return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
       }
-      return ecma_make_uint32_value (obj_p->header.u.cls.u3.length);
+      return ecma_make_uint32_value (context_p, obj_p->header.u.cls.u3.length);
     }
     default:
     {
       JJS_ASSERT (builtin_routine_id == ECMA_DATAVIEW_PROTOTYPE_BYTE_OFFSET_GETTER);
 
-      if (ecma_arraybuffer_is_detached (obj_p->buffer_p))
+      if (ecma_arraybuffer_is_detached (context_p, obj_p->buffer_p))
       {
-        return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+        return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
       }
-      return ecma_make_uint32_value (obj_p->byte_offset);
+      return ecma_make_uint32_value (context_p, obj_p->byte_offset);
     }
   }
 } /* ecma_builtin_dataview_prototype_object_getters */
@@ -146,7 +147,8 @@ ecma_builtin_dataview_prototype_object_getters (ecma_value_t this_arg, /**< this
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_dataview_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_dataview_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                  uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                                   ecma_value_t this_arg, /**< 'this' argument value */
                                                   const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                                           *   passed to routine */
@@ -159,7 +161,7 @@ ecma_builtin_dataview_prototype_dispatch_routine (uint8_t builtin_routine_id, /*
     case ECMA_DATAVIEW_PROTOTYPE_BYTE_LENGTH_GETTER:
     case ECMA_DATAVIEW_PROTOTYPE_BYTE_OFFSET_GETTER:
     {
-      return ecma_builtin_dataview_prototype_object_getters (this_arg, builtin_routine_id);
+      return ecma_builtin_dataview_prototype_object_getters (context_p, this_arg, builtin_routine_id);
     }
     case ECMA_DATAVIEW_PROTOTYPE_GET_FLOAT32:
 #if JJS_NUMBER_TYPE_FLOAT64
@@ -176,7 +178,8 @@ ecma_builtin_dataview_prototype_dispatch_routine (uint8_t builtin_routine_id, /*
     {
       ecma_typedarray_type_t id = (ecma_typedarray_type_t) (builtin_routine_id - ECMA_DATAVIEW_PROTOTYPE_GET_INT8);
 
-      return ecma_op_dataview_get_set_view_value (this_arg,
+      return ecma_op_dataview_get_set_view_value (context_p,
+                                                  this_arg,
                                                   arguments_list_p[0],
                                                   arguments_list_p[1],
                                                   ECMA_VALUE_EMPTY,
@@ -197,7 +200,8 @@ ecma_builtin_dataview_prototype_dispatch_routine (uint8_t builtin_routine_id, /*
     {
       ecma_typedarray_type_t id = (ecma_typedarray_type_t) (builtin_routine_id - ECMA_DATAVIEW_PROTOTYPE_SET_INT8);
 
-      return ecma_op_dataview_get_set_view_value (this_arg,
+      return ecma_op_dataview_get_set_view_value (context_p,
+                                                  this_arg,
                                                   arguments_list_p[0],
                                                   arguments_list_p[2],
                                                   arguments_list_p[1],
@@ -208,7 +212,8 @@ ecma_builtin_dataview_prototype_dispatch_routine (uint8_t builtin_routine_id, /*
     {
       ecma_typedarray_type_t id = (ecma_typedarray_type_t) (builtin_routine_id - ECMA_DATAVIEW_PROTOTYPE_GET_INT8);
 
-      return ecma_op_dataview_get_set_view_value (this_arg,
+      return ecma_op_dataview_get_set_view_value (context_p,
+                                                  this_arg,
                                                   arguments_list_p[0],
                                                   ECMA_VALUE_FALSE,
                                                   ECMA_VALUE_EMPTY,
@@ -220,7 +225,8 @@ ecma_builtin_dataview_prototype_dispatch_routine (uint8_t builtin_routine_id, /*
                     || builtin_routine_id == ECMA_DATAVIEW_PROTOTYPE_SET_UINT8);
       ecma_typedarray_type_t id = (ecma_typedarray_type_t) (builtin_routine_id - ECMA_DATAVIEW_PROTOTYPE_SET_INT8);
 
-      return ecma_op_dataview_get_set_view_value (this_arg,
+      return ecma_op_dataview_get_set_view_value (context_p,
+                                                  this_arg,
                                                   arguments_list_p[0],
                                                   ECMA_VALUE_FALSE,
                                                   arguments_list_p[1],

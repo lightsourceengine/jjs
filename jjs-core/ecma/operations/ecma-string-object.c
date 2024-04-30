@@ -70,7 +70,7 @@ ecma_op_create_string_object (ecma_context_t *context_p, /**< JJS context */
 #else /* !JJS_BUILTIN_STRING */
   proto_id = ECMA_BUILTIN_ID_OBJECT_PROTOTYPE;
 #endif /* JJS_BUILTIN_STRING */
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (proto_id);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, proto_id);
 
   ecma_object_t *new_target = context_p->current_new_target_p;
   if (new_target)

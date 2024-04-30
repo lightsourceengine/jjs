@@ -514,11 +514,12 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
   size_t lit_buf_sz = 0;
   if (number_of_files == 1)
   {
-    lit_buf_sz = jjs_get_literals_from_snapshot (snapshot_buffers[0],
-                                                   snapshot_buffer_sizes[0],
-                                                   literal_buffer,
-                                                   JJS_BUFFER_SIZE,
-                                                   is_c_format);
+    lit_buf_sz = jjs_get_literals_from_snapshot (context_p,
+                                                 snapshot_buffers[0],
+                                                 snapshot_buffer_sizes[0],
+                                                 literal_buffer,
+                                                 JJS_BUFFER_SIZE,
+                                                 is_c_format);
   }
   else
   {
@@ -541,11 +542,12 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
 
     printf ("Successfully merged the input snapshots (%zu bytes).\n", merged_snapshot_size);
 
-    lit_buf_sz = jjs_get_literals_from_snapshot (output_buffer,
-                                                   merged_snapshot_size,
-                                                   literal_buffer,
-                                                   JJS_BUFFER_SIZE,
-                                                   is_c_format);
+    lit_buf_sz = jjs_get_literals_from_snapshot (context_p,
+                                                 output_buffer,
+                                                 merged_snapshot_size,
+                                                 literal_buffer,
+                                                 JJS_BUFFER_SIZE,
+                                                 is_c_format);
   }
 
   if (lit_buf_sz == 0)

@@ -111,38 +111,42 @@ typedef struct
 
 /* ecma-builtins.c */
 
-ecma_global_object_t *ecma_builtin_create_global_object (void);
+ecma_global_object_t *ecma_builtin_create_global_object (ecma_context_t *context_p);
 
-ecma_value_t ecma_builtin_dispatch_call (ecma_object_t *obj_p,
+ecma_value_t ecma_builtin_dispatch_call (ecma_context_t *context_p,
+                                         ecma_object_t *obj_p,
                                          ecma_value_t this_arg_value,
                                          const ecma_value_t *arguments_list_p,
                                          uint32_t arguments_list_len);
-ecma_value_t ecma_builtin_dispatch_construct (ecma_object_t *obj_p,
+ecma_value_t ecma_builtin_dispatch_construct (ecma_context_t *context_p,
+                                              ecma_object_t *obj_p,
                                               const ecma_value_t *arguments_list_p,
                                               uint32_t arguments_list_len);
-ecma_property_t *ecma_builtin_routine_try_to_instantiate_property (ecma_object_t *object_p,
+ecma_property_t *ecma_builtin_routine_try_to_instantiate_property (ecma_context_t *context_p,
+                                                                   ecma_object_t *object_p,
                                                                    ecma_string_t *property_name_p);
-ecma_property_t *ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, ecma_string_t *property_name_p);
-void ecma_builtin_routine_delete_built_in_property (ecma_object_t *object_p, ecma_string_t *property_name_p);
-void ecma_builtin_delete_built_in_property (ecma_object_t *object_p, ecma_string_t *property_name_p);
-void ecma_builtin_routine_list_lazy_property_names (ecma_object_t *object_p,
+ecma_property_t *ecma_builtin_try_to_instantiate_property (ecma_context_t *context_p,
+                                                           ecma_object_t *object_p,
+                                                           ecma_string_t *property_name_p);
+void ecma_builtin_routine_delete_built_in_property (ecma_context_t *context_p, ecma_object_t *object_p, ecma_string_t *property_name_p);
+void ecma_builtin_delete_built_in_property (ecma_context_t *context_p, ecma_object_t *object_p, ecma_string_t *property_name_p);
+void ecma_builtin_routine_list_lazy_property_names (ecma_context_t *context_p,
+                                                    ecma_object_t *object_p,
                                                     ecma_collection_t *prop_names_p,
                                                     ecma_property_counter_t *prop_counter_p,
                                                     jjs_property_filter_t filter);
-void ecma_builtin_list_lazy_property_names (ecma_object_t *object_p,
+void ecma_builtin_list_lazy_property_names (ecma_context_t *context_p,
+                                            ecma_object_t *object_p,
                                             ecma_collection_t *prop_names_p,
                                             ecma_property_counter_t *prop_counter_p,
                                             jjs_property_filter_t filter);
-bool ecma_builtin_is_global (ecma_object_t *object_p);
-ecma_object_t *ecma_builtin_get (ecma_builtin_id_t builtin_id);
+bool ecma_builtin_is_global (ecma_context_t *context_p, ecma_object_t *object_p);
+ecma_object_t *ecma_builtin_get (ecma_context_t *context_p, ecma_builtin_id_t builtin_id);
 ecma_object_t *ecma_builtin_get_global (ecma_context_t *context_p);
-bool ecma_builtin_function_is_routine (ecma_object_t *func_obj_p);
+bool ecma_builtin_function_is_routine (ecma_context_t *context_p, ecma_object_t *func_obj_p);
 
 #if JJS_BUILTIN_REALMS
-ecma_object_t *ecma_builtin_get_from_realm (ecma_global_object_t *global_object_p, ecma_builtin_id_t builtin_id);
+ecma_object_t *ecma_builtin_get_from_realm (ecma_context_t *context_p, ecma_global_object_t *global_object_p, ecma_builtin_id_t builtin_id);
 #endif /* JJS_BUILTIN_REALMS */
-
-ecma_value_t ecma_builtin_global_encode_uri (ecma_value_t uri);
-ecma_value_t ecma_builtin_global_decode_uri (ecma_value_t uri);
 
 #endif /* !ECMA_BUILTINS_H */

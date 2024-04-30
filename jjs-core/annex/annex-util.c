@@ -121,13 +121,14 @@ annex_util_define_ro_value (jjs_context_t* context_p,
  * @param value property value
  */
 void
-ecma_set_m (ecma_value_t object, lit_magic_string_id_t name_id, ecma_value_t value)
+ecma_set_m (ecma_context_t* context_p, ecma_value_t object, lit_magic_string_id_t name_id, ecma_value_t value)
 {
-  ecma_value_t result = ecma_op_object_put (ecma_get_object_from_value (object),
+  ecma_value_t result = ecma_op_object_put (context_p,
+                                            ecma_get_object_from_value (context_p, object),
                                             ecma_get_magic_string (name_id),
                                             value,
                                             false);
-  ecma_free_value (result);
+  ecma_free_value (context_p, result);
 } /* ecma_set_m */
 
 /**
@@ -138,15 +139,19 @@ ecma_set_m (ecma_value_t object, lit_magic_string_id_t name_id, ecma_value_t val
  * @param value property value
  */
 void
-ecma_set_v (ecma_value_t object, ecma_value_t key, ecma_value_t value)
+ecma_set_v (ecma_value_t object, ecma_context_t* context_p, ecma_value_t key, ecma_value_t value)
 {
   JJS_ASSERT (ecma_is_value_string (key));
 
   if (ecma_is_value_string (key))
   {
     ecma_value_t result =
-      ecma_op_object_put (ecma_get_object_from_value (object), ecma_get_prop_name_from_value (key), value, false);
-    ecma_free_value (result);
+      ecma_op_object_put (context_p,
+                          ecma_get_object_from_value (context_p, object),
+                          ecma_get_prop_name_from_value (context_p, key),
+                          value,
+                          false);
+    ecma_free_value (context_p, result);
   }
 } /* ecma_set_v */
 
@@ -158,10 +163,10 @@ ecma_set_v (ecma_value_t object, ecma_value_t key, ecma_value_t value)
  * @param value value to set
  */
 void
-ecma_set_index_v (ecma_value_t object, ecma_length_t index, ecma_value_t value)
+ecma_set_index_v (ecma_context_t* context_p, ecma_value_t object, ecma_length_t index, ecma_value_t value)
 {
   // note: index is converted to string and then converted back to index. need a more efficient set index
-  ecma_free_value (ecma_op_object_put_by_index (ecma_get_object_from_value (object), index, value, false));
+  ecma_free_value (context_p, ecma_op_object_put_by_index (context_p, ecma_get_object_from_value (context_p, object), index, value, false));
 }
 
 /**
@@ -171,12 +176,12 @@ ecma_set_index_v (ecma_value_t object, ecma_length_t index, ecma_value_t value)
  * @return ecma string value
  */
 ecma_value_t
-ecma_string_ascii_sz (const char* string_p)
+ecma_string_ascii_sz (ecma_context_t* context_p, const char* string_p)
 {
   const lit_utf8_size_t size = (lit_utf8_size_t)strlen (string_p);
-  ecma_string_t* ecma_string_p = ecma_new_ecma_string_from_ascii ((const lit_utf8_byte_t*)string_p, size);
+  ecma_string_t* ecma_string_p = ecma_new_ecma_string_from_ascii (context_p, (const lit_utf8_byte_t*)string_p, size);
 
-  return ecma_make_string_value (ecma_string_p);
+  return ecma_make_string_value (context_p, ecma_string_p);
 } /* ecma_string_sz */
 
 /**
@@ -187,15 +192,16 @@ ecma_string_ascii_sz (const char* string_p)
  * @return value if found; otherwise, ECMA_VALUE_NOT_FOUND
  */
 ecma_value_t
-ecma_find_own_m (ecma_value_t object, lit_magic_string_id_t key)
+ecma_find_own_m (ecma_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key)
 {
   if (!ecma_is_value_object (object))
   {
     return ECMA_VALUE_NOT_FOUND;
   }
 
-  return ecma_op_object_find_own (object,
-                                  ecma_get_object_from_value (object),
+  return ecma_op_object_find_own (context_p,
+                                  object,
+                                  ecma_get_object_from_value (context_p, object),
                                   ecma_get_magic_string (key));
 } /* ecma_find_own_m */
 
@@ -207,16 +213,17 @@ ecma_find_own_m (ecma_value_t object, lit_magic_string_id_t key)
  * @return value if found; otherwise, ECMA_VALUE_NOT_FOUND
  */
 ecma_value_t
-ecma_find_own_v (ecma_value_t object, ecma_value_t key)
+ecma_find_own_v (ecma_context_t* context_p, ecma_value_t object, ecma_value_t key)
 {
   if (!ecma_is_value_object (object) || !ecma_is_value_string (key))
   {
     return ECMA_VALUE_NOT_FOUND;
   }
 
-  return ecma_op_object_find_own (object,
-                                  ecma_get_object_from_value (object),
-                                  ecma_get_string_from_value (key));
+  return ecma_op_object_find_own (context_p,
+                                  object,
+                                  ecma_get_object_from_value (context_p, object),
+                                  ecma_get_string_from_value (context_p, key));
 } /* ecma_find_own_v */
 
 /**
@@ -227,11 +234,11 @@ ecma_find_own_v (ecma_value_t object, ecma_value_t key)
  * @return true if key exists, false otherwise
  */
 bool
-ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key)
+ecma_has_own_m (ecma_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key)
 {
-  ecma_value_t value = ecma_find_own_m (object, key);
+  ecma_value_t value = ecma_find_own_m (context_p, object, key);
 
-  ecma_free_value (value);
+  ecma_free_value (context_p, value);
 
   return ecma_is_value_found (value);
 } /* ecma_has_own_m */
@@ -244,11 +251,11 @@ ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key)
  * @return true if key exists, false otherwise
  */
 bool
-ecma_has_own_v (ecma_value_t object, ecma_value_t key)
+ecma_has_own_v (ecma_context_t* context_p, ecma_value_t object, ecma_value_t key)
 {
-  ecma_value_t value = ecma_find_own_v (object, key);
+  ecma_value_t value = ecma_find_own_v (context_p, object, key);
 
-  ecma_free_value (value);
+  ecma_free_value (context_p, value);
 
   return ecma_is_value_found (value);
 } /* ecma_has_own_v */

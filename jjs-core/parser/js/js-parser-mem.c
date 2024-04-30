@@ -76,7 +76,7 @@ parser_malloc_local (parser_context_t *parser_context_p, /**< context */
   result = jmem_heap_alloc_block (context_p, size);
   if (result == 0)
   {
-    parser_raise_error (context_p, PARSER_ERR_OUT_OF_MEMORY);
+    parser_raise_error (parser_context_p, PARSER_ERR_OUT_OF_MEMORY);
   }
   return result;
 } /* parser_malloc_local */

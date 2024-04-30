@@ -913,7 +913,7 @@ ecma_op_container_create_iterator (ecma_context_t *context_p, /**< JJS context *
                                    ecma_object_class_type_t iterator_type, /**< iterator type */
                                    ecma_iterator_kind_t kind) /**< iterator kind */
 {
-  return ecma_op_create_iterator_object (context_p, this_arg, ecma_builtin_get (proto_id), iterator_type, kind);
+  return ecma_op_create_iterator_object (context_p, this_arg, ecma_builtin_get (context_p, proto_id), iterator_type, kind);
 } /* ecma_op_container_create_iterator */
 
 /**

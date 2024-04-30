@@ -50,7 +50,8 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_boolean_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_boolean_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                    const ecma_value_t *arguments_list_p, /**< arguments list */
                                     uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
@@ -66,7 +67,7 @@ ecma_builtin_boolean_dispatch_call (const ecma_value_t *arguments_list_p, /**< a
     arg_value = arguments_list_p[0];
   }
 
-  return ecma_make_boolean_value (ecma_op_to_boolean (arg_value));
+  return ecma_make_boolean_value (ecma_op_to_boolean (context_p, arg_value));
 } /* ecma_builtin_boolean_dispatch_call */
 
 /**
@@ -75,18 +76,19 @@ ecma_builtin_boolean_dispatch_call (const ecma_value_t *arguments_list_p, /**< a
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_boolean_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_boolean_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                         const ecma_value_t *arguments_list_p, /**< arguments list */
                                          uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
   if (arguments_list_len == 0)
   {
-    return ecma_op_create_boolean_object (ECMA_VALUE_FALSE);
+    return ecma_op_create_boolean_object (context_p, ECMA_VALUE_FALSE);
   }
   else
   {
-    return ecma_op_create_boolean_object (arguments_list_p[0]);
+    return ecma_op_create_boolean_object (context_p, arguments_list_p[0]);
   }
 } /* ecma_builtin_boolean_dispatch_construct */
 

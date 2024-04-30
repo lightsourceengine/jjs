@@ -48,6 +48,7 @@ typedef struct
   int groups_count; /**< number of groups */
   uint16_t flags; /**< RegExp flags */
   re_token_t token; /**< current token */
+  ecma_context_t *context_p; /**< JJS context */
 } re_compiler_ctx_t;
 
 /**

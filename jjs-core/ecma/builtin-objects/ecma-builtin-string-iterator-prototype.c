@@ -61,21 +61,22 @@ enum
  *         error - otherwise
  */
 static ecma_value_t
-ecma_builtin_string_iterator_prototype_object_next (ecma_value_t this_val) /**< this argument */
+ecma_builtin_string_iterator_prototype_object_next (ecma_context_t *context_p, /**< JJS context */
+                                                    ecma_value_t this_val) /**< this argument */
 {
   /* 1 - 2. */
   if (!ecma_is_value_object (this_val))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (this_val);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, this_val);
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
 
   /* 3. */
   if (!ecma_object_class_is (obj_p, ECMA_OBJECT_CLASS_STRING_ITERATOR))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_ITERATOR);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_ITERATOR);
   }
 
   ecma_value_t iterated_value = ext_obj_p->u.cls.u3.iterated_value;
@@ -83,12 +84,12 @@ ecma_builtin_string_iterator_prototype_object_next (ecma_value_t this_val) /**< 
   /* 4 - 5 */
   if (ecma_is_value_empty (iterated_value))
   {
-    return ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
+    return ecma_create_iter_result_object (context_p, ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
   }
 
   JJS_ASSERT (ecma_is_value_string (iterated_value));
 
-  ecma_string_t *string_p = ecma_get_string_from_value (iterated_value);
+  ecma_string_t *string_p = ecma_get_string_from_value (context_p, iterated_value);
 
   /* 6. */
   lit_utf8_size_t position = ext_obj_p->u.cls.u2.iterator_index;
@@ -98,25 +99,25 @@ ecma_builtin_string_iterator_prototype_object_next (ecma_value_t this_val) /**< 
     /* After the ECMA_ITERATOR_INDEX_LIMIT limit is reached the [[%Iterator%NextIndex]]
        property is stored as an internal property */
     ecma_string_t *prop_name_p = ecma_get_magic_string (LIT_INTERNAL_MAGIC_STRING_ITERATOR_NEXT_INDEX);
-    ecma_value_t position_value = ecma_op_object_get (obj_p, prop_name_p);
+    ecma_value_t position_value = ecma_op_object_get (context_p, obj_p, prop_name_p);
 
-    position = (lit_utf8_size_t) (ecma_get_number_from_value (position_value));
-    ecma_free_value (position_value);
+    position = (lit_utf8_size_t) (ecma_get_number_from_value (context_p, position_value));
+    ecma_free_value (context_p, position_value);
   }
 
   /* 7. */
-  lit_utf8_size_t len = ecma_string_get_length (string_p);
+  lit_utf8_size_t len = ecma_string_get_length (context_p, string_p);
 
   /* 8. */
   if (position >= len)
   {
-    ecma_deref_ecma_string (string_p);
+    ecma_deref_ecma_string (context_p, string_p);
     ext_obj_p->u.cls.u3.iterated_value = ECMA_VALUE_EMPTY;
-    return ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
+    return ecma_create_iter_result_object (context_p, ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
   }
 
   /* 9. */
-  ecma_char_t first = ecma_string_get_char_at_pos (string_p, position);
+  ecma_char_t first = ecma_string_get_char_at_pos (context_p, string_p, position);
 
   ecma_string_t *result_str_p;
   lit_utf8_size_t result_size = 1;
@@ -124,23 +125,23 @@ ecma_builtin_string_iterator_prototype_object_next (ecma_value_t this_val) /**< 
   /* 10. */
   if (first < LIT_UTF16_HIGH_SURROGATE_MIN || first > LIT_UTF16_HIGH_SURROGATE_MAX || (position + 1 == len))
   {
-    result_str_p = ecma_new_ecma_string_from_code_unit (first);
+    result_str_p = ecma_new_ecma_string_from_code_unit (context_p, first);
   }
   /* 11. */
   else
   {
     /* 11.a */
-    ecma_char_t second = ecma_string_get_char_at_pos (string_p, position + 1);
+    ecma_char_t second = ecma_string_get_char_at_pos (context_p, string_p, position + 1);
 
     /* 11.b */
     if (second < LIT_UTF16_LOW_SURROGATE_MIN || second > LIT_UTF16_LOW_SURROGATE_MAX)
     {
-      result_str_p = ecma_new_ecma_string_from_code_unit (first);
+      result_str_p = ecma_new_ecma_string_from_code_unit (context_p, first);
     }
     /* 11.c */
     else
     {
-      result_str_p = ecma_new_ecma_string_from_code_units (first, second);
+      result_str_p = ecma_new_ecma_string_from_code_units (context_p, first, second);
       result_size = 2;
     }
   }
@@ -156,14 +157,14 @@ ecma_builtin_string_iterator_prototype_object_next (ecma_value_t this_val) /**< 
 
     ecma_string_t *prop_name_p = ecma_get_magic_string (LIT_INTERNAL_MAGIC_STRING_ITERATOR_NEXT_INDEX);
     ecma_value_t put_result =
-      ecma_op_object_put (obj_p, prop_name_p, ecma_make_length_value (position + result_size), true);
+      ecma_op_object_put (context_p, obj_p, prop_name_p, ecma_make_length_value (context_p, position + result_size), true);
 
     JJS_ASSERT (ecma_is_value_true (put_result));
   }
 
   /* 14. */
-  ecma_value_t result = ecma_create_iter_result_object (ecma_make_string_value (result_str_p), ECMA_VALUE_FALSE);
-  ecma_deref_ecma_string (result_str_p);
+  ecma_value_t result = ecma_create_iter_result_object (context_p, ecma_make_string_value (context_p, result_str_p), ECMA_VALUE_FALSE);
+  ecma_deref_ecma_string (context_p, result_str_p);
 
   return result;
 } /* ecma_builtin_string_iterator_prototype_object_next */
@@ -175,7 +176,8 @@ ecma_builtin_string_iterator_prototype_object_next (ecma_value_t this_val) /**< 
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_string_iterator_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide
+ecma_builtin_string_iterator_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                         uint8_t builtin_routine_id, /**< built-in wide
                                                                                       *   routine identifier */
                                                          ecma_value_t this_arg, /**< 'this' argument value */
                                                          const ecma_value_t arguments_list_p[], /**<
@@ -189,7 +191,7 @@ ecma_builtin_string_iterator_prototype_dispatch_routine (uint8_t builtin_routine
   {
     case ECMA_BUILTIN_STRING_ITERATOR_PROTOTYPE_OBJECT_NEXT:
     {
-      return ecma_builtin_string_iterator_prototype_object_next (this_arg);
+      return ecma_builtin_string_iterator_prototype_object_next (context_p, this_arg);
     }
     default:
     {

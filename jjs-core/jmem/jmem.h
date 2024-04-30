@@ -174,18 +174,17 @@ typedef struct
   size_t peak_property_bytes; /**< peak allocated memory for properties */
 } jmem_heap_stats_t;
 
-void jmem_stats_allocate_byte_code_bytes (size_t property_size);
-void jmem_stats_free_byte_code_bytes (size_t property_size);
-void jmem_stats_allocate_string_bytes (size_t string_size);
-void jmem_stats_free_string_bytes (size_t string_size);
-void jmem_stats_allocate_object_bytes (size_t object_size);
-void jmem_stats_free_object_bytes (size_t string_size);
-void jmem_stats_allocate_property_bytes (size_t property_size);
-void jmem_stats_free_property_bytes (size_t property_size);
+void jmem_stats_allocate_byte_code_bytes (jjs_context_t *context_p, size_t property_size);
+void jmem_stats_free_byte_code_bytes (jjs_context_t *context_p, size_t property_size);
+void jmem_stats_allocate_string_bytes (jjs_context_t *context_p, size_t string_size);
+void jmem_stats_free_string_bytes (jjs_context_t *context_p, size_t string_size);
+void jmem_stats_allocate_object_bytes (jjs_context_t *context_p, size_t object_size);
+void jmem_stats_free_object_bytes (jjs_context_t *context_p, size_t string_size);
+void jmem_stats_allocate_property_bytes (jjs_context_t *context_p, size_t property_size);
+void jmem_stats_free_property_bytes (jjs_context_t *context_p, size_t property_size);
 
-void jmem_heap_get_stats (jmem_heap_stats_t *);
-void jmem_heap_stats_reset_peak (void);
-void jmem_heap_stats_print (void);
+void jmem_heap_get_stats (jjs_context_t *context_p, jmem_heap_stats_t *);
+void jmem_heap_stats_print (jjs_context_t *context_p);
 #endif /* JJS_MEM_STATS */
 
 jmem_cpointer_t JJS_ATTR_PURE jmem_compress_pointer (jjs_context_t *context_p, const void *pointer_p);

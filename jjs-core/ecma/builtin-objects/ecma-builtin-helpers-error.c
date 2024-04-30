@@ -38,7 +38,8 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_helper_error_dispatch_call (jjs_error_t error_type, /**< native error type */
+ecma_builtin_helper_error_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                         jjs_error_t error_type, /**< native error type */
                                          const ecma_value_t *arguments_list_p, /**< arguments list */
                                          uint32_t arguments_list_len) /**< number of arguments */
 {
@@ -46,7 +47,7 @@ ecma_builtin_helper_error_dispatch_call (jjs_error_t error_type, /**< native err
 
   if (arguments_list_len != 0 && !ecma_is_value_undefined (arguments_list_p[0]))
   {
-    ecma_string_t *message_string_p = ecma_op_to_string (arguments_list_p[0]);
+    ecma_string_t *message_string_p = ecma_op_to_string (context_p, arguments_list_p[0]);
 
     if (JJS_UNLIKELY (message_string_p == NULL))
     {
@@ -60,15 +61,15 @@ ecma_builtin_helper_error_dispatch_call (jjs_error_t error_type, /**< native err
       options_val = arguments_list_p[1];
     }
 
-    ecma_object_t *new_error_object_p = ecma_new_standard_error_with_options (error_type, message_string_p, options_val);
+    ecma_object_t *new_error_object_p = ecma_new_standard_error_with_options (context_p, error_type, message_string_p, options_val);
 
-    ecma_deref_ecma_string (message_string_p);
-    return ecma_make_object_value (new_error_object_p);
+    ecma_deref_ecma_string (context_p, message_string_p);
+    return ecma_make_object_value (context_p, new_error_object_p);
   }
 
-  ecma_object_t *new_error_object_p = ecma_new_standard_error (error_type, NULL);
+  ecma_object_t *new_error_object_p = ecma_new_standard_error (context_p, error_type, NULL);
 
-  return ecma_make_object_value (new_error_object_p);
+  return ecma_make_object_value (context_p, new_error_object_p);
 } /* ecma_builtin_helper_error_dispatch_call */
 
 /**

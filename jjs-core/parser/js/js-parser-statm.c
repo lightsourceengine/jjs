@@ -652,6 +652,7 @@ parser_parse_function_statement (parser_context_t *parser_context_p) /**< parser
   }
 
   uint16_t function_name_index = parser_context_p->lit_object.index;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
 #if JJS_MODULE_SYSTEM
   parser_module_append_export_name (parser_context_p);
@@ -676,8 +677,6 @@ parser_parse_function_statement (parser_context_t *parser_context_p) /**< parser
   }
 
 #if JJS_DEBUGGER
-  ecma_context_t *context_p = parser_context_p->context_p;
-
   if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
     lexer_literal_t *name_p = parser_context_p->lit_object.literal_p;

@@ -79,7 +79,7 @@ extern inline ecma_object_t *JJS_ATTR_ALWAYS_INLINE
 ecma_alloc_object (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
-  jmem_stats_allocate_object_bytes (sizeof (ecma_object_t));
+  jmem_stats_allocate_object_bytes (context_p, sizeof (ecma_object_t));
 #endif /* JJS_MEM_STATS */
 
   return (ecma_object_t *) jmem_pools_alloc (context_p, sizeof (ecma_object_t));
@@ -93,7 +93,7 @@ ecma_dealloc_object (ecma_context_t *context_p, /**< JJS context */
                      ecma_object_t *object_p) /**< object to be freed */
 {
 #if JJS_MEM_STATS
-  jmem_stats_free_object_bytes (sizeof (ecma_object_t));
+  jmem_stats_free_object_bytes (context_p, sizeof (ecma_object_t));
 #endif /* JJS_MEM_STATS */
 
   jmem_pools_free (context_p, object_p, sizeof (ecma_object_t));
@@ -109,7 +109,7 @@ ecma_alloc_extended_object (ecma_context_t *context_p, /**< JJS context */
                             size_t size) /**< size of object */
 {
 #if JJS_MEM_STATS
-  jmem_stats_allocate_object_bytes (size);
+  jmem_stats_allocate_object_bytes (context_p, size);
 #endif /* JJS_MEM_STATS */
 
   return jmem_heap_alloc_block (context_p, size);
@@ -124,7 +124,7 @@ ecma_dealloc_extended_object (ecma_context_t *context_p, /**< JJS context */
                               size_t size) /**< size of object */
 {
 #if JJS_MEM_STATS
-  jmem_stats_free_object_bytes (size);
+  jmem_stats_free_object_bytes (context_p, size);
 #endif /* JJS_MEM_STATS */
 
   jmem_heap_free_block (context_p, object_p, size);
@@ -139,7 +139,7 @@ extern inline ecma_string_t *JJS_ATTR_ALWAYS_INLINE
 ecma_alloc_string (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (sizeof (ecma_string_t));
+  jmem_stats_allocate_string_bytes (context_p, sizeof (ecma_string_t));
 #endif /* JJS_MEM_STATS */
 
   return (ecma_string_t *) jmem_pools_alloc (context_p, sizeof (ecma_string_t));
@@ -153,7 +153,7 @@ ecma_dealloc_string (ecma_context_t *context_p, /**< JJS context */
                      ecma_string_t *string_p) /**< string to be freed */
 {
 #if JJS_MEM_STATS
-  jmem_stats_free_string_bytes (sizeof (ecma_string_t));
+  jmem_stats_free_string_bytes (context_p, sizeof (ecma_string_t));
 #endif /* JJS_MEM_STATS */
 
   jmem_pools_free (context_p, string_p, sizeof (ecma_string_t));
@@ -168,7 +168,7 @@ extern inline ecma_extended_string_t *JJS_ATTR_ALWAYS_INLINE
 ecma_alloc_extended_string (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (sizeof (ecma_extended_string_t));
+  jmem_stats_allocate_string_bytes (context_p, sizeof (ecma_extended_string_t));
 #endif /* JJS_MEM_STATS */
 
   return (ecma_extended_string_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_extended_string_t));
@@ -182,7 +182,7 @@ ecma_dealloc_extended_string (ecma_context_t *context_p, /**< JJS context */
                               ecma_extended_string_t *ext_string_p) /**< extended string to be freed */
 {
 #if JJS_MEM_STATS
-  jmem_stats_free_string_bytes (sizeof (ecma_extended_string_t));
+  jmem_stats_free_string_bytes (context_p, sizeof (ecma_extended_string_t));
 #endif /* JJS_MEM_STATS */
 
   jmem_heap_free_block (context_p, ext_string_p, sizeof (ecma_extended_string_t));
@@ -197,7 +197,7 @@ extern inline ecma_external_string_t *JJS_ATTR_ALWAYS_INLINE
 ecma_alloc_external_string (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (sizeof (ecma_external_string_t));
+  jmem_stats_allocate_string_bytes (context_p, sizeof (ecma_external_string_t));
 #endif /* JJS_MEM_STATS */
 
   return (ecma_external_string_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_external_string_t));
@@ -211,7 +211,7 @@ ecma_dealloc_external_string (ecma_context_t *context_p, /**< JJS context */
                               ecma_external_string_t *ext_string_p) /**< external string to be freed */
 {
 #if JJS_MEM_STATS
-  jmem_stats_free_string_bytes (sizeof (ecma_external_string_t));
+  jmem_stats_free_string_bytes (context_p, sizeof (ecma_external_string_t));
 #endif /* JJS_MEM_STATS */
 
   jmem_heap_free_block (context_p, ext_string_p, sizeof (ecma_external_string_t));
@@ -227,7 +227,7 @@ ecma_alloc_string_buffer (ecma_context_t *context_p, /**< JJS context */
                           size_t size) /**< size of string */
 {
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (size);
+  jmem_stats_allocate_string_bytes (context_p, size);
 #endif /* JJS_MEM_STATS */
 
   return jmem_heap_alloc_block (context_p, size);
@@ -242,7 +242,7 @@ ecma_dealloc_string_buffer (ecma_context_t *context_p, /**< JJS context */
                             size_t size) /**< size of string */
 {
 #if JJS_MEM_STATS
-  jmem_stats_free_string_bytes (size);
+  jmem_stats_free_string_bytes (context_p, size);
 #endif /* JJS_MEM_STATS */
 
   jmem_heap_free_block (context_p, string_p, size);
@@ -257,7 +257,7 @@ extern inline ecma_property_pair_t *JJS_ATTR_ALWAYS_INLINE
 ecma_alloc_property_pair (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
-  jmem_stats_allocate_property_bytes (sizeof (ecma_property_pair_t));
+  jmem_stats_allocate_property_bytes (context_p, sizeof (ecma_property_pair_t));
 #endif /* JJS_MEM_STATS */
 
   return jmem_heap_alloc_block (context_p, sizeof (ecma_property_pair_t));
@@ -271,7 +271,7 @@ ecma_dealloc_property_pair (ecma_context_t *context_p, /**< JJS context */
                             ecma_property_pair_t *property_pair_p) /**< property pair to be freed */
 {
 #if JJS_MEM_STATS
-  jmem_stats_free_property_bytes (sizeof (ecma_property_pair_t));
+  jmem_stats_free_property_bytes (context_p, sizeof (ecma_property_pair_t));
 #endif /* JJS_MEM_STATS */
 
   jmem_heap_free_block (context_p, property_pair_p, sizeof (ecma_property_pair_t));

@@ -172,7 +172,7 @@ typedef enum
 /**
  * Convert an internal property value to pointer. Result can be NULL.
  */
-#define ECMA_GET_INTERNAL_VALUE_ANY_POINTER(type, field)    ECMA_GET_POINTER (type, field)
+#define ECMA_GET_INTERNAL_VALUE_ANY_POINTER(ctx, type, field)    ECMA_GET_POINTER (ctx, type, field)
 
 /**
  * Checks whether an internal property is NULL.

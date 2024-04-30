@@ -60,10 +60,11 @@ enum
  * @return the given this value
  */
 static ecma_value_t
-ecma_builtin_async_iterator_prototype_object_async_iterator (ecma_value_t this_val) /**< this argument */
+ecma_builtin_async_iterator_prototype_object_async_iterator (ecma_context_t *context_p, /**< JJS context */
+                                                             ecma_value_t this_val) /**< this argument */
 {
   /* 1. */
-  return ecma_copy_value (this_val);
+  return ecma_copy_value (context_p, this_val);
 } /* ecma_builtin_async_iterator_prototype_object_async_iterator */
 
 /**
@@ -73,7 +74,8 @@ ecma_builtin_async_iterator_prototype_object_async_iterator (ecma_value_t this_v
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_async_iterator_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide
+ecma_builtin_async_iterator_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                        uint8_t builtin_routine_id, /**< built-in wide
                                                                                      *   routine identifier */
                                                         ecma_value_t this_arg, /**< 'this' argument value */
                                                         const ecma_value_t arguments_list_p[], /**<
@@ -87,7 +89,7 @@ ecma_builtin_async_iterator_prototype_dispatch_routine (uint8_t builtin_routine_
   {
     case ECMA_BUILTIN_ASYNC_ITERATOR_PROTOTYPE_OBJECT_ASYNC_ITERATOR:
     {
-      return ecma_builtin_async_iterator_prototype_object_async_iterator (this_arg);
+      return ecma_builtin_async_iterator_prototype_object_async_iterator (context_p, this_arg);
     }
     default:
     {

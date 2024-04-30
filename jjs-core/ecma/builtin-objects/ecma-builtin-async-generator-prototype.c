@@ -84,7 +84,8 @@ JJS_STATIC_ASSERT (ECMA_ASYNC_GENERATOR_ROUTINE_TO_OPERATION (ECMA_ASYNC_GENERAT
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_async_generator_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_async_generator_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                         uint8_t builtin_routine_id, /**< built-in wide routine
                                                                                       *   identifier */
                                                          ecma_value_t this_arg, /**< 'this' argument value */
                                                          const ecma_value_t arguments_list_p[], /**< list of arguments
@@ -99,7 +100,7 @@ ecma_builtin_async_generator_prototype_dispatch_routine (uint8_t builtin_routine
 
   if (ecma_is_value_object (this_arg))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_ASYNC_GENERATOR))
     {
@@ -111,13 +112,13 @@ ecma_builtin_async_generator_prototype_dispatch_routine (uint8_t builtin_routine
   {
     const char *msg_p = ecma_get_error_msg (ECMA_ERR_ARGUMENT_THIS_NOT_ASYNC_GENERATOR);
     lit_utf8_size_t msg_size = ecma_get_error_size (ECMA_ERR_ARGUMENT_THIS_NOT_ASYNC_GENERATOR);
-    ecma_string_t *error_msg_p = ecma_new_ecma_string_from_ascii ((const lit_utf8_byte_t *) msg_p, msg_size);
+    ecma_string_t *error_msg_p = ecma_new_ecma_string_from_ascii (context_p, (const lit_utf8_byte_t *) msg_p, msg_size);
 
-    ecma_object_t *type_error_obj_p = ecma_new_standard_error (JJS_ERROR_TYPE, error_msg_p);
-    ecma_deref_ecma_string (error_msg_p);
+    ecma_object_t *type_error_obj_p = ecma_new_standard_error (context_p, JJS_ERROR_TYPE, error_msg_p);
+    ecma_deref_ecma_string (context_p, error_msg_p);
 
-    ecma_value_t promise = ecma_op_create_promise_object (ECMA_VALUE_EMPTY, ECMA_VALUE_UNDEFINED, NULL);
-    ecma_reject_promise (promise, ecma_make_object_value (type_error_obj_p));
+    ecma_value_t promise = ecma_op_create_promise_object (context_p, ECMA_VALUE_EMPTY, ECMA_VALUE_UNDEFINED, NULL);
+    ecma_reject_promise (context_p, promise, ecma_make_object_value (context_p, type_error_obj_p));
     ecma_deref_object (type_error_obj_p);
 
     return promise;
@@ -125,20 +126,21 @@ ecma_builtin_async_generator_prototype_dispatch_routine (uint8_t builtin_routine
 
   if (executable_object_p->extended_object.u.cls.u2.executable_obj_flags & ECMA_EXECUTABLE_OBJECT_COMPLETED)
   {
-    ecma_value_t promise = ecma_make_object_value (ecma_builtin_get (ECMA_BUILTIN_ID_PROMISE));
+    ecma_value_t promise = ecma_make_object_value (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_PROMISE));
 
     if (JJS_UNLIKELY (builtin_routine_id == ECMA_ASYNC_GENERATOR_PROTOTYPE_ROUTINE_THROW))
     {
-      return ecma_promise_reject_or_resolve (promise, arguments_list_p[0], false);
+      return ecma_promise_reject_or_resolve (context_p, promise, arguments_list_p[0], false);
     }
 
-    ecma_value_t iter_result = ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
-    ecma_value_t result = ecma_promise_reject_or_resolve (promise, iter_result, true);
-    ecma_free_value (iter_result);
+    ecma_value_t iter_result = ecma_create_iter_result_object (context_p, ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
+    ecma_value_t result = ecma_promise_reject_or_resolve (context_p, promise, iter_result, true);
+    ecma_free_value (context_p, iter_result);
     return result;
   }
 
-  return ecma_async_generator_enqueue (executable_object_p,
+  return ecma_async_generator_enqueue (context_p,
+                                       executable_object_p,
                                        ECMA_ASYNC_GENERATOR_ROUTINE_TO_OPERATION (builtin_routine_id),
                                        arguments_list_p[0]);
 } /* ecma_builtin_async_generator_prototype_dispatch_routine */

@@ -80,7 +80,7 @@ void jjs_annex_init (jjs_context_t* context_p)
 #endif /* JJS_ANNEX_PMAP */
 
 #if JJS_ANNEX_COMMONJS
-  context_p->commonjs_args = ecma_string_ascii_sz ("module,exports,require,__filename,__dirname");
+  context_p->commonjs_args = ecma_string_ascii_sz (context_p, "module,exports,require,__filename,__dirname");
 #endif /* JJS_ANNEX_COMMONJS */
 
 #if JJS_MODULE_SYSTEM

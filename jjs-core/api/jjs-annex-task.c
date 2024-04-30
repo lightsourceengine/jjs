@@ -70,7 +70,7 @@ queue_microtask_impl (jjs_context_t* context_p, jjs_value_t callback)
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE));
   }
 
-  ecma_enqueue_microtask_job (callback);
+  ecma_enqueue_microtask_job (context_p, callback);
 
   return ECMA_VALUE_UNDEFINED;
 } /* queue_microtask_impl */

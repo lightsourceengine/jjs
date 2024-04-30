@@ -66,8 +66,8 @@ jjs_annex_module_resolve_t jjs_annex_module_resolve (jjs_context_t* context_p,
   // TODO: validate object returned from resolve callback
 
   return (jjs_annex_module_resolve_t) {
-    .path = ecma_find_own_m (resolve_result, LIT_MAGIC_STRING_PATH),
-    .format = ecma_find_own_m (resolve_result, LIT_MAGIC_STRING_FORMAT),
+    .path = ecma_find_own_m (context_p, resolve_result, LIT_MAGIC_STRING_PATH),
+    .format = ecma_find_own_m (context_p, resolve_result, LIT_MAGIC_STRING_FORMAT),
     .result = resolve_result,
   };
 } /* jjs_annex_module_resolve */
@@ -115,7 +115,7 @@ jjs_annex_module_load_t jjs_annex_module_load (jjs_context_t* context_p,
     };
   }
 
-  ecma_value_t final_format = ecma_find_own_m (load_result, LIT_MAGIC_STRING_FORMAT);
+  ecma_value_t final_format = ecma_find_own_m (context_p, load_result, LIT_MAGIC_STRING_FORMAT);
 
   if (!jjs_value_is_string (context_p, final_format))
   {
@@ -132,7 +132,7 @@ jjs_annex_module_load_t jjs_annex_module_load (jjs_context_t* context_p,
   // TODO: validate source ?
 
   return (jjs_annex_module_load_t) {
-    .source = ecma_find_own_m (load_result, LIT_MAGIC_STRING_SOURCE),
+    .source = ecma_find_own_m (context_p, load_result, LIT_MAGIC_STRING_SOURCE),
     .format = final_format,
     .result = load_result,
   };

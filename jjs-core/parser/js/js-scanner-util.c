@@ -526,7 +526,6 @@ scanner_scope_find_lexical_declaration (parser_context_t *parser_context_p, /**<
 
   if (flags & ECMA_PARSE_DIRECT_EVAL)
   {
-    ecma_context_t *context_p = parser_context_p->context_p;
     lex_env_p = context_p->vm_top_context_p->lex_env_p;
 
     while (lex_env_p->type_flags_refs & ECMA_OBJECT_FLAG_BLOCK)

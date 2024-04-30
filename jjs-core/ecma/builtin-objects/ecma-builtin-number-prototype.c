@@ -149,7 +149,8 @@ ecma_builtin_number_prototype_helper_round (lit_utf8_byte_t *digits_p, /**< [in,
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_number_prototype_object_to_string (ecma_number_t this_arg_number, /**< this argument number */
+ecma_builtin_number_prototype_object_to_string (ecma_context_t *context_p, /**< JJS context */
+                                                ecma_number_t this_arg_number, /**< this argument number */
                                                 const ecma_value_t *arguments_list_p, /**< arguments list */
                                                 uint32_t arguments_list_len) /**< number of arguments */
 {
@@ -162,7 +163,7 @@ ecma_builtin_number_prototype_object_to_string (ecma_number_t this_arg_number, /
   {
     ecma_number_t arg_num;
 
-    if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (arguments_list_p[0], &arg_num)))
+    if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (context_p, arguments_list_p[0], &arg_num)))
     {
       return ECMA_VALUE_ERROR;
     }
@@ -171,15 +172,15 @@ ecma_builtin_number_prototype_object_to_string (ecma_number_t this_arg_number, /
 
     if (radix < 2 || radix > 36)
     {
-      return ecma_raise_range_error (ECMA_ERR_RADIX_IS_OUT_OF_RANGE);
+      return ecma_raise_range_error (context_p, ECMA_ERR_RADIX_IS_OUT_OF_RANGE);
     }
   }
 
   if (ecma_number_is_nan (this_arg_number) || ecma_number_is_infinity (this_arg_number)
       || ecma_number_is_zero (this_arg_number) || radix == 10)
   {
-    ecma_string_t *ret_str_p = ecma_new_ecma_string_from_number (this_arg_number);
-    return ecma_make_string_value (ret_str_p);
+    ecma_string_t *ret_str_p = ecma_new_ecma_string_from_number (context_p, this_arg_number);
+    return ecma_make_string_value (context_p, ret_str_p);
   }
 
   uint8_t integer_digits[NUMBER_TO_STRING_MAX_DIGIT_COUNT];
@@ -276,7 +277,7 @@ ecma_builtin_number_prototype_object_to_string (ecma_number_t this_arg_number, /
     (uint32_t) (integer_digits + NUMBER_TO_STRING_MAX_DIGIT_COUNT - integer_cursor_p);
   JJS_ASSERT (integer_digit_count > 0);
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
 
   if (is_number_negative)
   {
@@ -305,7 +306,7 @@ ecma_builtin_number_prototype_object_to_string (ecma_number_t this_arg_number, /
     ecma_stringbuilder_append_raw (&builder, fraction_digits, fraction_digit_count);
   }
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_number_prototype_object_to_string */
 
 /**
@@ -318,7 +319,8 @@ ecma_builtin_number_prototype_object_to_string (ecma_number_t this_arg_number, /
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_number_prototype_object_value_of (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_number_prototype_object_value_of (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_value_t this_arg) /**< this argument */
 {
   if (ecma_is_value_number (this_arg))
   {
@@ -326,7 +328,7 @@ ecma_builtin_number_prototype_object_value_of (ecma_value_t this_arg) /**< this 
   }
   else if (ecma_is_value_object (this_arg))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_NUMBER))
     {
@@ -338,7 +340,7 @@ ecma_builtin_number_prototype_object_value_of (ecma_value_t this_arg) /**< this 
     }
   }
 
-  return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_NUMBER);
+  return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_NUMBER);
 } /* ecma_builtin_number_prototype_object_value_of */
 
 /**
@@ -356,17 +358,18 @@ typedef enum
  * Helper method to convert a number based on the given routine.
  */
 static ecma_value_t
-ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, /**< this argument number */
+ecma_builtin_number_prototype_object_to_number_convert (ecma_context_t *context_p, /**< JJS context */
+                                                        ecma_number_t this_num, /**< this argument number */
                                                         ecma_value_t arg, /**< routine's argument */
                                                         number_routine_mode_t mode) /**< number routine mode */
 {
   if (ecma_is_value_undefined (arg) && mode == NUMBER_ROUTINE_TO_PRECISION)
   {
-    return ecma_builtin_number_prototype_object_to_string (this_num, NULL, 0);
+    return ecma_builtin_number_prototype_object_to_string (context_p, this_num, NULL, 0);
   }
 
   ecma_number_t arg_num;
-  ecma_value_t to_integer = ecma_op_to_integer (arg, &arg_num);
+  ecma_value_t to_integer = ecma_op_to_integer (context_p, arg, &arg_num);
 
   if (ECMA_IS_VALUE_ERROR (to_integer))
   {
@@ -376,7 +379,7 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
   /* Argument boundary check for toFixed method */
   if (mode == NUMBER_ROUTINE_TO_FIXED && (arg_num <= -1 || arg_num >= 101))
   {
-    return ecma_raise_range_error (ECMA_ERR_FRACTION_DIGITS_OUT_OF_RANGE);
+    return ecma_raise_range_error (context_p, ECMA_ERR_FRACTION_DIGITS_OUT_OF_RANGE);
   }
 
   /* Handle NaN separately */
@@ -393,7 +396,7 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
   bool is_zero = ecma_number_is_zero (this_num);
   bool is_negative = ecma_number_is_negative (this_num);
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
 
   if (is_negative)
   {
@@ -430,26 +433,26 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
       ecma_stringbuilder_append_raw (&builder, (const lit_utf8_byte_t *) "e+0", 3);
     }
 
-    return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+    return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
   }
 
   /* Handle infinity separately */
   if (ecma_number_is_infinity (this_num))
   {
     ecma_stringbuilder_append_magic (&builder, LIT_MAGIC_STRING_INFINITY_UL);
-    return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+    return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
   }
 
   /* Argument boundary check for toExponential and toPrecision methods */
   if (mode == NUMBER_ROUTINE_TO_EXPONENTIAL && (arg_num <= -1 || arg_num >= 101))
   {
     ecma_stringbuilder_destroy (&builder);
-    return ecma_raise_range_error (ECMA_ERR_FRACTION_DIGITS_OUT_OF_RANGE);
+    return ecma_raise_range_error (context_p, ECMA_ERR_FRACTION_DIGITS_OUT_OF_RANGE);
   }
   else if (mode == NUMBER_ROUTINE_TO_PRECISION && (arg_num < 1 || arg_num > 100))
   {
     ecma_stringbuilder_destroy (&builder);
-    return ecma_raise_range_error (ECMA_ERR_PRECISION_DIGITS_MUST_BE_BETWEEN_IN_RANGE);
+    return ecma_raise_range_error (context_p, ECMA_ERR_PRECISION_DIGITS_MUST_BE_BETWEEN_IN_RANGE);
   }
 
   num_of_digits = ecma_number_to_decimal (this_num, digits, &exponent);
@@ -469,7 +472,7 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
       this_num *= -1;
     }
 
-    return ecma_builtin_number_prototype_object_to_string (this_num, NULL, 0);
+    return ecma_builtin_number_prototype_object_to_string (context_p, this_num, NULL, 0);
   }
 
   int32_t digits_to_keep = arg_int;
@@ -528,7 +531,7 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
     lit_utf8_size_t exp_size = ecma_uint32_to_utf8_string ((uint32_t) exponent, digits, 3);
     ecma_stringbuilder_append_raw (&builder, digits, exp_size);
 
-    return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+    return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
   }
 
   /* toFixed routine and toPrecision cases where the exponent <= precision and exponent >= -5 */
@@ -549,7 +552,7 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
   if (exponent == 0 && digits_to_keep == 0)
   {
     ecma_stringbuilder_append_char (&builder, *digits);
-    return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+    return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
   }
 
   if (exponent <= 0)
@@ -608,7 +611,7 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
     }
   }
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_number_prototype_object_to_number_convert */
 
 /**
@@ -618,13 +621,14 @@ ecma_builtin_number_prototype_object_to_number_convert (ecma_number_t this_num, 
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_number_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_number_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                                 ecma_value_t this_arg, /**< 'this' argument value */
                                                 const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                                         *   passed to routine */
                                                 uint32_t arguments_number) /**< length of arguments' list */
 {
-  ecma_value_t this_value = ecma_builtin_number_prototype_object_value_of (this_arg);
+  ecma_value_t this_value = ecma_builtin_number_prototype_object_value_of (context_p, this_arg);
 
   if (ECMA_IS_VALUE_ERROR (this_value))
   {
@@ -633,27 +637,28 @@ ecma_builtin_number_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
 
   if (builtin_routine_id == ECMA_NUMBER_PROTOTYPE_VALUE_OF)
   {
-    return ecma_copy_value (this_value);
+    return ecma_copy_value (context_p, this_value);
   }
 
-  ecma_number_t this_arg_number = ecma_get_number_from_value (this_value);
+  ecma_number_t this_arg_number = ecma_get_number_from_value (context_p, this_value);
 
   switch (builtin_routine_id)
   {
     case ECMA_NUMBER_PROTOTYPE_TO_STRING:
     {
-      return ecma_builtin_number_prototype_object_to_string (this_arg_number, arguments_list_p, arguments_number);
+      return ecma_builtin_number_prototype_object_to_string (context_p, this_arg_number, arguments_list_p, arguments_number);
     }
     case ECMA_NUMBER_PROTOTYPE_TO_LOCALE_STRING:
     {
-      return ecma_builtin_number_prototype_object_to_string (this_arg_number, NULL, 0);
+      return ecma_builtin_number_prototype_object_to_string (context_p, this_arg_number, NULL, 0);
     }
     case ECMA_NUMBER_PROTOTYPE_TO_FIXED:
     case ECMA_NUMBER_PROTOTYPE_TO_EXPONENTIAL:
     case ECMA_NUMBER_PROTOTYPE_TO_PRECISION:
     {
       const int option = NUMBER_ROUTINE_TO_FIXED + (builtin_routine_id - ECMA_NUMBER_PROTOTYPE_TO_FIXED);
-      return ecma_builtin_number_prototype_object_to_number_convert (this_arg_number,
+      return ecma_builtin_number_prototype_object_to_number_convert (context_p,
+                                                                     this_arg_number,
                                                                      arguments_list_p[0],
                                                                      (number_routine_mode_t) option);
     }

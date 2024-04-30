@@ -117,7 +117,7 @@ jjs_api_enable (jjs_context_t* context_p)
 #ifndef JJS_NDEBUG
   context_p->status_flags |= ECMA_STATUS_API_ENABLED;
 #else
-  JJS_UNUSED (cotext_p);
+  JJS_UNUSED (context_p);
 #endif /* JJS_NDEBUG */
 } /* jjs_make_api_available */
 
@@ -130,7 +130,7 @@ jjs_api_disable (jjs_context_t* context_p)
 #ifndef JJS_NDEBUG
   context_p->status_flags &= (uint32_t) ~ECMA_STATUS_API_ENABLED;
 #else
-  JJS_UNUSED (cotext_p);
+  JJS_UNUSED (context_p);
 #endif /* JJS_NDEBUG */
 } /* jjs_api_disable */
 
@@ -157,7 +157,7 @@ jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context
   jjs_api_enable (ctx_p);
   jmem_init (ctx_p);
   ecma_init (ctx_p);
-  jjs_api_object_init (ctx_p, ecma_make_object_value (context_p, ecma_builtin_get_global (context_p)));
+  jjs_api_object_init (ctx_p, ecma_make_object_value (ctx_p, ecma_builtin_get_global (ctx_p)));
   jjs_annex_init (ctx_p);
   jjs_annex_init_realm (ctx_p, ctx_p->global_object_p);
 
@@ -314,7 +314,7 @@ jjs_heap_stats (jjs_context_t* context_p, /**< JJS context */
 
   jmem_heap_stats_t jmem_heap_stats;
   memset (&jmem_heap_stats, 0, sizeof (jmem_heap_stats));
-  jmem_heap_get_stats (&jmem_heap_stats);
+  jmem_heap_get_stats (context_p, &jmem_heap_stats);
 
   *out_stats_p = (jjs_heap_stats_t){ .version = 1,
                                        .size = jmem_heap_stats.size,
@@ -2637,7 +2637,7 @@ jjs_realm (jjs_context_t* context_p) /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_REALMS
-  ecma_global_object_t *global_object_p = ecma_builtin_create_global_object ();
+  ecma_global_object_t *global_object_p = ecma_builtin_create_global_object (context_p);
   ecma_value_t global = ecma_make_object_value (context_p, (ecma_object_t *) global_object_p);
 
   jjs_api_object_init (context_p, global);
@@ -5766,7 +5766,7 @@ jjs_set_realm (jjs_context_t* context_p, /**< JJS context */
   {
     ecma_object_t *object_p = ecma_get_object_from_value (context_p, realm_value);
 
-    if (ecma_builtin_is_global (object_p))
+    if (ecma_builtin_is_global (context_p, object_p))
     {
       ecma_global_object_t *previous_global_object_p = context_p->global_object_p;
       context_p->global_object_p = (ecma_global_object_t *) object_p;
@@ -5798,7 +5798,7 @@ jjs_realm_this (jjs_context_t* context_p, /**< JJS context */
   {
     ecma_object_t *object_p = ecma_get_object_from_value (context_p, realm);
 
-    if (ecma_builtin_is_global (object_p))
+    if (ecma_builtin_is_global (context_p, object_p))
     {
       ecma_global_object_t *global_object_p = (ecma_global_object_t *) object_p;
 
@@ -5846,7 +5846,7 @@ jjs_realm_set_this (jjs_context_t* context_p, /**< JJS context */
   {
     ecma_object_t *object_p = ecma_get_object_from_value (context_p, realm);
 
-    if (ecma_builtin_is_global (object_p))
+    if (ecma_builtin_is_global (context_p, object_p))
     {
       ecma_global_object_t *global_object_p = (ecma_global_object_t *) object_p;
       global_object_p->this_binding = this_value;
@@ -6414,7 +6414,7 @@ jjs_dataview (jjs_context_t* context_p, /**< JJS context */
   ecma_object_t *old_new_target_p = context_p->current_new_target_p;
   if (old_new_target_p == NULL)
   {
-    context_p->current_new_target_p = ecma_builtin_get (ECMA_BUILTIN_ID_DATAVIEW);
+    context_p->current_new_target_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_DATAVIEW);
   }
 
   ecma_value_t dataview_value = ecma_op_dataview_create (context_p, arguments_p, 3);
@@ -6619,7 +6619,7 @@ jjs_typedarray (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_FOR_TYPEDARRAY));
   }
 
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, prototype_id);
 
   ecma_value_t array_value =
     ecma_typedarray_create_object_with_length (context_p, length, NULL, prototype_obj_p, element_size_shift, id);
@@ -6671,7 +6671,7 @@ jjs_typedarray_with_buffer_span (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_NOT_ARRAY_BUFFER));
   }
 
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, prototype_id);
   ecma_value_t arguments_p[3] = { arraybuffer, ecma_make_uint32_value (context_p, byte_offset), ecma_make_uint32_value (context_p, length) };
 
   ecma_value_t array_value = ecma_op_create_typedarray (context_p, arguments_p, 3, prototype_obj_p, element_size_shift, id);
@@ -6837,7 +6837,7 @@ jjs_json_parse (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_JSON
-  ecma_value_t ret_value = ecma_builtin_json_parse_buffer (string_p, string_size);
+  ecma_value_t ret_value = ecma_builtin_json_parse_buffer (context_p, string_p, string_size);
 
   if (ecma_is_value_undefined (ret_value))
   {
@@ -6923,7 +6923,7 @@ jjs_json_stringify (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  ecma_value_t ret_value = ecma_builtin_json_stringify_no_opts (input_value);
+  ecma_value_t ret_value = ecma_builtin_json_stringify_no_opts (context_p, input_value);
 
   if (ecma_is_value_undefined (ret_value))
   {
@@ -7007,7 +7007,7 @@ jjs_container (jjs_context_t* context_p, /**< JJS context */
 
   if (old_new_target_p == NULL)
   {
-    context_p->current_new_target_p = ecma_builtin_get (ctor_id);
+    context_p->current_new_target_p = ecma_builtin_get (context_p, ctor_id);
   }
 
   ecma_value_t container_value = ecma_op_container_create (context_p, arguments_list_p, arguments_list_len, lit_id, proto_id);

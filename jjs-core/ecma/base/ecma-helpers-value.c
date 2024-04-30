@@ -1054,34 +1054,6 @@ ecma_update_float_number (ecma_context_t *context_p, /**< JJS context */
 } /* ecma_update_float_number */
 
 /**
- * Assign a float number to an ecma-value
- *
- * Note:
- *      value previously stored in the property is freed
- */
-static void
-ecma_value_assign_float_number (ecma_context_t *context_p, /**< JJS context */
-                                ecma_value_t *value_p, /**< [in, out] ecma value */
-                                ecma_number_t ecma_number) /**< number to assign */
-{
-  if (ecma_is_value_float_number (*value_p))
-  {
-    ecma_number_t *num_dst_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, *value_p);
-
-    *num_dst_p = ecma_number;
-    return;
-  }
-
-  if (ecma_get_value_type_field (*value_p) != ECMA_TYPE_DIRECT
-      && ecma_get_value_type_field (*value_p) != ECMA_TYPE_OBJECT)
-  {
-    ecma_free_value (context_p, *value_p);
-  }
-
-  *value_p = ecma_create_float_number (context_p, ecma_number);
-} /* ecma_value_assign_float_number */
-
-/**
  * Free the ecma value
  */
 void

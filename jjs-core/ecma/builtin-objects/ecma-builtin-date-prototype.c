@@ -126,10 +126,11 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_date_prototype_to_json (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_date_prototype_to_json (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_value_t this_arg) /**< this argument */
 {
   /* 1. */
-  ecma_value_t obj = ecma_op_to_object (this_arg);
+  ecma_value_t obj = ecma_op_to_object (context_p, this_arg);
 
   if (ECMA_IS_VALUE_ERROR (obj))
   {
@@ -137,36 +138,36 @@ ecma_builtin_date_prototype_to_json (ecma_value_t this_arg) /**< this argument *
   }
 
   /* 2. */
-  ecma_value_t tv = ecma_op_to_primitive (obj, ECMA_PREFERRED_TYPE_NUMBER);
+  ecma_value_t tv = ecma_op_to_primitive (context_p, obj, ECMA_PREFERRED_TYPE_NUMBER);
 
   if (ECMA_IS_VALUE_ERROR (tv))
   {
-    ecma_free_value (obj);
+    ecma_free_value (context_p, obj);
     return tv;
   }
 
   /* 3. */
   if (ecma_is_value_number (tv))
   {
-    ecma_number_t num_value = ecma_get_number_from_value (tv);
+    ecma_number_t num_value = ecma_get_number_from_value (context_p, tv);
 
-    ecma_free_value (tv);
+    ecma_free_value (context_p, tv);
 
     if (ecma_number_is_nan (num_value) || ecma_number_is_infinity (num_value))
     {
-      ecma_free_value (obj);
+      ecma_free_value (context_p, obj);
       return ECMA_VALUE_NULL;
     }
   }
   else
   {
-    ecma_free_value (tv);
+    ecma_free_value (context_p, tv);
   }
 
-  ecma_object_t *value_obj_p = ecma_get_object_from_value (obj);
+  ecma_object_t *value_obj_p = ecma_get_object_from_value (context_p, obj);
 
   /* 4. */
-  ecma_value_t ret_value = ecma_op_invoke_by_magic_id (obj, LIT_MAGIC_STRING_TO_ISO_STRING_UL, NULL, 0);
+  ecma_value_t ret_value = ecma_op_invoke_by_magic_id (context_p, obj, LIT_MAGIC_STRING_TO_ISO_STRING_UL, NULL, 0);
 
   ecma_deref_object (value_obj_p);
 
@@ -183,12 +184,13 @@ ecma_builtin_date_prototype_to_json (ecma_value_t this_arg) /**< this argument *
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_date_prototype_to_primitive (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_date_prototype_to_primitive (ecma_context_t *context_p, /**< JJS context */
+                                          ecma_value_t this_arg, /**< this argument */
                                           ecma_value_t hint_arg) /**< {"default", "number", "string"} */
 {
   if (ecma_is_value_object (this_arg) && ecma_is_value_string (hint_arg))
   {
-    ecma_string_t *hint_str_p = ecma_get_string_from_value (hint_arg);
+    ecma_string_t *hint_str_p = ecma_get_string_from_value (context_p, hint_arg);
 
     ecma_preferred_type_hint_t hint = ECMA_PREFERRED_TYPE_NO;
 
@@ -204,11 +206,11 @@ ecma_builtin_date_prototype_to_primitive (ecma_value_t this_arg, /**< this argum
 
     if (hint != ECMA_PREFERRED_TYPE_NO)
     {
-      return ecma_op_general_object_ordinary_value (ecma_get_object_from_value (this_arg), hint);
+      return ecma_op_general_object_ordinary_value (context_p, ecma_get_object_from_value (context_p, this_arg), hint);
     }
   }
 
-  return ecma_raise_type_error (ECMA_ERR_INVALID_ARGUMENT_TYPE_IN_TOPRIMITIVE);
+  return ecma_raise_type_error (context_p, ECMA_ERR_INVALID_ARGUMENT_TYPE_IN_TOPRIMITIVE);
 } /* ecma_builtin_date_prototype_to_primitive */
 
 /**
@@ -218,13 +220,14 @@ ecma_builtin_date_prototype_to_primitive (ecma_value_t this_arg, /**< this argum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_date_prototype_dispatch_get (uint16_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_date_prototype_dispatch_get (ecma_context_t *context_p, /**< JJS context */
+                                          uint16_t builtin_routine_id, /**< built-in wide routine
                                                                         *   identifier */
                                           ecma_number_t date_value) /**< date converted to number */
 {
   if (ecma_number_is_nan (date_value))
   {
-    return ecma_make_nan_value ();
+    return ecma_make_nan_value (context_p);
   }
 
   int32_t result;
@@ -290,12 +293,12 @@ ecma_builtin_date_prototype_dispatch_get (uint16_t builtin_routine_id, /**< buil
     {
       JJS_ASSERT (builtin_routine_id == ECMA_DATE_PROTOTYPE_GET_UTC_TIMEZONE_OFFSET);
 
-      result = -ecma_date_local_time_zone_adjustment (date_value) / ECMA_DATE_MS_PER_MINUTE;
+      result = -ecma_date_local_time_zone_adjustment (context_p, date_value) / ECMA_DATE_MS_PER_MINUTE;
       break;
     }
   }
 
-  return ecma_make_int32_value (result);
+  return ecma_make_int32_value (context_p, result);
 } /* ecma_builtin_date_prototype_dispatch_get */
 
 #if JJS_BUILTIN_ANNEXB
@@ -326,7 +329,8 @@ ecma_builtin_date_prototype_dispatch_get (uint16_t builtin_routine_id, /**< buil
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_date_prototype_dispatch_set (ecma_context_t *context_p, /**< JJS context */
+                                          uint16_t builtin_routine_id, /**< built-in wide routine
                                                                         *   identifier */
                                           ecma_object_t *object_p, /**< date object */
                                           const ecma_value_t arguments_list[], /**< list of arguments
@@ -385,7 +389,7 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
 
   for (uint32_t i = 0; i < conversions; i++)
   {
-    ecma_value_t value = ecma_op_to_number (arguments_list[i], &converted_number[i]);
+    ecma_value_t value = ecma_op_to_number (context_p, arguments_list[i], &converted_number[i]);
 
     if (ECMA_IS_VALUE_ERROR (value))
     {
@@ -404,11 +408,11 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
     if (date_object_p->header.u.cls.u1.date_flags & ECMA_DATE_TZA_SET)
     {
       local_tza = date_object_p->header.u.cls.u3.tza;
-      JJS_ASSERT (local_tza == ecma_date_local_time_zone_adjustment (date_value));
+      JJS_ASSERT (local_tza == ecma_date_local_time_zone_adjustment (context_p, date_value));
     }
     else
     {
-      local_tza = ecma_date_local_time_zone_adjustment (date_value);
+      local_tza = ecma_date_local_time_zone_adjustment (context_p, date_value);
     }
 
     date_value += local_tza;
@@ -423,7 +427,7 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
     {
       if (!ECMA_DATE_PROTOTYPE_IS_SET_YEAR_ROUTINE (builtin_routine_id))
       {
-        return ecma_make_number_value (date_value);
+        return ecma_make_number_value (context_p, date_value);
       }
 
       date_value = ECMA_NUMBER_ZERO;
@@ -458,7 +462,7 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
         {
           *date_value_p = converted_number[0];
           date_object_p->header.u.cls.u1.date_flags &= (uint8_t) ~ECMA_DATE_TZA_SET;
-          return ecma_make_number_value (converted_number[0]);
+          return ecma_make_number_value (context_p, converted_number[0]);
         }
 
         year = ecma_number_trunc (converted_number[0]);
@@ -506,7 +510,7 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
   {
     if (ecma_number_is_nan (date_value))
     {
-      return ecma_make_number_value (date_value);
+      return ecma_make_number_value (context_p, date_value);
     }
 
     day_part = ecma_date_day_from_time (date_value) * (ecma_number_t) ECMA_DATE_MS_PER_DAY;
@@ -579,7 +583,7 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
 
   if (!is_utc)
   {
-    full_date = ecma_date_utc (full_date);
+    full_date = ecma_date_utc (context_p, full_date);
   }
 
   full_date = ecma_date_time_clip (full_date);
@@ -588,7 +592,7 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
 
   date_object_p->header.u.cls.u1.date_flags &= (uint8_t) ~ECMA_DATE_TZA_SET;
 
-  return ecma_make_number_value (full_date);
+  return ecma_make_number_value (context_p, full_date);
 } /* ecma_builtin_date_prototype_dispatch_set */
 
 #undef ECMA_DATE_PROTOTYPE_IS_SET_YEAR_ROUTINE
@@ -600,7 +604,8 @@ ecma_builtin_date_prototype_dispatch_set (uint16_t builtin_routine_id, /**< buil
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_date_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_date_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                              uint8_t builtin_routine_id, /**< built-in wide routine
                                                                            *   identifier */
                                               ecma_value_t this_arg, /**< 'this' argument value */
                                               const ecma_value_t arguments_list[], /**< list of arguments
@@ -609,21 +614,21 @@ ecma_builtin_date_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< b
 {
   if (JJS_UNLIKELY (builtin_routine_id == ECMA_DATE_PROTOTYPE_TO_JSON))
   {
-    return ecma_builtin_date_prototype_to_json (this_arg);
+    return ecma_builtin_date_prototype_to_json (context_p, this_arg);
   }
 
   if (JJS_UNLIKELY (builtin_routine_id == ECMA_DATE_PROTOTYPE_TO_PRIMITIVE))
   {
-    return ecma_builtin_date_prototype_to_primitive (this_arg, arguments_list[0]);
+    return ecma_builtin_date_prototype_to_primitive (context_p, this_arg, arguments_list[0]);
   }
 
   if (!ecma_is_value_object (this_arg)
-      || !ecma_object_class_is (ecma_get_object_from_value (this_arg), ECMA_OBJECT_CLASS_DATE))
+      || !ecma_object_class_is (ecma_get_object_from_value (context_p, this_arg), ECMA_OBJECT_CLASS_DATE))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_DATE_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_DATE_OBJECT);
   }
 
-  ecma_object_t *this_obj_p = ecma_get_object_from_value (this_arg);
+  ecma_object_t *this_obj_p = ecma_get_object_from_value (context_p, this_arg);
 
   ecma_date_object_t *date_object_p = (ecma_date_object_t *) this_obj_p;
   ecma_number_t *date_value_p = &date_object_p->date_value;
@@ -631,14 +636,14 @@ ecma_builtin_date_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< b
 
   if (builtin_routine_id == ECMA_DATE_PROTOTYPE_GET_TIME)
   {
-    return ecma_make_number_value (date_value);
+    return ecma_make_number_value (context_p, date_value);
   }
 
   if (builtin_routine_id == ECMA_DATE_PROTOTYPE_SET_TIME)
   {
     ecma_number_t time_num;
 
-    if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (arguments_list[0], &time_num)))
+    if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, arguments_list[0], &time_num)))
     {
       return ECMA_VALUE_ERROR;
     }
@@ -646,7 +651,7 @@ ecma_builtin_date_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< b
     *date_value_p = ecma_date_time_clip (time_num);
     date_object_p->header.u.cls.u1.date_flags &= (uint8_t) ~ECMA_DATE_TZA_SET;
 
-    return ecma_make_number_value (*date_value_p);
+    return ecma_make_number_value (context_p, *date_value_p);
   }
 
   if (builtin_routine_id <= ECMA_DATE_PROTOTYPE_SET_UTC_MILLISECONDS)
@@ -660,11 +665,11 @@ ecma_builtin_date_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< b
         if (date_object_p->header.u.cls.u1.date_flags & ECMA_DATE_TZA_SET)
         {
           local_tza = date_object_p->header.u.cls.u3.tza;
-          JJS_ASSERT (local_tza == ecma_date_local_time_zone_adjustment (date_value));
+          JJS_ASSERT (local_tza == ecma_date_local_time_zone_adjustment (context_p, date_value));
         }
         else
         {
-          local_tza = ecma_date_local_time_zone_adjustment (date_value);
+          local_tza = ecma_date_local_time_zone_adjustment (context_p, date_value);
           JJS_ASSERT (local_tza <= INT32_MAX && local_tza >= INT32_MIN);
           date_object_p->header.u.cls.u3.tza = (int32_t) local_tza;
           date_object_p->header.u.cls.u1.date_flags |= ECMA_DATE_TZA_SET;
@@ -673,20 +678,20 @@ ecma_builtin_date_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< b
         date_value += local_tza;
       }
 
-      return ecma_builtin_date_prototype_dispatch_get (builtin_routine_id, date_value);
+      return ecma_builtin_date_prototype_dispatch_get (context_p, builtin_routine_id, date_value);
     }
 
-    return ecma_builtin_date_prototype_dispatch_set (builtin_routine_id, this_obj_p, arguments_list, arguments_number);
+    return ecma_builtin_date_prototype_dispatch_set (context_p, builtin_routine_id, this_obj_p, arguments_list, arguments_number);
   }
 
   if (builtin_routine_id == ECMA_DATE_PROTOTYPE_TO_ISO_STRING)
   {
     if (ecma_number_is_nan (date_value))
     {
-      return ecma_raise_range_error (ECMA_ERR_DATE_MUST_BE_A_FINITE_NUMBER);
+      return ecma_raise_range_error (context_p, ECMA_ERR_DATE_MUST_BE_A_FINITE_NUMBER);
     }
 
-    return ecma_date_value_to_iso_string (date_value);
+    return ecma_date_value_to_iso_string (context_p, date_value);
   }
 
   if (ecma_number_is_nan (date_value))
@@ -698,17 +703,17 @@ ecma_builtin_date_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< b
   {
     case ECMA_DATE_PROTOTYPE_TO_STRING:
     {
-      return ecma_date_value_to_string (date_value);
+      return ecma_date_value_to_string (context_p, date_value);
     }
     case ECMA_DATE_PROTOTYPE_TO_DATE_STRING:
     {
-      return ecma_date_value_to_date_string (date_value);
+      return ecma_date_value_to_date_string (context_p, date_value);
     }
     default:
     {
       JJS_ASSERT (builtin_routine_id == ECMA_DATE_PROTOTYPE_TO_TIME_STRING);
 
-      return ecma_date_value_to_time_string (date_value);
+      return ecma_date_value_to_time_string (context_p, date_value);
     }
   }
 } /* ecma_builtin_date_prototype_dispatch_routine */

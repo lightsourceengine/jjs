@@ -377,7 +377,8 @@ opfunc_append_to_spread_array (ecma_context_t *context_p, /**< JJS context */
           }
 
           ecma_value_t put_comp;
-          put_comp = ecma_builtin_helper_def_prop_by_index (array_obj_p,
+          put_comp = ecma_builtin_helper_def_prop_by_index (context_p,
+                                                            array_obj_p,
                                                             idx++,
                                                             value,
                                                             ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
@@ -403,7 +404,8 @@ opfunc_append_to_spread_array (ecma_context_t *context_p, /**< JJS context */
     }
     else
     {
-      ecma_value_t put_comp = ecma_builtin_helper_def_prop_by_index (array_obj_p,
+      ecma_value_t put_comp = ecma_builtin_helper_def_prop_by_index (context_p,
+                                                                     array_obj_p,
                                                                      idx,
                                                                      stack_top_p[i],
                                                                      ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
@@ -867,7 +869,7 @@ opfunc_async_create_and_await (vm_frame_ctx_t *frame_ctx_p, /**< frame context *
     || (CBC_FUNCTION_GET_TYPE (frame_ctx_p->shared_p->bytecode_header_p->status_flags) == CBC_FUNCTION_ASYNC_ARROW));
 
   ecma_context_t *context_p = frame_ctx_p->shared_p->context_p;
-  ecma_object_t *promise_p = ecma_builtin_get (ECMA_BUILTIN_ID_PROMISE);
+  ecma_object_t *promise_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_PROMISE);
   ecma_value_t result = ecma_promise_reject_or_resolve (context_p, ecma_make_object_value (context_p, promise_p), value, true);
   ecma_free_value (context_p, value);
 
@@ -1180,7 +1182,7 @@ opfunc_create_implicit_class_constructor (ecma_context_t *context_p, /**< JJS co
   }
 
   ecma_object_t *function_object_p = ecma_create_object (context_p,
-                                                         ecma_builtin_get (ECMA_BUILTIN_ID_FUNCTION_PROTOTYPE),
+                                                         ecma_builtin_get (context_p, ECMA_BUILTIN_ID_FUNCTION_PROTOTYPE),
                                                          sizeof (ecma_extended_object_t),
                                                          ECMA_OBJECT_TYPE_CONSTRUCTOR_FUNCTION);
 
@@ -1716,7 +1718,7 @@ opfunc_init_class (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
 {
   /* 5.b, 6.e.ii */
   ecma_context_t *context_p = frame_ctx_p->shared_p->context_p;
-  ecma_object_t *ctor_parent_p = ecma_builtin_get (ECMA_BUILTIN_ID_FUNCTION_PROTOTYPE);
+  ecma_object_t *ctor_parent_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_FUNCTION_PROTOTYPE);
   ecma_object_t *proto_parent_p = NULL;
   bool free_proto_parent = false;
 
@@ -1729,7 +1731,7 @@ opfunc_init_class (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
   if (!heritage_present)
   {
     /* 5.a */
-    proto_parent_p = ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE);
+    proto_parent_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE);
   }
   else if (!ecma_is_value_null (super_class))
   {

@@ -42,12 +42,13 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_dataview_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_dataview_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                     const ecma_value_t *arguments_list_p, /**< arguments list */
                                      uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_CONSTRUCTOR_DATAVIEW_REQUIRES_NEW);
+  return ecma_raise_type_error (context_p, ECMA_ERR_CONSTRUCTOR_DATAVIEW_REQUIRES_NEW);
 } /* ecma_builtin_dataview_dispatch_call */
 
 /**
@@ -56,10 +57,11 @@ ecma_builtin_dataview_dispatch_call (const ecma_value_t *arguments_list_p, /**< 
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_dataview_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_dataview_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                          const ecma_value_t *arguments_list_p, /**< arguments list */
                                           uint32_t arguments_list_len) /**< number of arguments */
 {
-  return ecma_op_dataview_create (arguments_list_p, arguments_list_len);
+  return ecma_op_dataview_create (context_p, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_dataview_dispatch_construct */
 
 /**

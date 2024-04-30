@@ -54,15 +54,16 @@
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_typedarray_from (ecma_value_t this_arg, /**< 'this' argument */
+ecma_builtin_typedarray_from (ecma_context_t *context_p, /**< JJS context */
+                              ecma_value_t this_arg, /**< 'this' argument */
                               const ecma_value_t *arguments_list_p, /**< arguments list */
                               uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  if (!ecma_is_constructor (this_arg))
+  if (!ecma_is_constructor (context_p, this_arg))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_CONSTRUCTOR);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_CONSTRUCTOR);
   }
 
   ecma_value_t source;
@@ -71,7 +72,7 @@ ecma_builtin_typedarray_from (ecma_value_t this_arg, /**< 'this' argument */
 
   if (arguments_list_len == 0)
   {
-    return ecma_raise_type_error (ECMA_ERR_NO_SOURCE_ARGUMENT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_NO_SOURCE_ARGUMENT);
   }
 
   source = arguments_list_p[0];
@@ -80,9 +81,9 @@ ecma_builtin_typedarray_from (ecma_value_t this_arg, /**< 'this' argument */
   {
     map_fn = arguments_list_p[1];
 
-    if (!ecma_op_is_callable (map_fn))
+    if (!ecma_op_is_callable (context_p, map_fn))
     {
-      return ecma_raise_type_error (ECMA_ERR_THE_MAPFN_ARGUMENT_IS_NOT_CALLABLE);
+      return ecma_raise_type_error (context_p, ECMA_ERR_THE_MAPFN_ARGUMENT_IS_NOT_CALLABLE);
     }
 
     if (arguments_list_len > 2)
@@ -91,7 +92,7 @@ ecma_builtin_typedarray_from (ecma_value_t this_arg, /**< 'this' argument */
     }
   }
 
-  return ecma_op_typedarray_from (this_arg, source, map_fn, this_in_fn);
+  return ecma_op_typedarray_from (context_p, this_arg, source, map_fn, this_in_fn);
 
 } /* ecma_builtin_typedarray_from */
 
@@ -105,19 +106,20 @@ ecma_builtin_typedarray_from (ecma_value_t this_arg, /**< 'this' argument */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_typedarray_of (ecma_value_t this_arg, /**< 'this' argument */
+ecma_builtin_typedarray_of (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t this_arg, /**< 'this' argument */
                             const ecma_value_t *arguments_list_p, /**< arguments list */
                             uint32_t arguments_list_len) /**< number of arguments */
 {
-  if (!ecma_is_constructor (this_arg))
+  if (!ecma_is_constructor (context_p, this_arg))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_CONSTRUCTOR);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_CONSTRUCTOR);
   }
 
-  ecma_object_t *constructor_obj_p = ecma_get_object_from_value (this_arg);
-  ecma_value_t len_val = ecma_make_uint32_value (arguments_list_len);
-  ecma_value_t ret_val = ecma_typedarray_create (constructor_obj_p, &len_val, 1);
-  ecma_free_value (len_val);
+  ecma_object_t *constructor_obj_p = ecma_get_object_from_value (context_p, this_arg);
+  ecma_value_t len_val = ecma_make_uint32_value (context_p, arguments_list_len);
+  ecma_value_t ret_val = ecma_typedarray_create (context_p, constructor_obj_p, &len_val, 1);
+  ecma_free_value (context_p, len_val);
 
   if (ECMA_IS_VALUE_ERROR (ret_val))
   {
@@ -125,27 +127,27 @@ ecma_builtin_typedarray_of (ecma_value_t this_arg, /**< 'this' argument */
   }
 
   uint32_t k = 0;
-  ecma_object_t *ret_obj_p = ecma_get_object_from_value (ret_val);
-  ecma_typedarray_info_t info = ecma_typedarray_get_info (ret_obj_p);
+  ecma_object_t *ret_obj_p = ecma_get_object_from_value (context_p, ret_val);
+  ecma_typedarray_info_t info = ecma_typedarray_get_info (context_p, ret_obj_p);
   ecma_typedarray_setter_fn_t setter_cb = ecma_get_typedarray_setter_fn (info.id);
 
-  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (info.array_buffer_p))
+  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (context_p, info.array_buffer_p))
   {
     ecma_deref_object (ret_obj_p);
     return ECMA_VALUE_ERROR;
   }
 
-  if (ecma_arraybuffer_is_detached (info.array_buffer_p))
+  if (ecma_arraybuffer_is_detached (context_p, info.array_buffer_p))
   {
     ecma_deref_object (ret_obj_p);
-    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
   }
 
-  lit_utf8_byte_t *buffer_p = ecma_typedarray_get_buffer (&info);
+  lit_utf8_byte_t *buffer_p = ecma_typedarray_get_buffer (context_p, &info);
 
   while (k < arguments_list_len)
   {
-    ecma_value_t set_element = setter_cb (buffer_p, arguments_list_p[k]);
+    ecma_value_t set_element = setter_cb (context_p, buffer_p, arguments_list_p[k]);
 
     if (ECMA_IS_VALUE_ERROR (set_element))
     {
@@ -169,12 +171,13 @@ ecma_builtin_typedarray_of (ecma_value_t this_arg, /**< 'this' argument */
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_typedarray_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_typedarray_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                       const ecma_value_t *arguments_list_p, /**< arguments list */
                                        uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_TYPEDARRAY_INTRINSTIC_DIRECTLY_CALLED);
+  return ecma_raise_type_error (context_p, ECMA_ERR_TYPEDARRAY_INTRINSTIC_DIRECTLY_CALLED);
 } /* ecma_builtin_typedarray_dispatch_call */
 
 /**
@@ -186,12 +189,13 @@ ecma_builtin_typedarray_dispatch_call (const ecma_value_t *arguments_list_p, /**
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_typedarray_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_typedarray_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                            const ecma_value_t *arguments_list_p, /**< arguments list */
                                             uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_TYPEDARRAY_INTRINSTIC_CALLED_BY_NEW_EXPRESSION);
+  return ecma_raise_type_error (context_p, ECMA_ERR_TYPEDARRAY_INTRINSTIC_CALLED_BY_NEW_EXPRESSION);
 } /* ecma_builtin_typedarray_dispatch_construct */
 
 /**
@@ -201,9 +205,10 @@ ecma_builtin_typedarray_dispatch_construct (const ecma_value_t *arguments_list_p
  *         returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_builtin_typedarray_species_get (ecma_value_t this_value) /**< This Value */
+ecma_builtin_typedarray_species_get (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_value_t this_value) /**< This Value */
 {
-  return ecma_copy_value (this_value);
+  return ecma_copy_value (context_p, this_value);
 } /* ecma_builtin_typedarray_species_get */
 
 /**

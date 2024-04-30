@@ -610,7 +610,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
     bytecode_p = (ecma_compiled_code_t *) jmem_heap_alloc_block (context_p, code_size);
 
 #if JJS_MEM_STATS
-    jmem_stats_allocate_byte_code_bytes (code_size);
+    jmem_stats_allocate_byte_code_bytes (context_p, code_size);
 #endif /* JJS_MEM_STATS */
 
     memcpy (bytecode_p, base_addr_p, code_size);
@@ -654,7 +654,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
     bytecode_p = (ecma_compiled_code_t *) jmem_heap_alloc_block (context_p, new_code_size);
 
 #if JJS_MEM_STATS
-    jmem_stats_allocate_byte_code_bytes (new_code_size);
+    jmem_stats_allocate_byte_code_bytes (context_p, new_code_size);
 #endif /* JJS_MEM_STATS */
 
     memcpy (bytecode_p, base_addr_p, start_offset);
@@ -1716,7 +1716,7 @@ jjs_get_literals_from_snapshot (jjs_context_t *context_p, /**< JJS context */
 
   return lit_buf_p <= buffer_end_p ? (size_t) (lit_buf_p - buffer_start_p) : 0;
 #else /* !JJS_SNAPSHOT_SAVE */
-  JJS_UNUSED_ALL (snapshot_p, snapshot_size, lit_buf_p, lit_buf_size, is_c_format);
+  JJS_UNUSED_ALL (context_p, snapshot_p, snapshot_size, lit_buf_p, lit_buf_size, is_c_format);
 
   return 0;
 #endif /* JJS_SNAPSHOT_SAVE */

@@ -183,7 +183,7 @@ jmem_heap_alloc (jjs_context_t *context_p, /**< JJS context */
 
       const uint32_t next_offset = current_p->next_offset;
       JJS_ASSERT (next_offset == JMEM_HEAP_END_OF_LIST
-                    || jmem_is_heap_pointer (context_p, JMEM_HEAP_GET_ADDR_FROM_OFFSET (next_offset)));
+                    || jmem_is_heap_pointer (context_p, JMEM_HEAP_GET_ADDR_FROM_OFFSET (context_p, next_offset)));
 
       if (current_p->size >= required_size)
       {
@@ -685,20 +685,21 @@ jmem_is_heap_pointer (jjs_context_t *context_p, /**< JJS context */
  * Get heap memory usage statistics
  */
 void
-jmem_heap_get_stats (jmem_heap_stats_t *out_heap_stats_p) /**< [out] heap stats */
+jmem_heap_get_stats (jjs_context_t *context_p, /**< JJS context */
+                     jmem_heap_stats_t *out_heap_stats_p) /**< [out] heap stats */
 {
   JJS_ASSERT (out_heap_stats_p != NULL);
 
-  *out_heap_stats_p = JJS_CONTEXT (jmem_heap_stats);
+  *out_heap_stats_p = context_p->jmem_heap_stats;
 } /* jmem_heap_get_stats */
 
 /**
  * Print heap memory usage statistics
  */
 void
-jmem_heap_stats_print (void)
+jmem_heap_stats_print (jjs_context_t *context_p)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   JJS_DEBUG_MSG ("Heap stats:\n");
   JJS_DEBUG_MSG ("  Heap size = %u bytes\n", (unsigned) heap_stats->size);

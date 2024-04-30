@@ -45,13 +45,14 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_bigint_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_bigint_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                   const ecma_value_t *arguments_list_p, /**< arguments list */
                                    uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
   ecma_value_t value = (arguments_list_len == 0) ? ECMA_VALUE_UNDEFINED : arguments_list_p[0];
-  return ecma_bigint_to_bigint (value, true);
+  return ecma_bigint_to_bigint (context_p, value, true);
 } /* ecma_builtin_bigint_dispatch_call */
 
 /**
@@ -63,12 +64,13 @@ ecma_builtin_bigint_dispatch_call (const ecma_value_t *arguments_list_p, /**< ar
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_bigint_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_bigint_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                        const ecma_value_t *arguments_list_p, /**< arguments list */
                                         uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_BIGINT_FUNCTION_NOT_CONSTRUCTOR);
+  return ecma_raise_type_error (context_p, ECMA_ERR_BIGINT_FUNCTION_NOT_CONSTRUCTOR);
 } /* ecma_builtin_bigint_dispatch_construct */
 
 /**

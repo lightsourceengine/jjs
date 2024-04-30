@@ -145,10 +145,10 @@ test_annex_path_to_file_url_bad_input (void)
   try_annex_path_to_file_url_bad_input (jjs_object());
   try_annex_path_to_file_url_bad_input (jjs_array(1));
   try_annex_path_to_file_url_bad_input (jjs_symbol (JJS_SYMBOL_MATCH));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (""));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz ("./relative-path"));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz ("../relative-path"));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz ("relative-path"));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, ""));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, "./relative-path"));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, "../relative-path"));
+  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, "relative-path"));
 }
 
 int

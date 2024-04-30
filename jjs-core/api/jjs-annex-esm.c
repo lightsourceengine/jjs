@@ -26,11 +26,11 @@
 static void
 jjs_module_copy_string_property (jjs_context_t *context_p, jjs_value_t target, jjs_value_t source, lit_magic_string_id_t key)
 {
-  ecma_value_t value = ecma_find_own_m (source, key);
+  ecma_value_t value = ecma_find_own_m (context_p, source, key);
 
   if (ecma_is_value_string (value))
   {
-    ecma_set_m (target, key, value);
+    ecma_set_m (context_p, target, key, value);
   }
 
   ecma_free_value (context_p, value);
@@ -204,10 +204,10 @@ jjs_esm_default_on_load_cb (jjs_context_t* context_p, jjs_value_t path, jjs_esm_
 
   ecma_value_t result = ecma_create_object_with_null_proto (context_p);
 
-  ecma_set_m (result, LIT_MAGIC_STRING_SOURCE, source);
+  ecma_set_m (context_p, result, LIT_MAGIC_STRING_SOURCE, source);
   ecma_free_value (context_p, source);
 
-  ecma_set_m (result, LIT_MAGIC_STRING_FORMAT, load_context_p->format);
+  ecma_set_m (context_p, result, LIT_MAGIC_STRING_FORMAT, load_context_p->format);
 
   return result;
 #else /* !(JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM) */
@@ -286,10 +286,10 @@ jjs_esm_default_on_resolve_cb (jjs_context_t* context_p, jjs_value_t specifier, 
   ecma_value_t format = annex_path_format (context_p, path);
   ecma_value_t result = ecma_create_object_with_null_proto (context_p);
 
-  ecma_set_m (result, LIT_MAGIC_STRING_PATH, path);
+  ecma_set_m (context_p, result, LIT_MAGIC_STRING_PATH, path);
   ecma_free_value (context_p, path);
 
-  ecma_set_m (result, LIT_MAGIC_STRING_FORMAT, format);
+  ecma_set_m (context_p, result, LIT_MAGIC_STRING_FORMAT, format);
   ecma_free_value (context_p, format);
 
   return result;
@@ -558,21 +558,21 @@ jjs_esm_default_on_import_meta_cb (jjs_context_t* context_p, jjs_value_t module,
   jjs_module_copy_string_property (context_p, meta_object, module, LIT_MAGIC_STRING_DIRNAME);
 
   jjs_value_t resolve = jjs_function_external (context_p, esm_resolve_handler);
-  jjs_value_t dirname = ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME);
+  jjs_value_t dirname = ecma_find_own_m (context_p, module, LIT_MAGIC_STRING_DIRNAME);
   jjs_value_t path = ecma_make_magic_string_value(LIT_MAGIC_STRING_PATH);
 
   jjs_object_set_internal (context_p, resolve, path, dirname);
-  ecma_set_m (meta_object, LIT_MAGIC_STRING_RESOLVE, resolve);
+  ecma_set_m (context_p, meta_object, LIT_MAGIC_STRING_RESOLVE, resolve);
 
   jjs_value_free (context_p, path);
   jjs_value_free (context_p, dirname);
   jjs_value_free (context_p, resolve);
 
-  ecma_value_t extension = ecma_find_own_m (module, LIT_MAGIC_STRING_EXTENSION);
+  ecma_value_t extension = ecma_find_own_m (context_p, module, LIT_MAGIC_STRING_EXTENSION);
 
   if (extension != ECMA_VALUE_NOT_FOUND)
   {
-    ecma_set_m (meta_object, LIT_MAGIC_STRING_EXTENSION, extension);
+    ecma_set_m (context_p, meta_object, LIT_MAGIC_STRING_EXTENSION, extension);
     ecma_free_value (context_p, extension);
   }
 #else /* !JJS_ANNEX_ESM */
@@ -618,7 +618,7 @@ static JJS_HANDLER (esm_resolve_handler)
   {
     /* options = { path: boolean }. if path truthy, return file path; otherwise, return file url */
     jjs_value_t options = args_count > 1 ? args_p[1] : jjs_undefined (context_p);
-    ecma_value_t options_path = ecma_find_own_m (options, LIT_MAGIC_STRING_PATH);
+    ecma_value_t options_path = ecma_find_own_m (context_p, options, LIT_MAGIC_STRING_PATH);
     bool use_path = ecma_is_value_found (options_path) ? ecma_op_to_boolean (context_p, options_path) : false;
 
     ecma_free_value (context_p, options_path);
@@ -830,7 +830,7 @@ esm_run_source (jjs_context_t* context_p, jjs_esm_source_t *source_p, jjs_value_
     goto after_parse;
   }
 
-  if (ecma_has_own_v (esm_cache, filename_value))
+  if (ecma_has_own_v (context_p, esm_cache, filename_value))
   {
     module = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "A module with this filename has already been loaded.");
     goto after_parse;
@@ -868,18 +868,18 @@ esm_run_source (jjs_context_t* context_p, jjs_esm_source_t *source_p, jjs_value_
       file_url = ECMA_VALUE_UNDEFINED;
     }
 
-    ecma_set_m (module, LIT_MAGIC_STRING_DIRNAME, dirname_value);
-    ecma_set_m (module, LIT_MAGIC_STRING_URL, file_url);
-    ecma_set_m (module, LIT_MAGIC_STRING_FILENAME, filename_value);
+    ecma_set_m (context_p, module, LIT_MAGIC_STRING_DIRNAME, dirname_value);
+    ecma_set_m (context_p, module, LIT_MAGIC_STRING_URL, file_url);
+    ecma_set_m (context_p, module, LIT_MAGIC_STRING_FILENAME, filename_value);
 
     if (!ecma_is_value_undefined (source_p->meta_extension))
     {
-      ecma_set_m (module, LIT_MAGIC_STRING_EXTENSION, source_p->meta_extension);
+      ecma_set_m (context_p, module, LIT_MAGIC_STRING_EXTENSION, source_p->meta_extension);
     }
 
     if (source_p->cache)
     {
-      ecma_set_v (esm_cache, filename_value, module);
+      ecma_set_v (esm_cache, context_p, filename_value, module);
     }
 
     jjs_value_free (context_p, file_url);
@@ -920,7 +920,7 @@ esm_read (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_
     return resolved_exception;
   }
 
-  ecma_value_t cached_module = ecma_find_own_v (esm_cache, resolved.path);
+  ecma_value_t cached_module = ecma_find_own_v (context_p, esm_cache, resolved.path);
 
   if (cached_module != ECMA_VALUE_NOT_FOUND)
   {
@@ -999,7 +999,7 @@ esm_read (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_
 
   if (!jjs_value_is_exception (context_p, module))
   {
-    ecma_set_v (esm_cache, resolved.path, module);
+    ecma_set_v (esm_cache, context_p, resolved.path, module);
   }
 
   jjs_annex_module_resolve_free (context_p, &resolved);
@@ -1013,7 +1013,7 @@ esm_link_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referr
 {
   JJS_UNUSED (user_p);
 
-  jjs_value_t path = ecma_find_own_m (referrer, LIT_MAGIC_STRING_DIRNAME);
+  jjs_value_t path = ecma_find_own_m (context_p, referrer, LIT_MAGIC_STRING_DIRNAME);
   jjs_value_t module = esm_read (context_p, specifier, path);
 
   jjs_value_free (context_p, path);
@@ -1039,7 +1039,7 @@ static jjs_value_t
 module_native_set_default (jjs_context_t* context_p, jjs_value_t native_module, jjs_value_t exports)
 {
   jjs_value_t default_name = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
-  ecma_value_t default_value = ecma_find_own_v (exports, default_name);
+  ecma_value_t default_value = ecma_find_own_v (context_p, exports, default_name);
   jjs_value_t result = jjs_synthetic_module_set_export (context_p,
                                                         native_module,
                                                         default_name,
@@ -1058,9 +1058,9 @@ module_native_set_default (jjs_context_t* context_p, jjs_value_t native_module, 
 static jjs_value_t
 commonjs_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module)
 {
-  jjs_value_t filename = ecma_find_own_m (native_module, LIT_MAGIC_STRING_FILENAME);
+  jjs_value_t filename = ecma_find_own_m (context_p, native_module, LIT_MAGIC_STRING_FILENAME);
   JJS_ASSERT (jjs_value_is_string (context_p, filename));
-  jjs_value_t referrer_path = ecma_find_own_m (native_module, LIT_MAGIC_STRING_DIRNAME);
+  jjs_value_t referrer_path = ecma_find_own_m (context_p, native_module, LIT_MAGIC_STRING_DIRNAME);
   JJS_ASSERT (jjs_value_is_string (context_p, referrer_path));
 
   jjs_value_t exports = jjs_annex_require (context_p, filename, referrer_path);
@@ -1087,7 +1087,7 @@ commonjs_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module
 static jjs_value_t
 vmod_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module)
 {
-  ecma_value_t exports = ecma_find_own_m (native_module, LIT_MAGIC_STRING_EXPORTS);
+  ecma_value_t exports = ecma_find_own_m (context_p, native_module, LIT_MAGIC_STRING_EXPORTS);
 
   JJS_ASSERT (ecma_is_value_found (exports));
 
@@ -1117,7 +1117,7 @@ vmod_link (jjs_context_t* context_p, jjs_value_t module, jjs_value_t exports, ec
 
   for (uint32_t i = 0; i < count; i++)
   {
-    ecma_value_t value = ecma_find_own_v (exports, keys_p->buffer_p[i]);
+    ecma_value_t value = ecma_find_own_v (context_p, exports, keys_p->buffer_p[i]);
 
     JJS_ASSERT (value != ECMA_VALUE_NOT_FOUND);
 
@@ -1159,7 +1159,7 @@ vmod_link (jjs_context_t* context_p, jjs_value_t module, jjs_value_t exports, ec
 static jjs_value_t
 vmod_get_or_load_module (jjs_context_t* context_p, jjs_value_t specifier, ecma_value_t esm_cache)
 {
-  ecma_value_t cached = ecma_find_own_v (esm_cache, specifier);
+  ecma_value_t cached = ecma_find_own_v (context_p, esm_cache, specifier);
 
   if (ecma_is_value_found (cached))
   {
@@ -1202,7 +1202,7 @@ vmod_get_or_load_module (jjs_context_t* context_p, jjs_value_t specifier, ecma_v
 
   bool was_default_appended;
 
-  if (keys_p->item_count == 0 || !ecma_has_own_m (exports, LIT_MAGIC_STRING_DEFAULT))
+  if (keys_p->item_count == 0 || !ecma_has_own_m (context_p, exports, LIT_MAGIC_STRING_DEFAULT))
   {
     ecma_collection_push_back (context_p, keys_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT));
     was_default_appended = true;
@@ -1221,8 +1221,8 @@ vmod_get_or_load_module (jjs_context_t* context_p, jjs_value_t specifier, ecma_v
     if (!jjs_value_is_exception (context_p, linked))
     {
       jjs_value_free (context_p, linked);
-      ecma_set_m (native_module, LIT_MAGIC_STRING_EXPORTS, exports);
-      ecma_set_v (esm_cache, specifier, native_module);
+      ecma_set_m (context_p, native_module, LIT_MAGIC_STRING_EXPORTS, exports);
+      ecma_set_v (esm_cache, context_p, specifier, native_module);
     }
     else
     {
@@ -1247,9 +1247,9 @@ user_value_to_path (jjs_context_t* context_p, jjs_value_t user_value)
 
   if (path_type == ANNEX_SPECIFIER_TYPE_ABSOLUTE)
   {
-    jjs_value_t module = ecma_find_own_v (ecma_get_global_object (context_p)->esm_cache, user_value);
+    jjs_value_t module = ecma_find_own_v (context_p, ecma_get_global_object (context_p)->esm_cache, user_value);
 
-    result = ecma_is_value_found (module) ? ecma_find_own_m (module, LIT_MAGIC_STRING_DIRNAME)
+    result = ecma_is_value_found (module) ? ecma_find_own_m (context_p, module, LIT_MAGIC_STRING_DIRNAME)
                                           : annex_path_dirname (context_p, user_value);
 
     jjs_value_free (context_p, module);
@@ -1283,9 +1283,9 @@ set_module_properties (jjs_context_t* context_p, jjs_value_t module, jjs_value_t
 
   JJS_ASSERT (jjs_value_is_string (context_p, path_dirname));
 
-  ecma_set_m (module, LIT_MAGIC_STRING_DIRNAME, path_dirname);
-  ecma_set_m (module, LIT_MAGIC_STRING_URL, url);
-  ecma_set_m (module, LIT_MAGIC_STRING_FILENAME, filename);
+  ecma_set_m (context_p, module, LIT_MAGIC_STRING_DIRNAME, path_dirname);
+  ecma_set_m (context_p, module, LIT_MAGIC_STRING_URL, url);
+  ecma_set_m (context_p, module, LIT_MAGIC_STRING_FILENAME, filename);
 
   jjs_value_free (context_p, path_dirname);
 } /* set_module_properties */

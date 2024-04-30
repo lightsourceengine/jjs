@@ -71,7 +71,8 @@ enum
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_number_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_number_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                   const ecma_value_t *arguments_list_p, /**< arguments list */
                                    uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
@@ -85,7 +86,7 @@ ecma_builtin_number_dispatch_call (const ecma_value_t *arguments_list_p, /**< ar
   else
   {
     ecma_number_t num;
-    ret_value = ecma_op_to_numeric (arguments_list_p[0], &num, ECMA_TO_NUMERIC_ALLOW_BIGINT);
+    ret_value = ecma_op_to_numeric (context_p, arguments_list_p[0], &num, ECMA_TO_NUMERIC_ALLOW_BIGINT);
 
     if (ECMA_IS_VALUE_ERROR (ret_value))
     {
@@ -96,13 +97,13 @@ ecma_builtin_number_dispatch_call (const ecma_value_t *arguments_list_p, /**< ar
     if (ecma_is_value_bigint (ret_value))
     {
       ecma_value_t bigint = ret_value;
-      ret_value = ecma_bigint_to_number (bigint);
-      ecma_free_value (bigint);
+      ret_value = ecma_bigint_to_number (context_p, bigint);
+      ecma_free_value (context_p, bigint);
     }
     else
 #endif /* JJS_BUILTIN_BIGINT */
     {
-      ret_value = ecma_make_number_value (num);
+      ret_value = ecma_make_number_value (context_p, num);
     }
   }
 
@@ -115,19 +116,20 @@ ecma_builtin_number_dispatch_call (const ecma_value_t *arguments_list_p, /**< ar
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_number_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_number_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                        const ecma_value_t *arguments_list_p, /**< arguments list */
                                         uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
   if (arguments_list_len == 0)
   {
-    return ecma_op_create_number_object (ecma_make_integer_value (0));
+    return ecma_op_create_number_object (context_p, ecma_make_integer_value (0));
   }
 
 #if JJS_BUILTIN_BIGINT
   ecma_number_t num;
-  ecma_value_t value = ecma_op_to_numeric (arguments_list_p[0], &num, ECMA_TO_NUMERIC_ALLOW_BIGINT);
+  ecma_value_t value = ecma_op_to_numeric (context_p, arguments_list_p[0], &num, ECMA_TO_NUMERIC_ALLOW_BIGINT);
 
   if (ECMA_IS_VALUE_ERROR (value))
   {
@@ -137,19 +139,19 @@ ecma_builtin_number_dispatch_construct (const ecma_value_t *arguments_list_p, /*
   if (ecma_is_value_bigint (value))
   {
     ecma_value_t bigint = value;
-    value = ecma_bigint_to_number (bigint);
-    ecma_free_value (bigint);
+    value = ecma_bigint_to_number (context_p, bigint);
+    ecma_free_value (context_p, bigint);
   }
   else
   {
-    value = ecma_make_number_value (num);
+    value = ecma_make_number_value (context_p, num);
   }
 
-  ecma_value_t result = ecma_op_create_number_object (value);
-  ecma_free_value (value);
+  ecma_value_t result = ecma_op_create_number_object (context_p, value);
+  ecma_free_value (context_p, value);
   return result;
 #else /* !JJS_BUILTIN_BIGINT */
-  return ecma_op_create_number_object (arguments_list_p[0]);
+  return ecma_op_create_number_object (context_p, arguments_list_p[0]);
 #endif /* JJS_BUILTIN_BIGINT */
 } /* ecma_builtin_number_dispatch_construct */
 
@@ -164,7 +166,8 @@ ecma_builtin_number_dispatch_construct (const ecma_value_t *arguments_list_p, /*
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_number_object_is_integer_helper (ecma_value_t arg, /**< routine's argument */
+ecma_builtin_number_object_is_integer_helper (ecma_context_t *context_p, /**< JJS context */
+                                              ecma_value_t arg, /**< routine's argument */
                                               ecma_number_t num, /**< this number */
                                               bool is_safe) /**< is the number safe */
 {
@@ -186,7 +189,7 @@ ecma_builtin_number_object_is_integer_helper (ecma_value_t arg, /**< routine's a
   }
   else
   {
-    ecma_op_to_integer (arg, &int_num);
+    ecma_op_to_integer (context_p, arg, &int_num);
   }
 
   return (int_num == num) ? ECMA_VALUE_TRUE : ECMA_VALUE_FALSE;
@@ -199,7 +202,8 @@ ecma_builtin_number_object_is_integer_helper (ecma_value_t arg, /**< routine's a
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_number_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_number_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                      uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                       ecma_value_t this_arg, /**< 'this' argument value */
                                       const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                               *   passed to routine */
@@ -212,7 +216,7 @@ ecma_builtin_number_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
     return ECMA_VALUE_FALSE;
   }
 
-  ecma_number_t num = ecma_get_number_from_value (arguments_list_p[0]);
+  ecma_number_t num = ecma_get_number_from_value (context_p, arguments_list_p[0]);
 
   switch (builtin_routine_id)
   {
@@ -228,7 +232,7 @@ ecma_builtin_number_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
     case ECMA_NUMBER_OBJECT_ROUTINE_IS_SAFE_INTEGER:
     {
       bool is_safe = (builtin_routine_id == ECMA_NUMBER_OBJECT_ROUTINE_IS_SAFE_INTEGER);
-      return ecma_builtin_number_object_is_integer_helper (arguments_list_p[0], num, is_safe);
+      return ecma_builtin_number_object_is_integer_helper (context_p, arguments_list_p[0], num, is_safe);
     }
     default:
     {

@@ -35,7 +35,7 @@ annex_vmod_exists_handler (const jjs_call_info_t *call_info_p, const jjs_value_t
 static jjs_value_t
 annex_vmod_remove_handler (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], jjs_length_t args_count);
 static jjs_value_t annex_vmod_entry_exports (jjs_context_t* context_p, jjs_value_t entry);
-static void annex_vmod_entry_update (jjs_value_t entry, jjs_value_t exports);
+static void annex_vmod_entry_update (jjs_context_t *context_p, jjs_value_t entry, jjs_value_t exports);
 static bool annex_vmod_entry_is_ready (jjs_context_t *context_p, jjs_value_t entry);
 static jjs_value_t annex_vmod_entry_new (jjs_context_t* context_p, bool ready, jjs_value_t exports);
 static jjs_value_t annex_vmod_get_exports_from_config (jjs_context_t* context_p, jjs_value_t config);
@@ -241,7 +241,7 @@ jjs_annex_vmod_create_api (jjs_context_t* context_p)
 jjs_value_t
 jjs_annex_vmod_resolve (jjs_context_t* context_p, jjs_value_t name)
 {
-  ecma_value_t entry = ecma_find_own_v (ecma_get_global_object (context_p)->vmod_cache, name);
+  ecma_value_t entry = ecma_find_own_v (context_p, ecma_get_global_object (context_p)->vmod_cache, name);
 
   if (!ecma_is_value_found (entry))
   {
@@ -265,7 +265,7 @@ jjs_annex_vmod_resolve (jjs_context_t* context_p, jjs_value_t name)
 
   if (!jjs_value_is_exception (context_p, exports))
   {
-    annex_vmod_entry_update (entry, exports);
+    annex_vmod_entry_update (context_p, entry, exports);
   }
 
   jjs_value_free (context_p, function);
@@ -278,7 +278,7 @@ jjs_annex_vmod_resolve (jjs_context_t* context_p, jjs_value_t name)
 bool
 jjs_annex_vmod_exists (jjs_context_t* context_p, jjs_value_t name)
 {
-  return jjs_value_is_string (context_p, name) && ecma_has_own_v (ecma_get_global_object (context_p)->vmod_cache, name);
+  return jjs_value_is_string (context_p, name) && ecma_has_own_v (context_p, ecma_get_global_object (context_p)->vmod_cache, name);
 } /* jjs_annex_vmod_exists */
 
 static jjs_value_t
@@ -286,8 +286,8 @@ annex_vmod_entry_new (jjs_context_t* context_p, bool ready, jjs_value_t exports)
 {
   jjs_value_t array = jjs_array (context_p, 2);
 
-  ecma_set_index_v (array, 0, ecma_make_boolean_value (ready));
-  ecma_set_index_v (array, 1, exports);
+  ecma_set_index_v (context_p, array, 0, ecma_make_boolean_value (ready));
+  ecma_set_index_v (context_p, array, 1, exports);
 
   return array;
 } /* annex_vmod_entry_new */
@@ -317,10 +317,10 @@ annex_vmod_entry_exports (jjs_context_t* context_p, jjs_value_t entry)
 } /* annex_vmod_entry_exports */
 
 static void
-annex_vmod_entry_update (jjs_value_t entry, jjs_value_t exports)
+annex_vmod_entry_update (jjs_context_t *context_p, jjs_value_t entry, jjs_value_t exports)
 {
-  ecma_set_index_v (entry, 0, ECMA_VALUE_TRUE);
-  ecma_set_index_v (entry, 1, exports);
+  ecma_set_index_v (context_p, entry, 0, ECMA_VALUE_TRUE);
+  ecma_set_index_v (context_p, entry, 1, exports);
 } /* annex_vmod_entry_update */
 
 static void
@@ -341,7 +341,7 @@ annex_vmod_new (jjs_context_t* context_p, jjs_value_t name, jjs_value_t value)
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "vmod name arg must be a valid package name");
   }
 
-  if (ecma_has_own_v (vmod_cache, name))
+  if (ecma_has_own_v (context_p, vmod_cache, name))
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "vmod name has already been registered");
   }
@@ -350,7 +350,7 @@ annex_vmod_new (jjs_context_t* context_p, jjs_value_t name, jjs_value_t value)
   {
     jjs_value_t entry = annex_vmod_entry_new (context_p, false, value);
 
-    ecma_set_v (vmod_cache, name, entry);
+    ecma_set_v (vmod_cache, context_p, name, entry);
     jjs_value_free (context_p, entry);
   }
   else if (ecma_is_value_object (value))
@@ -364,7 +364,7 @@ annex_vmod_new (jjs_context_t* context_p, jjs_value_t name, jjs_value_t value)
 
     jjs_value_t entry = annex_vmod_entry_new (context_p, true, exports);
 
-    ecma_set_v (vmod_cache, name, entry);
+    ecma_set_v (vmod_cache, context_p, name, entry);
 
     jjs_value_free (context_p, entry);
     jjs_value_free (context_p, exports);
@@ -415,7 +415,7 @@ annex_vmod_get_exports_from_config (jjs_context_t* context_p, jjs_value_t config
   }
 
   // format string -> format enum
-  ecma_value_t format = ecma_find_own_m (config, LIT_MAGIC_STRING_FORMAT);
+  ecma_value_t format = ecma_find_own_m (context_p, config, LIT_MAGIC_STRING_FORMAT);
   jjs_annex_vmod_format_t format_type;
 
   if (format == ECMA_VALUE_NOT_FOUND)
@@ -455,7 +455,7 @@ annex_vmod_get_exports_from_config (jjs_context_t* context_p, jjs_value_t config
   {
     case JJS_ANNEX_VMOD_FORMAT_OBJECT:
     {
-      ecma_value_t exports = ecma_find_own_m (config, LIT_MAGIC_STRING_EXPORTS);
+      ecma_value_t exports = ecma_find_own_m (context_p, config, LIT_MAGIC_STRING_EXPORTS);
 
       if (exports == ECMA_VALUE_NOT_FOUND)
       {

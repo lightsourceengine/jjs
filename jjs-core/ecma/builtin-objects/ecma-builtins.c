@@ -54,14 +54,17 @@ typedef const ecma_builtin_property_descriptor_t *ecma_builtin_property_list_ref
 /**
  * Definition of built-in dispatch routine function pointer.
  */
-typedef ecma_value_t (*ecma_builtin_dispatch_routine_t) (uint8_t builtin_routine_id,
+typedef ecma_value_t (*ecma_builtin_dispatch_routine_t) (ecma_context_t *context_p,
+                                                         uint8_t builtin_routine_id,
                                                          ecma_value_t this_arg,
                                                          const ecma_value_t arguments_list[],
                                                          uint32_t arguments_number);
 /**
  * Definition of built-in dispatch call function pointer.
  */
-typedef ecma_value_t (*ecma_builtin_dispatch_call_t) (const ecma_value_t arguments_list[], uint32_t arguments_number);
+typedef ecma_value_t (*ecma_builtin_dispatch_call_t) (ecma_context_t *context_p,
+                                                      const ecma_value_t arguments_list[],
+                                                      uint32_t arguments_number);
 /**
  * Definition of a builtin descriptor which contains the builtin object's:
  * - prototype objects's id (13-bits)
@@ -233,8 +236,11 @@ ecma_builtin_get_property_count (ecma_builtin_id_t builtin_id) /**< built-in ID 
  *         false - otherwise
  */
 bool
-ecma_builtin_is_global (ecma_object_t *object_p) /**< pointer to an object */
+ecma_builtin_is_global (ecma_context_t *context_p, /**< JJS context */
+                        ecma_object_t *object_p) /**< pointer to an object */
 {
+  JJS_UNUSED (context_p);
+
   return (ecma_get_object_type (object_p) == ECMA_OBJECT_TYPE_BUILT_IN_GENERAL
           && ((ecma_extended_object_t *) object_p)->u.built_in.id == ECMA_BUILTIN_ID_GLOBAL);
 } /* ecma_builtin_is_global */
@@ -262,8 +268,10 @@ ecma_builtin_get_global (ecma_context_t *context_p) /**< JJS context */
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_ALWAYS_INLINE
-ecma_builtin_function_is_routine (ecma_object_t *func_obj_p) /**< function object */
+ecma_builtin_function_is_routine (ecma_context_t *context_p, /**< JJS context */
+                                  ecma_object_t *func_obj_p) /**< function object */
 {
+  JJS_UNUSED (context_p);
   JJS_ASSERT (ecma_get_object_type (func_obj_p) == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION);
 
   ecma_extended_object_t *ext_func_obj_p = (ecma_extended_object_t *) func_obj_p;
@@ -281,7 +289,8 @@ ecma_builtin_function_is_routine (ecma_object_t *func_obj_p) /**< function objec
  * @return pointer to the global object
  */
 static ecma_global_object_t *
-ecma_builtin_get_realm (ecma_object_t *builtin_object_p) /**< built-in object */
+ecma_builtin_get_realm (ecma_context_t *context_p, /**< JJS context */
+                        ecma_object_t *builtin_object_p) /**< built-in object */
 {
   ecma_object_type_t object_type = ecma_get_object_type (builtin_object_p);
   ecma_value_t realm_value;
@@ -298,7 +307,7 @@ ecma_builtin_get_realm (ecma_object_t *builtin_object_p) /**< built-in object */
     realm_value = ((ecma_extended_object_t *) builtin_object_p)->u.built_in.realm_value;
   }
 
-  return ECMA_GET_INTERNAL_VALUE_POINTER (ecma_global_object_t, realm_value);
+  return ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_global_object_t, realm_value);
 } /* ecma_builtin_get_realm */
 
 #endif /* JJS_BUILTIN_REALMS */
@@ -309,7 +318,8 @@ ecma_builtin_get_realm (ecma_object_t *builtin_object_p) /**< built-in object */
  * @return the newly instantiated built-in
  */
 static ecma_object_t *
-ecma_instantiate_builtin (ecma_global_object_t *global_object_p, /**< global object */
+ecma_instantiate_builtin (ecma_context_t *context_p, /**< JJS context */
+                          ecma_global_object_t *global_object_p, /**< global object */
                           ecma_builtin_id_t obj_builtin_id) /**< built-in id */
 {
   jmem_cpointer_t *builtin_objects = global_object_p->builtin_objects;
@@ -330,9 +340,9 @@ ecma_instantiate_builtin (ecma_global_object_t *global_object_p, /**< global obj
   {
     if (builtin_objects[object_prototype_builtin_id] == JMEM_CP_NULL)
     {
-      ecma_instantiate_builtin (global_object_p, object_prototype_builtin_id);
+      ecma_instantiate_builtin (context_p, global_object_p, object_prototype_builtin_id);
     }
-    prototype_obj_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, builtin_objects[object_prototype_builtin_id]);
+    prototype_obj_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, builtin_objects[object_prototype_builtin_id]);
     JJS_ASSERT (prototype_obj_p != NULL);
   }
 
@@ -357,11 +367,11 @@ ecma_instantiate_builtin (ecma_global_object_t *global_object_p, /**< global obj
     ext_object_size += sizeof (uint64_t);
   }
 
-  ecma_object_t *obj_p = ecma_create_object (prototype_obj_p, ext_object_size, obj_type);
+  ecma_object_t *obj_p = ecma_create_object (context_p, prototype_obj_p, ext_object_size, obj_type);
 
   if (JJS_UNLIKELY (obj_builtin_id == ECMA_BUILTIN_ID_TYPE_ERROR_THROWER))
   {
-    ecma_op_ordinary_object_prevent_extensions (obj_p);
+    ecma_op_ordinary_object_prevent_extensions (context_p, obj_p);
   }
   else
   {
@@ -390,7 +400,7 @@ ecma_instantiate_builtin (ecma_global_object_t *global_object_p, /**< global obj
   built_in_props_p->u.length_and_bitset_size = 0;
   built_in_props_p->u2.instantiated_bitset[0] = 0;
 #if JJS_BUILTIN_REALMS
-  ECMA_SET_INTERNAL_VALUE_POINTER (built_in_props_p->realm_value, global_object_p);
+  ECMA_SET_INTERNAL_VALUE_POINTER (context_p, built_in_props_p->realm_value, global_object_p);
 #else /* !JJS_BUILTIN_REALMS */
   built_in_props_p->continue_instantiated_bitset[0] = 0;
 #endif /* JJS_BUILTIN_REALMS */
@@ -462,7 +472,7 @@ ecma_instantiate_builtin (ecma_global_object_t *global_object_p, /**< global obj
     }
   }
 
-  ECMA_SET_NON_NULL_POINTER (builtin_objects[obj_builtin_id], obj_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, builtin_objects[obj_builtin_id], obj_p);
   ecma_deref_object (obj_p);
   return obj_p;
 } /* ecma_instantiate_builtin */
@@ -473,7 +483,7 @@ ecma_instantiate_builtin (ecma_global_object_t *global_object_p, /**< global obj
  * @return a new global object
  */
 ecma_global_object_t *
-ecma_builtin_create_global_object (void)
+ecma_builtin_create_global_object (ecma_context_t *context_p) /**< JJS context */
 {
   ecma_builtin_descriptor_t builtin_desc = ecma_builtin_descriptors[ECMA_BUILTIN_ID_GLOBAL];
   ecma_builtin_id_t prototype_builtin_id = (ecma_builtin_id_t) (builtin_desc >> ECMA_BUILTIN_PROTOTYPE_ID_SHIFT);
@@ -492,7 +502,7 @@ ecma_builtin_create_global_object (void)
   JJS_ASSERT (property_count <= ECMA_BUILTIN_INSTANTIATED_BITSET_MIN_SIZE + 32);
 #endif /* JJS_BUILTIN_REALMS */
 
-  ecma_object_t *object_p = ecma_create_object (NULL, sizeof (ecma_global_object_t), obj_type);
+  ecma_object_t *object_p = ecma_create_object (context_p, NULL, sizeof (ecma_global_object_t), obj_type);
 
   ecma_op_ordinary_object_set_extensible (object_p);
 
@@ -517,9 +527,9 @@ ecma_builtin_create_global_object (void)
   global_object_p->extended_object.u.built_in.u2.instantiated_bitset[0] = 0;
   global_object_p->extra_instantiated_bitset[0] = 0;
 #if JJS_BUILTIN_REALMS
-  ECMA_SET_INTERNAL_VALUE_POINTER (global_object_p->extended_object.u.built_in.realm_value, global_object_p);
+  ECMA_SET_INTERNAL_VALUE_POINTER (context_p, global_object_p->extended_object.u.built_in.realm_value, global_object_p);
   global_object_p->extra_realms_bitset = 0;
-  global_object_p->this_binding = ecma_make_object_value (object_p);
+  global_object_p->this_binding = ecma_make_object_value (context_p, object_p);
 #else /* !JJS_BUILTIN_REALMS */
   global_object_p->extended_object.u.built_in.continue_instantiated_bitset[0] = 0;
 #endif /* JJS_BUILTIN_REALMS */
@@ -527,21 +537,21 @@ ecma_builtin_create_global_object (void)
   memset (global_object_p->builtin_objects, 0, (sizeof (jmem_cpointer_t) * ECMA_BUILTIN_OBJECTS_COUNT));
 
   /* Temporary self reference for GC mark. */
-  ECMA_SET_NON_NULL_POINTER (global_object_p->global_env_cp, object_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, global_object_p->global_env_cp, object_p);
   global_object_p->global_scope_cp = global_object_p->global_env_cp;
 
-  ecma_object_t *global_lex_env_p = ecma_create_object_lex_env (NULL, object_p);
+  ecma_object_t *global_lex_env_p = ecma_create_object_lex_env (context_p, NULL, object_p);
 
-  ECMA_SET_NON_NULL_POINTER (global_object_p->global_env_cp, global_lex_env_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, global_object_p->global_env_cp, global_lex_env_p);
   global_object_p->global_scope_cp = global_object_p->global_env_cp;
 
   ecma_deref_object (global_lex_env_p);
 
   ecma_object_t *prototype_object_p;
-  prototype_object_p = ecma_instantiate_builtin (global_object_p, prototype_builtin_id);
+  prototype_object_p = ecma_instantiate_builtin (context_p, global_object_p, prototype_builtin_id);
   JJS_ASSERT (prototype_object_p != NULL);
 
-  ECMA_SET_NON_NULL_POINTER (object_p->u2.prototype_cp, prototype_object_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, object_p->u2.prototype_cp, prototype_object_p);
 
   return global_object_p;
 } /* ecma_builtin_create_global_object */
@@ -555,19 +565,20 @@ ecma_builtin_create_global_object (void)
  * @return pointer to the object's instance
  */
 ecma_object_t *
-ecma_builtin_get (ecma_builtin_id_t builtin_id) /**< id of built-in to check on */
+ecma_builtin_get (ecma_context_t *context_p, /**< JJS context */
+                  ecma_builtin_id_t builtin_id) /**< id of built-in to check on */
 {
   JJS_ASSERT (builtin_id < ECMA_BUILTIN_OBJECTS_COUNT);
 
-  ecma_global_object_t *global_object_p = (ecma_global_object_t *) ecma_builtin_get_global ();
+  ecma_global_object_t *global_object_p = (ecma_global_object_t *) ecma_builtin_get_global (context_p);
   jmem_cpointer_t *builtin_p = global_object_p->builtin_objects + builtin_id;
 
   if (JJS_UNLIKELY (*builtin_p == JMEM_CP_NULL))
   {
-    return ecma_instantiate_builtin (global_object_p, builtin_id);
+    return ecma_instantiate_builtin (context_p, global_object_p, builtin_id);
   }
 
-  return ECMA_GET_NON_NULL_POINTER (ecma_object_t, *builtin_p);
+  return ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, *builtin_p);
 } /* ecma_builtin_get */
 
 #if JJS_BUILTIN_REALMS
@@ -581,7 +592,8 @@ ecma_builtin_get (ecma_builtin_id_t builtin_id) /**< id of built-in to check on 
  * @return pointer to the object's instance
  */
 ecma_object_t *
-ecma_builtin_get_from_realm (ecma_global_object_t *global_object_p, /**< global object */
+ecma_builtin_get_from_realm (ecma_context_t *context_p, /**< JJS context */
+                             ecma_global_object_t *global_object_p, /**< global object */
                              ecma_builtin_id_t builtin_id) /**< id of built-in to check on */
 {
   JJS_ASSERT (builtin_id < ECMA_BUILTIN_OBJECTS_COUNT);
@@ -590,10 +602,10 @@ ecma_builtin_get_from_realm (ecma_global_object_t *global_object_p, /**< global 
 
   if (JJS_UNLIKELY (*builtin_p == JMEM_CP_NULL))
   {
-    return ecma_instantiate_builtin (global_object_p, builtin_id);
+    return ecma_instantiate_builtin (context_p, global_object_p, builtin_id);
   }
 
-  return ECMA_GET_NON_NULL_POINTER (ecma_object_t, *builtin_p);
+  return ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, *builtin_p);
 } /* ecma_builtin_get_from_realm */
 
 #endif /* JJS_BUILTIN_REALMS */
@@ -607,16 +619,17 @@ ecma_builtin_get_from_realm (ecma_global_object_t *global_object_p, /**< global 
  * @return pointer to the object's instance
  */
 static inline ecma_object_t *JJS_ATTR_ALWAYS_INLINE
-ecma_builtin_get_from_builtin (ecma_object_t *builtin_object_p, /**< built-in object */
+ecma_builtin_get_from_builtin (ecma_context_t *context_p, /**< JJS context */
+                               ecma_object_t *builtin_object_p, /**< built-in object */
                                ecma_builtin_id_t builtin_id) /**< id of built-in to check on */
 {
   JJS_ASSERT (builtin_id < ECMA_BUILTIN_OBJECTS_COUNT);
 
 #if JJS_BUILTIN_REALMS
-  return ecma_builtin_get_from_realm (ecma_builtin_get_realm (builtin_object_p), builtin_id);
+  return ecma_builtin_get_from_realm (context_p, ecma_builtin_get_realm (context_p, builtin_object_p), builtin_id);
 #else /* !JJS_BUILTIN_REALMS */
   JJS_UNUSED (builtin_object_p);
-  return ecma_builtin_get (builtin_id);
+  return ecma_builtin_get (context_p, builtin_id);
 #endif /* JJS_BUILTIN_REALMS */
 } /* ecma_builtin_get_from_builtin */
 
@@ -628,17 +641,18 @@ ecma_builtin_get_from_builtin (ecma_object_t *builtin_object_p, /**< built-in ob
  * @return pointer to constructed Function object
  */
 static ecma_object_t *
-ecma_builtin_make_function_object_for_routine (ecma_object_t *builtin_object_p, /**< builtin object */
+ecma_builtin_make_function_object_for_routine (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_object_t *builtin_object_p, /**< builtin object */
                                                uint8_t routine_id, /**< builtin-wide identifier of the built-in
                                                                     *   object's routine property */
                                                uint32_t routine_index, /**< property descriptor index of routine */
                                                uint8_t flags) /**< see also: ecma_builtin_routine_flags */
 {
-  ecma_object_t *prototype_obj_p = ecma_builtin_get_from_builtin (builtin_object_p, ECMA_BUILTIN_ID_FUNCTION_PROTOTYPE);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get_from_builtin (context_p, builtin_object_p, ECMA_BUILTIN_ID_FUNCTION_PROTOTYPE);
 
   size_t ext_object_size = sizeof (ecma_extended_object_t);
 
-  ecma_object_t *func_obj_p = ecma_create_object (prototype_obj_p, ext_object_size, ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION);
+  ecma_object_t *func_obj_p = ecma_create_object (context_p, prototype_obj_p, ext_object_size, ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION);
 
   JJS_ASSERT (routine_id > 0);
   JJS_ASSERT (routine_index <= UINT8_MAX);
@@ -673,13 +687,15 @@ ecma_builtin_make_function_object_for_routine (ecma_object_t *builtin_object_p, 
  * @return pointer to constructed accessor getter Function object
  */
 static ecma_object_t *
-ecma_builtin_make_function_object_for_getter_accessor (ecma_object_t *builtin_object_p, /**< builtin object */
+ecma_builtin_make_function_object_for_getter_accessor (ecma_context_t *context_p, /**< JJS context */
+                                                       ecma_object_t *builtin_object_p, /**< builtin object */
                                                        uint8_t routine_id, /**< builtin-wide id of the built-in
                                                                             *   object's routine property */
                                                        uint32_t routine_index) /**< property descriptor index
                                                                                 *   of routine */
 {
-  return ecma_builtin_make_function_object_for_routine (builtin_object_p,
+  return ecma_builtin_make_function_object_for_routine (context_p,
+                                                        builtin_object_p,
                                                         routine_id,
                                                         routine_index,
                                                         ECMA_BUILTIN_ROUTINE_GETTER);
@@ -691,13 +707,15 @@ ecma_builtin_make_function_object_for_getter_accessor (ecma_object_t *builtin_ob
  * @return pointer to constructed accessor getter Function object
  */
 static ecma_object_t *
-ecma_builtin_make_function_object_for_setter_accessor (ecma_object_t *builtin_object_p, /**< builtin object */
+ecma_builtin_make_function_object_for_setter_accessor (ecma_context_t *context_p, /**< JJS context */
+                                                       ecma_object_t *builtin_object_p, /**< builtin object */
                                                        uint8_t routine_id, /**< builtin-wide id of the built-in
                                                                             *   object's routine property */
                                                        uint32_t routine_index) /**< property descriptor index
                                                                                 *   of routine */
 {
-  return ecma_builtin_make_function_object_for_routine (builtin_object_p,
+  return ecma_builtin_make_function_object_for_routine (context_p,
+                                                        builtin_object_p,
                                                         routine_id,
                                                         routine_index,
                                                         ECMA_BUILTIN_ROUTINE_SETTER);
@@ -710,7 +728,8 @@ ecma_builtin_make_function_object_for_setter_accessor (ecma_object_t *builtin_ob
  *         NULL - otherwise.
  */
 static ecma_property_t *
-ecma_builtin_native_handler_try_to_instantiate_property (ecma_object_t *object_p, /**< object */
+ecma_builtin_native_handler_try_to_instantiate_property (ecma_context_t *context_p, /**< JJS context */
+                                                         ecma_object_t *object_p, /**< object */
                                                          ecma_string_t *property_name_p) /**< property's name */
 {
   JJS_ASSERT (ecma_get_object_type (object_p) == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION);
@@ -723,7 +742,7 @@ ecma_builtin_native_handler_try_to_instantiate_property (ecma_object_t *object_p
     if ((ext_obj_p->u.built_in.u2.routine_flags & ECMA_NATIVE_HANDLER_FLAGS_NAME_INITIALIZED) == 0)
     {
       ecma_property_value_t *value_p =
-        ecma_create_named_data_property (object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &prop_p);
+        ecma_create_named_data_property (context_p, object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &prop_p);
 
       value_p->value = ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
     }
@@ -733,7 +752,7 @@ ecma_builtin_native_handler_try_to_instantiate_property (ecma_object_t *object_p
     if ((ext_obj_p->u.built_in.u2.routine_flags & ECMA_NATIVE_HANDLER_FLAGS_LENGTH_INITIALIZED) == 0)
     {
       ecma_property_value_t *value_p =
-        ecma_create_named_data_property (object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &prop_p);
+        ecma_create_named_data_property (context_p, object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &prop_p);
 
       const uint8_t length = ecma_builtin_handler_get_length (ext_obj_p->u.built_in.routine_id);
       value_p->value = ecma_make_integer_value (length);
@@ -753,17 +772,18 @@ ecma_builtin_native_handler_try_to_instantiate_property (ecma_object_t *object_p
  *         NULL - otherwise.
  */
 ecma_property_t *
-ecma_builtin_routine_try_to_instantiate_property (ecma_object_t *object_p, /**< object */
+ecma_builtin_routine_try_to_instantiate_property (ecma_context_t *context_p, /**< JJS context */
+                                                  ecma_object_t *object_p, /**< object */
                                                   ecma_string_t *property_name_p) /**< property name */
 {
   JJS_ASSERT (ecma_get_object_type (object_p) == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION
-                && ecma_builtin_function_is_routine (object_p));
+                && ecma_builtin_function_is_routine (context_p, object_p));
 
   ecma_extended_object_t *ext_func_p = (ecma_extended_object_t *) object_p;
 
   if (JJS_UNLIKELY (ext_func_p->u.built_in.id == ECMA_BUILTIN_ID_HANDLER))
   {
-    return ecma_builtin_native_handler_try_to_instantiate_property (object_p, property_name_p);
+    return ecma_builtin_native_handler_try_to_instantiate_property (context_p, object_p, property_name_p);
   }
 
   if (ecma_string_is_length (property_name_p))
@@ -784,7 +804,7 @@ ecma_builtin_routine_try_to_instantiate_property (ecma_object_t *object_p, /**< 
     /* We mark that the property was lazily instantiated,
      * as it is configurable and so can be deleted (ECMA-262 v6, 19.2.4.1) */
     ecma_property_value_t *len_prop_value_p =
-      ecma_create_named_data_property (object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &len_prop_p);
+      ecma_create_named_data_property (context_p, object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &len_prop_p);
 
     uint8_t length = 0;
 
@@ -824,7 +844,7 @@ ecma_builtin_routine_try_to_instantiate_property (ecma_object_t *object_p, /**< 
     /* We mark that the property was lazily instantiated */
     ecma_property_t *name_prop_p;
     ecma_property_value_t *name_prop_value_p =
-      ecma_create_named_data_property (object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &name_prop_p);
+      ecma_create_named_data_property (context_p, object_p, property_name_p, ECMA_PROPERTY_BUILT_IN_CONFIGURABLE, &name_prop_p);
 
     uint8_t routine_index = ext_func_p->u.built_in.u.routine_index;
     const ecma_builtin_property_descriptor_t *property_list_p;
@@ -854,7 +874,7 @@ ecma_builtin_routine_try_to_instantiate_property (ecma_object_t *object_p, /**< 
       else
       {
         JJS_ASSERT (LIT_IS_GLOBAL_SYMBOL (name_id));
-        name_p = ecma_op_get_global_symbol (name_id);
+        name_p = ecma_op_get_global_symbol (context_p, name_id);
       }
     }
     else
@@ -871,11 +891,11 @@ ecma_builtin_routine_try_to_instantiate_property (ecma_object_t *object_p, /**< 
       prefix_p = (*bitset_p & ECMA_BUILTIN_ROUTINE_GETTER) ? "get " : "set ";
     }
 
-    name_prop_value_p->value = ecma_op_function_form_name (name_p, prefix_p, prefix_size);
+    name_prop_value_p->value = ecma_op_function_form_name (context_p, name_p, prefix_p, prefix_size);
 
     if (JJS_UNLIKELY (name_id > LIT_NON_INTERNAL_MAGIC_STRING__COUNT))
     {
-      ecma_deref_ecma_string (name_p);
+      ecma_deref_ecma_string (context_p, name_p);
     }
 
     return name_prop_p;
@@ -893,7 +913,8 @@ ecma_builtin_routine_try_to_instantiate_property (ecma_object_t *object_p, /**< 
  *         NULL - otherwise.
  */
 ecma_property_t *
-ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object */
+ecma_builtin_try_to_instantiate_property (ecma_context_t *context_p, /**< JJS context */
+                                          ecma_object_t *object_p, /**< object */
                                           ecma_string_t *property_name_p) /**< property's name */
 {
   lit_magic_string_id_t magic_string_id = ecma_get_string_magic (property_name_p);
@@ -913,7 +934,7 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
 
   JJS_ASSERT (object_type == ECMA_OBJECT_TYPE_BUILT_IN_GENERAL || object_type == ECMA_OBJECT_TYPE_BUILT_IN_CLASS
                 || object_type == ECMA_OBJECT_TYPE_BUILT_IN_ARRAY
-                || (object_type == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION && !ecma_builtin_function_is_routine (object_p)));
+                || (object_type == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION && !ecma_builtin_function_is_routine (context_p, object_p)));
 
   if (ECMA_BUILTIN_IS_EXTENDED_BUILT_IN (object_type))
   {
@@ -973,9 +994,9 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
       if (value == ECMA_VALUE_GLOBAL_THIS)
       {
         /* Only the global object has globalThis property. */
-        JJS_ASSERT (ecma_builtin_is_global (object_p));
+        JJS_ASSERT (ecma_builtin_is_global (context_p, object_p));
         ecma_ref_object (object_p);
-        value = ecma_make_object_value (object_p);
+        value = ecma_make_object_value (context_p, object_p);
       }
 #endif /* JJS_BUILTIN_GLOBAL_THIS */
       break;
@@ -1032,7 +1053,7 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
         }
       }
 
-      value = ecma_make_number_value (num);
+      value = ecma_make_number_value (context_p, num);
       break;
     }
     case ECMA_BUILTIN_PROPERTY_STRING:
@@ -1044,13 +1065,13 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
     {
       lit_magic_string_id_t symbol_id = (lit_magic_string_id_t) curr_property_p->value;
 
-      value = ecma_make_symbol_value (ecma_op_get_global_symbol (symbol_id));
+      value = ecma_make_symbol_value (context_p, ecma_op_get_global_symbol (context_p, symbol_id));
       break;
     }
     case ECMA_BUILTIN_PROPERTY_INTRINSIC_PROPERTY:
     {
-      ecma_object_t *intrinsic_object_p = ecma_builtin_get_from_builtin (object_p, ECMA_BUILTIN_ID_INTRINSIC_OBJECT);
-      value = ecma_op_object_get_by_magic_id (intrinsic_object_p, (lit_magic_string_id_t) curr_property_p->value);
+      ecma_object_t *intrinsic_object_p = ecma_builtin_get_from_builtin (context_p, object_p, ECMA_BUILTIN_ID_INTRINSIC_OBJECT);
+      value = ecma_op_object_get_by_magic_id (context_p, intrinsic_object_p, (lit_magic_string_id_t) curr_property_p->value);
       break;
     }
     case ECMA_BUILTIN_PROPERTY_ACCESSOR_BUILTIN_FUNCTION:
@@ -1058,8 +1079,8 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
       is_accessor = true;
       uint16_t getter_id = ECMA_ACCESSOR_READ_WRITE_GET_GETTER_ID (curr_property_p->value);
       uint16_t setter_id = ECMA_ACCESSOR_READ_WRITE_GET_SETTER_ID (curr_property_p->value);
-      getter_p = ecma_builtin_get_from_builtin (object_p, getter_id);
-      setter_p = ecma_builtin_get_from_builtin (object_p, setter_id);
+      getter_p = ecma_builtin_get_from_builtin (context_p, object_p, getter_id);
+      setter_p = ecma_builtin_get_from_builtin (context_p, object_p, setter_id);
       ecma_ref_object (getter_p);
       ecma_ref_object (setter_p);
       break;
@@ -1067,19 +1088,20 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
     case ECMA_BUILTIN_PROPERTY_OBJECT:
     {
       ecma_object_t *builtin_object_p;
-      builtin_object_p = ecma_builtin_get_from_builtin (object_p, (ecma_builtin_id_t) curr_property_p->value);
+      builtin_object_p = ecma_builtin_get_from_builtin (context_p, object_p, (ecma_builtin_id_t) curr_property_p->value);
       ecma_ref_object (builtin_object_p);
-      value = ecma_make_object_value (builtin_object_p);
+      value = ecma_make_object_value (context_p, builtin_object_p);
       break;
     }
     case ECMA_BUILTIN_PROPERTY_ROUTINE:
     {
       ecma_object_t *func_obj_p;
-      func_obj_p = ecma_builtin_make_function_object_for_routine (object_p,
+      func_obj_p = ecma_builtin_make_function_object_for_routine (context_p,
+                                                                  object_p,
                                                                   ECMA_GET_ROUTINE_ID (curr_property_p->value),
                                                                   index,
                                                                   ECMA_BUILTIN_ROUTINE_NO_OPTS);
-      value = ecma_make_object_value (func_obj_p);
+      value = ecma_make_object_value (context_p, func_obj_p);
       break;
     }
     case ECMA_BUILTIN_PROPERTY_ACCESSOR_READ_WRITE:
@@ -1087,8 +1109,8 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
       is_accessor = true;
       uint8_t getter_id = ECMA_ACCESSOR_READ_WRITE_GET_GETTER_ID (curr_property_p->value);
       uint8_t setter_id = ECMA_ACCESSOR_READ_WRITE_GET_SETTER_ID (curr_property_p->value);
-      getter_p = ecma_builtin_make_function_object_for_getter_accessor (object_p, getter_id, index);
-      setter_p = ecma_builtin_make_function_object_for_setter_accessor (object_p, setter_id, index);
+      getter_p = ecma_builtin_make_function_object_for_getter_accessor (context_p, object_p, getter_id, index);
+      setter_p = ecma_builtin_make_function_object_for_setter_accessor (context_p, object_p, setter_id, index);
       break;
     }
     default:
@@ -1097,7 +1119,7 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
 
       is_accessor = true;
       uint8_t getter_id = (uint8_t) curr_property_p->value;
-      getter_p = ecma_builtin_make_function_object_for_getter_accessor (object_p, getter_id, index);
+      getter_p = ecma_builtin_make_function_object_for_getter_accessor (context_p, object_p, getter_id, index);
       break;
     }
   }
@@ -1108,7 +1130,8 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
 
   if (is_accessor)
   {
-    ecma_create_named_accessor_property (object_p,
+    ecma_create_named_accessor_property (context_p,
+                                         object_p,
                                          property_name_p,
                                          getter_p,
                                          setter_p,
@@ -1127,11 +1150,11 @@ ecma_builtin_try_to_instantiate_property (ecma_object_t *object_p, /**< object *
   else
   {
     ecma_property_value_t *prop_value_p =
-      ecma_create_named_data_property (object_p, property_name_p, curr_property_p->attributes, &prop_p);
+      ecma_create_named_data_property (context_p, object_p, property_name_p, curr_property_p->attributes, &prop_p);
     prop_value_p->value = value;
 
     /* Reference count of objects must be decreased. */
-    ecma_deref_if_object (value);
+    ecma_deref_if_object (context_p, value);
   }
 
   return prop_p;
@@ -1164,11 +1187,12 @@ ecma_builtin_native_handler_delete_built_in_property (ecma_object_t *object_p, /
  * Delete configurable properties of built-in routines.
  */
 void
-ecma_builtin_routine_delete_built_in_property (ecma_object_t *object_p, /**< object */
+ecma_builtin_routine_delete_built_in_property (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_object_t *object_p, /**< object */
                                                ecma_string_t *property_name_p) /**< property name */
 {
   JJS_ASSERT (ecma_get_object_type (object_p) == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION
-                && ecma_builtin_function_is_routine (object_p));
+                && ecma_builtin_function_is_routine (context_p, object_p));
 
   ecma_extended_object_t *extended_obj_p = (ecma_extended_object_t *) object_p;
 
@@ -1198,7 +1222,8 @@ ecma_builtin_routine_delete_built_in_property (ecma_object_t *object_p, /**< obj
  * Delete configurable properties of built-ins.
  */
 void
-ecma_builtin_delete_built_in_property (ecma_object_t *object_p, /**< object */
+ecma_builtin_delete_built_in_property (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_object_t *object_p, /**< object */
                                        ecma_string_t *property_name_p) /**< property name */
 {
   lit_magic_string_id_t magic_string_id = ecma_get_string_magic (property_name_p);
@@ -1216,7 +1241,7 @@ ecma_builtin_delete_built_in_property (ecma_object_t *object_p, /**< object */
 
   JJS_ASSERT (object_type == ECMA_OBJECT_TYPE_BUILT_IN_GENERAL || object_type == ECMA_OBJECT_TYPE_BUILT_IN_CLASS
                 || object_type == ECMA_OBJECT_TYPE_BUILT_IN_ARRAY
-                || (object_type == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION && !ecma_builtin_function_is_routine (object_p)));
+                || (object_type == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION && !ecma_builtin_function_is_routine (context_p, object_p)));
 
   if (ECMA_BUILTIN_IS_EXTENDED_BUILT_IN (object_type))
   {
@@ -1261,7 +1286,8 @@ ecma_builtin_delete_built_in_property (ecma_object_t *object_p, /**< object */
  * adding them to corresponding string collections
  */
 static void
-ecma_builtin_native_handler_list_lazy_property_names (ecma_object_t *object_p, /**< function object */
+ecma_builtin_native_handler_list_lazy_property_names (ecma_context_t *context_p, /**< JJS context */
+                                                      ecma_object_t *object_p, /**< function object */
                                                       ecma_collection_t *prop_names_p, /**< prop name collection */
                                                       ecma_property_counter_t *prop_counter_p) /**< prop counter */
 {
@@ -1270,13 +1296,13 @@ ecma_builtin_native_handler_list_lazy_property_names (ecma_object_t *object_p, /
 
   if ((ext_obj_p->u.built_in.u2.routine_flags & ECMA_NATIVE_HANDLER_FLAGS_NAME_INITIALIZED) == 0)
   {
-    ecma_collection_push_back (prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_NAME));
+    ecma_collection_push_back (context_p, prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_NAME));
     prop_counter_p->string_named_props++;
   }
 
   if ((ext_obj_p->u.built_in.u2.routine_flags & ECMA_NATIVE_HANDLER_FLAGS_LENGTH_INITIALIZED) == 0)
   {
-    ecma_collection_push_back (prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
+    ecma_collection_push_back (context_p, prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
     prop_counter_p->string_named_props++;
   }
 } /* ecma_builtin_native_handler_list_lazy_property_names */
@@ -1288,13 +1314,14 @@ ecma_builtin_native_handler_list_lazy_property_names (ecma_object_t *object_p, /
  *          ecma_builtin_routine_try_to_instantiate_property
  */
 void
-ecma_builtin_routine_list_lazy_property_names (ecma_object_t *object_p, /**< a built-in object */
+ecma_builtin_routine_list_lazy_property_names (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_object_t *object_p, /**< a built-in object */
                                                ecma_collection_t *prop_names_p, /**< prop name collection */
                                                ecma_property_counter_t *prop_counter_p, /**< property counters */
                                                jjs_property_filter_t filter) /**< name filters */
 {
   JJS_ASSERT (ecma_get_object_type (object_p) == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION);
-  JJS_ASSERT (ecma_builtin_function_is_routine (object_p));
+  JJS_ASSERT (ecma_builtin_function_is_routine (context_p, object_p));
 
   if (filter & JJS_PROPERTY_FILTER_EXCLUDE_STRINGS)
   {
@@ -1305,20 +1332,20 @@ ecma_builtin_routine_list_lazy_property_names (ecma_object_t *object_p, /**< a b
 
   if (JJS_UNLIKELY (ext_func_p->u.built_in.id == ECMA_BUILTIN_ID_HANDLER))
   {
-    ecma_builtin_native_handler_list_lazy_property_names (object_p, prop_names_p, prop_counter_p);
+    ecma_builtin_native_handler_list_lazy_property_names (context_p, object_p, prop_names_p, prop_counter_p);
     return;
   }
 
   if (!(ext_func_p->u.built_in.u2.routine_flags & ECMA_BUILTIN_ROUTINE_LENGTH_INITIALIZED))
   {
     /* Unintialized 'length' property is non-enumerable (ECMA-262 v6, 19.2.4.1) */
-    ecma_collection_push_back (prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
+    ecma_collection_push_back (context_p, prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
     prop_counter_p->string_named_props++;
   }
   if (!(ext_func_p->u.built_in.u2.routine_flags & ECMA_BUILTIN_ROUTINE_NAME_INITIALIZED))
   {
     /* Unintialized 'name' property is non-enumerable (ECMA-262 v6, 19.2.4.2) */
-    ecma_collection_push_back (prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_NAME));
+    ecma_collection_push_back (context_p, prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_NAME));
     prop_counter_p->string_named_props++;
   }
 } /* ecma_builtin_routine_list_lazy_property_names */
@@ -1330,13 +1357,14 @@ ecma_builtin_routine_list_lazy_property_names (ecma_object_t *object_p, /**< a b
  *          ecma_builtin_try_to_instantiate_property
  */
 void
-ecma_builtin_list_lazy_property_names (ecma_object_t *object_p, /**< a built-in object */
+ecma_builtin_list_lazy_property_names (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_object_t *object_p, /**< a built-in object */
                                        ecma_collection_t *prop_names_p, /**< prop name collection */
                                        ecma_property_counter_t *prop_counter_p, /**< property counters */
                                        jjs_property_filter_t filter) /**< name filters */
 {
   JJS_ASSERT (ecma_get_object_type (object_p) != ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION
-                || !ecma_builtin_function_is_routine (object_p));
+                || !ecma_builtin_function_is_routine (context_p, object_p));
 
   ecma_built_in_props_t *built_in_props_p;
   ecma_object_type_t object_type = ecma_get_object_type (object_p);
@@ -1386,7 +1414,7 @@ ecma_builtin_list_lazy_property_names (ecma_object_t *object_p, /**< a built-in 
         if (JJS_LIKELY (curr_property_p->magic_string_id < LIT_NON_INTERNAL_MAGIC_STRING__COUNT))
         {
           ecma_value_t name = ecma_make_magic_string_value ((lit_magic_string_id_t) curr_property_p->magic_string_id);
-          ecma_collection_push_back (prop_names_p, name);
+          ecma_collection_push_back (context_p, prop_names_p, name);
           prop_counter_p->string_named_props++;
         }
         else
@@ -1419,8 +1447,8 @@ ecma_builtin_list_lazy_property_names (ecma_object_t *object_p, /**< a built-in 
 
       if (curr_property_p->magic_string_id > LIT_NON_INTERNAL_MAGIC_STRING__COUNT && !(bitset & bit_for_index))
       {
-        ecma_string_t *name_p = ecma_op_get_global_symbol (curr_property_p->magic_string_id);
-        ecma_collection_push_back (prop_names_p, ecma_make_symbol_value (name_p));
+        ecma_string_t *name_p = ecma_op_get_global_symbol (context_p, curr_property_p->magic_string_id);
+        ecma_collection_push_back (context_p, prop_names_p, ecma_make_symbol_value (context_p, name_p));
         prop_counter_p->symbol_named_props++;
       }
 
@@ -1437,12 +1465,13 @@ ecma_builtin_list_lazy_property_names (ecma_object_t *object_p, /**< a built-in 
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_dispatch_routine (ecma_extended_object_t *func_obj_p, /**< builtin object */
+ecma_builtin_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                               ecma_extended_object_t *func_obj_p, /**< builtin object */
                                ecma_value_t this_arg_value, /**< 'this' argument value */
                                const ecma_value_t *arguments_list_p, /**< list of arguments passed to routine */
                                uint32_t arguments_list_len) /**< length of arguments' list */
 {
-  JJS_ASSERT (ecma_builtin_function_is_routine ((ecma_object_t *) func_obj_p));
+  JJS_ASSERT (ecma_builtin_function_is_routine (context_p, (ecma_object_t *) func_obj_p));
 
   ecma_value_t padded_arguments_list_p[3] = { ECMA_VALUE_UNDEFINED, ECMA_VALUE_UNDEFINED, ECMA_VALUE_UNDEFINED };
 
@@ -1469,7 +1498,8 @@ ecma_builtin_dispatch_routine (ecma_extended_object_t *func_obj_p, /**< builtin 
     arguments_list_p = padded_arguments_list_p;
   }
 
-  return ecma_builtin_routines[func_obj_p->u.built_in.id](func_obj_p->u.built_in.routine_id,
+  return ecma_builtin_routines[func_obj_p->u.built_in.id](context_p,
+                                                          func_obj_p->u.built_in.routine_id,
                                                           this_arg_value,
                                                           arguments_list_p,
                                                           arguments_list_len);
@@ -1481,7 +1511,8 @@ ecma_builtin_dispatch_routine (ecma_extended_object_t *func_obj_p, /**< builtin 
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_dispatch_call (ecma_object_t *obj_p, /**< built-in object */
+ecma_builtin_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                            ecma_object_t *obj_p, /**< built-in object */
                             ecma_value_t this_arg_value, /**< 'this' argument value */
                             const ecma_value_t *arguments_list_p, /**< arguments list */
                             uint32_t arguments_list_len) /**< arguments list length */
@@ -1490,20 +1521,20 @@ ecma_builtin_dispatch_call (ecma_object_t *obj_p, /**< built-in object */
 
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
 
-  if (ecma_builtin_function_is_routine (obj_p))
+  if (ecma_builtin_function_is_routine (context_p, obj_p))
   {
     if (JJS_UNLIKELY (ext_obj_p->u.built_in.id == ECMA_BUILTIN_ID_HANDLER))
     {
       ecma_builtin_handler_t handler = ecma_builtin_handler_get (ext_obj_p->u.built_in.routine_id);
-      return handler (obj_p, arguments_list_p, arguments_list_len);
+      return handler (context_p, obj_p, arguments_list_p, arguments_list_len);
     }
 
-    return ecma_builtin_dispatch_routine (ext_obj_p, this_arg_value, arguments_list_p, arguments_list_len);
+    return ecma_builtin_dispatch_routine (context_p, ext_obj_p, this_arg_value, arguments_list_p, arguments_list_len);
   }
 
   ecma_builtin_id_t builtin_object_id = ext_obj_p->u.built_in.id;
   JJS_ASSERT (builtin_object_id < sizeof (ecma_builtin_call_functions) / sizeof (ecma_builtin_dispatch_call_t));
-  return ecma_builtin_call_functions[builtin_object_id](arguments_list_p, arguments_list_len);
+  return ecma_builtin_call_functions[builtin_object_id](context_p, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_dispatch_call */
 
 /**
@@ -1512,22 +1543,23 @@ ecma_builtin_dispatch_call (ecma_object_t *obj_p, /**< built-in object */
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_dispatch_construct (ecma_object_t *obj_p, /**< built-in object */
+ecma_builtin_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_object_t *obj_p, /**< built-in object */
                                  const ecma_value_t *arguments_list_p, /**< arguments list */
                                  uint32_t arguments_list_len) /**< arguments list length */
 {
   JJS_ASSERT (ecma_get_object_type (obj_p) == ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION);
 
-  if (ecma_builtin_function_is_routine (obj_p))
+  if (ecma_builtin_function_is_routine (context_p, obj_p))
   {
-    return ecma_raise_type_error (ECMA_ERR_BULTIN_ROUTINES_HAVE_NO_CONSTRUCTOR);
+    return ecma_raise_type_error (context_p, ECMA_ERR_BULTIN_ROUTINES_HAVE_NO_CONSTRUCTOR);
   }
 
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
   ecma_builtin_id_t builtin_object_id = ext_obj_p->u.built_in.id;
   JJS_ASSERT (builtin_object_id < sizeof (ecma_builtin_construct_functions) / sizeof (ecma_builtin_dispatch_call_t));
 
-  return ecma_builtin_construct_functions[builtin_object_id](arguments_list_p, arguments_list_len);
+  return ecma_builtin_construct_functions[builtin_object_id](context_p, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_dispatch_construct */
 
 /**

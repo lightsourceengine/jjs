@@ -42,12 +42,13 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_weakset_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_weakset_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                    const ecma_value_t *arguments_list_p, /**< arguments list */
                                     uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_CONSTRUCTOR_WEAKSET_REQUIRES_NEW);
+  return ecma_raise_type_error (context_p, ECMA_ERR_CONSTRUCTOR_WEAKSET_REQUIRES_NEW);
 } /* ecma_builtin_weakset_dispatch_call */
 
 /**
@@ -56,10 +57,12 @@ ecma_builtin_weakset_dispatch_call (const ecma_value_t *arguments_list_p, /**< a
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_weakset_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_weakset_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                         const ecma_value_t *arguments_list_p, /**< arguments list */
                                          uint32_t arguments_list_len) /**< number of arguments */
 {
-  return ecma_op_container_create (arguments_list_p,
+  return ecma_op_container_create (context_p,
+                                   arguments_list_p,
                                    arguments_list_len,
                                    LIT_MAGIC_STRING_WEAKSET_UL,
                                    ECMA_BUILTIN_ID_WEAKSET_PROTOTYPE);

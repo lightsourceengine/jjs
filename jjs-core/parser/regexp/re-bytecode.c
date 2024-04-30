@@ -36,7 +36,7 @@ void
 re_initialize_regexp_bytecode (re_compiler_ctx_t *re_ctx_p) /**< RegExp bytecode context */
 {
   const size_t initial_size = sizeof (re_compiled_code_t);
-  re_ctx_p->bytecode_start_p = jmem_heap_alloc_block (initial_size);
+  re_ctx_p->bytecode_start_p = jmem_heap_alloc_block (re_ctx_p->context_p, initial_size);
   re_ctx_p->bytecode_size = initial_size;
 } /* re_initialize_regexp_bytecode */
 
@@ -55,7 +55,7 @@ re_bytecode_reserve (re_compiler_ctx_t *re_ctx_p, /**< RegExp bytecode context *
 {
   const size_t old_size = re_ctx_p->bytecode_size;
   const size_t new_size = old_size + size;
-  re_ctx_p->bytecode_start_p = jmem_heap_realloc_block (re_ctx_p->bytecode_start_p, old_size, new_size);
+  re_ctx_p->bytecode_start_p = jmem_heap_realloc_block (re_ctx_p->context_p, re_ctx_p->bytecode_start_p, old_size, new_size);
   re_ctx_p->bytecode_size = new_size;
   return re_ctx_p->bytecode_start_p + old_size;
 } /* re_bytecode_reserve */

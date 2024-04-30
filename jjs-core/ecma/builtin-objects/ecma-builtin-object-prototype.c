@@ -84,9 +84,10 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_object_prototype_object_to_string (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_object_prototype_object_to_string (ecma_context_t *context_p, /**< JJS context */
+                                                ecma_value_t this_arg) /**< this argument */
 {
-  return ecma_builtin_helper_object_to_string (this_arg);
+  return ecma_builtin_helper_object_to_string (context_p, this_arg);
 } /* ecma_builtin_object_prototype_object_to_string */
 
 /**
@@ -99,9 +100,10 @@ ecma_builtin_object_prototype_object_to_string (ecma_value_t this_arg) /**< this
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_object_prototype_object_value_of (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_object_prototype_object_value_of (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_value_t this_arg) /**< this argument */
 {
-  return ecma_op_to_object (this_arg);
+  return ecma_op_to_object (context_p, this_arg);
 } /* ecma_builtin_object_prototype_object_value_of */
 
 /**
@@ -114,9 +116,10 @@ ecma_builtin_object_prototype_object_value_of (ecma_value_t this_arg) /**< this 
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_object_prototype_object_to_locale_string (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_object_prototype_object_to_locale_string (ecma_context_t *context_p, /**< JJS context */
+                                                       ecma_value_t this_arg) /**< this argument */
 {
-  return ecma_op_invoke_by_magic_id (this_arg, LIT_MAGIC_STRING_TO_STRING_UL, &this_arg, 1);
+  return ecma_op_invoke_by_magic_id (context_p, this_arg, LIT_MAGIC_STRING_TO_STRING_UL, &this_arg, 1);
 } /* ecma_builtin_object_prototype_object_to_locale_string */
 
 /**
@@ -129,10 +132,11 @@ ecma_builtin_object_prototype_object_to_locale_string (ecma_value_t this_arg) /*
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_object_prototype_object_has_own_property (ecma_object_t *obj_p, /**< this argument */
+ecma_builtin_object_prototype_object_has_own_property (ecma_context_t *context_p, /**< JJS context */
+                                                       ecma_object_t *obj_p, /**< this argument */
                                                        ecma_string_t *prop_name_p) /**< first argument */
 {
-  return ecma_op_object_has_own_property (obj_p, prop_name_p);
+  return ecma_op_object_has_own_property (context_p, obj_p, prop_name_p);
 } /* ecma_builtin_object_prototype_object_has_own_property */
 
 /**
@@ -145,20 +149,21 @@ ecma_builtin_object_prototype_object_has_own_property (ecma_object_t *obj_p, /**
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_object_prototype_object_is_prototype_of (ecma_object_t *obj_p, /**< this argument */
+ecma_builtin_object_prototype_object_is_prototype_of (ecma_context_t *context_p, /**< JJS context */
+                                                      ecma_object_t *obj_p, /**< this argument */
                                                       ecma_value_t arg) /**< routine's first argument */
 {
   /* 3. Compare prototype to object */
-  ecma_value_t v_obj_value = ecma_op_to_object (arg);
+  ecma_value_t v_obj_value = ecma_op_to_object (context_p, arg);
 
   if (ECMA_IS_VALUE_ERROR (v_obj_value))
   {
     return v_obj_value;
   }
 
-  ecma_object_t *v_obj_p = ecma_get_object_from_value (v_obj_value);
+  ecma_object_t *v_obj_p = ecma_get_object_from_value (context_p, v_obj_value);
 
-  ecma_value_t ret_value = ecma_op_object_is_prototype_of (obj_p, v_obj_p);
+  ecma_value_t ret_value = ecma_op_object_is_prototype_of (context_p, obj_p, v_obj_p);
 
   ecma_deref_object (v_obj_p);
 
@@ -175,11 +180,12 @@ ecma_builtin_object_prototype_object_is_prototype_of (ecma_object_t *obj_p, /**<
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_object_prototype_object_property_is_enumerable (ecma_object_t *obj_p, /**< this argument */
+ecma_builtin_object_prototype_object_property_is_enumerable (ecma_context_t *context_p, /**< JJS context */
+                                                             ecma_object_t *obj_p, /**< this argument */
                                                              ecma_string_t *prop_name_p) /**< first argument */
 {
   ecma_property_descriptor_t prop_desc;
-  ecma_value_t status = ecma_op_object_get_own_property_descriptor (obj_p, prop_name_p, &prop_desc);
+  ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p, obj_p, prop_name_p, &prop_desc);
 
   if (!ecma_is_value_true (status))
   {
@@ -188,7 +194,7 @@ ecma_builtin_object_prototype_object_property_is_enumerable (ecma_object_t *obj_
 
   bool is_enumerable = (prop_desc.flags & JJS_PROP_IS_ENUMERABLE);
 
-  ecma_free_property_descriptor (&prop_desc);
+  ecma_free_property_descriptor (context_p, &prop_desc);
 
   return ecma_make_boolean_value (is_enumerable);
 } /* ecma_builtin_object_prototype_object_property_is_enumerable */
@@ -205,30 +211,31 @@ ecma_builtin_object_prototype_object_property_is_enumerable (ecma_object_t *obj_
  *         ECMA_VALUE_UNDEFINED - otherwise
  */
 static ecma_value_t
-ecma_builtin_object_prototype_define_getter_setter (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_object_prototype_define_getter_setter (ecma_context_t *context_p, /**< JJS context */
+                                                    ecma_value_t this_arg, /**< this argument */
                                                     ecma_value_t prop, /**< property */
                                                     ecma_value_t accessor, /**< getter/setter function */
                                                     bool define_getter) /**< true - defineGetter method
                                                                              false - defineSetter method */
 {
   /* 1. */
-  ecma_value_t to_obj = ecma_op_to_object (this_arg);
+  ecma_value_t to_obj = ecma_op_to_object (context_p, this_arg);
 
   if (ECMA_IS_VALUE_ERROR (to_obj))
   {
     return to_obj;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (to_obj);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, to_obj);
 
   /* 2. */
-  if (!ecma_op_is_callable (accessor))
+  if (!ecma_op_is_callable (context_p, accessor))
   {
     ecma_deref_object (obj_p);
-    return ecma_raise_type_error (ECMA_ERR_GETTER_IS_NOT_CALLABLE);
+    return ecma_raise_type_error (context_p, ECMA_ERR_GETTER_IS_NOT_CALLABLE);
   }
 
-  ecma_object_t *accessor_obj_p = ecma_get_object_from_value (accessor);
+  ecma_object_t *accessor_obj_p = ecma_get_object_from_value (context_p, accessor);
 
   /* 3. */
   ecma_property_descriptor_t desc = ecma_make_empty_property_descriptor ();
@@ -247,7 +254,7 @@ ecma_builtin_object_prototype_define_getter_setter (ecma_value_t this_arg, /**< 
   }
 
   /* 4. */
-  ecma_string_t *prop_name_p = ecma_op_to_property_key (prop);
+  ecma_string_t *prop_name_p = ecma_op_to_property_key (context_p, prop);
 
   if (JJS_UNLIKELY (prop_name_p == NULL))
   {
@@ -256,10 +263,10 @@ ecma_builtin_object_prototype_define_getter_setter (ecma_value_t this_arg, /**< 
   }
 
   /* 5. */
-  ecma_value_t define_prop = ecma_op_object_define_own_property (obj_p, prop_name_p, &desc);
+  ecma_value_t define_prop = ecma_op_object_define_own_property (context_p, obj_p, prop_name_p, &desc);
 
   ecma_deref_object (obj_p);
-  ecma_deref_ecma_string (prop_name_p);
+  ecma_deref_ecma_string (context_p, prop_name_p);
 
   if (ECMA_IS_VALUE_ERROR (define_prop))
   {
@@ -282,23 +289,24 @@ ecma_builtin_object_prototype_define_getter_setter (ecma_value_t this_arg, /**< 
  *         Accessor property - otherwise
  */
 static ecma_value_t
-ecma_builtin_object_prototype_lookup_getter_setter (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_object_prototype_lookup_getter_setter (ecma_context_t *context_p, /**< JJS context */
+                                                    ecma_value_t this_arg, /**< this argument */
                                                     ecma_value_t prop, /**< property */
                                                     bool lookup_getter) /**< true - lookupGetter method
                                                                              false - lookupSetter method */
 {
   /* 1. */
-  ecma_value_t to_obj = ecma_op_to_object (this_arg);
+  ecma_value_t to_obj = ecma_op_to_object (context_p, this_arg);
 
   if (ECMA_IS_VALUE_ERROR (to_obj))
   {
     return to_obj;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (to_obj);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, to_obj);
 
   /* 2. */
-  ecma_string_t *prop_name_p = ecma_op_to_property_key (prop);
+  ecma_string_t *prop_name_p = ecma_op_to_property_key (context_p, prop);
 
   if (JJS_UNLIKELY (prop_name_p == NULL))
   {
@@ -315,7 +323,7 @@ ecma_builtin_object_prototype_lookup_getter_setter (ecma_value_t this_arg, /**< 
   {
     /* 3.a */
     ecma_property_descriptor_t desc;
-    ecma_value_t get_desc = ecma_op_object_get_own_property_descriptor (obj_p, prop_name_p, &desc);
+    ecma_value_t get_desc = ecma_op_object_get_own_property_descriptor (context_p, obj_p, prop_name_p, &desc);
 
     if (ECMA_IS_VALUE_ERROR (get_desc))
     {
@@ -332,22 +340,22 @@ ecma_builtin_object_prototype_lookup_getter_setter (ecma_value_t this_arg, /**< 
         if (lookup_getter && desc.get_p != NULL)
         {
           ecma_ref_object (desc.get_p);
-          ret_value = ecma_make_object_value (desc.get_p);
+          ret_value = ecma_make_object_value (context_p, desc.get_p);
         }
         else if (!lookup_getter && desc.set_p != NULL)
         {
           ecma_ref_object (desc.set_p);
-          ret_value = ecma_make_object_value (desc.set_p);
+          ret_value = ecma_make_object_value (context_p, desc.set_p);
         }
       }
 
-      ecma_free_property_descriptor (&desc);
+      ecma_free_property_descriptor (context_p, &desc);
       ecma_deref_object (obj_p);
       break;
     }
 
     /* 3.c */
-    ecma_object_t *proto_p = ecma_op_object_get_prototype_of (obj_p);
+    ecma_object_t *proto_p = ecma_op_object_get_prototype_of (context_p, obj_p);
     ecma_deref_object (obj_p);
 
     if (proto_p == NULL)
@@ -364,8 +372,8 @@ ecma_builtin_object_prototype_lookup_getter_setter (ecma_value_t this_arg, /**< 
     obj_p = proto_p;
   }
 
-  ecma_free_value (to_obj);
-  ecma_deref_ecma_string (prop_name_p);
+  ecma_free_value (context_p, to_obj);
+  ecma_deref_ecma_string (context_p, prop_name_p);
 
   return ret_value;
 } /* ecma_builtin_object_prototype_lookup_getter_setter */
@@ -378,7 +386,8 @@ ecma_builtin_object_prototype_lookup_getter_setter (ecma_value_t this_arg, /**< 
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_object_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_object_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                uint8_t builtin_routine_id, /**< built-in wide routine
                                                                              *   identifier */
                                                 ecma_value_t this_arg, /**< 'this' argument value */
                                                 const ecma_value_t arguments_list_p[], /**< list of arguments
@@ -392,12 +401,12 @@ ecma_builtin_object_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
   {
     if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_TO_STRING)
     {
-      return ecma_builtin_object_prototype_object_to_string (this_arg);
+      return ecma_builtin_object_prototype_object_to_string (context_p, this_arg);
     }
 
     JJS_ASSERT (builtin_routine_id <= ECMA_OBJECT_PROTOTYPE_VALUE_OF);
 
-    return ecma_builtin_object_prototype_object_value_of (this_arg);
+    return ecma_builtin_object_prototype_object_value_of (context_p, this_arg);
   }
 
   if (builtin_routine_id <= ECMA_OBJECT_PROTOTYPE_IS_PROTOTYPE_OF)
@@ -413,27 +422,27 @@ ecma_builtin_object_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
 
     if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_TO_LOCALE_STRING)
     {
-      return ecma_builtin_object_prototype_object_to_locale_string (this_arg);
+      return ecma_builtin_object_prototype_object_to_locale_string (context_p, this_arg);
     }
 
-    ecma_value_t to_object = ecma_op_to_object (this_arg);
+    ecma_value_t to_object = ecma_op_to_object (context_p, this_arg);
 
     if (ECMA_IS_VALUE_ERROR (to_object))
     {
       return to_object;
     }
 
-    ecma_object_t *obj_p = ecma_get_object_from_value (to_object);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, to_object);
 
     ecma_value_t ret_value;
 
     if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_GET_PROTO)
     {
-      ret_value = ecma_builtin_object_object_get_prototype_of (obj_p);
+      ret_value = ecma_builtin_object_object_get_prototype_of (context_p, obj_p);
     }
     else
     {
-      ret_value = ecma_builtin_object_prototype_object_is_prototype_of (obj_p, arguments_list_p[0]);
+      ret_value = ecma_builtin_object_prototype_object_is_prototype_of (context_p, obj_p, arguments_list_p[0]);
     }
 
     ecma_deref_object (obj_p);
@@ -445,62 +454,64 @@ ecma_builtin_object_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
 
   if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_SET_PROTO)
   {
-    return ecma_builtin_object_object_set_proto (this_arg, arguments_list_p[0]);
+    return ecma_builtin_object_object_set_proto (context_p, this_arg, arguments_list_p[0]);
   }
 #if JJS_BUILTIN_ANNEXB
   else if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_LOOKUP_GETTER)
   {
-    return ecma_builtin_object_prototype_lookup_getter_setter (this_arg, arguments_list_p[0], true);
+    return ecma_builtin_object_prototype_lookup_getter_setter (context_p, this_arg, arguments_list_p[0], true);
   }
   else if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_LOOKUP_SETTER)
   {
-    return ecma_builtin_object_prototype_lookup_getter_setter (this_arg, arguments_list_p[0], false);
+    return ecma_builtin_object_prototype_lookup_getter_setter (context_p, this_arg, arguments_list_p[0], false);
   }
   else if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_DEFINE_GETTER)
   {
-    return ecma_builtin_object_prototype_define_getter_setter (this_arg,
+    return ecma_builtin_object_prototype_define_getter_setter (context_p,
+                                                               this_arg,
                                                                arguments_list_p[0],
                                                                arguments_list_p[1],
                                                                true);
   }
   else if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_DEFINE_SETTER)
   {
-    return ecma_builtin_object_prototype_define_getter_setter (this_arg,
+    return ecma_builtin_object_prototype_define_getter_setter (context_p,
+                                                               this_arg,
                                                                arguments_list_p[0],
                                                                arguments_list_p[1],
                                                                false);
   }
 #endif /* JJS_BUILTIN_ANNEXB */
 
-  ecma_string_t *prop_name_p = ecma_op_to_property_key (arguments_list_p[0]);
+  ecma_string_t *prop_name_p = ecma_op_to_property_key (context_p, arguments_list_p[0]);
 
   if (prop_name_p == NULL)
   {
     return ECMA_VALUE_ERROR;
   }
 
-  ecma_value_t to_object = ecma_op_to_object (this_arg);
+  ecma_value_t to_object = ecma_op_to_object (context_p, this_arg);
 
   if (ECMA_IS_VALUE_ERROR (to_object))
   {
-    ecma_deref_ecma_string (prop_name_p);
+    ecma_deref_ecma_string (context_p, prop_name_p);
     return to_object;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (to_object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, to_object);
 
   ecma_value_t ret_value;
 
   if (builtin_routine_id == ECMA_OBJECT_PROTOTYPE_HAS_OWN_PROPERTY)
   {
-    ret_value = ecma_builtin_object_prototype_object_has_own_property (obj_p, prop_name_p);
+    ret_value = ecma_builtin_object_prototype_object_has_own_property (context_p, obj_p, prop_name_p);
   }
   else
   {
-    ret_value = ecma_builtin_object_prototype_object_property_is_enumerable (obj_p, prop_name_p);
+    ret_value = ecma_builtin_object_prototype_object_property_is_enumerable (context_p, obj_p, prop_name_p);
   }
 
-  ecma_deref_ecma_string (prop_name_p);
+  ecma_deref_ecma_string (context_p, prop_name_p);
   ecma_deref_object (obj_p);
 
   return ret_value;

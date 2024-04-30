@@ -962,7 +962,8 @@ typedef struct
 /**
  * Type of a built-in function handler.
  */
-typedef ecma_value_t (*ecma_builtin_handler_t) (ecma_object_t *function_obj_p,
+typedef ecma_value_t (*ecma_builtin_handler_t) (ecma_context_t *context_p,
+                                                ecma_object_t *function_obj_p,
                                                 const ecma_value_t args_p[],
                                                 const uint32_t args_count);
 

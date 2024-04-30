@@ -75,7 +75,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static inline ecma_value_t
-ecma_builtin_promise_perform_race (ecma_value_t iterator, /**< the iterator for race */
+ecma_builtin_promise_perform_race (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_value_t iterator, /**< the iterator for race */
                                    ecma_value_t next_method, /**< next method */
                                    ecma_object_t *capability_obj_p, /**< PromiseCapability record */
                                    ecma_value_t ctor, /**< Constructor value */
@@ -83,31 +84,31 @@ ecma_builtin_promise_perform_race (ecma_value_t iterator, /**< the iterator for 
 {
   JJS_ASSERT (ecma_is_value_object (iterator));
   JJS_ASSERT (ecma_object_class_is (capability_obj_p, ECMA_OBJECT_CLASS_PROMISE_CAPABILITY));
-  JJS_ASSERT (ecma_is_constructor (ctor));
+  JJS_ASSERT (ecma_is_constructor (context_p, ctor));
 
   ecma_promise_capabality_t *capability_p = (ecma_promise_capabality_t *) capability_obj_p;
 
-  ecma_value_t resolve = ecma_op_object_get_by_magic_id (ecma_get_object_from_value (ctor), LIT_MAGIC_STRING_RESOLVE);
+  ecma_value_t resolve = ecma_op_object_get_by_magic_id (context_p, ecma_get_object_from_value (context_p, ctor), LIT_MAGIC_STRING_RESOLVE);
 
   if (ECMA_IS_VALUE_ERROR (resolve))
   {
     return resolve;
   }
 
-  if (!ecma_op_is_callable (resolve))
+  if (!ecma_op_is_callable (context_p, resolve))
   {
-    ecma_free_value (resolve);
-    return ecma_raise_type_error (ECMA_ERR_RESOLVE_METHOD_MUST_BE_CALLABLE);
+    ecma_free_value (context_p, resolve);
+    return ecma_raise_type_error (context_p, ECMA_ERR_RESOLVE_METHOD_MUST_BE_CALLABLE);
   }
 
-  ecma_object_t *resolve_func_p = ecma_get_object_from_value (resolve);
+  ecma_object_t *resolve_func_p = ecma_get_object_from_value (context_p, resolve);
   ecma_value_t ret_value = ECMA_VALUE_ERROR;
 
   /* 5. */
   while (true)
   {
     /* a. */
-    ecma_value_t next = ecma_op_iterator_step (iterator, next_method);
+    ecma_value_t next = ecma_op_iterator_step (context_p, iterator, next_method);
     /* b, c. */
     if (ECMA_IS_VALUE_ERROR (next))
     {
@@ -118,13 +119,13 @@ ecma_builtin_promise_perform_race (ecma_value_t iterator, /**< the iterator for 
     if (ecma_is_value_false (next))
     {
       /* ii. */
-      ret_value = ecma_copy_value (capability_p->header.u.cls.u3.promise);
+      ret_value = ecma_copy_value (context_p, capability_p->header.u.cls.u3.promise);
       goto done;
     }
 
     /* e. */
-    ecma_value_t next_val = ecma_op_iterator_value (next);
-    ecma_free_value (next);
+    ecma_value_t next_val = ecma_op_iterator_value (context_p, next);
+    ecma_free_value (context_p, next);
 
     /* f, g. */
     if (ECMA_IS_VALUE_ERROR (next_val))
@@ -133,8 +134,8 @@ ecma_builtin_promise_perform_race (ecma_value_t iterator, /**< the iterator for 
     }
 
     /* h. */
-    ecma_value_t next_promise = ecma_op_function_call (resolve_func_p, ctor, &next_val, 1);
-    ecma_free_value (next_val);
+    ecma_value_t next_promise = ecma_op_function_call (context_p, resolve_func_p, ctor, &next_val, 1);
+    ecma_free_value (context_p, next_val);
 
     if (ECMA_IS_VALUE_ERROR (next_promise))
     {
@@ -143,15 +144,15 @@ ecma_builtin_promise_perform_race (ecma_value_t iterator, /**< the iterator for 
 
     /* i. */
     ecma_value_t args[2] = { capability_p->resolve, capability_p->reject };
-    ecma_value_t result = ecma_op_invoke_by_magic_id (next_promise, LIT_MAGIC_STRING_THEN, args, 2);
-    ecma_free_value (next_promise);
+    ecma_value_t result = ecma_op_invoke_by_magic_id (context_p, next_promise, LIT_MAGIC_STRING_THEN, args, 2);
+    ecma_free_value (context_p, next_promise);
 
     if (ECMA_IS_VALUE_ERROR (result))
     {
       goto exit;
     }
 
-    ecma_free_value (result);
+    ecma_free_value (context_p, result);
   }
 
 done:
@@ -172,7 +173,8 @@ exit:
  *         Returned value must be freed with ecma_free_value.
  */
 static inline ecma_value_t
-ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
+ecma_builtin_promise_perform (ecma_context_t *context_p, /**< JJS context */
+                              ecma_value_t iterator, /**< iteratorRecord */
                               ecma_value_t next_method, /**< next method */
                               ecma_object_t *capability_obj_p, /**< PromiseCapability record */
                               ecma_value_t ctor, /**< the caller of Promise.all */
@@ -181,30 +183,30 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
 {
   /* 1. - 2. */
   JJS_ASSERT (ecma_object_class_is (capability_obj_p, ECMA_OBJECT_CLASS_PROMISE_CAPABILITY));
-  JJS_ASSERT (ecma_is_constructor (ctor));
+  JJS_ASSERT (ecma_is_constructor (context_p, ctor));
 
   ecma_promise_capabality_t *capability_p = (ecma_promise_capabality_t *) capability_obj_p;
 
-  ecma_value_t resolve = ecma_op_object_get_by_magic_id (ecma_get_object_from_value (ctor), LIT_MAGIC_STRING_RESOLVE);
+  ecma_value_t resolve = ecma_op_object_get_by_magic_id (context_p, ecma_get_object_from_value (context_p, ctor), LIT_MAGIC_STRING_RESOLVE);
 
   if (ECMA_IS_VALUE_ERROR (resolve))
   {
     return resolve;
   }
 
-  if (!ecma_op_is_callable (resolve))
+  if (!ecma_op_is_callable (context_p, resolve))
   {
-    ecma_free_value (resolve);
-    return ecma_raise_type_error (ECMA_ERR_RESOLVE_METHOD_MUST_BE_CALLABLE);
+    ecma_free_value (context_p, resolve);
+    return ecma_raise_type_error (context_p, ECMA_ERR_RESOLVE_METHOD_MUST_BE_CALLABLE);
   }
 
-  ecma_object_t *resolve_func_p = ecma_get_object_from_value (resolve);
+  ecma_object_t *resolve_func_p = ecma_get_object_from_value (context_p, resolve);
 
   /* 3. */
-  ecma_object_t *values_array_obj_p = ecma_op_new_array_object (0);
-  ecma_value_t values_array = ecma_make_object_value (values_array_obj_p);
+  ecma_object_t *values_array_obj_p = ecma_op_new_array_object (context_p, 0);
+  ecma_value_t values_array = ecma_make_object_value (context_p, values_array_obj_p);
   /* 4. */
-  ecma_value_t remaining = ecma_op_create_number_object (ecma_make_integer_value (1));
+  ecma_value_t remaining = ecma_op_create_number_object (context_p, ecma_make_integer_value (1));
   /* 5. */
   uint32_t idx = 0;
 
@@ -214,7 +216,7 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
   while (true)
   {
     /* a. */
-    ecma_value_t next = ecma_op_iterator_step (iterator, next_method);
+    ecma_value_t next = ecma_op_iterator_step (context_p, iterator, next_method);
     /* b. - c. */
     if (ECMA_IS_VALUE_ERROR (next))
     {
@@ -225,16 +227,16 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
     if (ecma_is_value_false (next))
     {
       /* ii. - iii. */
-      if (ecma_promise_remaining_inc_or_dec (remaining, false) == 0)
+      if (ecma_promise_remaining_inc_or_dec (context_p, remaining, false) == 0)
       {
         if (builtin_routine_id == ECMA_PROMISE_ROUTINE_ANY)
         {
-          ret_value = ecma_raise_aggregate_error (values_array, ECMA_VALUE_UNDEFINED);
+          ret_value = ecma_raise_aggregate_error (context_p, values_array, ECMA_VALUE_UNDEFINED);
           goto done;
         }
 
         /* 2. */
-        ecma_value_t resolve_result = ecma_op_function_call (ecma_get_object_from_value (capability_p->resolve),
+        ecma_value_t resolve_result = ecma_op_function_call (context_p, ecma_get_object_from_value (context_p, capability_p->resolve),
                                                              ECMA_VALUE_UNDEFINED,
                                                              &values_array,
                                                              1);
@@ -244,17 +246,17 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
           goto done;
         }
 
-        ecma_free_value (resolve_result);
+        ecma_free_value (context_p, resolve_result);
       }
 
       /* iv. */
-      ret_value = ecma_copy_value (capability_p->header.u.cls.u3.promise);
+      ret_value = ecma_copy_value (context_p, capability_p->header.u.cls.u3.promise);
       goto done;
     }
 
     /* e. */
-    ecma_value_t next_value = ecma_op_iterator_value (next);
-    ecma_free_value (next);
+    ecma_value_t next_value = ecma_op_iterator_value (context_p, next);
+    ecma_free_value (context_p, next);
 
     /* f. - g. */
     if (ECMA_IS_VALUE_ERROR (next_value))
@@ -263,14 +265,15 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
     }
 
     /* h. */
-    ecma_builtin_helper_def_prop_by_index (values_array_obj_p,
+    ecma_builtin_helper_def_prop_by_index (context_p,
+                                           values_array_obj_p,
                                            idx,
                                            ECMA_VALUE_UNDEFINED,
                                            ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
 
     /* i. */
-    ecma_value_t next_promise = ecma_op_function_call (resolve_func_p, ctor, &next_value, 1);
-    ecma_free_value (next_value);
+    ecma_value_t next_promise = ecma_op_function_call (context_p, resolve_func_p, ctor, &next_value, 1);
+    ecma_free_value (context_p, next_value);
 
     /* j. */
     if (ECMA_IS_VALUE_ERROR (next_promise))
@@ -280,7 +283,7 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
 
     if (JJS_UNLIKELY (idx == UINT32_MAX - 1))
     {
-      ecma_raise_range_error (ECMA_ERR_PROMISE_ALL_REMAINING_ELEMENTS_LIMIT_REACHED);
+      ecma_raise_range_error (context_p, ECMA_ERR_PROMISE_ALL_REMAINING_ELEMENTS_LIMIT_REACHED);
       goto exit;
     }
 
@@ -292,7 +295,7 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
     {
       /* k. */
       executor_func_p =
-        ecma_op_create_native_handler (ECMA_NATIVE_HANDLER_PROMISE_ALL_HELPER, sizeof (ecma_promise_all_executor_t));
+        ecma_op_create_native_handler (context_p, ECMA_NATIVE_HANDLER_PROMISE_ALL_HELPER, sizeof (ecma_promise_all_executor_t));
 
       ecma_promise_all_executor_t *executor_p = (ecma_promise_all_executor_t *) executor_func_p;
 
@@ -303,7 +306,7 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
       executor_p->values = values_array;
 
       /* o. */
-      executor_p->capability = ecma_make_object_value (capability_obj_p);
+      executor_p->capability = ecma_make_object_value (context_p, capability_obj_p);
 
       /* p. */
       executor_p->remaining_elements = remaining;
@@ -317,7 +320,7 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
 
       executor_p->header.u.built_in.u2.routine_flags |= executor_type;
 
-      args[0] = ecma_make_object_value (executor_func_p);
+      args[0] = ecma_make_object_value (context_p, executor_func_p);
     }
     else
     {
@@ -325,7 +328,7 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
     }
 
     /* q. */
-    ecma_promise_remaining_inc_or_dec (remaining, true);
+    ecma_promise_remaining_inc_or_dec (context_p, remaining, true);
     ecma_value_t result;
 
     if (builtin_routine_id != ECMA_PROMISE_ROUTINE_ALL)
@@ -338,25 +341,25 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
       }
 
       ecma_object_t *reject_func_p =
-        ecma_op_create_native_handler (ECMA_NATIVE_HANDLER_PROMISE_ALL_HELPER, sizeof (ecma_promise_all_executor_t));
+        ecma_op_create_native_handler (context_p, ECMA_NATIVE_HANDLER_PROMISE_ALL_HELPER, sizeof (ecma_promise_all_executor_t));
 
       ecma_promise_all_executor_t *reject_p = (ecma_promise_all_executor_t *) reject_func_p;
       reject_p->index = idx;
       reject_p->values = values_array;
-      reject_p->capability = ecma_make_object_value (capability_obj_p);
+      reject_p->capability = ecma_make_object_value (context_p, capability_obj_p);
       reject_p->remaining_elements = remaining;
       reject_p->header.u.built_in.u2.routine_flags |= executor_type;
-      args[1] = ecma_make_object_value (reject_func_p);
-      result = ecma_op_invoke_by_magic_id (next_promise, LIT_MAGIC_STRING_THEN, args, 2);
+      args[1] = ecma_make_object_value (context_p, reject_func_p);
+      result = ecma_op_invoke_by_magic_id (context_p, next_promise, LIT_MAGIC_STRING_THEN, args, 2);
       ecma_deref_object (reject_func_p);
     }
     else
     {
       args[1] = capability_p->reject;
-      result = ecma_op_invoke_by_magic_id (next_promise, LIT_MAGIC_STRING_THEN, args, 2);
+      result = ecma_op_invoke_by_magic_id (context_p, next_promise, LIT_MAGIC_STRING_THEN, args, 2);
     }
 
-    ecma_free_value (next_promise);
+    ecma_free_value (context_p, next_promise);
 
     if (builtin_routine_id != ECMA_PROMISE_ROUTINE_ANY)
     {
@@ -369,13 +372,13 @@ ecma_builtin_promise_perform (ecma_value_t iterator, /**< iteratorRecord */
       goto exit;
     }
 
-    ecma_free_value (result);
+    ecma_free_value (context_p, result);
   }
 
 done:
   *done_p = true;
 exit:
-  ecma_free_value (remaining);
+  ecma_free_value (context_p, remaining);
   ecma_deref_object (values_array_obj_p);
   ecma_deref_object (resolve_func_p);
 
@@ -389,11 +392,12 @@ exit:
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_promise_helper (ecma_value_t this_arg, /**< 'this' argument */
+ecma_builtin_promise_helper (ecma_context_t *context_p, /**< JJS context */
+                             ecma_value_t this_arg, /**< 'this' argument */
                              ecma_value_t iterable, /**< the items to be resolved */
                              uint8_t builtin_routine_id) /**< built-in wide routine identifier */
 {
-  ecma_object_t *capability_obj_p = ecma_promise_new_capability (this_arg, ECMA_VALUE_UNDEFINED);
+  ecma_object_t *capability_obj_p = ecma_promise_new_capability (context_p, this_arg, ECMA_VALUE_UNDEFINED);
 
   if (JJS_UNLIKELY (capability_obj_p == NULL))
   {
@@ -401,12 +405,12 @@ ecma_builtin_promise_helper (ecma_value_t this_arg, /**< 'this' argument */
   }
 
   ecma_value_t next_method;
-  ecma_value_t iterator = ecma_op_get_iterator (iterable, ECMA_VALUE_SYNC_ITERATOR, &next_method);
+  ecma_value_t iterator = ecma_op_get_iterator (context_p, iterable, ECMA_VALUE_SYNC_ITERATOR, &next_method);
   ecma_value_t ret = ECMA_VALUE_ERROR;
 
-  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (&iterator, capability_obj_p)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (context_p, &iterator, capability_obj_p)))
   {
-    ecma_free_value (next_method);
+    ecma_free_value (context_p, next_method);
     ecma_deref_object (capability_obj_p);
     return iterator;
   }
@@ -415,26 +419,26 @@ ecma_builtin_promise_helper (ecma_value_t this_arg, /**< 'this' argument */
 
   if (builtin_routine_id == ECMA_PROMISE_ROUTINE_RACE)
   {
-    ret = ecma_builtin_promise_perform_race (iterator, next_method, capability_obj_p, this_arg, &is_done);
+    ret = ecma_builtin_promise_perform_race (context_p, iterator, next_method, capability_obj_p, this_arg, &is_done);
   }
   else
   {
     ret =
-      ecma_builtin_promise_perform (iterator, next_method, capability_obj_p, this_arg, builtin_routine_id, &is_done);
+      ecma_builtin_promise_perform (context_p, iterator, next_method, capability_obj_p, this_arg, builtin_routine_id, &is_done);
   }
 
   if (ECMA_IS_VALUE_ERROR (ret))
   {
     if (!is_done)
     {
-      ret = ecma_op_iterator_close (iterator);
+      ret = ecma_op_iterator_close (context_p, iterator);
     }
 
-    ecma_op_if_abrupt_reject_promise (&ret, capability_obj_p);
+    ecma_op_if_abrupt_reject_promise (context_p, &ret, capability_obj_p);
   }
 
-  ecma_free_value (iterator);
-  ecma_free_value (next_method);
+  ecma_free_value (context_p, iterator);
+  ecma_free_value (context_p, next_method);
   ecma_deref_object (capability_obj_p);
 
   return ret;
@@ -450,12 +454,13 @@ ecma_builtin_promise_helper (ecma_value_t this_arg, /**< 'this' argument */
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_promise_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_promise_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                    const ecma_value_t *arguments_list_p, /**< arguments list */
                                     uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_CONSTRUCTOR_PROMISE_REQUIRES_NEW);
+  return ecma_raise_type_error (context_p, ECMA_ERR_CONSTRUCTOR_PROMISE_REQUIRES_NEW);
 } /* ecma_builtin_promise_dispatch_call */
 
 /**
@@ -464,19 +469,20 @@ ecma_builtin_promise_dispatch_call (const ecma_value_t *arguments_list_p, /**< a
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_promise_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_promise_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                         const ecma_value_t *arguments_list_p, /**< arguments list */
                                          uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  if (arguments_list_len == 0 || !ecma_op_is_callable (arguments_list_p[0]))
+  if (arguments_list_len == 0 || !ecma_op_is_callable (context_p, arguments_list_p[0]))
   {
-    return ecma_raise_type_error (ECMA_ERR_FIRST_PARAMETER_MUST_BE_CALLABLE);
+    return ecma_raise_type_error (context_p, ECMA_ERR_FIRST_PARAMETER_MUST_BE_CALLABLE);
   }
 
-  return ecma_op_create_promise_object (arguments_list_p[0],
+  return ecma_op_create_promise_object (context_p, arguments_list_p[0],
                                         ECMA_VALUE_UNDEFINED,
-                                        JJS_CONTEXT (current_new_target_p));
+                                        context_p->current_new_target_p);
 } /* ecma_builtin_promise_dispatch_construct */
 
 /**
@@ -486,7 +492,8 @@ ecma_builtin_promise_dispatch_construct (const ecma_value_t *arguments_list_p, /
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_promise_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_promise_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                       uint8_t builtin_routine_id, /**< built-in wide routine
                                                                     *   identifier */
                                        ecma_value_t this_arg, /**< 'this' argument value */
                                        const ecma_value_t arguments_list_p[], /**< list of arguments
@@ -501,22 +508,22 @@ ecma_builtin_promise_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     case ECMA_PROMISE_ROUTINE_RESOLVE:
     {
       bool is_resolve = (builtin_routine_id == ECMA_PROMISE_ROUTINE_RESOLVE);
-      return ecma_promise_reject_or_resolve (this_arg, arguments_list_p[0], is_resolve);
+      return ecma_promise_reject_or_resolve (context_p, this_arg, arguments_list_p[0], is_resolve);
     }
     case ECMA_PROMISE_ROUTINE_RACE:
     case ECMA_PROMISE_ROUTINE_ALL:
     case ECMA_PROMISE_ROUTINE_ALLSETTLED:
     case ECMA_PROMISE_ROUTINE_ANY:
     {
-      return ecma_builtin_promise_helper (this_arg, arguments_list_p[0], builtin_routine_id);
+      return ecma_builtin_promise_helper (context_p, this_arg, arguments_list_p[0], builtin_routine_id);
     }
     case ECMA_PROMISE_ROUTINE_WITH_RESOLVERS:
     {
-      return ecma_promise_with_resolvers (this_arg);
+      return ecma_promise_with_resolvers (context_p, this_arg);
     }
     case ECMA_PROMISE_ROUTINE_SPECIES_GET:
     {
-      return ecma_copy_value (this_arg);
+      return ecma_copy_value (context_p, this_arg);
     }
     default:
     {

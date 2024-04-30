@@ -91,7 +91,7 @@ ecma_builtin_global_object_eval (ecma_value_t x) /**< routine's first argument *
   if (JJS_UNLIKELY (!ecma_is_value_string (x)))
   {
     /* step 1 */
-    return ecma_copy_value (x);
+    return ecma_copy_value (context_p, x);
   }
 
   uint32_t parse_opts = vm_is_direct_eval_form_call (context_p) ? ECMA_PARSE_DIRECT_EVAL : ECMA_PARSE_NO_OPTS;
@@ -109,7 +109,7 @@ ecma_builtin_global_object_eval (ecma_value_t x) /**< routine's first argument *
   }
 
   /* steps 2 to 8 */
-  return ecma_op_eval (x, parse_opts);
+  return ecma_op_eval (context_p, x, parse_opts);
 } /* ecma_builtin_global_object_eval */
 
 /**
@@ -189,7 +189,8 @@ static const uint8_t unescaped_uri_component_set[16] = { 0x0,  0x0,  0x0,  0x0, 
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_global_object_decode_uri_helper (lit_utf8_byte_t *input_start_p, /**< routine's first argument's
+ecma_builtin_global_object_decode_uri_helper (ecma_context_t *context_p, /**< JJS context */
+                                              lit_utf8_byte_t *input_start_p, /**< routine's first argument's
                                                                                *   string buffer */
                                               lit_utf8_size_t input_size, /**< routine's first argument's
                                                                            *   string buffer's size */
@@ -197,7 +198,7 @@ ecma_builtin_global_object_decode_uri_helper (lit_utf8_byte_t *input_start_p, /*
 {
   lit_utf8_byte_t *input_char_p = input_start_p;
   lit_utf8_byte_t *input_end_p = input_start_p + input_size;
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
 
   while (input_char_p < input_end_p)
   {
@@ -211,7 +212,7 @@ ecma_builtin_global_object_decode_uri_helper (lit_utf8_byte_t *input_start_p, /*
     if (hex_value == UINT32_MAX)
     {
       ecma_stringbuilder_destroy (&builder);
-      return ecma_raise_uri_error (ECMA_ERR_INVALID_HEXADECIMAL_VALUE);
+      return ecma_raise_uri_error (context_p, ECMA_ERR_INVALID_HEXADECIMAL_VALUE);
     }
 
     ecma_char_t decoded_byte = (ecma_char_t) hex_value;
@@ -249,7 +250,7 @@ ecma_builtin_global_object_decode_uri_helper (lit_utf8_byte_t *input_start_p, /*
       else
       {
         ecma_stringbuilder_destroy (&builder);
-        return ecma_raise_uri_error (ECMA_ERR_INVALID_UTF8_CHARACTER);
+        return ecma_raise_uri_error (context_p, ECMA_ERR_INVALID_UTF8_CHARACTER);
       }
 
       lit_utf8_byte_t octets[LIT_UTF8_MAX_BYTES_IN_CODE_POINT];
@@ -281,7 +282,7 @@ ecma_builtin_global_object_decode_uri_helper (lit_utf8_byte_t *input_start_p, /*
       if (!is_valid || !lit_is_valid_utf8_string (octets, bytes_count, true))
       {
         ecma_stringbuilder_destroy (&builder);
-        return ecma_raise_uri_error (ECMA_ERR_INVALID_UTF8_STRING);
+        return ecma_raise_uri_error (context_p, ECMA_ERR_INVALID_UTF8_STRING);
       }
 
       lit_code_point_t cp;
@@ -290,7 +291,7 @@ ecma_builtin_global_object_decode_uri_helper (lit_utf8_byte_t *input_start_p, /*
       if (lit_is_code_point_utf16_high_surrogate (cp) || lit_is_code_point_utf16_low_surrogate (cp))
       {
         ecma_stringbuilder_destroy (&builder);
-        return ecma_raise_uri_error (ECMA_ERR_INVALID_UTF8_CODEPOINT);
+        return ecma_raise_uri_error (context_p, ECMA_ERR_INVALID_UTF8_CODEPOINT);
       }
 
       lit_utf8_byte_t result_chars[LIT_CESU8_MAX_BYTES_IN_CODE_POINT];
@@ -299,7 +300,7 @@ ecma_builtin_global_object_decode_uri_helper (lit_utf8_byte_t *input_start_p, /*
     }
   }
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_global_object_decode_uri_helper */
 
 /**
@@ -329,7 +330,8 @@ ecma_builtin_global_object_byte_to_hex (lit_utf8_byte_t *dest_p, /**< destinatio
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_global_object_encode_uri_helper (lit_utf8_byte_t *input_start_p, /**< routine's first argument's
+ecma_builtin_global_object_encode_uri_helper (ecma_context_t *context_p, /**< JJS context */
+                                              lit_utf8_byte_t *input_start_p, /**< routine's first argument's
                                                                                *   string buffer */
                                               lit_utf8_size_t input_size, /**< routine's first argument's
                                                                            *   string buffer's size */
@@ -338,7 +340,7 @@ ecma_builtin_global_object_encode_uri_helper (lit_utf8_byte_t *input_start_p, /*
   lit_utf8_byte_t *input_char_p = input_start_p;
   const lit_utf8_byte_t *input_end_p = input_start_p + input_size;
   ecma_char_t ch;
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
   lit_utf8_byte_t octets[LIT_UTF8_MAX_BYTES_IN_CODE_POINT];
   memset (octets, LIT_BYTE_NULL, LIT_UTF8_MAX_BYTES_IN_CODE_POINT);
 
@@ -349,7 +351,7 @@ ecma_builtin_global_object_encode_uri_helper (lit_utf8_byte_t *input_start_p, /*
     if (lit_is_code_point_utf16_low_surrogate (ch))
     {
       ecma_stringbuilder_destroy (&builder);
-      return ecma_raise_uri_error (ECMA_ERR_UNICODE_SURROGATE_PAIR_MISSING);
+      return ecma_raise_uri_error (context_p, ECMA_ERR_UNICODE_SURROGATE_PAIR_MISSING);
     }
 
     lit_code_point_t cp = ch;
@@ -359,7 +361,7 @@ ecma_builtin_global_object_encode_uri_helper (lit_utf8_byte_t *input_start_p, /*
       if (input_char_p == input_end_p)
       {
         ecma_stringbuilder_destroy (&builder);
-        return ecma_raise_uri_error (ECMA_ERR_UNICODE_SURROGATE_PAIR_MISSING);
+        return ecma_raise_uri_error (context_p, ECMA_ERR_UNICODE_SURROGATE_PAIR_MISSING);
       }
 
       ecma_char_t next_ch;
@@ -373,7 +375,7 @@ ecma_builtin_global_object_encode_uri_helper (lit_utf8_byte_t *input_start_p, /*
       else
       {
         ecma_stringbuilder_destroy (&builder);
-        return ecma_raise_uri_error (ECMA_ERR_UNICODE_SURROGATE_PAIR_MISSING);
+        return ecma_raise_uri_error (context_p, ECMA_ERR_UNICODE_SURROGATE_PAIR_MISSING);
       }
     }
 
@@ -403,7 +405,7 @@ ecma_builtin_global_object_encode_uri_helper (lit_utf8_byte_t *input_start_p, /*
     }
   }
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_global_object_encode_uri_helper */
 
 #if JJS_BUILTIN_ANNEXB
@@ -437,14 +439,15 @@ static const uint8_t ecma_escape_set[16] = { 0x0,  0x0,  0x0,  0x0,  0x0,  0xec,
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_global_object_escape (lit_utf8_byte_t *input_start_p, /**< routine's first argument's
+ecma_builtin_global_object_escape (ecma_context_t *context_p, /**< JJS context */
+                                   lit_utf8_byte_t *input_start_p, /**< routine's first argument's
                                                                     *   string buffer */
                                    lit_utf8_size_t input_size) /**< routine's first argument's
                                                                 *   string buffer's size */
 {
   const lit_utf8_byte_t *input_curr_p = input_start_p;
   const lit_utf8_byte_t *input_end_p = input_start_p + input_size;
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
   lit_utf8_byte_t result_chars[URI_ENCODED_BYTE_SIZE];
 
   while (input_curr_p < input_end_p)
@@ -481,7 +484,7 @@ ecma_builtin_global_object_escape (lit_utf8_byte_t *input_start_p, /**< routine'
     }
   }
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_global_object_escape */
 
 /**
@@ -532,7 +535,8 @@ ecma_builtin_global_object_unescape_resolve_escape (const lit_utf8_byte_t *buffe
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_global_object_unescape (lit_utf8_byte_t *input_start_p, /**< routine's first argument's
+ecma_builtin_global_object_unescape (ecma_context_t *context_p, /**< JJS context */
+                                     lit_utf8_byte_t *input_start_p, /**< routine's first argument's
                                                                       *   string buffer */
                                      lit_utf8_size_t input_size) /**< routine's first argument's
                                                                   *   string buffer's size */
@@ -544,7 +548,7 @@ ecma_builtin_global_object_unescape (lit_utf8_byte_t *input_start_p, /**< routin
 
   const lit_utf8_byte_t *input_curr_p = input_start_p;
   const lit_utf8_byte_t *input_end_p = input_start_p + input_size;
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
 
   while (input_curr_p < input_end_p)
   {
@@ -570,7 +574,7 @@ ecma_builtin_global_object_unescape (lit_utf8_byte_t *input_start_p, /**< routin
     ecma_stringbuilder_append_char (&builder, chr);
   }
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_global_object_unescape */
 
 #endif /* JJS_BUILTIN_ANNEXB */
@@ -582,7 +586,8 @@ ecma_builtin_global_object_unescape (lit_utf8_byte_t *input_start_p, /**< routin
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_global_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                      uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                       ecma_value_t this_arg, /**< 'this' argument value */
                                       const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                               *   passed to routine */
@@ -601,7 +606,7 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
   {
     ecma_number_t arg_num;
 
-    routine_arg_1 = ecma_op_to_number (routine_arg_1, &arg_num);
+    routine_arg_1 = ecma_op_to_number (context_p, routine_arg_1, &arg_num);
 
     if (!ecma_is_value_empty (routine_arg_1))
     {
@@ -618,7 +623,7 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
     return ecma_builtin_global_object_is_finite (arg_num);
   }
 
-  ecma_string_t *str_p = ecma_op_to_string (routine_arg_1);
+  ecma_string_t *str_p = ecma_op_to_string (context_p, routine_arg_1);
 
   if (JJS_UNLIKELY (str_p == NULL))
   {
@@ -629,28 +634,28 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
 
   if (builtin_routine_id <= ECMA_GLOBAL_PARSE_FLOAT)
   {
-    ECMA_STRING_TO_UTF8_STRING (str_p, string_buff, string_buff_size);
+    ECMA_STRING_TO_UTF8_STRING (context_p, str_p, string_buff, string_buff_size);
 
     if (builtin_routine_id == ECMA_GLOBAL_PARSE_INT)
     {
-      ret_value = ecma_number_parse_int (string_buff, string_buff_size, arguments_list_p[1]);
+      ret_value = ecma_number_parse_int (context_p, string_buff, string_buff_size, arguments_list_p[1]);
     }
     else
     {
       JJS_ASSERT (builtin_routine_id == ECMA_GLOBAL_PARSE_FLOAT);
-      ret_value = ecma_number_parse_float (string_buff, string_buff_size);
+      ret_value = ecma_number_parse_float (context_p, string_buff, string_buff_size);
     }
 
-    ECMA_FINALIZE_UTF8_STRING (string_buff, string_buff_size);
-    ecma_deref_ecma_string (str_p);
+    ECMA_FINALIZE_UTF8_STRING (context_p, string_buff, string_buff_size);
+    ecma_deref_ecma_string (context_p, str_p);
     return ret_value;
   }
 
-  lit_utf8_size_t input_size = ecma_string_get_size (str_p);
+  lit_utf8_size_t input_size = ecma_string_get_size (context_p, str_p);
 
-  JMEM_DEFINE_LOCAL_ARRAY (input_start_p, input_size + 1, lit_utf8_byte_t);
+  JMEM_DEFINE_LOCAL_ARRAY (context_p, input_start_p, input_size + 1, lit_utf8_byte_t);
 
-  ecma_string_to_cesu8_bytes (str_p, input_start_p, input_size);
+  ecma_string_to_cesu8_bytes (context_p, str_p, input_start_p, input_size);
 
   input_start_p[input_size] = LIT_BYTE_NULL;
 
@@ -659,12 +664,12 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
 #if JJS_BUILTIN_ANNEXB
     case ECMA_GLOBAL_ESCAPE:
     {
-      ret_value = ecma_builtin_global_object_escape (input_start_p, input_size);
+      ret_value = ecma_builtin_global_object_escape (context_p, input_start_p, input_size);
       break;
     }
     case ECMA_GLOBAL_UNESCAPE:
     {
-      ret_value = ecma_builtin_global_object_unescape (input_start_p, input_size);
+      ret_value = ecma_builtin_global_object_unescape (context_p, input_start_p, input_size);
       break;
     }
 #endif /* JJS_BUILTIN_ANNEXB */
@@ -674,7 +679,7 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
       const uint8_t *uri_set =
         (builtin_routine_id == ECMA_GLOBAL_DECODE_URI ? unescaped_uri_set : unescaped_uri_component_set);
 
-      ret_value = ecma_builtin_global_object_decode_uri_helper (input_start_p, input_size, uri_set);
+      ret_value = ecma_builtin_global_object_decode_uri_helper (context_p, input_start_p, input_size, uri_set);
       break;
     }
     default:
@@ -685,38 +690,16 @@ ecma_builtin_global_dispatch_routine (uint8_t builtin_routine_id, /**< built-in 
       const uint8_t *uri_set =
         (builtin_routine_id == ECMA_GLOBAL_ENCODE_URI ? unescaped_uri_set : unescaped_uri_component_set);
 
-      ret_value = ecma_builtin_global_object_encode_uri_helper (input_start_p, input_size, uri_set);
+      ret_value = ecma_builtin_global_object_encode_uri_helper (context_p, input_start_p, input_size, uri_set);
       break;
     }
   }
 
-  JMEM_FINALIZE_LOCAL_ARRAY (input_start_p);
+  JMEM_FINALIZE_LOCAL_ARRAY (context_p, input_start_p);
 
-  ecma_deref_ecma_string (str_p);
+  ecma_deref_ecma_string (context_p, str_p);
   return ret_value;
 } /* ecma_builtin_global_dispatch_routine */
-
-/**
- * Call encodeURI() function.
- */
-ecma_value_t ecma_builtin_global_encode_uri (ecma_value_t uri)
-{
-  return ecma_builtin_global_dispatch_routine (ECMA_GLOBAL_ENCODE_URI,
-                                               ECMA_VALUE_UNDEFINED,
-                                               &uri,
-                                               1);
-} /* ecma_builtin_global_encode_uri */
-
-/**
- * Call decodeURI() function.
- */
-ecma_value_t ecma_builtin_global_decode_uri (ecma_value_t uri)
-{
-  return ecma_builtin_global_dispatch_routine (ECMA_GLOBAL_DECODE_URI,
-                                               ECMA_VALUE_UNDEFINED,
-                                               &uri,
-                                               1);
-} /* ecma_builtin_global_decode_uri */
 
 /**
  * @}

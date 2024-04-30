@@ -41,7 +41,7 @@ ecma_value_t ecma_raise_reference_error (ecma_context_t *context_p, ecma_error_m
 ecma_value_t ecma_raise_syntax_error (ecma_context_t *context_p, ecma_error_msg_t msg);
 ecma_value_t ecma_raise_type_error (ecma_context_t *context_p, ecma_error_msg_t msg);
 ecma_value_t ecma_raise_uri_error (ecma_context_t *context_p, ecma_error_msg_t msg);
-ecma_value_t ecma_raise_maximum_callstack_error (ecma_context_t *context_p, );
+ecma_value_t ecma_raise_maximum_callstack_error (ecma_context_t *context_p);
 ecma_value_t ecma_new_aggregate_error (ecma_context_t *context_p, ecma_value_t error_list_val, ecma_value_t message_val, ecma_value_t options_val);
 ecma_value_t ecma_raise_aggregate_error (ecma_context_t *context_p, ecma_value_t error_list_val, ecma_value_t message_val);
 

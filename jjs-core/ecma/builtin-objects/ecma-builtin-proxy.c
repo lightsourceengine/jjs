@@ -65,17 +65,18 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_proxy_object_revocable (ecma_value_t target, /**< target argument */
+ecma_builtin_proxy_object_revocable (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_value_t target, /**< target argument */
                                      ecma_value_t handler) /**< handler argument */
 {
-  ecma_object_t *rev_proxy_p = ecma_proxy_create_revocable (target, handler);
+  ecma_object_t *rev_proxy_p = ecma_proxy_create_revocable (context_p, target, handler);
 
   if (JJS_UNLIKELY (rev_proxy_p == NULL))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  return ecma_make_object_value (rev_proxy_p);
+  return ecma_make_object_value (context_p, rev_proxy_p);
 } /* ecma_builtin_proxy_object_revocable */
 
 /**
@@ -87,13 +88,14 @@ ecma_builtin_proxy_object_revocable (ecma_value_t target, /**< target argument *
  * @return raised error
  */
 ecma_value_t
-ecma_builtin_proxy_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_proxy_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                  const ecma_value_t *arguments_list_p, /**< arguments list */
                                   uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
   /* 1. */
-  return ecma_raise_type_error (ECMA_ERR_CONSTRUCTOR_PROXY_REQUIRES_NEW);
+  return ecma_raise_type_error (context_p, ECMA_ERR_CONSTRUCTOR_PROXY_REQUIRES_NEW);
 } /* ecma_builtin_proxy_dispatch_call */
 
 /**
@@ -106,13 +108,15 @@ ecma_builtin_proxy_dispatch_call (const ecma_value_t *arguments_list_p, /**< arg
  *         new proxy object - otherwise
  */
 ecma_value_t
-ecma_builtin_proxy_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_proxy_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                       const ecma_value_t *arguments_list_p, /**< arguments list */
                                        uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
   /* 2. */
-  ecma_object_t *proxy_p = ecma_proxy_create (arguments_list_len > 0 ? arguments_list_p[0] : ECMA_VALUE_UNDEFINED,
+  ecma_object_t *proxy_p = ecma_proxy_create (context_p,
+                                              arguments_list_len > 0 ? arguments_list_p[0] : ECMA_VALUE_UNDEFINED,
                                               arguments_list_len > 1 ? arguments_list_p[1] : ECMA_VALUE_UNDEFINED,
                                               0);
 
@@ -121,7 +125,7 @@ ecma_builtin_proxy_dispatch_construct (const ecma_value_t *arguments_list_p, /**
     return ECMA_VALUE_ERROR;
   }
 
-  return ecma_make_object_value (proxy_p);
+  return ecma_make_object_value (context_p, proxy_p);
 } /* ecma_builtin_proxy_dispatch_construct */
 
 /**
@@ -131,7 +135,8 @@ ecma_builtin_proxy_dispatch_construct (const ecma_value_t *arguments_list_p, /**
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_proxy_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_proxy_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                     uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                      ecma_value_t this_arg, /**< 'this' argument value */
                                      const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                              *   passed to routine */
@@ -143,7 +148,7 @@ ecma_builtin_proxy_dispatch_routine (uint8_t builtin_routine_id, /**< built-in w
   {
     case ECMA_BUILTIN_PROXY_OBJECT_REVOCABLE:
     {
-      return ecma_builtin_proxy_object_revocable (arguments_list_p[0], arguments_list_p[1]);
+      return ecma_builtin_proxy_object_revocable (context_p, arguments_list_p[0], arguments_list_p[1]);
     }
     default:
     {

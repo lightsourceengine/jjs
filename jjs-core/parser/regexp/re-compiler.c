@@ -120,6 +120,7 @@ re_compile_bytecode (ecma_context_t *context_p, /**< JJS engine context */
   re_ctx.flags = flags;
   re_ctx.captures_count = 1;
   re_ctx.non_captures_count = 0;
+  re_ctx.context_p = context_p;
 
   re_initialize_regexp_bytecode (&re_ctx);
 
@@ -129,6 +130,7 @@ re_compile_bytecode (ecma_context_t *context_p, /**< JJS engine context */
   re_ctx.input_curr_p = (lit_utf8_byte_t *) pattern_start_p;
   re_ctx.input_end_p = pattern_start_p + pattern_start_size;
   re_ctx.groups_count = -1;
+  re_ctx.context_p = context_p;
 
   /* Parse RegExp pattern */
   ecma_value_t result = re_parse_alternative (&re_ctx, true);

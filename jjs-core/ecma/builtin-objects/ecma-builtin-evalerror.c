@@ -52,10 +52,11 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_eval_error_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_eval_error_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                       const ecma_value_t *arguments_list_p, /**< arguments list */
                                        uint32_t arguments_list_len) /**< number of arguments */
 {
-  return ecma_builtin_helper_error_dispatch_call (JJS_ERROR_EVAL, arguments_list_p, arguments_list_len);
+  return ecma_builtin_helper_error_dispatch_call (context_p, JJS_ERROR_EVAL, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_eval_error_dispatch_call */
 
 /**
@@ -64,23 +65,24 @@ ecma_builtin_eval_error_dispatch_call (const ecma_value_t *arguments_list_p, /**
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_eval_error_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_eval_error_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                            const ecma_value_t *arguments_list_p, /**< arguments list */
                                             uint32_t arguments_list_len) /**< number of arguments */
 {
   ecma_object_t *proto_p =
-    ecma_op_get_prototype_from_constructor (JJS_CONTEXT (current_new_target_p), ECMA_BUILTIN_ID_EVAL_ERROR_PROTOTYPE);
+    ecma_op_get_prototype_from_constructor (context_p, context_p->current_new_target_p, ECMA_BUILTIN_ID_EVAL_ERROR_PROTOTYPE);
 
   if (proto_p == NULL)
   {
     return ECMA_VALUE_ERROR;
   }
 
-  ecma_value_t result = ecma_builtin_eval_error_dispatch_call (arguments_list_p, arguments_list_len);
+  ecma_value_t result = ecma_builtin_eval_error_dispatch_call (context_p, arguments_list_p, arguments_list_len);
 
   if (!ECMA_IS_VALUE_ERROR (result))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (result);
-    ECMA_SET_NON_NULL_POINTER (object_p->u2.prototype_cp, proto_p);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, result);
+    ECMA_SET_NON_NULL_POINTER (context_p, object_p->u2.prototype_cp, proto_p);
   }
 
   ecma_deref_object (proto_p);

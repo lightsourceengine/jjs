@@ -47,7 +47,7 @@ ecma_op_create_bigint_object (ecma_context_t *context_p, /**< JJS context */
 {
   JJS_ASSERT (ecma_is_value_bigint (arg));
 
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (ECMA_BUILTIN_ID_BIGINT_PROTOTYPE);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_BIGINT_PROTOTYPE);
 
   ecma_object_t *object_p =
     ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);

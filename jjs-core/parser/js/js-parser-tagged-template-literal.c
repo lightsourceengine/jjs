@@ -47,12 +47,14 @@ parser_tagged_template_literal_append_strings (parser_context_t *parser_context_
 
   if (lit_loc_p->length == 0 && !(lit_loc_p->status_flags & LEXER_LIT_LOCATION_HAS_ESCAPE))
   {
-    ecma_builtin_helper_def_prop_by_index (template_obj_p,
+    ecma_builtin_helper_def_prop_by_index (context_p,
+                                           template_obj_p,
                                            prop_idx,
                                            ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY),
                                            ECMA_PROPERTY_FLAG_ENUMERABLE);
 
-    ecma_builtin_helper_def_prop_by_index (raw_strings_p,
+    ecma_builtin_helper_def_prop_by_index (context_p,
+                                           raw_strings_p,
                                            prop_idx,
                                            ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY),
                                            ECMA_PROPERTY_FLAG_ENUMERABLE);
@@ -89,12 +91,14 @@ parser_tagged_template_literal_append_strings (parser_context_t *parser_context_
     raw_str_p = cooked_str_p;
   }
 
-  ecma_builtin_helper_def_prop_by_index (template_obj_p,
+  ecma_builtin_helper_def_prop_by_index (context_p,
+                                         template_obj_p,
                                          prop_idx,
                                          ecma_make_string_value (context_p, cooked_str_p),
                                          ECMA_PROPERTY_FLAG_ENUMERABLE);
 
-  ecma_builtin_helper_def_prop_by_index (raw_strings_p,
+  ecma_builtin_helper_def_prop_by_index (context_p,
+                                         raw_strings_p,
                                          prop_idx,
                                          ecma_make_string_value (context_p, raw_str_p),
                                          ECMA_PROPERTY_FLAG_ENUMERABLE);
@@ -126,7 +130,8 @@ parser_new_tagged_template_literal (parser_context_t *parser_context_p, /**< par
   template_ext_obj_p->u.array.length_prop_and_hole_count = flags | ECMA_ARRAY_TEMPLATE_LITERAL;
   raw_ext_obj_p->u.array.length_prop_and_hole_count = flags | ECMA_ARRAY_TEMPLATE_LITERAL;
 
-  ecma_builtin_helper_def_prop (template_obj_p,
+  ecma_builtin_helper_def_prop (context_p,
+                                template_obj_p,
                                 ecma_get_magic_string (LIT_MAGIC_STRING_RAW),
                                 ecma_make_object_value (context_p, *raw_strings_p),
                                 ECMA_PROPERTY_FIXED);

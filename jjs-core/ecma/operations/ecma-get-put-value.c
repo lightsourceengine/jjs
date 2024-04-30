@@ -205,7 +205,7 @@ ecma_op_get_value_object_base (ecma_context_t *context_p, /**< JJS context */
 #endif /* JJS_BUILTIN_BOOLEAN */
     }
 
-    obj_p = ecma_builtin_get (id);
+    obj_p = ecma_builtin_get (context_p, id);
   }
 
   return ecma_op_object_get_with_receiver (context_p, obj_p, property_name_p, base_value);

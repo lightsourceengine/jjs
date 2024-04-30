@@ -35,18 +35,19 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_typedarray_helper_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_typedarray_helper_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                           const ecma_value_t *arguments_list_p, /**< arguments list */
                                            uint32_t arguments_list_len, /**< number of arguments */
                                            ecma_typedarray_type_t typedarray_id) /**< id of the typedarray */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
   ecma_builtin_id_t proto_id = ecma_typedarray_helper_get_prototype_id (typedarray_id);
   ecma_object_t *prototype_obj_p = NULL;
-  ecma_object_t *current_new_target_p = JJS_CONTEXT (current_new_target_p);
+  ecma_object_t *current_new_target_p = context_p->current_new_target_p;
 
   if (current_new_target_p != NULL)
   {
-    prototype_obj_p = ecma_op_get_prototype_from_constructor (current_new_target_p, proto_id);
+    prototype_obj_p = ecma_op_get_prototype_from_constructor (context_p, current_new_target_p, proto_id);
     if (prototype_obj_p == NULL)
     {
       return ECMA_VALUE_ERROR;
@@ -54,10 +55,11 @@ ecma_typedarray_helper_dispatch_construct (const ecma_value_t *arguments_list_p,
   }
   else
   {
-    prototype_obj_p = ecma_builtin_get (proto_id);
+    prototype_obj_p = ecma_builtin_get (context_p, proto_id);
   }
 
-  ecma_value_t val = ecma_op_create_typedarray (arguments_list_p,
+  ecma_value_t val = ecma_op_create_typedarray (context_p,
+                                                arguments_list_p,
                                                 arguments_list_len,
                                                 prototype_obj_p,
                                                 ecma_typedarray_helper_get_shift_size (typedarray_id),

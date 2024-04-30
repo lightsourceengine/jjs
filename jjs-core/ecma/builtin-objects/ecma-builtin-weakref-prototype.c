@@ -59,22 +59,23 @@ enum
  *         error - otherwise
  */
 static ecma_value_t
-ecma_builtin_weakref_prototype_object_deref (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_weakref_prototype_object_deref (ecma_context_t *context_p, /**< JJS context */
+                                             ecma_value_t this_arg) /**< this argument */
 {
   if (!ecma_is_value_object (this_arg))
   {
-    return ecma_raise_type_error (ECMA_ERR_TARGET_IS_NOT_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_TARGET_IS_NOT_OBJECT);
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
   ecma_extended_object_t *this_ext_obj = (ecma_extended_object_t *) object_p;
 
   if (!ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_WEAKREF))
   {
-    return ecma_raise_type_error (ECMA_ERR_TARGET_IS_NOT_WEAKREF);
+    return ecma_raise_type_error (context_p, ECMA_ERR_TARGET_IS_NOT_WEAKREF);
   }
 
-  return ecma_copy_value (this_ext_obj->u.cls.u3.target);
+  return ecma_copy_value (context_p, this_ext_obj->u.cls.u3.target);
 } /* ecma_builtin_weakref_prototype_object_deref */
 
 /**
@@ -84,7 +85,8 @@ ecma_builtin_weakref_prototype_object_deref (ecma_value_t this_arg) /**< this ar
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_weakref_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in routine identifier */
+ecma_builtin_weakref_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                 uint8_t builtin_routine_id, /**< built-in routine identifier */
                                                  ecma_value_t this_arg, /**< 'this' argument value */
                                                  const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                                          *   passed to routine */
@@ -96,7 +98,7 @@ ecma_builtin_weakref_prototype_dispatch_routine (uint8_t builtin_routine_id, /**
   {
     case ECMA_BUILTIN_WEAKREF_PROTOTYPE_OBJECT_DEREF:
     {
-      return ecma_builtin_weakref_prototype_object_deref (this_arg);
+      return ecma_builtin_weakref_prototype_object_deref (context_p, this_arg);
     }
     default:
     {

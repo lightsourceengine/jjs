@@ -29,7 +29,7 @@ ecma_value_t ecma_op_create_symbol (ecma_context_t *context_p, const ecma_value_
 
 ecma_value_t ecma_op_create_symbol_object (ecma_context_t *context_p, const ecma_value_t value);
 
-bool ecma_prop_name_is_symbol (ecma_context_t *context_p, ecma_string_t *string_p);
+bool ecma_prop_name_is_symbol (ecma_string_t *string_p);
 
 ecma_value_t ecma_get_symbol_description (ecma_context_t *context_p, ecma_string_t *symbol_p);
 

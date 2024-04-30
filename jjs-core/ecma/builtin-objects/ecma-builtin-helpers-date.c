@@ -274,11 +274,12 @@ ecma_date_week_day (ecma_number_t time) /**< time value */
  * @return local time zone adjustment
  */
 extern inline int32_t JJS_ATTR_ALWAYS_INLINE
-ecma_date_local_time_zone_adjustment (ecma_number_t time) /**< time value */
+ecma_date_local_time_zone_adjustment (ecma_context_t *context_p, /**< JJS context */
+                                      ecma_number_t time) /**< time value */
 {
-  JJS_ASSERT (JJS_CONTEXT (platform_p)->time_local_tza != NULL);
+  JJS_ASSERT (context_p->platform_p->time_local_tza != NULL);
   int32_t tza;
-  jjs_status_t status = JJS_CONTEXT (platform_p)->time_local_tza (time, &tza);
+  jjs_status_t status = context_p->platform_p->time_local_tza (time, &tza);
 
   return (status == JJS_STATUS_OK) ? tza : 0;
 } /* ecma_date_local_time_zone_adjustment */
@@ -292,9 +293,10 @@ ecma_date_local_time_zone_adjustment (ecma_number_t time) /**< time value */
  * @return UTC time
  */
 ecma_number_t
-ecma_date_utc (ecma_number_t time) /**< time value */
+ecma_date_utc (ecma_context_t *context_p, /**< JJS context */
+               ecma_number_t time) /**< time value */
 {
-  return time - ecma_date_local_time_zone_adjustment (time);
+  return time - ecma_date_local_time_zone_adjustment (context_p, time);
 } /* ecma_date_utc */
 
 /**
@@ -499,7 +501,8 @@ ecma_date_time_clip (ecma_number_t time) /**< time value */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_date_to_string_format (ecma_number_t datetime_number, /**< datetime */
+ecma_date_to_string_format (ecma_context_t *context_p, /**< JJS context */
+                            ecma_number_t datetime_number, /**< datetime */
                             const char *format_p) /**< format buffer */
 {
   lit_utf8_byte_t date_buffer[37];
@@ -612,7 +615,7 @@ ecma_date_to_string_format (ecma_number_t datetime_number, /**< datetime */
       }
       case LIT_CHAR_LOWERCASE_Z: /* Time zone hours part. */
       {
-        int32_t time_zone = ecma_date_local_time_zone_adjustment (datetime_number);
+        int32_t time_zone = ecma_date_local_time_zone_adjustment (context_p, datetime_number);
 
         if (time_zone >= 0)
         {
@@ -632,7 +635,7 @@ ecma_date_to_string_format (ecma_number_t datetime_number, /**< datetime */
       {
         JJS_ASSERT (*format_p == LIT_CHAR_UPPERCASE_Z); /* Time zone minutes part. */
 
-        int32_t time_zone = ecma_date_local_time_zone_adjustment (datetime_number);
+        int32_t time_zone = ecma_date_local_time_zone_adjustment (context_p, datetime_number);
 
         if (time_zone < 0)
         {
@@ -682,8 +685,8 @@ ecma_date_to_string_format (ecma_number_t datetime_number, /**< datetime */
 
   JJS_ASSERT (dest_p <= date_buffer + date_buffer_length);
 
-  return ecma_make_string_value (
-    ecma_new_ecma_string_from_ascii (date_buffer, (lit_utf8_size_t) (dest_p - date_buffer)));
+  return ecma_make_string_value (context_p,
+    ecma_new_ecma_string_from_ascii (context_p, date_buffer, (lit_utf8_size_t) (dest_p - date_buffer)));
 } /* ecma_date_to_string_format */
 
 /**
@@ -697,10 +700,11 @@ ecma_date_to_string_format (ecma_number_t datetime_number, /**< datetime */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_date_value_to_string (ecma_number_t datetime_number) /**< datetime */
+ecma_date_value_to_string (ecma_context_t *context_p, /**< JJS context */
+                           ecma_number_t datetime_number) /**< datetime */
 {
-  datetime_number += ecma_date_local_time_zone_adjustment (datetime_number);
-  return ecma_date_to_string_format (datetime_number, "$W $M $D $Y $h:$m:$s GMT$z$Z");
+  datetime_number += ecma_date_local_time_zone_adjustment (context_p, datetime_number);
+  return ecma_date_to_string_format (context_p, datetime_number, "$W $M $D $Y $h:$m:$s GMT$z$Z");
 } /* ecma_date_value_to_string */
 
 /**
@@ -713,9 +717,10 @@ ecma_date_value_to_string (ecma_number_t datetime_number) /**< datetime */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_date_value_to_utc_string (ecma_number_t datetime_number) /**< datetime */
+ecma_date_value_to_utc_string (ecma_context_t *context_p, /**< JJS context */
+                               ecma_number_t datetime_number) /**< datetime */
 {
-  return ecma_date_to_string_format (datetime_number, "$W, $D $M $Y $h:$m:$s GMT");
+  return ecma_date_to_string_format (context_p, datetime_number, "$W, $D $M $Y $h:$m:$s GMT");
 } /* ecma_date_value_to_utc_string */
 
 /**
@@ -728,9 +733,10 @@ ecma_date_value_to_utc_string (ecma_number_t datetime_number) /**< datetime */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_date_value_to_iso_string (ecma_number_t datetime_number) /**<datetime */
+ecma_date_value_to_iso_string (ecma_context_t *context_p, /**< JJS context */
+                               ecma_number_t datetime_number) /**<datetime */
 {
-  return ecma_date_to_string_format (datetime_number, "$y-$O-$DT$h:$m:$s.$iZ");
+  return ecma_date_to_string_format (context_p, datetime_number, "$y-$O-$DT$h:$m:$s.$iZ");
 } /* ecma_date_value_to_iso_string */
 
 /**
@@ -743,9 +749,10 @@ ecma_date_value_to_iso_string (ecma_number_t datetime_number) /**<datetime */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_date_value_to_date_string (ecma_number_t datetime_number) /**<datetime */
+ecma_date_value_to_date_string (ecma_context_t *context_p, /**< JJS context */
+                                ecma_number_t datetime_number) /**<datetime */
 {
-  return ecma_date_to_string_format (datetime_number, "$W $M $D $Y");
+  return ecma_date_to_string_format (context_p, datetime_number, "$W $M $D $Y");
 } /* ecma_date_value_to_date_string */
 
 /**
@@ -758,9 +765,10 @@ ecma_date_value_to_date_string (ecma_number_t datetime_number) /**<datetime */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_date_value_to_time_string (ecma_number_t datetime_number) /**<datetime */
+ecma_date_value_to_time_string (ecma_context_t *context_p, /**< JJS context */
+                                ecma_number_t datetime_number) /**<datetime */
 {
-  return ecma_date_to_string_format (datetime_number, "$h:$m:$s GMT$z$Z");
+  return ecma_date_to_string_format (context_p, datetime_number, "$h:$m:$s GMT$z$Z");
 } /* ecma_date_value_to_time_string */
 
 /**

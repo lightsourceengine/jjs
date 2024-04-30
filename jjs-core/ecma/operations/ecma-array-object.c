@@ -50,7 +50,7 @@ ecma_op_alloc_array_object (ecma_context_t *context_p, /**< JJS context */
                             uint32_t length) /**< length of the new array */
 {
 #if JJS_BUILTIN_ARRAY
-  ecma_object_t *array_prototype_object_p = ecma_builtin_get (ECMA_BUILTIN_ID_ARRAY_PROTOTYPE);
+  ecma_object_t *array_prototype_object_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_ARRAY_PROTOTYPE);
 #else /* !JJS_BUILTIN_ARRAY */
   ecma_object_t *array_prototype_object_p = ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE);
 #endif /* JJS_BUILTIN_ARRAY */
@@ -713,7 +713,7 @@ ecma_op_array_species_create (ecma_context_t *context_p, /**< JJS context */
       ecma_global_object_t *global_object_p = ecma_op_function_get_function_realm (context_p, constructor_p);
 
       if ((ecma_object_t *) global_object_p != ecma_builtin_get_global (context_p)
-          && constructor_p == ecma_builtin_get_from_realm (global_object_p, ECMA_BUILTIN_ID_ARRAY))
+          && constructor_p == ecma_builtin_get_from_realm (context_p, global_object_p, ECMA_BUILTIN_ID_ARRAY))
       {
         ecma_deref_object (constructor_p);
         constructor = ECMA_VALUE_UNDEFINED;
@@ -788,7 +788,7 @@ ecma_op_create_array_iterator (ecma_context_t *context_p, /**< JJS context */
                                ecma_object_t *obj_p, /**< array object */
                                ecma_iterator_kind_t kind) /**< array iterator kind */
 {
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (ECMA_BUILTIN_ID_ARRAY_ITERATOR_PROTOTYPE);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_ARRAY_ITERATOR_PROTOTYPE);
 
   return ecma_op_create_iterator_object (context_p,
                                          ecma_make_object_value (context_p, obj_p),
@@ -1214,7 +1214,7 @@ ecma_array_object_to_string (ecma_context_t *context_p, /**< JJS context */
   if (!ecma_op_is_callable (context_p, join_value))
   {
     /* 3. */
-    ret_value = ecma_builtin_helper_object_to_string (this_arg);
+    ret_value = ecma_builtin_helper_object_to_string (context_p, this_arg);
   }
   else
   {

@@ -920,9 +920,7 @@ ecma_assert_object_contains_the_property (ecma_context_t *context_p, /**< JJS co
     prop_iter_cp = prop_iter_p->next_property_cp;
   }
 #else /* JJS_NDEBUG */
-  JJS_UNUSED (object_p);
-  JJS_UNUSED (prop_value_p);
-  JJS_UNUSED (is_data);
+  JJS_UNUSED_ALL (context_p, object_p, prop_value_p, is_data);
 #endif /* !JJS_NDEBUG */
 } /* ecma_assert_object_contains_the_property */
 
@@ -1606,7 +1604,7 @@ ecma_bytecode_deref (ecma_context_t *context_p, /**< JJS context */
 #endif /* JJS_DEBUGGER */
 
 #if JJS_MEM_STATS
-    jmem_stats_free_byte_code_bytes (((size_t) bytecode_p->size) << JMEM_ALIGNMENT_LOG);
+    jmem_stats_free_byte_code_bytes (context_p, ((size_t) bytecode_p->size) << JMEM_ALIGNMENT_LOG);
 #endif /* JJS_MEM_STATS */
   }
   else

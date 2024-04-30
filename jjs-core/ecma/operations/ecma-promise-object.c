@@ -372,8 +372,6 @@ ecma_fulfill_promise_with_checks (ecma_context_t *context_p, /**< JJS context */
   if (JJS_UNLIKELY (ecma_is_resolver_already_called (promise_obj_p)))
   {
 #if JJS_PROMISE_CALLBACK
-    jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
     if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ERROR))
     {
       JJS_ASSERT (context_p->promise_callback != NULL);
@@ -491,7 +489,7 @@ ecma_op_create_promise_object (ecma_context_t *context_p, /**< JJS context */
 
   if (new_target_p == NULL)
   {
-    new_target_p = ecma_builtin_get (ECMA_BUILTIN_ID_PROMISE);
+    new_target_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_PROMISE);
   }
 
   /* 3. */
@@ -685,7 +683,7 @@ ecma_promise_all_or_all_settled_handler_cb (ecma_context_t *context_p, /**< JJS 
     }
 
     ecma_object_t *obj_p =
-      ecma_create_object (context_p, ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
+      ecma_create_object (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
     ecma_property_value_t *prop_value_p;
     prop_value_p = ecma_create_named_data_property (context_p, obj_p,
                                                     ecma_get_magic_string (LIT_MAGIC_STRING_STATUS),
@@ -807,7 +805,7 @@ ecma_promise_new_capability (ecma_context_t *context_p, /**< JJS context */
 
   /* 3. */
   ecma_object_t *capability_obj_p = ecma_create_object (context_p,
-                                                        ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE),
+                                                        ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE),
                                                         sizeof (ecma_promise_capabality_t),
                                                         ECMA_OBJECT_TYPE_CLASS);
 
@@ -830,7 +828,7 @@ ecma_promise_new_capability (ecma_context_t *context_p, /**< JJS context */
   ecma_value_t executor = ecma_make_object_value (context_p, executor_p);
   ecma_value_t promise;
 
-  if (constructor_obj_p == ecma_builtin_get (ECMA_BUILTIN_ID_PROMISE))
+  if (constructor_obj_p == ecma_builtin_get (context_p, ECMA_BUILTIN_ID_PROMISE))
   {
     promise = ecma_op_create_promise_object (context_p, executor, parent, constructor_obj_p);
   }
@@ -1264,7 +1262,7 @@ ecma_promise_async_await (ecma_context_t *context_p, /**< JJS context */
                           ecma_extended_object_t *async_generator_object_p, /**< async generator function */
                           ecma_value_t value) /**< value to be resolved (takes the reference) */
 {
-  ecma_value_t promise = ecma_make_object_value (context_p, ecma_builtin_get (ECMA_BUILTIN_ID_PROMISE));
+  ecma_value_t promise = ecma_make_object_value (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_PROMISE));
   ecma_value_t result = ecma_promise_reject_or_resolve (context_p, promise, value, true);
 
   ecma_free_value (context_p, value);
@@ -1401,8 +1399,6 @@ ecma_promise_perform_then (ecma_context_t *context_p, /**< JJS context */
     {
       promise_p->header.u.cls.u1.promise_flags &= (uint8_t) ~ECMA_PROMISE_UNHANDLED_REJECT;
 #if JJS_PROMISE_CALLBACK
-      jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
       if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ERROR))
       {
         JJS_ASSERT (context_p->promise_callback != NULL);

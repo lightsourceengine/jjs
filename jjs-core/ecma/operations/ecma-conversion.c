@@ -576,7 +576,7 @@ ecma_op_to_object (ecma_context_t *context_p, /**< JJS context */
   }
 
   ecma_object_t *object_p =
-    ecma_create_object (context_p, ecma_builtin_get (proto_id), sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, ecma_builtin_get (context_p, proto_id), sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
   ext_object_p->u.cls.type = class_type;

@@ -247,7 +247,8 @@ ecma_date_parse_month_name (const lit_utf8_byte_t **str_p, /**< pointer to the c
  *         true - otherwise
  */
 static bool
-ecma_date_construct_helper (const ecma_value_t *args, /**< arguments passed to the Date constructor */
+ecma_date_construct_helper (ecma_context_t *context_p, /**< JJS context */
+                            const ecma_value_t *args, /**< arguments passed to the Date constructor */
                             uint32_t args_len, /**< number of arguments */
                             ecma_number_t *tv_p) /**< [out] time value */
 {
@@ -266,7 +267,7 @@ ecma_date_construct_helper (const ecma_value_t *args, /**< arguments passed to t
   /* 1-7. */
   for (uint32_t i = 0; i < args_len; i++)
   {
-    ecma_value_t status = ecma_op_to_number (args[i], date_nums + i);
+    ecma_value_t status = ecma_op_to_number (context_p, args[i], date_nums + i);
 
     if (ECMA_IS_VALUE_ERROR (status))
     {
@@ -303,7 +304,8 @@ ecma_date_construct_helper (const ecma_value_t *args, /**< arguments passed to t
  * @return the parsed date as ecma_number_t or NaN otherwise
  */
 static ecma_number_t
-ecma_builtin_date_parse_basic (const lit_utf8_byte_t *date_str_curr_p, /**< date string start */
+ecma_builtin_date_parse_basic (ecma_context_t *context_p, /**< JJS context */
+                               const lit_utf8_byte_t *date_str_curr_p, /**< date string start */
                                const lit_utf8_byte_t *date_str_end_p) /**< date string end */
 {
   /* 1. read year */
@@ -441,7 +443,7 @@ ecma_builtin_date_parse_basic (const lit_utf8_byte_t *date_str_curr_p, /**< date
 
   if (!is_utc)
   {
-    result_date = ecma_date_utc (result_date);
+    result_date = ecma_date_utc (context_p, result_date);
   }
 
   return result_date;
@@ -638,14 +640,15 @@ ecma_builtin_date_parse_toString_formats (const lit_utf8_byte_t *date_str_curr_p
  * @return parsed time
  */
 static ecma_number_t
-ecma_builtin_date_parse (ecma_string_t *string_p) /**< string */
+ecma_builtin_date_parse (ecma_context_t *context_p, /**< JJS context */
+                         ecma_string_t *string_p) /**< string */
 {
-  ECMA_STRING_TO_UTF8_STRING (string_p, str_p, str_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, string_p, str_p, str_size);
   const lit_utf8_byte_t *date_str_curr_p = str_p;
   const lit_utf8_byte_t *date_str_end_p = str_p + str_size;
 
   /* try to parse date string as ISO string - ECMA-262 v5, 15.9.1.15 */
-  ecma_number_t tv = ecma_builtin_date_parse_basic (date_str_curr_p, date_str_end_p);
+  ecma_number_t tv = ecma_builtin_date_parse_basic (context_p, date_str_curr_p, date_str_end_p);
 
   if (ecma_number_is_nan (tv))
   {
@@ -653,7 +656,7 @@ ecma_builtin_date_parse (ecma_string_t *string_p) /**< string */
     tv = ecma_builtin_date_parse_toString_formats (date_str_curr_p, date_str_end_p);
   }
 
-  ECMA_FINALIZE_UTF8_STRING (str_p, str_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, str_p, str_size);
 
   return tv;
 } /* ecma_builtin_date_parse */
@@ -668,22 +671,23 @@ ecma_builtin_date_parse (ecma_string_t *string_p) /**< string */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_date_utc (const ecma_value_t args[], /**< arguments list */
+ecma_builtin_date_utc (ecma_context_t *context_p, /**< JJS context */
+                       const ecma_value_t args[], /**< arguments list */
                        uint32_t args_number) /**< number of arguments */
 {
   if (args_number < 1)
   {
-    return ecma_make_nan_value ();
+    return ecma_make_nan_value (context_p);
   }
 
   ecma_number_t tv;
 
-  if (!ecma_date_construct_helper (args, args_number, &tv))
+  if (!ecma_date_construct_helper (context_p, args, args_number, &tv))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  return ecma_make_number_value ((ecma_number_t) ecma_date_time_clip (tv));
+  return ecma_make_number_value (context_p, (ecma_number_t) ecma_date_time_clip (tv));
 } /* ecma_builtin_date_utc */
 
 /**
@@ -692,11 +696,11 @@ ecma_builtin_date_utc (const ecma_value_t args[], /**< arguments list */
  * @return ecma_number_t
  */
 static ecma_number_t
-ecma_builtin_date_now_helper (void)
+ecma_builtin_date_now_helper (ecma_context_t *context_p) /**< JJS context */
 {
-  JJS_ASSERT (JJS_CONTEXT (platform_p)->time_now_ms != NULL);
+  JJS_ASSERT (context_p->platform_p->time_now_ms != NULL);
   double unix_timestamp_ms;
-  jjs_status_t status = JJS_CONTEXT (platform_p)->time_now_ms (&unix_timestamp_ms);
+  jjs_status_t status = context_p->platform_p->time_now_ms (&unix_timestamp_ms);
 
   return (status == JJS_STATUS_OK) ? floor (DOUBLE_TO_ECMA_NUMBER_T (unix_timestamp_ms)) : 0;
 } /* ecma_builtin_date_now_helper */
@@ -710,19 +714,20 @@ ecma_builtin_date_now_helper (void)
  *         constructed date object - otherwise
  */
 static ecma_value_t
-ecma_builtin_date_create (ecma_number_t tv)
+ecma_builtin_date_create (ecma_context_t *context_p, /**< JJS context */
+                          ecma_number_t tv)
 {
-  JJS_ASSERT (JJS_CONTEXT (current_new_target_p) != NULL);
+  JJS_ASSERT (context_p->current_new_target_p != NULL);
 
   ecma_object_t *prototype_obj_p =
-    ecma_op_get_prototype_from_constructor (JJS_CONTEXT (current_new_target_p), ECMA_BUILTIN_ID_DATE_PROTOTYPE);
+    ecma_op_get_prototype_from_constructor (context_p, context_p->current_new_target_p, ECMA_BUILTIN_ID_DATE_PROTOTYPE);
 
   if (JJS_UNLIKELY (prototype_obj_p == NULL))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  ecma_object_t *obj_p = ecma_create_object (prototype_obj_p, sizeof (ecma_date_object_t), ECMA_OBJECT_TYPE_CLASS);
+  ecma_object_t *obj_p = ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_date_object_t), ECMA_OBJECT_TYPE_CLASS);
   ecma_deref_object (prototype_obj_p);
 
   ecma_date_object_t *date_object_p = (ecma_date_object_t *) obj_p;
@@ -731,7 +736,7 @@ ecma_builtin_date_create (ecma_number_t tv)
   date_object_p->header.u.cls.u3.tza = 0;
   date_object_p->date_value = tv;
 
-  return ecma_make_object_value (obj_p);
+  return ecma_make_object_value (context_p, obj_p);
 } /* ecma_builtin_date_create */
 
 /**
@@ -743,13 +748,14 @@ ecma_builtin_date_create (ecma_number_t tv)
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_date_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_date_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                 const ecma_value_t *arguments_list_p, /**< arguments list */
                                  uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_UNUSED (arguments_list_p);
   JJS_UNUSED (arguments_list_len);
 
-  return ecma_date_value_to_string (ecma_builtin_date_now_helper ());
+  return ecma_date_value_to_string (context_p, ecma_builtin_date_now_helper (context_p));
 } /* ecma_builtin_date_dispatch_call */
 
 /**
@@ -762,13 +768,14 @@ ecma_builtin_date_dispatch_call (const ecma_value_t *arguments_list_p, /**< argu
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_date_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_date_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                      const ecma_value_t *arguments_list_p, /**< arguments list */
                                       uint32_t arguments_list_len) /**< number of arguments */
 {
   /* 20.4.2.3 */
   if (arguments_list_len == 0)
   {
-    return ecma_builtin_date_create (ecma_builtin_date_now_helper ());
+    return ecma_builtin_date_create (context_p, ecma_builtin_date_now_helper (context_p));
   }
 
   ecma_number_t tv;
@@ -779,12 +786,12 @@ ecma_builtin_date_dispatch_construct (const ecma_value_t *arguments_list_p, /**<
 
     /* 4.a */
     if (ecma_is_value_object (argument)
-        && ecma_object_class_is (ecma_get_object_from_value (argument), ECMA_OBJECT_CLASS_DATE))
+        && ecma_object_class_is (ecma_get_object_from_value (context_p, argument), ECMA_OBJECT_CLASS_DATE))
     {
-      return ecma_builtin_date_create (((ecma_date_object_t *) ecma_get_object_from_value (argument))->date_value);
+      return ecma_builtin_date_create (context_p, ((ecma_date_object_t *) ecma_get_object_from_value (context_p, argument))->date_value);
     }
     /* 4.b */
-    ecma_value_t primitive = ecma_op_to_primitive (argument, ECMA_PREFERRED_TYPE_NO);
+    ecma_value_t primitive = ecma_op_to_primitive (context_p, argument, ECMA_PREFERRED_TYPE_NO);
 
     if (ECMA_IS_VALUE_ERROR (primitive))
     {
@@ -793,14 +800,14 @@ ecma_builtin_date_dispatch_construct (const ecma_value_t *arguments_list_p, /**<
 
     if (ecma_is_value_string (primitive))
     {
-      ecma_string_t *prim_str_p = ecma_get_string_from_value (primitive);
-      tv = ecma_builtin_date_parse (prim_str_p);
-      ecma_deref_ecma_string (prim_str_p);
+      ecma_string_t *prim_str_p = ecma_get_string_from_value (context_p, primitive);
+      tv = ecma_builtin_date_parse (context_p, prim_str_p);
+      ecma_deref_ecma_string (context_p, prim_str_p);
     }
     else
     {
-      ecma_value_t prim_value = ecma_op_to_number (primitive, &tv);
-      ecma_free_value (primitive);
+      ecma_value_t prim_value = ecma_op_to_number (context_p, primitive, &tv);
+      ecma_free_value (context_p, primitive);
 
       if (ECMA_IS_VALUE_ERROR (prim_value))
       {
@@ -809,16 +816,16 @@ ecma_builtin_date_dispatch_construct (const ecma_value_t *arguments_list_p, /**<
     }
   }
   /* 20.4.2.1 */
-  else if (ecma_date_construct_helper (arguments_list_p, arguments_list_len, &tv))
+  else if (ecma_date_construct_helper (context_p, arguments_list_p, arguments_list_len, &tv))
   {
-    tv = ecma_date_utc (tv);
+    tv = ecma_date_utc (context_p, tv);
   }
   else
   {
     return ECMA_VALUE_ERROR;
   }
 
-  return ecma_builtin_date_create (ecma_date_time_clip (tv));
+  return ecma_builtin_date_create (context_p, ecma_date_time_clip (tv));
 } /* ecma_builtin_date_dispatch_construct */
 
 /**
@@ -828,7 +835,8 @@ ecma_builtin_date_dispatch_construct (const ecma_value_t *arguments_list_p, /**<
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_date_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine  identifier */
+ecma_builtin_date_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                    uint8_t builtin_routine_id, /**< built-in wide routine  identifier */
                                     ecma_value_t this_arg, /**< 'this' argument value */
                                     const ecma_value_t arguments_list_p[], /**< list of arguments passed to routine */
                                     uint32_t arguments_number) /**< length of arguments' list */
@@ -839,28 +847,28 @@ ecma_builtin_date_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wi
   {
     case ECMA_DATE_ROUTINE_NOW:
     {
-      return ecma_make_number_value (ecma_builtin_date_now_helper ());
+      return ecma_make_number_value (context_p, ecma_builtin_date_now_helper (context_p));
     }
     case ECMA_DATE_ROUTINE_UTC:
     {
-      return ecma_builtin_date_utc (arguments_list_p, arguments_number);
+      return ecma_builtin_date_utc (context_p, arguments_list_p, arguments_number);
     }
     case ECMA_DATE_ROUTINE_PARSE:
     {
       if (arguments_number < 1)
       {
-        return ecma_make_nan_value ();
+        return ecma_make_nan_value (context_p);
       }
 
-      ecma_string_t *str_p = ecma_op_to_string (arguments_list_p[0]);
+      ecma_string_t *str_p = ecma_op_to_string (context_p, arguments_list_p[0]);
 
       if (JJS_UNLIKELY (str_p == NULL))
       {
         return ECMA_VALUE_ERROR;
       }
 
-      ecma_value_t result = ecma_make_number_value (ecma_date_time_clip (ecma_builtin_date_parse (str_p)));
-      ecma_deref_ecma_string (str_p);
+      ecma_value_t result = ecma_make_number_value (context_p, ecma_date_time_clip (ecma_builtin_date_parse (context_p, str_p)));
+      ecma_deref_ecma_string (context_p, str_p);
 
       return result;
     }

@@ -178,7 +178,7 @@ ecma_proxy_create_revocable (ecma_context_t *context_p, /**< JJS context */
 
   /* 5. */
   ecma_object_t *obj_p =
-    ecma_create_object (context_p, ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
+    ecma_create_object (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
 
   /* 6. */
   prop_value_p = ecma_create_named_data_property (context_p, obj_p,
@@ -291,7 +291,7 @@ ecma_proxy_object_get_prototype_of (ecma_context_t *context_p, /**< JJS context 
   /* 7. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t result = ecma_builtin_object_object_get_prototype_of (target_obj_p);
+    ecma_value_t result = ecma_builtin_object_object_get_prototype_of (context_p, target_obj_p);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
@@ -323,7 +323,7 @@ ecma_proxy_object_get_prototype_of (ecma_context_t *context_p, /**< JJS context 
   }
 
   /* 11. */
-  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
   /* 12. */
   if (ECMA_IS_VALUE_ERROR (extensible_target))
@@ -340,7 +340,7 @@ ecma_proxy_object_get_prototype_of (ecma_context_t *context_p, /**< JJS context 
   }
 
   /* 14. */
-  ecma_value_t target_proto = ecma_builtin_object_object_get_prototype_of (target_obj_p);
+  ecma_value_t target_proto = ecma_builtin_object_object_get_prototype_of (context_p, target_obj_p);
 
   /* 15. */
   if (ECMA_IS_VALUE_ERROR (target_proto))
@@ -449,7 +449,7 @@ ecma_proxy_object_set_prototype_of (ecma_context_t *context_p, /**< JJS context 
   }
 
   /* 11. */
-  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
   /* 12. */
   if (ECMA_IS_VALUE_ERROR (extensible_target))
@@ -464,7 +464,7 @@ ecma_proxy_object_set_prototype_of (ecma_context_t *context_p, /**< JJS context 
   }
 
   /* 14. */
-  ecma_value_t target_proto = ecma_builtin_object_object_get_prototype_of (target_obj_p);
+  ecma_value_t target_proto = ecma_builtin_object_object_get_prototype_of (context_p, target_obj_p);
 
   /* 15. */
   if (ECMA_IS_VALUE_ERROR (target_proto))
@@ -524,7 +524,7 @@ ecma_proxy_object_is_extensible (ecma_context_t *context_p, /**< JJS context */
   /* 7. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t result = ecma_builtin_object_object_is_extensible (target_obj_p);
+    ecma_value_t result = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
@@ -617,7 +617,7 @@ ecma_proxy_object_prevent_extensions (ecma_context_t *context_p, /**< JJS contex
   /* 7. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t ret_value = ecma_builtin_object_object_prevent_extensions (target_obj_p);
+    ecma_value_t ret_value = ecma_builtin_object_object_prevent_extensions (context_p, target_obj_p);
 
     if (ECMA_IS_VALUE_ERROR (ret_value))
     {
@@ -649,7 +649,7 @@ ecma_proxy_object_prevent_extensions (ecma_context_t *context_p, /**< JJS contex
   /* 10. */
   if (boolean_trap_result && !(obj_p->u2.prototype_cp & JJS_PROXY_SKIP_RESULT_VALIDATION))
   {
-    ecma_value_t target_is_ext = ecma_builtin_object_object_is_extensible (target_obj_p);
+    ecma_value_t target_is_ext = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
     if (ECMA_IS_VALUE_ERROR (target_is_ext))
     {
@@ -781,7 +781,7 @@ ecma_proxy_object_get_own_property_descriptor (ecma_context_t *context_p, /**< J
 
     /* .c */
     ecma_free_property_descriptor (context_p, &target_desc);
-    ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+    ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
     /* .d */
     if (ECMA_IS_VALUE_ERROR (extensible_target))
@@ -803,7 +803,7 @@ ecma_proxy_object_get_own_property_descriptor (ecma_context_t *context_p, /**< J
   }
 
   /* 15. */
-  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
   /* 16. */
   if (ECMA_IS_VALUE_ERROR (extensible_target))
@@ -966,7 +966,7 @@ ecma_proxy_object_define_own_property (ecma_context_t *context_p, /**< JJS conte
   bool target_prop_found = ecma_is_value_true (status);
 
   /* 15. */
-  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
   bool is_target_ext = ecma_is_value_true (extensible_target);
 
@@ -1118,7 +1118,7 @@ ecma_proxy_object_has (ecma_context_t *context_p, /**< JJS context */
         return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_FALSISH_PROPERTY_NON_CONFIGURABLE);
       }
 
-      ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+      ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
       if (ECMA_IS_VALUE_ERROR (extensible_target))
       {
@@ -1458,7 +1458,7 @@ ecma_proxy_object_delete_property (ecma_context_t *context_p, /**< JJS context *
     ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_PROPERTY_NON_CONFIGURABLE);
   }
   /* ES11: 13-14 */
-  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
   if (!ecma_is_value_true (extensible_target))
   {
@@ -1662,7 +1662,7 @@ ecma_proxy_object_own_property_keys (ecma_context_t *context_p, /**< JJS context
   }
 
   /* 10. */
-  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
+  ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
 
   if (ECMA_IS_VALUE_ERROR (extensible_target))
   {

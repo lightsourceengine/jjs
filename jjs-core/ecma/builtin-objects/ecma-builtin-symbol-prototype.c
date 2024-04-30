@@ -66,7 +66,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_symbol_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_symbol_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                                 ecma_value_t this_arg, /**< 'this' argument value */
                                                 const ecma_value_t arguments_list[], /**< list of arguments
                                                                                       *   passed to routine */
@@ -74,7 +75,7 @@ ecma_builtin_symbol_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
 {
   JJS_UNUSED_2 (arguments_list, arguments_number);
 
-  ecma_value_t sym = ecma_symbol_this_value (this_arg);
+  ecma_value_t sym = ecma_symbol_this_value (context_p, this_arg);
 
   if (ECMA_IS_VALUE_ERROR (sym))
   {
@@ -83,23 +84,23 @@ ecma_builtin_symbol_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
 
   if (builtin_routine_id < ECMA_SYMBOL_PROTOTYPE_TO_STRING)
   {
-    return ecma_copy_value (sym);
+    return ecma_copy_value (context_p, sym);
   }
 
   if (builtin_routine_id == ECMA_SYMBOL_PROTOTYPE_TO_STRING)
   {
-    return ecma_get_symbol_descriptive_string (sym);
+    return ecma_get_symbol_descriptive_string (context_p, sym);
   }
 
   JJS_ASSERT (builtin_routine_id == ECMA_SYMBOL_PROTOTYPE_DESCRIPTION);
-  ecma_string_t *symbol_p = ecma_get_symbol_from_value (sym);
-  ecma_value_t desc = ecma_get_symbol_description (symbol_p);
+  ecma_string_t *symbol_p = ecma_get_symbol_from_value (context_p, sym);
+  ecma_value_t desc = ecma_get_symbol_description (context_p, symbol_p);
   if (ecma_is_value_undefined (desc))
   {
     return desc;
   }
 
-  ecma_string_t *desc_p = ecma_get_string_from_value (desc);
+  ecma_string_t *desc_p = ecma_get_string_from_value (context_p, desc);
   ecma_ref_ecma_string (desc_p);
   return desc;
 } /* ecma_builtin_symbol_prototype_dispatch_routine */

@@ -50,20 +50,21 @@
  *         error - otherwise
  */
 static ecma_value_t
-ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val) /**< this argument */
+ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_context_t *context_p, /**< JJS context */
+                                                           ecma_value_t this_val) /**< this argument */
 {
   /* 2. */
   if (!ecma_is_value_object (this_val))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (this_val);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, this_val);
 
   /* 3. */
   if (!ecma_object_class_is (obj_p, ECMA_OBJECT_CLASS_REGEXP_STRING_ITERATOR))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_ITERATOR);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_ITERATOR);
   }
 
   ecma_regexp_string_iterator_t *regexp_string_iterator_obj = (ecma_regexp_string_iterator_t *) obj_p;
@@ -71,7 +72,7 @@ ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val
   /* 4. */
   if (ecma_is_value_empty (regexp_string_iterator_obj->iterated_string))
   {
-    return ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
+    return ecma_create_iter_result_object (context_p, ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
   }
 
   /* 5. */
@@ -79,10 +80,10 @@ ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val
 
   /* 6. */
   ecma_value_t matcher_str_value = regexp_string_iterator_obj->iterated_string;
-  ecma_string_t *matcher_str_p = ecma_get_string_from_value (matcher_str_value);
+  ecma_string_t *matcher_str_p = ecma_get_string_from_value (context_p, matcher_str_value);
 
   /* 9. */
-  ecma_value_t match = ecma_op_regexp_exec (regexp, matcher_str_p);
+  ecma_value_t match = ecma_op_regexp_exec (context_p, regexp, matcher_str_p);
 
   if (ECMA_IS_VALUE_ERROR (match))
   {
@@ -92,28 +93,28 @@ ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val
   /* 10. */
   if (ecma_is_value_null (match))
   {
-    ecma_free_value (regexp_string_iterator_obj->iterated_string);
+    ecma_free_value (context_p, regexp_string_iterator_obj->iterated_string);
     regexp_string_iterator_obj->iterated_string = ECMA_VALUE_EMPTY;
-    return ecma_create_iter_result_object (ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
+    return ecma_create_iter_result_object (context_p, ECMA_VALUE_UNDEFINED, ECMA_VALUE_TRUE);
   }
 
-  ecma_object_t *match_result_array_p = ecma_get_object_from_value (match);
+  ecma_object_t *match_result_array_p = ecma_get_object_from_value (context_p, match);
 
   ecma_value_t result = ECMA_VALUE_ERROR;
 
   /* 11. */
   if (regexp_string_iterator_obj->header.u.cls.u1.regexp_string_iterator_flags & RE_FLAG_GLOBAL)
   {
-    ecma_value_t matched_str_value = ecma_op_object_get_by_index (match_result_array_p, 0);
+    ecma_value_t matched_str_value = ecma_op_object_get_by_index (context_p, match_result_array_p, 0);
 
     if (ECMA_IS_VALUE_ERROR (matched_str_value))
     {
       goto free_variables;
     }
 
-    ecma_string_t *matched_str_p = ecma_op_to_string (matched_str_value);
+    ecma_string_t *matched_str_p = ecma_op_to_string (context_p, matched_str_value);
 
-    ecma_free_value (matched_str_value);
+    ecma_free_value (context_p, matched_str_value);
 
     if (JJS_UNLIKELY (matched_str_p == NULL))
     {
@@ -122,9 +123,9 @@ ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val
 
     if (ecma_string_is_empty (matched_str_p))
     {
-      ecma_object_t *regexp_obj_p = ecma_get_object_from_value (regexp);
+      ecma_object_t *regexp_obj_p = ecma_get_object_from_value (context_p, regexp);
 
-      ecma_value_t get_last_index = ecma_op_object_get_by_magic_id (regexp_obj_p, LIT_MAGIC_STRING_LASTINDEX_UL);
+      ecma_value_t get_last_index = ecma_op_object_get_by_magic_id (context_p, regexp_obj_p, LIT_MAGIC_STRING_LASTINDEX_UL);
 
       if (ECMA_IS_VALUE_ERROR (get_last_index))
       {
@@ -132,9 +133,9 @@ ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val
       }
 
       ecma_length_t this_index;
-      ecma_value_t to_len = ecma_op_to_length (get_last_index, &this_index);
+      ecma_value_t to_len = ecma_op_to_length (context_p, get_last_index, &this_index);
 
-      ecma_free_value (get_last_index);
+      ecma_free_value (context_p, get_last_index);
 
       if (ECMA_IS_VALUE_ERROR (to_len))
       {
@@ -143,15 +144,15 @@ ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val
 
       uint8_t flags = regexp_string_iterator_obj->header.u.cls.u1.regexp_string_iterator_flags;
       ecma_length_t next_index =
-        ecma_op_advance_string_index (matcher_str_p, this_index, (flags & RE_FLAG_UNICODE) != 0);
+        ecma_op_advance_string_index (context_p, matcher_str_p, this_index, (flags & RE_FLAG_UNICODE) != 0);
 
-      ecma_value_t next_index_value = ecma_make_length_value (next_index);
-      ecma_value_t set = ecma_op_object_put (regexp_obj_p,
+      ecma_value_t next_index_value = ecma_make_length_value (context_p, next_index);
+      ecma_value_t set = ecma_op_object_put (context_p, regexp_obj_p,
                                              ecma_get_magic_string (LIT_MAGIC_STRING_LASTINDEX_UL),
                                              next_index_value,
                                              true);
 
-      ecma_free_value (next_index_value);
+      ecma_free_value (context_p, next_index_value);
 
       if (ECMA_IS_VALUE_ERROR (set))
       {
@@ -160,16 +161,16 @@ ecma_builtin_regexp_string_iterator_prototype_object_next (ecma_value_t this_val
     }
     else
     {
-      ecma_deref_ecma_string (matched_str_p);
+      ecma_deref_ecma_string (context_p, matched_str_p);
     }
   }
   else
   {
-    ecma_free_value (regexp_string_iterator_obj->iterated_string);
+    ecma_free_value (context_p, regexp_string_iterator_obj->iterated_string);
     regexp_string_iterator_obj->iterated_string = ECMA_VALUE_EMPTY;
   }
 
-  result = ecma_create_iter_result_object (match, ECMA_VALUE_FALSE);
+  result = ecma_create_iter_result_object (context_p, match, ECMA_VALUE_FALSE);
 
 free_variables:
   ecma_deref_object (match_result_array_p);

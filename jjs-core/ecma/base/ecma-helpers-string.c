@@ -2425,7 +2425,7 @@ ecma_string_pad (ecma_context_t *context_p, /**< JJS context */
 {
   /* 3 */
   ecma_length_t int_max_length;
-  if (ECMA_IS_VALUE_ERROR (ecma_op_to_length (max_length, &int_max_length)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_to_length (context_p, max_length, &int_max_length)))
   {
     return ECMA_VALUE_ERROR;
   }
@@ -2443,7 +2443,7 @@ ecma_string_pad (ecma_context_t *context_p, /**< JJS context */
   /* 6 - 7 */
   if (!ecma_is_value_undefined (fill_string))
   {
-    filler_p = ecma_op_to_string (fill_string);
+    filler_p = ecma_op_to_string (context_p, fill_string);
     if (filler_p == NULL)
     {
       return ECMA_VALUE_ERROR;
@@ -2458,7 +2458,7 @@ ecma_string_pad (ecma_context_t *context_p, /**< JJS context */
   if (int_max_length >= UINT32_MAX)
   {
     ecma_deref_ecma_string (context_p, filler_p);
-    return ecma_raise_range_error (ECMA_ERR_MAXIMUM_STRING_LENGTH_IS_REACHED);
+    return ecma_raise_range_error (context_p, ECMA_ERR_MAXIMUM_STRING_LENGTH_IS_REACHED);
   }
 
   /* 9 */
@@ -2515,7 +2515,7 @@ ecma_stringbuilder_create (ecma_context_t *context_p) /**< JJS context */
   ecma_stringbuilder_header_t *header_p = (ecma_stringbuilder_header_t *) jmem_heap_alloc_block (context_p, initial_size);
   header_p->current_size = initial_size;
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (initial_size);
+  jmem_stats_allocate_string_bytes (context_p, initial_size);
 #endif /* JJS_MEM_STATS */
 
   ecma_stringbuilder_t ret = { .header_p = header_p, .context_p = context_p, };
@@ -2564,7 +2564,7 @@ ecma_stringbuilder_create_from_array (ecma_context_t *context_p, /**< JJS contex
   header_p->current_size = initial_size;
 
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (initial_size);
+  jmem_stats_allocate_string_bytes (context_p, initial_size);
 #endif /* JJS_MEM_STATS */
 
   if (strings_count > 0)
@@ -2598,7 +2598,7 @@ ecma_stringbuilder_create_raw (ecma_context_t *context_p, /**< JJS context */
   ecma_stringbuilder_header_t *header_p = (ecma_stringbuilder_header_t *) jmem_heap_alloc_block (context_p, initial_size);
   header_p->current_size = initial_size;
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (initial_size);
+  jmem_stats_allocate_string_bytes (context_p, initial_size);
 #endif /* JJS_MEM_STATS */
 
   memcpy (ECMA_STRINGBUILDER_STRING_PTR (header_p), data_p, data_size);
@@ -2625,7 +2625,7 @@ ecma_stringbuilder_grow (ecma_stringbuilder_t *builder_p, /**< string builder */
   builder_p->header_p = header_p;
 
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (required_size);
+  jmem_stats_allocate_string_bytes (builder_p->context_p, required_size);
 #endif /* JJS_MEM_STATS */
 
   return ((lit_utf8_byte_t *) header_p) + header_p->current_size - required_size;
@@ -2673,7 +2673,7 @@ ecma_stringbuilder_revert (ecma_stringbuilder_t *builder_p, /**< string builder 
   JJS_ASSERT (new_size <= header_p->current_size);
 
 #if JJS_MEM_STATS
-  jmem_stats_free_string_bytes (header_p->current_size - new_size);
+  jmem_stats_free_string_bytes (builder_p->context_p, header_p->current_size - new_size);
 #endif /* JJS_MEM_STATS */
 
   header_p = jmem_heap_realloc_block (builder_p->context_p, header_p, header_p->current_size, new_size);
@@ -2809,7 +2809,7 @@ ecma_stringbuilder_finalize (ecma_stringbuilder_t *builder_p) /**< string builde
   memmove (((lit_utf8_byte_t *) header_p + container_size), ECMA_STRINGBUILDER_STRING_PTR (header_p), string_size);
 
 #if JJS_MEM_STATS
-  jmem_stats_allocate_string_bytes (container_size - ECMA_ASCII_STRING_HEADER_SIZE);
+  jmem_stats_allocate_string_bytes (builder_p->context_p, container_size - ECMA_ASCII_STRING_HEADER_SIZE);
 #endif /* JJS_MEM_STATS */
 
   if (JJS_LIKELY (string_size <= UINT16_MAX))
@@ -2850,7 +2850,7 @@ ecma_stringbuilder_destroy (ecma_stringbuilder_t *builder_p) /**< string builder
 #endif /* !defined (JJS_NDEBUG) */
 
 #if JJS_MEM_STATS
-  jmem_stats_free_string_bytes (size);
+  jmem_stats_free_string_bytes (builder_p->context_p, size);
 #endif /* JJS_MEM_STATS */
 } /* ecma_stringbuilder_destroy */
 

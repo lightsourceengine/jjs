@@ -75,7 +75,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_atomics_compare_exchange (ecma_value_t typedarray, /**< typedArray argument */
+ecma_builtin_atomics_compare_exchange (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_value_t typedarray, /**< typedArray argument */
                                        ecma_value_t index, /**< index argument */
                                        ecma_value_t expected_value, /**< expectedValue argument */
                                        ecma_value_t replacement_value) /**< replacementValue argument*/
@@ -85,7 +86,7 @@ ecma_builtin_atomics_compare_exchange (ecma_value_t typedarray, /**< typedArray 
   JJS_UNUSED (expected_value);
   JJS_UNUSED (replacement_value);
 
-  return ecma_make_uint32_value (0);
+  return ecma_make_uint32_value (context_p, 0);
 } /* ecma_builtin_atomics_compare_exchange */
 
 /**
@@ -97,9 +98,10 @@ ecma_builtin_atomics_compare_exchange (ecma_value_t typedarray, /**< typedArray 
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_atomics_is_lock_free (ecma_value_t size) /**< size argument */
+ecma_builtin_atomics_is_lock_free (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_value_t size) /**< size argument */
 {
-  JJS_UNUSED (size);
+  JJS_UNUSED_ALL (context_p, size);
 
   return ECMA_VALUE_FALSE;
 } /* ecma_builtin_atomics_is_lock_free */
@@ -113,7 +115,8 @@ ecma_builtin_atomics_is_lock_free (ecma_value_t size) /**< size argument */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_atomics_store (ecma_value_t typedarray, /**< typedArray argument */
+ecma_builtin_atomics_store (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t typedarray, /**< typedArray argument */
                             ecma_value_t index, /**< index argument */
                             ecma_value_t value) /**< value argument */
 {
@@ -121,7 +124,7 @@ ecma_builtin_atomics_store (ecma_value_t typedarray, /**< typedArray argument */
   JJS_UNUSED (index);
   JJS_UNUSED (value);
 
-  return ecma_make_uint32_value (0);
+  return ecma_make_uint32_value (context_p, 0);
 } /* ecma_builtin_atomics_store */
 
 /**
@@ -133,7 +136,8 @@ ecma_builtin_atomics_store (ecma_value_t typedarray, /**< typedArray argument */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_atomics_wait (ecma_value_t typedarray, /**< typedArray argument */
+ecma_builtin_atomics_wait (ecma_context_t *context_p, /**< JJS context */
+                           ecma_value_t typedarray, /**< typedArray argument */
                            ecma_value_t index, /**< index argument */
                            ecma_value_t value, /**< value argument */
                            ecma_value_t timeout) /**< timeout argument */
@@ -143,7 +147,7 @@ ecma_builtin_atomics_wait (ecma_value_t typedarray, /**< typedArray argument */
   JJS_UNUSED (value);
   JJS_UNUSED (timeout);
 
-  return ecma_make_uint32_value (0);
+  return ecma_make_uint32_value (context_p, 0);
 } /* ecma_builtin_atomics_wait */
 
 /**
@@ -155,7 +159,8 @@ ecma_builtin_atomics_wait (ecma_value_t typedarray, /**< typedArray argument */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_atomics_notify (ecma_value_t typedarray, /**< typedArray argument */
+ecma_builtin_atomics_notify (ecma_context_t *context_p, /**< JJS context */
+                             ecma_value_t typedarray, /**< typedArray argument */
                              ecma_value_t index, /**< index argument */
                              ecma_value_t count) /**< count argument */
 {
@@ -163,7 +168,7 @@ ecma_builtin_atomics_notify (ecma_value_t typedarray, /**< typedArray argument *
   JJS_UNUSED (index);
   JJS_UNUSED (count);
 
-  return ecma_make_uint32_value (0);
+  return ecma_make_uint32_value (context_p, 0);
 } /* ecma_builtin_atomics_notify */
 
 /**
@@ -173,7 +178,8 @@ ecma_builtin_atomics_notify (ecma_value_t typedarray, /**< typedArray argument *
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_atomics_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_atomics_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                       uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                        ecma_value_t this_arg, /**< 'this' argument value */
                                        const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                                *   passed to routine */
@@ -201,7 +207,7 @@ ecma_builtin_atomics_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     }
     case ECMA_ATOMICS_ROUTINE_COMPAREEXCHANGE:
     {
-      return ecma_builtin_atomics_compare_exchange (arg1, arg2, arg3, arg4);
+      return ecma_builtin_atomics_compare_exchange (context_p, arg1, arg2, arg3, arg4);
     }
     case ECMA_ATOMICS_ROUTINE_EXCHANGE:
     {
@@ -210,11 +216,11 @@ ecma_builtin_atomics_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     }
     case ECMA_ATOMICS_ROUTINE_ISLOCKFREE:
     {
-      return ecma_builtin_atomics_is_lock_free (arg1);
+      return ecma_builtin_atomics_is_lock_free (context_p, arg1);
     }
     case ECMA_ATOMICS_ROUTINE_LOAD:
     {
-      return ecma_atomic_load (arg1, arg2);
+      return ecma_atomic_load (context_p, arg1, arg2);
     }
     case ECMA_ATOMICS_ROUTINE_OR:
     {
@@ -223,7 +229,7 @@ ecma_builtin_atomics_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     }
     case ECMA_ATOMICS_ROUTINE_STORE:
     {
-      return ecma_builtin_atomics_store (arg1, arg2, arg3);
+      return ecma_builtin_atomics_store (context_p, arg1, arg2, arg3);
     }
     case ECMA_ATOMICS_ROUTINE_SUB:
     {
@@ -232,11 +238,11 @@ ecma_builtin_atomics_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     }
     case ECMA_ATOMICS_ROUTINE_WAIT:
     {
-      return ecma_builtin_atomics_wait (arg1, arg2, arg3, arg4);
+      return ecma_builtin_atomics_wait (context_p, arg1, arg2, arg3, arg4);
     }
     case ECMA_ATOMICS_ROUTINE_NOTIFY:
     {
-      return ecma_builtin_atomics_notify (arg1, arg2, arg3);
+      return ecma_builtin_atomics_notify (context_p, arg1, arg2, arg3);
     }
     case ECMA_ATOMICS_ROUTINE_XOR:
     {
@@ -248,7 +254,7 @@ ecma_builtin_atomics_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
       JJS_UNREACHABLE ();
     }
   }
-  return ecma_atomic_read_modify_write (arg1, arg2, arg3, type);
+  return ecma_atomic_read_modify_write (context_p, arg1, arg2, arg3, type);
 } /* ecma_builtin_atomics_dispatch_routine */
 
 /**

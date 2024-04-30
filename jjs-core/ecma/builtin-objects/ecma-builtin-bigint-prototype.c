@@ -61,16 +61,17 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_bigint_prototype_object_value_of (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_bigint_prototype_object_value_of (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_value_t this_arg) /**< this argument */
 {
   if (ecma_is_value_bigint (this_arg))
   {
-    return ecma_copy_value (this_arg);
+    return ecma_copy_value (context_p, this_arg);
   }
 
   if (ecma_is_value_object (this_arg))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_BIGINT))
     {
@@ -78,11 +79,11 @@ ecma_builtin_bigint_prototype_object_value_of (ecma_value_t this_arg) /**< this 
 
       JJS_ASSERT (ecma_is_value_bigint (ext_object_p->u.cls.u3.value));
 
-      return ecma_copy_value (ext_object_p->u.cls.u3.value);
+      return ecma_copy_value (context_p, ext_object_p->u.cls.u3.value);
     }
   }
 
-  return ecma_raise_type_error (ECMA_ERR_BIGINT_VALUE_EXCPECTED);
+  return ecma_raise_type_error (context_p, ECMA_ERR_BIGINT_VALUE_EXCPECTED);
 } /* ecma_builtin_bigint_prototype_object_value_of */
 
 /**
@@ -95,7 +96,8 @@ ecma_builtin_bigint_prototype_object_value_of (ecma_value_t this_arg) /**< this 
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_bigint_prototype_object_to_string (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_bigint_prototype_object_to_string (ecma_context_t *context_p, /**< JJS context */
+                                                ecma_value_t this_arg, /**< this argument */
                                                 const ecma_value_t *arguments_list_p, /**< arguments list */
                                                 uint32_t arguments_list_len) /**< number of arguments */
 {
@@ -105,27 +107,27 @@ ecma_builtin_bigint_prototype_object_to_string (ecma_value_t this_arg, /**< this
   {
     ecma_number_t arg_num;
 
-    if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (arguments_list_p[0], &arg_num)))
+    if (ECMA_IS_VALUE_ERROR (ecma_op_to_integer (context_p, arguments_list_p[0], &arg_num)))
     {
       return ECMA_VALUE_ERROR;
     }
 
     if (arg_num < 2 || arg_num > 36)
     {
-      return ecma_raise_range_error (ECMA_ERR_RADIX_IS_OUT_OF_RANGE);
+      return ecma_raise_range_error (context_p, ECMA_ERR_RADIX_IS_OUT_OF_RANGE);
     }
 
     radix = (uint32_t) arg_num;
   }
 
-  ecma_string_t *string_p = ecma_bigint_to_string (this_arg, radix);
+  ecma_string_t *string_p = ecma_bigint_to_string (context_p, this_arg, radix);
 
   if (string_p == NULL)
   {
     return ECMA_VALUE_ERROR;
   }
 
-  return ecma_make_string_value (string_p);
+  return ecma_make_string_value (context_p, string_p);
 } /* ecma_builtin_bigint_prototype_object_to_string */
 
 /**
@@ -135,14 +137,15 @@ ecma_builtin_bigint_prototype_object_to_string (ecma_value_t this_arg, /**< this
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_bigint_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_bigint_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                uint8_t builtin_routine_id, /**< built-in wide routine
                                                                              *   identifier */
                                                 ecma_value_t this_arg, /**< 'this' argument value */
                                                 const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                                         *   passed to routine */
                                                 uint32_t arguments_number) /**< length of arguments' list */
 {
-  ecma_value_t this_value = ecma_builtin_bigint_prototype_object_value_of (this_arg);
+  ecma_value_t this_value = ecma_builtin_bigint_prototype_object_value_of (context_p, this_arg);
   ecma_value_t ret_val;
 
   if (ECMA_IS_VALUE_ERROR (this_value))
@@ -159,14 +162,14 @@ ecma_builtin_bigint_prototype_dispatch_routine (uint8_t builtin_routine_id, /**<
     }
     case ECMA_BIGINT_PROTOTYPE_TO_STRING:
     {
-      ret_val = ecma_builtin_bigint_prototype_object_to_string (this_value, arguments_list_p, arguments_number);
-      ecma_free_value (this_value);
+      ret_val = ecma_builtin_bigint_prototype_object_to_string (context_p, this_value, arguments_list_p, arguments_number);
+      ecma_free_value (context_p, this_value);
       break;
     }
     case ECMA_BIGINT_PROTOTYPE_TO_LOCALE_STRING:
     {
-      ret_val = ecma_builtin_bigint_prototype_object_to_string (this_value, 0, 0);
-      ecma_free_value (this_value);
+      ret_val = ecma_builtin_bigint_prototype_object_to_string (context_p, this_value, 0, 0);
+      ecma_free_value (context_p, this_value);
       break;
     }
     default:

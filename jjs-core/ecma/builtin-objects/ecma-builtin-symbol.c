@@ -50,12 +50,13 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_symbol_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_symbol_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                   const ecma_value_t *arguments_list_p, /**< arguments list */
                                    uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_op_create_symbol (arguments_list_p, arguments_list_len);
+  return ecma_op_create_symbol (context_p, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_symbol_dispatch_call */
 
 /**
@@ -69,12 +70,13 @@ ecma_builtin_symbol_dispatch_call (const ecma_value_t *arguments_list_p, /**< ar
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_symbol_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_symbol_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                        const ecma_value_t *arguments_list_p, /**< arguments list */
                                         uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_SYMBOL_IS_NOT_A_CONSTRUCTOR);
+  return ecma_raise_type_error (context_p, ECMA_ERR_SYMBOL_IS_NOT_A_CONSTRUCTOR);
 } /* ecma_builtin_symbol_dispatch_construct */
 
 /**
@@ -85,7 +87,8 @@ ecma_builtin_symbol_dispatch_construct (const ecma_value_t *arguments_list_p, /*
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_symbol_for_helper (ecma_value_t value_to_find) /**< symbol or ecma-string */
+ecma_builtin_symbol_for_helper (ecma_context_t *context_p, /**< JJS context */
+                                ecma_value_t value_to_find) /**< symbol or ecma-string */
 {
   ecma_string_t *string_p;
 
@@ -93,58 +96,58 @@ ecma_builtin_symbol_for_helper (ecma_value_t value_to_find) /**< symbol or ecma-
 
   if (is_for)
   {
-    string_p = ecma_get_string_from_value (value_to_find);
+    string_p = ecma_get_string_from_value (context_p, value_to_find);
   }
   else
   {
-    string_p = ecma_get_symbol_from_value (value_to_find);
+    string_p = ecma_get_symbol_from_value (context_p, value_to_find);
   }
 
-  jmem_cpointer_t symbol_list_cp = JJS_CONTEXT (symbol_list_first_cp);
+  jmem_cpointer_t symbol_list_cp = context_p->symbol_list_first_cp;
   jmem_cpointer_t *empty_cpointer_p = NULL;
 
   while (symbol_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *symbol_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, symbol_list_cp);
+    ecma_lit_storage_item_t *symbol_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, symbol_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
       if (symbol_list_p->values[i] != JMEM_CP_NULL)
       {
-        ecma_string_t *value_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_string_t, symbol_list_p->values[i]);
+        ecma_string_t *value_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_string_t, symbol_list_p->values[i]);
 
         if (is_for)
         {
-          ecma_value_t symbol_desc = ecma_get_symbol_description (value_p);
+          ecma_value_t symbol_desc = ecma_get_symbol_description (context_p, value_p);
 
           if (ecma_is_value_undefined (symbol_desc))
           {
             ecma_ref_ecma_string (value_p);
-            return ecma_make_symbol_value (value_p);
+            return ecma_make_symbol_value (context_p, value_p);
           }
 
-          ecma_string_t *symbol_desc_p = ecma_get_string_from_value (symbol_desc);
+          ecma_string_t *symbol_desc_p = ecma_get_string_from_value (context_p, symbol_desc);
 
           if (ecma_compare_ecma_strings (symbol_desc_p, string_p))
           {
             /* The current symbol's descriptor matches with the value_to_find,
                so the value is no longer needed. */
-            ecma_deref_ecma_string (string_p);
-            return ecma_copy_value (ecma_make_symbol_value (value_p));
+            ecma_deref_ecma_string (context_p, string_p);
+            return ecma_copy_value (context_p, ecma_make_symbol_value (context_p, value_p));
           }
         }
         else
         {
           if (string_p == value_p)
           {
-            ecma_value_t symbol_desc = ecma_get_symbol_description (string_p);
+            ecma_value_t symbol_desc = ecma_get_symbol_description (context_p, string_p);
 
             if (ecma_is_value_undefined (symbol_desc))
             {
               return symbol_desc;
             }
 
-            ecma_string_t *symbol_desc_p = ecma_get_string_from_value (symbol_desc);
+            ecma_string_t *symbol_desc_p = ecma_get_string_from_value (context_p, symbol_desc);
             ecma_ref_ecma_string (symbol_desc_p);
             return symbol_desc;
           }
@@ -169,19 +172,19 @@ ecma_builtin_symbol_for_helper (ecma_value_t value_to_find) /**< symbol or ecma-
 
   /* There was no matching, sp a new symbol should be added the the global symbol list. The symbol creation requires
      an extra reference to the descriptor string, but this reference has already been added. */
-  ecma_string_t *new_symbol_p = ecma_new_symbol_from_descriptor_string (value_to_find);
+  ecma_string_t *new_symbol_p = ecma_new_symbol_from_descriptor_string (context_p, value_to_find);
 
   jmem_cpointer_t result;
-  JMEM_CP_SET_NON_NULL_POINTER (result, new_symbol_p);
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, result, new_symbol_p);
 
   if (empty_cpointer_p != NULL)
   {
     *empty_cpointer_p = result;
-    return ecma_copy_value (ecma_make_symbol_value (new_symbol_p));
+    return ecma_copy_value (context_p, ecma_make_symbol_value (context_p, new_symbol_p));
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
@@ -189,10 +192,10 @@ ecma_builtin_symbol_for_helper (ecma_value_t value_to_find) /**< symbol or ecma-
     new_item_p->values[i] = JMEM_CP_NULL;
   }
 
-  new_item_p->next_cp = JJS_CONTEXT (symbol_list_first_cp);
-  JMEM_CP_SET_NON_NULL_POINTER (JJS_CONTEXT (symbol_list_first_cp), new_item_p);
+  new_item_p->next_cp = context_p->symbol_list_first_cp;
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, context_p->symbol_list_first_cp, new_item_p);
 
-  return ecma_copy_value (ecma_make_symbol_value (new_symbol_p));
+  return ecma_copy_value (context_p, ecma_make_symbol_value (context_p, new_symbol_p));
 } /* ecma_builtin_symbol_for_helper */
 
 /**
@@ -205,11 +208,12 @@ ecma_builtin_symbol_for_helper (ecma_value_t value_to_find) /**< symbol or ecma-
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_symbol_for (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_symbol_for (ecma_context_t *context_p, /**< JJS context */
+                         ecma_value_t this_arg, /**< this argument */
                          ecma_value_t key) /**< key string */
 {
   JJS_UNUSED (this_arg);
-  ecma_string_t *string_desc_p = ecma_op_to_string (key);
+  ecma_string_t *string_desc_p = ecma_op_to_string (context_p, key);
 
   /* 1. */
   if (JJS_UNLIKELY (string_desc_p == NULL))
@@ -218,7 +222,7 @@ ecma_builtin_symbol_for (ecma_value_t this_arg, /**< this argument */
     return ECMA_VALUE_ERROR;
   }
 
-  return ecma_builtin_symbol_for_helper (ecma_make_string_value (string_desc_p));
+  return ecma_builtin_symbol_for_helper (context_p, ecma_make_string_value (context_p, string_desc_p));
 } /* ecma_builtin_symbol_for */
 
 /**
@@ -231,7 +235,8 @@ ecma_builtin_symbol_for (ecma_value_t this_arg, /**< this argument */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_symbol_key_for (ecma_value_t this_arg, /**< this argument */
+ecma_builtin_symbol_key_for (ecma_context_t *context_p, /**< JJS context */
+                             ecma_value_t this_arg, /**< this argument */
                              ecma_value_t symbol) /**< symbol */
 {
   JJS_UNUSED (this_arg);
@@ -239,11 +244,11 @@ ecma_builtin_symbol_key_for (ecma_value_t this_arg, /**< this argument */
   /* 1. */
   if (!ecma_is_value_symbol (symbol))
   {
-    return ecma_raise_type_error (ECMA_ERR_THE_GIVEN_ARGUMENT_IS_NOT_A_SYMBOL);
+    return ecma_raise_type_error (context_p, ECMA_ERR_THE_GIVEN_ARGUMENT_IS_NOT_A_SYMBOL);
   }
 
   /* 2-4. */
-  return ecma_builtin_symbol_for_helper (symbol);
+  return ecma_builtin_symbol_for_helper (context_p, symbol);
 } /* ecma_builtin_symbol_key_for */
 
 /**

@@ -1268,7 +1268,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         case VM_OC_PUSH_OBJECT:
         {
           ecma_object_t *obj_p =
-            ecma_create_object (context_p, ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
+            ecma_create_object (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
 
           *stack_top_p++ = ecma_make_object_value (context_p, obj_p);
           continue;
@@ -1282,7 +1282,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
           ecma_extended_object_t *ext_func_p = (ecma_extended_object_t *) func_p;
 
           JJS_ASSERT (frame_ctx_p->lex_env_p
-                        == ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_object_t, ext_func_p->u.function.scope_cp));
+                        == ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (context_p, ecma_object_t, ext_func_p->u.function.scope_cp));
 
           ecma_object_t *name_lex_env = ecma_create_decl_lex_env (context_p, frame_ctx_p->lex_env_p);
 
@@ -1802,7 +1802,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
         }
         case VM_OC_SET__PROTO__:
         {
-          result = ecma_builtin_object_object_set_proto (stack_top_p[-1], left_value);
+          result = ecma_builtin_object_object_set_proto (context_p, stack_top_p[-1], left_value);
           if (ECMA_IS_VALUE_ERROR (result))
           {
             goto error;
@@ -2566,7 +2566,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
             goto error;
           }
 
-          ecma_object_t *prototype_p = ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE);
+          ecma_object_t *prototype_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE);
           ecma_object_t *result_object_p = ecma_create_object (context_p, prototype_p, 0, ECMA_OBJECT_TYPE_GENERAL);
 
           left_value = ecma_make_object_value (context_p, result_object_p);
@@ -3473,7 +3473,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
           {
             ecma_integer_value_t left_integer = ecma_get_integer_from_value (left_value);
             ecma_integer_value_t right_integer = ecma_get_integer_from_value (right_value);
-            *stack_top_p++ = ecma_make_int32_value (context_p, (int32_t) (context_p, left_integer + right_integer));
+            *stack_top_p++ = ecma_make_int32_value (context_p, (int32_t) (left_integer + right_integer));
             continue;
           }
 

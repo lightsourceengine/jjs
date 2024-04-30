@@ -1862,7 +1862,7 @@ ecma_typedarray_iterators_helper (ecma_context_t *context_p, /**< JJS context */
     return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
   }
 
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (ECMA_BUILTIN_ID_ARRAY_ITERATOR_PROTOTYPE);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_ARRAY_ITERATOR_PROTOTYPE);
 
   return ecma_op_create_iterator_object (context_p, this_arg, prototype_obj_p, ECMA_OBJECT_CLASS_ARRAY_ITERATOR, kind);
 } /* ecma_typedarray_iterators_helper */
@@ -2145,7 +2145,7 @@ ecma_value_t ecma_op_typedarray_create_same_type(ecma_context_t *context_p, /**<
   ecma_typedarray_info_t info = ecma_typedarray_get_info (context_p, exemplar_p);
   ecma_builtin_id_t c_id = ecma_typedarray_helper_get_constructor_id (info.id);
 
-  ecma_object_t *ctor_p = ecma_builtin_get (c_id);
+  ecma_object_t *ctor_p = ecma_builtin_get (context_p, c_id);
 
   ecma_value_t result = ecma_typedarray_create (context_p, ctor_p, arguments_list_p, arguments_list_len);
 
@@ -2178,7 +2178,7 @@ ecma_op_create_typedarray_with_type_and_length (ecma_context_t *context_p, /**< 
                                                 uint32_t array_length) /**< length of the typedarray */
 {
   // TODO: assert validate typedarray_id
-  ecma_object_t *proto_p = ecma_builtin_get (ecma_typedarray_helper_get_prototype_id (typedarray_id));
+  ecma_object_t *proto_p = ecma_builtin_get (context_p, ecma_typedarray_helper_get_prototype_id (typedarray_id));
   uint8_t element_size_shift = ecma_typedarray_helper_get_shift_size (typedarray_id);
 
   ecma_value_t new_obj =

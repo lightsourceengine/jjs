@@ -81,7 +81,7 @@ parser_compute_indicies (parser_context_t *context_p, /**< parser context */
         }
         else if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
         {
-          jmem_heap_free_block (context_p, (void *) literal_p->u.char_p, literal_p->prop.length);
+          jmem_heap_free_block (context_p->context_p, (void *) literal_p->u.char_p, literal_p->prop.length);
           /* This literal should not be freed even if an error is encountered later. */
           literal_p->status_flags |= LEXER_FLAG_SOURCE_PTR;
         }
@@ -128,14 +128,14 @@ parser_compute_indicies (parser_context_t *context_p, /**< parser context */
 
     if (char_p != NULL)
     {
-      literal_p->u.value = ecma_find_or_create_literal_string (context_p,
+      literal_p->u.value = ecma_find_or_create_literal_string (context_p->context_p,
                                                                char_p,
                                                                literal_p->prop.length,
                                                                (literal_p->status_flags & LEXER_FLAG_ASCII) != 0);
 
       if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
       {
-        jmem_heap_free_block (context_p, (void *) char_p, literal_p->prop.length);
+        jmem_heap_free_block (context_p->context_p, (void *) char_p, literal_p->prop.length);
         /* This literal should not be freed even if an error is encountered later. */
         literal_p->status_flags |= LEXER_FLAG_SOURCE_PTR;
       }
@@ -242,7 +242,7 @@ parser_init_literal_pool (parser_context_t *context_p, /**< parser context */
       {
         JJS_ASSERT (literal_p->prop.index >= context_p->register_count);
 
-        ECMA_SET_INTERNAL_VALUE_POINTER (context_p, literal_pool_p[literal_p->prop.index], literal_p->u.bytecode_p);
+        ECMA_SET_INTERNAL_VALUE_POINTER (context_p->context_p, literal_pool_p[literal_p->prop.index], literal_p->u.bytecode_p);
         break;
       }
       default:
@@ -593,9 +593,7 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
   ecma_compiled_code_t *compiled_code_p;
   ecma_value_t *literal_pool_p;
   uint8_t *dst_p;
-#if JJS_DEBUGGER
   ecma_context_t *context_p = parser_context_p->context_p;
-#endif /* JJS_DEBUGGER */
 
   if ((parser_context_p->status_flags & (PARSER_IS_FUNCTION | PARSER_LEXICAL_BLOCK_NEEDED))
       == (PARSER_IS_FUNCTION | PARSER_LEXICAL_BLOCK_NEEDED))
@@ -955,7 +953,7 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
 #endif /* JJS_SNAPSHOT_SAVE || JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_MEM_STATS
-  jmem_stats_allocate_byte_code_bytes (total_size);
+  jmem_stats_allocate_byte_code_bytes (context_p, total_size);
 #endif /* JJS_MEM_STATS */
 
   byte_code_p = (uint8_t *) compiled_code_p;
@@ -3315,7 +3313,7 @@ parser_raise_error (parser_context_t *parser_context_p, /**< parser context */
 
     if (saved_context_p->last_statement.current_p != NULL)
     {
-      parser_free_jumps (saved_context_p, saved_context_p->last_statement);
+      parser_free_jumps (parser_context_p, saved_context_p->last_statement);
     }
 
     if (saved_context_p->tagged_template_literal_cp != JMEM_CP_NULL)
@@ -3326,7 +3324,7 @@ parser_raise_error (parser_context_t *parser_context_p, /**< parser context */
     }
 
 #if JJS_LINE_INFO
-    parser_line_info_free (saved_context_p, saved_context_p->line_info_p);
+    parser_line_info_free (parser_context_p, saved_context_p->line_info_p);
 #endif /* JJS_LINE_INFO */
 
     saved_context_p = saved_context_p->prev_context_p;

@@ -45,7 +45,7 @@
 ecma_object_t *
 ecma_op_create_object_object_noarg (ecma_context_t *context_p) /**< JJS context */
 {
-  ecma_object_t *object_prototype_p = ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE);
+  ecma_object_t *object_prototype_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE);
 
   /* 3., 4., 6., 7. */
   return ecma_op_create_object_object_noarg_and_set_prototype (context_p, object_prototype_p);
@@ -139,9 +139,9 @@ ecma_op_general_object_delete (ecma_context_t *context_p, /**< JJS context */
     {
       case ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION:
       {
-        if (ecma_builtin_function_is_routine (obj_p))
+        if (ecma_builtin_function_is_routine (context_p, obj_p))
         {
-          ecma_builtin_routine_delete_built_in_property (obj_p, property_name_p);
+          ecma_builtin_routine_delete_built_in_property (context_p, obj_p, property_name_p);
           break;
         }
         /* FALLTHRU */
@@ -150,7 +150,7 @@ ecma_op_general_object_delete (ecma_context_t *context_p, /**< JJS context */
       case ECMA_OBJECT_TYPE_BUILT_IN_CLASS:
       case ECMA_OBJECT_TYPE_BUILT_IN_ARRAY:
       {
-        ecma_builtin_delete_built_in_property (obj_p, property_name_p);
+        ecma_builtin_delete_built_in_property (context_p, obj_p, property_name_p);
         break;
       }
       case ECMA_OBJECT_TYPE_CLASS:

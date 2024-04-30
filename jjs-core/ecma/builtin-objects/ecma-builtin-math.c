@@ -113,7 +113,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_math_object_max_min (bool is_max, /**< 'max' or 'min' operation */
+ecma_builtin_math_object_max_min (ecma_context_t *context_p, /**< JJS context */
+                                  bool is_max, /**< 'max' or 'min' operation */
                                   const ecma_value_t *arg, /**< arguments list */
                                   uint32_t args_number) /**< number of arguments */
 {
@@ -122,7 +123,7 @@ ecma_builtin_math_object_max_min (bool is_max, /**< 'max' or 'min' operation */
   while (args_number > 0)
   {
     ecma_number_t arg_num;
-    ecma_value_t value = ecma_op_to_number (*arg, &arg_num);
+    ecma_value_t value = ecma_op_to_number (context_p, *arg, &arg_num);
 
     if (ECMA_IS_VALUE_ERROR (value))
     {
@@ -155,7 +156,7 @@ ecma_builtin_math_object_max_min (bool is_max, /**< 'max' or 'min' operation */
     }
   }
 
-  return ecma_make_number_value (result_num);
+  return ecma_make_number_value (context_p, result_num);
 } /* ecma_builtin_math_object_max_min */
 
 /**
@@ -168,12 +169,13 @@ ecma_builtin_math_object_max_min (bool is_max, /**< 'max' or 'min' operation */
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_math_object_hypot (const ecma_value_t *arg, /**< arguments list */
+ecma_builtin_math_object_hypot (ecma_context_t *context_p, /**< JJS context */
+                                const ecma_value_t *arg, /**< arguments list */
                                 uint32_t args_number) /**< number of arguments */
 {
   if (args_number == 0)
   {
-    return ecma_make_number_value (0.0);
+    return ecma_make_number_value (context_p, 0.0);
   }
 
   ecma_number_t result_num = 0;
@@ -182,7 +184,7 @@ ecma_builtin_math_object_hypot (const ecma_value_t *arg, /**< arguments list */
   while (args_number > 0)
   {
     ecma_number_t arg_num;
-    ecma_value_t value = ecma_op_to_number (*arg, &arg_num);
+    ecma_value_t value = ecma_op_to_number (context_p, *arg, &arg_num);
     if (ECMA_IS_VALUE_ERROR (value))
     {
       return value;
@@ -207,7 +209,7 @@ ecma_builtin_math_object_hypot (const ecma_value_t *arg, /**< arguments list */
     result_num += arg_num * arg_num;
   }
 
-  return ecma_make_number_value (sqrt (result_num));
+  return ecma_make_number_value (context_p, sqrt (result_num));
 } /* ecma_builtin_math_object_hypot */
 
 /**
@@ -273,12 +275,13 @@ ecma_builtin_math_object_sign (ecma_number_t arg)
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_math_object_random (void)
+ecma_builtin_math_object_random (ecma_context_t *context_p) /**< JJS context */
 {
+  JJS_UNUSED (context_p);
   const ecma_number_t rand_max = (ecma_number_t) RAND_MAX;
   const ecma_number_t rand_max_min_1 = (ecma_number_t) (RAND_MAX - 1);
 
-  return ecma_make_number_value (((ecma_number_t) rand ()) / rand_max * rand_max_min_1 / rand_max);
+  return ecma_make_number_value (context_p, ((ecma_number_t) rand ()) / rand_max * rand_max_min_1 / rand_max);
 } /* ecma_builtin_math_object_random */
 
 /**
@@ -288,7 +291,8 @@ ecma_builtin_math_object_random (void)
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_math_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_math_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                    uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                     ecma_value_t this_arg, /**< 'this' argument value */
                                     const ecma_value_t arguments_list[], /**< list of arguments
                                                                           *   passed to routine */
@@ -303,7 +307,7 @@ ecma_builtin_math_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wi
 
     if (arguments_number >= 1)
     {
-      ecma_value_t value = ecma_op_to_number (arguments_list[0], &x);
+      ecma_value_t value = ecma_op_to_number (context_p, arguments_list[0], &x);
 
       if (ECMA_IS_VALUE_ERROR (value))
       {
@@ -315,11 +319,11 @@ ecma_builtin_math_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wi
     {
       if (ecma_is_value_number (arguments_list[1]))
       {
-        y = ecma_get_number_from_value (arguments_list[1]);
+        y = ecma_get_number_from_value (context_p, arguments_list[1]);
       }
       else
       {
-        ecma_value_t value = ecma_op_to_number (arguments_list[1], &y);
+        ecma_value_t value = ecma_op_to_number (context_p, arguments_list[1], &y);
 
         if (ECMA_IS_VALUE_ERROR (value))
         {
@@ -532,24 +536,25 @@ ecma_builtin_math_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wi
         break;
       }
     }
-    return ecma_make_number_value (x);
+    return ecma_make_number_value (context_p, x);
   } /* if (builtin_routine_id <= ECMA_MATH_OBJECT_POW) */
 
   if (builtin_routine_id <= ECMA_MATH_OBJECT_MIN)
   {
-    return ecma_builtin_math_object_max_min (builtin_routine_id == ECMA_MATH_OBJECT_MAX,
+    return ecma_builtin_math_object_max_min (context_p,
+                                             builtin_routine_id == ECMA_MATH_OBJECT_MAX,
                                              arguments_list,
                                              arguments_number);
   }
 
   if (builtin_routine_id == ECMA_MATH_OBJECT_HYPOT)
   {
-    return ecma_builtin_math_object_hypot (arguments_list, arguments_number);
+    return ecma_builtin_math_object_hypot (context_p, arguments_list, arguments_number);
   }
 
   JJS_ASSERT (builtin_routine_id == ECMA_MATH_OBJECT_RANDOM);
 
-  return ecma_builtin_math_object_random ();
+  return ecma_builtin_math_object_random (context_p);
 } /* ecma_builtin_math_dispatch_routine */
 
 /**

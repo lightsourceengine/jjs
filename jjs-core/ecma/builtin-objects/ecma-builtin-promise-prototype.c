@@ -56,7 +56,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_promise_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_promise_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                 uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                                  ecma_value_t this_arg, /**< 'this' argument value */
                                                  const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                                          *   passed to routine */
@@ -68,16 +69,16 @@ ecma_builtin_promise_prototype_dispatch_routine (uint8_t builtin_routine_id, /**
   {
     case ECMA_PROMISE_PROTOTYPE_ROUTINE_THEN:
     {
-      return ecma_promise_then (this_arg, arguments_list_p[0], arguments_list_p[1]);
+      return ecma_promise_then (context_p, this_arg, arguments_list_p[0], arguments_list_p[1]);
     }
     case ECMA_PROMISE_PROTOTYPE_ROUTINE_CATCH:
     {
       ecma_value_t args[] = { ECMA_VALUE_UNDEFINED, arguments_list_p[0] };
-      return ecma_op_invoke_by_magic_id (this_arg, LIT_MAGIC_STRING_THEN, args, 2);
+      return ecma_op_invoke_by_magic_id (context_p, this_arg, LIT_MAGIC_STRING_THEN, args, 2);
     }
     case ECMA_PROMISE_PROTOTYPE_ROUTINE_FINALLY:
     {
-      return ecma_promise_finally (this_arg, arguments_list_p[0]);
+      return ecma_promise_finally (context_p, this_arg, arguments_list_p[0]);
     }
     default:
     {

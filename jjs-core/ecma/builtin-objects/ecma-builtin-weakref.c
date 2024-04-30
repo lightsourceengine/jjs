@@ -45,12 +45,13 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_weakref_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_weakref_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                    const ecma_value_t *arguments_list_p, /**< arguments list */
                                     uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  return ecma_raise_type_error (ECMA_ERR_CONSTRUCTOR_WEAKREF_REQUIRES_NEW);
+  return ecma_raise_type_error (context_p, ECMA_ERR_CONSTRUCTOR_WEAKREF_REQUIRES_NEW);
 } /* ecma_builtin_weakref_dispatch_call */
 
 /**
@@ -59,32 +60,33 @@ ecma_builtin_weakref_dispatch_call (const ecma_value_t *arguments_list_p, /**< a
  * @return ecma value
  */
 ecma_value_t
-ecma_builtin_weakref_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_weakref_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                         const ecma_value_t *arguments_list_p, /**< arguments list */
                                          uint32_t arguments_list_len) /**< number of arguments */
 {
   if (arguments_list_len == 0 || !ecma_is_value_object (arguments_list_p[0]))
   {
-    return ecma_raise_type_error (ECMA_ERR_WEAKREF_TARGET_MUST_BE_AN_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_WEAKREF_TARGET_MUST_BE_AN_OBJECT);
   }
 
-  JJS_ASSERT (JJS_CONTEXT (current_new_target_p) != NULL);
+  JJS_ASSERT (context_p->current_new_target_p != NULL);
 
   ecma_object_t *proto_p =
-    ecma_op_get_prototype_from_constructor (JJS_CONTEXT (current_new_target_p), ECMA_BUILTIN_ID_WEAKREF_PROTOTYPE);
+    ecma_op_get_prototype_from_constructor (context_p, context_p->current_new_target_p, ECMA_BUILTIN_ID_WEAKREF_PROTOTYPE);
 
   if (JJS_UNLIKELY (proto_p == NULL))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  ecma_object_t *object_p = ecma_create_object (proto_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+  ecma_object_t *object_p = ecma_create_object (context_p, proto_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
   ecma_deref_object (proto_p);
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) object_p;
   ext_obj_p->u.cls.type = ECMA_OBJECT_CLASS_WEAKREF;
   ext_obj_p->u.cls.u3.target = arguments_list_p[0];
-  ecma_op_object_set_weak (ecma_get_object_from_value (arguments_list_p[0]), object_p);
+  ecma_op_object_set_weak (context_p, ecma_get_object_from_value (context_p, arguments_list_p[0]), object_p);
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_builtin_weakref_dispatch_construct */
 
 /**

@@ -44,14 +44,15 @@
  */
 
 static ecma_value_t
-ecma_builtin_regexp_dispatch_helper (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_regexp_dispatch_helper (ecma_context_t *context_p, /**< JJS context */
+                                     const ecma_value_t *arguments_list_p, /**< arguments list */
                                      uint32_t arguments_list_len) /**< number of arguments */
 {
   ecma_value_t pattern_value = ECMA_VALUE_UNDEFINED;
   ecma_value_t flags_value = ECMA_VALUE_UNDEFINED;
   bool create_regexp_from_bc = false;
   bool free_arguments = false;
-  ecma_object_t *new_target_p = JJS_CONTEXT (current_new_target_p);
+  ecma_object_t *new_target_p = context_p->current_new_target_p;
 
   if (arguments_list_len > 0)
   {
@@ -64,7 +65,7 @@ ecma_builtin_regexp_dispatch_helper (const ecma_value_t *arguments_list_p, /**< 
     }
   }
 
-  ecma_value_t regexp_value = ecma_op_is_regexp (pattern_value);
+  ecma_value_t regexp_value = ecma_op_is_regexp (context_p, pattern_value);
 
   if (ECMA_IS_VALUE_ERROR (regexp_value))
   {
@@ -76,33 +77,33 @@ ecma_builtin_regexp_dispatch_helper (const ecma_value_t *arguments_list_p, /**< 
 
   if (new_target_p == NULL)
   {
-    new_target_p = ecma_builtin_get (ECMA_BUILTIN_ID_REGEXP);
+    new_target_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_REGEXP);
 
     if (pattern_is_regexp && ecma_is_value_undefined (flags_value))
     {
-      ecma_object_t *pattern_obj_p = ecma_get_object_from_value (pattern_value);
+      ecma_object_t *pattern_obj_p = ecma_get_object_from_value (context_p, pattern_value);
 
-      ecma_value_t pattern_constructor = ecma_op_object_get_by_magic_id (pattern_obj_p, LIT_MAGIC_STRING_CONSTRUCTOR);
+      ecma_value_t pattern_constructor = ecma_op_object_get_by_magic_id (context_p, pattern_obj_p, LIT_MAGIC_STRING_CONSTRUCTOR);
 
       if (ECMA_IS_VALUE_ERROR (pattern_constructor))
       {
         return pattern_constructor;
       }
 
-      bool is_same = ecma_op_same_value (ecma_make_object_value (new_target_p), pattern_constructor);
-      ecma_free_value (pattern_constructor);
+      bool is_same = ecma_op_same_value (context_p, ecma_make_object_value (context_p, new_target_p), pattern_constructor);
+      ecma_free_value (context_p, pattern_constructor);
 
       if (is_same)
       {
-        return ecma_copy_value (pattern_value);
+        return ecma_copy_value (context_p, pattern_value);
       }
     }
   }
 
-  if (ecma_object_is_regexp_object (pattern_value))
+  if (ecma_object_is_regexp_object (context_p, pattern_value))
   {
-    ecma_extended_object_t *pattern_obj_p = (ecma_extended_object_t *) ecma_get_object_from_value (pattern_value);
-    bc_p = ECMA_GET_INTERNAL_VALUE_POINTER (re_compiled_code_t, pattern_obj_p->u.cls.u3.value);
+    ecma_extended_object_t *pattern_obj_p = (ecma_extended_object_t *) ecma_get_object_from_value (context_p, pattern_value);
+    bc_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, re_compiled_code_t, pattern_obj_p->u.cls.u3.value);
 
     create_regexp_from_bc = ecma_is_value_undefined (flags_value);
 
@@ -113,9 +114,9 @@ ecma_builtin_regexp_dispatch_helper (const ecma_value_t *arguments_list_p, /**< 
   }
   else if (pattern_is_regexp)
   {
-    ecma_object_t *pattern_obj_p = ecma_get_object_from_value (pattern_value);
+    ecma_object_t *pattern_obj_p = ecma_get_object_from_value (context_p, pattern_value);
 
-    pattern_value = ecma_op_object_get_by_magic_id (pattern_obj_p, LIT_MAGIC_STRING_SOURCE);
+    pattern_value = ecma_op_object_get_by_magic_id (context_p, pattern_obj_p, LIT_MAGIC_STRING_SOURCE);
 
     if (ECMA_IS_VALUE_ERROR (pattern_value))
     {
@@ -124,35 +125,35 @@ ecma_builtin_regexp_dispatch_helper (const ecma_value_t *arguments_list_p, /**< 
 
     if (ecma_is_value_undefined (flags_value))
     {
-      flags_value = ecma_op_object_get_by_magic_id (pattern_obj_p, LIT_MAGIC_STRING_FLAGS);
+      flags_value = ecma_op_object_get_by_magic_id (context_p, pattern_obj_p, LIT_MAGIC_STRING_FLAGS);
 
       if (ECMA_IS_VALUE_ERROR (flags_value))
       {
-        ecma_free_value (pattern_value);
+        ecma_free_value (context_p, pattern_value);
         return flags_value;
       }
     }
     else
     {
-      flags_value = ecma_copy_value (flags_value);
+      flags_value = ecma_copy_value (context_p, flags_value);
     }
 
     free_arguments = true;
   }
 
   ecma_value_t ret_value = ECMA_VALUE_ERROR;
-  ecma_object_t *new_target_obj_p = ecma_op_regexp_alloc (new_target_p);
+  ecma_object_t *new_target_obj_p = ecma_op_regexp_alloc (context_p, new_target_p);
 
   if (JJS_LIKELY (new_target_obj_p != NULL))
   {
     if (create_regexp_from_bc)
     {
-      ret_value = ecma_op_create_regexp_from_bytecode (new_target_obj_p, bc_p);
+      ret_value = ecma_op_create_regexp_from_bytecode (context_p, new_target_obj_p, bc_p);
       JJS_ASSERT (!ECMA_IS_VALUE_ERROR (ret_value));
     }
     else
     {
-      ret_value = ecma_op_create_regexp_from_pattern (new_target_obj_p, pattern_value, flags_value);
+      ret_value = ecma_op_create_regexp_from_pattern (context_p, new_target_obj_p, pattern_value, flags_value);
 
       if (ECMA_IS_VALUE_ERROR (ret_value))
       {
@@ -163,8 +164,8 @@ ecma_builtin_regexp_dispatch_helper (const ecma_value_t *arguments_list_p, /**< 
 
   if (free_arguments)
   {
-    ecma_free_value (pattern_value);
-    ecma_free_value (flags_value);
+    ecma_free_value (context_p, pattern_value);
+    ecma_free_value (context_p, flags_value);
   }
 
   return ret_value;
@@ -177,10 +178,11 @@ ecma_builtin_regexp_dispatch_helper (const ecma_value_t *arguments_list_p, /**< 
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_regexp_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_regexp_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                   const ecma_value_t *arguments_list_p, /**< arguments list */
                                    uint32_t arguments_list_len) /**< number of arguments */
 {
-  return ecma_builtin_regexp_dispatch_helper (arguments_list_p, arguments_list_len);
+  return ecma_builtin_regexp_dispatch_helper (context_p, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_regexp_dispatch_call */
 
 /**
@@ -190,10 +192,11 @@ ecma_builtin_regexp_dispatch_call (const ecma_value_t *arguments_list_p, /**< ar
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_regexp_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_regexp_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                        const ecma_value_t *arguments_list_p, /**< arguments list */
                                         uint32_t arguments_list_len) /**< number of arguments */
 {
-  return ecma_builtin_regexp_dispatch_helper (arguments_list_p, arguments_list_len);
+  return ecma_builtin_regexp_dispatch_helper (context_p, arguments_list_p, arguments_list_len);
 } /* ecma_builtin_regexp_dispatch_construct */
 
 /**
@@ -203,9 +206,10 @@ ecma_builtin_regexp_dispatch_construct (const ecma_value_t *arguments_list_p, /*
  *         returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_builtin_regexp_species_get (ecma_value_t this_value) /**< This Value */
+ecma_builtin_regexp_species_get (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_value_t this_value) /**< This Value */
 {
-  return ecma_copy_value (this_value);
+  return ecma_copy_value (context_p, this_value);
 } /* ecma_builtin_regexp_species_get */
 
 /**

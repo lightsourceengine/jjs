@@ -47,14 +47,14 @@ ecma_value_t annex_path_basename (jjs_context_t* context_p, ecma_value_t path);
 #define ecma_arg0(ARGV, ARGC) (0 < (ARGC) ? (ARGV)[0] : ECMA_VALUE_UNDEFINED)
 #define ecma_arg1(ARGV, ARGC) (1 < (ARGC) ? (ARGV)[1] : ECMA_VALUE_UNDEFINED)
 
-void ecma_set_m (ecma_value_t object, lit_magic_string_id_t name_id, ecma_value_t value);
-void ecma_set_v (ecma_value_t object, ecma_value_t key, ecma_value_t value);
-void ecma_set_index_v (ecma_value_t object, ecma_length_t index, ecma_value_t value);
-ecma_value_t ecma_find_own_m (ecma_value_t object, lit_magic_string_id_t key);
-ecma_value_t ecma_find_own_v (ecma_value_t object, ecma_value_t key);
-bool ecma_has_own_m (ecma_value_t object, lit_magic_string_id_t key);
-bool ecma_has_own_v (ecma_value_t object, ecma_value_t key);
-ecma_value_t ecma_string_ascii_sz (const char* string_p);
+void ecma_set_m (ecma_context_t* context_p, ecma_value_t object, lit_magic_string_id_t name_id, ecma_value_t value);
+void ecma_set_v (ecma_value_t object, ecma_context_t* context_p, ecma_value_t key, ecma_value_t value);
+void ecma_set_index_v (ecma_context_t* context_p, ecma_value_t object, ecma_length_t index, ecma_value_t value);
+ecma_value_t ecma_find_own_m (ecma_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key);
+ecma_value_t ecma_find_own_v (ecma_context_t* context_p, ecma_value_t object, ecma_value_t key);
+bool ecma_has_own_m (ecma_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key);
+bool ecma_has_own_v (ecma_context_t* context_p, ecma_value_t object, ecma_value_t key);
+ecma_value_t ecma_string_ascii_sz (ecma_context_t* context_p, const char* string_p);
 
 void annex_util_set_internal_m (jjs_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key, ecma_value_t value);
 ecma_value_t annex_util_get_internal_m (jjs_context_t* context_p, ecma_value_t object, lit_magic_string_id_t key);

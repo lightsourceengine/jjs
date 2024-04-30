@@ -58,13 +58,13 @@ ecma_create_array_from_iter_element (ecma_context_t *context_p, /**< JJS context
   /* 3-4. */
   ecma_value_t completion;
   completion =
-    ecma_builtin_helper_def_prop_by_index (new_array_p, 0, index_value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
+    ecma_builtin_helper_def_prop_by_index (context_p, new_array_p, 0, index_value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
 
   /* 4.b */
   JJS_ASSERT (ecma_is_value_true (completion));
 
   completion =
-    ecma_builtin_helper_def_prop_by_index (new_array_p, 1, value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
+    ecma_builtin_helper_def_prop_by_index (context_p, new_array_p, 1, value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
   JJS_ASSERT (ecma_is_value_true (completion));
 
   /* 5. */
@@ -93,7 +93,7 @@ ecma_create_iter_result_object (ecma_context_t *context_p, /**< JJS context */
 
   /* 2. */
   ecma_object_t *object_p =
-    ecma_create_object (context_p, ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
+    ecma_create_object (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
 
   /* 3. */
   ecma_property_value_t *prop_value_p;
@@ -686,7 +686,7 @@ ecma_op_create_async_from_sync_iterator (ecma_context_t *context_p, /**< JJS con
 
   /* 1. */
   ecma_object_t *obj_p = ecma_create_object (context_p,
-                                             ecma_builtin_get (ECMA_BUILTIN_ID_ASYNC_FROM_SYNC_ITERATOR_PROTOTYPE),
+                                             ecma_builtin_get (context_p, ECMA_BUILTIN_ID_ASYNC_FROM_SYNC_ITERATOR_PROTOTYPE),
                                              sizeof (ecma_async_from_sync_iterator_object_t),
                                              ECMA_OBJECT_TYPE_CLASS);
 

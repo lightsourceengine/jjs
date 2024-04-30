@@ -76,55 +76,58 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_op_async_from_sync_iterator_prototype_continuation (ecma_value_t result, /**< routine's 'result' argument */
+ecma_op_async_from_sync_iterator_prototype_continuation (ecma_context_t *context_p, /**< JJS context */
+                                                         ecma_value_t result, /**< routine's 'result' argument */
                                                          ecma_object_t *capability_obj_p) /**< promise capability */
 {
   /* 1. */
-  ecma_value_t done = ecma_op_iterator_complete (result);
+  ecma_value_t done = ecma_op_iterator_complete (context_p, result);
 
   /* 2. */
-  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (&done, capability_obj_p)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (context_p, &done, capability_obj_p)))
   {
     return done;
   }
 
   uint16_t done_flag = ecma_is_value_false (done) ? 0 : (1 << ECMA_NATIVE_HANDLER_COMMON_FLAGS_SHIFT);
-  ecma_free_value (done);
+  ecma_free_value (context_p, done);
 
   /* 3. */
-  ecma_value_t value = ecma_op_iterator_value (result);
+  ecma_value_t value = ecma_op_iterator_value (context_p, result);
 
   /* 4. */
-  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (&value, capability_obj_p)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (context_p, &value, capability_obj_p)))
   {
     return value;
   }
 
   /* 5. */
-  ecma_value_t builtin_promise = ecma_make_object_value (ecma_builtin_get (ECMA_BUILTIN_ID_PROMISE));
-  ecma_value_t value_wrapper = ecma_promise_reject_or_resolve (builtin_promise, value, true);
-  ecma_free_value (value);
+  ecma_value_t builtin_promise = ecma_make_object_value (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_PROMISE));
+  ecma_value_t value_wrapper = ecma_promise_reject_or_resolve (context_p, builtin_promise, value, true);
+  ecma_free_value (context_p, value);
 
   /* 6. */
-  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (&value_wrapper, capability_obj_p)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (context_p, &value_wrapper, capability_obj_p)))
   {
     return value_wrapper;
   }
 
   /* 8 - 9. */
-  ecma_object_t *on_fullfilled = ecma_op_create_native_handler (ECMA_NATIVE_HANDLER_ASYNC_FROM_SYNC_ITERATOR_UNWRAP,
+  ecma_object_t *on_fullfilled = ecma_op_create_native_handler (context_p,
+                                                                ECMA_NATIVE_HANDLER_ASYNC_FROM_SYNC_ITERATOR_UNWRAP,
                                                                 sizeof (ecma_extended_object_t));
   ((ecma_extended_object_t *) on_fullfilled)->u.built_in.u2.routine_flags = (uint8_t) done_flag;
 
   /* 10. */
-  ecma_value_t then_result = ecma_promise_perform_then (value_wrapper,
-                                                        ecma_make_object_value (on_fullfilled),
+  ecma_value_t then_result = ecma_promise_perform_then (context_p,
+                                                        value_wrapper,
+                                                        ecma_make_object_value (context_p, on_fullfilled),
                                                         ECMA_VALUE_UNDEFINED,
                                                         capability_obj_p);
 
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (then_result));
   ecma_deref_object (on_fullfilled);
-  ecma_free_value (value_wrapper);
+  ecma_free_value (context_p, value_wrapper);
 
   /* 11. */
   return then_result;
@@ -140,24 +143,25 @@ ecma_op_async_from_sync_iterator_prototype_continuation (ecma_value_t result, /*
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_async_from_sync_iterator_prototype_next (ecma_async_from_sync_iterator_object_t *iter_p, /**< iterator
+ecma_builtin_async_from_sync_iterator_prototype_next (ecma_context_t *context_p, /**< JJS context */
+                                                      ecma_async_from_sync_iterator_object_t *iter_p, /**< iterator
                                                                                                        *   record*/
                                                       ecma_object_t *capability_p, /**< promise capability */
                                                       ecma_value_t value) /**< routine's 'value' argument */
 {
   /* 5. */
   ecma_value_t next_result =
-    ecma_op_iterator_next (iter_p->header.u.cls.u3.sync_iterator, iter_p->sync_next_method, value);
+    ecma_op_iterator_next (context_p, iter_p->header.u.cls.u3.sync_iterator, iter_p->sync_next_method, value);
 
   /* 6. */
-  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (&next_result, capability_p)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (context_p, &next_result, capability_p)))
   {
     return next_result;
   }
 
   /* 7. */
-  ecma_value_t result = ecma_op_async_from_sync_iterator_prototype_continuation (next_result, capability_p);
-  ecma_free_value (next_result);
+  ecma_value_t result = ecma_op_async_from_sync_iterator_prototype_continuation (context_p, next_result, capability_p);
+  ecma_free_value (context_p, next_result);
 
   return result;
 } /* ecma_builtin_async_from_sync_iterator_prototype_next */
@@ -173,7 +177,8 @@ ecma_builtin_async_from_sync_iterator_prototype_next (ecma_async_from_sync_itera
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_async_from_sync_iterator_prototype_do (ecma_async_from_sync_iterator_object_t *iter_p, /**< iterator
+ecma_builtin_async_from_sync_iterator_prototype_do (ecma_context_t *context_p, /**< JJS context */
+                                                    ecma_async_from_sync_iterator_object_t *iter_p, /**< iterator
                                                                                                      *   record*/
                                                     ecma_object_t *capability_obj_p, /**< promise capability */
                                                     ecma_value_t value, /**< routine's 'value' argument */
@@ -181,10 +186,10 @@ ecma_builtin_async_from_sync_iterator_prototype_do (ecma_async_from_sync_iterato
 {
   /* 5. */
   ecma_value_t sync_iterator = iter_p->header.u.cls.u3.sync_iterator;
-  ecma_value_t method = ecma_op_get_method_by_magic_id (sync_iterator, method_id);
+  ecma_value_t method = ecma_op_get_method_by_magic_id (context_p, sync_iterator, method_id);
 
   /* 6. */
-  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (&method, capability_obj_p)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (context_p, &method, capability_obj_p)))
   {
     return method;
   }
@@ -213,7 +218,7 @@ ecma_builtin_async_from_sync_iterator_prototype_do (ecma_async_from_sync_iterato
     if (method_id == LIT_MAGIC_STRING_RETURN)
     {
       /* 7.a. */
-      call_arg = ecma_create_iter_result_object (call_arg, ECMA_VALUE_TRUE);
+      call_arg = ecma_create_iter_result_object (context_p, call_arg, ECMA_VALUE_TRUE);
       arg_size = 1;
       func_obj = capability_p->resolve;
     }
@@ -224,25 +229,25 @@ ecma_builtin_async_from_sync_iterator_prototype_do (ecma_async_from_sync_iterato
 
     /* 7.b. */
     ecma_value_t resolve =
-      ecma_op_function_call (ecma_get_object_from_value (func_obj), ECMA_VALUE_UNDEFINED, &call_arg, arg_size);
+      ecma_op_function_call (context_p, ecma_get_object_from_value (context_p, func_obj), ECMA_VALUE_UNDEFINED, &call_arg, arg_size);
     JJS_ASSERT (!ECMA_IS_VALUE_ERROR (resolve));
-    ecma_free_value (resolve);
+    ecma_free_value (context_p, resolve);
 
     if (method_id == LIT_MAGIC_STRING_RETURN)
     {
-      ecma_free_value (call_arg);
+      ecma_free_value (context_p, call_arg);
     }
 
     /* 7.c. */
-    return ecma_copy_value (capability_p->header.u.cls.u3.promise);
+    return ecma_copy_value (context_p, capability_p->header.u.cls.u3.promise);
   }
 
   /* 8. */
-  ecma_value_t call_result = ecma_op_function_validated_call (method, sync_iterator, &call_arg, arg_size);
-  ecma_free_value (method);
+  ecma_value_t call_result = ecma_op_function_validated_call (context_p, method, sync_iterator, &call_arg, arg_size);
+  ecma_free_value (context_p, method);
 
   /* 9. */
-  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (&call_result, capability_obj_p)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_if_abrupt_reject_promise (context_p, &call_result, capability_obj_p)))
   {
     return call_result;
   }
@@ -250,37 +255,37 @@ ecma_builtin_async_from_sync_iterator_prototype_do (ecma_async_from_sync_iterato
   /* 10. */
   if (!ecma_is_value_object (call_result))
   {
-    ecma_free_value (call_result);
+    ecma_free_value (context_p, call_result);
 
 #if JJS_ERROR_MESSAGES
     const lit_utf8_byte_t *msg_p = (lit_utf8_byte_t *) ecma_get_error_msg (ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
     lit_utf8_size_t msg_size = ecma_get_error_size (ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
-    ecma_string_t *error_msg_p = ecma_new_ecma_string_from_ascii (msg_p, msg_size);
+    ecma_string_t *error_msg_p = ecma_new_ecma_string_from_ascii (context_p, msg_p, msg_size);
 #else /* !JJS_ERROR_MESSAGES */
     ecma_string_t *error_msg_p = ecma_get_magic_string (LIT_MAGIC_STRING__EMPTY);
 #endif /* JJS_ERROR_MESSAGES */
 
-    ecma_object_t *type_error_obj_p = ecma_new_standard_error (JJS_ERROR_TYPE, error_msg_p);
+    ecma_object_t *type_error_obj_p = ecma_new_standard_error (context_p, JJS_ERROR_TYPE, error_msg_p);
 
 #if JJS_ERROR_MESSAGES
-    ecma_deref_ecma_string (error_msg_p);
+    ecma_deref_ecma_string (context_p, error_msg_p);
 #endif /* JJS_ERROR_MESSAGES */
 
-    ecma_value_t type_error = ecma_make_object_value (type_error_obj_p);
+    ecma_value_t type_error = ecma_make_object_value (context_p, type_error_obj_p);
 
     /* 10.a. */
     ecma_value_t reject =
-      ecma_op_function_call (ecma_get_object_from_value (capability_p->reject), ECMA_VALUE_UNDEFINED, &type_error, 1);
+      ecma_op_function_call (context_p, ecma_get_object_from_value (context_p, capability_p->reject), ECMA_VALUE_UNDEFINED, &type_error, 1);
     JJS_ASSERT (!ECMA_IS_VALUE_ERROR (reject));
     ecma_deref_object (type_error_obj_p);
-    ecma_free_value (reject);
+    ecma_free_value (context_p, reject);
 
     /* 10.b. */
-    return ecma_copy_value (capability_p->header.u.cls.u3.promise);
+    return ecma_copy_value (context_p, capability_p->header.u.cls.u3.promise);
   }
 
-  ecma_value_t result = ecma_op_async_from_sync_iterator_prototype_continuation (call_result, capability_obj_p);
-  ecma_free_value (call_result);
+  ecma_value_t result = ecma_op_async_from_sync_iterator_prototype_continuation (context_p, call_result, capability_obj_p);
+  ecma_free_value (context_p, call_result);
 
   return result;
 } /* ecma_builtin_async_from_sync_iterator_prototype_do */
@@ -292,7 +297,8 @@ ecma_builtin_async_from_sync_iterator_prototype_do (ecma_async_from_sync_iterato
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_async_from_sync_iterator_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide
+ecma_builtin_async_from_sync_iterator_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                                  uint8_t builtin_routine_id, /**< built-in wide
                                                                                                *   routine
                                                                                                *   identifier */
                                                                   ecma_value_t this_arg, /**< 'this' argument value */
@@ -306,14 +312,14 @@ ecma_builtin_async_from_sync_iterator_prototype_dispatch_routine (uint8_t builti
   JJS_UNUSED (arguments_number);
   JJS_ASSERT (ecma_is_value_object (this_arg));
 
-  ecma_object_t *this_obj_p = ecma_get_object_from_value (this_arg);
+  ecma_object_t *this_obj_p = ecma_get_object_from_value (context_p, this_arg);
 
   JJS_ASSERT (ecma_object_class_is (this_obj_p, ECMA_OBJECT_CLASS_ASYNC_FROM_SYNC_ITERATOR));
 
   ecma_async_from_sync_iterator_object_t *iter_p = (ecma_async_from_sync_iterator_object_t *) this_obj_p;
 
-  ecma_value_t builtin_promise = ecma_make_object_value (ecma_builtin_get (ECMA_BUILTIN_ID_PROMISE));
-  ecma_object_t *capability_p = ecma_promise_new_capability (builtin_promise, ECMA_VALUE_UNDEFINED);
+  ecma_value_t builtin_promise = ecma_make_object_value (context_p, ecma_builtin_get (context_p, ECMA_BUILTIN_ID_PROMISE));
+  ecma_object_t *capability_p = ecma_promise_new_capability (context_p, builtin_promise, ECMA_VALUE_UNDEFINED);
   JJS_ASSERT (capability_p != NULL);
 
   ecma_value_t result;
@@ -323,17 +329,17 @@ ecma_builtin_async_from_sync_iterator_prototype_dispatch_routine (uint8_t builti
   {
     case ECMA_ASYNC_FROM_SYNC_ITERATOR_PROTOTYPE_ROUTINE_NEXT:
     {
-      result = ecma_builtin_async_from_sync_iterator_prototype_next (iter_p, capability_p, arg);
+      result = ecma_builtin_async_from_sync_iterator_prototype_next (context_p, iter_p, capability_p, arg);
       break;
     }
     case ECMA_ASYNC_FROM_SYNC_ITERATOR_PROTOTYPE_ROUTINE_RETURN:
     {
-      result = ecma_builtin_async_from_sync_iterator_prototype_do (iter_p, capability_p, arg, LIT_MAGIC_STRING_RETURN);
+      result = ecma_builtin_async_from_sync_iterator_prototype_do (context_p, iter_p, capability_p, arg, LIT_MAGIC_STRING_RETURN);
       break;
     }
     case ECMA_ASYNC_FROM_SYNC_ITERATOR_PROTOTYPE_ROUTINE_THROW:
     {
-      result = ecma_builtin_async_from_sync_iterator_prototype_do (iter_p, capability_p, arg, LIT_MAGIC_STRING_THROW);
+      result = ecma_builtin_async_from_sync_iterator_prototype_do (context_p, iter_p, capability_p, arg, LIT_MAGIC_STRING_THROW);
       break;
     }
     default:

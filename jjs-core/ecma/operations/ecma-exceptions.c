@@ -108,7 +108,7 @@ ecma_new_standard_error_with_options (ecma_context_t *context_p,
   ecma_builtin_id_t prototype_id = ECMA_BUILTIN_ID_ERROR_PROTOTYPE;
 #endif /* JJS_BUILTIN_ERRORS */
 
-  ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
+  ecma_object_t *prototype_obj_p = ecma_builtin_get (context_p, prototype_id);
 
   ecma_object_t *error_object_p =
     ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
@@ -154,7 +154,7 @@ ecma_new_standard_error_with_options (ecma_context_t *context_p,
 
   /* Avoid calling the decorator function recursively. */
   if (context_p->error_object_created_callback_p != NULL
-      && !(context_p->status_flags) & ECMA_STATUS_ERROR_UPDATE)
+      && !(context_p->status_flags & ECMA_STATUS_ERROR_UPDATE))
   {
     context_p->status_flags |= ECMA_STATUS_ERROR_UPDATE;
     context_p->error_object_created_callback_p

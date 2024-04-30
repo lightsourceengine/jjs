@@ -78,7 +78,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_reflect_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                       uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                        ecma_value_t this_arg, /**< 'this' argument value */
                                        const ecma_value_t arguments_list[], /**< list of arguments
                                                                              *   passed to routine */
@@ -91,11 +92,11 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     /* 1. */
     if (arguments_number == 0 || !ecma_is_value_object (arguments_list[0]))
     {
-      return ecma_raise_type_error (ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
+      return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
     }
 
     /* 2. */
-    ecma_string_t *name_str_p = ecma_op_to_property_key (arguments_list[1]);
+    ecma_string_t *name_str_p = ecma_op_to_property_key (context_p, arguments_list[1]);
 
     /* 3. */
     if (name_str_p == NULL)
@@ -104,7 +105,7 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     }
 
     ecma_value_t ret_value;
-    ecma_object_t *target_p = ecma_get_object_from_value (arguments_list[0]);
+    ecma_object_t *target_p = ecma_get_object_from_value (context_p, arguments_list[0]);
     switch (builtin_routine_id)
     {
       case ECMA_REFLECT_OBJECT_GET:
@@ -117,19 +118,19 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
           receiver = arguments_list[2];
         }
 
-        ret_value = ecma_op_object_get_with_receiver (target_p, name_str_p, receiver);
+        ret_value = ecma_op_object_get_with_receiver (context_p, target_p, name_str_p, receiver);
         break;
       }
 
       case ECMA_REFLECT_OBJECT_HAS:
       {
-        ret_value = ecma_op_object_has_property (target_p, name_str_p);
+        ret_value = ecma_op_object_has_property (context_p, target_p, name_str_p);
         break;
       }
 
       case ECMA_REFLECT_OBJECT_DELETE_PROPERTY:
       {
-        ret_value = ecma_op_object_delete (target_p, name_str_p, false);
+        ret_value = ecma_op_object_delete (context_p, target_p, name_str_p, false);
         break;
       }
 
@@ -144,12 +145,12 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
           receiver = arguments_list[3];
         }
 
-        ret_value = ecma_op_object_put_with_receiver (target_p, name_str_p, arguments_list[2], receiver, false);
+        ret_value = ecma_op_object_put_with_receiver (context_p, target_p, name_str_p, arguments_list[2], receiver, false);
         break;
       }
     }
 
-    ecma_deref_ecma_string (name_str_p);
+    ecma_deref_ecma_string (context_p, name_str_p);
     return ret_value;
   }
 
@@ -158,13 +159,13 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     /* 1. */
     if (arguments_number == 0 || !ecma_is_value_object (arguments_list[0]))
     {
-      return ecma_raise_type_error (ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
+      return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
     }
 
-    ecma_object_t *target_p = ecma_get_object_from_value (arguments_list[0]);
+    ecma_object_t *target_p = ecma_get_object_from_value (context_p, arguments_list[0]);
 
     /* 2. */
-    ecma_collection_t *prop_names = ecma_op_object_own_property_keys (target_p, JJS_PROPERTY_FILTER_ALL);
+    ecma_collection_t *prop_names = ecma_op_object_own_property_keys (context_p, target_p, JJS_PROPERTY_FILTER_ALL);
 
 #if JJS_BUILTIN_PROXY
     if (prop_names == NULL)
@@ -174,18 +175,18 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
 #endif /* JJS_BUILTIN_PROXY */
 
     /* 3. */
-    return ecma_op_new_array_object_from_collection (prop_names, false);
+    return ecma_op_new_array_object_from_collection (context_p, prop_names, false);
   }
 
   if (builtin_routine_id == ECMA_REFLECT_OBJECT_CONSTRUCT)
   {
     /* 1. */
-    if (arguments_number < 1 || !ecma_is_constructor (arguments_list[0]))
+    if (arguments_number < 1 || !ecma_is_constructor (context_p, arguments_list[0]))
     {
-      return ecma_raise_type_error (ECMA_ERR_TARGET_IS_NOT_A_CONSTRUCTOR);
+      return ecma_raise_type_error (context_p, ECMA_ERR_TARGET_IS_NOT_A_CONSTRUCTOR);
     }
 
-    ecma_object_t *target_p = ecma_get_object_from_value (arguments_list[0]);
+    ecma_object_t *target_p = ecma_get_object_from_value (context_p, arguments_list[0]);
 
     /* 2. */
     ecma_object_t *new_target_p = target_p;
@@ -193,81 +194,81 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
     if (arguments_number > 2)
     {
       /* 3. */
-      if (!ecma_is_constructor (arguments_list[2]))
+      if (!ecma_is_constructor (context_p, arguments_list[2]))
       {
-        return ecma_raise_type_error (ECMA_ERR_TARGET_IS_NOT_A_CONSTRUCTOR);
+        return ecma_raise_type_error (context_p, ECMA_ERR_TARGET_IS_NOT_A_CONSTRUCTOR);
       }
 
-      new_target_p = ecma_get_object_from_value (arguments_list[2]);
+      new_target_p = ecma_get_object_from_value (context_p, arguments_list[2]);
     }
 
     /* 4. */
     if (arguments_number < 2)
     {
-      return ecma_raise_type_error (ECMA_ERR_REFLECT_EXPECTS_AN_OBJECT_AS_SECOND_ARGUMENT);
+      return ecma_raise_type_error (context_p, ECMA_ERR_REFLECT_EXPECTS_AN_OBJECT_AS_SECOND_ARGUMENT);
     }
 
-    ecma_collection_t *coll_p = ecma_op_create_list_from_array_like (arguments_list[1], false);
+    ecma_collection_t *coll_p = ecma_op_create_list_from_array_like (context_p, arguments_list[1], false);
 
     if (coll_p == NULL)
     {
       return ECMA_VALUE_ERROR;
     }
 
-    ecma_value_t ret_value = ecma_op_function_construct (target_p, new_target_p, coll_p->buffer_p, coll_p->item_count);
+    ecma_value_t ret_value = ecma_op_function_construct (context_p, target_p, new_target_p, coll_p->buffer_p, coll_p->item_count);
 
-    ecma_collection_free (coll_p);
+    ecma_collection_free (context_p, coll_p);
     return ret_value;
   }
 
   if (!ecma_is_value_object (arguments_list[0]))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_IS_NOT_AN_OBJECT);
   }
 
   switch (builtin_routine_id)
   {
     case ECMA_REFLECT_OBJECT_GET_PROTOTYPE_OF:
     {
-      return ecma_builtin_object_object_get_prototype_of (ecma_get_object_from_value (arguments_list[0]));
+      return ecma_builtin_object_object_get_prototype_of (context_p, ecma_get_object_from_value (context_p, arguments_list[0]));
     }
     case ECMA_REFLECT_OBJECT_SET_PROTOTYPE_OF:
     {
       if (!ecma_is_value_object (arguments_list[1]) && !ecma_is_value_null (arguments_list[1]))
       {
-        return ecma_raise_type_error (ECMA_ERR_PROTOTYPE_IS_NEITHER_OBJECT_NOR_NULL);
+        return ecma_raise_type_error (context_p, ECMA_ERR_PROTOTYPE_IS_NEITHER_OBJECT_NOR_NULL);
       }
 
-      ecma_object_t *obj_p = ecma_get_object_from_value (arguments_list[0]);
+      ecma_object_t *obj_p = ecma_get_object_from_value (context_p, arguments_list[0]);
       ecma_value_t status;
 
 #if JJS_BUILTIN_PROXY
       if (ECMA_OBJECT_IS_PROXY (obj_p))
       {
-        status = ecma_proxy_object_set_prototype_of (obj_p, arguments_list[1]);
+        status = ecma_proxy_object_set_prototype_of (context_p, obj_p, arguments_list[1]);
       }
       else
 #endif /* JJS_BUILTIN_PROXY */
       {
-        status = ecma_op_ordinary_object_set_prototype_of (obj_p, arguments_list[1]);
+        status = ecma_op_ordinary_object_set_prototype_of (context_p, obj_p, arguments_list[1]);
       }
 
       return status;
     }
     case ECMA_REFLECT_OBJECT_APPLY:
     {
-      if (!ecma_op_is_callable (arguments_list[0]))
+      if (!ecma_op_is_callable (context_p, arguments_list[0]))
       {
-        return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_FUNCTION);
+        return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_FUNCTION);
       }
 
-      ecma_object_t *func_obj_p = ecma_get_object_from_value (arguments_list[0]);
-      return ecma_builtin_function_prototype_object_apply (func_obj_p, arguments_list[1], arguments_list[2]);
+      ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, arguments_list[0]);
+      return ecma_builtin_function_prototype_object_apply (context_p, func_obj_p, arguments_list[1], arguments_list[2]);
     }
     case ECMA_REFLECT_OBJECT_DEFINE_PROPERTY:
     {
-      ecma_object_t *obj_p = ecma_get_object_from_value (arguments_list[0]);
-      ecma_string_t *name_str_p = ecma_op_to_property_key (arguments_list[1]);
+      ecma_object_t *obj_p = ecma_get_object_from_value (context_p, arguments_list[0]);
+      ecma_string_t *name_str_p = ecma_op_to_property_key (context_p, arguments_list[1]);
 
       if (name_str_p == NULL)
       {
@@ -275,60 +276,60 @@ ecma_builtin_reflect_dispatch_routine (uint8_t builtin_routine_id, /**< built-in
       }
 
       ecma_property_descriptor_t prop_desc;
-      ecma_value_t conv_result = ecma_op_to_property_descriptor (arguments_list[2], &prop_desc);
+      ecma_value_t conv_result = ecma_op_to_property_descriptor (context_p, arguments_list[2], &prop_desc);
 
       if (ECMA_IS_VALUE_ERROR (conv_result))
       {
-        ecma_deref_ecma_string (name_str_p);
+        ecma_deref_ecma_string (context_p, name_str_p);
         return conv_result;
       }
 
-      ecma_value_t result = ecma_op_object_define_own_property (obj_p, name_str_p, &prop_desc);
+      ecma_value_t result = ecma_op_object_define_own_property (context_p, obj_p, name_str_p, &prop_desc);
 
-      ecma_deref_ecma_string (name_str_p);
-      ecma_free_property_descriptor (&prop_desc);
+      ecma_deref_ecma_string (context_p, name_str_p);
+      ecma_free_property_descriptor (context_p, &prop_desc);
 
       if (ECMA_IS_VALUE_ERROR (result))
       {
         return result;
       }
 
-      bool boolean_result = ecma_op_to_boolean (result);
+      bool boolean_result = ecma_op_to_boolean (context_p, result);
 
       return ecma_make_boolean_value (boolean_result);
     }
     case ECMA_REFLECT_OBJECT_GET_OWN_PROPERTY_DESCRIPTOR:
     {
-      ecma_object_t *obj_p = ecma_get_object_from_value (arguments_list[0]);
-      ecma_string_t *name_str_p = ecma_op_to_property_key (arguments_list[1]);
+      ecma_object_t *obj_p = ecma_get_object_from_value (context_p, arguments_list[0]);
+      ecma_string_t *name_str_p = ecma_op_to_property_key (context_p, arguments_list[1]);
 
       if (name_str_p == NULL)
       {
         return ECMA_VALUE_ERROR;
       }
 
-      ecma_value_t ret_val = ecma_builtin_object_object_get_own_property_descriptor (obj_p, name_str_p);
-      ecma_deref_ecma_string (name_str_p);
+      ecma_value_t ret_val = ecma_builtin_object_object_get_own_property_descriptor (context_p, obj_p, name_str_p);
+      ecma_deref_ecma_string (context_p, name_str_p);
       return ret_val;
     }
     case ECMA_REFLECT_OBJECT_IS_EXTENSIBLE:
     {
-      ecma_object_t *obj_p = ecma_get_object_from_value (arguments_list[0]);
-      return ecma_builtin_object_object_is_extensible (obj_p);
+      ecma_object_t *obj_p = ecma_get_object_from_value (context_p, arguments_list[0]);
+      return ecma_builtin_object_object_is_extensible (context_p, obj_p);
     }
     default:
     {
       JJS_ASSERT (builtin_routine_id == ECMA_REFLECT_OBJECT_PREVENT_EXTENSIONS);
-      ecma_object_t *obj_p = ecma_get_object_from_value (arguments_list[0]);
+      ecma_object_t *obj_p = ecma_get_object_from_value (context_p, arguments_list[0]);
 
 #if JJS_BUILTIN_PROXY
       if (ECMA_OBJECT_IS_PROXY (obj_p))
       {
-        return ecma_proxy_object_prevent_extensions (obj_p);
+        return ecma_proxy_object_prevent_extensions (context_p, obj_p);
       }
 #endif /* !JJS_BUILTIN_PROXY */
 
-      ecma_op_ordinary_object_prevent_extensions (obj_p);
+      ecma_op_ordinary_object_prevent_extensions (context_p, obj_p);
 
       return ECMA_VALUE_TRUE;
     }

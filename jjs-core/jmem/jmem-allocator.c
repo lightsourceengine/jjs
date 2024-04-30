@@ -30,9 +30,9 @@
  * Register byte code allocation.
  */
 void
-jmem_stats_allocate_byte_code_bytes (size_t byte_code_size)
+jmem_stats_allocate_byte_code_bytes (jjs_context_t *context_p, size_t byte_code_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   heap_stats->byte_code_bytes += byte_code_size;
 
@@ -46,9 +46,9 @@ jmem_stats_allocate_byte_code_bytes (size_t byte_code_size)
  * Register byte code free.
  */
 void
-jmem_stats_free_byte_code_bytes (size_t byte_code_size)
+jmem_stats_free_byte_code_bytes (jjs_context_t *context_p, size_t byte_code_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   JJS_ASSERT (heap_stats->byte_code_bytes >= byte_code_size);
 
@@ -59,9 +59,9 @@ jmem_stats_free_byte_code_bytes (size_t byte_code_size)
  * Register string allocation.
  */
 void
-jmem_stats_allocate_string_bytes (size_t string_size)
+jmem_stats_allocate_string_bytes (jjs_context_t *context_p, size_t string_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   heap_stats->string_bytes += string_size;
 
@@ -75,9 +75,9 @@ jmem_stats_allocate_string_bytes (size_t string_size)
  * Register string free.
  */
 void
-jmem_stats_free_string_bytes (size_t string_size)
+jmem_stats_free_string_bytes (jjs_context_t *context_p, size_t string_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   JJS_ASSERT (heap_stats->string_bytes >= string_size);
 
@@ -88,9 +88,9 @@ jmem_stats_free_string_bytes (size_t string_size)
  * Register object allocation.
  */
 void
-jmem_stats_allocate_object_bytes (size_t object_size)
+jmem_stats_allocate_object_bytes (jjs_context_t *context_p, size_t object_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   heap_stats->object_bytes += object_size;
 
@@ -104,9 +104,9 @@ jmem_stats_allocate_object_bytes (size_t object_size)
  * Register object free.
  */
 void
-jmem_stats_free_object_bytes (size_t object_size)
+jmem_stats_free_object_bytes (jjs_context_t *context_p, size_t object_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   JJS_ASSERT (heap_stats->object_bytes >= object_size);
 
@@ -117,9 +117,9 @@ jmem_stats_free_object_bytes (size_t object_size)
  * Register property allocation.
  */
 void
-jmem_stats_allocate_property_bytes (size_t property_size)
+jmem_stats_allocate_property_bytes (jjs_context_t *context_p, size_t property_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   heap_stats->property_bytes += property_size;
 
@@ -133,9 +133,9 @@ jmem_stats_allocate_property_bytes (size_t property_size)
  * Register property free.
  */
 void
-jmem_stats_free_property_bytes (size_t property_size)
+jmem_stats_free_property_bytes (jjs_context_t *context_p, size_t property_size)
 {
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   JJS_ASSERT (heap_stats->property_bytes >= property_size);
 
@@ -164,7 +164,7 @@ jmem_finalize (jjs_context_t *context_p)
 #if JJS_MEM_STATS
   if (context_p->context_flags & JJS_CONTEXT_FLAG_MEM_STATS)
   {
-    jmem_heap_stats_print ();
+    jmem_heap_stats_print (context_p);
   }
 #endif /* JJS_MEM_STATS */
 

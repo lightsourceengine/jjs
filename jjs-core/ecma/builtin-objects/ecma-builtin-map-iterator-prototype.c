@@ -63,9 +63,10 @@ enum
  *         error - otherwise
  */
 static ecma_value_t
-ecma_builtin_map_iterator_prototype_object_next (ecma_value_t this_val) /**< this argument */
+ecma_builtin_map_iterator_prototype_object_next (ecma_context_t *context_p, /**< JJS context */
+                                                 ecma_value_t this_val) /**< this argument */
 {
-  return ecma_op_container_iterator_next (this_val, ECMA_OBJECT_CLASS_MAP_ITERATOR);
+  return ecma_op_container_iterator_next (context_p, this_val, ECMA_OBJECT_CLASS_MAP_ITERATOR);
 } /* ecma_builtin_map_iterator_prototype_object_next */
 
 /**
@@ -75,7 +76,8 @@ ecma_builtin_map_iterator_prototype_object_next (ecma_value_t this_val) /**< thi
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_map_iterator_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide
+ecma_builtin_map_iterator_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                                      uint8_t builtin_routine_id, /**< built-in wide
                                                                                    *   routine identifier */
                                                       ecma_value_t this_arg, /**< 'this' argument value */
                                                       const ecma_value_t arguments_list_p[], /**< list of arguments
@@ -88,7 +90,7 @@ ecma_builtin_map_iterator_prototype_dispatch_routine (uint8_t builtin_routine_id
   {
     case ECMA_BUILTIN_MAP_ITERATOR_PROTOTYPE_ROUTINE_OBJECT_NEXT:
     {
-      return ecma_builtin_map_iterator_prototype_object_next (this_arg);
+      return ecma_builtin_map_iterator_prototype_object_next (context_p, this_arg);
     }
     default:
     {

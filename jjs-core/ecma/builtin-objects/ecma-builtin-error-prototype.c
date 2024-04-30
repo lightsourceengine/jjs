@@ -64,11 +64,12 @@ enum
  * @return ecma_string_t
  */
 static ecma_string_t *
-ecma_builtin_error_prototype_object_to_string_helper (ecma_object_t *obj_p, /**< error object */
+ecma_builtin_error_prototype_object_to_string_helper (ecma_context_t *context_p, /**< JJS context */
+                                                      ecma_object_t *obj_p, /**< error object */
                                                       lit_magic_string_id_t property_id, /**< property id */
                                                       lit_magic_string_id_t default_value) /**< default prop value */
 {
-  ecma_value_t prop_value = ecma_op_object_get_by_magic_id (obj_p, property_id);
+  ecma_value_t prop_value = ecma_op_object_get_by_magic_id (context_p, obj_p, property_id);
 
   if (ECMA_IS_VALUE_ERROR (prop_value))
   {
@@ -80,8 +81,8 @@ ecma_builtin_error_prototype_object_to_string_helper (ecma_object_t *obj_p, /**<
     return ecma_get_magic_string (default_value);
   }
 
-  ecma_string_t *ret_str_p = ecma_op_to_string (prop_value);
-  ecma_free_value (prop_value);
+  ecma_string_t *ret_str_p = ecma_op_to_string (context_p, prop_value);
+  ecma_free_value (context_p, prop_value);
 
   return ret_str_p;
 } /* ecma_builtin_error_prototype_object_to_string_helper */
@@ -96,18 +97,19 @@ ecma_builtin_error_prototype_object_to_string_helper (ecma_object_t *obj_p, /**<
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_error_prototype_object_to_string (ecma_value_t this_arg) /**< this argument */
+ecma_builtin_error_prototype_object_to_string (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_value_t this_arg) /**< this argument */
 {
   /* 2. */
   if (!ecma_is_value_object (this_arg))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_OBJECT);
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (this_arg);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, this_arg);
 
   ecma_string_t *name_string_p =
-    ecma_builtin_error_prototype_object_to_string_helper (obj_p, LIT_MAGIC_STRING_NAME, LIT_MAGIC_STRING_ERROR_UL);
+    ecma_builtin_error_prototype_object_to_string_helper (context_p, obj_p, LIT_MAGIC_STRING_NAME, LIT_MAGIC_STRING_ERROR_UL);
 
   if (JJS_UNLIKELY (name_string_p == NULL))
   {
@@ -115,33 +117,33 @@ ecma_builtin_error_prototype_object_to_string (ecma_value_t this_arg) /**< this 
   }
 
   ecma_string_t *msg_string_p =
-    ecma_builtin_error_prototype_object_to_string_helper (obj_p, LIT_MAGIC_STRING_MESSAGE, LIT_MAGIC_STRING__EMPTY);
+    ecma_builtin_error_prototype_object_to_string_helper (context_p, obj_p, LIT_MAGIC_STRING_MESSAGE, LIT_MAGIC_STRING__EMPTY);
 
   if (JJS_UNLIKELY (msg_string_p == NULL))
   {
-    ecma_deref_ecma_string (name_string_p);
+    ecma_deref_ecma_string (context_p, name_string_p);
     return ECMA_VALUE_ERROR;
   }
 
   if (ecma_string_is_empty (name_string_p))
   {
-    return ecma_make_string_value (msg_string_p);
+    return ecma_make_string_value (context_p, msg_string_p);
   }
 
   if (ecma_string_is_empty (msg_string_p))
   {
-    return ecma_make_string_value (name_string_p);
+    return ecma_make_string_value (context_p, name_string_p);
   }
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from (name_string_p);
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from (context_p, name_string_p);
 
   ecma_stringbuilder_append_raw (&builder, (const lit_utf8_byte_t *) ": ", 2);
   ecma_stringbuilder_append (&builder, msg_string_p);
 
-  ecma_deref_ecma_string (name_string_p);
-  ecma_deref_ecma_string (msg_string_p);
+  ecma_deref_ecma_string (context_p, name_string_p);
+  ecma_deref_ecma_string (context_p, msg_string_p);
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_builtin_error_prototype_object_to_string */
 
 /**
@@ -151,7 +153,8 @@ ecma_builtin_error_prototype_object_to_string (ecma_value_t this_arg) /**< this 
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_error_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine
+ecma_builtin_error_prototype_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                               uint8_t builtin_routine_id, /**< built-in wide routine
                                                                             *   identifier */
                                                ecma_value_t this_arg, /**< 'this' argument value */
                                                const ecma_value_t arguments_list_p[], /**< list of arguments passed to
@@ -164,7 +167,7 @@ ecma_builtin_error_prototype_dispatch_routine (uint8_t builtin_routine_id, /**< 
   {
     case ECMA_ERROR_PROTOTYPE_ROUTINE_TO_STRING:
     {
-      return ecma_builtin_error_prototype_object_to_string (this_arg);
+      return ecma_builtin_error_prototype_object_to_string (context_p, this_arg);
     }
     default:
     {

@@ -24,7 +24,7 @@
 static void
 check_basename_result (const char* filename, ecma_value_t expected)
 {
-  ecma_value_t filename_value = ecma_string_ascii_sz (filename);
+  ecma_value_t filename_value = ecma_string_ascii_sz (context_p, filename);
   ecma_value_t actual = annex_path_basename (filename_value);
 
   if (expected == ECMA_VALUE_EMPTY)
@@ -43,7 +43,7 @@ check_basename_result (const char* filename, ecma_value_t expected)
 static void
 check_basename_result_sz (const char* filename, const char* expected)
 {
-  ecma_value_t expected_value = ecma_string_ascii_sz (expected);
+  ecma_value_t expected_value = ecma_string_ascii_sz (context_p, expected);
 
   check_basename_result (filename, expected_value);
   ecma_free_value (expected_value);

@@ -75,7 +75,8 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
+ecma_builtin_array_object_from (ecma_context_t *context_p, /**< JJS context */
+                                ecma_value_t this_arg, /**< 'this' argument */
                                 const ecma_value_t *arguments_list_p, /**< arguments list */
                                 uint32_t arguments_list_len) /**< number of arguments */
 {
@@ -92,9 +93,9 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
   if (!ecma_is_value_undefined (mapfn))
   {
     /* 3.a */
-    if (!ecma_op_is_callable (mapfn))
+    if (!ecma_op_is_callable (context_p, mapfn))
     {
-      return ecma_raise_type_error (ECMA_ERR_CALLBACK_IS_NOT_CALLABLE);
+      return ecma_raise_type_error (context_p, ECMA_ERR_CALLBACK_IS_NOT_CALLABLE);
     }
 
     /* 3.b */
@@ -104,11 +105,11 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
     }
 
     /* 3.c */
-    mapfn_obj_p = ecma_get_object_from_value (mapfn);
+    mapfn_obj_p = ecma_get_object_from_value (context_p, mapfn);
   }
 
   /* 4. */
-  ecma_value_t using_iterator = ecma_op_get_method_by_symbol_id (items, LIT_GLOBAL_SYMBOL_ITERATOR);
+  ecma_value_t using_iterator = ecma_op_get_method_by_symbol_id (context_p, items, LIT_GLOBAL_SYMBOL_ITERATOR);
 
   /* 5. */
   if (ECMA_IS_VALUE_ERROR (using_iterator))
@@ -124,37 +125,37 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
     ecma_object_t *array_obj_p;
 
     /* 6.a */
-    if (ecma_is_constructor (constructor))
+    if (ecma_is_constructor (context_p, constructor))
     {
-      ecma_object_t *constructor_obj_p = ecma_get_object_from_value (constructor);
+      ecma_object_t *constructor_obj_p = ecma_get_object_from_value (context_p, constructor);
 
-      ecma_value_t array = ecma_op_function_construct (constructor_obj_p, constructor_obj_p, NULL, 0);
+      ecma_value_t array = ecma_op_function_construct (context_p, constructor_obj_p, constructor_obj_p, NULL, 0);
 
       if (ecma_is_value_undefined (array) || ecma_is_value_null (array))
       {
-        ecma_free_value (using_iterator);
-        return ecma_raise_type_error (ECMA_ERR_CANNOT_CONVERT_TO_OBJECT);
+        ecma_free_value (context_p, using_iterator);
+        return ecma_raise_type_error (context_p, ECMA_ERR_CANNOT_CONVERT_TO_OBJECT);
       }
 
       /* 6.c */
       if (ECMA_IS_VALUE_ERROR (array))
       {
-        ecma_free_value (using_iterator);
+        ecma_free_value (context_p, using_iterator);
         return array;
       }
 
-      array_obj_p = ecma_get_object_from_value (array);
+      array_obj_p = ecma_get_object_from_value (context_p, array);
     }
     else
     {
       /* 6.b */
-      array_obj_p = ecma_op_new_array_object (0);
+      array_obj_p = ecma_op_new_array_object (context_p, 0);
     }
 
     /* 6.d */
     ecma_value_t next_method;
-    ecma_value_t iterator = ecma_op_get_iterator (items, using_iterator, &next_method);
-    ecma_free_value (using_iterator);
+    ecma_value_t iterator = ecma_op_get_iterator (context_p, items, using_iterator, &next_method);
+    ecma_free_value (context_p, using_iterator);
 
     /* 6.e */
     if (ECMA_IS_VALUE_ERROR (iterator))
@@ -170,7 +171,7 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
     while (true)
     {
       /* 6.g.ii */
-      ecma_value_t next = ecma_op_iterator_step (iterator, next_method);
+      ecma_value_t next = ecma_op_iterator_step (context_p, iterator, next_method);
 
       /* 6.g.iii */
       if (ECMA_IS_VALUE_ERROR (next))
@@ -182,10 +183,10 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
       if (ecma_is_value_false (next))
       {
         /* 6.g.iv.1 */
-        ecma_value_t len_value = ecma_make_uint32_value (k);
+        ecma_value_t len_value = ecma_make_uint32_value (context_p, k);
         ecma_value_t set_status =
-          ecma_op_object_put (array_obj_p, ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH), len_value, true);
-        ecma_free_value (len_value);
+          ecma_op_object_put (context_p, array_obj_p, ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH), len_value, true);
+        ecma_free_value (context_p, len_value);
 
         /* 6.g.iv.2 */
         if (ECMA_IS_VALUE_ERROR (set_status))
@@ -193,16 +194,16 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
           goto iterator_cleanup;
         }
 
-        ecma_free_value (iterator);
-        ecma_free_value (next_method);
+        ecma_free_value (context_p, iterator);
+        ecma_free_value (context_p, next_method);
         /* 6.g.iv.3 */
-        return ecma_make_object_value (array_obj_p);
+        return ecma_make_object_value (context_p, array_obj_p);
       }
 
       /* 6.g.v */
-      ecma_value_t next_value = ecma_op_iterator_value (next);
+      ecma_value_t next_value = ecma_op_iterator_value (context_p, next);
 
-      ecma_free_value (next);
+      ecma_free_value (context_p, next);
 
       /* 6.g.vi */
       if (ECMA_IS_VALUE_ERROR (next_value))
@@ -215,16 +216,16 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
       if (mapfn_obj_p != NULL)
       {
         /* 6.g.vii.1 */
-        ecma_value_t args_p[2] = { next_value, ecma_make_uint32_value (k) };
+        ecma_value_t args_p[2] = { next_value, ecma_make_uint32_value (context_p, k) };
         /* 6.g.vii.3 */
-        mapped_value = ecma_op_function_call (mapfn_obj_p, call_this_arg, args_p, 2);
-        ecma_free_value (args_p[1]);
-        ecma_free_value (next_value);
+        mapped_value = ecma_op_function_call (context_p, mapfn_obj_p, call_this_arg, args_p, 2);
+        ecma_free_value (context_p, args_p[1]);
+        ecma_free_value (context_p, next_value);
 
         /* 6.g.vii.2 */
         if (ECMA_IS_VALUE_ERROR (mapped_value))
         {
-          ecma_op_iterator_close (iterator);
+          ecma_op_iterator_close (context_p, iterator);
           goto iterator_cleanup;
         }
       }
@@ -236,14 +237,14 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
 
       /* 6.g.ix */
       const uint32_t flags = ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE | JJS_PROP_SHOULD_THROW;
-      ecma_value_t set_status = ecma_builtin_helper_def_prop_by_index (array_obj_p, k, mapped_value, flags);
+      ecma_value_t set_status = ecma_builtin_helper_def_prop_by_index (context_p, array_obj_p, k, mapped_value, flags);
 
-      ecma_free_value (mapped_value);
+      ecma_free_value (context_p, mapped_value);
 
       /* 6.g.x */
       if (ECMA_IS_VALUE_ERROR (set_status))
       {
-        ecma_op_iterator_close (iterator);
+        ecma_op_iterator_close (context_p, iterator);
         goto iterator_cleanup;
       }
 
@@ -252,15 +253,15 @@ ecma_builtin_array_object_from (ecma_value_t this_arg, /**< 'this' argument */
     }
 
 iterator_cleanup:
-    ecma_free_value (iterator);
-    ecma_free_value (next_method);
+    ecma_free_value (context_p, iterator);
+    ecma_free_value (context_p, next_method);
     ecma_deref_object (array_obj_p);
 
     return ret_value;
   }
 
   /* 8. */
-  ecma_value_t array_like = ecma_op_to_object (items);
+  ecma_value_t array_like = ecma_op_to_object (context_p, items);
 
   /* 9. */
   if (ECMA_IS_VALUE_ERROR (array_like))
@@ -268,11 +269,11 @@ iterator_cleanup:
     return array_like;
   }
 
-  ecma_object_t *array_like_obj_p = ecma_get_object_from_value (array_like);
+  ecma_object_t *array_like_obj_p = ecma_get_object_from_value (context_p, array_like);
 
   /* 10. */
   ecma_length_t len;
-  ecma_value_t len_value = ecma_op_object_get_length (array_like_obj_p, &len);
+  ecma_value_t len_value = ecma_op_object_get_length (context_p, array_like_obj_p, &len);
 
   /* 11. */
   if (ECMA_IS_VALUE_ERROR (len_value))
@@ -284,17 +285,17 @@ iterator_cleanup:
   ecma_object_t *array_obj_p;
 
   /* 12.a */
-  if (ecma_is_constructor (constructor))
+  if (ecma_is_constructor (context_p, constructor))
   {
-    ecma_object_t *constructor_obj_p = ecma_get_object_from_value (constructor);
+    ecma_object_t *constructor_obj_p = ecma_get_object_from_value (context_p, constructor);
 
-    len_value = ecma_make_length_value (len);
-    ecma_value_t array = ecma_op_function_construct (constructor_obj_p, constructor_obj_p, &len_value, 1);
-    ecma_free_value (len_value);
+    len_value = ecma_make_length_value (context_p, len);
+    ecma_value_t array = ecma_op_function_construct (context_p, constructor_obj_p, constructor_obj_p, &len_value, 1);
+    ecma_free_value (context_p, len_value);
 
     if (ecma_is_value_undefined (array) || ecma_is_value_null (array))
     {
-      ecma_raise_type_error (ECMA_ERR_CANNOT_CONVERT_TO_OBJECT);
+      ecma_raise_type_error (context_p, ECMA_ERR_CANNOT_CONVERT_TO_OBJECT);
       goto cleanup;
     }
 
@@ -304,12 +305,12 @@ iterator_cleanup:
       goto cleanup;
     }
 
-    array_obj_p = ecma_get_object_from_value (array);
+    array_obj_p = ecma_get_object_from_value (context_p, array);
   }
   else
   {
     /* 13.a */
-    array_obj_p = ecma_op_new_array_object_from_length (len);
+    array_obj_p = ecma_op_new_array_object_from_length (context_p, len);
 
     if (JJS_UNLIKELY (array_obj_p == NULL))
     {
@@ -324,7 +325,7 @@ iterator_cleanup:
   while (k < len)
   {
     /* 16.b */
-    ecma_value_t k_value = ecma_op_object_get_by_index (array_like_obj_p, k);
+    ecma_value_t k_value = ecma_op_object_get_by_index (context_p, array_like_obj_p, k);
 
     /* 16.c */
     if (ECMA_IS_VALUE_ERROR (k_value))
@@ -337,10 +338,10 @@ iterator_cleanup:
     if (mapfn_obj_p != NULL)
     {
       /* 16.d.i */
-      ecma_value_t args_p[2] = { k_value, ecma_make_length_value (k) };
-      mapped_value = ecma_op_function_call (mapfn_obj_p, call_this_arg, args_p, 2);
-      ecma_free_value (args_p[1]);
-      ecma_free_value (k_value);
+      ecma_value_t args_p[2] = { k_value, ecma_make_length_value (context_p, k) };
+      mapped_value = ecma_op_function_call (context_p, mapfn_obj_p, call_this_arg, args_p, 2);
+      ecma_free_value (context_p, args_p[1]);
+      ecma_free_value (context_p, k_value);
 
       /* 16.d.ii */
       if (ECMA_IS_VALUE_ERROR (mapped_value))
@@ -356,9 +357,9 @@ iterator_cleanup:
 
     /* 16.f */
     const uint32_t flags = ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE | JJS_PROP_SHOULD_THROW;
-    ecma_value_t set_status = ecma_builtin_helper_def_prop_by_index (array_obj_p, k, mapped_value, flags);
+    ecma_value_t set_status = ecma_builtin_helper_def_prop_by_index (context_p, array_obj_p, k, mapped_value, flags);
 
-    ecma_free_value (mapped_value);
+    ecma_free_value (context_p, mapped_value);
 
     /* 16.g */
     if (ECMA_IS_VALUE_ERROR (set_status))
@@ -371,10 +372,10 @@ iterator_cleanup:
   }
 
   /* 17. */
-  len_value = ecma_make_length_value (k);
+  len_value = ecma_make_length_value (context_p, k);
   ecma_value_t set_status =
-    ecma_op_object_put (array_obj_p, ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH), len_value, true);
-  ecma_free_value (len_value);
+    ecma_op_object_put (context_p, array_obj_p, ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH), len_value, true);
+  ecma_free_value (context_p, len_value);
 
   /* 18. */
   if (ECMA_IS_VALUE_ERROR (set_status))
@@ -384,7 +385,7 @@ iterator_cleanup:
 
   /* 19. */
   ecma_deref_object (array_like_obj_p);
-  return ecma_make_object_value (array_obj_p);
+  return ecma_make_object_value (context_p, array_obj_p);
 
 construct_cleanup:
   ecma_deref_object (array_obj_p);
@@ -403,38 +404,39 @@ cleanup:
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_array_object_of (ecma_value_t this_arg, /**< 'this' argument */
+ecma_builtin_array_object_of (ecma_context_t *context_p, /**< JJS context */
+                              ecma_value_t this_arg, /**< 'this' argument */
                               const ecma_value_t *arguments_list_p, /**< arguments list */
                               uint32_t arguments_list_len) /**< number of arguments */
 {
-  if (!ecma_is_constructor (this_arg))
+  if (!ecma_is_constructor (context_p, this_arg))
   {
-    return ecma_op_new_array_object_from_buffer (arguments_list_p, arguments_list_len);
+    return ecma_op_new_array_object_from_buffer (context_p, arguments_list_p, arguments_list_len);
   }
 
-  ecma_value_t len = ecma_make_uint32_value (arguments_list_len);
+  ecma_value_t len = ecma_make_uint32_value (context_p, arguments_list_len);
 
   ecma_value_t ret_val =
-    ecma_op_function_construct (ecma_get_object_from_value (this_arg), ecma_get_object_from_value (this_arg), &len, 1);
+    ecma_op_function_construct (context_p, ecma_get_object_from_value (context_p, this_arg), ecma_get_object_from_value (context_p, this_arg), &len, 1);
 
   if (ECMA_IS_VALUE_ERROR (ret_val))
   {
-    ecma_free_value (len);
+    ecma_free_value (context_p, len);
     return ret_val;
   }
 
   uint32_t k = 0;
-  ecma_object_t *obj_p = ecma_get_object_from_value (ret_val);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, ret_val);
   const uint32_t prop_status_flags = ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE | JJS_PROP_SHOULD_THROW;
 
   while (k < arguments_list_len)
   {
     ecma_value_t define_status =
-      ecma_builtin_helper_def_prop_by_index (obj_p, k, arguments_list_p[k], prop_status_flags);
+      ecma_builtin_helper_def_prop_by_index (context_p, obj_p, k, arguments_list_p[k], prop_status_flags);
 
     if (ECMA_IS_VALUE_ERROR (define_status))
     {
-      ecma_free_value (len);
+      ecma_free_value (context_p, len);
       ecma_deref_object (obj_p);
       return define_status;
     }
@@ -442,9 +444,9 @@ ecma_builtin_array_object_of (ecma_value_t this_arg, /**< 'this' argument */
     k++;
   }
 
-  ret_val = ecma_op_object_put (obj_p, ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH), len, true);
+  ret_val = ecma_op_object_put (context_p, obj_p, ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH), len, true);
 
-  ecma_free_value (len);
+  ecma_free_value (context_p, len);
 
   if (ECMA_IS_VALUE_ERROR (ret_val))
   {
@@ -452,7 +454,7 @@ ecma_builtin_array_object_of (ecma_value_t this_arg, /**< 'this' argument */
     return ret_val;
   }
 
-  return ecma_make_object_value (obj_p);
+  return ecma_make_object_value (context_p, obj_p);
 } /* ecma_builtin_array_object_of */
 
 /**
@@ -462,25 +464,26 @@ ecma_builtin_array_object_of (ecma_value_t this_arg, /**< 'this' argument */
  *         constructed array object - otherwise
  */
 ecma_value_t
-ecma_builtin_array_dispatch_call (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_array_dispatch_call (ecma_context_t *context_p, /**< JJS context */
+                                  const ecma_value_t *arguments_list_p, /**< arguments list */
                                   uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
   if (arguments_list_len != 1 || !ecma_is_value_number (arguments_list_p[0]))
   {
-    return ecma_op_new_array_object_from_buffer (arguments_list_p, arguments_list_len);
+    return ecma_op_new_array_object_from_buffer (context_p, arguments_list_p, arguments_list_len);
   }
 
-  ecma_number_t num = ecma_get_number_from_value (arguments_list_p[0]);
+  ecma_number_t num = ecma_get_number_from_value (context_p, arguments_list_p[0]);
   uint32_t num_uint32 = ecma_number_to_uint32 (num);
 
   if (num != ((ecma_number_t) num_uint32))
   {
-    return ecma_raise_range_error (ECMA_ERR_INVALID_ARRAY_LENGTH);
+    return ecma_raise_range_error (context_p, ECMA_ERR_INVALID_ARRAY_LENGTH);
   }
 
-  return ecma_make_object_value (ecma_op_new_array_object (num_uint32));
+  return ecma_make_object_value (context_p, ecma_op_new_array_object (context_p, num_uint32));
 } /* ecma_builtin_array_dispatch_call */
 
 /**
@@ -490,20 +493,21 @@ ecma_builtin_array_dispatch_call (const ecma_value_t *arguments_list_p, /**< arg
  *         constructed array object - otherwise
  */
 ecma_value_t
-ecma_builtin_array_dispatch_construct (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_builtin_array_dispatch_construct (ecma_context_t *context_p, /**< JJS context */
+                                       const ecma_value_t *arguments_list_p, /**< arguments list */
                                        uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
   ecma_object_t *proto_p =
-    ecma_op_get_prototype_from_constructor (JJS_CONTEXT (current_new_target_p), ECMA_BUILTIN_ID_ARRAY_PROTOTYPE);
+    ecma_op_get_prototype_from_constructor (context_p, context_p->current_new_target_p, ECMA_BUILTIN_ID_ARRAY_PROTOTYPE);
 
   if (proto_p == NULL)
   {
     return ECMA_VALUE_ERROR;
   }
 
-  ecma_value_t result = ecma_builtin_array_dispatch_call (arguments_list_p, arguments_list_len);
+  ecma_value_t result = ecma_builtin_array_dispatch_call (context_p, arguments_list_p, arguments_list_len);
 
   if (ECMA_IS_VALUE_ERROR (result))
   {
@@ -511,8 +515,8 @@ ecma_builtin_array_dispatch_construct (const ecma_value_t *arguments_list_p, /**
     return result;
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (result);
-  ECMA_SET_NON_NULL_POINTER (object_p->u2.prototype_cp, proto_p);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, result);
+  ECMA_SET_NON_NULL_POINTER (context_p, object_p->u2.prototype_cp, proto_p);
   ecma_deref_object (proto_p);
   return result;
 } /* ecma_builtin_array_dispatch_construct */
@@ -524,7 +528,8 @@ ecma_builtin_array_dispatch_construct (const ecma_value_t *arguments_list_p, /**
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_array_dispatch_routine (uint8_t builtin_routine_id, /**< built-in wide routine identifier */
+ecma_builtin_array_dispatch_routine (ecma_context_t *context_p, /**< JJS context */
+                                     uint8_t builtin_routine_id, /**< built-in wide routine identifier */
                                      ecma_value_t this_arg, /**< 'this' argument value */
                                      const ecma_value_t arguments_list_p[], /**< list of arguments
                                                                              *   passed to routine */
@@ -538,19 +543,19 @@ ecma_builtin_array_dispatch_routine (uint8_t builtin_routine_id, /**< built-in w
     {
       JJS_UNUSED (this_arg);
 
-      return ecma_is_value_array (arguments_list_p[0]);
+      return ecma_is_value_array (context_p, arguments_list_p[0]);
     }
     case ECMA_ARRAY_ROUTINE_FROM:
     {
-      return ecma_builtin_array_object_from (this_arg, arguments_list_p, arguments_number);
+      return ecma_builtin_array_object_from (context_p, this_arg, arguments_list_p, arguments_number);
     }
     case ECMA_ARRAY_ROUTINE_OF:
     {
-      return ecma_builtin_array_object_of (this_arg, arguments_list_p, arguments_number);
+      return ecma_builtin_array_object_of (context_p, this_arg, arguments_list_p, arguments_number);
     }
     case ECMA_ARRAY_ROUTINE_SPECIES_GET:
     {
-      return ecma_copy_value (this_arg);
+      return ecma_copy_value (context_p, this_arg);
     }
     default:
     {

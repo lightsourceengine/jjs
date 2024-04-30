@@ -71,7 +71,7 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
   }
 
   ecma_object_t *obj_p = ecma_create_object (context_p,
-                                             ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE),
+                                             ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE),
                                              object_size + (saved_arg_count * sizeof (ecma_value_t)),
                                              ECMA_OBJECT_TYPE_CLASS);
 
@@ -292,7 +292,7 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_context_t *conte
     }
     else
     {
-      ecma_object_t *thrower_p = ecma_builtin_get (ECMA_BUILTIN_ID_TYPE_ERROR_THROWER);
+      ecma_object_t *thrower_p = ecma_builtin_get (context_p, ECMA_BUILTIN_ID_TYPE_ERROR_THROWER);
 
       ecma_create_named_accessor_property (context_p,
                                            object_p,
@@ -314,7 +314,7 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_context_t *conte
                                                     &prop_p);
 
     prop_value_p->value = ecma_op_object_get_by_magic_id (context_p,
-                                                          ecma_builtin_get (ECMA_BUILTIN_ID_INTRINSIC_OBJECT),
+                                                          ecma_builtin_get (context_p, ECMA_BUILTIN_ID_INTRINSIC_OBJECT),
                                                           LIT_INTERNAL_MAGIC_STRING_ARRAY_PROTOTYPE_VALUES);
 
     JJS_ASSERT (ecma_is_value_object (prop_value_p->value));

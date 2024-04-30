@@ -292,9 +292,9 @@ ecma_op_object_get_own_property (ecma_context_t *context_p, /**< JJS context */
     {
       case ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION:
       {
-        if (ecma_builtin_function_is_routine (object_p))
+        if (ecma_builtin_function_is_routine (context_p, object_p))
         {
-          property_p = ecma_builtin_routine_try_to_instantiate_property (object_p, property_name_p);
+          property_p = ecma_builtin_routine_try_to_instantiate_property (context_p, object_p, property_name_p);
           break;
         }
         /* FALLTHRU */
@@ -303,7 +303,7 @@ ecma_op_object_get_own_property (ecma_context_t *context_p, /**< JJS context */
       case ECMA_OBJECT_TYPE_BUILT_IN_CLASS:
       case ECMA_OBJECT_TYPE_BUILT_IN_ARRAY:
       {
-        property_p = ecma_builtin_try_to_instantiate_property (object_p, property_name_p);
+        property_p = ecma_builtin_try_to_instantiate_property (context_p, object_p, property_name_p);
         break;
       }
       case ECMA_OBJECT_TYPE_CLASS:
@@ -641,9 +641,9 @@ ecma_op_object_find_own (ecma_context_t *context_p, /**< JJS context */
     {
       case ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION:
       {
-        if (ecma_builtin_function_is_routine (object_p))
+        if (ecma_builtin_function_is_routine (context_p, object_p))
         {
-          property_p = ecma_builtin_routine_try_to_instantiate_property (object_p, property_name_p);
+          property_p = ecma_builtin_routine_try_to_instantiate_property (context_p, object_p, property_name_p);
           break;
         }
         /* FALLTHRU */
@@ -652,7 +652,7 @@ ecma_op_object_find_own (ecma_context_t *context_p, /**< JJS context */
       case ECMA_OBJECT_TYPE_BUILT_IN_CLASS:
       case ECMA_OBJECT_TYPE_BUILT_IN_ARRAY:
       {
-        property_p = ecma_builtin_try_to_instantiate_property (object_p, property_name_p);
+        property_p = ecma_builtin_try_to_instantiate_property (context_p, object_p, property_name_p);
         break;
       }
       case ECMA_OBJECT_TYPE_CLASS:
@@ -1420,9 +1420,9 @@ ecma_op_object_put_with_receiver (ecma_context_t *context_p, /**< JJS context */
     {
       case ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION:
       {
-        if (ecma_builtin_function_is_routine (object_p))
+        if (ecma_builtin_function_is_routine (context_p, object_p))
         {
-          property_p = ecma_builtin_routine_try_to_instantiate_property (object_p, property_name_p);
+          property_p = ecma_builtin_routine_try_to_instantiate_property (context_p, object_p, property_name_p);
           break;
         }
         /* FALLTHRU */
@@ -1431,7 +1431,7 @@ ecma_op_object_put_with_receiver (ecma_context_t *context_p, /**< JJS context */
       case ECMA_OBJECT_TYPE_BUILT_IN_CLASS:
       case ECMA_OBJECT_TYPE_BUILT_IN_ARRAY:
       {
-        property_p = ecma_builtin_try_to_instantiate_property (object_p, property_name_p);
+        property_p = ecma_builtin_try_to_instantiate_property (context_p, object_p, property_name_p);
         break;
       }
       case ECMA_OBJECT_TYPE_CLASS:
@@ -1593,7 +1593,7 @@ ecma_op_object_put_with_receiver (ecma_context_t *context_p, /**< JJS context */
             && ext_object_p->u.cls.u1.arguments_flags & ECMA_ARGUMENTS_OBJECT_MAPPED)
         {
           const uint32_t flags = ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE | JJS_PROP_SHOULD_THROW;
-          return ecma_builtin_helper_def_prop (object_p, property_name_p, value, flags);
+          return ecma_builtin_helper_def_prop (context_p, object_p, property_name_p, value, flags);
         }
       }
 
@@ -2124,11 +2124,12 @@ ecma_op_object_get_enumerable_property_names (ecma_context_t *context_p, /**< JJ
             /* 4.a.ii.2.c.ii */
             ecma_object_t *entry_p = ecma_op_new_array_object (context_p, 2);
 
-            ecma_builtin_helper_def_prop_by_index (entry_p,
+            ecma_builtin_helper_def_prop_by_index (context_p,
+                                                   entry_p,
                                                    0,
                                                    names_buffer_p[i],
                                                    ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
-            ecma_builtin_helper_def_prop_by_index (entry_p, 1, value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
+            ecma_builtin_helper_def_prop_by_index (context_p, entry_p, 1, value, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
             ecma_free_value (context_p, value);
 
             /* 4.a.ii.2.c.iii */
@@ -2158,9 +2159,9 @@ ecma_object_list_lazy_property_names (ecma_context_t *context_p, /**< JJS contex
   {
     case ECMA_OBJECT_TYPE_BUILT_IN_FUNCTION:
     {
-      if (ecma_builtin_function_is_routine (obj_p))
+      if (ecma_builtin_function_is_routine (context_p, obj_p))
       {
-        ecma_builtin_routine_list_lazy_property_names (obj_p, prop_names_p, prop_counter_p, filter);
+        ecma_builtin_routine_list_lazy_property_names (context_p, obj_p, prop_names_p, prop_counter_p, filter);
         break;
       }
       /* FALLTHRU */
@@ -2169,7 +2170,7 @@ ecma_object_list_lazy_property_names (ecma_context_t *context_p, /**< JJS contex
     case ECMA_OBJECT_TYPE_BUILT_IN_CLASS:
     case ECMA_OBJECT_TYPE_BUILT_IN_ARRAY:
     {
-      ecma_builtin_list_lazy_property_names (obj_p, prop_names_p, prop_counter_p, filter);
+      ecma_builtin_list_lazy_property_names (context_p, obj_p, prop_names_p, prop_counter_p, filter);
       break;
     }
     case ECMA_OBJECT_TYPE_CLASS:
@@ -2687,10 +2688,11 @@ ecma_builtin_is (ecma_object_t *object_p, /**< pointer to an object */
  *         false - otherwise
  */
 static inline bool
-ecma_object_check_class_name_is_object (ecma_object_t *obj_p) /**< object */
+ecma_object_check_class_name_is_object (ecma_context_t *context_p, /**< JJS context */
+                                        ecma_object_t *obj_p) /**< object */
 {
 #ifndef JJS_NDEBUG
-  return (ecma_builtin_is_global (obj_p)
+  return (ecma_builtin_is_global (context_p, obj_p)
 #if JJS_BUILTIN_TYPEDARRAY
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_ARRAYBUFFER_PROTOTYPE)
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
@@ -2749,6 +2751,7 @@ ecma_object_check_class_name_is_object (ecma_object_t *obj_p) /**< object */
 #endif /* JJS_BUILTIN_DATAVIEW */
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE));
 #else /* JJS_NDEBUG */
+  JJS_UNUSED (context_p);
   JJS_UNUSED (obj_p);
   return true;
 #endif /* !JJS_NDEBUG */
@@ -2936,7 +2939,7 @@ ecma_object_get_class_name (ecma_context_t *context_p, /**< JJS context */
         }
       }
 
-      JJS_ASSERT (ecma_object_check_class_name_is_object (obj_p));
+      JJS_ASSERT (ecma_object_check_class_name_is_object (context_p, obj_p));
       return LIT_MAGIC_STRING_OBJECT_UL;
     }
     default:
@@ -3051,7 +3054,7 @@ ecma_op_species_constructor (ecma_context_t *context_p, /**< JJS context */
                              ecma_object_t *this_value, /**< This Value */
                              ecma_builtin_id_t default_constructor_id) /**< Builtin ID of default constructor */
 {
-  ecma_object_t *default_constructor_p = ecma_builtin_get (default_constructor_id);
+  ecma_object_t *default_constructor_p = ecma_builtin_get (context_p, default_constructor_id);
   ecma_value_t constructor = ecma_op_object_get_by_magic_id (context_p, this_value, LIT_MAGIC_STRING_CONSTRUCTOR);
   if (ECMA_IS_VALUE_ERROR (constructor))
   {
@@ -3260,7 +3263,7 @@ ecma_op_ordinary_object_set_prototype_of (ecma_context_t *context_p, /**< JJS co
        * Prevent setting 'Object.prototype.__proto__'
        * to avoid circular referencing in the prototype chain.
        */
-      if (obj_p == ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE))
+      if (obj_p == ecma_builtin_get (context_p, ECMA_BUILTIN_ID_OBJECT_PROTOTYPE))
       {
         return ECMA_VALUE_FALSE;
       }
