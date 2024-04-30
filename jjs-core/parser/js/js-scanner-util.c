@@ -84,21 +84,21 @@ scanner_raise_redeclaration_error (parser_context_t *context_p) /**< context */
  * @return allocated memory
  */
 void *
-scanner_malloc (parser_context_t *context_p, /**< context */
+scanner_malloc (parser_context_t *parser_context_p, /**< context */
                 size_t size) /**< size of the memory block */
 {
   void *result;
 
   JJS_ASSERT (size > 0);
-  result = jmem_heap_alloc_block_null_on_error (size);
+  result = jmem_heap_alloc_block_null_on_error (parser_context_p->context_p, size);
 
   if (result == NULL)
   {
-    scanner_cleanup (context_p);
+    scanner_cleanup (parser_context_p);
 
     /* This is the only error which specify its reason. */
-    context_p->error = PARSER_ERR_OUT_OF_MEMORY;
-    PARSER_THROW (context_p->try_buffer);
+    parser_context_p->error = PARSER_ERR_OUT_OF_MEMORY;
+    PARSER_THROW (parser_context_p->try_buffer);
   }
   return result;
 } /* scanner_malloc */
@@ -107,10 +107,11 @@ scanner_malloc (parser_context_t *context_p, /**< context */
  * Free memory allocated by scanner_malloc.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-scanner_free (void *ptr, /**< pointer to free */
+scanner_free (parser_context_t *parser_context_p, /**< parser context */
+              void *ptr, /**< pointer to free */
               size_t size) /**< size of the memory block */
 {
-  jmem_heap_free_block (ptr, size);
+  jmem_heap_free_block (parser_context_p->context_p, ptr, size);
 } /* scanner_free */
 
 /**
@@ -259,7 +260,7 @@ scanner_release_next (parser_context_t *parser_context_p, /**< context */
 {
   scanner_info_t *next_p = parser_context_p->next_scanner_info_p->next_p;
 
-  jmem_heap_free_block (parser_context_p->next_scanner_info_p, size);
+  jmem_heap_free_block (parser_context_p->context_p, parser_context_p->next_scanner_info_p, size);
   parser_context_p->next_scanner_info_p = next_p;
 } /* scanner_release_next */
 
@@ -298,7 +299,7 @@ scanner_release_active (parser_context_t *parser_context_p, /**< context */
 {
   scanner_info_t *next_p = parser_context_p->active_scanner_info_p->next_p;
 
-  jmem_heap_free_block (parser_context_p->active_scanner_info_p, size);
+  jmem_heap_free_block (parser_context_p->context_p, parser_context_p->active_scanner_info_p, size);
   parser_context_p->active_scanner_info_p = next_p;
 } /* scanner_release_active */
 
@@ -306,13 +307,14 @@ scanner_release_active (parser_context_t *parser_context_p, /**< context */
  * Release switch cases.
  */
 void
-scanner_release_switch_cases (scanner_case_info_t *case_p) /**< case list */
+scanner_release_switch_cases (parser_context_t *parser_context_p, /**< parser context */
+                              scanner_case_info_t *case_p) /**< case list */
 {
   while (case_p != NULL)
   {
     scanner_case_info_t *next_p = case_p->next_p;
 
-    jmem_heap_free_block (case_p, sizeof (scanner_case_info_t));
+    jmem_heap_free_block (parser_context_p->context_p, case_p, sizeof (scanner_case_info_t));
     case_p = next_p;
   }
 } /* scanner_release_switch_cases */
@@ -321,13 +323,14 @@ scanner_release_switch_cases (scanner_case_info_t *case_p) /**< case list */
  * Release private fields.
  */
 void
-scanner_release_private_fields (scanner_class_private_member_t *member_p) /**< private member list */
+scanner_release_private_fields (parser_context_t *parser_context_p, /**< parser context */
+                                scanner_class_private_member_t *member_p) /**< private member list */
 {
   while (member_p != NULL)
   {
     scanner_class_private_member_t *prev_p = member_p->prev_p;
 
-    jmem_heap_free_block (member_p, sizeof (scanner_class_private_member_t));
+    jmem_heap_free_block (parser_context_p->context_p, member_p, sizeof (scanner_class_private_member_t));
     member_p = prev_p;
   }
 } /* scanner_release_private_fields */
@@ -468,14 +471,14 @@ scanner_find_duplicated_arg (parser_context_t *parser_context_p, lexer_lit_locat
       literal_index = (uint16_t) (((literal_index << 8) | *byte_code_p++) - encoding_delta);
     }
 
-    ecma_string_t *arg_string = ecma_get_string_from_value (literal_start_p[literal_index]);
+    ecma_string_t *arg_string = ecma_get_string_from_value (context_p, literal_start_p[literal_index]);
     uint8_t *destination_p = (uint8_t *) parser_malloc (parser_context_p, lit_loc_p->length);
     lexer_convert_ident_to_cesu8 (destination_p, lit_loc_p->char_p, lit_loc_p->length);
-    ecma_string_t *search_key_p = ecma_new_ecma_string_from_utf8 (destination_p, lit_loc_p->length);
-    scanner_free (destination_p, lit_loc_p->length);
+    ecma_string_t *search_key_p = ecma_new_ecma_string_from_utf8 (context_p, destination_p, lit_loc_p->length);
+    scanner_free (parser_context_p, destination_p, lit_loc_p->length);
 
     found_duplicate = ecma_compare_ecma_strings (arg_string, search_key_p);
-    ecma_deref_ecma_string (search_key_p);
+    ecma_deref_ecma_string (context_p, search_key_p);
 
     if (found_duplicate)
     {
@@ -497,6 +500,7 @@ scanner_scope_find_lexical_declaration (parser_context_t *parser_context_p, /**<
 {
   ecma_string_t *name_p;
   uint32_t flags = parser_context_p->global_status_flags;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
   if (!(flags & ECMA_PARSE_EVAL) || (!(flags & ECMA_PARSE_DIRECT_EVAL) && (parser_context_p->status_flags & PARSER_IS_STRICT)))
   {
@@ -505,7 +509,7 @@ scanner_scope_find_lexical_declaration (parser_context_t *parser_context_p, /**<
 
   if (JJS_LIKELY (!(literal_p->status_flags & LEXER_LIT_LOCATION_HAS_ESCAPE)))
   {
-    name_p = ecma_new_ecma_string_from_utf8 (literal_p->char_p, literal_p->length);
+    name_p = ecma_new_ecma_string_from_utf8 (context_p, literal_p->char_p, literal_p->length);
   }
   else
   {
@@ -513,9 +517,9 @@ scanner_scope_find_lexical_declaration (parser_context_t *parser_context_p, /**<
 
     lexer_convert_ident_to_cesu8 (destination_p, literal_p->char_p, literal_p->length);
 
-    name_p = ecma_new_ecma_string_from_utf8 (destination_p, literal_p->length);
+    name_p = ecma_new_ecma_string_from_utf8 (context_p, destination_p, literal_p->length);
 
-    scanner_free (destination_p, literal_p->length);
+    scanner_free (parser_context_p, destination_p, literal_p->length);
   }
 
   ecma_object_t *lex_env_p;
@@ -529,37 +533,37 @@ scanner_scope_find_lexical_declaration (parser_context_t *parser_context_p, /**<
     {
       if (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE)
       {
-        ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
+        ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, name_p);
 
         if (property_p != NULL && ecma_is_property_enumerable (*property_p))
         {
-          ecma_deref_ecma_string (name_p);
+          ecma_deref_ecma_string (context_p, name_p);
           return true;
         }
       }
 
       JJS_ASSERT (lex_env_p->u2.outer_reference_cp != JMEM_CP_NULL);
-      lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+      lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
     }
   }
   else
   {
-    lex_env_p = ecma_get_global_scope (ecma_builtin_get_global ());
+    lex_env_p = ecma_get_global_scope (context_p, ecma_builtin_get_global (context_p));
   }
 
   if (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE)
   {
-    ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
+    ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, name_p);
 
     if (property_p != NULL
         && (ecma_is_property_enumerable (*property_p) || scanner_find_duplicated_arg (parser_context_p, literal_p)))
     {
-      ecma_deref_ecma_string (name_p);
+      ecma_deref_ecma_string (context_p, name_p);
       return true;
     }
   }
 
-  ecma_deref_ecma_string (name_p);
+  ecma_deref_ecma_string (context_p, name_p);
   return false;
 } /* scanner_scope_find_lexical_declaration */
 
@@ -643,7 +647,7 @@ typedef enum
  * Pop the last literal pool from the end.
  */
 void
-scanner_pop_literal_pool (parser_context_t *context_p, /**< context */
+scanner_pop_literal_pool (parser_context_t *parser_context_p, /**< parser context */
                           scanner_context_t *scanner_context_p) /**< scanner context */
 {
   scanner_literal_pool_t *literal_pool_p = scanner_context_p->active_literal_pool_p;
@@ -662,7 +666,7 @@ scanner_pop_literal_pool (parser_context_t *context_p, /**< context */
                   && literal_pool_p->literal_pool.data.last_p == NULL);
 
     scanner_context_p->active_literal_pool_p = literal_pool_p->prev_p;
-    scanner_free (literal_pool_p, sizeof (scanner_literal_pool_t));
+    scanner_free (parser_context_p, literal_pool_p, sizeof (scanner_literal_pool_t));
     return;
   }
 
@@ -691,7 +695,7 @@ scanner_pop_literal_pool (parser_context_t *context_p, /**< context */
 
   uint8_t can_eval_types = 0;
 
-  if (prev_literal_pool_p == NULL && !(context_p->global_status_flags & ECMA_PARSE_DIRECT_EVAL))
+  if (prev_literal_pool_p == NULL && !(parser_context_p->global_status_flags & ECMA_PARSE_DIRECT_EVAL))
   {
     can_eval_types |= SCANNER_LITERAL_IS_FUNC;
   }
@@ -816,7 +820,7 @@ scanner_pop_literal_pool (parser_context_t *context_p, /**< context */
     if ((status_flags & SCANNER_LITERAL_POOL_FUNCTION)
         && (type & SCANNER_LITERAL_IS_LOCAL_FUNC) == SCANNER_LITERAL_IS_FUNC)
     {
-      if (prev_literal_pool_p == NULL && scanner_scope_find_lexical_declaration (context_p, literal_p))
+      if (prev_literal_pool_p == NULL && scanner_scope_find_lexical_declaration (parser_context_p, literal_p))
       {
         literal_p->type = 0;
         continue;
@@ -893,7 +897,7 @@ scanner_pop_literal_pool (parser_context_t *context_p, /**< context */
     if (prev_literal_pool_p != NULL && literal_p->length > 0)
     {
       /* Propagate literal to upper level. */
-      lexer_lit_location_t *literal_location_p = scanner_add_custom_literal (context_p, prev_literal_pool_p, literal_p);
+      lexer_lit_location_t *literal_location_p = scanner_add_custom_literal (parser_context_p, prev_literal_pool_p, literal_p);
       uint8_t extended_type = literal_location_p->type;
 
       if ((status_flags & (SCANNER_LITERAL_POOL_FUNCTION | SCANNER_LITERAL_POOL_CLASS_FIELD))
@@ -948,12 +952,12 @@ scanner_pop_literal_pool (parser_context_t *context_p, /**< context */
 
     if (prev_literal_pool_p != NULL || scanner_context_p->end_arguments_p == NULL)
     {
-      info_p = scanner_insert_info (context_p, literal_pool_p->source_p, compressed_size);
+      info_p = scanner_insert_info (parser_context_p, literal_pool_p->source_p, compressed_size);
     }
     else
     {
       scanner_info_t *start_info_p = scanner_context_p->end_arguments_p;
-      info_p = scanner_insert_info_before (context_p, literal_pool_p->source_p, start_info_p, compressed_size);
+      info_p = scanner_insert_info_before (parser_context_p, literal_pool_p->source_p, start_info_p, compressed_size);
     }
 
     if (no_declarations > PARSER_MAXIMUM_DEPTH_OF_SCOPE_STACK)
@@ -1194,43 +1198,43 @@ scanner_pop_literal_pool (parser_context_t *context_p, /**< context */
   {
     if (prev_literal_pool_p->status_flags & SCANNER_LITERAL_POOL_IS_STRICT)
     {
-      context_p->status_flags |= PARSER_IS_STRICT;
+      parser_context_p->status_flags |= PARSER_IS_STRICT;
     }
     else
     {
-      context_p->status_flags &= (uint32_t) ~PARSER_IS_STRICT;
+      parser_context_p->status_flags &= (uint32_t) ~PARSER_IS_STRICT;
     }
 
     if (prev_literal_pool_p->status_flags & SCANNER_LITERAL_POOL_GENERATOR)
     {
-      context_p->status_flags |= PARSER_IS_GENERATOR_FUNCTION;
+      parser_context_p->status_flags |= PARSER_IS_GENERATOR_FUNCTION;
     }
     else
     {
-      context_p->status_flags &= (uint32_t) ~PARSER_IS_GENERATOR_FUNCTION;
+      parser_context_p->status_flags &= (uint32_t) ~PARSER_IS_GENERATOR_FUNCTION;
     }
 
     if (prev_literal_pool_p->status_flags & SCANNER_LITERAL_POOL_ASYNC)
     {
-      context_p->status_flags |= PARSER_IS_ASYNC_FUNCTION;
+      parser_context_p->status_flags |= PARSER_IS_ASYNC_FUNCTION;
     }
     else
     {
-      context_p->status_flags &= (uint32_t) ~PARSER_IS_ASYNC_FUNCTION;
+      parser_context_p->status_flags &= (uint32_t) ~PARSER_IS_ASYNC_FUNCTION;
     }
   }
 
   scanner_context_p->active_literal_pool_p = literal_pool_p->prev_p;
 
-  parser_list_free (&literal_pool_p->literal_pool);
-  scanner_free (literal_pool_p, sizeof (scanner_literal_pool_t));
+  parser_list_free (parser_context_p, &literal_pool_p->literal_pool);
+  scanner_free (parser_context_p, literal_pool_p, sizeof (scanner_literal_pool_t));
 } /* scanner_pop_literal_pool */
 
 /**
  * Filter out the arguments from a literal pool.
  */
 void
-scanner_filter_arguments (parser_context_t *context_p, /**< context */
+scanner_filter_arguments (parser_context_t *parser_context_p, /**< parser context */
                           scanner_context_t *scanner_context_p) /**< scanner context */
 {
   /* Fast case: check whether all literals are arguments. */
@@ -1285,7 +1289,7 @@ scanner_filter_arguments (parser_context_t *context_p, /**< context */
   bool has_destructured_arg = false;
   scanner_literal_pool_t *new_literal_pool_p;
 
-  new_literal_pool_p = (scanner_literal_pool_t *) scanner_malloc (context_p, sizeof (scanner_literal_pool_t));
+  new_literal_pool_p = (scanner_literal_pool_t *) scanner_malloc (parser_context_p, sizeof (scanner_literal_pool_t));
 
   new_literal_pool_p->prev_p = literal_pool_p;
   scanner_context_p->active_literal_pool_p = new_literal_pool_p;
@@ -1331,7 +1335,7 @@ scanner_filter_arguments (parser_context_t *context_p, /**< context */
       }
 
       lexer_lit_location_t *new_literal_p;
-      new_literal_p = (lexer_lit_location_t *) parser_list_append (context_p, &new_literal_pool_p->literal_pool);
+      new_literal_p = (lexer_lit_location_t *) parser_list_append (parser_context_p, &new_literal_pool_p->literal_pool);
       *new_literal_p = *literal_p;
     }
     else if (has_arguments && scanner_literal_is_arguments (literal_p))
@@ -1347,7 +1351,7 @@ scanner_filter_arguments (parser_context_t *context_p, /**< context */
     else if (prev_literal_pool_p != NULL)
     {
       /* Propagate literal to upper level. */
-      lexer_lit_location_t *literal_location_p = scanner_add_custom_literal (context_p, prev_literal_pool_p, literal_p);
+      lexer_lit_location_t *literal_location_p = scanner_add_custom_literal (parser_context_p, prev_literal_pool_p, literal_p);
       type |= SCANNER_LITERAL_NO_REG | SCANNER_LITERAL_IS_USED;
       literal_location_p->type |= type;
     }
@@ -1364,7 +1368,7 @@ scanner_filter_arguments (parser_context_t *context_p, /**< context */
       if ((literal_p->type & expected_flags) == expected_flags)
       {
         lexer_lit_location_t *new_literal_p;
-        new_literal_p = (lexer_lit_location_t *) parser_list_append (context_p, &new_literal_pool_p->literal_pool);
+        new_literal_p = (lexer_lit_location_t *) parser_list_append (parser_context_p, &new_literal_pool_p->literal_pool);
         *new_literal_p = *literal_p;
       }
     }
@@ -1378,8 +1382,8 @@ scanner_filter_arguments (parser_context_t *context_p, /**< context */
 
   new_literal_pool_p->prev_p = prev_literal_pool_p;
 
-  parser_list_free (&literal_pool_p->literal_pool);
-  scanner_free (literal_pool_p, sizeof (scanner_literal_pool_t));
+  parser_list_free (parser_context_p, &literal_pool_p->literal_pool);
+  scanner_free (parser_context_p, literal_pool_p, sizeof (scanner_literal_pool_t));
 } /* scanner_filter_arguments */
 
 /**
@@ -1849,7 +1853,7 @@ scanner_push_destructuring_pattern (parser_context_t *context_p, /**< context */
  * Pop binding list.
  */
 void
-scanner_pop_binding_list (scanner_context_t *scanner_context_p) /**< scanner context */
+scanner_pop_binding_list (parser_context_t *parser_context_p, scanner_context_t *scanner_context_p) /**< scanner context */
 {
   scanner_binding_list_t *binding_list_p = scanner_context_p->active_binding_list_p;
   JJS_ASSERT (binding_list_p != NULL);
@@ -1858,7 +1862,7 @@ scanner_pop_binding_list (scanner_context_t *scanner_context_p) /**< scanner con
   scanner_binding_list_t *prev_binding_list_p = binding_list_p->prev_p;
   bool is_nested = binding_list_p->is_nested;
 
-  scanner_free (binding_list_p, sizeof (scanner_binding_list_t));
+  scanner_free (parser_context_p, binding_list_p, sizeof (scanner_binding_list_t));
   scanner_context_p->active_binding_list_p = prev_binding_list_p;
 
   if (!is_nested)
@@ -1869,7 +1873,7 @@ scanner_pop_binding_list (scanner_context_t *scanner_context_p) /**< scanner con
 
       JJS_ASSERT (item_p->literal_p->type & (SCANNER_LITERAL_IS_LOCAL | SCANNER_LITERAL_IS_ARG));
 
-      scanner_free (item_p, sizeof (scanner_binding_item_t));
+      scanner_free (parser_context_p, item_p, sizeof (scanner_binding_item_t));
       item_p = next_p;
     }
     return;
@@ -1985,13 +1989,13 @@ scanner_cleanup (parser_context_t *parser_context_p) /**< context */
       }
       case SCANNER_TYPE_SWITCH:
       {
-        scanner_release_switch_cases (((scanner_switch_info_t *) scanner_info_p)->case_p);
+        scanner_release_switch_cases (parser_context_p, ((scanner_switch_info_t *) scanner_info_p)->case_p);
         size = sizeof (scanner_switch_info_t);
         break;
       }
       case SCANNER_TYPE_CLASS_CONSTRUCTOR:
       {
-        scanner_release_private_fields (((scanner_class_info_t *) scanner_info_p)->members);
+        scanner_release_private_fields (parser_context_p, ((scanner_class_info_t *) scanner_info_p)->members);
         size = sizeof (scanner_class_info_t);
         break;
       }
@@ -2006,7 +2010,7 @@ scanner_cleanup (parser_context_t *parser_context_p) /**< context */
       }
     }
 
-    scanner_free (scanner_info_p, size);
+    scanner_free (parser_context_p, scanner_info_p, size);
     scanner_info_p = next_scanner_info_p;
   }
 

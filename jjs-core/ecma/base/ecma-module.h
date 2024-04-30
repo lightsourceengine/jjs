@@ -121,7 +121,7 @@ typedef struct ecma_module_resolve_stack
 typedef void (*ecma_module_on_init_scope_cb) (jjs_context_t* context_p, ecma_module_t* module_p);
 
 ecma_value_t ecma_module_initialize (ecma_context_t *context_p, ecma_module_t *module_p);
-ecma_module_t *ecma_module_get_resolved_module (ecma_value_t module_val);
+ecma_module_t *ecma_module_get_resolved_module (ecma_context_t *context_p, ecma_value_t module_val);
 
 ecma_value_t ecma_module_link (ecma_context_t *context_p, ecma_module_t *module_p, jjs_module_link_cb_t callback_p, void *user_p);
 ecma_value_t ecma_module_evaluate (ecma_context_t *context_p, ecma_module_t *module_p);
@@ -130,8 +130,8 @@ ecma_value_t ecma_module_import (ecma_context_t *context_p, ecma_value_t specifi
 ecma_module_t *ecma_module_create (ecma_context_t *context_p);
 void ecma_module_cleanup_context (ecma_context_t *context_p);
 
-void ecma_module_release_module_names (ecma_module_names_t *module_name_p);
-void ecma_module_release_module (ecma_module_t *module_p);
+void ecma_module_release_module_names (ecma_context_t *context_p, ecma_module_names_t *module_name_p);
+void ecma_module_release_module (ecma_context_t *context_p, ecma_module_t *module_p);
 
 #endif /* JJS_MODULE_SYSTEM */
 

@@ -88,10 +88,10 @@ typedef struct {
  * Initialize the jobqueue.
  */
 void
-ecma_job_queue_init (void)
+ecma_job_queue_init (ecma_context_t *context_p) /**< JJS context */
 {
-  JJS_CONTEXT (job_queue_head_p) = NULL;
-  JJS_CONTEXT (job_queue_tail_p) = NULL;
+  context_p->job_queue_head_p = NULL;
+  context_p->job_queue_tail_p = NULL;
 } /* ecma_job_queue_init */
 
 /**
@@ -120,60 +120,64 @@ ecma_job_queue_get_next (ecma_job_queue_item_t *job_p) /**< the job */
  * Free the heap and the member of the PromiseReactionJob.
  */
 static void
-ecma_free_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< points to the PromiseReactionJob */
+ecma_free_promise_reaction_job (ecma_context_t *context_p, /**< JJS context */
+                                ecma_job_promise_reaction_t *job_p) /**< points to the PromiseReactionJob */
 {
   JJS_ASSERT (job_p != NULL);
 
-  ecma_free_value (job_p->capability);
-  ecma_free_value (job_p->handler);
-  ecma_free_value (job_p->argument);
+  ecma_free_value (context_p, job_p->capability);
+  ecma_free_value (context_p, job_p->handler);
+  ecma_free_value (context_p, job_p->argument);
 
-  jmem_heap_free_block (job_p, sizeof (ecma_job_promise_reaction_t));
+  jmem_heap_free_block (context_p, job_p, sizeof (ecma_job_promise_reaction_t));
 } /* ecma_free_promise_reaction_job */
 
 /**
  * Free the heap and the member of the PromiseAsyncReactionJob.
  */
 static void
-ecma_free_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_p) /**< points to the
+ecma_free_promise_async_reaction_job (ecma_context_t *context_p, /**< JJS context */
+                                      ecma_job_promise_async_reaction_t *job_p) /**< points to the
                                                                                  *   PromiseAsyncReactionJob */
 {
   JJS_ASSERT (job_p != NULL);
 
-  ecma_free_value (job_p->executable_object);
-  ecma_free_value (job_p->argument);
+  ecma_free_value (context_p, job_p->executable_object);
+  ecma_free_value (context_p, job_p->argument);
 
-  jmem_heap_free_block (job_p, sizeof (ecma_job_promise_async_reaction_t));
+  jmem_heap_free_block (context_p, job_p, sizeof (ecma_job_promise_async_reaction_t));
 } /* ecma_free_promise_async_reaction_job */
 
 /**
  * Free the heap and the member of the PromiseAsyncGeneratorJob.
  */
 static void
-ecma_free_promise_async_generator_job (ecma_job_promise_async_generator_t *job_p) /**< points to the
+ecma_free_promise_async_generator_job (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_job_promise_async_generator_t *job_p) /**< points to the
                                                                                    *   PromiseAsyncReactionJob */
 {
   JJS_ASSERT (job_p != NULL);
 
-  ecma_free_value (job_p->executable_object);
+  ecma_free_value (context_p, job_p->executable_object);
 
-  jmem_heap_free_block (job_p, sizeof (ecma_job_promise_async_generator_t));
+  jmem_heap_free_block (context_p, job_p, sizeof (ecma_job_promise_async_generator_t));
 } /* ecma_free_promise_async_generator_job */
 
 /**
  * Free the heap and the member of the PromiseResolveThenableJob.
  */
 static void
-ecma_free_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *job_p) /**< points to the
+ecma_free_promise_resolve_thenable_job (ecma_context_t *context_p, /**< JJS context */
+                                        ecma_job_promise_resolve_thenable_t *job_p) /**< points to the
                                                                                      *   PromiseResolveThenableJob */
 {
   JJS_ASSERT (job_p != NULL);
 
-  ecma_free_value (job_p->promise);
-  ecma_free_value (job_p->thenable);
-  ecma_free_value (job_p->then);
+  ecma_free_value (context_p, job_p->promise);
+  ecma_free_value (context_p, job_p->thenable);
+  ecma_free_value (context_p, job_p->then);
 
-  jmem_heap_free_block (job_p, sizeof (ecma_job_promise_resolve_thenable_t));
+  jmem_heap_free_block (context_p, job_p, sizeof (ecma_job_promise_resolve_thenable_t));
 } /* ecma_free_promise_resolve_thenable_job */
 
 #if JJS_ANNEX_QUEUE_MICROTASK
@@ -182,13 +186,14 @@ ecma_free_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *job
  * Free the ecma_job_microtask_t job object.
  */
 static void
-ecma_free_microtask_job (ecma_job_microtask_t *job_p) /**< job pointer */
+ecma_free_microtask_job (ecma_context_t *context_p, /**< JJS context */
+                         ecma_job_microtask_t *job_p) /**< job pointer */
 {
   JJS_ASSERT (job_p != NULL);
 
-  ecma_free_value (job_p->callback);
+  ecma_free_value (context_p, job_p->callback);
 
-  jmem_heap_free_block (job_p, sizeof (ecma_job_microtask_t));
+  jmem_heap_free_block (context_p, job_p, sizeof (ecma_job_microtask_t));
 } /* ecma_free_microtask_job */
 
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
@@ -202,18 +207,17 @@ ecma_free_microtask_job (ecma_job_microtask_t *job_p) /**< job pointer */
  *         Returned value must be freed with ecma_free_value
  */
 static ecma_value_t
-ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the job to be operated */
+ecma_process_promise_reaction_job (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_job_promise_reaction_t *job_p) /**< the job to be operated */
 {
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   /* 2. */
   JJS_ASSERT (
-    ecma_object_class_is (ecma_get_object_from_value (job_p->capability), ECMA_OBJECT_CLASS_PROMISE_CAPABILITY));
+    ecma_object_class_is (ecma_get_object_from_value (context_p, job_p->capability), ECMA_OBJECT_CLASS_PROMISE_CAPABILITY));
   ecma_promise_capabality_t *capability_p;
-  capability_p = (ecma_promise_capabality_t *) ecma_get_object_from_value (job_p->capability);
+  capability_p = (ecma_promise_capabality_t *) ecma_get_object_from_value (context_p, job_p->capability);
 
 #if JJS_PROMISE_CALLBACK
-  if (JJS_UNLIKELY (JJS_CONTEXT (promise_callback_filters) & JJS_PROMISE_EVENT_FILTER_REACTION_JOB))
+  if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_REACTION_JOB))
   {
     JJS_ASSERT (context_p->promise_callback != NULL);
     context_p->promise_callback (context_p,
@@ -227,20 +231,20 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
   /* 3. */
   ecma_value_t handler = job_p->handler;
 
-  JJS_ASSERT (ecma_is_value_boolean (handler) || ecma_op_is_callable (handler));
+  JJS_ASSERT (ecma_is_value_boolean (handler) || ecma_op_is_callable (context_p, handler));
 
   ecma_value_t handler_result;
 
   if (ecma_is_value_boolean (handler))
   {
     /* 4-5. True indicates "identity" and false indicates "thrower" */
-    handler_result = ecma_copy_value (job_p->argument);
+    handler_result = ecma_copy_value (context_p, job_p->argument);
   }
   else
   {
     /* 6. */
     handler_result =
-      ecma_op_function_call (ecma_get_object_from_value (handler), ECMA_VALUE_UNDEFINED, &(job_p->argument), 1);
+      ecma_op_function_call (context_p, ecma_get_object_from_value (context_p, handler), ECMA_VALUE_UNDEFINED, &(job_p->argument), 1);
   }
 
   ecma_value_t status;
@@ -253,7 +257,8 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
     }
 
     /* 7. */
-    status = ecma_op_function_call (ecma_get_object_from_value (capability_p->reject),
+    status = ecma_op_function_call (context_p,
+                                    ecma_get_object_from_value (context_p, capability_p->reject),
                                     ECMA_VALUE_UNDEFINED,
                                     &handler_result,
                                     1);
@@ -261,13 +266,14 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
   else
   {
     /* 8. */
-    status = ecma_op_function_call (ecma_get_object_from_value (capability_p->resolve),
+    status = ecma_op_function_call (context_p,
+                                    ecma_get_object_from_value (context_p, capability_p->resolve),
                                     ECMA_VALUE_UNDEFINED,
                                     &handler_result,
                                     1);
   }
 
-  ecma_free_value (handler_result);
+  ecma_free_value (context_p, handler_result);
 
 #if JJS_PROMISE_CALLBACK
   if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_REACTION_JOB))
@@ -281,7 +287,7 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
-  ecma_free_promise_reaction_job (job_p);
+  ecma_free_promise_reaction_job (context_p, job_p);
 
   return status;
 } /* ecma_process_promise_reaction_job */
@@ -293,10 +299,9 @@ ecma_process_promise_reaction_job (ecma_job_promise_reaction_t *job_p) /**< the 
  *         Returned value must be freed with ecma_free_value
  */
 static ecma_value_t
-ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_p) /**< the job to be operated */
+ecma_process_promise_async_reaction_job (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_job_promise_async_reaction_t *job_p) /**< the job to be operated */
 {
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
 #if JJS_PROMISE_CALLBACK
   if (JJS_UNLIKELY (context_p->promise_callback_filters & JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB))
   {
@@ -316,7 +321,7 @@ ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
-  ecma_object_t *object_p = ecma_get_object_from_value (job_p->executable_object);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, job_p->executable_object);
   vm_executable_object_t *executable_object_p = (vm_executable_object_t *) object_p;
 
   if (ecma_job_queue_get_type (&job_p->header) == ECMA_JOB_PROMISE_ASYNC_REACTION_REJECTED)
@@ -345,8 +350,8 @@ ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_
       else if (ECMA_AWAIT_GET_STATE (executable_object_p) == ECMA_AWAIT_FOR_CLOSE
                && VM_GET_CONTEXT_TYPE (executable_object_p->frame_ctx.stack_top_p[-1]) == VM_CONTEXT_FINALLY_THROW)
       {
-        ecma_free_value (job_p->argument);
-        job_p->argument = ecma_copy_value (executable_object_p->frame_ctx.stack_top_p[-2]);
+        ecma_free_value (context_p, job_p->argument);
+        job_p->argument = ecma_copy_value (context_p, executable_object_p->frame_ctx.stack_top_p[-2]);
       }
 
       /* Exception: Abort iterators, clear all status. */
@@ -359,7 +364,7 @@ ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_
 
   if (executable_object_p->extended_object.u.cls.u2.executable_obj_flags & ECMA_EXECUTABLE_OBJECT_DO_AWAIT_OR_YIELD)
   {
-    job_p->argument = ecma_await_continue (executable_object_p, job_p->argument);
+    job_p->argument = ecma_await_continue (context_p, executable_object_p, job_p->argument);
 
     if (ECMA_IS_VALUE_ERROR (job_p->argument))
     {
@@ -396,7 +401,7 @@ ecma_process_promise_async_reaction_job (ecma_job_promise_async_reaction_t *job_
   const uint16_t expected_bits = (ECMA_EXECUTABLE_OBJECT_COMPLETED | ECMA_ASYNC_GENERATOR_CALLED);
   if ((executable_object_p->extended_object.u.cls.u2.executable_obj_flags & expected_bits) == expected_bits)
   {
-    ecma_async_generator_finalize (executable_object_p, result);
+    ecma_async_generator_finalize (context_p, executable_object_p, result);
     result = ECMA_VALUE_UNDEFINED;
   }
 
@@ -421,7 +426,7 @@ free_job:
   }
 #endif /* JJS_PROMISE_CALLBACK */
 
-  ecma_free_promise_async_reaction_job (job_p);
+  ecma_free_promise_async_reaction_job (context_p, job_p);
   return result;
 } /* ecma_process_promise_async_reaction_job */
 
@@ -432,14 +437,15 @@ free_job:
  *         Returned value must be freed with ecma_free_value
  */
 static ecma_value_t
-ecma_process_promise_async_generator_job (ecma_job_promise_async_generator_t *job_p) /**< the job to be operated */
+ecma_process_promise_async_generator_job (ecma_context_t *context_p, /**< JJS context */
+                                          ecma_job_promise_async_generator_t *job_p) /**< the job to be operated */
 {
-  ecma_object_t *object_p = ecma_get_object_from_value (job_p->executable_object);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, job_p->executable_object);
 
-  ecma_value_t result = ecma_async_generator_run ((vm_executable_object_t *) object_p);
+  ecma_value_t result = ecma_async_generator_run (context_p, (vm_executable_object_t *) object_p);
 
-  ecma_free_value (job_p->executable_object);
-  jmem_heap_free_block (job_p, sizeof (ecma_job_promise_async_generator_t));
+  ecma_free_value (context_p, job_p->executable_object);
+  jmem_heap_free_block (context_p, job_p, sizeof (ecma_job_promise_async_generator_t));
   return result;
 } /* ecma_process_promise_async_generator_job */
 
@@ -452,24 +458,24 @@ ecma_process_promise_async_generator_job (ecma_job_promise_async_generator_t *jo
  *         Returned value must be freed with ecma_free_value
  */
 static ecma_value_t
-ecma_process_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *job_p) /**< the job to be operated */
+ecma_process_promise_resolve_thenable_job (ecma_context_t *context_p, /**< JJS context */
+                                           ecma_job_promise_resolve_thenable_t *job_p) /**< the job to be operated */
 {
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-  ecma_promise_object_t *promise_p = (ecma_promise_object_t *) ecma_get_object_from_value (job_p->promise);
+  ecma_promise_object_t *promise_p = (ecma_promise_object_t *) ecma_get_object_from_value (context_p, job_p->promise);
 
   promise_p->header.u.cls.u1.promise_flags &= (uint8_t) ~ECMA_PROMISE_ALREADY_RESOLVED;
 
-  ecma_value_t ret = ecma_promise_run_executor ((ecma_object_t *) promise_p, job_p->then, job_p->thenable);
+  ecma_value_t ret = ecma_promise_run_executor (context_p, (ecma_object_t *) promise_p, job_p->then, job_p->thenable);
 
   if (ECMA_IS_VALUE_ERROR (ret))
   {
     ret = jcontext_take_exception (context_p);
-    ecma_reject_promise_with_checks (job_p->promise, ret);
-    ecma_free_value (ret);
+    ecma_reject_promise_with_checks (context_p, job_p->promise, ret);
+    ecma_free_value (context_p, ret);
     ret = ECMA_VALUE_UNDEFINED;
   }
 
-  ecma_free_promise_resolve_thenable_job (job_p);
+  ecma_free_promise_resolve_thenable_job (context_p, job_p);
 
   return ret;
 } /* ecma_process_promise_resolve_thenable_job */
@@ -482,14 +488,15 @@ ecma_process_promise_resolve_thenable_job (ecma_job_promise_resolve_thenable_t *
  * @return the result of the job's callback function. must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_process_microtask_job (ecma_job_microtask_t *job_p) /**< the job to be operated */
+ecma_process_microtask_job (ecma_context_t *context_p, /**< JJS context */
+                            ecma_job_microtask_t *job_p) /**< the job to be operated */
 {
 
-  ecma_object_t* fn = ecma_get_object_from_value (job_p->callback);
+  ecma_object_t* fn = ecma_get_object_from_value (context_p, job_p->callback);
 
-  ecma_value_t result = ecma_op_function_call (fn, ECMA_VALUE_UNDEFINED, NULL, 0);
+  ecma_value_t result = ecma_op_function_call (context_p, fn, ECMA_VALUE_UNDEFINED, NULL, 0);
 
-  ecma_free_microtask_job (job_p);
+  ecma_free_microtask_job (context_p, job_p);
 
   return result;
 } /* ecma_process_microtask_job */
@@ -500,21 +507,22 @@ ecma_process_microtask_job (ecma_job_microtask_t *job_p) /**< the job to be oper
  * Enqueue a Promise job into the jobqueue.
  */
 static void
-ecma_enqueue_job (ecma_job_queue_item_t *job_p) /**< the job */
+ecma_enqueue_job (ecma_context_t *context_p, /**< JJS context */
+                  ecma_job_queue_item_t *job_p) /**< the job */
 {
   JJS_ASSERT (job_p->next_and_type <= ECMA_JOB_QUEURE_TYPE_MASK);
 
-  if (JJS_CONTEXT (job_queue_head_p) == NULL)
+  if (context_p->job_queue_head_p == NULL)
   {
-    JJS_CONTEXT (job_queue_head_p) = job_p;
-    JJS_CONTEXT (job_queue_tail_p) = job_p;
+    context_p->job_queue_head_p = job_p;
+    context_p->job_queue_tail_p = job_p;
   }
   else
   {
-    JJS_ASSERT ((JJS_CONTEXT (job_queue_tail_p)->next_and_type & ~ECMA_JOB_QUEURE_TYPE_MASK) == 0);
+    JJS_ASSERT ((context_p->job_queue_tail_p->next_and_type & ~ECMA_JOB_QUEURE_TYPE_MASK) == 0);
 
-    JJS_CONTEXT (job_queue_tail_p)->next_and_type |= (uintptr_t) job_p;
-    JJS_CONTEXT (job_queue_tail_p) = job_p;
+    context_p->job_queue_tail_p->next_and_type |= (uintptr_t) job_p;
+    context_p->job_queue_tail_p = job_p;
   }
 } /* ecma_enqueue_job */
 
@@ -522,72 +530,76 @@ ecma_enqueue_job (ecma_job_queue_item_t *job_p) /**< the job */
  * Enqueue a PromiseReactionJob into the job queue.
  */
 void
-ecma_enqueue_promise_reaction_job (ecma_value_t capability, /**< capability object */
+ecma_enqueue_promise_reaction_job (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_value_t capability, /**< capability object */
                                    ecma_value_t handler, /**< handler function */
                                    ecma_value_t argument) /**< argument for the reaction */
 {
   ecma_job_promise_reaction_t *job_p;
-  job_p = (ecma_job_promise_reaction_t *) jmem_heap_alloc_block (sizeof (ecma_job_promise_reaction_t));
+  job_p = (ecma_job_promise_reaction_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_job_promise_reaction_t));
   job_p->header.next_and_type = ECMA_JOB_PROMISE_REACTION;
-  job_p->capability = ecma_copy_value (capability);
-  job_p->handler = ecma_copy_value (handler);
-  job_p->argument = ecma_copy_value (argument);
+  job_p->capability = ecma_copy_value (context_p, capability);
+  job_p->handler = ecma_copy_value (context_p, handler);
+  job_p->argument = ecma_copy_value (context_p, argument);
 
-  ecma_enqueue_job (&job_p->header);
+  ecma_enqueue_job (context_p, &job_p->header);
 } /* ecma_enqueue_promise_reaction_job */
 
 /**
  * Enqueue a PromiseAsyncReactionJob into the job queue.
  */
 void
-ecma_enqueue_promise_async_reaction_job (ecma_value_t executable_object, /**< executable object */
+ecma_enqueue_promise_async_reaction_job (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_value_t executable_object, /**< executable object */
                                          ecma_value_t argument, /**< argument */
                                          bool is_rejected) /**< is_fulfilled */
 {
   ecma_job_promise_async_reaction_t *job_p;
-  job_p = (ecma_job_promise_async_reaction_t *) jmem_heap_alloc_block (sizeof (ecma_job_promise_async_reaction_t));
+  job_p = (ecma_job_promise_async_reaction_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_job_promise_async_reaction_t));
   job_p->header.next_and_type =
     (is_rejected ? ECMA_JOB_PROMISE_ASYNC_REACTION_REJECTED : ECMA_JOB_PROMISE_ASYNC_REACTION_FULFILLED);
-  job_p->executable_object = ecma_copy_value (executable_object);
-  job_p->argument = ecma_copy_value (argument);
+  job_p->executable_object = ecma_copy_value (context_p, executable_object);
+  job_p->argument = ecma_copy_value (context_p, argument);
 
-  ecma_enqueue_job (&job_p->header);
+  ecma_enqueue_job (context_p, &job_p->header);
 } /* ecma_enqueue_promise_async_reaction_job */
 
 /**
  * Enqueue a PromiseAsyncGeneratorJob into the job queue.
  */
 void
-ecma_enqueue_promise_async_generator_job (ecma_value_t executable_object) /**< executable object */
+ecma_enqueue_promise_async_generator_job (ecma_context_t *context_p, /**< JJS context */
+                                          ecma_value_t executable_object) /**< executable object */
 {
   ecma_job_promise_async_generator_t *job_p;
-  job_p = (ecma_job_promise_async_generator_t *) jmem_heap_alloc_block (sizeof (ecma_job_promise_async_generator_t));
+  job_p = (ecma_job_promise_async_generator_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_job_promise_async_generator_t));
   job_p->header.next_and_type = ECMA_JOB_PROMISE_ASYNC_GENERATOR;
-  job_p->executable_object = ecma_copy_value (executable_object);
+  job_p->executable_object = ecma_copy_value (context_p, executable_object);
 
-  ecma_enqueue_job (&job_p->header);
+  ecma_enqueue_job (context_p, &job_p->header);
 } /* ecma_enqueue_promise_async_generator_job */
 
 /**
  * Enqueue a PromiseResolveThenableJob into the job queue.
  */
 void
-ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, /**< promise to be resolved */
+ecma_enqueue_promise_resolve_thenable_job (ecma_context_t *context_p, /**< JJS context */
+                                           ecma_value_t promise, /**< promise to be resolved */
                                            ecma_value_t thenable, /**< thenable object */
                                            ecma_value_t then) /**< 'then' function */
 {
-  JJS_ASSERT (ecma_is_promise (ecma_get_object_from_value (promise)));
+  JJS_ASSERT (ecma_is_promise (ecma_get_object_from_value (context_p, promise)));
   JJS_ASSERT (ecma_is_value_object (thenable));
-  JJS_ASSERT (ecma_op_is_callable (then));
+  JJS_ASSERT (ecma_op_is_callable (context_p, then));
 
   ecma_job_promise_resolve_thenable_t *job_p;
-  job_p = (ecma_job_promise_resolve_thenable_t *) jmem_heap_alloc_block (sizeof (ecma_job_promise_resolve_thenable_t));
+  job_p = (ecma_job_promise_resolve_thenable_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_job_promise_resolve_thenable_t));
   job_p->header.next_and_type = ECMA_JOB_PROMISE_THENABLE;
-  job_p->promise = ecma_copy_value (promise);
-  job_p->thenable = ecma_copy_value (thenable);
-  job_p->then = ecma_copy_value (then);
+  job_p->promise = ecma_copy_value (context_p, promise);
+  job_p->thenable = ecma_copy_value (context_p, thenable);
+  job_p->then = ecma_copy_value (context_p, then);
 
-  ecma_enqueue_job (&job_p->header);
+  ecma_enqueue_job (context_p, &job_p->header);
 } /* ecma_enqueue_promise_resolve_thenable_job */
 
 #if JJS_ANNEX_QUEUE_MICROTASK
@@ -597,24 +609,25 @@ ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, /**< promise to
  *
  * @param callback callback function
  */
-void ecma_enqueue_microtask_job(ecma_value_t callback)
+void ecma_enqueue_microtask_job (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_value_t callback)
 {
-  JJS_ASSERT(jjs_value_is_function(&JJS_CONTEXT_STRUCT, callback));
+  JJS_ASSERT (jjs_value_is_function(context_p, callback));
 
   ecma_job_microtask_t *job_p;
-  job_p = (ecma_job_microtask_t *) jmem_heap_alloc_block (sizeof (ecma_job_microtask_t));
+  job_p = (ecma_job_microtask_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_job_microtask_t));
   job_p->header.next_and_type = ECMA_JOB_MICROTASK;
-  job_p->callback = ecma_copy_value (callback);
+  job_p->callback = ecma_copy_value (context_p, callback);
 
-  ecma_enqueue_job (&job_p->header);
+  ecma_enqueue_job (context_p, &job_p->header);
 } /* ecma_enqueue_microtask_job */
 
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 bool
-ecma_has_enqueued_jobs (void)
+ecma_has_enqueued_jobs (ecma_context_t *context_p) /**< JJS context */
 {
-  return (JJS_CONTEXT (job_queue_head_p) != NULL);
+  return (context_p->job_queue_head_p != NULL);
 } /* ecma_process_all_enqueued_jobs */
 
 /**
@@ -625,39 +638,39 @@ ecma_has_enqueued_jobs (void)
  *         undefined - otherwise.
  */
 ecma_value_t
-ecma_process_all_enqueued_jobs (void)
+ecma_process_all_enqueued_jobs (ecma_context_t *context_p) /**< JJS context */
 {
   ecma_value_t ret = ECMA_VALUE_UNDEFINED;
 
-  while (JJS_CONTEXT (job_queue_head_p) != NULL)
+  while (context_p->job_queue_head_p != NULL)
   {
-    ecma_job_queue_item_t *job_p = JJS_CONTEXT (job_queue_head_p);
-    JJS_CONTEXT (job_queue_head_p) = ecma_job_queue_get_next (job_p);
+    ecma_job_queue_item_t *job_p = context_p->job_queue_head_p;
+    context_p->job_queue_head_p = ecma_job_queue_get_next (job_p);
 
-    ecma_fast_free_value (ret);
+    ecma_fast_free_value (context_p, ret);
 
     switch (ecma_job_queue_get_type (job_p))
     {
       case ECMA_JOB_PROMISE_REACTION:
       {
-        ret = ecma_process_promise_reaction_job ((ecma_job_promise_reaction_t *) job_p);
+        ret = ecma_process_promise_reaction_job (context_p, (ecma_job_promise_reaction_t *) job_p);
         break;
       }
       case ECMA_JOB_PROMISE_ASYNC_REACTION_FULFILLED:
       case ECMA_JOB_PROMISE_ASYNC_REACTION_REJECTED:
       {
-        ret = ecma_process_promise_async_reaction_job ((ecma_job_promise_async_reaction_t *) job_p);
+        ret = ecma_process_promise_async_reaction_job (context_p, (ecma_job_promise_async_reaction_t *) job_p);
         break;
       }
       case ECMA_JOB_PROMISE_ASYNC_GENERATOR:
       {
-        ret = ecma_process_promise_async_generator_job ((ecma_job_promise_async_generator_t *) job_p);
+        ret = ecma_process_promise_async_generator_job (context_p, (ecma_job_promise_async_generator_t *) job_p);
         break;
       }
 #if JJS_ANNEX_QUEUE_MICROTASK
       case ECMA_JOB_MICROTASK:
       {
-        ret = ecma_process_microtask_job ((ecma_job_microtask_t *) job_p);
+        ret = ecma_process_microtask_job (context_p, (ecma_job_microtask_t *) job_p);
         break;
       }
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
@@ -665,7 +678,7 @@ ecma_process_all_enqueued_jobs (void)
       {
         JJS_ASSERT (ecma_job_queue_get_type (job_p) == ECMA_JOB_PROMISE_THENABLE);
 
-        ret = ecma_process_promise_resolve_thenable_job ((ecma_job_promise_resolve_thenable_t *) job_p);
+        ret = ecma_process_promise_resolve_thenable_job (context_p, (ecma_job_promise_resolve_thenable_t *) job_p);
         break;
       }
     }
@@ -676,7 +689,7 @@ ecma_process_all_enqueued_jobs (void)
     }
   }
 
-  ecma_free_value (ret);
+  ecma_free_value (context_p, ret);
   return ECMA_VALUE_UNDEFINED;
 } /* ecma_process_all_enqueued_jobs */
 
@@ -684,35 +697,35 @@ ecma_process_all_enqueued_jobs (void)
  * Release enqueued Promise jobs.
  */
 void
-ecma_free_all_enqueued_jobs (void)
+ecma_free_all_enqueued_jobs (ecma_context_t *context_p) /**< JJS context */
 {
-  while (JJS_CONTEXT (job_queue_head_p) != NULL)
+  while (context_p->job_queue_head_p != NULL)
   {
-    ecma_job_queue_item_t *job_p = JJS_CONTEXT (job_queue_head_p);
-    JJS_CONTEXT (job_queue_head_p) = ecma_job_queue_get_next (job_p);
+    ecma_job_queue_item_t *job_p = context_p->job_queue_head_p;
+    context_p->job_queue_head_p = ecma_job_queue_get_next (job_p);
 
     switch (ecma_job_queue_get_type (job_p))
     {
       case ECMA_JOB_PROMISE_REACTION:
       {
-        ecma_free_promise_reaction_job ((ecma_job_promise_reaction_t *) job_p);
+        ecma_free_promise_reaction_job (context_p, (ecma_job_promise_reaction_t *) job_p);
         break;
       }
       case ECMA_JOB_PROMISE_ASYNC_REACTION_FULFILLED:
       case ECMA_JOB_PROMISE_ASYNC_REACTION_REJECTED:
       {
-        ecma_free_promise_async_reaction_job ((ecma_job_promise_async_reaction_t *) job_p);
+        ecma_free_promise_async_reaction_job (context_p, (ecma_job_promise_async_reaction_t *) job_p);
         break;
       }
       case ECMA_JOB_PROMISE_ASYNC_GENERATOR:
       {
-        ecma_free_promise_async_generator_job ((ecma_job_promise_async_generator_t *) job_p);
+        ecma_free_promise_async_generator_job (context_p, (ecma_job_promise_async_generator_t *) job_p);
         break;
       }
 #if JJS_ANNEX_QUEUE_MICROTASK
       case ECMA_JOB_MICROTASK:
       {
-        ecma_free_microtask_job ((ecma_job_microtask_t *) job_p);
+        ecma_free_microtask_job (context_p, (ecma_job_microtask_t *) job_p);
         break;
       }
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
@@ -720,7 +733,7 @@ ecma_free_all_enqueued_jobs (void)
       {
         JJS_ASSERT (ecma_job_queue_get_type (job_p) == ECMA_JOB_PROMISE_THENABLE);
 
-        ecma_free_promise_resolve_thenable_job ((ecma_job_promise_resolve_thenable_t *) job_p);
+        ecma_free_promise_resolve_thenable_job (context_p, (ecma_job_promise_resolve_thenable_t *) job_p);
         break;
       }
     }

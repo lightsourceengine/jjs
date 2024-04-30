@@ -46,7 +46,7 @@ static ecma_value_t annex_encode_path (jjs_context_t* context_p,
                                        lit_utf8_size_t path_len,
                                        const lit_utf8_byte_t* prefix,
                                        lit_utf8_size_t prefix_len);
-static lit_utf8_size_t annex_path_read_n (ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size);
+static lit_utf8_size_t annex_path_read_n (jjs_context_t* context_p, ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size);
 
 static lit_utf8_byte_t s_annex_to_hex_char[] = {
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
@@ -55,15 +55,16 @@ static lit_utf8_byte_t s_annex_to_hex_char[] = {
 /**
  * Get the type (fs path or package) of a CommonJS request or ESM specifier.
  *
+ * @param context_p JJS context
  * @param specifier string specifier or request
  * @return specifier type or ANNEX_SPECIFIER_TYPE_NONE if invalid
  */
 annex_specifier_type_t
-annex_path_specifier_type (ecma_value_t specifier)
+annex_path_specifier_type (jjs_context_t* context_p, ecma_value_t specifier)
 {
   lit_utf8_byte_t path[FILE_URL_PREFIX_LEN] = { 0 };
 
-  if (annex_path_read_n (specifier, path, FILE_URL_PREFIX_LEN) == 0)
+  if (annex_path_read_n (context_p, specifier, path, FILE_URL_PREFIX_LEN) == 0)
   {
     return ANNEX_SPECIFIER_TYPE_NONE;
   }
@@ -107,25 +108,25 @@ annex_path_join (jjs_context_t* context_p, ecma_value_t referrer, ecma_value_t s
   }
 
   ecma_string_t* path_components [] = {
-    ecma_get_string_from_value (referrer),
+    ecma_get_string_from_value (context_p, referrer),
     ecma_get_magic_string (LIT_MAGIC_STRING_SLASH_CHAR),
-    ecma_get_string_from_value (specifier),
+    ecma_get_string_from_value (context_p, specifier),
   };
 
   lit_utf8_size_t path_component_sizes [] = {
-    ecma_string_get_size (path_components[0]),
+    ecma_string_get_size (context_p, path_components[0]),
     1,
-    ecma_string_get_size (path_components[2]),
+    ecma_string_get_size (context_p, path_components[2]),
   };
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (path_components, path_component_sizes, sizeof (path_components) / sizeof (path_components[0]));
-  ecma_value_t result = ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create_from_array (context_p, path_components, path_component_sizes, sizeof (path_components) / sizeof (path_components[0]));
+  ecma_value_t result = ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 
   if (normalize)
   {
     ecma_value_t normalized = annex_path_normalize (context_p, result);
 
-    ecma_free_value (result);
+    ecma_free_value (context_p, result);
 
     return normalized;
   }
@@ -181,27 +182,28 @@ annex_path_cwd (jjs_context_t* context_p)
 /**
  * Get the directory name of a path.
  *
+ * @param context_p JJS context
  * @param path filename or directory path
  * @return the directory name or undefined if the path is invalid
  */
 ecma_value_t
-annex_path_dirname (ecma_value_t path)
+annex_path_dirname (jjs_context_t* context_p, ecma_value_t path)
 {
   if (!ecma_is_value_string (path))
   {
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_string_t* path_p = ecma_get_string_from_value (path);
+  ecma_string_t* path_p = ecma_get_string_from_value (context_p, path);
 
-  if (ecma_string_get_length (path_p) == 0)
+  if (ecma_string_get_length (context_p, path_p) == 0)
   {
     return ECMA_VALUE_EMPTY;
   }
 
   ecma_value_t result;
 
-  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+  ECMA_STRING_TO_UTF8_STRING (context_p, path_p, path_bytes_p, path_bytes_len);
 
   lit_utf8_size_t start_index;
 
@@ -215,7 +217,7 @@ annex_path_dirname (ecma_value_t path)
 
   if (last_index == path_bytes_len)
   {
-    result = ecma_copy_value (path);
+    result = ecma_copy_value (context_p, path);
     goto done;
   }
 
@@ -242,10 +244,10 @@ annex_path_dirname (ecma_value_t path)
     last_index++;
   }
 
-  result = ecma_make_string_value (ecma_new_ecma_string_from_utf8 (&path_bytes_p[0], last_index));
+  result = ecma_make_string_value (context_p, ecma_new_ecma_string_from_utf8 (context_p, &path_bytes_p[0], last_index));
 
 done:
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_bytes_len);
 
   return result;
 } /* annex_path_dirname */
@@ -253,11 +255,12 @@ done:
 /**
  * Gets the format of a filename by looking at the file extension.
  *
+ * @param context_p JJS context
  * @param path filename to check
  * @return format string. if the format is unknown, 'none' is returned.
  */
 ecma_value_t
-annex_path_format (ecma_value_t path)
+annex_path_format (jjs_context_t* context_p, ecma_value_t path)
 {
   static const char* JS = ".js";
   static const jjs_size_t JS_LEN = 3;
@@ -274,9 +277,9 @@ annex_path_format (ecma_value_t path)
   }
 
   lit_magic_string_id_t id;
-  ecma_string_t* path_p = ecma_get_string_from_value (path);
+  ecma_string_t* path_p = ecma_get_string_from_value (context_p, path);
 
-  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+  ECMA_STRING_TO_UTF8_STRING (context_p, path_p, path_bytes_p, path_bytes_len);
 
   if (path_bytes_len > JS_LEN && memcmp (JS, (path_bytes_p + (path_bytes_len - JS_LEN)), JS_LEN) == 0)
   {
@@ -302,7 +305,7 @@ annex_path_format (ecma_value_t path)
     id = LIT_MAGIC_STRING_NONE;
   }
 
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_bytes_len);
 
   return ecma_make_magic_string_value (id);
 } /* annex_path_format */
@@ -321,7 +324,7 @@ annex_path_to_file_url (jjs_context_t* context_p, ecma_value_t path)
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_string_t* path_p = ecma_get_string_from_value (path);
+  ecma_string_t* path_p = ecma_get_string_from_value (context_p, path);
 
   if (ecma_string_is_empty (path_p))
   {
@@ -329,7 +332,7 @@ annex_path_to_file_url (jjs_context_t* context_p, ecma_value_t path)
   }
 
   // note: path_bytes_p is a CESU8 encoded, despite the macro indicating otherwise
-  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+  ECMA_STRING_TO_UTF8_STRING (context_p, path_p, path_bytes_p, path_bytes_len);
 
   const char* prefix;
   lit_utf8_size_t prefix_len;
@@ -377,7 +380,7 @@ annex_path_to_file_url (jjs_context_t* context_p, ecma_value_t path)
     result = ECMA_VALUE_EMPTY;
   }
 
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_bytes_len);
 
   return result;
 } /* annex_path_to_file_url */
@@ -387,11 +390,12 @@ annex_path_to_file_url (jjs_context_t* context_p, ecma_value_t path)
  *
  * If not a string, an invalid filename, "", "." or "..", ECMA_EMPTY_VALUE is returned.
  *
+ * @param context_p JJS context
  * @param path the string path to work on
  * @return the basename of the given path or ECMA_EMPTY_VALUE for all other cases.
  */
 ecma_value_t
-annex_path_basename (ecma_value_t path)
+annex_path_basename (jjs_context_t* context_p, ecma_value_t path)
 {
   // note: this function may not work correctly with unc paths on windows
 
@@ -401,9 +405,9 @@ annex_path_basename (ecma_value_t path)
   }
 
   ecma_value_t result;
-  ecma_string_t* path_p = ecma_get_string_from_value (path);
+  ecma_string_t* path_p = ecma_get_string_from_value (context_p, path);
 
-  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_bytes_len);
+  ECMA_STRING_TO_UTF8_STRING (context_p, path_p, path_bytes_p, path_bytes_len);
 
   // "" or "." or ".." -> empty
   if ((path_bytes_len == 0) || (path_bytes_len == 1 && path_bytes_p[0] == '.') || (path_bytes_len == 2 && path_bytes_p[0] == '.' && path_bytes_p[1] == '.'))
@@ -425,7 +429,7 @@ annex_path_basename (ecma_value_t path)
 
   if (last_slash_index == path_bytes_len)
   {
-    result = ecma_copy_value (path);
+    result = ecma_copy_value (context_p, path);
     goto done;
   }
 
@@ -435,10 +439,10 @@ annex_path_basename (ecma_value_t path)
     goto done;
   }
 
-  result = ecma_make_string_value (ecma_new_ecma_string_from_utf8 (&path_bytes_p[last_slash_index + 1], path_bytes_len - last_slash_index - 1));
+  result = ecma_make_string_value (context_p, ecma_new_ecma_string_from_utf8 (context_p, &path_bytes_p[last_slash_index + 1], path_bytes_len - last_slash_index - 1));
 
 done:
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_bytes_len);
   return result;
 } /* annex_path_basename */
 
@@ -583,7 +587,7 @@ annex_encode_path (jjs_context_t* context_p,
 
   if (!has_error)
   {
-    result = ecma_make_string_value (ecma_new_ecma_string_from_ascii (encoded_p, encoded_len));
+    result = ecma_make_string_value (context_p, ecma_new_ecma_string_from_ascii (context_p, encoded_p, encoded_len));
   }
   else
   {
@@ -597,12 +601,12 @@ annex_encode_path (jjs_context_t* context_p,
 } /* annex_encode_path */
 
 static lit_utf8_size_t
-annex_path_read_n (ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size)
+annex_path_read_n (jjs_context_t* context_p, ecma_value_t str, lit_utf8_byte_t* buffer, lit_utf8_size_t buffer_size)
 {
   if (!ecma_is_value_string (str))
   {
     return 0;
   }
 
-  return ecma_string_copy_to_buffer (ecma_get_string_from_value (str), buffer, buffer_size, JJS_ENCODING_CESU8);
+  return ecma_string_copy_to_buffer (context_p, ecma_get_string_from_value (context_p, str), buffer, buffer_size, JJS_ENCODING_CESU8);
 } /* annex_path_read_n */

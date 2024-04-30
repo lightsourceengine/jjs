@@ -83,7 +83,8 @@ JJS_STATIC_ASSERT ((int) ECMA_OBJECT_TYPE_BUILT_IN_ARRAY == ((int) ECMA_OBJECT_T
  * @return pointer to the object's descriptor
  */
 ecma_object_t *
-ecma_create_object (ecma_object_t *prototype_object_p, /**< pointer to prototybe of the object (or NULL) */
+ecma_create_object (ecma_context_t *context_p, /**< JJS context */
+                    ecma_object_t *prototype_object_p, /**< pointer to prototybe of the object (or NULL) */
                     size_t ext_object_size, /**< size of extended objects */
                     ecma_object_type_t type) /**< object type */
 {
@@ -91,20 +92,20 @@ ecma_create_object (ecma_object_t *prototype_object_p, /**< pointer to prototybe
 
   if (ext_object_size > 0)
   {
-    new_object_p = (ecma_object_t *) ecma_alloc_extended_object (ext_object_size);
+    new_object_p = (ecma_object_t *) ecma_alloc_extended_object (context_p, ext_object_size);
   }
   else
   {
-    new_object_p = ecma_alloc_object ();
+    new_object_p = ecma_alloc_object (context_p);
   }
 
   new_object_p->type_flags_refs = (ecma_object_descriptor_t) (type | ECMA_OBJECT_FLAG_EXTENSIBLE);
 
-  ecma_init_gc_info (new_object_p);
+  ecma_init_gc_info (context_p, new_object_p);
 
   new_object_p->u1.property_list_cp = JMEM_CP_NULL;
 
-  ECMA_SET_POINTER (new_object_p->u2.prototype_cp, prototype_object_p);
+  ECMA_SET_POINTER (context_p, new_object_p->u2.prototype_cp, prototype_object_p);
 
   return new_object_p;
 } /* ecma_create_object */
@@ -120,17 +121,18 @@ ecma_create_object (ecma_object_t *prototype_object_p, /**< pointer to prototybe
  * @return pointer to the descriptor of lexical environment
  */
 ecma_object_t *
-ecma_create_decl_lex_env (ecma_object_t *outer_lexical_environment_p) /**< outer lexical environment */
+ecma_create_decl_lex_env (ecma_context_t *context_p, /**< JJS context */
+                          ecma_object_t *outer_lexical_environment_p) /**< outer lexical environment */
 {
-  ecma_object_t *new_lexical_environment_p = ecma_alloc_object ();
+  ecma_object_t *new_lexical_environment_p = ecma_alloc_object (context_p);
 
   new_lexical_environment_p->type_flags_refs = ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE;
 
-  ecma_init_gc_info (new_lexical_environment_p);
+  ecma_init_gc_info (context_p, new_lexical_environment_p);
 
   new_lexical_environment_p->u1.property_list_cp = JMEM_CP_NULL;
 
-  ECMA_SET_POINTER (new_lexical_environment_p->u2.outer_reference_cp, outer_lexical_environment_p);
+  ECMA_SET_POINTER (context_p, new_lexical_environment_p->u2.outer_reference_cp, outer_lexical_environment_p);
 
   return new_lexical_environment_p;
 } /* ecma_create_decl_lex_env */
@@ -146,20 +148,21 @@ ecma_create_decl_lex_env (ecma_object_t *outer_lexical_environment_p) /**< outer
  * @return pointer to the descriptor of lexical environment
  */
 ecma_object_t *
-ecma_create_object_lex_env (ecma_object_t *outer_lexical_environment_p, /**< outer lexical environment */
+ecma_create_object_lex_env (ecma_context_t *context_p, /**< JJS context */
+                            ecma_object_t *outer_lexical_environment_p, /**< outer lexical environment */
                             ecma_object_t *binding_obj_p) /**< binding object */
 {
   JJS_ASSERT (binding_obj_p != NULL && !ecma_is_lexical_environment (binding_obj_p));
 
-  ecma_object_t *new_lexical_environment_p = ecma_alloc_object ();
+  ecma_object_t *new_lexical_environment_p = ecma_alloc_object (context_p);
 
   new_lexical_environment_p->type_flags_refs = ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND;
 
-  ecma_init_gc_info (new_lexical_environment_p);
+  ecma_init_gc_info (context_p, new_lexical_environment_p);
 
-  ECMA_SET_NON_NULL_POINTER (new_lexical_environment_p->u1.bound_object_cp, binding_obj_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, new_lexical_environment_p->u1.bound_object_cp, binding_obj_p);
 
-  ECMA_SET_POINTER (new_lexical_environment_p->u2.outer_reference_cp, outer_lexical_environment_p);
+  ECMA_SET_POINTER (context_p, new_lexical_environment_p->u2.outer_reference_cp, outer_lexical_environment_p);
 
   return new_lexical_environment_p;
 } /* ecma_create_object_lex_env */
@@ -170,7 +173,8 @@ ecma_create_object_lex_env (ecma_object_t *outer_lexical_environment_p, /**< out
  * @return pointer to the descriptor of the lexical environment
  */
 ecma_object_t *
-ecma_create_lex_env_class (ecma_object_t *outer_lexical_environment_p, /**< outer lexical environment */
+ecma_create_lex_env_class (ecma_context_t *context_p, /**< JJS context */
+                           ecma_object_t *outer_lexical_environment_p, /**< outer lexical environment */
                            size_t lexical_env_size) /**< size of the lexical environment */
 {
   ecma_object_t *new_lexical_environment_p;
@@ -179,21 +183,21 @@ ecma_create_lex_env_class (ecma_object_t *outer_lexical_environment_p, /**< oute
 
   if (lexical_env_size > 0)
   {
-    new_lexical_environment_p = (ecma_object_t *) ecma_alloc_extended_object (lexical_env_size);
+    new_lexical_environment_p = (ecma_object_t *) ecma_alloc_extended_object (context_p, lexical_env_size);
     type_flags_refs |= ECMA_OBJECT_FLAG_LEXICAL_ENV_HAS_DATA;
   }
   else
   {
-    new_lexical_environment_p = ecma_alloc_object ();
+    new_lexical_environment_p = ecma_alloc_object (context_p);
   }
 
   new_lexical_environment_p->type_flags_refs = type_flags_refs;
 
-  ecma_init_gc_info (new_lexical_environment_p);
+  ecma_init_gc_info (context_p, new_lexical_environment_p);
 
   new_lexical_environment_p->u1.property_list_cp = JMEM_CP_NULL;
 
-  ECMA_SET_POINTER (new_lexical_environment_p->u2.outer_reference_cp, outer_lexical_environment_p);
+  ECMA_SET_POINTER (context_p, new_lexical_environment_p->u2.outer_reference_cp, outer_lexical_environment_p);
 
   return new_lexical_environment_p;
 } /* ecma_create_lex_env_class */
@@ -295,7 +299,8 @@ ecma_get_lex_env_type (const ecma_object_t *object_p) /**< lexical environment *
  * @return pointer to ecma object
  */
 extern inline ecma_object_t *JJS_ATTR_PURE
-ecma_get_lex_env_binding_object (const ecma_object_t *object_p) /**< object-bound lexical environment */
+ecma_get_lex_env_binding_object (ecma_context_t *context_p, /**< JJS context */
+                                 const ecma_object_t *object_p) /**< object-bound lexical environment */
 {
   JJS_ASSERT (object_p != NULL);
   JJS_ASSERT (ecma_is_lexical_environment (object_p));
@@ -303,7 +308,7 @@ ecma_get_lex_env_binding_object (const ecma_object_t *object_p) /**< object-boun
                 || (ecma_get_lex_env_type (object_p) == ECMA_LEXICAL_ENVIRONMENT_CLASS
                     && !ECMA_LEX_ENV_CLASS_IS_MODULE (object_p)));
 
-  return ECMA_GET_NON_NULL_POINTER (ecma_object_t, object_p->u1.bound_object_cp);
+  return ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, object_p->u1.bound_object_cp);
 } /* ecma_get_lex_env_binding_object */
 
 /**
@@ -312,14 +317,15 @@ ecma_get_lex_env_binding_object (const ecma_object_t *object_p) /**< object-boun
  * @return pointer to the newly created lexical environment
  */
 ecma_object_t *
-ecma_clone_decl_lexical_environment (ecma_object_t *lex_env_p, /**< declarative lexical environment */
+ecma_clone_decl_lexical_environment (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_object_t *lex_env_p, /**< declarative lexical environment */
                                      bool copy_values) /**< copy property values as well */
 {
   JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE);
   JJS_ASSERT (lex_env_p->u2.outer_reference_cp != JMEM_CP_NULL);
 
-  ecma_object_t *outer_lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
-  ecma_object_t *new_lex_env_p = ecma_create_decl_lex_env (outer_lex_env_p);
+  ecma_object_t *outer_lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
+  ecma_object_t *new_lex_env_p = ecma_create_decl_lex_env (context_p, outer_lex_env_p);
 
   jmem_cpointer_t prop_iter_cp = lex_env_p->u1.property_list_cp;
   ecma_property_header_t *prop_iter_p;
@@ -327,7 +333,7 @@ ecma_clone_decl_lexical_environment (ecma_object_t *lex_env_p, /**< declarative 
   JJS_ASSERT (prop_iter_cp != JMEM_CP_NULL);
 
 #if JJS_PROPERTY_HASHMAP
-  prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+  prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
 
   if (prop_iter_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP)
   {
@@ -339,7 +345,7 @@ ecma_clone_decl_lexical_environment (ecma_object_t *lex_env_p, /**< declarative 
 
   do
   {
-    prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+    prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
 
     JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
@@ -352,18 +358,18 @@ ecma_clone_decl_lexical_environment (ecma_object_t *lex_env_p, /**< declarative 
         JJS_ASSERT (ECMA_PROPERTY_IS_RAW_DATA (prop_iter_p->types[i]));
 
         uint8_t prop_attributes = (uint8_t) (prop_iter_p->types[i] & ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
-        ecma_string_t *name_p = ecma_string_from_property_name (prop_iter_p->types[i], prop_pair_p->names_cp[i]);
+        ecma_string_t *name_p = ecma_string_from_property_name (context_p, prop_iter_p->types[i], prop_pair_p->names_cp[i]);
 
         ecma_property_value_t *property_value_p;
-        property_value_p = ecma_create_named_data_property (new_lex_env_p, name_p, prop_attributes, NULL);
+        property_value_p = ecma_create_named_data_property (context_p, new_lex_env_p, name_p, prop_attributes, NULL);
 
-        ecma_deref_ecma_string (name_p);
+        ecma_deref_ecma_string (context_p, name_p);
 
         JJS_ASSERT (property_value_p->value == ECMA_VALUE_UNDEFINED);
 
         if (copy_values)
         {
-          property_value_p->value = ecma_copy_value_if_not_object (prop_pair_p->values[i].value);
+          property_value_p->value = ecma_copy_value_if_not_object (context_p, prop_pair_p->values[i].value);
         }
         else
         {
@@ -386,7 +392,8 @@ ecma_clone_decl_lexical_environment (ecma_object_t *lex_env_p, /**< declarative 
  * @return pointer to the newly created property value
  */
 static ecma_property_value_t *
-ecma_create_property (ecma_object_t *object_p, /**< the object */
+ecma_create_property (ecma_context_t *context_p, /**< JJS context */
+                      ecma_object_t *object_p, /**< the object */
                       ecma_string_t *name_p, /**< property name */
                       uint8_t type_and_flags, /**< type and flags, see ecma_property_info_t */
                       ecma_property_value_t value, /**< property value */
@@ -403,7 +410,7 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
   {
     /* If the first entry is free (deleted), it is reused. */
     ecma_property_header_t *first_property_p =
-      ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, *property_list_head_p);
+      ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, *property_list_head_p);
 
 #if JJS_PROPERTY_HASHMAP
     bool has_hashmap = false;
@@ -411,7 +418,7 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
     if (first_property_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP)
     {
       property_list_head_p = &first_property_p->next_property_cp;
-      first_property_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, *property_list_head_p);
+      first_property_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, *property_list_head_p);
       has_hashmap = true;
     }
 #endif /* JJS_PROPERTY_HASHMAP */
@@ -423,7 +430,7 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
       ecma_property_pair_t *first_property_pair_p = (ecma_property_pair_t *) first_property_p;
 
       ecma_property_t name_type;
-      first_property_pair_p->names_cp[0] = ecma_string_to_property_name (name_p, &name_type);
+      first_property_pair_p->names_cp[0] = ecma_string_to_property_name (context_p, name_p, &name_type);
       first_property_p->types[0] = (ecma_property_t) (type_and_flags | name_type);
 
       ecma_property_t *property_p = first_property_p->types + 0;
@@ -445,7 +452,7 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
 
       if (has_hashmap)
       {
-        ecma_property_hashmap_insert (object_p, name_p, first_property_pair_p, 0);
+        ecma_property_hashmap_insert (context_p, object_p, name_p, first_property_pair_p, 0);
       }
 #endif /* JJS_PROPERTY_HASHMAP */
 
@@ -454,7 +461,7 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
   }
 
   /* Otherwise we create a new property pair and use its second value. */
-  ecma_property_pair_t *first_property_pair_p = ecma_alloc_property_pair ();
+  ecma_property_pair_t *first_property_pair_p = ecma_alloc_property_pair (context_p);
 
   /* Need to query property_list_head_p again and recheck the existennce
    * of property hasmap, because ecma_alloc_property_pair may delete them. */
@@ -465,7 +472,7 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
   if (*property_list_head_p != ECMA_NULL_POINTER)
   {
     ecma_property_header_t *first_property_p =
-      ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, *property_list_head_p);
+      ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, *property_list_head_p);
 
     if (first_property_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP)
     {
@@ -481,11 +488,11 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
   first_property_pair_p->names_cp[0] = LIT_INTERNAL_MAGIC_STRING_DELETED;
 
   ecma_property_t name_type;
-  first_property_pair_p->names_cp[1] = ecma_string_to_property_name (name_p, &name_type);
+  first_property_pair_p->names_cp[1] = ecma_string_to_property_name (context_p, name_p, &name_type);
 
   first_property_pair_p->header.types[1] = (ecma_property_t) (type_and_flags | name_type);
 
-  ECMA_SET_NON_NULL_POINTER (*property_list_head_p, &first_property_pair_p->header);
+  ECMA_SET_NON_NULL_POINTER (context_p, *property_list_head_p, &first_property_pair_p->header);
 
   ecma_property_t *property_p = first_property_pair_p->header.types + 1;
 
@@ -503,7 +510,7 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
 
   if (has_hashmap)
   {
-    ecma_property_hashmap_insert (object_p, name_p, first_property_pair_p, 1);
+    ecma_property_hashmap_insert (context_p, object_p, name_p, first_property_pair_p, 1);
   }
 #endif /* JJS_PROPERTY_HASHMAP */
 
@@ -517,7 +524,8 @@ ecma_create_property (ecma_object_t *object_p, /**< the object */
  * @return pointer to the newly created property value
  */
 ecma_property_value_t *
-ecma_create_named_data_property (ecma_object_t *object_p, /**< object */
+ecma_create_named_data_property (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_object_t *object_p, /**< object */
                                  ecma_string_t *name_p, /**< property name */
                                  uint8_t prop_attributes, /**< property attributes (See: ecma_property_flags_t) */
                                  ecma_property_t **out_prop_p) /**< [out] the property is also returned
@@ -525,7 +533,7 @@ ecma_create_named_data_property (ecma_object_t *object_p, /**< object */
 {
   JJS_ASSERT (object_p != NULL && name_p != NULL);
   JJS_ASSERT (ecma_is_lexical_environment (object_p) || !ecma_op_object_is_fast_array (object_p));
-  JJS_ASSERT (ecma_find_named_property (object_p, name_p) == NULL);
+  JJS_ASSERT (ecma_find_named_property (context_p, object_p, name_p) == NULL);
   JJS_ASSERT ((prop_attributes & ~ECMA_PROPERTY_BUILT_IN_CONFIGURABLE_ENUMERABLE_WRITABLE) == 0);
 
   uint8_t type_and_flags = ECMA_PROPERTY_FLAG_DATA | prop_attributes;
@@ -533,7 +541,7 @@ ecma_create_named_data_property (ecma_object_t *object_p, /**< object */
   ecma_property_value_t value;
   value.value = ECMA_VALUE_UNDEFINED;
 
-  return ecma_create_property (object_p, name_p, type_and_flags, value, out_prop_p);
+  return ecma_create_property (context_p, object_p, name_p, type_and_flags, value, out_prop_p);
 } /* ecma_create_named_data_property */
 
 /**
@@ -542,7 +550,8 @@ ecma_create_named_data_property (ecma_object_t *object_p, /**< object */
  * @return pointer to the newly created property value
  */
 ecma_property_value_t *
-ecma_create_named_accessor_property (ecma_object_t *object_p, /**< object */
+ecma_create_named_accessor_property (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_object_t *object_p, /**< object */
                                      ecma_string_t *name_p, /**< property name */
                                      ecma_object_t *get_p, /**< getter */
                                      ecma_object_t *set_p, /**< setter */
@@ -552,7 +561,7 @@ ecma_create_named_accessor_property (ecma_object_t *object_p, /**< object */
 {
   JJS_ASSERT (object_p != NULL && name_p != NULL);
   JJS_ASSERT (ecma_is_lexical_environment (object_p) || !ecma_op_object_is_fast_array (object_p));
-  JJS_ASSERT (ecma_find_named_property (object_p, name_p) == NULL);
+  JJS_ASSERT (ecma_find_named_property (context_p, object_p, name_p) == NULL);
   JJS_ASSERT ((prop_attributes & ~ECMA_PROPERTY_BUILT_IN_CONFIGURABLE_ENUMERABLE) == 0);
 
   uint8_t type_and_flags = prop_attributes;
@@ -560,16 +569,16 @@ ecma_create_named_accessor_property (ecma_object_t *object_p, /**< object */
   ecma_property_value_t value;
 #if JJS_CPOINTER_32_BIT
   ecma_getter_setter_pointers_t *getter_setter_pair_p;
-  getter_setter_pair_p = jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_getter_setter_pointers_t));
-  ECMA_SET_POINTER (getter_setter_pair_p->getter_cp, get_p);
-  ECMA_SET_POINTER (getter_setter_pair_p->setter_cp, set_p);
-  ECMA_SET_NON_NULL_POINTER (value.getter_setter_pair_cp, getter_setter_pair_p);
+  getter_setter_pair_p = jmem_pools_alloc (context_p, sizeof (ecma_getter_setter_pointers_t));
+  ECMA_SET_POINTER (context_p, getter_setter_pair_p->getter_cp, get_p);
+  ECMA_SET_POINTER (context_p, getter_setter_pair_p->setter_cp, set_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, value.getter_setter_pair_cp, getter_setter_pair_p);
 #else /* !JJS_CPOINTER_32_BIT */
   ECMA_SET_POINTER (value.getter_setter_pair.getter_cp, get_p);
   ECMA_SET_POINTER (value.getter_setter_pair.setter_cp, set_p);
 #endif /* JJS_CPOINTER_32_BIT */
 
-  return ecma_create_property (object_p, name_p, type_and_flags, value, out_prop_p);
+  return ecma_create_property (context_p, object_p, name_p, type_and_flags, value, out_prop_p);
 } /* ecma_create_named_accessor_property */
 
 #if JJS_MODULE_SYSTEM
@@ -577,12 +586,13 @@ ecma_create_named_accessor_property (ecma_object_t *object_p, /**< object */
  * Create property reference
  */
 void
-ecma_create_named_reference_property (ecma_object_t *object_p, /**< object */
+ecma_create_named_reference_property (ecma_context_t *context_p, /**< JJS context */
+                                      ecma_object_t *object_p, /**< object */
                                       ecma_string_t *name_p, /**< property name */
                                       ecma_value_t reference) /**< property reference */
 {
   JJS_ASSERT (object_p != NULL && name_p != NULL);
-  JJS_ASSERT (ecma_find_named_property (object_p, name_p) == NULL);
+  JJS_ASSERT (ecma_find_named_property (context_p, object_p, name_p) == NULL);
   JJS_ASSERT ((ecma_is_lexical_environment (object_p)
                  && ecma_get_lex_env_type (object_p) == ECMA_LEXICAL_ENVIRONMENT_CLASS
                  && ECMA_LEX_ENV_CLASS_IS_MODULE (object_p))
@@ -593,7 +603,7 @@ ecma_create_named_reference_property (ecma_object_t *object_p, /**< object */
 
   value.value = reference;
 
-  ecma_create_property (object_p, name_p, type_and_flags, value, NULL);
+  ecma_create_property (context_p, object_p, name_p, type_and_flags, value, NULL);
 } /* ecma_create_named_reference_property */
 
 #endif /* JJS_MODULE_SYSTEM */
@@ -605,7 +615,8 @@ ecma_create_named_reference_property (ecma_object_t *object_p, /**< object */
  *         NULL - otherwise.
  */
 ecma_property_t *
-ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in */
+ecma_find_named_property (ecma_context_t *context_p, /**< JJS context */
+                          ecma_object_t *obj_p, /**< object to find property in */
                           ecma_string_t *name_p) /**< property's name */
 {
   JJS_ASSERT (obj_p != NULL);
@@ -613,7 +624,7 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
   JJS_ASSERT (ecma_is_lexical_environment (obj_p) || !ecma_op_object_is_fast_array (obj_p));
 
 #if JJS_LCACHE
-  ecma_property_t *property_p = ecma_lcache_lookup (obj_p, name_p);
+  ecma_property_t *property_p = ecma_lcache_lookup (context_p, obj_p, name_p);
   if (property_p != NULL)
   {
     return property_p;
@@ -627,15 +638,15 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
 #if JJS_PROPERTY_HASHMAP
   if (prop_iter_cp != JMEM_CP_NULL)
   {
-    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
     if (prop_iter_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP)
     {
       jmem_cpointer_t property_real_name_cp;
-      property_p = ecma_property_hashmap_find ((ecma_property_hashmap_t *) prop_iter_p, name_p, &property_real_name_cp);
+      property_p = ecma_property_hashmap_find (context_p, (ecma_property_hashmap_t *) prop_iter_p, name_p, &property_real_name_cp);
 #if JJS_LCACHE
       if (property_p != NULL && !ecma_is_property_lcached (property_p))
       {
-        ecma_lcache_insert (obj_p, property_real_name_cp, property_p);
+        ecma_lcache_insert (context_p, obj_p, property_real_name_cp, property_p);
       }
 #endif /* JJS_LCACHE */
       return property_p;
@@ -657,7 +668,7 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
 
     while (prop_iter_cp != JMEM_CP_NULL)
     {
-      ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+      ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
 
       JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
@@ -691,7 +702,7 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
   {
     while (prop_iter_cp != JMEM_CP_NULL)
     {
-      ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+      ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
 
       JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
@@ -700,7 +711,7 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
       if (ECMA_PROPERTY_GET_NAME_TYPE (prop_iter_p->types[0]) == ECMA_DIRECT_STRING_PTR)
       {
         property_name_cp = prop_pair_p->names_cp[0];
-        ecma_string_t *prop_name_p = ECMA_GET_NON_NULL_POINTER (ecma_string_t, property_name_cp);
+        ecma_string_t *prop_name_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_string_t, property_name_cp);
 
         if (ecma_compare_ecma_non_direct_strings (name_p, prop_name_p))
         {
@@ -712,7 +723,7 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
       if (ECMA_PROPERTY_GET_NAME_TYPE (prop_iter_p->types[1]) == ECMA_DIRECT_STRING_PTR)
       {
         property_name_cp = prop_pair_p->names_cp[1];
-        ecma_string_t *prop_name_p = ECMA_GET_NON_NULL_POINTER (ecma_string_t, property_name_cp);
+        ecma_string_t *prop_name_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_string_t, property_name_cp);
 
         if (ecma_compare_ecma_non_direct_strings (name_p, prop_name_p))
         {
@@ -731,14 +742,14 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
 #if JJS_PROPERTY_HASHMAP
   if (steps >= (ECMA_PROPERTY_HASMAP_MINIMUM_SIZE / 2))
   {
-    ecma_property_hashmap_create (obj_p);
+    ecma_property_hashmap_create (context_p, obj_p);
   }
 #endif /* JJS_PROPERTY_HASHMAP */
 
 #if JJS_LCACHE
   if (property_p != NULL && !ecma_is_property_lcached (property_p))
   {
-    ecma_lcache_insert (obj_p, property_name_cp, property_p);
+    ecma_lcache_insert (context_p, obj_p, property_name_cp, property_p);
   }
 #endif /* JJS_LCACHE */
 
@@ -755,14 +766,15 @@ ecma_find_named_property (ecma_object_t *obj_p, /**< object to find property in 
  *         NULL - otherwise.
  */
 ecma_property_value_t *
-ecma_get_named_data_property (ecma_object_t *obj_p, /**< object to find property in */
+ecma_get_named_data_property (ecma_context_t *context_p, /**< JJS context */
+                              ecma_object_t *obj_p, /**< object to find property in */
                               ecma_string_t *name_p) /**< property's name */
 {
   JJS_ASSERT (obj_p != NULL);
   JJS_ASSERT (name_p != NULL);
   JJS_ASSERT (ecma_is_lexical_environment (obj_p) || !ecma_op_object_is_fast_array (obj_p));
 
-  ecma_property_t *property_p = ecma_find_named_property (obj_p, name_p);
+  ecma_property_t *property_p = ecma_find_named_property (context_p, obj_p, name_p);
 
   JJS_ASSERT (property_p != NULL && ECMA_PROPERTY_IS_RAW_DATA (*property_p));
 
@@ -775,7 +787,8 @@ ecma_get_named_data_property (ecma_object_t *obj_p, /**< object to find property
  * Note: specified property must be owned by specified object.
  */
 void
-ecma_delete_property (ecma_object_t *object_p, /**< object */
+ecma_delete_property (ecma_context_t *context_p, /**< JJS context */
+                      ecma_object_t *object_p, /**< object */
                       ecma_property_value_t *prop_value_p) /**< property value reference */
 {
   jmem_cpointer_t cur_prop_cp = object_p->u1.property_list_cp;
@@ -787,7 +800,7 @@ ecma_delete_property (ecma_object_t *object_p, /**< object */
 
   if (cur_prop_cp != JMEM_CP_NULL)
   {
-    ecma_property_header_t *cur_prop_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, cur_prop_cp);
+    ecma_property_header_t *cur_prop_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, cur_prop_cp);
 
     if (cur_prop_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP)
     {
@@ -800,7 +813,7 @@ ecma_delete_property (ecma_object_t *object_p, /**< object */
 
   while (cur_prop_cp != JMEM_CP_NULL)
   {
-    ecma_property_header_t *cur_prop_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, cur_prop_cp);
+    ecma_property_header_t *cur_prop_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, cur_prop_cp);
 
     JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (cur_prop_p));
 
@@ -815,11 +828,11 @@ ecma_delete_property (ecma_object_t *object_p, /**< object */
 #if JJS_PROPERTY_HASHMAP
         if (hashmap_status == ECMA_PROPERTY_HASHMAP_DELETE_HAS_HASHMAP)
         {
-          hashmap_status = ecma_property_hashmap_delete (object_p, prop_pair_p->names_cp[i], cur_prop_p->types + i);
+          hashmap_status = ecma_property_hashmap_delete (context_p, object_p, prop_pair_p->names_cp[i], cur_prop_p->types + i);
         }
 #endif /* JJS_PROPERTY_HASHMAP */
 
-        ecma_gc_free_property (object_p, prop_pair_p, i);
+        ecma_gc_free_property (context_p, object_p, prop_pair_p, i);
         cur_prop_p->types[i] = ECMA_PROPERTY_TYPE_DELETED;
         prop_pair_p->names_cp[i] = LIT_INTERNAL_MAGIC_STRING_DELETED;
 
@@ -831,8 +844,8 @@ ecma_delete_property (ecma_object_t *object_p, /**< object */
           /* The other property is still valid. */
           if (hashmap_status == ECMA_PROPERTY_HASHMAP_DELETE_RECREATE_HASHMAP)
           {
-            ecma_property_hashmap_free (object_p);
-            ecma_property_hashmap_create (object_p);
+            ecma_property_hashmap_free (context_p, object_p);
+            ecma_property_hashmap_create (context_p, object_p);
           }
 #endif /* JJS_PROPERTY_HASHMAP */
           return;
@@ -849,13 +862,13 @@ ecma_delete_property (ecma_object_t *object_p, /**< object */
           prev_prop_p->next_property_cp = cur_prop_p->next_property_cp;
         }
 
-        ecma_dealloc_property_pair ((ecma_property_pair_t *) cur_prop_p);
+        ecma_dealloc_property_pair (context_p, (ecma_property_pair_t *) cur_prop_p);
 
 #if JJS_PROPERTY_HASHMAP
         if (hashmap_status == ECMA_PROPERTY_HASHMAP_DELETE_RECREATE_HASHMAP)
         {
-          ecma_property_hashmap_free (object_p);
-          ecma_property_hashmap_create (object_p);
+          ecma_property_hashmap_free (context_p, object_p);
+          ecma_property_hashmap_create (context_p, object_p);
         }
 #endif /* JJS_PROPERTY_HASHMAP */
         return;
@@ -871,7 +884,8 @@ ecma_delete_property (ecma_object_t *object_p, /**< object */
  * Check whether the object contains a property
  */
 static void
-ecma_assert_object_contains_the_property (const ecma_object_t *object_p, /**< ecma-object */
+ecma_assert_object_contains_the_property (ecma_context_t *context_p, /**< JJS context */
+                                          const ecma_object_t *object_p, /**< ecma-object */
                                           const ecma_property_value_t *prop_value_p, /**< property value */
                                           bool is_data) /**< property should be data property */
 {
@@ -879,7 +893,7 @@ ecma_assert_object_contains_the_property (const ecma_object_t *object_p, /**< ec
   jmem_cpointer_t prop_iter_cp = object_p->u1.property_list_cp;
   JJS_ASSERT (prop_iter_cp != JMEM_CP_NULL);
 
-  ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+  ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
 
   if (prop_iter_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP)
   {
@@ -888,7 +902,7 @@ ecma_assert_object_contains_the_property (const ecma_object_t *object_p, /**< ec
 
   while (prop_iter_cp != JMEM_CP_NULL)
   {
-    prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+    prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
 
     JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
@@ -919,13 +933,14 @@ ecma_assert_object_contains_the_property (const ecma_object_t *object_p, /**< ec
  *      value previously stored in the property is freed
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_named_data_property_assign_value (ecma_object_t *obj_p, /**< object */
+ecma_named_data_property_assign_value (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_object_t *obj_p, /**< object */
                                        ecma_property_value_t *prop_value_p, /**< property value reference */
                                        ecma_value_t value) /**< value to assign */
 {
-  ecma_assert_object_contains_the_property (obj_p, prop_value_p, true);
+  ecma_assert_object_contains_the_property (context_p, obj_p, prop_value_p, true);
 
-  ecma_value_assign_value (&prop_value_p->value, value);
+  ecma_value_assign_value (context_p, &prop_value_p->value, value);
 } /* ecma_named_data_property_assign_value */
 
 /**
@@ -934,11 +949,13 @@ ecma_named_data_property_assign_value (ecma_object_t *obj_p, /**< object */
  * @return pointer to object's getter-setter pair
  */
 ecma_getter_setter_pointers_t *
-ecma_get_named_accessor_property (const ecma_property_value_t *prop_value_p) /**< property value reference */
+ecma_get_named_accessor_property (ecma_context_t *context_p, /**< JJS context */
+                                  const ecma_property_value_t *prop_value_p) /**< property value reference */
 {
 #if JJS_CPOINTER_32_BIT
-  return ECMA_GET_NON_NULL_POINTER (ecma_getter_setter_pointers_t, prop_value_p->getter_setter_pair_cp);
+  return ECMA_GET_NON_NULL_POINTER (context_p, ecma_getter_setter_pointers_t, prop_value_p->getter_setter_pair_cp);
 #else /* !JJS_CPOINTER_32_BIT */
+  JJS_UNUSED (context_p);
   return (ecma_getter_setter_pointers_t *) &prop_value_p->getter_setter_pair;
 #endif /* JJS_CPOINTER_32_BIT */
 } /* ecma_get_named_accessor_property */
@@ -947,18 +964,19 @@ ecma_get_named_accessor_property (const ecma_property_value_t *prop_value_p) /**
  * Set getter of named accessor property
  */
 void
-ecma_set_named_accessor_property_getter (ecma_object_t *object_p, /**< the property's container */
+ecma_set_named_accessor_property_getter (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_object_t *object_p, /**< the property's container */
                                          ecma_property_value_t *prop_value_p, /**< property value reference */
                                          ecma_object_t *getter_p) /**< getter object */
 {
-  ecma_assert_object_contains_the_property (object_p, prop_value_p, false);
+  ecma_assert_object_contains_the_property (context_p, object_p, prop_value_p, false);
 
 #if JJS_CPOINTER_32_BIT
   ecma_getter_setter_pointers_t *getter_setter_pair_p;
-  getter_setter_pair_p = ECMA_GET_NON_NULL_POINTER (ecma_getter_setter_pointers_t, prop_value_p->getter_setter_pair_cp);
-  ECMA_SET_POINTER (getter_setter_pair_p->getter_cp, getter_p);
+  getter_setter_pair_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_getter_setter_pointers_t, prop_value_p->getter_setter_pair_cp);
+  ECMA_SET_POINTER (context_p, getter_setter_pair_p->getter_cp, getter_p);
 #else /* !JJS_CPOINTER_32_BIT */
-  ECMA_SET_POINTER (prop_value_p->getter_setter_pair.getter_cp, getter_p);
+  ECMA_SET_POINTER (context_p, prop_value_p->getter_setter_pair.getter_cp, getter_p);
 #endif /* JJS_CPOINTER_32_BIT */
 } /* ecma_set_named_accessor_property_getter */
 
@@ -966,18 +984,19 @@ ecma_set_named_accessor_property_getter (ecma_object_t *object_p, /**< the prope
  * Set setter of named accessor property
  */
 void
-ecma_set_named_accessor_property_setter (ecma_object_t *object_p, /**< the property's container */
+ecma_set_named_accessor_property_setter (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_object_t *object_p, /**< the property's container */
                                          ecma_property_value_t *prop_value_p, /**< property value reference */
                                          ecma_object_t *setter_p) /**< setter object */
 {
-  ecma_assert_object_contains_the_property (object_p, prop_value_p, false);
+  ecma_assert_object_contains_the_property (context_p, object_p, prop_value_p, false);
 
 #if JJS_CPOINTER_32_BIT
   ecma_getter_setter_pointers_t *getter_setter_pair_p;
-  getter_setter_pair_p = ECMA_GET_NON_NULL_POINTER (ecma_getter_setter_pointers_t, prop_value_p->getter_setter_pair_cp);
-  ECMA_SET_POINTER (getter_setter_pair_p->setter_cp, setter_p);
+  getter_setter_pair_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_getter_setter_pointers_t, prop_value_p->getter_setter_pair_cp);
+  ECMA_SET_POINTER (context_p, getter_setter_pair_p->setter_cp, setter_p);
 #else /* !JJS_CPOINTER_32_BIT */
-  ECMA_SET_POINTER (prop_value_p->getter_setter_pair.setter_cp, setter_p);
+  ECMA_SET_POINTER (context_p, prop_value_p->getter_setter_pair.setter_cp, setter_p);
 #endif /* JJS_CPOINTER_32_BIT */
 } /* ecma_set_named_accessor_property_setter */
 
@@ -989,7 +1008,8 @@ ecma_set_named_accessor_property_setter (ecma_object_t *object_p, /**< the prope
  * @return property reference
  */
 ecma_value_t
-ecma_property_to_reference (ecma_property_t *property_p) /**< data or reference property */
+ecma_property_to_reference (ecma_context_t *context_p, /**< JJS context */
+                            ecma_property_t *property_p) /**< data or reference property */
 {
   ecma_property_value_t *referenced_value_p = ECMA_PROPERTY_VALUE_PTR (property_p);
 
@@ -1015,7 +1035,7 @@ ecma_property_to_reference (ecma_property_t *property_p) /**< data or reference 
   JJS_ASSERT ((((uintptr_t) referenced_value_p) & (((uintptr_t) 1 << JMEM_ALIGNMENT_LOG) - 1)) == 0);
 
   ecma_value_t result;
-  ECMA_SET_NON_NULL_POINTER_TAG (result, referenced_value_p, offset);
+  ECMA_SET_NON_NULL_POINTER_TAG (context_p, result, referenced_value_p, offset);
   return result;
 } /* ecma_property_to_reference */
 
@@ -1025,10 +1045,11 @@ ecma_property_to_reference (ecma_property_t *property_p) /**< data or reference 
  * @return pointer to the value
  */
 extern inline ecma_property_value_t *JJS_ATTR_ALWAYS_INLINE
-ecma_get_property_value_from_named_reference (ecma_property_value_t *reference_p) /**< data property reference */
+ecma_get_property_value_from_named_reference (ecma_context_t *context_p, /**< JJS context */
+                                              ecma_property_value_t *reference_p) /**< data property reference */
 {
   ecma_value_t value = reference_p->value;
-  reference_p = ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_property_value_t, value);
+  reference_p = ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (context_p, ecma_property_value_t, value);
 
 #if JJS_CPOINTER_32_BIT
   if (ECMA_GET_FIRST_BIT_FROM_POINTER_TAG (value))
@@ -1206,11 +1227,12 @@ ecma_make_empty_property_descriptor (void)
  * and make it empty property descriptor
  */
 void
-ecma_free_property_descriptor (ecma_property_descriptor_t *prop_desc_p) /**< property descriptor */
+ecma_free_property_descriptor (ecma_context_t *context_p, /**< JJS context */
+                               ecma_property_descriptor_t *prop_desc_p) /**< property descriptor */
 {
   if (prop_desc_p->flags & JJS_PROP_IS_VALUE_DEFINED)
   {
-    ecma_free_value (prop_desc_p->value);
+    ecma_free_value (context_p, prop_desc_p->value);
   }
 
   if ((prop_desc_p->flags & JJS_PROP_IS_GET_DEFINED) && prop_desc_p->get_p != NULL)
@@ -1246,7 +1268,8 @@ ecma_ref_extended_primitive (ecma_extended_primitive_t *primitve_p) /**< extende
  * Decrease ref count of an error reference.
  */
 void
-ecma_deref_exception (ecma_extended_primitive_t *error_ref_p) /**< error reference */
+ecma_deref_exception (ecma_context_t *context_p, /**< JJS context */
+                      ecma_extended_primitive_t *error_ref_p) /**< error reference */
 {
   JJS_ASSERT (error_ref_p->refs_and_type >= ECMA_EXTENDED_PRIMITIVE_REF_ONE);
 
@@ -1254,8 +1277,8 @@ ecma_deref_exception (ecma_extended_primitive_t *error_ref_p) /**< error referen
 
   if (error_ref_p->refs_and_type < ECMA_EXTENDED_PRIMITIVE_REF_ONE)
   {
-    ecma_free_value (error_ref_p->u.value);
-    jmem_pools_free (&JJS_CONTEXT_STRUCT, error_ref_p, sizeof (ecma_extended_primitive_t));
+    ecma_free_value (context_p, error_ref_p->u.value);
+    jmem_pools_free (context_p, error_ref_p, sizeof (ecma_extended_primitive_t));
   }
 } /* ecma_deref_exception */
 
@@ -1265,7 +1288,8 @@ ecma_deref_exception (ecma_extended_primitive_t *error_ref_p) /**< error referen
  * Decrease ref count of a bigint value.
  */
 void
-ecma_deref_bigint (ecma_extended_primitive_t *bigint_p) /**< bigint value */
+ecma_deref_bigint (ecma_context_t *context_p, /**< JJS context */
+                   ecma_extended_primitive_t *bigint_p) /**< bigint value */
 {
   JJS_ASSERT (bigint_p->refs_and_type >= ECMA_EXTENDED_PRIMITIVE_REF_ONE);
 
@@ -1281,7 +1305,7 @@ ecma_deref_bigint (ecma_extended_primitive_t *bigint_p) /**< bigint value */
   JJS_ASSERT (size > 0);
 
   size_t mem_size = ECMA_BIGINT_GET_BYTE_SIZE (size) + sizeof (ecma_extended_primitive_t);
-  jmem_heap_free_block (bigint_p, mem_size);
+  jmem_heap_free_block (context_p, bigint_p, mem_size);
 } /* ecma_deref_bigint */
 
 #endif /* JJS_BUILTIN_BIGINT */
@@ -1295,15 +1319,16 @@ ecma_deref_bigint (ecma_extended_primitive_t *bigint_p) /**< bigint value */
  * @return error reference value
  */
 ecma_value_t
-ecma_create_exception (ecma_value_t value, /**< referenced value */
+ecma_create_exception (ecma_context_t *context_p, /**< JJS context */
+                       ecma_value_t value, /**< referenced value */
                        uint32_t options) /**< ECMA_ERROR_API_* options */
 {
   ecma_extended_primitive_t *error_ref_p;
-  error_ref_p = (ecma_extended_primitive_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_extended_primitive_t));
+  error_ref_p = (ecma_extended_primitive_t *) jmem_pools_alloc (context_p, sizeof (ecma_extended_primitive_t));
 
   error_ref_p->refs_and_type = ECMA_EXTENDED_PRIMITIVE_REF_ONE | options;
   error_ref_p->u.value = value;
-  return ecma_make_extended_primitive_value (error_ref_p, ECMA_TYPE_ERROR);
+  return ecma_make_extended_primitive_value (context_p, error_ref_p, ECMA_TYPE_ERROR);
 } /* ecma_create_exception */
 
 /**
@@ -1312,9 +1337,8 @@ ecma_create_exception (ecma_value_t value, /**< referenced value */
  * @return error reference value
  */
 ecma_value_t
-ecma_create_exception_from_context (void)
+ecma_create_exception_from_context (ecma_context_t *context_p) /**< JJS context */
 {
-  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
   uint32_t options = 0;
   uint32_t status_flags = context_p->status_flags;
 
@@ -1330,7 +1354,7 @@ ecma_create_exception_from_context (void)
   }
 #endif /* JJS_VM_THROW */
 
-  return ecma_create_exception (jcontext_take_exception (context_p), options);
+  return ecma_create_exception (context_p, jcontext_take_exception (context_p), options);
 } /* ecma_create_exception_from_context */
 
 /**
@@ -1342,9 +1366,10 @@ ecma_create_exception_from_context (void)
  * @return exception value
  */
 extern inline ecma_value_t JJS_ATTR_ALWAYS_INLINE
-ecma_create_exception_from_object (ecma_object_t *object_p) /**< referenced object */
+ecma_create_exception_from_object (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_object_t *object_p) /**< referenced object */
 {
-  return ecma_create_exception (ecma_make_object_value (object_p), 0);
+  return ecma_create_exception (context_p, ecma_make_object_value (context_p, object_p), 0);
 } /* ecma_create_exception_from_object */
 
 /**
@@ -1353,12 +1378,11 @@ ecma_create_exception_from_object (ecma_object_t *object_p) /**< referenced obje
  * Note: the argument exceptions reference count is decreased
  */
 void
-ecma_throw_exception (ecma_value_t value) /**< error reference */
+ecma_throw_exception (ecma_context_t *context_p, /**< JJS context */
+                      ecma_value_t value) /**< error reference */
 {
-  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   JJS_ASSERT (!jcontext_has_pending_exception (context_p) && !jcontext_has_pending_abort (context_p));
-  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (value);
+  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (context_p, value);
 
   JJS_ASSERT (error_ref_p->refs_and_type >= ECMA_EXTENDED_PRIMITIVE_REF_ONE);
 
@@ -1388,7 +1412,7 @@ ecma_throw_exception (ecma_value_t value) /**< error reference */
   if (error_ref_p->refs_and_type >= 2 * ECMA_EXTENDED_PRIMITIVE_REF_ONE)
   {
     error_ref_p->refs_and_type -= ECMA_EXTENDED_PRIMITIVE_REF_ONE;
-    referenced_value = ecma_copy_value (referenced_value);
+    referenced_value = ecma_copy_value (context_p, referenced_value);
   }
   else
   {
@@ -1402,9 +1426,10 @@ ecma_throw_exception (ecma_value_t value) /**< error reference */
  * Decrease the reference counter of a script value.
  */
 void
-ecma_script_deref (ecma_value_t script_value) /**< script value */
+ecma_script_deref (ecma_context_t *context_p, /**< JJS context */
+                   ecma_value_t script_value) /**< script value */
 {
-  cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+  cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
   script_p->refs_and_type -= CBC_SCRIPT_REF_ONE;
 
   if (script_p->refs_and_type >= CBC_SCRIPT_REF_ONE)
@@ -1424,12 +1449,12 @@ ecma_script_deref (ecma_value_t script_value) /**< script value */
       ecma_value_t user_value = CBC_SCRIPT_GET_USER_VALUE (script_p);
 
       JJS_ASSERT (!ecma_is_value_object (user_value));
-      ecma_free_value (user_value);
+      ecma_free_value (context_p, user_value);
     }
   }
 
 #if JJS_SOURCE_NAME
-  ecma_deref_ecma_string (ecma_get_string_from_value (script_p->source_name));
+  ecma_deref_ecma_string (context_p, ecma_get_string_from_value (context_p, script_p->source_name));
 #endif /* JJS_SOURCE_NAME */
 
 #if JJS_MODULE_SYSTEM
@@ -1443,16 +1468,16 @@ ecma_script_deref (ecma_value_t script_value) /**< script value */
 #endif /* JJS_MODULE_SYSTEM */
 
 #if JJS_FUNCTION_TO_STRING
-  ecma_deref_ecma_string (ecma_get_string_from_value (script_p->source_code));
+  ecma_deref_ecma_string (context_p, ecma_get_string_from_value (context_p, script_p->source_code));
 
   if (type & CBC_SCRIPT_HAS_FUNCTION_ARGUMENTS)
   {
-    ecma_deref_ecma_string (ecma_get_string_from_value (CBC_SCRIPT_GET_FUNCTION_ARGUMENTS (script_p, type)));
+    ecma_deref_ecma_string (context_p, ecma_get_string_from_value (context_p, CBC_SCRIPT_GET_FUNCTION_ARGUMENTS (script_p, type)));
     script_size += sizeof (ecma_value_t);
   }
 #endif /* JJS_FUNCTION_TO_STRING */
 
-  jmem_heap_free_block (script_p, script_size);
+  jmem_heap_free_block (context_p, script_p, script_size);
 } /* ecma_script_deref */
 
 /**
@@ -1476,7 +1501,8 @@ ecma_bytecode_ref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
  * Byte Code or regexp byte code.
  */
 void
-ecma_bytecode_deref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
+ecma_bytecode_deref (ecma_context_t *context_p, /**< JJS context */
+                     ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
 {
   JJS_ASSERT (bytecode_p->refs > 0);
   JJS_ASSERT (!CBC_IS_FUNCTION (bytecode_p->status_flags)
@@ -1518,63 +1544,63 @@ ecma_bytecode_deref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
     for (uint32_t i = const_literal_end; i < literal_end; i++)
     {
       ecma_compiled_code_t *bytecode_literal_p =
-        ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, literal_start_p[i]);
+        ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, literal_start_p[i]);
 
       /* Self references are ignored. */
       if (bytecode_literal_p != bytecode_p)
       {
-        ecma_bytecode_deref (bytecode_literal_p);
+        ecma_bytecode_deref (context_p, bytecode_literal_p);
       }
     }
 
-    ecma_script_deref (((cbc_uint8_arguments_t *) bytecode_p)->script_value);
+    ecma_script_deref (context_p, ((cbc_uint8_arguments_t *) bytecode_p)->script_value);
 
     if (bytecode_p->status_flags & CBC_CODE_FLAGS_HAS_TAGGED_LITERALS)
     {
-      ecma_collection_t *collection_p = ecma_compiled_code_get_tagged_template_collection (bytecode_p);
+      ecma_collection_t *collection_p = ecma_compiled_code_get_tagged_template_collection (context_p, bytecode_p);
 
       /* Since the objects in the tagged template collection are not strong referenced anymore by the compiled code
          we can treat them as 'new' objects. */
-      JJS_CONTEXT (ecma_gc_new_objects) += collection_p->item_count * 2;
-      ecma_collection_free_template_literal (collection_p);
+      context_p->ecma_gc_new_objects += collection_p->item_count * 2;
+      ecma_collection_free_template_literal (context_p, collection_p);
     }
 
 #if JJS_LINE_INFO
     if (bytecode_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO)
     {
-      ecma_line_info_free (ecma_compiled_code_get_line_info (bytecode_p));
+      ecma_line_info_free (context_p, ecma_compiled_code_get_line_info (context_p, bytecode_p));
     }
 #endif /* JJS_LINE_INFO */
 
 #if JJS_DEBUGGER
-    if ((JJS_CONTEXT (debugger_flags) & JJS_DEBUGGER_CONNECTED)
+    if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
         && !(bytecode_p->status_flags & CBC_CODE_FLAGS_DEBUGGER_IGNORE)
-        && jjs_debugger_send_function_cp (&JJS_CONTEXT_STRUCT, JJS_DEBUGGER_RELEASE_BYTE_CODE_CP, bytecode_p))
+        && jjs_debugger_send_function_cp (context_p, JJS_DEBUGGER_RELEASE_BYTE_CODE_CP, bytecode_p))
     {
       /* Delay the byte code free until the debugger client is notified.
        * If the connection is aborted the pointer is still freed by
        * jjs_debugger_close_connection(). */
       jjs_debugger_byte_code_free_t *byte_code_free_p = (jjs_debugger_byte_code_free_t *) bytecode_p;
-      jmem_cpointer_t byte_code_free_head = JJS_CONTEXT (debugger_byte_code_free_head);
+      jmem_cpointer_t byte_code_free_head = context_p->debugger_byte_code_free_head;
 
       byte_code_free_p->prev_cp = ECMA_NULL_POINTER;
 
       jmem_cpointer_t byte_code_free_cp;
-      JMEM_CP_SET_NON_NULL_POINTER (byte_code_free_cp, byte_code_free_p);
+      JMEM_CP_SET_NON_NULL_POINTER (context_p, byte_code_free_cp, byte_code_free_p);
 
       if (byte_code_free_head == ECMA_NULL_POINTER)
       {
-        JJS_CONTEXT (debugger_byte_code_free_tail) = byte_code_free_cp;
+        context_p->debugger_byte_code_free_tail = byte_code_free_cp;
       }
       else
       {
         jjs_debugger_byte_code_free_t *first_byte_code_free_p;
 
-        first_byte_code_free_p = JMEM_CP_GET_NON_NULL_POINTER (jjs_debugger_byte_code_free_t, byte_code_free_head);
+        first_byte_code_free_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, jjs_debugger_byte_code_free_t, byte_code_free_head);
         first_byte_code_free_p->prev_cp = byte_code_free_cp;
       }
 
-      JJS_CONTEXT (debugger_byte_code_free_head) = byte_code_free_cp;
+      context_p->debugger_byte_code_free_head = byte_code_free_cp;
       return;
     }
 #endif /* JJS_DEBUGGER */
@@ -1588,11 +1614,11 @@ ecma_bytecode_deref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
 #if JJS_BUILTIN_REGEXP
     re_compiled_code_t *re_bytecode_p = (re_compiled_code_t *) bytecode_p;
 
-    ecma_deref_ecma_string (ecma_get_string_from_value (re_bytecode_p->source));
+    ecma_deref_ecma_string (context_p, ecma_get_string_from_value (context_p, re_bytecode_p->source));
 #endif /* JJS_BUILTIN_REGEXP */
   }
 
-  jmem_heap_free_block (bytecode_p, ((size_t) bytecode_p->size) << JMEM_ALIGNMENT_LOG);
+  jmem_heap_free_block (context_p, bytecode_p, ((size_t) bytecode_p->size) << JMEM_ALIGNMENT_LOG);
 } /* ecma_bytecode_deref */
 
 /**
@@ -1601,14 +1627,15 @@ ecma_bytecode_deref (ecma_compiled_code_t *bytecode_p) /**< byte code pointer */
  * @return script data - if available, JMEM_CP_NULL - otherwise
  */
 ecma_value_t
-ecma_script_get_from_value (ecma_value_t value) /**< compiled code */
+ecma_script_get_from_value (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t value) /**< compiled code */
 {
   if (!ecma_is_value_object (value))
   {
     return JMEM_CP_NULL;
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (value);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, value);
   const ecma_compiled_code_t *bytecode_p = NULL;
 
   while (true)
@@ -1621,7 +1648,7 @@ ecma_script_get_from_value (ecma_value_t value) /**< compiled code */
 
         if (ext_object_p->u.cls.type == ECMA_OBJECT_CLASS_SCRIPT)
         {
-          bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
+          bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
           break;
         }
 
@@ -1641,7 +1668,7 @@ ecma_script_get_from_value (ecma_value_t value) /**< compiled code */
       }
       case ECMA_OBJECT_TYPE_FUNCTION:
       {
-        bytecode_p = ecma_op_function_get_compiled_code ((ecma_extended_object_t *) object_p);
+        bytecode_p = ecma_op_function_get_compiled_code (context_p, (ecma_extended_object_t *) object_p);
         break;
       }
       case ECMA_OBJECT_TYPE_BOUND_FUNCTION:
@@ -1649,7 +1676,7 @@ ecma_script_get_from_value (ecma_value_t value) /**< compiled code */
         ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
 
         object_p =
-          ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_object_t, ext_object_p->u.bound_function.target_function);
+          ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (context_p, ecma_object_t, ext_object_p->u.bound_function.target_function);
         continue;
       }
       case ECMA_OBJECT_TYPE_CONSTRUCTOR_FUNCTION:
@@ -1718,13 +1745,14 @@ ecma_compiled_code_resolve_function_name (const ecma_compiled_code_t *bytecode_h
  * @return pointer to the tagged template collection
  */
 ecma_collection_t *
-ecma_compiled_code_get_tagged_template_collection (const ecma_compiled_code_t *bytecode_header_p) /**< compiled code */
+ecma_compiled_code_get_tagged_template_collection (ecma_context_t *context_p, /**< JJS context */
+                                                   const ecma_compiled_code_t *bytecode_header_p) /**< compiled code */
 {
   JJS_ASSERT (bytecode_header_p != NULL);
   JJS_ASSERT (bytecode_header_p->status_flags & CBC_CODE_FLAGS_HAS_TAGGED_LITERALS);
 
   ecma_value_t *base_p = ecma_compiled_code_resolve_function_name (bytecode_header_p);
-  return ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, base_p[-1]);
+  return ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_collection_t, base_p[-1]);
 } /* ecma_compiled_code_get_tagged_template_collection */
 
 #if JJS_LINE_INFO
@@ -1735,7 +1763,8 @@ ecma_compiled_code_get_tagged_template_collection (const ecma_compiled_code_t *b
  * @return pointer to the line info data
  */
 uint8_t *
-ecma_compiled_code_get_line_info (const ecma_compiled_code_t *bytecode_header_p) /**< compiled code */
+ecma_compiled_code_get_line_info (ecma_context_t *context_p, /**< JJS context */
+                                  const ecma_compiled_code_t *bytecode_header_p) /**< compiled code */
 {
   JJS_ASSERT (bytecode_header_p != NULL);
   JJS_ASSERT (bytecode_header_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO);
@@ -1752,7 +1781,7 @@ ecma_compiled_code_get_line_info (const ecma_compiled_code_t *bytecode_header_p)
     base_p--;
   }
 
-  return ECMA_GET_INTERNAL_VALUE_POINTER (uint8_t, base_p[-1]);
+  return ECMA_GET_INTERNAL_VALUE_POINTER (context_p, uint8_t, base_p[-1]);
 } /* ecma_compiled_code_get_line_info */
 
 #endif /* JJS_LINE_INFO */
@@ -1763,7 +1792,8 @@ ecma_compiled_code_get_line_info (const ecma_compiled_code_t *bytecode_header_p)
  * @return source name value
  */
 ecma_value_t
-ecma_get_source_name (const ecma_compiled_code_t *bytecode_p) /**< compiled code */
+ecma_get_source_name (ecma_context_t *context_p, /**< JJS context */
+                      const ecma_compiled_code_t *bytecode_p) /**< compiled code */
 {
 #if JJS_SOURCE_NAME
 #if JJS_SNAPSHOT_EXEC
@@ -1774,9 +1804,9 @@ ecma_get_source_name (const ecma_compiled_code_t *bytecode_p) /**< compiled code
 #endif /* JJS_SNAPSHOT_EXEC */
 
   ecma_value_t script_value = ((cbc_uint8_arguments_t *) bytecode_p)->script_value;
-  return ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value)->source_name;
+  return ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value)->source_name;
 #else /* !JJS_SOURCE_NAME */
-  JJS_UNUSED (bytecode_p);
+  JJS_UNUSED_ALL (context_p, bytecode_p);
   return ecma_make_magic_string_value (LIT_MAGIC_STRING_SOURCE_NAME_ANON);
 #endif /* !JJS_SOURCE_NAME */
 } /* ecma_get_source_name */
@@ -1787,10 +1817,10 @@ ecma_get_source_name (const ecma_compiled_code_t *bytecode_p) /**< compiled code
  * @return current stack usage in bytes
  */
 uintptr_t JJS_ATTR_NOINLINE
-ecma_get_current_stack_usage (void)
+ecma_get_current_stack_usage (ecma_context_t *context_p) /**< JJS context */
 {
   volatile int __sp;
-  return (uintptr_t) (JJS_CONTEXT (stack_base) - (uintptr_t) &__sp);
+  return (uintptr_t) (context_p->stack_base - (uintptr_t) &__sp);
 } /* ecma_get_current_stack_usage */
 
 /**
@@ -1798,9 +1828,9 @@ ecma_get_current_stack_usage (void)
  * @return true - if the stack usage is over the limit
  */
 bool JJS_ATTR_NOINLINE
-ecma_is_stack_limit_exceeded (void)
+ecma_is_stack_limit_exceeded (ecma_context_t *context_p) /**< JJS context */
 {
-  return ecma_get_current_stack_usage () > (uintptr_t) JJS_CONTEXT(vm_stack_limit);
+  return ecma_get_current_stack_usage (context_p) > (uintptr_t) context_p->vm_stack_limit;
 } /* ecma_is_stack_limit_exceeded */
 
 /**

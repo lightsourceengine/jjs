@@ -42,7 +42,8 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_symbol (const ecma_value_t *arguments_list_p, /**< list of arguments */
+ecma_op_create_symbol (ecma_context_t *context_p, /**< JJS context */
+                       const ecma_value_t *arguments_list_p, /**< list of arguments */
                        uint32_t arguments_list_len) /**< length of the arguments' list */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
@@ -56,7 +57,7 @@ ecma_op_create_symbol (const ecma_value_t *arguments_list_p, /**< list of argume
   }
   else
   {
-    ecma_string_t *str_p = ecma_op_to_string (arguments_list_p[0]);
+    ecma_string_t *str_p = ecma_op_to_string (context_p, arguments_list_p[0]);
 
     /* 4. */
     if (JJS_UNLIKELY (str_p == NULL))
@@ -64,11 +65,11 @@ ecma_op_create_symbol (const ecma_value_t *arguments_list_p, /**< list of argume
       return ECMA_VALUE_ERROR;
     }
 
-    string_desc = ecma_make_string_value (str_p);
+    string_desc = ecma_make_string_value (context_p, str_p);
   }
 
   /* 5. */
-  return ecma_make_symbol_value (ecma_new_symbol_from_descriptor_string (string_desc));
+  return ecma_make_symbol_value (context_p, ecma_new_symbol_from_descriptor_string (context_p, string_desc));
 } /* ecma_op_create_symbol */
 
 /**
@@ -80,19 +81,20 @@ ecma_op_create_symbol (const ecma_value_t *arguments_list_p, /**< list of argume
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_symbol_object (const ecma_value_t value) /**< symbol value */
+ecma_op_create_symbol_object (ecma_context_t *context_p, /**< JJS context */
+                              const ecma_value_t value) /**< symbol value */
 {
   JJS_ASSERT (ecma_is_value_symbol (value));
 
   ecma_object_t *prototype_obj_p = ecma_builtin_get (ECMA_BUILTIN_ID_SYMBOL_PROTOTYPE);
   ecma_object_t *object_p =
-    ecma_create_object (prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
   ext_object_p->u.cls.type = ECMA_OBJECT_CLASS_SYMBOL;
-  ext_object_p->u.cls.u3.value = ecma_copy_value (value);
+  ext_object_p->u.cls.u3.value = ecma_copy_value (context_p, value);
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_op_create_symbol_object */
 
 /**
@@ -101,10 +103,12 @@ ecma_op_create_symbol_object (const ecma_value_t value) /**< symbol value */
  * @return pointer to ecma-string descriptor
  */
 ecma_value_t
-ecma_get_symbol_description (ecma_string_t *symbol_p) /**< ecma-symbol */
+ecma_get_symbol_description (ecma_context_t *context_p, /**< JJS context */
+                             ecma_string_t *symbol_p) /**< ecma-symbol */
 {
+  JJS_UNUSED (context_p);
   JJS_ASSERT (symbol_p != NULL);
-  JJS_ASSERT (ecma_prop_name_is_symbol (symbol_p));
+  JJS_ASSERT (ecma_prop_name_is_symbol (context_p, symbol_p));
 
   return ((ecma_extended_string_t *) symbol_p)->u.symbol_descriptor;
 } /* ecma_get_symbol_description */
@@ -118,24 +122,25 @@ ecma_get_symbol_description (ecma_string_t *symbol_p) /**< ecma-symbol */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_get_symbol_descriptive_string (ecma_value_t symbol_value) /**< symbol to stringify */
+ecma_get_symbol_descriptive_string (ecma_context_t *context_p, /**< JJS context */
+                                    ecma_value_t symbol_value) /**< symbol to stringify */
 {
   /* 1. */
   JJS_ASSERT (ecma_is_value_symbol (symbol_value));
 
   /* 2 - 3. */
-  ecma_string_t *symbol_p = ecma_get_symbol_from_value (symbol_value);
-  ecma_value_t string_desc = ecma_get_symbol_description (symbol_p);
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create_raw ((lit_utf8_byte_t *) ("Symbol("), 7);
+  ecma_string_t *symbol_p = ecma_get_symbol_from_value (context_p, symbol_value);
+  ecma_value_t string_desc = ecma_get_symbol_description (context_p, symbol_p);
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create_raw (context_p, (lit_utf8_byte_t *) ("Symbol("), 7);
 
   if (!ecma_is_value_undefined (string_desc))
   {
-    ecma_string_t *string_desc_p = ecma_get_string_from_value (string_desc);
+    ecma_string_t *string_desc_p = ecma_get_string_from_value (context_p, string_desc);
     ecma_stringbuilder_append (&builder, string_desc_p);
   }
 
   ecma_stringbuilder_append_byte (&builder, LIT_CHAR_RIGHT_PAREN);
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* ecma_get_symbol_descriptive_string */
 
 /**
@@ -148,7 +153,8 @@ ecma_get_symbol_descriptive_string (ecma_value_t symbol_value) /**< symbol to st
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_symbol_this_value (ecma_value_t this_arg) /**< this argument value */
+ecma_symbol_this_value (ecma_context_t *context_p, /**< JJS context */
+                        ecma_value_t this_arg) /**< this argument value */
 {
   /* 1. */
   if (ecma_is_value_symbol (this_arg))
@@ -159,7 +165,7 @@ ecma_symbol_this_value (ecma_value_t this_arg) /**< this argument value */
   /* 2. */
   if (ecma_is_value_object (this_arg))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SYMBOL))
     {
@@ -168,7 +174,7 @@ ecma_symbol_this_value (ecma_value_t this_arg) /**< this argument value */
   }
 
   /* 3. */
-  return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_SYMBOL);
+  return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_SYMBOL);
 } /* ecma_symbol_this_value */
 
 /**

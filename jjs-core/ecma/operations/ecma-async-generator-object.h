@@ -71,14 +71,15 @@ typedef enum
 #define ECMA_AWAIT_CHANGE_STATE(async_generator_object_p, from, to) \
   ((async_generator_object_p)->extended_object.u.cls.u2.executable_obj_flags ^= ECMA_AWAIT_CS_HELPER (from, to))
 
-ecma_value_t ecma_async_generator_enqueue (vm_executable_object_t *async_generator_object_p,
+ecma_value_t ecma_async_generator_enqueue (ecma_context_t *context_p,
+                                           vm_executable_object_t *async_generator_object_p,
                                            ecma_async_generator_operation_type_t operation,
                                            ecma_value_t value);
 
-ecma_value_t ecma_async_generator_run (vm_executable_object_t *async_generator_object_p);
-void ecma_async_generator_finalize (vm_executable_object_t *async_generator_object_p, ecma_value_t value);
+ecma_value_t ecma_async_generator_run (ecma_context_t *context_p, vm_executable_object_t *async_generator_object_p);
+void ecma_async_generator_finalize (ecma_context_t *context_p, vm_executable_object_t *async_generator_object_p, ecma_value_t value);
 
-ecma_value_t ecma_await_continue (vm_executable_object_t *async_generator_object_p, ecma_value_t value);
+ecma_value_t ecma_await_continue (ecma_context_t *context_p, vm_executable_object_t *async_generator_object_p, ecma_value_t value);
 
 /**
  * @}

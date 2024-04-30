@@ -157,7 +157,7 @@ jjs_wstream_new (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_v
   memcpy (wstream_p, &wstream, sizeof (jjs_wstream_t));
 
   jjs_value_t wstream_value = jjs_object(context_p);
-  ecma_object_t *wstream_value_p = ecma_get_object_from_value (wstream_value);
+  ecma_object_t *wstream_value_p = ecma_get_object_from_value (context_p, wstream_value);
 
   jjs_object_set_native_ptr (context_p, wstream_value, &jjs_wstream_class_info, wstream_p);
 
@@ -279,11 +279,11 @@ jjs_wstream_write_string (jjs_context_t* context_p,const jjs_wstream_t* wstream_
     return;
   }
 
-  ecma_string_t *string_p = ecma_get_string_from_value (value);
+  ecma_string_t *string_p = ecma_get_string_from_value (context_p, value);
 
-  ECMA_STRING_TO_UTF8_STRING (string_p, string_bytes_p, string_bytes_len);
+  ECMA_STRING_TO_UTF8_STRING (context_p, string_p, string_bytes_p, string_bytes_len);
 
-  if (ecma_string_get_length (string_p) == string_bytes_len || wstream_p->encoding == JJS_ENCODING_CESU8)
+  if (ecma_string_get_length (context_p, string_p) == string_bytes_len || wstream_p->encoding == JJS_ENCODING_CESU8)
   {
     wstream_p->write (context_p, wstream_p, string_bytes_p, string_bytes_len);
   }
@@ -359,7 +359,7 @@ jjs_wstream_write_string (jjs_context_t* context_p,const jjs_wstream_t* wstream_
   }
 
 done:
-  ECMA_FINALIZE_UTF8_STRING (string_bytes_p, string_bytes_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, string_bytes_p, string_bytes_len);
 
   JJS_DISOWN (context_p, value, value_o);
 } /* jjs_wstream_write_string */

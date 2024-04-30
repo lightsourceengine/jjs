@@ -42,20 +42,21 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_bigint_object (ecma_value_t arg) /**< argument passed to the toObject operation */
+ecma_op_create_bigint_object (ecma_context_t *context_p, /**< JJS context */
+                              ecma_value_t arg) /**< argument passed to the toObject operation */
 {
   JJS_ASSERT (ecma_is_value_bigint (arg));
 
   ecma_object_t *prototype_obj_p = ecma_builtin_get (ECMA_BUILTIN_ID_BIGINT_PROTOTYPE);
 
   ecma_object_t *object_p =
-    ecma_create_object (prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
   ext_object_p->u.cls.type = ECMA_OBJECT_CLASS_BIGINT;
-  ext_object_p->u.cls.u3.value = ecma_copy_value (arg);
+  ext_object_p->u.cls.u3.value = ecma_copy_value (context_p, arg);
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_op_create_bigint_object */
 
 /**

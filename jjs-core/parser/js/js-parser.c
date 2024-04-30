@@ -81,7 +81,7 @@ parser_compute_indicies (parser_context_t *context_p, /**< parser context */
         }
         else if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
         {
-          jmem_heap_free_block ((void *) literal_p->u.char_p, literal_p->prop.length);
+          jmem_heap_free_block (context_p, (void *) literal_p->u.char_p, literal_p->prop.length);
           /* This literal should not be freed even if an error is encountered later. */
           literal_p->status_flags |= LEXER_FLAG_SOURCE_PTR;
         }
@@ -128,13 +128,14 @@ parser_compute_indicies (parser_context_t *context_p, /**< parser context */
 
     if (char_p != NULL)
     {
-      literal_p->u.value = ecma_find_or_create_literal_string (char_p,
+      literal_p->u.value = ecma_find_or_create_literal_string (context_p,
+                                                               char_p,
                                                                literal_p->prop.length,
                                                                (literal_p->status_flags & LEXER_FLAG_ASCII) != 0);
 
       if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
       {
-        jmem_heap_free_block ((void *) char_p, literal_p->prop.length);
+        jmem_heap_free_block (context_p, (void *) char_p, literal_p->prop.length);
         /* This literal should not be freed even if an error is encountered later. */
         literal_p->status_flags |= LEXER_FLAG_SOURCE_PTR;
       }
@@ -241,7 +242,7 @@ parser_init_literal_pool (parser_context_t *context_p, /**< parser context */
       {
         JJS_ASSERT (literal_p->prop.index >= context_p->register_count);
 
-        ECMA_SET_INTERNAL_VALUE_POINTER (literal_pool_p[literal_p->prop.index], literal_p->u.bytecode_p);
+        ECMA_SET_INTERNAL_VALUE_POINTER (context_p, literal_pool_p[literal_p->prop.index], literal_p->u.bytecode_p);
         break;
       }
       default:
@@ -1267,7 +1268,7 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
 
   parse_update_branches (parser_context_p, byte_code_p);
 
-  parser_cbc_stream_free (&parser_context_p->byte_code);
+  parser_cbc_stream_free (parser_context_p, &parser_context_p->byte_code);
 
   if (parser_context_p->status_flags & PARSER_HAS_LATE_LIT_INIT)
   {
@@ -1282,7 +1283,8 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
       {
         uint32_t source_data = literal_p->u.source_data;
         const uint8_t *char_p = parser_context_p->source_end_p - (source_data & 0xfffff);
-        ecma_value_t lit_value = ecma_find_or_create_literal_string (char_p,
+        ecma_value_t lit_value = ecma_find_or_create_literal_string (context_p,
+                                                                     char_p,
                                                                      source_data >> 20,
                                                                      (literal_p->status_flags & LEXER_FLAG_ASCII) != 0);
         literal_pool_p[literal_p->prop.index] = lit_value;
@@ -1341,7 +1343,7 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
   }
 
 #if JJS_LINE_INFO
-  ECMA_SET_INTERNAL_VALUE_POINTER (base_p[-1], line_info_p);
+  ECMA_SET_INTERNAL_VALUE_POINTER (context_p, base_p[-1], line_info_p);
 #else /* !JJS_LINE_INFO */
   base_p[-1] = JMEM_CP_NULL;
 #endif /* JJS_LINE_INFO */
@@ -1407,6 +1409,7 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
 static bool
 parser_resolve_private_identifier_eval (parser_context_t *parser_context_p) /**< parser context */
 {
+  ecma_context_t *context_p = parser_context_p->context_p;
   ecma_string_t *search_key_p;
   uint8_t *destination_p = (uint8_t *) parser_malloc (parser_context_p, parser_context_p->token.lit_location.length);
 
@@ -1414,11 +1417,10 @@ parser_resolve_private_identifier_eval (parser_context_t *parser_context_p) /**<
                                 parser_context_p->token.lit_location.char_p,
                                 parser_context_p->token.lit_location.length);
 
-  search_key_p = ecma_new_ecma_string_from_utf8 (destination_p, parser_context_p->token.lit_location.length);
+  search_key_p = ecma_new_ecma_string_from_utf8 (context_p, destination_p, parser_context_p->token.lit_location.length);
 
-  parser_free (destination_p, parser_context_p->token.lit_location.length);
+  parser_free (parser_context_p, destination_p, parser_context_p->token.lit_location.length);
 
-  ecma_context_t *context_p = parser_context_p->context_p;
   ecma_object_t *lex_env_p = context_p->vm_top_context_p->lex_env_p;
 
   while (true)
@@ -1432,29 +1434,29 @@ parser_resolve_private_identifier_eval (parser_context_t *parser_context_p) /**<
       ecma_object_t *class_object_p = ((ecma_lexical_environment_class_t *) lex_env_p)->object_p;
 
       ecma_string_t *internal_string_p = ecma_get_internal_string (LIT_INTERNAL_MAGIC_STRING_CLASS_PRIVATE_ELEMENTS);
-      ecma_property_t *prop_p = ecma_find_named_property (class_object_p, internal_string_p);
+      ecma_property_t *prop_p = ecma_find_named_property (context_p, class_object_p, internal_string_p);
 
       if (prop_p != NULL)
       {
         ecma_value_t *collection_p =
-          ECMA_GET_INTERNAL_VALUE_POINTER (ecma_value_t, ECMA_PROPERTY_VALUE_PTR (prop_p)->value);
+          ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_value_t, ECMA_PROPERTY_VALUE_PTR (prop_p)->value);
         ecma_value_t *current_p = collection_p + 1;
         ecma_value_t *end_p = ecma_compact_collection_end (collection_p);
 
         while (current_p < end_p)
         {
           current_p++; /* skip kind */
-          ecma_string_t *private_key_p = ecma_get_prop_name_from_value (*current_p++);
+          ecma_string_t *private_key_p = ecma_get_prop_name_from_value (context_p, *current_p++);
           current_p++; /* skip value */
 
           JJS_ASSERT (ecma_prop_name_is_symbol (private_key_p));
 
           ecma_string_t *private_key_desc_p =
-            ecma_get_string_from_value (((ecma_extended_string_t *) private_key_p)->u.symbol_descriptor);
+            ecma_get_string_from_value (context_p, ((ecma_extended_string_t *) private_key_p)->u.symbol_descriptor);
 
           if (ecma_compare_ecma_strings (private_key_desc_p, search_key_p))
           {
-            ecma_deref_ecma_string (search_key_p);
+            ecma_deref_ecma_string (context_p, search_key_p);
             lexer_construct_literal_object (parser_context_p, &parser_context_p->token.lit_location, LEXER_STRING_LITERAL);
             return true;
           }
@@ -1467,10 +1469,10 @@ parser_resolve_private_identifier_eval (parser_context_t *parser_context_p) /**<
       break;
     }
 
-    lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+    lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
   }
 
-  ecma_deref_ecma_string (search_key_p);
+  ecma_deref_ecma_string (context_p, search_key_p);
   return false;
 } /* parser_resolve_private_identifier_eval */
 
@@ -1546,14 +1548,14 @@ parser_save_private_context (parser_context_t *parser_context_p, /**< parser con
  * Release contexts private fields
  */
 static void
-parser_free_private_fields (parser_context_t *context_p) /**< parser context */
+parser_free_private_fields (parser_context_t *parser_context_p) /**< parser context */
 {
-  parser_private_context_t *iter = context_p->private_context_p;
+  parser_private_context_t *iter = parser_context_p->private_context_p;
 
   while (iter != NULL)
   {
     parser_private_context_t *prev_p = iter->prev_p;
-    scanner_release_private_fields (iter->members_p);
+    scanner_release_private_fields (parser_context_p, iter->members_p);
     iter = prev_p;
   }
 } /* parser_free_private_fields */
@@ -1565,7 +1567,7 @@ void
 parser_restore_private_context (parser_context_t *parser_context_p, /**< parser context */
                                 parser_private_context_t *private_ctx_p) /**< private context */
 {
-  scanner_release_private_fields (parser_context_p->private_context_p->members_p);
+  scanner_release_private_fields (parser_context_p, parser_context_p->private_context_p->members_p);
   parser_context_p->private_context_p = private_ctx_p->prev_p;
 } /* parser_restore_private_context */
 
@@ -1573,7 +1575,8 @@ parser_restore_private_context (parser_context_t *parser_context_p, /**< parser 
  * Free identifiers and literals.
  */
 static void
-parser_free_literals (parser_list_t *literal_pool_p) /**< literals */
+parser_free_literals (parser_context_t *parser_context_p, /**< parser context */
+                      parser_list_t *literal_pool_p) /**< literals */
 {
   parser_list_iterator_t literal_iterator;
   lexer_literal_t *literal_p;
@@ -1581,10 +1584,10 @@ parser_free_literals (parser_list_t *literal_pool_p) /**< literals */
   parser_list_iterator_init (literal_pool_p, &literal_iterator);
   while ((literal_p = (lexer_literal_t *) parser_list_iterator_next (&literal_iterator)) != NULL)
   {
-    util_free_literal (literal_p);
+    util_free_literal (parser_context_p->context_p, literal_p);
   }
 
-  parser_list_free (literal_pool_p);
+  parser_list_free (parser_context_p, literal_pool_p);
 } /* parser_free_literals */
 
 /**
@@ -1964,17 +1967,18 @@ parser_script_size (parser_context_t *context_p) /**< parser context */
  * Parser resource name
  */
 static ecma_value_t
-parser_source_name (parser_context_t *context_p) /**< parser context */
+parser_source_name (parser_context_t *parser_context_p) /**< parser context */
 {
-  if (context_p->options_p != NULL && (context_p->options_p->options & JJS_PARSE_HAS_SOURCE_NAME))
+  if (parser_context_p->options_p != NULL && (parser_context_p->options_p->options & JJS_PARSE_HAS_SOURCE_NAME))
   {
-    JJS_ASSERT (ecma_is_value_string (context_p->options_p->source_name));
+    JJS_ASSERT (ecma_is_value_string (parser_context_p->options_p->source_name));
+    ecma_context_t *context_p = parser_context_p->context_p;
 
-    ecma_ref_ecma_string (ecma_get_string_from_value (context_p->options_p->source_name));
-    return context_p->options_p->source_name;
+    ecma_ref_ecma_string (ecma_get_string_from_value (context_p, parser_context_p->options_p->source_name));
+    return parser_context_p->options_p->source_name;
   }
 
-  if (context_p->global_status_flags & ECMA_PARSE_EVAL)
+  if (parser_context_p->global_status_flags & ECMA_PARSE_EVAL)
   {
     return ecma_make_magic_string_value (LIT_MAGIC_STRING_SOURCE_NAME_EVAL);
   }
@@ -2049,10 +2053,10 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
       context.status_flags |= PARSER_IS_ASYNC_FUNCTION;
     }
 
-    ecma_string_t *string_p = ecma_get_string_from_value (context.argument_list);
+    ecma_string_t *string_p = ecma_get_string_from_value (context_p, context.argument_list);
     uint8_t flags = ECMA_STRING_FLAG_EMPTY;
 
-    context.arguments_start_p = ecma_string_get_chars (string_p, &context.arguments_size, NULL, NULL, &flags);
+    context.arguments_start_p = ecma_string_get_chars (context_p, string_p, &context.arguments_size, NULL, NULL, &flags);
 
     if (flags & ECMA_STRING_FLAG_MUST_BE_FREED)
     {
@@ -2071,10 +2075,10 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
     JJS_ASSERT (ecma_is_value_string (source));
 
-    ecma_string_t *string_p = ecma_get_string_from_value (source);
+    ecma_string_t *string_p = ecma_get_string_from_value (context_p, source);
     uint8_t flags = ECMA_STRING_FLAG_EMPTY;
 
-    context.source_start_p = ecma_string_get_chars (string_p, &context.source_size, NULL, NULL, &flags);
+    context.source_start_p = ecma_string_get_chars (context_p, string_p, &context.source_size, NULL, NULL, &flags);
 
     if (flags & ECMA_STRING_FLAG_MUST_BE_FREED)
     {
@@ -2105,7 +2109,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 #endif /* JJS_SNAPSHOT_EXEC */
       ecma_value_t parent_script_value = ((cbc_uint8_arguments_t *) bytecode_header_p)->script_value;
       ;
-      cbc_script_t *parent_script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, parent_script_value);
+      cbc_script_t *parent_script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, parent_script_value);
 
       if (parent_script_p->refs_and_type & CBC_SCRIPT_HAS_USER_VALUE)
       {
@@ -2237,7 +2241,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
     context.script_p->source_name = parser_source_name (&context);
 #endif /* JJS_SOURCE_NAME */
 
-    ECMA_SET_INTERNAL_VALUE_POINTER (context.script_value, context.script_p);
+    ECMA_SET_INTERNAL_VALUE_POINTER (context_p, context.script_value, context.script_p);
 
     /* Pushing a dummy value ensures the stack is never empty.
      * This simplifies the stack management routines. */
@@ -2313,7 +2317,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
     JJS_ASSERT (!(context.status_flags & PARSER_HAS_LATE_LIT_INIT));
 
     compiled_code_p = parser_post_processing (&context);
-    parser_list_free (&context.literal_pool);
+    parser_list_free (&context, &context.literal_pool);
 
     /* When parsing is successful, only the dummy value can be remained on the stack. */
     JJS_ASSERT (context.stack_top_uint8 == CBC_MAXIMUM_BYTE_VALUE && context.stack.last_position == 1
@@ -2326,14 +2330,14 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
     if (context.user_value != ECMA_VALUE_EMPTY)
     {
-      CBC_SCRIPT_GET_USER_VALUE (context.script_p) = ecma_copy_value_if_not_object (context.user_value);
+      CBC_SCRIPT_GET_USER_VALUE (context.script_p) = ecma_copy_value_if_not_object (context_p, context.user_value);
     }
 
 #if JJS_MODULE_SYSTEM
     if (context.global_status_flags & ECMA_PARSE_INTERNAL_HAS_IMPORT_META)
     {
       int idx = (context.user_value != ECMA_VALUE_EMPTY) ? 1 : 0;
-      ecma_value_t module = ecma_make_object_value ((ecma_object_t *) context_p->module_current_p);
+      ecma_value_t module = ecma_make_object_value (context_p, (ecma_object_t *) context_p->module_current_p);
 
       CBC_SCRIPT_GET_OPTIONAL_VALUES (context.script_p)[idx] = module;
       context.script_p->refs_and_type |= CBC_SCRIPT_HAS_IMPORT_META;
@@ -2347,20 +2351,20 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
       if (context.global_status_flags & ECMA_PARSE_INTERNAL_HAS_4_BYTE_MARKER)
       {
-        string_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (context.source_start_p, context.source_size);
+        string_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (context_p, context.source_start_p, context.source_size);
       }
       else
       {
-        string_p = ecma_new_ecma_string_from_utf8 (context.source_start_p, context.source_size);
+        string_p = ecma_new_ecma_string_from_utf8 (context_p, context.source_start_p, context.source_size);
       }
 
-      context.script_p->source_code = ecma_make_string_value (string_p);
+      context.script_p->source_code = ecma_make_string_value (context_p, string_p);
     }
     else
     {
       ecma_value_t source = ((ecma_value_t *) source_p)[0];
 
-      ecma_ref_ecma_string (ecma_get_string_from_value (source));
+      ecma_ref_ecma_string (ecma_get_string_from_value (context_p, source));
       context.script_p->source_code = source;
     }
 
@@ -2370,7 +2374,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
       CBC_SCRIPT_GET_OPTIONAL_VALUES (context.script_p)[idx] = context.argument_list;
 
-      ecma_ref_ecma_string (ecma_get_string_from_value (context.argument_list));
+      ecma_ref_ecma_string (ecma_get_string_from_value (context_p, context.argument_list));
       context.script_p->refs_and_type |= CBC_SCRIPT_HAS_FUNCTION_ARGUMENTS;
     }
 #endif /* JJS_FUNCTION_TO_STRING */
@@ -2388,7 +2392,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
   {
     if (context.last_statement.current_p != NULL)
     {
-      parser_free_jumps (context.last_statement);
+      parser_free_jumps (&context, context.last_statement);
     }
 
     parser_free_allocated_buffer (&context);
@@ -2398,33 +2402,33 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 #if JJS_MODULE_SYSTEM
     if (context.module_names_p != NULL)
     {
-      ecma_module_release_module_names (context.module_names_p);
+      ecma_module_release_module_names (context_p, context.module_names_p);
     }
 #endif /* JJS_MODULE_SYSTEM */
 
     compiled_code_p = NULL;
-    parser_free_literals (&context.literal_pool);
-    parser_cbc_stream_free (&context.byte_code);
+    parser_free_literals (&context, &context.literal_pool);
+    parser_cbc_stream_free (&context, &context.byte_code);
 
 #if JJS_SOURCE_NAME
-    ecma_deref_ecma_string (ecma_get_string_from_value (context.script_p->source_name));
+    ecma_deref_ecma_string (context_p, ecma_get_string_from_value (context_p, context.script_p->source_name));
 #endif /* JJS_SOURCE_NAME */
 
     if (context.script_p != NULL)
     {
       JJS_ASSERT (context.script_p->refs_and_type >= CBC_SCRIPT_REF_ONE);
-      jmem_heap_free_block (context.script_p, parser_script_size (&context));
+      jmem_heap_free_block (context_p, context.script_p, parser_script_size (&context));
     }
   }
   PARSER_TRY_END
 
   if (context.scope_stack_p != NULL)
   {
-    parser_free (context.scope_stack_p, context.scope_stack_size * sizeof (parser_scope_stack_t));
+    parser_free (&context, context.scope_stack_p, context.scope_stack_size * sizeof (parser_scope_stack_t));
   }
 
 #if JJS_LINE_INFO
-  parser_line_info_free (context.line_info_p);
+  parser_line_info_free (&context, context.line_info_p);
 #endif /* JJS_LINE_INFO */
 
 #if JJS_PARSER_DUMP_BYTE_CODE
@@ -2438,12 +2442,12 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
   if (context.global_status_flags & ECMA_PARSE_INTERNAL_FREE_SOURCE)
   {
-    jmem_heap_free_block ((void *) context.source_start_p, context.source_size);
+    jmem_heap_free_block (context_p, (void *) context.source_start_p, context.source_size);
   }
 
   if (context.global_status_flags & ECMA_PARSE_INTERNAL_FREE_ARG_LIST)
   {
-    jmem_heap_free_block ((void *) context.arguments_start_p, context.arguments_size);
+    jmem_heap_free_block (context_p, (void *) context.arguments_start_p, context.arguments_size);
   }
 
   if (compiled_code_p != NULL)
@@ -2469,7 +2473,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
   {
     if (context.error == PARSER_ERR_STACK_OVERFLOW)
     {
-      ecma_raise_standard_error (JJS_ERROR_RANGE, ECMA_ERR_MAXIMUM_CALL_STACK_SIZE_EXCEEDED);
+      ecma_raise_standard_error (context_p, JJS_ERROR_RANGE, ECMA_ERR_MAXIMUM_CALL_STACK_SIZE_EXCEEDED);
       return NULL;
     }
   }
@@ -2481,41 +2485,43 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
   {
     ecma_value_t error = jcontext_take_exception (context_p);
     ecma_property_t *prop_p =
-      ecma_find_named_property (ecma_get_object_from_value (error), ecma_get_magic_string (LIT_MAGIC_STRING_MESSAGE));
-    ecma_free_value (error);
+      ecma_find_named_property (context_p, ecma_get_object_from_value (context_p, error), ecma_get_magic_string (LIT_MAGIC_STRING_MESSAGE));
+    ecma_free_value (context_p, error);
     JJS_ASSERT (prop_p);
-    err_str_p = ecma_get_string_from_value (ECMA_PROPERTY_VALUE_PTR (prop_p)->value);
+    err_str_p = ecma_get_string_from_value (context_p, ECMA_PROPERTY_VALUE_PTR (prop_p)->value);
     ecma_ref_ecma_string (err_str_p);
   }
   else
   {
-    err_str_p = ecma_new_ecma_external_string_from_cesu8 (parser_get_error_utf8 (context.error),
+    err_str_p = ecma_new_ecma_external_string_from_cesu8 (context_p,
+                                                          parser_get_error_utf8 (context.error),
                                                           parser_get_error_size (context.error),
                                                           NULL);
   }
-  ecma_value_t err_str_val = ecma_make_string_value (err_str_p);
-  ecma_value_t line_str_val = ecma_make_uint32_value (context.token.line);
-  ecma_value_t col_str_val = ecma_make_uint32_value (context.token.column);
+  ecma_value_t err_str_val = ecma_make_string_value (context_p, err_str_p);
+  ecma_value_t line_str_val = ecma_make_uint32_value (context_p, context.token.line);
+  ecma_value_t col_str_val = ecma_make_uint32_value (context_p, context.token.column);
   ecma_value_t source_name = parser_source_name (&context);
 
-  ecma_raise_standard_error_with_format (JJS_ERROR_SYNTAX,
+  ecma_raise_standard_error_with_format (context_p,
+                                         JJS_ERROR_SYNTAX,
                                          "% [%:%:%]",
                                          err_str_val,
                                          source_name,
                                          line_str_val,
                                          col_str_val);
 
-  ecma_free_value (source_name);
-  ecma_free_value (col_str_val);
-  ecma_free_value (line_str_val);
-  ecma_deref_ecma_string (err_str_p);
+  ecma_free_value (context_p, source_name);
+  ecma_free_value (context_p, col_str_val);
+  ecma_free_value (context_p, line_str_val);
+  ecma_deref_ecma_string (context_p, err_str_p);
 #else /* !JJS_ERROR_MESSAGES */
   if (context.error == PARSER_ERR_INVALID_REGEXP)
   {
-    jcontext_release_exception ();
+    jcontext_release_exception (context_p);
   }
 
-  ecma_raise_syntax_error (ECMA_ERR_EMPTY);
+  ecma_raise_syntax_error (context_p, ECMA_ERR_EMPTY);
 #endif /* JJS_ERROR_MESSAGES */
 
   return NULL;
@@ -2619,15 +2625,15 @@ static void
 parser_restore_context (parser_context_t *parser_context_p, /**< parser context */
                         parser_saved_context_t *saved_context_p) /**< target for saving the context */
 {
-  parser_list_free (&parser_context_p->literal_pool);
+  parser_list_free (parser_context_p, &parser_context_p->literal_pool);
 
   if (parser_context_p->scope_stack_p != NULL)
   {
-    parser_free (parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
+    parser_free (parser_context_p, parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
   }
 
 #if JJS_LINE_INFO
-  parser_line_info_free (parser_context_p->line_info_p);
+  parser_line_info_free (parser_context_p, parser_context_p->line_info_p);
 #endif /* JJS_LINE_INFO */
 
   /* Restore private part of the context. */
@@ -3268,11 +3274,11 @@ parser_compiled_code_set_function_name (parser_context_t *parser_context_p, /**<
   }
 
   *func_name_start_p =
-    ecma_find_or_create_literal_string (name_buffer_p, name_length, (status_flags & LEXER_FLAG_ASCII) != 0);
+    ecma_find_or_create_literal_string (parser_context_p->context_p, name_buffer_p, name_length, (status_flags & LEXER_FLAG_ASCII) != 0);
 
   if (name_buffer_p != name_lit_p->u.char_p)
   {
-    parser_free (name_buffer_p, name_length);
+    parser_free (parser_context_p, name_buffer_p, name_length);
   }
 } /* parser_compiled_code_set_function_name */
 
@@ -3286,40 +3292,41 @@ parser_raise_error (parser_context_t *parser_context_p, /**< parser context */
   /* Must be compatible with the scanner because
    * the lexer might throws errors during prescanning. */
   parser_saved_context_t *saved_context_p = parser_context_p->last_context_p;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
   while (saved_context_p != NULL)
   {
-    parser_cbc_stream_free (&saved_context_p->byte_code);
+    parser_cbc_stream_free (parser_context_p, &saved_context_p->byte_code);
 
     /* First the current literal pool is freed, and then it is replaced
      * by the literal pool coming from the saved context. Since literals
      * are not used anymore, this is a valid replacement. The last pool
      * is freed by parser_parse_source. */
 
-    parser_free_literals (&parser_context_p->literal_pool);
+    parser_free_literals (parser_context_p, &parser_context_p->literal_pool);
     parser_context_p->literal_pool.data = saved_context_p->literal_pool_data;
 
     if (parser_context_p->scope_stack_p != NULL)
     {
-      parser_free (parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
+      parser_free (parser_context_p, parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
     }
     parser_context_p->scope_stack_p = saved_context_p->scope_stack_p;
     parser_context_p->scope_stack_size = saved_context_p->scope_stack_size;
 
     if (saved_context_p->last_statement.current_p != NULL)
     {
-      parser_free_jumps (saved_context_p->last_statement);
+      parser_free_jumps (saved_context_p, saved_context_p->last_statement);
     }
 
     if (saved_context_p->tagged_template_literal_cp != JMEM_CP_NULL)
     {
       ecma_collection_t *collection =
-        ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, saved_context_p->tagged_template_literal_cp);
-      ecma_collection_free_template_literal (collection);
+        ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_collection_t, saved_context_p->tagged_template_literal_cp);
+      ecma_collection_free_template_literal (context_p, collection);
     }
 
 #if JJS_LINE_INFO
-    parser_line_info_free (saved_context_p->line_info_p);
+    parser_line_info_free (saved_context_p, saved_context_p->line_info_p);
 #endif /* JJS_LINE_INFO */
 
     saved_context_p = saved_context_p->prev_context_p;
@@ -3330,8 +3337,8 @@ parser_raise_error (parser_context_t *parser_context_p, /**< parser context */
   if (parser_context_p->tagged_template_literal_cp != JMEM_CP_NULL)
   {
     ecma_collection_t *collection =
-      ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, parser_context_p->tagged_template_literal_cp);
-    ecma_collection_free_template_literal (collection);
+      ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_collection_t, parser_context_p->tagged_template_literal_cp);
+    ecma_collection_free_template_literal (context_p, collection);
   }
 
   parser_context_p->error = error;

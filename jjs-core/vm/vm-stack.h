@@ -125,13 +125,12 @@ ecma_value_t *vm_stack_context_abort_variable_length (vm_frame_ctx_t *frame_ctx_
                                                       ecma_value_t *vm_stack_top_p,
                                                       uint32_t context_stack_allocation);
 ecma_value_t *vm_stack_context_abort (vm_frame_ctx_t *frame_ctx_p, ecma_value_t *vm_stack_top_p);
-vm_stack_found_type vm_stack_find_finally (ecma_context_t *context_p,
-                                           vm_frame_ctx_t *frame_ctx_p,
+vm_stack_found_type vm_stack_find_finally (vm_frame_ctx_t *frame_ctx_p,
                                            ecma_value_t *stack_top_p,
                                            vm_stack_context_type_t finally_type,
                                            uint32_t search_limit);
 uint32_t vm_get_context_value_offsets (ecma_value_t *context_item_p);
-void vm_ref_lex_env_chain (ecma_object_t *lex_env_p, uint16_t context_depth, ecma_value_t *context_end_p, bool do_ref);
+void vm_ref_lex_env_chain (ecma_context_t *context_p, ecma_object_t *lex_env_p, uint16_t context_depth, ecma_value_t *context_end_p, bool do_ref);
 
 /**
  * @}

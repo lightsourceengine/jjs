@@ -32,7 +32,7 @@ static jjs_value_t jjsp_read_file_buffer (jjs_context_t* context_p,
 static jjs_value_t jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encoding);
 static jjs_platform_path_t
 jjs_platform_create_path (jjs_allocator_t* allocator, const uint8_t* path_p, jjs_size_t size, jjs_encoding_t encoding);
-static ecma_value_t jjsp_buffer_view_to_string_value (jjs_platform_buffer_view_t* buffer_p, bool move);
+static ecma_value_t jjsp_buffer_view_to_string_value (jjs_context_t *context_p, jjs_platform_buffer_view_t* buffer_p, bool move);
 static void jjs_platform_buffer_view_free (jjs_platform_buffer_view_t* self_p);
 
 static const jjs_platform_io_write_fn_t default_io_write = JJS_PLATFORM_API_IO_WRITE ? jjsp_io_write_impl : NULL;
@@ -197,14 +197,14 @@ jjs_platform_cwd (jjs_context_t* context_p) /**< JJS context */
 
   if (cwd (allocator, &buffer) == JJS_STATUS_OK)
   {
-    ecma_value_t result = jjsp_buffer_view_to_string_value (&buffer, true);
+    ecma_value_t result = jjsp_buffer_view_to_string_value (context_p, &buffer, true);
 
     if (jjs_value_is_string (context_p, result))
     {
       return result;
     }
 
-    ecma_free_value(result);
+    ecma_free_value (context_p, result);
   }
 
   return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "platform failed to get cwd");
@@ -245,13 +245,13 @@ jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_value_own
 
   jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator (context_p);
 
-  ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value (path), path_bytes_p, path_bytes_len);
+  ECMA_STRING_TO_UTF8_STRING (context_p, ecma_get_string_from_value (context_p, path), path_bytes_p, path_bytes_len);
 
   jjs_platform_path_t p = jjs_platform_create_path (
     allocator,
     path_bytes_p,
     path_bytes_len,
-    ecma_string_get_length (ecma_get_string_from_value (path)) == path_bytes_len ? JJS_ENCODING_ASCII
+    ecma_string_get_length (context_p, ecma_get_string_from_value (context_p, path)) == path_bytes_len ? JJS_ENCODING_ASCII
                                                                                  : JJS_ENCODING_CESU8);
   jjs_platform_buffer_view_t buffer;
   jjs_status_t status = realpath_fn (allocator, &p, &buffer);
@@ -259,14 +259,14 @@ jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_value_own
 
   if (status == JJS_STATUS_OK)
   {
-    result = jjsp_buffer_view_to_string_value (&buffer, true);
+    result = jjsp_buffer_view_to_string_value (context_p, &buffer, true);
   }
   else
   {
     result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "failed to get realpath from path");
   }
 
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_bytes_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_bytes_len);
 
   jjs_util_context_release_scratch_allocator (context_p);
   JJS_DISOWN (context_p, path, path_o);
@@ -733,18 +733,18 @@ jjsp_read_file_buffer (jjs_context_t* context_p,
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "expected path to be a string");
   }
 
-  ecma_string_t* path_p = ecma_get_string_from_value (path);
-  ECMA_STRING_TO_UTF8_STRING (path_p, path_bytes_p, path_len);
+  ecma_string_t* path_p = ecma_get_string_from_value (context_p, path);
+  ECMA_STRING_TO_UTF8_STRING (context_p, path_p, path_bytes_p, path_len);
 
   jjs_platform_path_t platform_path =
     jjs_platform_create_path (path_allocator,
                               path_bytes_p,
                               path_len,
-                              ecma_string_get_length (path_p) == path_len ? JJS_ENCODING_ASCII : JJS_ENCODING_CESU8);
+                              ecma_string_get_length (context_p, path_p) == path_len ? JJS_ENCODING_ASCII : JJS_ENCODING_CESU8);
 
   jjs_status_t status = read_file (buffer_allocator, &platform_path, buffer_p);
 
-  ECMA_FINALIZE_UTF8_STRING (path_bytes_p, path_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_len);
 
   if (status != JJS_STATUS_OK)
   {
@@ -816,21 +816,22 @@ jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encod
  * @return on success, ecma string value; on error, ECMA_VALUE_EMPTY. return value must be freed with ecma_free_value.
  */
 static ecma_value_t
-jjsp_buffer_view_to_string_value (jjs_platform_buffer_view_t* buffer_p, bool move)
+jjsp_buffer_view_to_string_value (jjs_context_t *context_p, jjs_platform_buffer_view_t* buffer_p, bool move)
 {
   ecma_value_t result;
 
   if (buffer_p->encoding == JJS_ENCODING_UTF8)
   {
-    result = ecma_make_string_value (
-      ecma_new_ecma_string_from_utf8 ((const lit_utf8_byte_t*) buffer_p->data_p, buffer_p->data_size));
+    result = ecma_make_string_value (context_p,
+                                     ecma_new_ecma_string_from_utf8 (context_p, (const lit_utf8_byte_t*) buffer_p->data_p, buffer_p->data_size));
   }
   else if (buffer_p->encoding == JJS_ENCODING_UTF16)
   {
     JJS_ASSERT (buffer_p->data_size % 2 == 0);
     // buffer.length is in bytes convert to utf16 array size
     result =
-      ecma_make_string_value (ecma_new_ecma_string_from_utf16 ((const uint16_t*) buffer_p->data_p,
+      ecma_make_string_value (context_p, ecma_new_ecma_string_from_utf16 (context_p,
+                                                               (const uint16_t*) buffer_p->data_p,
                                                                buffer_p->data_size / (uint32_t) sizeof (ecma_char_t)));
   }
   else

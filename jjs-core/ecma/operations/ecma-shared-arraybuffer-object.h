@@ -27,15 +27,15 @@
  * @{
  */
 
-ecma_value_t ecma_op_create_shared_arraybuffer_object (const ecma_value_t *, uint32_t);
+ecma_value_t ecma_op_create_shared_arraybuffer_object (ecma_context_t *context_p, const ecma_value_t *, uint32_t);
 
 /**
  * Helper functions for SharedArrayBuffer.
  */
-ecma_object_t *ecma_shared_arraybuffer_new_object (uint32_t lengh);
+ecma_object_t *ecma_shared_arraybuffer_new_object (ecma_context_t *context_p, uint32_t lengh);
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
-bool ecma_is_shared_arraybuffer (ecma_value_t val);
-bool ecma_object_is_shared_arraybuffer (ecma_object_t *val);
+bool ecma_is_shared_arraybuffer (ecma_context_t *context_p, ecma_value_t val);
+bool ecma_object_is_shared_arraybuffer (ecma_context_t *context_p, ecma_object_t *val);
 
 /**
  * @}

@@ -61,7 +61,7 @@ re_cache_lookup (ecma_context_t *context_p, /**< JJS engine context */
       break;
     }
 
-    ecma_string_t *cached_pattern_str_p = ecma_get_string_from_value (cached_bytecode_p->source);
+    ecma_string_t *cached_pattern_str_p = ecma_get_string_from_value (context_p, cached_bytecode_p->source);
 
     if (cached_bytecode_p->header.status_flags == flags
         && ecma_compare_ecma_strings (cached_pattern_str_p, pattern_str_p))
@@ -90,7 +90,7 @@ re_cache_gc (ecma_context_t *context_p)
       break;
     }
 
-    ecma_bytecode_deref ((ecma_compiled_code_t *) cached_bytecode_p);
+    ecma_bytecode_deref (context_p, (ecma_compiled_code_t *) cached_bytecode_p);
     cache_p[i] = NULL;
   }
 
@@ -123,7 +123,7 @@ re_compile_bytecode (ecma_context_t *context_p, /**< JJS engine context */
 
   re_initialize_regexp_bytecode (&re_ctx);
 
-  ECMA_STRING_TO_UTF8_STRING (pattern_str_p, pattern_start_p, pattern_start_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, pattern_str_p, pattern_start_p, pattern_start_size);
 
   re_ctx.input_start_p = pattern_start_p;
   re_ctx.input_curr_p = (lit_utf8_byte_t *) pattern_start_p;
@@ -133,19 +133,19 @@ re_compile_bytecode (ecma_context_t *context_p, /**< JJS engine context */
   /* Parse RegExp pattern */
   ecma_value_t result = re_parse_alternative (&re_ctx, true);
 
-  ECMA_FINALIZE_UTF8_STRING (pattern_start_p, pattern_start_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, pattern_start_p, pattern_start_size);
 
   if (ECMA_IS_VALUE_ERROR (result))
   {
     /* Compilation failed, free bytecode. */
-    jmem_heap_free_block (re_ctx.bytecode_start_p, re_ctx.bytecode_size);
+    jmem_heap_free_block (context_p, re_ctx.bytecode_start_p, re_ctx.bytecode_size);
     return NULL;
   }
 
   /* Align bytecode size to JMEM_ALIGNMENT so that it can be stored in the bytecode header. */
   const uint32_t final_size = JJS_ALIGNUP (re_ctx.bytecode_size, JMEM_ALIGNMENT);
   re_compiled_code_t *re_compiled_code_p =
-    (re_compiled_code_t *) jmem_heap_realloc_block (re_ctx.bytecode_start_p, re_ctx.bytecode_size, final_size);
+    (re_compiled_code_t *) jmem_heap_realloc_block (context_p, re_ctx.bytecode_start_p, re_ctx.bytecode_size, final_size);
 
   /* Bytecoded will be inserted into the cache and returned to the caller, so refcount is implicitly set to 2. */
   re_compiled_code_p->header.refs = 2;
@@ -153,7 +153,7 @@ re_compile_bytecode (ecma_context_t *context_p, /**< JJS engine context */
   re_compiled_code_p->header.status_flags = re_ctx.flags;
 
   ecma_ref_ecma_string (pattern_str_p);
-  re_compiled_code_p->source = ecma_make_string_value (pattern_str_p);
+  re_compiled_code_p->source = ecma_make_string_value (context_p, pattern_str_p);
   re_compiled_code_p->captures_count = re_ctx.captures_count;
   re_compiled_code_p->non_captures_count = re_ctx.non_captures_count;
 
@@ -168,7 +168,7 @@ re_compile_bytecode (ecma_context_t *context_p, /**< JJS engine context */
 
   if (context_p->re_cache[cache_idx] != NULL)
   {
-    ecma_bytecode_deref ((ecma_compiled_code_t *) context_p->re_cache[cache_idx]);
+    ecma_bytecode_deref (context_p, (ecma_compiled_code_t *) context_p->re_cache[cache_idx]);
   }
 
   context_p->re_cache[cache_idx] = re_compiled_code_p;

@@ -87,7 +87,8 @@ ecma_lcache_row_index (jmem_cpointer_t object_cp, /**< compressed pointer to obj
  * Insert an entry into LCache
  */
 void
-ecma_lcache_insert (const ecma_object_t *object_p, /**< object */
+ecma_lcache_insert (ecma_context_t *context_p, /**< JJS context */
+                    const ecma_object_t *object_p, /**< object */
                     const jmem_cpointer_t name_cp, /**< property name */
                     ecma_property_t *prop_p) /**< property */
 {
@@ -97,10 +98,10 @@ ecma_lcache_insert (const ecma_object_t *object_p, /**< object */
 
   jmem_cpointer_t object_cp;
 
-  ECMA_SET_NON_NULL_POINTER (object_cp, object_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, object_cp, object_p);
 
   size_t row_index = ecma_lcache_row_index (object_cp, name_cp);
-  ecma_lcache_hash_entry_t *entry_p = JJS_CONTEXT (lcache)[row_index];
+  ecma_lcache_hash_entry_t *entry_p = context_p->lcache[row_index];
   ecma_lcache_hash_entry_t *entry_end_p = entry_p + ECMA_LCACHE_HASH_ROW_LENGTH;
 
   do
@@ -138,14 +139,15 @@ insert:
  *         NULL otherwise
  */
 extern inline ecma_property_t *JJS_ATTR_ALWAYS_INLINE
-ecma_lcache_lookup (const ecma_object_t *object_p, /**< object */
+ecma_lcache_lookup (ecma_context_t *context_p, /**< JJS context */
+                    const ecma_object_t *object_p, /**< object */
                     const ecma_string_t *prop_name_p) /**< property's name */
 {
   JJS_ASSERT (object_p != NULL);
   JJS_ASSERT (prop_name_p != NULL);
 
   jmem_cpointer_t object_cp;
-  ECMA_SET_NON_NULL_POINTER (object_cp, object_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, object_cp, object_p);
 
   ecma_property_t prop_name_type = ECMA_DIRECT_STRING_PTR;
   jmem_cpointer_t prop_name_cp;
@@ -157,12 +159,12 @@ ecma_lcache_lookup (const ecma_object_t *object_p, /**< object */
   }
   else
   {
-    ECMA_SET_NON_NULL_POINTER (prop_name_cp, prop_name_p);
+    ECMA_SET_NON_NULL_POINTER (context_p, prop_name_cp, prop_name_p);
   }
 
   size_t row_index = ecma_lcache_row_index (object_cp, prop_name_cp);
 
-  ecma_lcache_hash_entry_t *entry_p = JJS_CONTEXT (lcache)[row_index];
+  ecma_lcache_hash_entry_t *entry_p = context_p->lcache[row_index];
   ecma_lcache_hash_entry_t *entry_end_p = entry_p + ECMA_LCACHE_HASH_ROW_LENGTH;
   ecma_lcache_hash_entry_id_t id = ECMA_LCACHE_CREATE_ID (object_cp, prop_name_cp);
 
@@ -183,7 +185,8 @@ ecma_lcache_lookup (const ecma_object_t *object_p, /**< object */
  * Invalidate LCache entries associated with given object and property name / property
  */
 void
-ecma_lcache_invalidate (const ecma_object_t *object_p, /**< object */
+ecma_lcache_invalidate (ecma_context_t *context_p, /**< JJS context */
+                        const ecma_object_t *object_p, /**< object */
                         const jmem_cpointer_t name_cp, /**< property name */
                         ecma_property_t *prop_p) /**< property */
 {
@@ -192,15 +195,15 @@ ecma_lcache_invalidate (const ecma_object_t *object_p, /**< object */
   JJS_ASSERT (ECMA_PROPERTY_IS_NAMED_PROPERTY (*prop_p));
 
   jmem_cpointer_t object_cp;
-  ECMA_SET_NON_NULL_POINTER (object_cp, object_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, object_cp, object_p);
 
   size_t row_index = ecma_lcache_row_index (object_cp, name_cp);
-  ecma_lcache_hash_entry_t *entry_p = JJS_CONTEXT (lcache)[row_index];
+  ecma_lcache_hash_entry_t *entry_p = context_p->lcache[row_index];
 
   while (true)
   {
     /* The property must be present. */
-    JJS_ASSERT (entry_p - JJS_CONTEXT (lcache)[row_index] < ECMA_LCACHE_HASH_ROW_LENGTH);
+    JJS_ASSERT (entry_p - context_p->lcache[row_index] < ECMA_LCACHE_HASH_ROW_LENGTH);
 
     if (entry_p->id != 0 && entry_p->prop_p == prop_p)
     {

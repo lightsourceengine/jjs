@@ -30,96 +30,96 @@
  *
  * @return pointer to allocated memory
  */
-ecma_object_t *ecma_alloc_object (void);
+ecma_object_t *ecma_alloc_object (ecma_context_t *context_p);
 
 /**
  * Dealloc memory from an ecma-object
  */
-void ecma_dealloc_object (ecma_object_t *object_p);
+void ecma_dealloc_object (ecma_context_t *context_p, ecma_object_t *object_p);
 
 /**
  * Allocate memory for extended object
  *
  * @return pointer to allocated memory
  */
-ecma_extended_object_t *ecma_alloc_extended_object (size_t size);
+ecma_extended_object_t *ecma_alloc_extended_object (ecma_context_t *context_p, size_t size);
 
 /**
  * Dealloc memory of an extended object
  */
-void ecma_dealloc_extended_object (ecma_object_t *object_p, size_t size);
+void ecma_dealloc_extended_object (ecma_context_t *context_p, ecma_object_t *object_p, size_t size);
 
 /**
  * Allocate memory for ecma-number
  *
  * @return pointer to allocated memory
  */
-ecma_number_t *ecma_alloc_number (void);
+ecma_number_t *ecma_alloc_number (ecma_context_t *context_p);
 
 /**
  * Dealloc memory from an ecma-number
  */
-void ecma_dealloc_number (ecma_number_t *number_p);
+void ecma_dealloc_number (ecma_context_t *context_p, ecma_number_t *number_p);
 
 /**
  * Allocate memory for ecma-string descriptor
  *
  * @return pointer to allocated memory
  */
-ecma_string_t *ecma_alloc_string (void);
+ecma_string_t *ecma_alloc_string (ecma_context_t *context_p);
 
 /**
  * Dealloc memory from ecma-string descriptor
  */
-void ecma_dealloc_string (ecma_string_t *string_p);
+void ecma_dealloc_string (ecma_context_t *context_p, ecma_string_t *string_p);
 
 /**
  * Allocate memory for extended ecma-string descriptor
  *
  * @return pointer to allocated memory
  */
-ecma_extended_string_t *ecma_alloc_extended_string (void);
+ecma_extended_string_t *ecma_alloc_extended_string (ecma_context_t *context_p);
 
 /**
  * Dealloc memory from extended ecma-string descriptor
  */
-void ecma_dealloc_extended_string (ecma_extended_string_t *string_p);
+void ecma_dealloc_extended_string (ecma_context_t *context_p, ecma_extended_string_t *string_p);
 
 /**
  * Allocate memory for external ecma-string descriptor
  *
  * @return pointer to allocated memory
  */
-ecma_external_string_t *ecma_alloc_external_string (void);
+ecma_external_string_t *ecma_alloc_external_string (ecma_context_t *context_p);
 
 /**
  * Dealloc memory from external ecma-string descriptor
  */
-void ecma_dealloc_external_string (ecma_external_string_t *string_p);
+void ecma_dealloc_external_string (ecma_context_t *context_p, ecma_external_string_t *string_p);
 
 /**
  * Allocate memory for string with character data
  *
  * @return pointer to allocated memory
  */
-ecma_string_t *ecma_alloc_string_buffer (size_t size);
+ecma_string_t *ecma_alloc_string_buffer (ecma_context_t *context_p, size_t size);
 
 /**
  * Dealloc memory of a string with character data
  */
-void ecma_dealloc_string_buffer (ecma_string_t *string_p, size_t size);
+void ecma_dealloc_string_buffer (ecma_context_t *context_p, ecma_string_t *string_p, size_t size);
 
 /**
  * Allocate memory for ecma-property pair
  *
  * @return pointer to allocated memory
  */
-ecma_property_pair_t *ecma_alloc_property_pair (void);
+ecma_property_pair_t *ecma_alloc_property_pair (ecma_context_t *context_p);
 
 /**
  * Dealloc memory from an ecma-property pair
  */
-void ecma_dealloc_property_pair (ecma_property_pair_t *property_pair_p);
+void ecma_dealloc_property_pair (ecma_context_t *context_p, ecma_property_pair_t *property_pair_p);
 
 /**
  * @}

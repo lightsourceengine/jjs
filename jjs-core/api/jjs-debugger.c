@@ -176,7 +176,8 @@ jjs_debugger_wait_for_client_source (jjs_context_t* context_p, /**< JJS context 
     if (client_source_data_p != NULL)
     {
       /* The data may partly arrived. */
-      jmem_heap_free_block (client_source_data_p,
+      jmem_heap_free_block (context_p,
+                            client_source_data_p,
                             client_source_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
     }
 

@@ -49,32 +49,32 @@ typedef enum
   ECMA_BIGINT_UNARY_DECREASE, /**< decrease operation */
 } ecma_bigint_unary_operation_type;
 
-ecma_value_t ecma_bigint_parse_string (const lit_utf8_byte_t *string_p, lit_utf8_size_t size, uint32_t options);
-ecma_value_t ecma_bigint_parse_string_value (ecma_value_t string, uint32_t options);
-ecma_string_t *ecma_bigint_to_string (ecma_value_t value, ecma_bigint_digit_t radix);
-ecma_value_t ecma_bigint_to_bigint (ecma_value_t value, bool allow_numbers);
-ecma_value_t ecma_bigint_to_number (ecma_value_t value);
-ecma_value_t ecma_bigint_get_bigint (ecma_value_t value, bool *free_result_p);
-ecma_value_t ecma_bigint_create_from_digits (const uint64_t *digits_p, uint32_t size, bool sign);
-uint32_t ecma_bigint_get_size_in_digits (ecma_value_t value);
-void ecma_bigint_get_digits_and_sign (ecma_value_t value, uint64_t *digits_p, uint32_t size, bool *sign_p);
+ecma_value_t ecma_bigint_parse_string (ecma_context_t *context_p, const lit_utf8_byte_t *string_p, lit_utf8_size_t size, uint32_t options);
+ecma_value_t ecma_bigint_parse_string_value (ecma_context_t *context_p, ecma_value_t string, uint32_t options);
+ecma_string_t *ecma_bigint_to_string (ecma_context_t *context_p, ecma_value_t value, ecma_bigint_digit_t radix);
+ecma_value_t ecma_bigint_to_bigint (ecma_context_t *context_p, ecma_value_t value, bool allow_numbers);
+ecma_value_t ecma_bigint_to_number (ecma_context_t *context_p, ecma_value_t value);
+ecma_value_t ecma_bigint_get_bigint (ecma_context_t *context_p, ecma_value_t value, bool *free_result_p);
+ecma_value_t ecma_bigint_create_from_digits (ecma_context_t *context_p, const uint64_t *digits_p, uint32_t size, bool sign);
+uint32_t ecma_bigint_get_size_in_digits (ecma_context_t *context_p, ecma_value_t value);
+void ecma_bigint_get_digits_and_sign (ecma_context_t *context_p, ecma_value_t value, uint64_t *digits_p, uint32_t size, bool *sign_p);
 
-bool ecma_bigint_is_equal_to_bigint (ecma_value_t left_value, ecma_value_t right_value);
-bool ecma_bigint_is_equal_to_number (ecma_value_t left_value, ecma_number_t right_value);
-int ecma_bigint_compare_to_bigint (ecma_value_t left_value, ecma_value_t right_value);
-int ecma_bigint_compare_to_number (ecma_value_t left_value, ecma_number_t right_value);
+bool ecma_bigint_is_equal_to_bigint (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
+bool ecma_bigint_is_equal_to_number (ecma_context_t *context_p, ecma_value_t left_value, ecma_number_t right_value);
+int ecma_bigint_compare_to_bigint (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
+int ecma_bigint_compare_to_number (ecma_context_t *context_p, ecma_value_t left_value, ecma_number_t right_value);
 
-ecma_value_t ecma_bigint_negate (ecma_extended_primitive_t *value_p);
-ecma_value_t ecma_bigint_unary (ecma_value_t value, ecma_bigint_unary_operation_type type);
-ecma_value_t ecma_bigint_add_sub (ecma_value_t left_value, ecma_value_t right_value, bool is_add);
-ecma_value_t ecma_bigint_mul (ecma_value_t left_value, ecma_value_t right_value);
-ecma_value_t ecma_bigint_div_mod (ecma_value_t left_value, ecma_value_t right_value, bool is_mod);
-ecma_value_t ecma_bigint_shift (ecma_value_t left_value, ecma_value_t right_value, bool is_left);
-ecma_value_t ecma_bigint_pow (ecma_value_t left_value, ecma_value_t right_value);
+ecma_value_t ecma_bigint_negate (ecma_context_t *context_p, ecma_extended_primitive_t *value_p);
+ecma_value_t ecma_bigint_unary (ecma_context_t *context_p, ecma_value_t value, ecma_bigint_unary_operation_type type);
+ecma_value_t ecma_bigint_add_sub (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value, bool is_add);
+ecma_value_t ecma_bigint_mul (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
+ecma_value_t ecma_bigint_div_mod (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value, bool is_mod);
+ecma_value_t ecma_bigint_shift (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value, bool is_left);
+ecma_value_t ecma_bigint_pow (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
 
-ecma_value_t ecma_bigint_and (ecma_value_t left_value, ecma_value_t right_value);
-ecma_value_t ecma_bigint_or (ecma_value_t left_value, ecma_value_t right_value);
-ecma_value_t ecma_bigint_xor (ecma_value_t left_value, ecma_value_t right_value);
+ecma_value_t ecma_bigint_and (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
+ecma_value_t ecma_bigint_or (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
+ecma_value_t ecma_bigint_xor (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
 
 #endif /* JJS_BUILTIN_BIGINT */
 

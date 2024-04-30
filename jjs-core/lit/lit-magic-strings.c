@@ -30,9 +30,9 @@
  *         zero - otherwise.
  */
 extern inline uint32_t JJS_ATTR_ALWAYS_INLINE
-lit_get_magic_string_ex_count (void)
+lit_get_magic_string_ex_count (jjs_context_t *context_p)
 {
-  return JJS_CONTEXT (lit_magic_string_ex_count);
+  return context_p->lit_magic_string_ex_count;
 } /* lit_get_magic_string_ex_count */
 
 /**
@@ -112,11 +112,12 @@ lit_get_magic_string_size_block_start (lit_utf8_size_t size) /**< magic string s
  * @return pointer to zero-terminated magic string
  */
 const lit_utf8_byte_t *
-lit_get_magic_string_ex_utf8 (uint32_t id) /**< extern magic string id */
+lit_get_magic_string_ex_utf8 (jjs_context_t *context_p, /**< JJS context */
+                              uint32_t id) /**< extern magic string id */
 {
-  JJS_ASSERT (JJS_CONTEXT (lit_magic_string_ex_array) && id < JJS_CONTEXT (lit_magic_string_ex_count));
+  JJS_ASSERT (context_p->lit_magic_string_ex_array && id < context_p->lit_magic_string_ex_count);
 
-  return JJS_CONTEXT (lit_magic_string_ex_array)[id];
+  return context_p->lit_magic_string_ex_array[id];
 } /* lit_get_magic_string_ex_utf8 */
 
 /**
@@ -125,16 +126,18 @@ lit_get_magic_string_ex_utf8 (uint32_t id) /**< extern magic string id */
  * @return size in bytes
  */
 lit_utf8_size_t
-lit_get_magic_string_ex_size (uint32_t id) /**< external magic string id */
+lit_get_magic_string_ex_size (jjs_context_t *context_p, /**< JJS context */
+                              uint32_t id) /**< external magic string id */
 {
-  return JJS_CONTEXT (lit_magic_string_ex_sizes)[id];
+  return context_p->lit_magic_string_ex_sizes[id];
 } /* lit_get_magic_string_ex_size */
 
 /**
  * Register external magic strings
  */
 void
-lit_magic_strings_ex_set (const lit_utf8_byte_t *const *ex_str_items, /**< character arrays, representing
+lit_magic_strings_ex_set (jjs_context_t *context_p, /**< JJS context */
+                          const lit_utf8_byte_t *const *ex_str_items, /**< character arrays, representing
                                                                        *   external magic strings' contents */
                           uint32_t count, /**< number of the strings */
                           const lit_utf8_size_t *ex_str_sizes) /**< sizes of the strings */
@@ -143,9 +146,9 @@ lit_magic_strings_ex_set (const lit_utf8_byte_t *const *ex_str_items, /**< chara
   JJS_ASSERT (count > 0);
   JJS_ASSERT (ex_str_sizes != NULL);
 
-  JJS_ASSERT (JJS_CONTEXT (lit_magic_string_ex_array) == NULL);
-  JJS_ASSERT (JJS_CONTEXT (lit_magic_string_ex_count) == 0);
-  JJS_ASSERT (JJS_CONTEXT (lit_magic_string_ex_sizes) == NULL);
+  JJS_ASSERT (context_p->lit_magic_string_ex_array == NULL);
+  JJS_ASSERT (context_p->lit_magic_string_ex_count == 0);
+  JJS_ASSERT (context_p->lit_magic_string_ex_sizes == NULL);
 
   /* Limit the number of external magic strings */
   if (count > LIT_EXTERNAL_MAGIC_STRING_LIMIT)
@@ -154,15 +157,16 @@ lit_magic_strings_ex_set (const lit_utf8_byte_t *const *ex_str_items, /**< chara
   }
 
   /* Set external magic strings information */
-  JJS_CONTEXT (lit_magic_string_ex_array) = ex_str_items;
-  JJS_CONTEXT (lit_magic_string_ex_count) = count;
-  JJS_CONTEXT (lit_magic_string_ex_sizes) = ex_str_sizes;
+  context_p->lit_magic_string_ex_array = ex_str_items;
+  context_p->lit_magic_string_ex_count = count;
+  context_p->lit_magic_string_ex_sizes = ex_str_sizes;
 
 #ifndef JJS_NDEBUG
-  for (lit_magic_string_ex_id_t id = (lit_magic_string_ex_id_t) 0; id < JJS_CONTEXT (lit_magic_string_ex_count);
+  lit_magic_string_ex_id_t string_ex_count = context_p->lit_magic_string_ex_count;
+  for (lit_magic_string_ex_id_t id = (lit_magic_string_ex_id_t) 0; id < string_ex_count;
        id = (lit_magic_string_ex_id_t) (id + 1))
   {
-    lit_utf8_size_t string_size = JJS_CONTEXT (lit_magic_string_ex_sizes)[id];
+    lit_utf8_size_t string_size = context_p->lit_magic_string_ex_sizes[id];
 
     /**
      * Check whether the strings are sorted by size and lexicographically,
@@ -171,14 +175,14 @@ lit_magic_strings_ex_set (const lit_utf8_byte_t *const *ex_str_items, /**< chara
     if (id > 0)
     {
       const lit_magic_string_ex_id_t prev_id = id - 1;
-      const lit_utf8_size_t prev_string_size = lit_get_magic_string_ex_size (prev_id);
-      JJS_ASSERT (lit_is_valid_cesu8_string (lit_get_magic_string_ex_utf8 (id), string_size));
+      const lit_utf8_size_t prev_string_size = lit_get_magic_string_ex_size (context_p, prev_id);
+      JJS_ASSERT (lit_is_valid_cesu8_string (lit_get_magic_string_ex_utf8 (context_p, id), string_size));
       JJS_ASSERT (prev_string_size <= string_size);
 
       if (prev_string_size == string_size)
       {
-        const lit_utf8_byte_t *prev_ex_string_p = lit_get_magic_string_ex_utf8 (prev_id);
-        const lit_utf8_byte_t *curr_ex_string_p = lit_get_magic_string_ex_utf8 (id);
+        const lit_utf8_byte_t *prev_ex_string_p = lit_get_magic_string_ex_utf8 (context_p, prev_id);
+        const lit_utf8_byte_t *curr_ex_string_p = lit_get_magic_string_ex_utf8 (context_p, id);
         JJS_ASSERT (memcmp (prev_ex_string_p, curr_ex_string_p, string_size) < 0);
       }
     }
@@ -286,12 +290,13 @@ lit_is_utf8_string_pair_magic (const lit_utf8_byte_t *string1_p, /**< first utf-
  *         lit_get_magic_string_ex_count () - otherwise.
  */
 lit_magic_string_ex_id_t
-lit_is_ex_utf8_string_magic (const lit_utf8_byte_t *string_p, /**< utf-8 string */
+lit_is_ex_utf8_string_magic (jjs_context_t *context_p, /**< JJS context */
+                             const lit_utf8_byte_t *string_p, /**< utf-8 string */
                              lit_utf8_size_t string_size) /**< string size in bytes */
 {
-  const uint32_t magic_string_ex_count = lit_get_magic_string_ex_count ();
+  const uint32_t magic_string_ex_count = lit_get_magic_string_ex_count (context_p);
 
-  if (magic_string_ex_count == 0 || string_size > lit_get_magic_string_ex_size (magic_string_ex_count - 1))
+  if (magic_string_ex_count == 0 || string_size > lit_get_magic_string_ex_size (context_p, magic_string_ex_count - 1))
   {
     return (lit_magic_string_ex_id_t) magic_string_ex_count;
   }
@@ -302,8 +307,8 @@ lit_is_ex_utf8_string_magic (const lit_utf8_byte_t *string_p, /**< utf-8 string 
   while (first < last)
   {
     const lit_magic_string_ex_id_t middle = (first + last) / 2;
-    const lit_utf8_byte_t *ext_string_p = lit_get_magic_string_ex_utf8 (middle);
-    const lit_utf8_size_t ext_string_size = lit_get_magic_string_ex_size (middle);
+    const lit_utf8_byte_t *ext_string_p = lit_get_magic_string_ex_utf8 (context_p, middle);
+    const lit_utf8_size_t ext_string_size = lit_get_magic_string_ex_size (context_p, middle);
 
     if (string_size == ext_string_size)
     {
@@ -342,15 +347,16 @@ lit_is_ex_utf8_string_magic (const lit_utf8_byte_t *string_p, /**< utf-8 string 
  *         lit_get_magic_string_ex_count () - otherwise.
  */
 lit_magic_string_ex_id_t
-lit_is_ex_utf8_string_pair_magic (const lit_utf8_byte_t *string1_p, /**< first utf-8 string */
+lit_is_ex_utf8_string_pair_magic (jjs_context_t *context_p, /**< JJS context */
+                                  const lit_utf8_byte_t *string1_p, /**< first utf-8 string */
                                   lit_utf8_size_t string1_size, /**< first string size in bytes */
                                   const lit_utf8_byte_t *string2_p, /**< second utf-8 string */
                                   lit_utf8_size_t string2_size) /**< second string size in bytes */
 {
-  const uint32_t magic_string_ex_count = lit_get_magic_string_ex_count ();
+  const uint32_t magic_string_ex_count = lit_get_magic_string_ex_count (context_p);
   const lit_utf8_size_t total_string_size = string1_size + string2_size;
 
-  if (magic_string_ex_count == 0 || total_string_size > lit_get_magic_string_ex_size (magic_string_ex_count - 1))
+  if (magic_string_ex_count == 0 || total_string_size > lit_get_magic_string_ex_size (context_p, magic_string_ex_count - 1))
   {
     return (lit_magic_string_ex_id_t) magic_string_ex_count;
   }
@@ -361,8 +367,8 @@ lit_is_ex_utf8_string_pair_magic (const lit_utf8_byte_t *string1_p, /**< first u
   while (first < last)
   {
     const lit_magic_string_ex_id_t middle = (first + last) / 2;
-    const lit_utf8_byte_t *ext_string_p = lit_get_magic_string_ex_utf8 (middle);
-    const lit_utf8_size_t ext_string_size = lit_get_magic_string_ex_size (middle);
+    const lit_utf8_byte_t *ext_string_p = lit_get_magic_string_ex_utf8 (context_p, middle);
+    const lit_utf8_size_t ext_string_size = lit_get_magic_string_ex_size (context_p, middle);
 
     if (total_string_size == ext_string_size)
     {

@@ -648,7 +648,8 @@ parser_emit_cbc_backward_branch (parser_context_t *parser_context_p, /**< contex
  * @return a new string based on encode.
  */
 ecma_string_t *
-parser_new_ecma_string_from_literal (lexer_literal_t *literal_p) /**< literal */
+parser_new_ecma_string_from_literal (parser_context_t *parser_context_p, /**< parser context */
+                                     lexer_literal_t *literal_p) /**< literal */
 {
   JJS_ASSERT (literal_p != NULL);
 
@@ -656,11 +657,11 @@ parser_new_ecma_string_from_literal (lexer_literal_t *literal_p) /**< literal */
 
   if (literal_p->status_flags & LEXER_FLAG_ASCII)
   {
-    new_string = ecma_new_ecma_string_from_ascii (literal_p->u.char_p, literal_p->prop.length);
+    new_string = ecma_new_ecma_string_from_ascii (parser_context_p->context_p, literal_p->u.char_p, literal_p->prop.length);
   }
   else
   {
-    new_string = ecma_new_ecma_string_from_utf8 (literal_p->u.char_p, literal_p->prop.length);
+    new_string = ecma_new_ecma_string_from_utf8 (parser_context_p->context_p, literal_p->u.char_p, literal_p->prop.length);
   }
 
   return new_string;
@@ -730,7 +731,7 @@ parser_set_breaks_to_current_position (parser_context_t *parser_context_p, /**< 
     {
       parser_set_branch_to_current_position (parser_context_p, &current_p->branch);
     }
-    parser_free (current_p, sizeof (parser_branch_node_t));
+    parser_free (parser_context_p, current_p, sizeof (parser_branch_node_t));
     current_p = next_p;
   }
 } /* parser_set_breaks_to_current_position */
@@ -862,7 +863,7 @@ parser_reverse_class_fields (parser_context_t *parser_context_p, /**< context */
     } while (current_p > data_p);
   }
 
-  parser_free (data_p, fields_size);
+  parser_free (parser_context_p, data_p, fields_size);
 } /* parser_reverse_class_fields */
 
 /**

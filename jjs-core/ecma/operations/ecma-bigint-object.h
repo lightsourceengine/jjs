@@ -27,7 +27,7 @@
  * @{
  */
 
-ecma_value_t ecma_op_create_bigint_object (ecma_value_t arg);
+ecma_value_t ecma_op_create_bigint_object (ecma_context_t *context_p, ecma_value_t arg);
 
 /**
  * @}

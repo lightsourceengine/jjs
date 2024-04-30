@@ -248,11 +248,11 @@ ecma_builtin_is_global (ecma_object_t *object_p) /**< pointer to an object */
  * @return pointer to the global object
  */
 extern inline ecma_object_t *JJS_ATTR_ALWAYS_INLINE
-ecma_builtin_get_global (void)
+ecma_builtin_get_global (ecma_context_t *context_p) /**< JJS context */
 {
-  JJS_ASSERT (JJS_CONTEXT (global_object_p) != NULL);
+  JJS_ASSERT (context_p->global_object_p != NULL);
 
-  return (ecma_object_t *) JJS_CONTEXT (global_object_p);
+  return (ecma_object_t *) context_p->global_object_p;
 } /* ecma_builtin_get_global */
 
 /**

@@ -48,16 +48,16 @@ typedef struct
   uintptr_t next_and_type; /**< next and type members of a queue item */
 } ecma_job_queue_item_t;
 
-void ecma_job_queue_init (void);
+void ecma_job_queue_init (ecma_context_t *context_p);
 
-void ecma_enqueue_promise_reaction_job (ecma_value_t capability, ecma_value_t handler, ecma_value_t argument);
-void ecma_enqueue_promise_async_reaction_job (ecma_value_t executable_object, ecma_value_t argument, bool is_rejected);
-void ecma_enqueue_promise_async_generator_job (ecma_value_t executable_object);
-void ecma_enqueue_promise_resolve_thenable_job (ecma_value_t promise, ecma_value_t thenable, ecma_value_t then);
-void ecma_enqueue_microtask_job(ecma_value_t callback);
-void ecma_free_all_enqueued_jobs (void);
-bool ecma_has_enqueued_jobs (void);
-ecma_value_t ecma_process_all_enqueued_jobs (void);
+void ecma_enqueue_promise_reaction_job (ecma_context_t *context_p, ecma_value_t capability, ecma_value_t handler, ecma_value_t argument);
+void ecma_enqueue_promise_async_reaction_job (ecma_context_t *context_p, ecma_value_t executable_object, ecma_value_t argument, bool is_rejected);
+void ecma_enqueue_promise_async_generator_job (ecma_context_t *context_p, ecma_value_t executable_object);
+void ecma_enqueue_promise_resolve_thenable_job (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t thenable, ecma_value_t then);
+void ecma_enqueue_microtask_job(ecma_context_t *context_p, ecma_value_t callback);
+void ecma_free_all_enqueued_jobs (ecma_context_t *context_p);
+bool ecma_has_enqueued_jobs (ecma_context_t *context_p);
+ecma_value_t ecma_process_all_enqueued_jobs (ecma_context_t *context_p);
 
 /**
  * @}

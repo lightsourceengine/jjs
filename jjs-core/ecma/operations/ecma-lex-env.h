@@ -33,10 +33,10 @@
 
 void ecma_init_global_environment (ecma_context_t *context_p);
 void ecma_finalize_global_environment (ecma_context_t *context_p);
-ecma_object_t *ecma_get_global_environment (ecma_object_t *global_object_p);
-ecma_object_t *ecma_get_global_scope (ecma_object_t *global_object_p);
-void ecma_create_global_lexical_block (ecma_object_t *global_object_p);
-ecma_value_t ecma_op_raise_set_binding_error (ecma_property_t *property_p, bool is_strict);
+ecma_object_t *ecma_get_global_environment (ecma_context_t *context_p, ecma_object_t *global_object_p);
+ecma_object_t *ecma_get_global_scope (ecma_context_t *context_p, ecma_object_t *global_object_p);
+void ecma_create_global_lexical_block (ecma_context_t *context_p, ecma_object_t *global_object_p);
+ecma_value_t ecma_op_raise_set_binding_error (ecma_context_t *context_p, ecma_property_t *property_p, bool is_strict);
 
 /**
  * @}
@@ -44,33 +44,34 @@ ecma_value_t ecma_op_raise_set_binding_error (ecma_property_t *property_p, bool 
 
 /* ECMA-262 v5, 8.7.1 and 8.7.2 */
 ecma_value_t
-ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, ecma_object_t **ref_base_lex_env_p, ecma_string_t *name_p);
-ecma_value_t ecma_op_get_value_object_base (ecma_value_t base_value, ecma_string_t *property_name_p);
-ecma_value_t ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p,
+ecma_op_get_value_lex_env_base (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_object_t **ref_base_lex_env_p, ecma_string_t *name_p);
+ecma_value_t ecma_op_get_value_object_base (ecma_context_t *context_p, ecma_value_t base_value, ecma_string_t *property_name_p);
+ecma_value_t ecma_op_put_value_lex_env_base (ecma_context_t *context_p,
+                                             ecma_object_t *lex_env_p,
                                              ecma_string_t *var_name_string_p,
                                              bool is_strict,
                                              ecma_value_t value);
 
 /* ECMA-262 v5, Table 17. Abstract methods of Environment Records */
-ecma_value_t ecma_op_has_binding (ecma_object_t *lex_env_p, ecma_string_t *name_p);
-ecma_property_t *ecma_op_create_mutable_binding (ecma_object_t *lex_env_p, ecma_string_t *name_p, bool is_deletable);
+ecma_value_t ecma_op_has_binding (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_string_t *name_p);
+ecma_property_t *ecma_op_create_mutable_binding (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_string_t *name_p, bool is_deletable);
 ecma_value_t
-ecma_op_set_mutable_binding (ecma_object_t *lex_env_p, ecma_string_t *name_p, ecma_value_t value, bool is_strict);
-ecma_value_t ecma_op_get_binding_value (ecma_object_t *lex_env_p, ecma_string_t *name_p, bool is_strict);
-ecma_value_t ecma_op_delete_binding (ecma_object_t *lex_env_p, ecma_string_t *name_p);
-ecma_value_t ecma_op_implicit_this_value (ecma_object_t *lex_env_p);
+ecma_op_set_mutable_binding (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_string_t *name_p, ecma_value_t value, bool is_strict);
+ecma_value_t ecma_op_get_binding_value (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_string_t *name_p, bool is_strict);
+ecma_value_t ecma_op_delete_binding (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_string_t *name_p);
+ecma_value_t ecma_op_implicit_this_value (ecma_context_t *context_p, ecma_object_t *lex_env_p);
 
 /* ECMA-262 v5, Table 18. Additional methods of Declarative Environment Records */
-void ecma_op_create_immutable_binding (ecma_object_t *lex_env_p, ecma_string_t *name_p, ecma_value_t value);
+void ecma_op_create_immutable_binding (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_string_t *name_p, ecma_value_t value);
 
-void ecma_op_initialize_binding (ecma_object_t *lex_env_p, ecma_string_t *name_p, ecma_value_t value);
+void ecma_op_initialize_binding (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_string_t *name_p, ecma_value_t value);
 
-void ecma_op_create_environment_record (ecma_object_t *lex_env_p, ecma_value_t this_binding, ecma_object_t *func_obj_p);
-ecma_environment_record_t *ecma_op_get_environment_record (ecma_object_t *lex_env_p);
+void ecma_op_create_environment_record (ecma_context_t *context_p, ecma_object_t *lex_env_p, ecma_value_t this_binding, ecma_object_t *func_obj_p);
+ecma_environment_record_t *ecma_op_get_environment_record (ecma_context_t *context_p, ecma_object_t *lex_env_p);
 
 bool ecma_op_this_binding_is_initialized (ecma_environment_record_t *environment_record_p);
 void ecma_op_bind_this_value (ecma_environment_record_t *environment_record_p, ecma_value_t this_binding);
-ecma_value_t ecma_op_get_this_binding (ecma_object_t *lex_env_p);
+ecma_value_t ecma_op_get_this_binding (ecma_context_t *context_p, ecma_object_t *lex_env_p);
 
 /**
  * @}

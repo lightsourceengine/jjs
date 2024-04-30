@@ -49,9 +49,9 @@
 
 void jmem_heap_init (jjs_context_t *context_p);
 void jmem_heap_finalize (jjs_context_t *context_p);
-bool jmem_is_heap_pointer (const void *pointer);
-void *jmem_heap_alloc_block_internal (const size_t size);
-void jmem_heap_free_block_internal (void *ptr, const size_t size);
+bool jmem_is_heap_pointer (jjs_context_t *context_p, const void *pointer);
+void *jmem_heap_alloc_block_internal (jjs_context_t *context_p, const size_t size);
+void jmem_heap_free_block_internal (jjs_context_t *context_p, void *ptr, const size_t size);
 
 /**
  * \addtogroup poolman Memory pool manager

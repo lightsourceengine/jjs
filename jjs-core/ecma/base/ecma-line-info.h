@@ -97,7 +97,7 @@ uint32_t ecma_line_info_decode_vlq (uint8_t **buffer_p);
 uint32_t ecma_line_info_difference_update (uint32_t current_value, uint32_t difference_value);
 
 /* General functions. */
-void ecma_line_info_free (uint8_t *line_info_p);
+void ecma_line_info_free (ecma_context_t *context_p, uint8_t *line_info_p);
 void ecma_line_info_get (uint8_t *line_info_p, uint32_t offset, jjs_frame_location_t *location_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE

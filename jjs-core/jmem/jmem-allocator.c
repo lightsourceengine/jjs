@@ -177,10 +177,11 @@ jmem_finalize (jjs_context_t *context_p)
  * @return packed pointer
  */
 extern inline jmem_cpointer_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-jmem_compress_pointer (const void *pointer_p) /**< pointer to compress */
+jmem_compress_pointer (jjs_context_t *context_p, /**< JJS context */
+                       const void *pointer_p) /**< pointer to compress */
 {
   JJS_ASSERT (pointer_p != NULL);
-  JJS_ASSERT (jmem_is_heap_pointer (pointer_p));
+  JJS_ASSERT (jmem_is_heap_pointer (context_p, pointer_p));
 
   uintptr_t uint_ptr = (uintptr_t) pointer_p;
 
@@ -189,7 +190,7 @@ jmem_compress_pointer (const void *pointer_p) /**< pointer to compress */
 #if defined(ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY) && JJS_CPOINTER_32_BIT
   JJS_ASSERT (((jmem_cpointer_t) uint_ptr) == uint_ptr);
 #else /* !ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY || !JJS_CPOINTER_32_BIT */
-  const uintptr_t heap_start = (uintptr_t) &JJS_HEAP_CONTEXT (first);
+  const uintptr_t heap_start = (uintptr_t) &context_p->heap_p->first;
 
   uint_ptr -= heap_start;
   uint_ptr >>= JMEM_ALIGNMENT_LOG;
@@ -211,7 +212,8 @@ jmem_compress_pointer (const void *pointer_p) /**< pointer to compress */
  * @return unpacked pointer
  */
 extern inline void *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-jmem_decompress_pointer (uintptr_t compressed_pointer) /**< pointer to decompress */
+jmem_decompress_pointer (jjs_context_t *context_p, /**< JJS context */
+                         uintptr_t compressed_pointer) /**< pointer to decompress */
 {
   JJS_ASSERT (compressed_pointer != JMEM_CP_NULL);
 
@@ -222,12 +224,12 @@ jmem_decompress_pointer (uintptr_t compressed_pointer) /**< pointer to decompres
 #if defined(ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY) && JJS_CPOINTER_32_BIT
   JJS_ASSERT (uint_ptr % JMEM_ALIGNMENT == 0);
 #else /* !ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY || !JJS_CPOINTER_32_BIT */
-  const uintptr_t heap_start = (uintptr_t) &JJS_HEAP_CONTEXT (first);
+  const uintptr_t heap_start = (uintptr_t) &context_p->heap_p->first;
 
   uint_ptr <<= JMEM_ALIGNMENT_LOG;
   uint_ptr += heap_start;
 
-  JJS_ASSERT (jmem_is_heap_pointer ((void *) uint_ptr));
+  JJS_ASSERT (jmem_is_heap_pointer (context_p, (void *) uint_ptr));
 #endif /* ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY && JJS_CPOINTER_32_BIT */
 
   return (void *) uint_ptr;

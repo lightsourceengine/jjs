@@ -604,11 +604,11 @@ typedef struct
 /**
  * Create internal property.
  */
-#define ECMA_CREATE_INTERNAL_PROPERTY(object_p, name_p, property_p, property_value_p)              \
-  do                                                                                               \
-  {                                                                                                \
-    (property_value_p) = ecma_create_named_data_property ((object_p), (name_p), 0, &(property_p)); \
-    JJS_ASSERT (*(property_p) == ECMA_PROPERTY_INTERNAL);                                        \
+#define ECMA_CREATE_INTERNAL_PROPERTY(ctx, object_p, name_p, property_p, property_value_p)                \
+  do                                                                                                      \
+  {                                                                                                       \
+    (property_value_p) = ecma_create_named_data_property ((ctx), (object_p), (name_p), 0, &(property_p)); \
+    JJS_ASSERT (*(property_p) == ECMA_PROPERTY_INTERNAL);                                                 \
   } while (0)
 
 /**
@@ -1699,6 +1699,7 @@ typedef struct
 typedef struct ecma_stringbuilder_t
 {
   ecma_stringbuilder_header_t *header_p; /**< pointer to header */
+  ecma_context_t *context_p; /**< JJS context */
 } ecma_stringbuilder_t;
 
 #ifndef JJS_BUILTIN_BIGINT
@@ -1810,12 +1811,12 @@ typedef struct
 /**
  * Function callback descriptor of a %TypedArray% object getter
  */
-typedef ecma_value_t (*ecma_typedarray_getter_fn_t) (lit_utf8_byte_t *src);
+typedef ecma_value_t (*ecma_typedarray_getter_fn_t) (ecma_context_t *context_p, lit_utf8_byte_t *src);
 
 /**
  * Function callback descriptor of a %TypedArray% object setter
  */
-typedef ecma_value_t (*ecma_typedarray_setter_fn_t) (lit_utf8_byte_t *src, ecma_value_t value);
+typedef ecma_value_t (*ecma_typedarray_setter_fn_t) (ecma_context_t *context_p, lit_utf8_byte_t *src, ecma_value_t value);
 
 /**
  * Builtin id for the different types of TypedArray's

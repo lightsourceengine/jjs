@@ -84,7 +84,8 @@ ecma_get_value_type_field (ecma_value_t value) /**< ecma value */
  * @return ecma value
  */
 static inline ecma_value_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_pointer_to_ecma_value (const void *ptr) /**< pointer */
+ecma_pointer_to_ecma_value (ecma_context_t *context_p, /**< JJS context */
+                            const void *ptr) /**< pointer */
 {
 #ifdef ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY
 
@@ -96,7 +97,7 @@ ecma_pointer_to_ecma_value (const void *ptr) /**< pointer */
 #else /* !ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY */
 
   jmem_cpointer_t ptr_cp;
-  ECMA_SET_NON_NULL_POINTER (ptr_cp, ptr);
+  ECMA_SET_NON_NULL_POINTER (context_p, ptr_cp, ptr);
   return ((ecma_value_t) ptr_cp) << ECMA_VALUE_SHIFT;
 
 #endif /* ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY */
@@ -108,14 +109,16 @@ ecma_pointer_to_ecma_value (const void *ptr) /**< pointer */
  * @return pointer
  */
 static inline void *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_pointer_from_ecma_value (ecma_value_t value) /**< value */
+ecma_get_pointer_from_ecma_value (ecma_context_t *context_p, /**< JJS context */
+                                  ecma_value_t value) /**< value */
 {
 #ifdef ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY
+  JJS_UNUSED (context_p);
   void *ptr = (void *) (uintptr_t) ((value) & ~ECMA_VALUE_TYPE_MASK);
   JJS_ASSERT (ptr != NULL);
   return ptr;
 #else /* !ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY */
-  return ECMA_GET_NON_NULL_POINTER (void, value >> ECMA_VALUE_SHIFT);
+  return ECMA_GET_NON_NULL_POINTER (context_p, void, value >> ECMA_VALUE_SHIFT);
 #endif /* ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY */
 } /* ecma_get_pointer_from_ecma_value */
 
@@ -439,14 +442,15 @@ ecma_check_value_type_is_spec_defined (ecma_value_t value) /**< ecma value */
  *         ECMA_VALUE_{TRUE/FALSE} - depends on whether 'arg' is an array object
  */
 ecma_value_t
-ecma_is_value_array (ecma_value_t arg) /**< argument */
+ecma_is_value_array (ecma_context_t *context_p, /**< JJS context */
+                     ecma_value_t arg) /**< argument */
 {
   if (!ecma_is_value_object (arg))
   {
     return ECMA_VALUE_FALSE;
   }
 
-  ecma_object_t *arg_obj_p = ecma_get_object_from_value (arg);
+  ecma_object_t *arg_obj_p = ecma_get_object_from_value (context_p, arg);
 
   if (ecma_get_object_base_type (arg_obj_p) == ECMA_OBJECT_BASE_TYPE_ARRAY)
   {
@@ -460,10 +464,10 @@ ecma_is_value_array (ecma_value_t arg) /**< argument */
 
     if (proxy_obj_p->handler == ECMA_VALUE_NULL)
     {
-      return ecma_raise_type_error (ECMA_ERR_PROXY_HANDLER_IS_NULL_FOR_ISARRAY_OPERATION);
+      return ecma_raise_type_error (context_p, ECMA_ERR_PROXY_HANDLER_IS_NULL_FOR_ISARRAY_OPERATION);
     }
 
-    return ecma_is_value_array (proxy_obj_p->target);
+    return ecma_is_value_array (context_p, proxy_obj_p->target);
   }
 #endif /* JJS_BUILTIN_PROXY */
 
@@ -503,13 +507,14 @@ ecma_make_integer_value (ecma_integer_value_t integer_value) /**< integer number
  * @return ecma-value
  */
 static ecma_value_t
-ecma_create_float_number (ecma_number_t ecma_number) /**< value of the float number */
+ecma_create_float_number (ecma_context_t *context_p, /**< JJS context */
+                          ecma_number_t ecma_number) /**< value of the float number */
 {
-  ecma_number_t *ecma_num_p = ecma_alloc_number ();
+  ecma_number_t *ecma_num_p = ecma_alloc_number (context_p);
 
   *ecma_num_p = ecma_number;
 
-  return ecma_pointer_to_ecma_value (ecma_num_p) | ECMA_TYPE_FLOAT;
+  return ecma_pointer_to_ecma_value (context_p, ecma_num_p) | ECMA_TYPE_FLOAT;
 } /* ecma_create_float_number */
 
 /**
@@ -518,9 +523,10 @@ ecma_create_float_number (ecma_number_t ecma_number) /**< value of the float num
  * @return ecma-value
  */
 extern inline ecma_value_t JJS_ATTR_ALWAYS_INLINE
-ecma_make_float_value (ecma_number_t *ecma_num_p) /**< pointer to the float number */
+ecma_make_float_value (ecma_context_t *context_p, /**< JJS context */
+                       ecma_number_t *ecma_num_p) /**< pointer to the float number */
 {
-  return ecma_pointer_to_ecma_value (ecma_num_p) | ECMA_TYPE_FLOAT;
+  return ecma_pointer_to_ecma_value (context_p, ecma_num_p) | ECMA_TYPE_FLOAT;
 } /* ecma_make_float_value */
 
 /**
@@ -529,9 +535,9 @@ ecma_make_float_value (ecma_number_t *ecma_num_p) /**< pointer to the float numb
  * @return ecma-value
  */
 extern inline ecma_value_t JJS_ATTR_ALWAYS_INLINE JJS_ATTR_CONST
-ecma_make_nan_value (void)
+ecma_make_nan_value (ecma_context_t *context_p)
 {
-  return ecma_create_float_number (ecma_number_make_nan ());
+  return ecma_create_float_number (context_p, ecma_number_make_nan ());
 } /* ecma_make_nan_value */
 
 /**
@@ -551,14 +557,15 @@ ecma_is_number_equal_to_positive_zero (ecma_number_t ecma_number) /**< number */
  * @return ecma-value
  */
 ecma_value_t
-ecma_make_length_value (ecma_length_t number) /**< number to be encoded */
+ecma_make_length_value (ecma_context_t *context_p, /**< JJS context */
+                        ecma_length_t number) /**< number to be encoded */
 {
   if (number <= ECMA_INTEGER_NUMBER_MAX)
   {
     return ecma_make_integer_value ((ecma_integer_value_t) number);
   }
 
-  return ecma_create_float_number ((ecma_number_t) number);
+  return ecma_create_float_number (context_p, (ecma_number_t) number);
 } /* ecma_make_length_value */
 
 /**
@@ -567,7 +574,8 @@ ecma_make_length_value (ecma_length_t number) /**< number to be encoded */
  * @return ecma-value
  */
 ecma_value_t
-ecma_make_number_value (ecma_number_t ecma_number) /**< number to be encoded */
+ecma_make_number_value (ecma_context_t *context_p, /**< JJS context */
+                        ecma_number_t ecma_number) /**< number to be encoded */
 {
   ecma_integer_value_t integer_value;
 
@@ -576,7 +584,7 @@ ecma_make_number_value (ecma_number_t ecma_number) /**< number to be encoded */
     return ecma_make_integer_value (integer_value);
   }
 
-  return ecma_create_float_number (ecma_number);
+  return ecma_create_float_number (context_p, ecma_number);
 } /* ecma_make_number_value */
 
 /**
@@ -585,14 +593,15 @@ ecma_make_number_value (ecma_number_t ecma_number) /**< number to be encoded */
  * @return ecma-value
  */
 ecma_value_t
-ecma_make_int32_value (int32_t int32_number) /**< int32 number to be encoded */
+ecma_make_int32_value (ecma_context_t *context_p, /**< JJS context */
+                       int32_t int32_number) /**< int32 number to be encoded */
 {
   if (ECMA_IS_INTEGER_NUMBER (int32_number))
   {
     return ecma_make_integer_value ((ecma_integer_value_t) int32_number);
   }
 
-  return ecma_create_float_number ((ecma_number_t) int32_number);
+  return ecma_create_float_number (context_p, (ecma_number_t) int32_number);
 } /* ecma_make_int32_value */
 
 /**
@@ -601,14 +610,15 @@ ecma_make_int32_value (int32_t int32_number) /**< int32 number to be encoded */
  * @return ecma-value
  */
 ecma_value_t
-ecma_make_uint32_value (uint32_t uint32_number) /**< uint32 number to be encoded */
+ecma_make_uint32_value (ecma_context_t *context_p, /**< JJS context */
+                        uint32_t uint32_number) /**< uint32 number to be encoded */
 {
   if (uint32_number <= ECMA_INTEGER_NUMBER_MAX)
   {
     return ecma_make_integer_value ((ecma_integer_value_t) uint32_number);
   }
 
-  return ecma_create_float_number ((ecma_number_t) uint32_number);
+  return ecma_create_float_number (context_p, (ecma_number_t) uint32_number);
 } /* ecma_make_uint32_value */
 
 /**
@@ -617,7 +627,8 @@ ecma_make_uint32_value (uint32_t uint32_number) /**< uint32 number to be encoded
  * @return ecma-value representation of the string argument
  */
 extern inline ecma_value_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_make_string_value (const ecma_string_t *ecma_string_p) /**< string to reference in value */
+ecma_make_string_value (ecma_context_t *context_p, /**< JJS context */
+                        const ecma_string_t *ecma_string_p) /**< string to reference in value */
 {
   JJS_ASSERT (ecma_string_p != NULL);
   JJS_ASSERT (!ecma_prop_name_is_symbol ((ecma_string_t *) ecma_string_p));
@@ -627,7 +638,7 @@ ecma_make_string_value (const ecma_string_t *ecma_string_p) /**< string to refer
     return (ecma_value_t) (uintptr_t) ecma_string_p;
   }
 
-  return ecma_pointer_to_ecma_value (ecma_string_p) | ECMA_TYPE_STRING;
+  return ecma_pointer_to_ecma_value (context_p, ecma_string_p) | ECMA_TYPE_STRING;
 } /* ecma_make_string_value */
 
 /**
@@ -636,12 +647,13 @@ ecma_make_string_value (const ecma_string_t *ecma_string_p) /**< string to refer
  * @return ecma-value representation of the string argument
  */
 extern inline ecma_value_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_make_symbol_value (const ecma_string_t *ecma_symbol_p) /**< symbol to reference in value */
+ecma_make_symbol_value (ecma_context_t *context_p, /**< JJS context */
+                        const ecma_string_t *ecma_symbol_p) /**< symbol to reference in value */
 {
   JJS_ASSERT (ecma_symbol_p != NULL);
   JJS_ASSERT (ecma_prop_name_is_symbol ((ecma_string_t *) ecma_symbol_p));
 
-  return ecma_pointer_to_ecma_value (ecma_symbol_p) | ECMA_TYPE_SYMBOL;
+  return ecma_pointer_to_ecma_value (context_p, ecma_symbol_p) | ECMA_TYPE_SYMBOL;
 } /* ecma_make_symbol_value */
 
 /**
@@ -650,16 +662,17 @@ ecma_make_symbol_value (const ecma_string_t *ecma_symbol_p) /**< symbol to refer
  * @return ecma-value representation of a property name argument
  */
 extern inline ecma_value_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_make_prop_name_value (const ecma_string_t *ecma_prop_name_p) /**< property name to reference in value */
+ecma_make_prop_name_value (ecma_context_t *context_p, /**< JJS context */
+                           const ecma_string_t *ecma_prop_name_p) /**< property name to reference in value */
 {
   JJS_ASSERT (ecma_prop_name_p != NULL);
 
   if (ecma_prop_name_is_symbol ((ecma_string_t *) ecma_prop_name_p))
   {
-    return ecma_make_symbol_value (ecma_prop_name_p);
+    return ecma_make_symbol_value (context_p, ecma_prop_name_p);
   }
 
-  return ecma_make_string_value (ecma_prop_name_p);
+  return ecma_make_string_value (context_p, ecma_prop_name_p);
 } /* ecma_make_prop_name_value */
 
 /**
@@ -679,11 +692,12 @@ ecma_make_magic_string_value (lit_magic_string_id_t id) /**< magic string id */
  * @return ecma-value representation of the object argument
  */
 extern inline ecma_value_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_make_object_value (const ecma_object_t *object_p) /**< object to reference in value */
+ecma_make_object_value (ecma_context_t *context_p, /**< JJS context */
+                        const ecma_object_t *object_p) /**< object to reference in value */
 {
   JJS_ASSERT (object_p != NULL);
 
-  return ecma_pointer_to_ecma_value (object_p) | ECMA_TYPE_OBJECT;
+  return ecma_pointer_to_ecma_value (context_p, object_p) | ECMA_TYPE_OBJECT;
 } /* ecma_make_object_value */
 
 /**
@@ -692,7 +706,8 @@ ecma_make_object_value (const ecma_object_t *object_p) /**< object to reference 
  * @return ecma-value representation of the Error reference
  */
 extern inline ecma_value_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_make_extended_primitive_value (const ecma_extended_primitive_t *primitve_p, /**< extended primitve value */
+ecma_make_extended_primitive_value (ecma_context_t *context_p, /**< JJS context */
+                                    const ecma_extended_primitive_t *primitve_p, /**< extended primitve value */
                                     uint32_t type) /**< ecma type of extended primitve value */
 {
   JJS_ASSERT (primitve_p != NULL);
@@ -701,7 +716,7 @@ ecma_make_extended_primitive_value (const ecma_extended_primitive_t *primitve_p,
 #endif /* JJS_BUILTIN_BIGINT */
   JJS_ASSERT (type == ECMA_TYPE_BIGINT || type == ECMA_TYPE_ERROR);
 
-  return ecma_pointer_to_ecma_value (primitve_p) | type;
+  return ecma_pointer_to_ecma_value (context_p, primitve_p) | type;
 } /* ecma_make_extended_primitive_value */
 
 /**
@@ -723,11 +738,12 @@ ecma_get_integer_from_value (ecma_value_t value) /**< ecma value */
  * @return floating point value
  */
 extern inline ecma_number_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_float_from_value (ecma_value_t value) /**< ecma value */
+ecma_get_float_from_value (ecma_context_t *context_p, /**< JJS context */
+                           ecma_value_t value) /**< ecma value */
 {
   JJS_ASSERT (ecma_get_value_type_field (value) == ECMA_TYPE_FLOAT);
 
-  return *(ecma_number_t *) ecma_get_pointer_from_ecma_value (value);
+  return *(ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, value);
 } /* ecma_get_float_from_value */
 
 /**
@@ -736,11 +752,12 @@ ecma_get_float_from_value (ecma_value_t value) /**< ecma value */
  * @return floating point value
  */
 extern inline ecma_number_t *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_pointer_from_float_value (ecma_value_t value) /**< ecma value */
+ecma_get_pointer_from_float_value (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_value_t value) /**< ecma value */
 {
   JJS_ASSERT (ecma_get_value_type_field (value) == ECMA_TYPE_FLOAT);
 
-  return (ecma_number_t *) ecma_get_pointer_from_ecma_value (value);
+  return (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, value);
 } /* ecma_get_pointer_from_float_value */
 
 /**
@@ -749,14 +766,15 @@ ecma_get_pointer_from_float_value (ecma_value_t value) /**< ecma value */
  * @return floating point value
  */
 ecma_number_t JJS_ATTR_PURE
-ecma_get_number_from_value (ecma_value_t value) /**< ecma value */
+ecma_get_number_from_value (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t value) /**< ecma value */
 {
   if (ecma_is_value_integer_number (value))
   {
     return (ecma_number_t) ecma_get_integer_from_value (value);
   }
 
-  return ecma_get_float_from_value (value);
+  return ecma_get_float_from_value (context_p, value);
 } /* ecma_get_number_from_value */
 
 /**
@@ -765,7 +783,8 @@ ecma_get_number_from_value (ecma_value_t value) /**< ecma value */
  * @return the string pointer
  */
 extern inline ecma_string_t *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_string_from_value (ecma_value_t value) /**< ecma value */
+ecma_get_string_from_value (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t value) /**< ecma value */
 {
   JJS_ASSERT (ecma_is_value_string (value));
 
@@ -774,7 +793,7 @@ ecma_get_string_from_value (ecma_value_t value) /**< ecma value */
     return (ecma_string_t *) (uintptr_t) value;
   }
 
-  return (ecma_string_t *) ecma_get_pointer_from_ecma_value (value);
+  return (ecma_string_t *) ecma_get_pointer_from_ecma_value (context_p, value);
 } /* ecma_get_string_from_value */
 
 /**
@@ -783,11 +802,12 @@ ecma_get_string_from_value (ecma_value_t value) /**< ecma value */
  * @return the string pointer
  */
 extern inline ecma_string_t *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_symbol_from_value (ecma_value_t value) /**< ecma value */
+ecma_get_symbol_from_value (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t value) /**< ecma value */
 {
   JJS_ASSERT (ecma_is_value_symbol (value));
 
-  return (ecma_string_t *) ecma_get_pointer_from_ecma_value (value);
+  return (ecma_string_t *) ecma_get_pointer_from_ecma_value (context_p, value);
 } /* ecma_get_symbol_from_value */
 
 /**
@@ -796,7 +816,8 @@ ecma_get_symbol_from_value (ecma_value_t value) /**< ecma value */
  * @return the string pointer
  */
 extern inline ecma_string_t *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_prop_name_from_value (ecma_value_t value) /**< ecma value */
+ecma_get_prop_name_from_value (ecma_context_t *context_p, /**< JJS context */
+                               ecma_value_t value) /**< ecma value */
 {
   JJS_ASSERT (ecma_is_value_prop_name (value));
 
@@ -805,7 +826,7 @@ ecma_get_prop_name_from_value (ecma_value_t value) /**< ecma value */
     return (ecma_string_t *) (uintptr_t) value;
   }
 
-  return (ecma_string_t *) ecma_get_pointer_from_ecma_value (value);
+  return (ecma_string_t *) ecma_get_pointer_from_ecma_value (context_p, value);
 } /* ecma_get_prop_name_from_value */
 
 /**
@@ -814,11 +835,12 @@ ecma_get_prop_name_from_value (ecma_value_t value) /**< ecma value */
  * @return the pointer
  */
 extern inline ecma_object_t *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_object_from_value (ecma_value_t value) /**< ecma value */
+ecma_get_object_from_value (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t value) /**< ecma value */
 {
   JJS_ASSERT (ecma_is_value_object (value));
 
-  return (ecma_object_t *) ecma_get_pointer_from_ecma_value (value);
+  return (ecma_object_t *) ecma_get_pointer_from_ecma_value (context_p, value);
 } /* ecma_get_object_from_value */
 
 /**
@@ -827,7 +849,8 @@ ecma_get_object_from_value (ecma_value_t value) /**< ecma value */
  * @return the pointer
  */
 extern inline ecma_extended_primitive_t *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_get_extended_primitive_from_value (ecma_value_t value) /**< ecma value */
+ecma_get_extended_primitive_from_value (ecma_context_t *context_p, /**< JJS context */
+                                        ecma_value_t value) /**< ecma value */
 {
 #if JJS_BUILTIN_BIGINT
   JJS_ASSERT (value != ECMA_BIGINT_ZERO);
@@ -835,7 +858,7 @@ ecma_get_extended_primitive_from_value (ecma_value_t value) /**< ecma value */
   JJS_ASSERT (ecma_get_value_type_field (value) == ECMA_TYPE_BIGINT
                 || ecma_get_value_type_field (value) == ECMA_TYPE_ERROR);
 
-  return (ecma_extended_primitive_t *) ecma_get_pointer_from_ecma_value (value);
+  return (ecma_extended_primitive_t *) ecma_get_pointer_from_ecma_value (context_p, value);
 } /* ecma_get_extended_primitive_from_value */
 
 /**
@@ -857,23 +880,24 @@ ecma_invert_boolean_value (ecma_value_t value) /**< ecma value */
  * @return copy of the given value
  */
 ecma_value_t
-ecma_copy_value (ecma_value_t value) /**< value description */
+ecma_copy_value (ecma_context_t *context_p, /**< JJS context */
+                 ecma_value_t value) /**< value description */
 {
   switch (ecma_get_value_type_field (value))
   {
     case ECMA_TYPE_FLOAT:
     {
-      ecma_number_t *num_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (value);
-      ecma_number_t *new_num_p = ecma_alloc_number ();
+      ecma_number_t *num_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, value);
+      ecma_number_t *new_num_p = ecma_alloc_number (context_p);
 
       *new_num_p = *num_p;
 
-      return ecma_make_float_value (new_num_p);
+      return ecma_make_float_value (context_p, new_num_p);
     }
     case ECMA_TYPE_SYMBOL:
     case ECMA_TYPE_STRING:
     {
-      ecma_string_t *string_p = (ecma_string_t *) ecma_get_pointer_from_ecma_value (value);
+      ecma_string_t *string_p = (ecma_string_t *) ecma_get_pointer_from_ecma_value (context_p, value);
       ecma_ref_ecma_string_non_direct (string_p);
       return value;
     }
@@ -882,14 +906,14 @@ ecma_copy_value (ecma_value_t value) /**< value description */
     {
       if (value != ECMA_BIGINT_ZERO)
       {
-        ecma_ref_extended_primitive (ecma_get_extended_primitive_from_value (value));
+        ecma_ref_extended_primitive (ecma_get_extended_primitive_from_value (context_p, value));
       }
       return value;
     }
 #endif /* JJS_BUILTIN_BIGINT */
     case ECMA_TYPE_OBJECT:
     {
-      ecma_ref_object_inline (ecma_get_object_from_value (value));
+      ecma_ref_object_inline (ecma_get_object_from_value (context_p, value));
       return value;
     }
     default:
@@ -914,9 +938,10 @@ ecma_copy_value (ecma_value_t value) /**< value description */
  * @return copy of the given value
  */
 extern inline ecma_value_t JJS_ATTR_ALWAYS_INLINE
-ecma_fast_copy_value (ecma_value_t value) /**< value description */
+ecma_fast_copy_value (ecma_context_t *context_p, /**< JJS context */
+                      ecma_value_t value) /**< value description */
 {
-  return (ecma_get_value_type_field (value) == ECMA_TYPE_DIRECT) ? value : ecma_copy_value (value);
+  return (ecma_get_value_type_field (value) == ECMA_TYPE_DIRECT) ? value : ecma_copy_value (context_p, value);
 } /* ecma_fast_copy_value */
 
 /**
@@ -925,11 +950,12 @@ ecma_fast_copy_value (ecma_value_t value) /**< value description */
  * @return copy of the given value
  */
 extern inline ecma_value_t JJS_ATTR_ALWAYS_INLINE
-ecma_copy_value_if_not_object (ecma_value_t value) /**< value description */
+ecma_copy_value_if_not_object (ecma_context_t *context_p, /**< JJS context */
+                               ecma_value_t value) /**< value description */
 {
   if (!ecma_is_value_object (value))
   {
-    return ecma_copy_value (value);
+    return ecma_copy_value (context_p, value);
   }
 
   return value;
@@ -939,11 +965,12 @@ ecma_copy_value_if_not_object (ecma_value_t value) /**< value description */
  * Increase reference counter of a value if it is an object.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_ref_if_object (ecma_value_t value) /**< value description */
+ecma_ref_if_object (ecma_context_t *context_p, /**< JJS context */
+                    ecma_value_t value) /**< value description */
 {
   if (ecma_is_value_object (value))
   {
-    ecma_ref_object (ecma_get_object_from_value (value));
+    ecma_ref_object (ecma_get_object_from_value (context_p, value));
   }
 } /* ecma_ref_if_object */
 
@@ -951,11 +978,12 @@ ecma_ref_if_object (ecma_value_t value) /**< value description */
  * Decrease reference counter of a value if it is an object.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_deref_if_object (ecma_value_t value) /**< value description */
+ecma_deref_if_object (ecma_context_t *context_p, /**< JJS context */
+                      ecma_value_t value) /**< value description */
 {
   if (ecma_is_value_object (value))
   {
-    ecma_deref_object (ecma_get_object_from_value (value));
+    ecma_deref_object (ecma_get_object_from_value (context_p, value));
   }
 } /* ecma_deref_if_object */
 
@@ -966,7 +994,8 @@ ecma_deref_if_object (ecma_value_t value) /**< value description */
  *      value previously stored in the property is freed
  */
 void
-ecma_value_assign_value (ecma_value_t *value_p, /**< [in, out] ecma value */
+ecma_value_assign_value (ecma_context_t *context_p, /**< JJS context */
+                         ecma_value_t *value_p, /**< [in, out] ecma value */
                          ecma_value_t ecma_value) /**< value to assign */
 {
   JJS_STATIC_ASSERT (ECMA_TYPE_DIRECT == 0, ecma_type_direct_must_be_zero_for_the_next_check);
@@ -982,15 +1011,15 @@ ecma_value_assign_value (ecma_value_t *value_p, /**< [in, out] ecma value */
   }
   else if (ecma_is_value_float_number (ecma_value) && ecma_is_value_float_number (*value_p))
   {
-    const ecma_number_t *num_src_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (ecma_value);
-    ecma_number_t *num_dst_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (*value_p);
+    const ecma_number_t *num_src_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, ecma_value);
+    ecma_number_t *num_dst_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, *value_p);
 
     *num_dst_p = *num_src_p;
   }
   else
   {
-    ecma_free_value_if_not_object (*value_p);
-    *value_p = ecma_copy_value_if_not_object (ecma_value);
+    ecma_free_value_if_not_object (context_p, *value_p);
+    *value_p = ecma_copy_value_if_not_object (context_p, ecma_value);
   }
 } /* ecma_value_assign_value */
 
@@ -1003,19 +1032,20 @@ ecma_value_assign_value (ecma_value_t *value_p, /**< [in, out] ecma value */
  * @return updated ecma value
  */
 ecma_value_t
-ecma_update_float_number (ecma_value_t float_value, /**< original float value */
+ecma_update_float_number (ecma_context_t *context_p, /**< JJS context */
+                          ecma_value_t float_value, /**< original float value */
                           ecma_number_t new_number) /**< updated number value */
 {
   JJS_ASSERT (ecma_is_value_float_number (float_value));
 
   ecma_integer_value_t integer_number = (ecma_integer_value_t) new_number;
-  ecma_number_t *number_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (float_value);
+  ecma_number_t *number_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, float_value);
 
   if ((ecma_number_t) integer_number == new_number
       && ((integer_number == 0) ? ecma_is_number_equal_to_positive_zero (new_number)
                                 : ECMA_IS_INTEGER_NUMBER (integer_number)))
   {
-    ecma_dealloc_number (number_p);
+    ecma_dealloc_number (context_p, number_p);
     return ecma_make_integer_value (integer_number);
   }
 
@@ -1030,12 +1060,13 @@ ecma_update_float_number (ecma_value_t float_value, /**< original float value */
  *      value previously stored in the property is freed
  */
 static void
-ecma_value_assign_float_number (ecma_value_t *value_p, /**< [in, out] ecma value */
+ecma_value_assign_float_number (ecma_context_t *context_p, /**< JJS context */
+                                ecma_value_t *value_p, /**< [in, out] ecma value */
                                 ecma_number_t ecma_number) /**< number to assign */
 {
   if (ecma_is_value_float_number (*value_p))
   {
-    ecma_number_t *num_dst_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (*value_p);
+    ecma_number_t *num_dst_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, *value_p);
 
     *num_dst_p = ecma_number;
     return;
@@ -1044,64 +1075,37 @@ ecma_value_assign_float_number (ecma_value_t *value_p, /**< [in, out] ecma value
   if (ecma_get_value_type_field (*value_p) != ECMA_TYPE_DIRECT
       && ecma_get_value_type_field (*value_p) != ECMA_TYPE_OBJECT)
   {
-    ecma_free_value (*value_p);
+    ecma_free_value (context_p, *value_p);
   }
 
-  *value_p = ecma_create_float_number (ecma_number);
+  *value_p = ecma_create_float_number (context_p, ecma_number);
 } /* ecma_value_assign_float_number */
-
-/**
- * Assign a number to an ecma-value
- *
- * Note:
- *      value previously stored in the property is freed
- */
-void
-ecma_value_assign_number (ecma_value_t *value_p, /**< [in, out] ecma value */
-                          ecma_number_t ecma_number) /**< number to assign */
-{
-  ecma_integer_value_t integer_value = (ecma_integer_value_t) ecma_number;
-
-  if ((ecma_number_t) integer_value == ecma_number
-      && ((integer_value == 0) ? ecma_is_number_equal_to_positive_zero (ecma_number)
-                               : ECMA_IS_INTEGER_NUMBER (integer_value)))
-  {
-    if (ecma_get_value_type_field (*value_p) != ECMA_TYPE_DIRECT
-        && ecma_get_value_type_field (*value_p) != ECMA_TYPE_OBJECT)
-    {
-      ecma_free_value (*value_p);
-    }
-    *value_p = ecma_make_integer_value (integer_value);
-    return;
-  }
-
-  ecma_value_assign_float_number (value_p, ecma_number);
-} /* ecma_value_assign_number */
 
 /**
  * Free the ecma value
  */
 void
-ecma_free_value (ecma_value_t value) /**< value description */
+ecma_free_value (ecma_context_t *context_p, /**< JJS context */
+                 ecma_value_t value) /**< value description */
 {
   switch (ecma_get_value_type_field (value))
   {
     case ECMA_TYPE_FLOAT:
     {
-      ecma_number_t *number_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (value);
-      ecma_dealloc_number (number_p);
+      ecma_number_t *number_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, value);
+      ecma_dealloc_number (context_p, number_p);
       break;
     }
     case ECMA_TYPE_SYMBOL:
     case ECMA_TYPE_STRING:
     {
-      ecma_string_t *string_p = (ecma_string_t *) ecma_get_pointer_from_ecma_value (value);
-      ecma_deref_ecma_string_non_direct (string_p);
+      ecma_string_t *string_p = (ecma_string_t *) ecma_get_pointer_from_ecma_value (context_p, value);
+      ecma_deref_ecma_string_non_direct (context_p, string_p);
       break;
     }
     case ECMA_TYPE_OBJECT:
     {
-      ecma_deref_object (ecma_get_object_from_value (value));
+      ecma_deref_object (ecma_get_object_from_value (context_p, value));
       break;
     }
 #if JJS_BUILTIN_BIGINT
@@ -1109,7 +1113,7 @@ ecma_free_value (ecma_value_t value) /**< value description */
     {
       if (value != ECMA_BIGINT_ZERO)
       {
-        ecma_deref_bigint (ecma_get_extended_primitive_from_value (value));
+        ecma_deref_bigint (context_p, ecma_get_extended_primitive_from_value (context_p, value));
       }
 
       break;
@@ -1136,11 +1140,12 @@ ecma_free_value (ecma_value_t value) /**< value description */
  *   critical code paths only.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_fast_free_value (ecma_value_t value) /**< value description */
+ecma_fast_free_value (ecma_context_t *context_p, /**< JJS context */
+                      ecma_value_t value) /**< value description */
 {
   if (ecma_get_value_type_field (value) != ECMA_TYPE_DIRECT)
   {
-    ecma_free_value (value);
+    ecma_free_value (context_p, value);
   }
 } /* ecma_fast_free_value */
 
@@ -1148,11 +1153,12 @@ ecma_fast_free_value (ecma_value_t value) /**< value description */
  * Free the ecma value if not an object
  */
 void
-ecma_free_value_if_not_object (ecma_value_t value) /**< value description */
+ecma_free_value_if_not_object (ecma_context_t *context_p, /**< JJS context */
+                               ecma_value_t value) /**< value description */
 {
   if (ecma_get_value_type_field (value) != ECMA_TYPE_OBJECT)
   {
-    ecma_free_value (value);
+    ecma_free_value (context_p, value);
   }
 } /* ecma_free_value_if_not_object */
 
@@ -1160,23 +1166,25 @@ ecma_free_value_if_not_object (ecma_value_t value) /**< value description */
  * Free an ecma-value object
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_free_object (ecma_value_t value) /**< value description */
+ecma_free_object (ecma_context_t *context_p, /**< JJS context */
+                  ecma_value_t value) /**< value description */
 {
-  ecma_deref_object (ecma_get_object_from_value (value));
+  ecma_deref_object (ecma_get_object_from_value (context_p, value));
 } /* ecma_free_object */
 
 /**
  * Free an ecma-value number
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_free_number (ecma_value_t value) /**< value description */
+ecma_free_number (ecma_context_t *context_p, /**< JJS context */
+                  ecma_value_t value) /**< value description */
 {
   JJS_ASSERT (ecma_is_value_number (value));
 
   if (ecma_is_value_float_number (value))
   {
-    ecma_number_t *number_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (value);
-    ecma_dealloc_number (number_p);
+    ecma_number_t *number_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, value);
+    ecma_dealloc_number (context_p, number_p);
   }
 } /* ecma_free_number */
 
@@ -1193,7 +1201,8 @@ ecma_free_number (ecma_value_t value) /**< value description */
  *          - LIT_MAGIC_STRING_FUNCTION
  */
 lit_magic_string_id_t
-ecma_get_typeof_lit_id (ecma_value_t value) /**< input ecma value */
+ecma_get_typeof_lit_id (ecma_context_t *context_p, /**< JJS context */
+                        ecma_value_t value) /**< input ecma value */
 {
   lit_magic_string_id_t ret_value = LIT_MAGIC_STRING__EMPTY;
 
@@ -1231,7 +1240,7 @@ ecma_get_typeof_lit_id (ecma_value_t value) /**< input ecma value */
   {
     JJS_ASSERT (ecma_is_value_object (value));
 
-    ret_value = ecma_op_is_callable (value) ? LIT_MAGIC_STRING_FUNCTION : LIT_MAGIC_STRING_OBJECT;
+    ret_value = ecma_op_is_callable (context_p, value) ? LIT_MAGIC_STRING_FUNCTION : LIT_MAGIC_STRING_OBJECT;
   }
 
   JJS_ASSERT (ret_value != LIT_MAGIC_STRING__EMPTY);

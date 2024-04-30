@@ -33,25 +33,26 @@
  * Free symbol list
  */
 static void
-ecma_free_symbol_list (jmem_cpointer_t symbol_list_cp) /**< symbol list */
+ecma_free_symbol_list (ecma_context_t *context_p, /**< JJS context */
+                       jmem_cpointer_t symbol_list_cp) /**< symbol list */
 {
   while (symbol_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *symbol_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, symbol_list_cp);
+    ecma_lit_storage_item_t *symbol_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, symbol_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
       if (symbol_list_p->values[i] != JMEM_CP_NULL)
       {
-        ecma_string_t *string_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_string_t, symbol_list_p->values[i]);
+        ecma_string_t *string_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_string_t, symbol_list_p->values[i]);
 
         JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (string_p));
-        ecma_deref_ecma_string (string_p);
+        ecma_deref_ecma_string (context_p, string_p);
       }
     }
 
     jmem_cpointer_t next_item_cp = symbol_list_p->next_cp;
-    jmem_pools_free (&JJS_CONTEXT_STRUCT, symbol_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (context_p, symbol_list_p, sizeof (ecma_lit_storage_item_t));
     symbol_list_cp = next_item_cp;
   }
 } /* ecma_free_symbol_list */
@@ -60,25 +61,26 @@ ecma_free_symbol_list (jmem_cpointer_t symbol_list_cp) /**< symbol list */
  * Free string list
  */
 static void
-ecma_free_string_list (jmem_cpointer_t string_list_cp) /**< string list */
+ecma_free_string_list (ecma_context_t *context_p, /**< JJS context */
+                       jmem_cpointer_t string_list_cp) /**< string list */
 {
   while (string_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *string_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, string_list_cp);
+    ecma_lit_storage_item_t *string_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, string_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
       if (string_list_p->values[i] != JMEM_CP_NULL)
       {
-        ecma_string_t *string_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_string_t, string_list_p->values[i]);
+        ecma_string_t *string_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_string_t, string_list_p->values[i]);
 
         JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (string_p));
-        ecma_destroy_ecma_string (string_p);
+        ecma_destroy_ecma_string (context_p, string_p);
       }
     }
 
     jmem_cpointer_t next_item_cp = string_list_p->next_cp;
-    jmem_pools_free (&JJS_CONTEXT_STRUCT, string_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (context_p, string_list_p, sizeof (ecma_lit_storage_item_t));
     string_list_cp = next_item_cp;
   }
 } /* ecma_free_string_list */
@@ -87,22 +89,23 @@ ecma_free_string_list (jmem_cpointer_t string_list_cp) /**< string list */
  * Free number list
  */
 static void
-ecma_free_number_list (jmem_cpointer_t number_list_cp) /**< number list */
+ecma_free_number_list (ecma_context_t *context_p, /**< JJS context */
+                       jmem_cpointer_t number_list_cp) /**< number list */
 {
   while (number_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *number_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, number_list_cp);
+    ecma_lit_storage_item_t *number_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, number_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
       if (number_list_p->values[i] != JMEM_CP_NULL)
       {
-        ecma_dealloc_number (JMEM_CP_GET_NON_NULL_POINTER (ecma_number_t, number_list_p->values[i]));
+        ecma_dealloc_number (context_p, JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_number_t, number_list_p->values[i]));
       }
     }
 
     jmem_cpointer_t next_item_cp = number_list_p->next_cp;
-    jmem_pools_free (&JJS_CONTEXT_STRUCT, number_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (context_p, number_list_p, sizeof (ecma_lit_storage_item_t));
     number_list_cp = next_item_cp;
   }
 } /* ecma_free_number_list */
@@ -113,25 +116,26 @@ ecma_free_number_list (jmem_cpointer_t number_list_cp) /**< number list */
  * Free bigint list
  */
 static void
-ecma_free_bigint_list (jmem_cpointer_t bigint_list_cp) /**< bigint list */
+ecma_free_bigint_list (ecma_context_t *context_p, /**< JJS context */
+                       jmem_cpointer_t bigint_list_cp) /**< bigint list */
 {
   while (bigint_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *bigint_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, bigint_list_cp);
+    ecma_lit_storage_item_t *bigint_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, bigint_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
       if (bigint_list_p->values[i] != JMEM_CP_NULL)
       {
         ecma_extended_primitive_t *bigint_p =
-          JMEM_CP_GET_NON_NULL_POINTER (ecma_extended_primitive_t, bigint_list_p->values[i]);
+          JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_extended_primitive_t, bigint_list_p->values[i]);
         JJS_ASSERT (ECMA_EXTENDED_PRIMITIVE_IS_REF_EQUALS_TO_ONE (bigint_p));
-        ecma_deref_bigint (bigint_p);
+        ecma_deref_bigint (context_p, bigint_p);
       }
     }
 
     jmem_cpointer_t next_item_cp = bigint_list_p->next_cp;
-    jmem_pools_free (&JJS_CONTEXT_STRUCT, bigint_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_pools_free (context_p, bigint_list_p, sizeof (ecma_lit_storage_item_t));
     bigint_list_cp = next_item_cp;
   }
 } /* ecma_free_bigint_list */
@@ -142,13 +146,13 @@ ecma_free_bigint_list (jmem_cpointer_t bigint_list_cp) /**< bigint list */
  * Finalize literal storage
  */
 void
-ecma_finalize_lit_storage (void)
+ecma_finalize_lit_storage (ecma_context_t *context_p) /**< JJS context */
 {
-  ecma_free_symbol_list (JJS_CONTEXT (symbol_list_first_cp));
-  ecma_free_string_list (JJS_CONTEXT (string_list_first_cp));
-  ecma_free_number_list (JJS_CONTEXT (number_list_first_cp));
+  ecma_free_symbol_list (context_p, context_p->symbol_list_first_cp);
+  ecma_free_string_list (context_p, context_p->string_list_first_cp);
+  ecma_free_number_list (context_p, context_p->number_list_first_cp);
 #if JJS_BUILTIN_BIGINT
-  ecma_free_bigint_list (JJS_CONTEXT (bigint_list_first_cp));
+  ecma_free_bigint_list (context_p, context_p->bigint_list_first_cp);
 #endif /* JJS_BUILTIN_BIGINT */
 } /* ecma_finalize_lit_storage */
 
@@ -158,24 +162,25 @@ ecma_finalize_lit_storage (void)
  * @return ecma_string_t compressed pointer
  */
 ecma_value_t
-ecma_find_or_create_literal_string (const lit_utf8_byte_t *chars_p, /**< string to be searched */
+ecma_find_or_create_literal_string (ecma_context_t *context_p, /**< JJS context */
+                                    const lit_utf8_byte_t *chars_p, /**< string to be searched */
                                     lit_utf8_size_t size, /**< size of the string */
                                     bool is_ascii) /**< encode of the string */
 {
   ecma_string_t *string_p =
-    (is_ascii ? ecma_new_ecma_string_from_ascii (chars_p, size) : ecma_new_ecma_string_from_utf8 (chars_p, size));
+    (is_ascii ? ecma_new_ecma_string_from_ascii (context_p, chars_p, size) : ecma_new_ecma_string_from_utf8 (context_p, chars_p, size));
 
   if (ECMA_IS_DIRECT_STRING (string_p))
   {
-    return ecma_make_string_value (string_p);
+    return ecma_make_string_value (context_p, string_p);
   }
 
-  jmem_cpointer_t string_list_cp = JJS_CONTEXT (string_list_first_cp);
+  jmem_cpointer_t string_list_cp = context_p->string_list_first_cp;
   jmem_cpointer_t *empty_cpointer_p = NULL;
 
   while (string_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *string_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, string_list_cp);
+    ecma_lit_storage_item_t *string_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, string_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
@@ -188,13 +193,13 @@ ecma_find_or_create_literal_string (const lit_utf8_byte_t *chars_p, /**< string 
       }
       else
       {
-        ecma_string_t *value_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_string_t, string_list_p->values[i]);
+        ecma_string_t *value_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_string_t, string_list_p->values[i]);
 
         if (ecma_compare_ecma_strings (string_p, value_p))
         {
           /* Return with string if found in the list. */
-          ecma_deref_ecma_string (string_p);
-          return ecma_make_string_value (value_p);
+          ecma_deref_ecma_string (context_p, string_p);
+          return ecma_make_string_value (context_p, value_p);
         }
       }
     }
@@ -204,16 +209,16 @@ ecma_find_or_create_literal_string (const lit_utf8_byte_t *chars_p, /**< string 
 
   ECMA_SET_STRING_AS_STATIC (string_p);
   jmem_cpointer_t result;
-  JMEM_CP_SET_NON_NULL_POINTER (result, string_p);
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, result, string_p);
 
   if (empty_cpointer_p != NULL)
   {
     *empty_cpointer_p = result;
-    return ecma_make_string_value (string_p);
+    return ecma_make_string_value (context_p, string_p);
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
@@ -221,10 +226,10 @@ ecma_find_or_create_literal_string (const lit_utf8_byte_t *chars_p, /**< string 
     new_item_p->values[i] = JMEM_CP_NULL;
   }
 
-  new_item_p->next_cp = JJS_CONTEXT (string_list_first_cp);
-  JMEM_CP_SET_NON_NULL_POINTER (JJS_CONTEXT (string_list_first_cp), new_item_p);
+  new_item_p->next_cp = context_p->string_list_first_cp;
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, context_p->string_list_first_cp, new_item_p);
 
-  return ecma_make_string_value (string_p);
+  return ecma_make_string_value (context_p, string_p);
 } /* ecma_find_or_create_literal_string */
 
 /**
@@ -233,9 +238,10 @@ ecma_find_or_create_literal_string (const lit_utf8_byte_t *chars_p, /**< string 
  * @return ecma value
  */
 ecma_value_t
-ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be searched */
+ecma_find_or_create_literal_number (ecma_context_t *context_p, /**< JJS context */
+                                    ecma_number_t number_arg) /**< number to be searched */
 {
-  ecma_value_t num = ecma_make_number_value (number_arg);
+  ecma_value_t num = ecma_make_number_value (context_p, number_arg);
 
   if (ecma_is_value_integer_number (num))
   {
@@ -244,12 +250,12 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
 
   JJS_ASSERT (ecma_is_value_float_number (num));
 
-  jmem_cpointer_t number_list_cp = JJS_CONTEXT (number_list_first_cp);
+  jmem_cpointer_t number_list_cp = context_p->number_list_first_cp;
   jmem_cpointer_t *empty_cpointer_p = NULL;
 
   while (number_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *number_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, number_list_cp);
+    ecma_lit_storage_item_t *number_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, number_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
@@ -262,12 +268,12 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
       }
       else
       {
-        ecma_number_t *number_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_number_t, number_list_p->values[i]);
+        ecma_number_t *number_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_number_t, number_list_p->values[i]);
 
         if (*number_p == number_arg)
         {
-          ecma_free_value (num);
-          return ecma_make_float_value (number_p);
+          ecma_free_value (context_p, num);
+          return ecma_make_float_value (context_p, number_p);
         }
       }
     }
@@ -276,7 +282,7 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
   }
 
   jmem_cpointer_t result;
-  JMEM_CP_SET_NON_NULL_POINTER (result, ecma_get_pointer_from_float_value (num));
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, result, ecma_get_pointer_from_float_value (context_p, num));
 
   if (empty_cpointer_p != NULL)
   {
@@ -285,7 +291,7 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
@@ -293,8 +299,8 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
     new_item_p->values[i] = JMEM_CP_NULL;
   }
 
-  new_item_p->next_cp = JJS_CONTEXT (number_list_first_cp);
-  JMEM_CP_SET_NON_NULL_POINTER (JJS_CONTEXT (number_list_first_cp), new_item_p);
+  new_item_p->next_cp = context_p->number_list_first_cp;
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, context_p->number_list_first_cp, new_item_p);
 
   return num;
 } /* ecma_find_or_create_literal_number */
@@ -307,7 +313,8 @@ ecma_find_or_create_literal_number (ecma_number_t number_arg) /**< number to be 
  * @return BigInt value
  */
 ecma_value_t
-ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searched */
+ecma_find_or_create_literal_bigint (ecma_context_t *context_p, /**< JJS context */
+                                    ecma_value_t bigint) /**< bigint to be searched */
 {
   JJS_ASSERT (ecma_is_value_bigint (bigint));
 
@@ -316,12 +323,12 @@ ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searc
     return bigint;
   }
 
-  jmem_cpointer_t bigint_list_cp = JJS_CONTEXT (bigint_list_first_cp);
+  jmem_cpointer_t bigint_list_cp = context_p->bigint_list_first_cp;
   jmem_cpointer_t *empty_cpointer_p = NULL;
 
   while (bigint_list_cp != JMEM_CP_NULL)
   {
-    ecma_lit_storage_item_t *bigint_list_p = JMEM_CP_GET_NON_NULL_POINTER (ecma_lit_storage_item_t, bigint_list_cp);
+    ecma_lit_storage_item_t *bigint_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, bigint_list_cp);
 
     for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
     {
@@ -335,12 +342,12 @@ ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searc
       else
       {
         ecma_extended_primitive_t *other_bigint_p =
-          JMEM_CP_GET_NON_NULL_POINTER (ecma_extended_primitive_t, bigint_list_p->values[i]);
-        ecma_value_t other_bigint = ecma_make_extended_primitive_value (other_bigint_p, ECMA_TYPE_BIGINT);
+          JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_extended_primitive_t, bigint_list_p->values[i]);
+        ecma_value_t other_bigint = ecma_make_extended_primitive_value (context_p, other_bigint_p, ECMA_TYPE_BIGINT);
 
-        if (ecma_bigint_is_equal_to_bigint (bigint, other_bigint))
+        if (ecma_bigint_is_equal_to_bigint (context_p, bigint, other_bigint))
         {
-          ecma_free_value (bigint);
+          ecma_free_value (context_p, bigint);
           return other_bigint;
         }
       }
@@ -350,7 +357,7 @@ ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searc
   }
 
   jmem_cpointer_t result;
-  JMEM_CP_SET_NON_NULL_POINTER (result, ecma_get_extended_primitive_from_value (bigint));
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, result, ecma_get_extended_primitive_from_value (context_p, bigint));
 
   if (empty_cpointer_p != NULL)
   {
@@ -359,7 +366,7 @@ ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searc
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
@@ -367,8 +374,8 @@ ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searc
     new_item_p->values[i] = JMEM_CP_NULL;
   }
 
-  new_item_p->next_cp = JJS_CONTEXT (bigint_list_first_cp);
-  JMEM_CP_SET_NON_NULL_POINTER (JJS_CONTEXT (bigint_list_first_cp), new_item_p);
+  new_item_p->next_cp = context_p->bigint_list_first_cp;
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, context_p->bigint_list_first_cp, new_item_p);
 
   return bigint;
 } /* ecma_find_or_create_literal_bigint */
@@ -408,7 +415,8 @@ ecma_find_or_create_literal_bigint (ecma_value_t bigint) /**< bigint to be searc
  * Append the value at the end of the appropriate list if it is not present there.
  */
 void
-ecma_save_literals_append_value (ecma_value_t value, /**< value to be appended */
+ecma_save_literals_append_value (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_value_t value, /**< value to be appended */
                                  ecma_collection_t *lit_pool_p) /**< list of known values */
 {
   /* Unlike direct numbers, direct strings are converted to character literals. */
@@ -433,14 +441,15 @@ ecma_save_literals_append_value (ecma_value_t value, /**< value to be appended *
     }
   }
 
-  ecma_collection_push_back (lit_pool_p, value);
+  ecma_collection_push_back (context_p, lit_pool_p, value);
 } /* ecma_save_literals_append_value */
 
 /**
  * Add names from a byte-code data to a list.
  */
 void
-ecma_save_literals_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, /**< byte-code data */
+ecma_save_literals_add_compiled_code (ecma_context_t *context_p, /**< JJS context */
+                                      const ecma_compiled_code_t *compiled_code_p, /**< byte-code data */
                                       ecma_collection_t *lit_pool_p) /**< list of known values */
 {
   ecma_value_t *literal_p;
@@ -478,22 +487,22 @@ ecma_save_literals_add_compiled_code (const ecma_compiled_code_t *compiled_code_
   {
     for (uint32_t i = 0; i < argument_end; i++)
     {
-      ecma_save_literals_append_value (literal_p[i], lit_pool_p);
+      ecma_save_literals_append_value (context_p, literal_p[i], lit_pool_p);
     }
   }
 
   for (uint32_t i = 0; i < const_literal_end; i++)
   {
-    ecma_save_literals_append_value (literal_p[i], lit_pool_p);
+    ecma_save_literals_append_value (context_p, literal_p[i], lit_pool_p);
   }
 
   for (uint32_t i = const_literal_end; i < literal_end; i++)
   {
-    ecma_compiled_code_t *bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, literal_p[i]);
+    ecma_compiled_code_t *bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, literal_p[i]);
 
     if (CBC_IS_FUNCTION (bytecode_p->status_flags) && bytecode_p != compiled_code_p)
     {
-      ecma_save_literals_add_compiled_code (bytecode_p, lit_pool_p);
+      ecma_save_literals_add_compiled_code (context_p, bytecode_p, lit_pool_p);
     }
   }
 
@@ -502,7 +511,7 @@ ecma_save_literals_add_compiled_code (const ecma_compiled_code_t *compiled_code_
 
   while (literal_p < (ecma_value_t *) byte_p)
   {
-    ecma_save_literals_append_value (*literal_p, lit_pool_p);
+    ecma_save_literals_append_value (context_p, *literal_p, lit_pool_p);
     literal_p++;
   }
 } /* ecma_save_literals_add_compiled_code */
@@ -517,7 +526,8 @@ ecma_save_literals_add_compiled_code (const ecma_compiled_code_t *compiled_code_
  *         false - otherwise
  */
 bool
-ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of known values */
+ecma_save_literals_for_snapshot (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_collection_t *lit_pool_p, /**< list of known values */
                                  uint32_t *buffer_p, /**< [out] output snapshot buffer */
                                  size_t buffer_size, /**< size of the buffer */
                                  size_t *in_out_buffer_offset_p, /**< [in,out] write position in the buffer */
@@ -552,7 +562,7 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
 #if JJS_BUILTIN_BIGINT
     else if (ecma_is_value_bigint (lit_buffer_p[i]))
     {
-      ecma_extended_primitive_t *bigint_p = ecma_get_extended_primitive_from_value (lit_buffer_p[i]);
+      ecma_extended_primitive_t *bigint_p = ecma_get_extended_primitive_from_value (context_p, lit_buffer_p[i]);
 
       lit_table_size += (uint32_t) JJS_ALIGNUP (sizeof (uint32_t) + ECMA_BIGINT_GET_SIZE (bigint_p),
                                                   JJS_SNAPSHOT_LITERAL_ALIGNMENT);
@@ -560,16 +570,16 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
 #endif /* JJS_BUILTIN_BIGINT */
     else
     {
-      ecma_string_t *string_p = ecma_get_string_from_value (lit_buffer_p[i]);
+      ecma_string_t *string_p = ecma_get_string_from_value (context_p, lit_buffer_p[i]);
 
-      lit_table_size += (uint32_t) JJS_ALIGNUP (sizeof (uint16_t) + ecma_string_get_size (string_p),
+      lit_table_size += (uint32_t) JJS_ALIGNUP (sizeof (uint16_t) + ecma_string_get_size (context_p, string_p),
                                                   JJS_SNAPSHOT_LITERAL_ALIGNMENT);
     }
 
     /* Check whether enough space is available and the maximum size is not reached. */
     if (lit_table_size > max_lit_table_size)
     {
-      ecma_collection_destroy (lit_pool_p);
+      ecma_collection_destroy (context_p, lit_pool_p);
       return false;
     }
   }
@@ -577,7 +587,7 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
   lit_mem_to_snapshot_id_map_entry_t *map_p;
   uint32_t total_count = lit_pool_p->item_count;
 
-  map_p = jmem_heap_alloc_block (total_count * sizeof (lit_mem_to_snapshot_id_map_entry_t));
+  map_p = jmem_heap_alloc_block (context_p, total_count * sizeof (lit_mem_to_snapshot_id_map_entry_t));
 
   /* Set return values (no error is possible from here). */
   JJS_ASSERT ((*in_out_buffer_offset_p % sizeof (uint32_t)) == 0);
@@ -603,7 +613,7 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
     {
       map_p->literal_offset |= JJS_SNAPSHOT_LITERAL_IS_NUMBER;
 
-      ecma_number_t num = ecma_get_float_from_value (lit_buffer_p[i]);
+      ecma_number_t num = ecma_get_float_from_value (context_p, lit_buffer_p[i]);
       memcpy (destination_p, &num, sizeof (ecma_number_t));
 
       length = JJS_ALIGNUP (sizeof (ecma_number_t), JJS_SNAPSHOT_LITERAL_ALIGNMENT);
@@ -613,7 +623,7 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
     {
       map_p->literal_offset |= JJS_SNAPSHOT_LITERAL_IS_BIGINT;
 
-      ecma_extended_primitive_t *bigint_p = ecma_get_extended_primitive_from_value (lit_buffer_p[i]);
+      ecma_extended_primitive_t *bigint_p = ecma_get_extended_primitive_from_value (context_p, lit_buffer_p[i]);
       uint32_t size = ECMA_BIGINT_GET_SIZE (bigint_p);
 
       memcpy (destination_p, &bigint_p->u.bigint_sign_and_size, sizeof (uint32_t));
@@ -624,12 +634,12 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
 #endif /* JJS_BUILTIN_BIGINT */
     else
     {
-      ecma_string_t *string_p = ecma_get_string_from_value (lit_buffer_p[i]);
-      length = ecma_string_get_size (string_p);
+      ecma_string_t *string_p = ecma_get_string_from_value (context_p, lit_buffer_p[i]);
+      length = ecma_string_get_size (context_p, string_p);
 
       *(uint16_t *) destination_p = (uint16_t) length;
 
-      ecma_string_to_cesu8_bytes (string_p, destination_p + sizeof (uint16_t), length);
+      ecma_string_to_cesu8_bytes (context_p, string_p, destination_p + sizeof (uint16_t), length);
 
       length = JJS_ALIGNUP (sizeof (uint16_t) + length, JJS_SNAPSHOT_LITERAL_ALIGNMENT);
     }
@@ -641,7 +651,7 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
     map_p++;
   }
 
-  ecma_collection_destroy (lit_pool_p);
+  ecma_collection_destroy (context_p, lit_pool_p);
   return true;
 } /* ecma_save_literals_for_snapshot */
 
@@ -655,7 +665,8 @@ ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p, /**< list of kno
  * @return literal compressed pointer
  */
 ecma_value_t
-ecma_snapshot_get_literal (const uint8_t *literal_base_p, /**< literal start */
+ecma_snapshot_get_literal (ecma_context_t *context_p, /**< JJS context */
+                           const uint8_t *literal_base_p, /**< literal start */
                            ecma_value_t literal_value) /**< string / number offset */
 {
   JJS_ASSERT ((literal_value & ECMA_VALUE_TYPE_MASK) == ECMA_TYPE_SNAPSHOT_OFFSET);
@@ -666,7 +677,7 @@ ecma_snapshot_get_literal (const uint8_t *literal_base_p, /**< literal start */
   {
     ecma_number_t num;
     memcpy (&num, literal_p, sizeof (ecma_number_t));
-    return ecma_find_or_create_literal_number (num);
+    return ecma_find_or_create_literal_number (context_p, num);
   }
 
 #if JJS_BUILTIN_BIGINT
@@ -675,7 +686,7 @@ ecma_snapshot_get_literal (const uint8_t *literal_base_p, /**< literal start */
     uint32_t bigint_sign_and_size = (uint32_t)((literal_p[3] << 24) | (literal_p[2] << 16) | (literal_p[1] << 8) | literal_p[0]);
     uint32_t size = bigint_sign_and_size & ~(uint32_t) (sizeof (ecma_bigint_digit_t) - 1);
 
-    ecma_extended_primitive_t *bigint_p = ecma_bigint_create (size);
+    ecma_extended_primitive_t *bigint_p = ecma_bigint_create (context_p, size);
 
     if (bigint_p == NULL)
     {
@@ -687,13 +698,13 @@ ecma_snapshot_get_literal (const uint8_t *literal_base_p, /**< literal start */
 
     bigint_p->u.bigint_sign_and_size = bigint_sign_and_size;
     memcpy (ECMA_BIGINT_GET_DIGITS (bigint_p, 0), literal_p + sizeof (uint32_t), size);
-    return ecma_find_or_create_literal_bigint (ecma_make_extended_primitive_value (bigint_p, ECMA_TYPE_BIGINT));
+    return ecma_find_or_create_literal_bigint (context_p, ecma_make_extended_primitive_value (context_p, bigint_p, ECMA_TYPE_BIGINT));
   }
 #endif /* JJS_BUILTIN_BIGINT */
 
   uint16_t length = *(const uint16_t *) literal_p;
 
-  return ecma_find_or_create_literal_string (literal_p + sizeof (uint16_t), length, false);
+  return ecma_find_or_create_literal_string (context_p, literal_p + sizeof (uint16_t), length, false);
 } /* ecma_snapshot_get_literal */
 
 /**

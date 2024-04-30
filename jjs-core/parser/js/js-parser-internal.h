@@ -634,22 +634,22 @@ typedef struct
 
 /* Memory management.
  * Note: throws an error if unsuccessful. */
-void *parser_malloc (parser_context_t *context_p, size_t size);
-void parser_free (void *ptr, size_t size);
-void *parser_malloc_local (parser_context_t *context_p, size_t size);
-void parser_free_local (void *ptr, size_t size);
+void *parser_malloc (parser_context_t *parser_context_p, size_t size);
+void parser_free (parser_context_t *parser_context_p, void *ptr, size_t size);
+void *parser_malloc_local (parser_context_t *parser_context_p, size_t size);
+void parser_free_local (parser_context_t *parser_context_p, void *ptr, size_t size);
 void parser_free_allocated_buffer (parser_context_t *context_p);
 
 /* Parser byte stream. */
 
 void parser_cbc_stream_init (parser_mem_data_t *data_p);
-void parser_cbc_stream_free (parser_mem_data_t *data_p);
+void parser_cbc_stream_free (parser_context_t *parser_context_p, parser_mem_data_t *data_p);
 void parser_cbc_stream_alloc_page (parser_context_t *context_p, parser_mem_data_t *data_p);
 
 /* Parser list. Ensures pointer alignment. */
 
 void parser_list_init (parser_list_t *list_p, uint32_t item_size, uint32_t item_count);
-void parser_list_free (parser_list_t *list_p);
+void parser_list_free (parser_context_t *parser_context_p, parser_list_t *list_p);
 void parser_list_reset (parser_list_t *list_p);
 void *parser_list_append (parser_context_t *context_p, parser_list_t *list_p);
 void *parser_list_get (parser_list_t *list_p, size_t index);
@@ -703,7 +703,7 @@ void parser_emit_cbc_forward_branch (parser_context_t *parser_context_p, uint16_
 parser_branch_node_t *
 parser_emit_cbc_forward_branch_item (parser_context_t *parser_context_p, uint16_t opcode, parser_branch_node_t *next_p);
 void parser_emit_cbc_backward_branch (parser_context_t *parser_context_p, uint16_t opcode, uint32_t offset);
-ecma_string_t *parser_new_ecma_string_from_literal (lexer_literal_t *literal_p);
+ecma_string_t *parser_new_ecma_string_from_literal (parser_context_t *parser_context_p, lexer_literal_t *literal_p);
 void parser_set_branch_to_current_position (parser_context_t *parser_context_p, parser_branch_t *branch_p);
 void parser_set_breaks_to_current_position (parser_context_t *parser_context_p, parser_branch_node_t *current_p);
 void parser_set_continues_to_current_position (parser_context_t *parser_context_p, parser_branch_node_t *current_p);
@@ -813,8 +813,8 @@ void scanner_release_next (parser_context_t *parser_context_p, size_t size);
 void scanner_set_active (parser_context_t *parser_context_p);
 void scanner_revert_active (parser_context_t *parser_context_p);
 void scanner_release_active (parser_context_t *parser_context_p, size_t size);
-void scanner_release_switch_cases (scanner_case_info_t *case_p);
-void scanner_release_private_fields (scanner_class_private_member_t *member_p);
+void scanner_release_switch_cases (parser_context_t *parser_context_p, scanner_case_info_t *case_p);
+void scanner_release_private_fields (parser_context_t *parser_context_p, scanner_class_private_member_t *member_p);
 void scanner_seek (parser_context_t *parser_context_p);
 void scanner_reverse_info_list (parser_context_t *parser_context_p);
 void scanner_cleanup (parser_context_t *parser_context_p);
@@ -842,7 +842,7 @@ void scanner_scan_all (parser_context_t *parser_context_p);
  */
 
 void parser_parse_statements (parser_context_t *parser_context_p);
-void parser_free_jumps (parser_stack_iterator_t iterator);
+void parser_free_jumps (parser_context_t *parser_context_p, parser_stack_iterator_t iterator);
 
 #if JJS_MODULE_SYSTEM
 /**
@@ -880,7 +880,7 @@ void parser_module_set_default (parser_context_t *parser_context_p);
  */
 
 #if JJS_LINE_INFO
-void parser_line_info_free (parser_line_info_data_t *line_info_p);
+void parser_line_info_free (parser_context_t *parser_context_p, parser_line_info_data_t *line_info_p);
 void parser_line_info_append (parser_context_t *parser_context_p, parser_line_counter_t line, parser_line_counter_t column);
 uint8_t *parser_line_info_generate (parser_context_t *parser_context_p);
 #endif /* JJS_LINE_INFO */

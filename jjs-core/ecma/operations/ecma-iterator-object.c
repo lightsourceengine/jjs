@@ -48,11 +48,12 @@
  * @return new array object
  */
 ecma_value_t
-ecma_create_array_from_iter_element (ecma_value_t value, /**< value */
+ecma_create_array_from_iter_element (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_value_t value, /**< value */
                                      ecma_value_t index_value) /**< iterator index */
 {
   /* 2. */
-  ecma_object_t *new_array_p = ecma_op_new_array_object (0);
+  ecma_object_t *new_array_p = ecma_op_new_array_object (context_p, 0);
 
   /* 3-4. */
   ecma_value_t completion;
@@ -67,7 +68,7 @@ ecma_create_array_from_iter_element (ecma_value_t value, /**< value */
   JJS_ASSERT (ecma_is_value_true (completion));
 
   /* 5. */
-  return ecma_make_object_value (new_array_p);
+  return ecma_make_object_value (context_p, new_array_p);
 } /* ecma_create_array_from_iter_element */
 
 /**
@@ -82,7 +83,8 @@ ecma_create_array_from_iter_element (ecma_value_t value, /**< value */
  * @return iterator result object
  */
 ecma_value_t
-ecma_create_iter_result_object (ecma_value_t value, /**< value */
+ecma_create_iter_result_object (ecma_context_t *context_p, /**< JJS context */
+                                ecma_value_t value, /**< value */
                                 ecma_value_t done) /**< ECMA_VALUE_{TRUE,FALSE} based
                                                     *   on the iterator index */
 {
@@ -91,26 +93,26 @@ ecma_create_iter_result_object (ecma_value_t value, /**< value */
 
   /* 2. */
   ecma_object_t *object_p =
-    ecma_create_object (ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
+    ecma_create_object (context_p, ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
 
   /* 3. */
   ecma_property_value_t *prop_value_p;
-  prop_value_p = ecma_create_named_data_property (object_p,
+  prop_value_p = ecma_create_named_data_property (context_p, object_p,
                                                   ecma_get_magic_string (LIT_MAGIC_STRING_VALUE),
                                                   ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
                                                   NULL);
 
-  prop_value_p->value = ecma_copy_value_if_not_object (value);
+  prop_value_p->value = ecma_copy_value_if_not_object (context_p, value);
 
   /* 4. */
-  prop_value_p = ecma_create_named_data_property (object_p,
+  prop_value_p = ecma_create_named_data_property (context_p, object_p,
                                                   ecma_get_magic_string (LIT_MAGIC_STRING_DONE),
                                                   ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
                                                   NULL);
   prop_value_p->value = done;
 
   /* 5. */
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_create_iter_result_object */
 
 /**
@@ -124,7 +126,8 @@ ecma_create_iter_result_object (ecma_value_t value, /**< value */
  * @return iterator object
  */
 ecma_value_t
-ecma_op_create_iterator_object (ecma_value_t iterated_value, /**< value from create iterator */
+ecma_op_create_iterator_object (ecma_context_t *context_p, /**< JJS context */
+                                ecma_value_t iterated_value, /**< value from create iterator */
                                 ecma_object_t *prototype_obj_p, /**< prototype object */
                                 ecma_object_class_type_t iterator_type, /**< iterator type */
                                 ecma_iterator_kind_t kind) /**< iterator kind*/
@@ -138,7 +141,7 @@ ecma_op_create_iterator_object (ecma_value_t iterated_value, /**< value from cre
 
   /* 2. */
   ecma_object_t *object_p =
-    ecma_create_object (prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) object_p;
   ext_obj_p->u.cls.type = (uint8_t) iterator_type;
@@ -151,7 +154,7 @@ ecma_op_create_iterator_object (ecma_value_t iterated_value, /**< value from cre
   ext_obj_p->u.cls.u1.iterator_kind = (uint8_t) kind;
 
   /* 6. */
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_op_create_iterator_object */
 
 /**
@@ -166,7 +169,8 @@ ecma_op_create_iterator_object (ecma_value_t iterated_value, /**< value from cre
  *         raised error - otherwise
  */
 ecma_value_t
-ecma_op_get_iterator (ecma_value_t value, /**< value to get iterator from */
+ecma_op_get_iterator (ecma_context_t *context_p, /**< JJS context */
+                      ecma_value_t value, /**< value to get iterator from */
                       ecma_value_t method, /**< provided method argument */
                       ecma_value_t *next_method_p) /**< [out] next method */
 {
@@ -186,7 +190,7 @@ ecma_op_get_iterator (ecma_value_t value, /**< value to get iterator from */
   {
     /* 2.a */
     use_default_method = true;
-    method = ecma_op_get_method_by_symbol_id (value, LIT_GLOBAL_SYMBOL_ITERATOR);
+    method = ecma_op_get_method_by_symbol_id (context_p, value, LIT_GLOBAL_SYMBOL_ITERATOR);
 
     /* 2.b */
     if (ECMA_IS_VALUE_ERROR (method))
@@ -200,7 +204,7 @@ ecma_op_get_iterator (ecma_value_t value, /**< value to get iterator from */
     use_default_method = true;
 
     /* 3.a.i */
-    method = ecma_op_get_method_by_symbol_id (value, LIT_GLOBAL_SYMBOL_ASYNC_ITERATOR);
+    method = ecma_op_get_method_by_symbol_id (context_p, value, LIT_GLOBAL_SYMBOL_ASYNC_ITERATOR);
 
     if (ECMA_IS_VALUE_ERROR (method))
     {
@@ -211,7 +215,7 @@ ecma_op_get_iterator (ecma_value_t value, /**< value to get iterator from */
 
     if (ecma_is_value_undefined (method))
     {
-      method = ecma_op_get_method_by_symbol_id (value, LIT_GLOBAL_SYMBOL_ITERATOR);
+      method = ecma_op_get_method_by_symbol_id (context_p, value, LIT_GLOBAL_SYMBOL_ITERATOR);
 
       if (ECMA_IS_VALUE_ERROR (method))
       {
@@ -219,31 +223,31 @@ ecma_op_get_iterator (ecma_value_t value, /**< value to get iterator from */
       }
 
       ecma_value_t sync_next_method;
-      ecma_value_t sync_iterator = ecma_op_get_iterator (value, method, &sync_next_method);
+      ecma_value_t sync_iterator = ecma_op_get_iterator (context_p, value, method, &sync_next_method);
 
       if (ECMA_IS_VALUE_ERROR (sync_iterator))
       {
-        ecma_free_value (method);
+        ecma_free_value (context_p, method);
         return sync_iterator;
       }
 
       ecma_value_t async_iterator =
-        ecma_op_create_async_from_sync_iterator (sync_iterator, sync_next_method, next_method_p);
+        ecma_op_create_async_from_sync_iterator (context_p, sync_iterator, sync_next_method, next_method_p);
 
-      ecma_free_value (method);
-      ecma_free_value (sync_iterator);
-      ecma_free_value (sync_next_method);
+      ecma_free_value (context_p, method);
+      ecma_free_value (context_p, sync_iterator);
+      ecma_free_value (context_p, sync_next_method);
 
       return async_iterator;
     }
   }
 
   /* 3. */
-  ecma_value_t iterator = ecma_op_function_validated_call (method, value, NULL, 0);
+  ecma_value_t iterator = ecma_op_function_validated_call (context_p, method, value, NULL, 0);
 
   if (use_default_method)
   {
-    ecma_free_value (method);
+    ecma_free_value (context_p, method);
   }
 
   /* 4. */
@@ -255,26 +259,26 @@ ecma_op_get_iterator (ecma_value_t value, /**< value to get iterator from */
   /* 5. */
   if (!ecma_is_value_object (iterator))
   {
-    ecma_free_value (iterator);
-    return ecma_raise_type_error (ECMA_ERR_ITERATOR_IS_NOT_AN_OBJECT);
+    ecma_free_value (context_p, iterator);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ITERATOR_IS_NOT_AN_OBJECT);
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (iterator);
-  ecma_value_t next_method = ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_NEXT);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, iterator);
+  ecma_value_t next_method = ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_NEXT);
 
   if (ECMA_IS_VALUE_ERROR (next_method))
   {
-    ecma_free_value (iterator);
+    ecma_free_value (context_p, iterator);
     return next_method;
   }
 
-  if (ecma_op_is_callable (next_method))
+  if (ecma_op_is_callable (context_p, next_method))
   {
     *next_method_p = next_method;
   }
   else
   {
-    ecma_free_value (next_method);
+    ecma_free_value (context_p, next_method);
   }
 
   /* 6. */
@@ -293,7 +297,8 @@ ecma_op_get_iterator (ecma_value_t value, /**< value to get iterator from */
  *         raised error - otherwise
  */
 ecma_value_t
-ecma_op_iterator_next (ecma_value_t iterator, /**< iterator value */
+ecma_op_iterator_next (ecma_context_t *context_p, /**< JJS context */
+                       ecma_value_t iterator, /**< iterator value */
                        ecma_value_t next_method, /**< next method */
                        ecma_value_t value) /**< the routines's value argument */
 {
@@ -302,19 +307,19 @@ ecma_op_iterator_next (ecma_value_t iterator, /**< iterator value */
   /* 1 - 2. */
   if (next_method == ECMA_VALUE_UNDEFINED)
   {
-    return ecma_raise_type_error (ECMA_ERR_ITERATOR_NEXT_IS_NOT_CALLABLE);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ITERATOR_NEXT_IS_NOT_CALLABLE);
   }
 
-  ecma_object_t *next_method_obj_p = ecma_get_object_from_value (next_method);
+  ecma_object_t *next_method_obj_p = ecma_get_object_from_value (context_p, next_method);
 
   bool has_value = !ecma_is_value_empty (value);
 
   if (has_value)
   {
-    return ecma_op_function_call (next_method_obj_p, iterator, &value, 1);
+    return ecma_op_function_call (context_p, next_method_obj_p, iterator, &value, 1);
   }
 
-  return ecma_op_function_call (next_method_obj_p, iterator, NULL, 0);
+  return ecma_op_function_call (context_p, next_method_obj_p, iterator, NULL, 0);
 } /* ecma_op_iterator_next */
 
 /**
@@ -329,13 +334,14 @@ ecma_op_iterator_next (ecma_value_t iterator, /**< iterator value */
  *         raised error - otherwise
  */
 static ecma_value_t
-ecma_op_iterator_return (ecma_value_t iterator, /**< iterator value */
+ecma_op_iterator_return (ecma_context_t *context_p, /**< JJS context */
+                         ecma_value_t iterator, /**< iterator value */
                          ecma_value_t value) /**< the routines's value argument */
 {
   JJS_ASSERT (ecma_is_value_object (iterator));
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (iterator);
-  ecma_value_t func_return = ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_RETURN);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, iterator);
+  ecma_value_t func_return = ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_RETURN);
 
   if (ECMA_IS_VALUE_ERROR (func_return))
   {
@@ -344,11 +350,11 @@ ecma_op_iterator_return (ecma_value_t iterator, /**< iterator value */
 
   if (func_return == ECMA_VALUE_UNDEFINED)
   {
-    return ecma_create_iter_result_object (value, ECMA_VALUE_TRUE);
+    return ecma_create_iter_result_object (context_p, value, ECMA_VALUE_TRUE);
   }
 
-  ecma_value_t result = ecma_op_function_validated_call (func_return, iterator, &value, 1);
-  ecma_free_value (func_return);
+  ecma_value_t result = ecma_op_function_validated_call (context_p, func_return, iterator, &value, 1);
+  ecma_free_value (context_p, func_return);
 
   return result;
 } /* ecma_op_iterator_return */
@@ -365,13 +371,14 @@ ecma_op_iterator_return (ecma_value_t iterator, /**< iterator value */
  *         raised error - otherwise
  */
 static ecma_value_t
-ecma_op_iterator_throw (ecma_value_t iterator, /**< iterator value */
+ecma_op_iterator_throw (ecma_context_t *context_p, /**< JJS context */
+                        ecma_value_t iterator, /**< iterator value */
                         ecma_value_t value) /**< the routines's value argument */
 {
   JJS_ASSERT (ecma_is_value_object (iterator));
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (iterator);
-  ecma_value_t func_throw = ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_THROW);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, iterator);
+  ecma_value_t func_throw = ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_THROW);
 
   if (ECMA_IS_VALUE_ERROR (func_throw))
   {
@@ -380,19 +387,19 @@ ecma_op_iterator_throw (ecma_value_t iterator, /**< iterator value */
 
   if (func_throw == ECMA_VALUE_UNDEFINED)
   {
-    ecma_value_t result = ecma_op_iterator_close (iterator);
+    ecma_value_t result = ecma_op_iterator_close (context_p, iterator);
 
     if (ECMA_IS_VALUE_ERROR (result))
     {
       return result;
     }
 
-    ecma_free_value (result);
-    return ecma_raise_type_error (ECMA_ERR_ITERATOR_THROW_IS_NOT_AVAILABLE);
+    ecma_free_value (context_p, result);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ITERATOR_THROW_IS_NOT_AVAILABLE);
   }
 
-  ecma_value_t result = ecma_op_function_validated_call (func_throw, iterator, &value, 1);
-  ecma_free_value (func_throw);
+  ecma_value_t result = ecma_op_function_validated_call (context_p, func_throw, iterator, &value, 1);
+  ecma_free_value (context_p, func_throw);
 
   return result;
 } /* ecma_op_iterator_throw */
@@ -405,23 +412,24 @@ ecma_op_iterator_throw (ecma_value_t iterator, /**< iterator value */
  * @return true/false - whether the iteration ended
  */
 ecma_value_t
-ecma_op_iterator_complete (ecma_value_t iter_result) /**< iterator value */
+ecma_op_iterator_complete (ecma_context_t *context_p, /**< JJS context */
+                           ecma_value_t iter_result) /**< iterator value */
 {
   /* 1. */
   JJS_ASSERT (ecma_is_value_object (iter_result));
 
   /* 2. */
-  ecma_object_t *obj_p = ecma_get_object_from_value (iter_result);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, iter_result);
 
-  ecma_value_t done = ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_DONE);
+  ecma_value_t done = ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_DONE);
 
   if (ECMA_IS_VALUE_ERROR (done))
   {
     return done;
   }
 
-  ecma_value_t res = ecma_make_boolean_value (ecma_op_to_boolean (done));
-  ecma_free_value (done);
+  ecma_value_t res = ecma_make_boolean_value (ecma_op_to_boolean (context_p, done));
+  ecma_free_value (context_p, done);
 
   return res;
 } /* ecma_op_iterator_complete */
@@ -437,14 +445,15 @@ ecma_op_iterator_complete (ecma_value_t iter_result) /**< iterator value */
  * @return value of the iterator result object
  */
 ecma_value_t
-ecma_op_iterator_value (ecma_value_t iter_result) /**< iterator value */
+ecma_op_iterator_value (ecma_context_t *context_p, /**< JJS context */
+                        ecma_value_t iter_result) /**< iterator value */
 {
   /* 1. */
   JJS_ASSERT (ecma_is_value_object (iter_result));
 
   /* 2. */
-  ecma_object_t *obj_p = ecma_get_object_from_value (iter_result);
-  return ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_VALUE);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, iter_result);
+  return ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_VALUE);
 } /* ecma_op_iterator_value */
 
 /**
@@ -457,10 +466,9 @@ ecma_op_iterator_value (ecma_value_t iter_result) /**< iterator value */
  *         ECMA_VALUE_ERROR - otherwise
  */
 ecma_value_t
-ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
+ecma_op_iterator_close (ecma_context_t *context_p, /**< JJS context */
+                        ecma_value_t iterator) /**< iterator value */
 {
-  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   /* 1. */
   JJS_ASSERT (ecma_is_value_object (iterator));
 
@@ -473,12 +481,12 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
   }
 
   /* 3. */
-  ecma_value_t return_method = ecma_op_get_method_by_magic_id (iterator, LIT_MAGIC_STRING_RETURN);
+  ecma_value_t return_method = ecma_op_get_method_by_magic_id (context_p, iterator, LIT_MAGIC_STRING_RETURN);
 
   /* 4. */
   if (ECMA_IS_VALUE_ERROR (return_method))
   {
-    ecma_free_value (completion);
+    ecma_free_value (context_p, completion);
     return return_method;
   }
 
@@ -495,8 +503,8 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
   }
 
   /* 6. */
-  ecma_object_t *return_obj_p = ecma_get_object_from_value (return_method);
-  ecma_value_t inner_result = ecma_op_function_call (return_obj_p, iterator, NULL, 0);
+  ecma_object_t *return_obj_p = ecma_get_object_from_value (context_p, return_method);
+  ecma_value_t inner_result = ecma_op_function_call (context_p, return_obj_p, iterator, NULL, 0);
   ecma_deref_object (return_obj_p);
 
   /* 7. */
@@ -508,7 +516,7 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
     }
     else
     {
-      ecma_free_value (inner_result);
+      ecma_free_value (context_p, inner_result);
     }
 
     jcontext_raise_exception (context_p, completion);
@@ -518,18 +526,18 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
   /* 8. */
   if (ECMA_IS_VALUE_ERROR (inner_result))
   {
-    ecma_free_value (completion);
+    ecma_free_value (context_p, completion);
     return inner_result;
   }
 
   /* 9. */
   bool is_object = ecma_is_value_object (inner_result);
-  ecma_free_value (inner_result);
+  ecma_free_value (context_p, inner_result);
 
   if (!is_object)
   {
-    ecma_free_value (completion);
-    return ecma_raise_type_error (ECMA_ERR_METHOD_RETURN_IS_NOT_CALLABLE);
+    ecma_free_value (context_p, completion);
+    return ecma_raise_type_error (context_p, ECMA_ERR_METHOD_RETURN_IS_NOT_CALLABLE);
   }
 
   /* 10. */
@@ -554,11 +562,12 @@ ecma_op_iterator_close (ecma_value_t iterator) /**< iterator value */
  *         raised error - otherwise
  */
 ecma_value_t
-ecma_op_iterator_step (ecma_value_t iterator, /**< iterator value */
+ecma_op_iterator_step (ecma_context_t *context_p, /**< JJS context */
+                       ecma_value_t iterator, /**< iterator value */
                        ecma_value_t next_method) /**< next method */
 {
   /* 1. */
-  ecma_value_t result = ecma_op_iterator_next (iterator, next_method, ECMA_VALUE_EMPTY);
+  ecma_value_t result = ecma_op_iterator_next (context_p, iterator, next_method, ECMA_VALUE_EMPTY);
 
   /* 2. */
   if (ECMA_IS_VALUE_ERROR (result))
@@ -568,28 +577,28 @@ ecma_op_iterator_step (ecma_value_t iterator, /**< iterator value */
 
   if (!ecma_is_value_object (result))
   {
-    ecma_free_value (result);
-    return ecma_raise_type_error (ECMA_ERR_ITERATOR_RESULT_IS_NOT_AN_OBJECT);
+    ecma_free_value (context_p, result);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ITERATOR_RESULT_IS_NOT_AN_OBJECT);
   }
 
   /* 3. */
-  ecma_object_t *obj_p = ecma_get_object_from_value (result);
-  ecma_value_t done = ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_DONE);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, result);
+  ecma_value_t done = ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_DONE);
 
   /* 4. */
   if (ECMA_IS_VALUE_ERROR (done))
   {
-    ecma_free_value (result);
+    ecma_free_value (context_p, result);
     return done;
   }
 
-  bool is_done = ecma_op_to_boolean (done);
-  ecma_free_value (done);
+  bool is_done = ecma_op_to_boolean (context_p, done);
+  ecma_free_value (context_p, done);
 
   /* 5. */
   if (is_done)
   {
-    ecma_free_value (result);
+    ecma_free_value (context_p, result);
     return ECMA_VALUE_FALSE;
   }
 
@@ -607,7 +616,8 @@ ecma_op_iterator_step (ecma_value_t iterator, /**< iterator value */
  *         raised error - otherwise
  */
 ecma_value_t
-ecma_op_iterator_do (ecma_iterator_command_type_t command, /**< command to be executed */
+ecma_op_iterator_do (ecma_context_t *context_p, /**< JJS context */
+                     ecma_iterator_command_type_t command, /**< command to be executed */
                      ecma_value_t iterator, /**< iterator object */
                      ecma_value_t next_method, /**< next method */
                      ecma_value_t value, /**< the routines's value argument */
@@ -617,16 +627,16 @@ ecma_op_iterator_do (ecma_iterator_command_type_t command, /**< command to be ex
 
   if (command == ECMA_ITERATOR_NEXT)
   {
-    result = ecma_op_iterator_next (iterator, next_method, value);
+    result = ecma_op_iterator_next (context_p, iterator, next_method, value);
   }
   else if (command == ECMA_ITERATOR_THROW)
   {
-    result = ecma_op_iterator_throw (iterator, value);
+    result = ecma_op_iterator_throw (context_p, iterator, value);
   }
   else
   {
     JJS_ASSERT (command == ECMA_ITERATOR_RETURN);
-    result = ecma_op_iterator_return (iterator, value);
+    result = ecma_op_iterator_return (context_p, iterator, value);
   }
 
   if (ECMA_IS_VALUE_ERROR (result))
@@ -636,21 +646,21 @@ ecma_op_iterator_do (ecma_iterator_command_type_t command, /**< command to be ex
 
   if (!ecma_is_value_object (result))
   {
-    ecma_free_value (result);
-    return ecma_raise_type_error (ECMA_ERR_ITERATOR_RESULT_IS_NOT_AN_OBJECT);
+    ecma_free_value (context_p, result);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ITERATOR_RESULT_IS_NOT_AN_OBJECT);
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (result);
-  ecma_value_t done = ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_DONE);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, result);
+  ecma_value_t done = ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_DONE);
 
   if (ECMA_IS_VALUE_ERROR (done))
   {
-    ecma_free_value (result);
+    ecma_free_value (context_p, result);
     return done;
   }
 
-  *done_p = ecma_op_to_boolean (done);
-  ecma_free_value (done);
+  *done_p = ecma_op_to_boolean (context_p, done);
+  ecma_free_value (context_p, done);
 
   return result;
 } /* ecma_op_iterator_do */
@@ -666,7 +676,8 @@ ecma_op_iterator_do (ecma_iterator_command_type_t command, /**< command to be ex
  * @return async from sync iterator object
  */
 ecma_value_t
-ecma_op_create_async_from_sync_iterator (ecma_value_t sync_iterator, /**< sync iterator */
+ecma_op_create_async_from_sync_iterator (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_value_t sync_iterator, /**< sync iterator */
                                          ecma_value_t sync_next_method, /**< sync iterator next method */
                                          ecma_value_t *async_next_method_p) /**< [out] async next method */
 {
@@ -674,7 +685,8 @@ ecma_op_create_async_from_sync_iterator (ecma_value_t sync_iterator, /**< sync i
   JJS_ASSERT (ecma_is_value_object (sync_next_method) || ecma_is_value_undefined (sync_next_method));
 
   /* 1. */
-  ecma_object_t *obj_p = ecma_create_object (ecma_builtin_get (ECMA_BUILTIN_ID_ASYNC_FROM_SYNC_ITERATOR_PROTOTYPE),
+  ecma_object_t *obj_p = ecma_create_object (context_p,
+                                             ecma_builtin_get (ECMA_BUILTIN_ID_ASYNC_FROM_SYNC_ITERATOR_PROTOTYPE),
                                              sizeof (ecma_async_from_sync_iterator_object_t),
                                              ECMA_OBJECT_TYPE_CLASS);
 
@@ -686,11 +698,11 @@ ecma_op_create_async_from_sync_iterator (ecma_value_t sync_iterator, /**< sync i
   ext_obj_p->header.u.cls.type = ECMA_OBJECT_CLASS_ASYNC_FROM_SYNC_ITERATOR;
 
   /* 3. */
-  *async_next_method_p = ecma_op_object_get_by_magic_id (obj_p, LIT_MAGIC_STRING_NEXT);
+  *async_next_method_p = ecma_op_object_get_by_magic_id (context_p, obj_p, LIT_MAGIC_STRING_NEXT);
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (*async_next_method_p));
 
   /* 4. */
-  return ecma_make_object_value (obj_p);
+  return ecma_make_object_value (context_p, obj_p);
 } /* ecma_op_create_async_from_sync_iterator */
 
 /**
@@ -701,7 +713,8 @@ ecma_op_create_async_from_sync_iterator (ecma_value_t sync_iterator, /**< sync i
  * @return iterator result object
  */
 ecma_value_t
-ecma_async_from_sync_iterator_unwrap_cb (ecma_object_t *function_obj_p, /**< function object */
+ecma_async_from_sync_iterator_unwrap_cb (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_object_t *function_obj_p, /**< function object */
                                          const ecma_value_t args_p[], /**< argument list */
                                          const uint32_t args_count) /**< argument number */
 {
@@ -712,7 +725,7 @@ ecma_async_from_sync_iterator_unwrap_cb (ecma_object_t *function_obj_p, /**< fun
   ecma_value_t done =
     ecma_make_boolean_value (unwrap_p->u.built_in.u2.routine_flags >> ECMA_NATIVE_HANDLER_COMMON_FLAGS_SHIFT);
 
-  return ecma_create_iter_result_object (arg, done);
+  return ecma_create_iter_result_object (context_p, arg, done);
 } /* ecma_async_from_sync_iterator_unwrap_cb */
 
 /**

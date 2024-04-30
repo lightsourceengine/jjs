@@ -48,6 +48,7 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
                                  ecma_object_t *lex_env_p) /**< lexical environment the Arguments
                                                             *   object is created for */
 {
+  ecma_context_t *context_p = shared_p->header.context_p;
   ecma_object_t *func_obj_p = shared_p->header.function_object_p;
   const ecma_compiled_code_t *bytecode_data_p = shared_p->header.bytecode_header_p;
   uint16_t formal_params_number;
@@ -69,7 +70,8 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
     object_size = sizeof (ecma_mapped_arguments_t);
   }
 
-  ecma_object_t *obj_p = ecma_create_object (ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE),
+  ecma_object_t *obj_p = ecma_create_object (context_p,
+                                             ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE),
                                              object_size + (saved_arg_count * sizeof (ecma_value_t)),
                                              ECMA_OBJECT_TYPE_CLASS);
 
@@ -79,13 +81,13 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
   arguments_p->header.u.cls.u1.arguments_flags = ECMA_ARGUMENTS_OBJECT_NO_FLAGS;
   arguments_p->header.u.cls.u2.formal_params_number = formal_params_number;
   arguments_p->header.u.cls.u3.arguments_number = 0;
-  arguments_p->callee = ecma_make_object_value (func_obj_p);
+  arguments_p->callee = ecma_make_object_value (context_p, func_obj_p);
 
   ecma_value_t *argv_p = (ecma_value_t *) (((uint8_t *) obj_p) + object_size);
 
   for (uint32_t i = 0; i < shared_p->arg_list_len; i++)
   {
-    argv_p[i] = ecma_copy_value_if_not_object (shared_p->arg_list_p[i]);
+    argv_p[i] = ecma_copy_value_if_not_object (context_p, shared_p->arg_list_p[i]);
   }
 
   for (uint32_t i = shared_p->arg_list_len; i < saved_arg_count; i++)
@@ -99,7 +101,7 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
   {
     ecma_mapped_arguments_t *mapped_arguments_p = (ecma_mapped_arguments_t *) obj_p;
 
-    ECMA_SET_INTERNAL_VALUE_POINTER (mapped_arguments_p->lex_env, lex_env_p);
+    ECMA_SET_INTERNAL_VALUE_POINTER (context_p, mapped_arguments_p->lex_env, lex_env_p);
     arguments_p->header.u.cls.u1.arguments_flags |= ECMA_ARGUMENTS_OBJECT_MAPPED;
 
 #if JJS_SNAPSHOT_EXEC
@@ -111,7 +113,7 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
     else
 #endif /* JJS_SNAPSHOT_EXEC */
     {
-      ECMA_SET_INTERNAL_VALUE_POINTER (mapped_arguments_p->u.byte_code, bytecode_data_p);
+      ECMA_SET_INTERNAL_VALUE_POINTER (context_p, mapped_arguments_p->u.byte_code, bytecode_data_p);
     }
 
     /* Static snapshots are not ref counted. */
@@ -130,12 +132,12 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
       if (JJS_UNLIKELY (ecma_is_value_empty (formal_parameter_start_p[i])))
       {
         ecma_property_value_t *prop_value_p;
-        ecma_string_t *prop_name_p = ecma_new_ecma_string_from_uint32 (i);
+        ecma_string_t *prop_name_p = ecma_new_ecma_string_from_uint32 (context_p, i);
 
         prop_value_p =
-          ecma_create_named_data_property (obj_p, prop_name_p, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE, NULL);
+          ecma_create_named_data_property (context_p, obj_p, prop_name_p, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE, NULL);
 
-        ecma_deref_ecma_string (prop_name_p);
+        ecma_deref_ecma_string (context_p, prop_name_p);
 
         prop_value_p->value = argv_p[i];
         argv_p[i] = ECMA_VALUE_EMPTY;
@@ -143,7 +145,7 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
     }
   }
 
-  return ecma_make_object_value (obj_p);
+  return ecma_make_object_value (context_p, obj_p);
 } /* ecma_op_create_arguments_object */
 
 /**
@@ -157,13 +159,14 @@ ecma_op_create_arguments_object (vm_frame_ctx_shared_args_t *shared_p, /**< shar
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_arguments_object_define_own_property (ecma_object_t *object_p, /**< the object */
+ecma_op_arguments_object_define_own_property (ecma_context_t *context_p, /**< JJS context */
+                                              ecma_object_t *object_p, /**< the object */
                                               ecma_string_t *property_name_p, /**< property name */
                                               const ecma_property_descriptor_t *property_desc_p) /**< property
                                                                                                   *   descriptor */
 {
   /* 3. */
-  ecma_value_t ret_value = ecma_op_general_object_define_own_property (object_p, property_name_p, property_desc_p);
+  ecma_value_t ret_value = ecma_op_general_object_define_own_property (context_p, object_p, property_name_p, property_desc_p);
 
   if (ECMA_IS_VALUE_ERROR (ret_value)
       || !(((ecma_extended_object_t *) object_p)->u.cls.u1.arguments_flags & ECMA_ARGUMENTS_OBJECT_MAPPED))
@@ -188,24 +191,24 @@ ecma_op_arguments_object_define_own_property (ecma_object_t *object_p, /**< the 
 
   if (property_desc_p->flags & (JJS_PROP_IS_GET_DEFINED | JJS_PROP_IS_SET_DEFINED))
   {
-    ecma_free_value_if_not_object (argv_p[index]);
+    ecma_free_value_if_not_object (context_p, argv_p[index]);
     argv_p[index] = ECMA_VALUE_ARGUMENT_NO_TRACK;
     return ret_value;
   }
 
   if (property_desc_p->flags & JJS_PROP_IS_VALUE_DEFINED)
   {
-    ecma_string_t *name_p = ecma_op_arguments_object_get_formal_parameter (mapped_arguments_p, index);
-    ecma_object_t *lex_env_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_object_t, mapped_arguments_p->lex_env);
+    ecma_string_t *name_p = ecma_op_arguments_object_get_formal_parameter (context_p, mapped_arguments_p, index);
+    ecma_object_t *lex_env_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_object_t, mapped_arguments_p->lex_env);
 
-    ecma_value_t completion = ecma_op_set_mutable_binding (lex_env_p, name_p, property_desc_p->value, true);
+    ecma_value_t completion = ecma_op_set_mutable_binding (context_p, lex_env_p, name_p, property_desc_p->value, true);
 
     JJS_ASSERT (ecma_is_value_empty (completion));
   }
 
   if ((property_desc_p->flags & JJS_PROP_IS_WRITABLE_DEFINED) && !(property_desc_p->flags & JJS_PROP_IS_WRITABLE))
   {
-    ecma_free_value_if_not_object (argv_p[index]);
+    ecma_free_value_if_not_object (context_p, argv_p[index]);
     argv_p[index] = ECMA_VALUE_ARGUMENT_NO_TRACK;
   }
 
@@ -219,7 +222,8 @@ ecma_op_arguments_object_define_own_property (ecma_object_t *object_p, /**< the 
  *         NULL - otherwise.
  */
 ecma_property_t *
-ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_object_t *object_p, /**< object */
+ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_context_t *context_p, /**< JJS context */
+                                                           ecma_object_t *object_p, /**< object */
                                                            ecma_string_t *property_name_p) /**< property's name */
 {
   JJS_ASSERT (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_ARGUMENTS));
@@ -247,7 +251,8 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_object_t *object
 
     JJS_ASSERT (argv_p[index] != ECMA_VALUE_ARGUMENT_NO_TRACK);
 
-    prop_value_p = ecma_create_named_data_property (object_p,
+    prop_value_p = ecma_create_named_data_property (context_p,
+                                                    object_p,
                                                     property_name_p,
                                                     ECMA_PROPERTY_BUILT_IN_CONFIGURABLE_ENUMERABLE_WRITABLE,
                                                     &prop_p);
@@ -262,12 +267,13 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_object_t *object
   if (ecma_compare_ecma_string_to_magic_id (property_name_p, LIT_MAGIC_STRING_LENGTH)
       && !(flags & ECMA_ARGUMENTS_OBJECT_LENGTH_INITIALIZED))
   {
-    prop_value_p = ecma_create_named_data_property (object_p,
+    prop_value_p = ecma_create_named_data_property (context_p,
+                                                    object_p,
                                                     ecma_get_magic_string (LIT_MAGIC_STRING_LENGTH),
                                                     ECMA_PROPERTY_BUILT_IN_CONFIGURABLE_WRITABLE,
                                                     &prop_p);
 
-    prop_value_p->value = ecma_make_uint32_value (arguments_number);
+    prop_value_p->value = ecma_make_uint32_value (context_p, arguments_number);
     return prop_p;
   }
 
@@ -276,7 +282,8 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_object_t *object
   {
     if (flags & ECMA_ARGUMENTS_OBJECT_MAPPED)
     {
-      prop_value_p = ecma_create_named_data_property (object_p,
+      prop_value_p = ecma_create_named_data_property (context_p,
+                                                      object_p,
                                                       property_name_p,
                                                       ECMA_PROPERTY_BUILT_IN_CONFIGURABLE_WRITABLE,
                                                       &prop_p);
@@ -287,7 +294,8 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_object_t *object
     {
       ecma_object_t *thrower_p = ecma_builtin_get (ECMA_BUILTIN_ID_TYPE_ERROR_THROWER);
 
-      ecma_create_named_accessor_property (object_p,
+      ecma_create_named_accessor_property (context_p,
+                                           object_p,
                                            ecma_get_magic_string (LIT_MAGIC_STRING_CALLEE),
                                            thrower_p,
                                            thrower_p,
@@ -297,19 +305,20 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_object_t *object
     return prop_p;
   }
 
-  if (ecma_op_compare_string_to_global_symbol (property_name_p, LIT_GLOBAL_SYMBOL_ITERATOR)
+  if (ecma_op_compare_string_to_global_symbol (context_p, property_name_p, LIT_GLOBAL_SYMBOL_ITERATOR)
       && !(flags & ECMA_ARGUMENTS_OBJECT_ITERATOR_INITIALIZED))
   {
-    prop_value_p = ecma_create_named_data_property (object_p,
+    prop_value_p = ecma_create_named_data_property (context_p, object_p,
                                                     property_name_p,
                                                     ECMA_PROPERTY_BUILT_IN_CONFIGURABLE_WRITABLE,
                                                     &prop_p);
 
-    prop_value_p->value = ecma_op_object_get_by_magic_id (ecma_builtin_get (ECMA_BUILTIN_ID_INTRINSIC_OBJECT),
+    prop_value_p->value = ecma_op_object_get_by_magic_id (context_p,
+                                                          ecma_builtin_get (ECMA_BUILTIN_ID_INTRINSIC_OBJECT),
                                                           LIT_INTERNAL_MAGIC_STRING_ARRAY_PROTOTYPE_VALUES);
 
     JJS_ASSERT (ecma_is_value_object (prop_value_p->value));
-    ecma_deref_object (ecma_get_object_from_value (prop_value_p->value));
+    ecma_deref_object (ecma_get_object_from_value (context_p, prop_value_p->value));
     return prop_p;
   }
 
@@ -320,7 +329,8 @@ ecma_op_arguments_object_try_to_lazy_instantiate_property (ecma_object_t *object
  * Delete configurable properties of arguments object
  */
 void
-ecma_op_arguments_delete_built_in_property (ecma_object_t *object_p, /**< the object */
+ecma_op_arguments_delete_built_in_property (ecma_context_t *context_p, /**< JJS context */
+                                            ecma_object_t *object_p, /**< the object */
                                             ecma_string_t *property_name_p) /**< property name */
 {
   ecma_unmapped_arguments_t *arguments_p = (ecma_unmapped_arguments_t *) object_p;
@@ -345,7 +355,7 @@ ecma_op_arguments_delete_built_in_property (ecma_object_t *object_p, /**< the ob
   if (ecma_prop_name_is_symbol (property_name_p))
   {
     JJS_ASSERT (!(arguments_p->header.u.cls.u1.arguments_flags & ECMA_ARGUMENTS_OBJECT_ITERATOR_INITIALIZED));
-    JJS_ASSERT (ecma_op_compare_string_to_global_symbol (property_name_p, LIT_GLOBAL_SYMBOL_ITERATOR));
+    JJS_ASSERT (ecma_op_compare_string_to_global_symbol (context_p, property_name_p, LIT_GLOBAL_SYMBOL_ITERATOR));
 
     arguments_p->header.u.cls.u1.arguments_flags |= ECMA_ARGUMENTS_OBJECT_ITERATOR_INITIALIZED;
     return;
@@ -369,7 +379,8 @@ ecma_op_arguments_delete_built_in_property (ecma_object_t *object_p, /**< the ob
  * List names of an arguments object's lazy instantiated properties
  */
 void
-ecma_op_arguments_object_list_lazy_property_names (ecma_object_t *obj_p, /**< arguments object */
+ecma_op_arguments_object_list_lazy_property_names (ecma_context_t *context_p, /**< JJS context */
+                                                   ecma_object_t *obj_p, /**< arguments object */
                                                    ecma_collection_t *prop_names_p, /**< prop name collection */
                                                    ecma_property_counter_t *prop_counter_p, /**< property counters */
                                                    jjs_property_filter_t filter) /**< property name filter options */
@@ -394,8 +405,8 @@ ecma_op_arguments_object_list_lazy_property_names (ecma_object_t *obj_p, /**< ar
     {
       if (!ecma_is_value_empty (argv_p[index]))
       {
-        ecma_string_t *index_string_p = ecma_new_ecma_string_from_uint32 (index);
-        ecma_collection_push_back (prop_names_p, ecma_make_string_value (index_string_p));
+        ecma_string_t *index_string_p = ecma_new_ecma_string_from_uint32 (context_p, index);
+        ecma_collection_push_back (context_p, prop_names_p, ecma_make_string_value (context_p, index_string_p));
         prop_counter_p->array_index_named_props++;
       }
     }
@@ -405,21 +416,21 @@ ecma_op_arguments_object_list_lazy_property_names (ecma_object_t *obj_p, /**< ar
   {
     if (!(flags & ECMA_ARGUMENTS_OBJECT_LENGTH_INITIALIZED))
     {
-      ecma_collection_push_back (prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
+      ecma_collection_push_back (context_p, prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
       prop_counter_p->string_named_props++;
     }
 
     if (!(flags & ECMA_ARGUMENTS_OBJECT_CALLEE_INITIALIZED))
     {
-      ecma_collection_push_back (prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_CALLEE));
+      ecma_collection_push_back (context_p, prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_CALLEE));
       prop_counter_p->string_named_props++;
     }
   }
 
   if (!(filter & JJS_PROPERTY_FILTER_EXCLUDE_SYMBOLS) && !(flags & ECMA_ARGUMENTS_OBJECT_ITERATOR_INITIALIZED))
   {
-    ecma_string_t *symbol_p = ecma_op_get_global_symbol (LIT_GLOBAL_SYMBOL_ITERATOR);
-    ecma_collection_push_back (prop_names_p, ecma_make_symbol_value (symbol_p));
+    ecma_string_t *symbol_p = ecma_op_get_global_symbol (context_p, LIT_GLOBAL_SYMBOL_ITERATOR);
+    ecma_collection_push_back (context_p, prop_names_p, ecma_make_symbol_value (context_p, symbol_p));
     prop_counter_p->symbol_named_props++;
   }
 } /* ecma_op_arguments_object_list_lazy_property_names */
@@ -430,7 +441,8 @@ ecma_op_arguments_object_list_lazy_property_names (ecma_object_t *obj_p, /**< ar
  * @return pointer to the formal parameter name
  */
 ecma_string_t *
-ecma_op_arguments_object_get_formal_parameter (ecma_mapped_arguments_t *mapped_arguments_p, /**< mapped arguments
+ecma_op_arguments_object_get_formal_parameter (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_mapped_arguments_t *mapped_arguments_p, /**< mapped arguments
                                                                                              *   object */
                                                uint32_t index) /**< formal parameter index */
 {
@@ -447,12 +459,12 @@ ecma_op_arguments_object_get_formal_parameter (ecma_mapped_arguments_t *mapped_a
   else
 #endif /* JJS_SNAPSHOT_EXEC */
   {
-    byte_code_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, mapped_arguments_p->u.byte_code);
+    byte_code_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, mapped_arguments_p->u.byte_code);
   }
 
   ecma_value_t *formal_param_names_p = ecma_compiled_code_resolve_arguments_start (byte_code_p);
 
-  return ecma_get_string_from_value (formal_param_names_p[index]);
+  return ecma_get_string_from_value (context_p, formal_param_names_p[index]);
 } /* ecma_op_arguments_object_get_formal_parameter */
 
 /**

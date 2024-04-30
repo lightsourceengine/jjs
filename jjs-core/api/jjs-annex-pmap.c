@@ -27,10 +27,10 @@
 
 #if JJS_ANNEX_PMAP
 static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap);
-static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type);
+static ecma_value_t get_path_type (jjs_context_t* context_p, ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type);
 static ecma_value_t find_nearest_package_path (jjs_context_t* context_p, ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type);
-static bool is_object (ecma_value_t value);
-static bool starts_with_dot_slash (ecma_value_t value);
+static bool is_object (jjs_context_t* context_p, ecma_value_t value);
+static bool starts_with_dot_slash (jjs_context_t* context_p, ecma_value_t value);
 static jjs_value_t expect_path_like_string (jjs_context_t* context_p, ecma_value_t value);
 #endif /* JJS_ANNEX_PMAP */
 
@@ -110,7 +110,7 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
     if (jjs_value_is_undefined (context_p, root))
     {
-      jjs_value_t dirname = annex_path_dirname (resolved_filename);
+      jjs_value_t dirname = annex_path_dirname (context_p, resolved_filename);
 
       if (ecma_is_value_empty (dirname))
       {
@@ -291,11 +291,11 @@ static JJS_HANDLER (jjs_pmap_handler)
 ecma_value_t
 jjs_annex_pmap_create_api (jjs_context_t* context_p)
 {
-  ecma_object_t *pmap_p = ecma_op_create_external_function_object (jjs_pmap_handler);
+  ecma_object_t *pmap_p = ecma_op_create_external_function_object (context_p, jjs_pmap_handler);
 
   annex_util_define_function (context_p, pmap_p, LIT_MAGIC_STRING_RESOLVE, jjs_pmap_resolve_handler);
 
-  return ecma_make_object_value (pmap_p);
+  return ecma_make_object_value (context_p, pmap_p);
 }
 
 /**
@@ -337,20 +337,20 @@ jjs_annex_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_mod
   {
     ecma_value_t path = find_nearest_package_path (context_p, packages, pmap_root, specifier, module_type);
 
-    ecma_free_value (packages);
-    ecma_free_value (package_info);
+    ecma_free_value (context_p, packages);
+    ecma_free_value (context_p, package_info);
 
     if (ecma_is_value_string (path))
     {
       return path;
     }
 
-    ecma_free_value(path);
+    ecma_free_value (context_p, path);
 
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "package not found");
   }
 
-  ecma_value_t file = get_path_type (package_info, LIT_MAGIC_STRING_MAIN, module_type);
+  ecma_value_t file = get_path_type (context_p, package_info, LIT_MAGIC_STRING_MAIN, module_type);
   ecma_value_t result = ECMA_VALUE_EMPTY;
 
   if (jjs_value_is_string (context_p, file))
@@ -360,13 +360,13 @@ jjs_annex_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_mod
 
   if (ecma_is_value_empty (result))
   {
-    ecma_free_value(result);
+    ecma_free_value (context_p, result);
     result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "failed to resolve specifier");
   }
 
-  ecma_free_value (packages);
-  ecma_free_value (package_info);
-  ecma_free_value (file);
+  ecma_free_value (context_p, packages);
+  ecma_free_value (context_p, package_info);
+  ecma_free_value (context_p, file);
 
   return result;
 } /* jjs_annex_pmap_resolve */
@@ -374,11 +374,11 @@ jjs_annex_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_mod
 /**
  * Resolve main or path from a pmap object.
  */
-static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type)
+static ecma_value_t get_path_type (jjs_context_t *context_p, ecma_value_t object, lit_magic_string_id_t type, jjs_module_type_t module_type)
 {
   if (ecma_is_value_string (object))
   {
-    return ecma_copy_value (object);
+    return ecma_copy_value (context_p, object);
   }
 
   if (!ecma_is_value_object (object))
@@ -393,7 +393,7 @@ static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t ty
     return m;
   }
 
-  ecma_free_value (m);
+  ecma_free_value (context_p, m);
 
   ecma_value_t module;
 
@@ -410,9 +410,9 @@ static ecma_value_t get_path_type (ecma_value_t object, lit_magic_string_id_t ty
     return ECMA_VALUE_EMPTY;
   }
 
-  ecma_value_t result = get_path_type (module, type, JJS_MODULE_TYPE_NONE);
+  ecma_value_t result = get_path_type (context_p, module, type, JJS_MODULE_TYPE_NONE);
 
-  ecma_free_value (module);
+  ecma_free_value (context_p, module);
 
   return result;
 } /* get_path_type */
@@ -478,8 +478,8 @@ static jjs_value_t validate_path_or_main (jjs_context_t* context_p, ecma_value_t
   }
 
 done:
-  ecma_free_value (main_value);
-  ecma_free_value (path_value);
+  ecma_free_value (context_p, main_value);
+  ecma_free_value (context_p, path_value);
   return result;
 } /* validate_path_or_main */
 
@@ -521,7 +521,7 @@ static jjs_value_t validate_module_type (jjs_context_t* context_p, ecma_value_t 
   // Validate module value is a string or an object containing path and/or main.
   jjs_value_t result = validate_path_or_main (context_p, module_type_value, key, module_type);
 
-  ecma_free_value (module_type_value);
+  ecma_free_value (context_p, module_type_value);
 
   return result;
 } /* validate_module_type */
@@ -576,7 +576,7 @@ static jjs_value_t validate_package_info (jjs_context_t* context_p, ecma_value_t
  */
 static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
 {
-  if (!is_object (pmap))
+  if (!is_object (context_p, pmap))
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap must be an object");
   }
@@ -588,9 +588,9 @@ static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap contains no 'packages' property");
   }
 
-  if (!is_object (packages))
+  if (!is_object (context_p, packages))
   {
-    ecma_free_value (packages);
+    ecma_free_value (context_p, packages);
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap 'packages' property must be an object");
   }
 
@@ -598,8 +598,8 @@ static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
 
   if (jjs_value_is_exception (context_p, keys))
   {
-    ecma_free_value (keys);
-    ecma_free_value (packages);
+    ecma_free_value (context_p, keys);
+    ecma_free_value (context_p, packages);
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap 'packages' contains no keys");
   }
 
@@ -609,7 +609,7 @@ static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
   {
     jjs_value_t key = jjs_object_get_index (context_p, keys, i);
 
-    if (!annex_util_is_valid_package_name (key))
+    if (!annex_util_is_valid_package_name (context_p, key))
     {
       jjs_value_free (context_p, key);
       continue;
@@ -619,20 +619,20 @@ static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
     jjs_value_t package_info_result = validate_package_info (context_p, package_info, key);
 
     jjs_value_free (context_p, key);
-    ecma_free_value (package_info);
+    ecma_free_value (context_p, package_info);
 
     if (jjs_value_is_exception (context_p, package_info_result))
     {
-      ecma_free_value (keys);
-      ecma_free_value (packages);
+      ecma_free_value (context_p, keys);
+      ecma_free_value (context_p, packages);
       return package_info_result;
     }
 
     jjs_value_free (context_p, package_info_result);
   }
 
-  ecma_free_value (keys);
-  ecma_free_value (packages);
+  ecma_free_value (context_p, keys);
+  ecma_free_value (context_p, packages);
 
   return ECMA_VALUE_TRUE;
 } /* validate_pmap */
@@ -641,17 +641,17 @@ static jjs_value_t validate_pmap (jjs_context_t* context_p, jjs_value_t pmap)
  * Call string.lastIndexOf() with the given arguments.
  */
 static lit_utf8_size_t
-last_index_of (ecma_value_t str, ecma_value_t search, lit_utf8_size_t position)
+last_index_of (jjs_context_t* context_p, ecma_value_t str, ecma_value_t search, lit_utf8_size_t position)
 {
-  ecma_string_t* path_string_p = ecma_get_string_from_value (str);
-  ecma_value_t position_value = ecma_make_uint32_value (position);
+  ecma_string_t* path_string_p = ecma_get_string_from_value (context_p, str);
+  ecma_value_t position_value = ecma_make_uint32_value (context_p, position);
   ecma_value_t value = ecma_builtin_helper_string_prototype_object_index_of (
     path_string_p, search, position_value, ECMA_STRING_LAST_INDEX_OF);
 
   int32_t result = ecma_is_value_integer_number (value) ? ecma_get_integer_from_value (value) : -1;
 
-  ecma_free_value (value);
-  ecma_free_value (position_value);
+  ecma_free_value (context_p, value);
+  ecma_free_value (context_p, position_value);
 
   return result < 0 ? UINT32_MAX : (lit_utf8_size_t) result;
 } /* last_index_of */
@@ -660,9 +660,9 @@ last_index_of (ecma_value_t str, ecma_value_t search, lit_utf8_size_t position)
  * Call string.substr() with the given arguments.
  */
 static ecma_value_t
-substr (ecma_value_t str, lit_utf8_size_t start, lit_utf8_size_t len)
+substr (jjs_context_t* context_p, ecma_value_t str, lit_utf8_size_t start, lit_utf8_size_t len)
 {
-  return ecma_make_string_value (ecma_string_substr (ecma_get_string_from_value (str), start, len));
+  return ecma_make_string_value (context_p, ecma_string_substr (context_p, ecma_get_string_from_value (context_p, str), start, len));
 } /* substr */
 
 /**
@@ -678,20 +678,20 @@ substr (ecma_value_t str, lit_utf8_size_t start, lit_utf8_size_t len)
 static ecma_value_t
 find_nearest_package_path (jjs_context_t* context_p, ecma_value_t packages, ecma_value_t root, ecma_value_t specifier, jjs_module_type_t module_type)
 {
-  ecma_string_t* specifier_p = ecma_get_string_from_value (specifier);
-  lit_utf8_size_t specifier_length = ecma_string_get_length (specifier_p);
+  ecma_string_t* specifier_p = ecma_get_string_from_value (context_p, specifier);
+  lit_utf8_size_t specifier_length = ecma_string_get_length (context_p, specifier_p);
   lit_utf8_size_t last_slash_index = specifier_length;
   ecma_value_t slash = ecma_make_magic_string_value (LIT_MAGIC_STRING_SLASH_CHAR);
   ecma_value_t result = ECMA_VALUE_NOT_FOUND;
 
-  while ((last_slash_index = last_index_of (specifier, slash, last_slash_index)) != UINT32_MAX)
+  while ((last_slash_index = last_index_of (context_p, specifier, slash, last_slash_index)) != UINT32_MAX)
   {
-    ecma_value_t package = substr (specifier, 0, last_slash_index);
+    ecma_value_t package = substr (context_p, specifier, 0, last_slash_index);
     ecma_value_t package_info = ecma_find_own_v (packages, package);
 
     if (package_info != ECMA_VALUE_NOT_FOUND)
     {
-      ecma_value_t path = get_path_type (package_info, LIT_MAGIC_STRING_PATH, module_type);
+      ecma_value_t path = get_path_type (context_p, package_info, LIT_MAGIC_STRING_PATH, module_type);
 
       if (ecma_is_value_string (path))
       {
@@ -699,28 +699,28 @@ find_nearest_package_path (jjs_context_t* context_p, ecma_value_t packages, ecma
 
         if (ecma_is_value_string (temp))
         {
-          ecma_value_t trailing = substr (specifier, last_slash_index + 1, specifier_length);
+          ecma_value_t trailing = substr (context_p, specifier, last_slash_index + 1, specifier_length);
 
           result = annex_path_join (context_p, temp, trailing, true);
-          ecma_free_value (trailing);
+          ecma_free_value (context_p, trailing);
         }
         else
         {
           result = ECMA_VALUE_EMPTY;
         }
 
-        ecma_free_value(temp);
+        ecma_free_value (context_p, temp);
       }
       else
       {
         result = ECMA_VALUE_EMPTY;
       }
 
-      ecma_free_value (path);
+      ecma_free_value (context_p, path);
     }
 
-    ecma_fast_free_value (package);
-    ecma_fast_free_value (package_info);
+    ecma_fast_free_value (context_p, package);
+    ecma_fast_free_value (context_p, package_info);
 
     if (result != ECMA_VALUE_NOT_FOUND)
     {
@@ -738,7 +738,7 @@ find_nearest_package_path (jjs_context_t* context_p, ecma_value_t packages, ecma
     }
   }
 
-  ecma_fast_free_value (slash);
+  ecma_fast_free_value (context_p, slash);
 
   return result;
 } /* find_nearest_package_path */
@@ -749,17 +749,17 @@ find_nearest_package_path (jjs_context_t* context_p, ecma_value_t packages, ecma
  * In the context of validating and reading pmaps, this is faster than ecma_is_value_array().
  */
 static bool
-is_object (ecma_value_t value)
+is_object (jjs_context_t* context_p, ecma_value_t value)
 {
   return (ecma_is_value_object (value)
-          && ecma_get_object_base_type (ecma_get_object_from_value (value)) != ECMA_OBJECT_BASE_TYPE_ARRAY);
+          && ecma_get_object_base_type (ecma_get_object_from_value (context_p, value)) != ECMA_OBJECT_BASE_TYPE_ARRAY);
 } /* is_object */
 
 /**
  * Checks if a value is a string that starts with "./".
  */
 static bool
-starts_with_dot_slash (ecma_value_t value)
+starts_with_dot_slash (jjs_context_t* context_p, ecma_value_t value)
 {
   if (!ecma_is_value_string(value))
   {
@@ -768,8 +768,8 @@ starts_with_dot_slash (ecma_value_t value)
 
   lit_utf8_byte_t path[2];
   lit_utf8_byte_t len = sizeof (path) / sizeof (lit_utf8_byte_t);
-  lit_utf8_size_t written = ecma_string_copy_to_buffer (
-    ecma_get_string_from_value (value), path, len, JJS_ENCODING_CESU8);
+  lit_utf8_size_t written = ecma_string_copy_to_buffer (context_p,
+                                                        ecma_get_string_from_value (context_p, value), path, len, JJS_ENCODING_CESU8);
 
   if (written != len) {
     return false;
@@ -784,7 +784,7 @@ starts_with_dot_slash (ecma_value_t value)
 static jjs_value_t
 expect_path_like_string (jjs_context_t* context_p, ecma_value_t value)
 {
-  if (!starts_with_dot_slash (value))
+  if (!starts_with_dot_slash (context_p, value))
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "pmap: fs path values must start with './'");
   }

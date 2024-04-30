@@ -37,12 +37,13 @@
  * Append the cooked and raw string to the corresponding array
  */
 void
-parser_tagged_template_literal_append_strings (parser_context_t *context_p, /**< parser context */
+parser_tagged_template_literal_append_strings (parser_context_t *parser_context_p, /**< parser context */
                                                ecma_object_t *template_obj_p, /**< template object */
                                                ecma_object_t *raw_strings_p, /**< raw strings object */
                                                uint32_t prop_idx) /**< property index to set the values */
 {
-  lexer_lit_location_t *lit_loc_p = &context_p->token.lit_location;
+  lexer_lit_location_t *lit_loc_p = &parser_context_p->token.lit_location;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
   if (lit_loc_p->length == 0 && !(lit_loc_p->status_flags & LEXER_LIT_LOCATION_HAS_ESCAPE))
   {
@@ -60,27 +61,27 @@ parser_tagged_template_literal_append_strings (parser_context_t *context_p, /**<
 
   uint8_t local_byte_array[LEXER_MAX_LITERAL_LOCAL_BUFFER_SIZE];
   const uint8_t *source_p =
-    lexer_convert_literal_to_chars (context_p, &context_p->token.lit_location, local_byte_array, LEXER_STRING_NO_OPTS);
+    lexer_convert_literal_to_chars (parser_context_p, &parser_context_p->token.lit_location, local_byte_array, LEXER_STRING_NO_OPTS);
 
   ecma_string_t *raw_str_p;
   ecma_string_t *cooked_str_p =
-    ((lit_loc_p->status_flags & LEXER_FLAG_ASCII) ? ecma_new_ecma_string_from_ascii (source_p, lit_loc_p->length)
-                                                  : ecma_new_ecma_string_from_utf8 (source_p, lit_loc_p->length));
+    ((lit_loc_p->status_flags & LEXER_FLAG_ASCII) ? ecma_new_ecma_string_from_ascii (context_p, source_p, lit_loc_p->length)
+                                                  : ecma_new_ecma_string_from_utf8 (context_p, source_p, lit_loc_p->length));
 
-  parser_free_allocated_buffer (context_p);
+  parser_free_allocated_buffer (parser_context_p);
 
   if (lit_loc_p->status_flags & LEXER_LIT_LOCATION_HAS_ESCAPE)
   {
-    context_p->source_p = context_p->token.lit_location.char_p - 1;
-    lexer_parse_string (context_p, LEXER_STRING_RAW);
+    parser_context_p->source_p = parser_context_p->token.lit_location.char_p - 1;
+    lexer_parse_string (parser_context_p, LEXER_STRING_RAW);
     source_p =
-      lexer_convert_literal_to_chars (context_p, &context_p->token.lit_location, local_byte_array, LEXER_STRING_RAW);
+      lexer_convert_literal_to_chars (parser_context_p, &parser_context_p->token.lit_location, local_byte_array, LEXER_STRING_RAW);
 
     raw_str_p =
-      ((lit_loc_p->status_flags & LEXER_FLAG_ASCII) ? ecma_new_ecma_string_from_ascii (source_p, lit_loc_p->length)
-                                                    : ecma_new_ecma_string_from_utf8 (source_p, lit_loc_p->length));
+      ((lit_loc_p->status_flags & LEXER_FLAG_ASCII) ? ecma_new_ecma_string_from_ascii (context_p, source_p, lit_loc_p->length)
+                                                    : ecma_new_ecma_string_from_utf8 (context_p, source_p, lit_loc_p->length));
 
-    parser_free_allocated_buffer (context_p);
+    parser_free_allocated_buffer (parser_context_p);
   }
   else
   {
@@ -90,16 +91,16 @@ parser_tagged_template_literal_append_strings (parser_context_t *context_p, /**<
 
   ecma_builtin_helper_def_prop_by_index (template_obj_p,
                                          prop_idx,
-                                         ecma_make_string_value (cooked_str_p),
+                                         ecma_make_string_value (context_p, cooked_str_p),
                                          ECMA_PROPERTY_FLAG_ENUMERABLE);
 
   ecma_builtin_helper_def_prop_by_index (raw_strings_p,
                                          prop_idx,
-                                         ecma_make_string_value (raw_str_p),
+                                         ecma_make_string_value (context_p, raw_str_p),
                                          ECMA_PROPERTY_FLAG_ENUMERABLE);
 
-  ecma_deref_ecma_string (cooked_str_p);
-  ecma_deref_ecma_string (raw_str_p);
+  ecma_deref_ecma_string (context_p, cooked_str_p);
+  ecma_deref_ecma_string (context_p, raw_str_p);
 } /* parser_tagged_template_literal_append_strings */
 
 /**
@@ -108,10 +109,12 @@ parser_tagged_template_literal_append_strings (parser_context_t *context_p, /**<
  * @return pointer to the allocated object
  */
 ecma_object_t *
-parser_new_tagged_template_literal (ecma_object_t **raw_strings_p) /**< [out] raw strings object */
+parser_new_tagged_template_literal (parser_context_t *parser_context_p, /**< parser context */
+                                    ecma_object_t **raw_strings_p) /**< [out] raw strings object */
 {
-  ecma_object_t *template_obj_p = ecma_op_new_array_object (0);
-  *raw_strings_p = ecma_op_new_array_object (0);
+  ecma_context_t *context_p = parser_context_p->context_p;
+  ecma_object_t *template_obj_p = ecma_op_new_array_object (context_p, 0);
+  *raw_strings_p = ecma_op_new_array_object (context_p, 0);
 
   ecma_extended_object_t *template_ext_obj_p = (ecma_extended_object_t *) template_obj_p;
   ecma_extended_object_t *raw_ext_obj_p = (ecma_extended_object_t *) *raw_strings_p;
@@ -125,7 +128,7 @@ parser_new_tagged_template_literal (ecma_object_t **raw_strings_p) /**< [out] ra
 
   ecma_builtin_helper_def_prop (template_obj_p,
                                 ecma_get_magic_string (LIT_MAGIC_STRING_RAW),
-                                ecma_make_object_value (*raw_strings_p),
+                                ecma_make_object_value (context_p, *raw_strings_p),
                                 ECMA_PROPERTY_FIXED);
 
   return template_obj_p;
@@ -135,10 +138,10 @@ parser_new_tagged_template_literal (ecma_object_t **raw_strings_p) /**< [out] ra
  * Set integrity level of the given template array object to "frozen"
  */
 static void
-parser_tagged_template_literal_freeze_array (ecma_object_t *obj_p)
+parser_tagged_template_literal_freeze_array (parser_context_t *parser_context_p, ecma_object_t *obj_p)
 {
   JJS_ASSERT (ecma_get_object_type (obj_p) == ECMA_OBJECT_TYPE_ARRAY);
-  ecma_op_ordinary_object_prevent_extensions (obj_p);
+  ecma_op_ordinary_object_prevent_extensions (parser_context_p->context_p, obj_p);
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
   ext_obj_p->u.array.length_prop_and_hole_count &= (uint32_t) ~ECMA_PROPERTY_FLAG_WRITABLE;
 } /* parser_tagged_template_literal_freeze_array */
@@ -147,11 +150,12 @@ parser_tagged_template_literal_freeze_array (ecma_object_t *obj_p)
  * Finalize the tagged template object
  */
 void
-parser_tagged_template_literal_finalize (ecma_object_t *template_obj_p, /**< template object */
+parser_tagged_template_literal_finalize (parser_context_t *parser_context_p, /**< parser context */
+                                         ecma_object_t *template_obj_p, /**< template object */
                                          ecma_object_t *raw_strings_p) /**< raw strings object */
 {
-  parser_tagged_template_literal_freeze_array (template_obj_p);
-  parser_tagged_template_literal_freeze_array (raw_strings_p);
+  parser_tagged_template_literal_freeze_array (parser_context_p, template_obj_p);
+  parser_tagged_template_literal_freeze_array (parser_context_p, raw_strings_p);
 } /* parser_tagged_template_literal_finalize */
 
 /**

@@ -115,7 +115,7 @@ typedef struct
   uint8_t status_flags; /**< status flags */
 } lexer_literal_t;
 
-void util_free_literal (lexer_literal_t *literal_p);
+void util_free_literal (ecma_context_t *context_p, lexer_literal_t *literal_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
 void util_print_literal (lexer_literal_t *);

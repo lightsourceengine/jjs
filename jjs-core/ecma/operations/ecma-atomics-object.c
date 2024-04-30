@@ -47,25 +47,26 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_validate_shared_integer_typedarray (ecma_value_t typedarray, /**< typedArray argument */
+ecma_validate_shared_integer_typedarray (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_value_t typedarray, /**< typedArray argument */
                                          bool waitable) /**< waitable argument */
 {
   /* 2. */
-  if (!ecma_is_typedarray (typedarray))
+  if (!ecma_is_typedarray (context_p, typedarray))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_THIS_NOT_TYPED_ARRAY);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_THIS_NOT_TYPED_ARRAY);
   }
 
   /* 3-4. */
-  ecma_object_t *typedarray_p = ecma_get_object_from_value (typedarray);
-  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (typedarray_p);
+  ecma_object_t *typedarray_p = ecma_get_object_from_value (context_p, typedarray);
+  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (context_p, typedarray_p);
 
   /* 5-6. */
   if (waitable)
   {
     if (!(target_info.id == ECMA_BIGINT64_ARRAY || target_info.id == ECMA_INT32_ARRAY))
     {
-      return ecma_raise_type_error (ECMA_ERR_ARGUMENT_NOT_SUPPORTED);
+      return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_NOT_SUPPORTED);
     }
   }
   else
@@ -73,7 +74,7 @@ ecma_validate_shared_integer_typedarray (ecma_value_t typedarray, /**< typedArra
     if (target_info.id == ECMA_UINT8_CLAMPED_ARRAY || target_info.id == ECMA_FLOAT32_ARRAY
         || target_info.id == ECMA_FLOAT64_ARRAY)
     {
-      return ecma_raise_type_error (ECMA_ERR_ARGUMENT_NOT_SUPPORTED);
+      return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_NOT_SUPPORTED);
     }
   }
 
@@ -81,14 +82,14 @@ ecma_validate_shared_integer_typedarray (ecma_value_t typedarray, /**< typedArra
   JJS_ASSERT (target_info.array_buffer_p != NULL);
 
   /* 8-10. */
-  ecma_object_t *buffer = ecma_typedarray_get_arraybuffer (typedarray_p);
+  ecma_object_t *buffer = ecma_typedarray_get_arraybuffer (context_p, typedarray_p);
 
   if (!ecma_object_class_is (buffer, ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_NOT_SHARED_ARRAY_BUFFER);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_NOT_SHARED_ARRAY_BUFFER);
   }
 
-  return ecma_make_object_value (buffer);
+  return ecma_make_object_value (context_p, buffer);
 } /* ecma_validate_shared_integer_typedarray */
 
 /**
@@ -99,24 +100,25 @@ ecma_validate_shared_integer_typedarray (ecma_value_t typedarray, /**< typedArra
  * @return ecma value
  */
 ecma_value_t
-ecma_validate_atomic_access (ecma_value_t typedarray, /**< typedArray argument */
+ecma_validate_atomic_access (ecma_context_t *context_p, /**< JJS context */
+                             ecma_value_t typedarray, /**< typedArray argument */
                              ecma_value_t request_index) /**< request_index argument */
 {
   /* 1. */
   JJS_ASSERT (ecma_is_value_object (typedarray)
-                && ecma_typedarray_get_arraybuffer (ecma_get_object_from_value (typedarray)) != NULL);
+                && ecma_typedarray_get_arraybuffer (context_p, ecma_get_object_from_value (context_p, typedarray)) != NULL);
 
-  ecma_object_t *typedarray_p = ecma_get_object_from_value (typedarray);
+  ecma_object_t *typedarray_p = ecma_get_object_from_value (context_p, typedarray);
 
   /* 2. */
   ecma_number_t access_index;
-  if (ECMA_IS_VALUE_ERROR (ecma_op_to_index (request_index, &access_index)))
+  if (ECMA_IS_VALUE_ERROR (ecma_op_to_index (context_p, request_index, &access_index)))
   {
     return ECMA_VALUE_ERROR;
   }
 
   /* 3. */
-  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (typedarray_p);
+  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (context_p, typedarray_p);
 
   /* 4. */
   JJS_ASSERT (access_index >= 0);
@@ -124,10 +126,10 @@ ecma_validate_atomic_access (ecma_value_t typedarray, /**< typedArray argument *
   /* 5-6. */
   if (JJS_UNLIKELY (access_index >= target_info.length))
   {
-    return ecma_raise_range_error (ECMA_ERR_INVALID_LENGTH);
+    return ecma_raise_range_error (context_p, ECMA_ERR_INVALID_LENGTH);
   }
 
-  return ecma_make_number_value (access_index);
+  return ecma_make_number_value (context_p, access_index);
 } /* ecma_validate_atomic_access */
 
 /**
@@ -138,13 +140,14 @@ ecma_validate_atomic_access (ecma_value_t typedarray, /**< typedArray argument *
  * @return ecma value
  */
 ecma_value_t
-ecma_atomic_read_modify_write (ecma_value_t typedarray, /**< typedArray argument */
+ecma_atomic_read_modify_write (ecma_context_t *context_p, /**< JJS context */
+                               ecma_value_t typedarray, /**< typedArray argument */
                                ecma_value_t index, /**< index argument */
                                ecma_value_t value, /**< value argument */
                                ecma_atomics_op_t op) /**< operation argument */
 {
   /* 1. */
-  ecma_value_t buffer = ecma_validate_shared_integer_typedarray (typedarray, false);
+  ecma_value_t buffer = ecma_validate_shared_integer_typedarray (context_p, typedarray, false);
 
   if (ECMA_IS_VALUE_ERROR (buffer))
   {
@@ -152,7 +155,7 @@ ecma_atomic_read_modify_write (ecma_value_t typedarray, /**< typedArray argument
   }
 
   /* 2. */
-  ecma_value_t idx = ecma_validate_atomic_access (typedarray, index);
+  ecma_value_t idx = ecma_validate_atomic_access (context_p, typedarray, index);
 
   if (ECMA_IS_VALUE_ERROR (idx))
   {
@@ -160,19 +163,19 @@ ecma_atomic_read_modify_write (ecma_value_t typedarray, /**< typedArray argument
   }
 
   /* 3. */
-  ecma_object_t *typedarray_p = ecma_get_object_from_value (typedarray);
-  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (typedarray_p);
+  ecma_object_t *typedarray_p = ecma_get_object_from_value (context_p, typedarray);
+  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (context_p, typedarray_p);
 
   /* 4-5. */
   ecma_value_t val = ECMA_VALUE_ERROR;
   ecma_number_t tmp;
   if (target_info.id == ECMA_BIGINT64_ARRAY || target_info.id == ECMA_BIGUINT64_ARRAY)
   {
-    val = ecma_bigint_to_bigint (value, true);
+    val = ecma_bigint_to_bigint (context_p, value, true);
   }
-  else if (!ECMA_IS_VALUE_ERROR (ecma_op_to_integer (value, &tmp)))
+  else if (!ECMA_IS_VALUE_ERROR (ecma_op_to_integer (context_p, value, &tmp)))
   {
-    val = ecma_make_number_value (tmp);
+    val = ecma_make_number_value (context_p, tmp);
   }
 
   if (ECMA_IS_VALUE_ERROR (val))
@@ -192,7 +195,7 @@ ecma_atomic_read_modify_write (ecma_value_t typedarray, /**< typedArray argument
   /* 9. */
   uint32_t indexed_position = ecma_number_to_uint32 (idx) * element_size + offset;
 
-  ecma_free_value (idx);
+  ecma_free_value (context_p, idx);
 
   JJS_UNUSED (indexed_position);
   JJS_UNUSED (element_type);
@@ -200,10 +203,10 @@ ecma_atomic_read_modify_write (ecma_value_t typedarray, /**< typedArray argument
   JJS_UNUSED (buffer);
   JJS_UNUSED (op);
 
-  ecma_free_value (val);
+  ecma_free_value (context_p, val);
 
   /* 10. */
-  return ecma_make_uint32_value (0);
+  return ecma_make_uint32_value (context_p, 0);
 } /* ecma_atomic_read_modify_write */
 
 /**
@@ -214,10 +217,11 @@ ecma_atomic_read_modify_write (ecma_value_t typedarray, /**< typedArray argument
  * @return ecma value
  */
 ecma_value_t
-ecma_atomic_load (ecma_value_t typedarray, /**< typedArray argument */
+ecma_atomic_load (ecma_context_t *context_p, /**< JJS context */
+                  ecma_value_t typedarray, /**< typedArray argument */
                   ecma_value_t index) /**< index argument */
 {
-  ecma_value_t buffer = ecma_validate_shared_integer_typedarray (typedarray, false);
+  ecma_value_t buffer = ecma_validate_shared_integer_typedarray (context_p, typedarray, false);
 
   if (ECMA_IS_VALUE_ERROR (buffer))
   {
@@ -225,7 +229,7 @@ ecma_atomic_load (ecma_value_t typedarray, /**< typedArray argument */
   }
 
   /* 2. */
-  ecma_value_t idx = ecma_validate_atomic_access (typedarray, index);
+  ecma_value_t idx = ecma_validate_atomic_access (context_p, typedarray, index);
 
   if (ECMA_IS_VALUE_ERROR (idx))
   {
@@ -233,8 +237,8 @@ ecma_atomic_load (ecma_value_t typedarray, /**< typedArray argument */
   }
 
   /* 3. */
-  ecma_object_t *typedarray_p = ecma_get_object_from_value (typedarray);
-  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (typedarray_p);
+  ecma_object_t *typedarray_p = ecma_get_object_from_value (context_p, typedarray);
+  ecma_typedarray_info_t target_info = ecma_typedarray_get_info (context_p, typedarray_p);
 
   /* 4. */
   uint8_t element_size = target_info.element_size;
@@ -253,7 +257,7 @@ ecma_atomic_load (ecma_value_t typedarray, /**< typedArray argument */
   JJS_UNUSED (buffer);
 
   /* 8. */
-  return ecma_make_uint32_value (0);
+  return ecma_make_uint32_value (context_p, 0);
 } /* ecma_atomic_load */
 
 /**

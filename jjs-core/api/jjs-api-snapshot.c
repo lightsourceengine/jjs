@@ -187,11 +187,11 @@ snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
     globals_p->snapshot_buffer_write_offset += sizeof (ecma_compiled_code_t);
 
     ecma_value_t pattern = ((re_compiled_code_t *) compiled_code_p)->source;
-    ecma_string_t *pattern_string_p = ecma_get_string_from_value (pattern);
+    ecma_string_t *pattern_string_p = ecma_get_string_from_value (context_p, pattern);
 
     lit_utf8_size_t pattern_size = 0;
 
-    ECMA_STRING_TO_UTF8_STRING (pattern_string_p, buffer_p, buffer_size);
+    ECMA_STRING_TO_UTF8_STRING (context_p, pattern_string_p, buffer_p, buffer_size);
 
     pattern_size = buffer_size;
 
@@ -205,7 +205,7 @@ snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
       /* cannot return inside ECMA_FINALIZE_UTF8_STRING */
     }
 
-    ECMA_FINALIZE_UTF8_STRING (buffer_p, buffer_size);
+    ECMA_FINALIZE_UTF8_STRING (context_p, buffer_p, buffer_size);
 
     if (!ecma_is_value_empty (globals_p->snapshot_error))
     {
@@ -269,7 +269,7 @@ snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
 
   for (uint32_t i = const_literal_end; i < literal_end; i++)
   {
-    ecma_compiled_code_t *bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, literal_start_p[i]);
+    ecma_compiled_code_t *bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, literal_start_p[i]);
 
     if (bytecode_p == compiled_code_p)
     {
@@ -292,24 +292,25 @@ snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
  * Create unsupported literal error.
  */
 static void
-static_snapshot_error_unsupported_literal (snapshot_globals_t *globals_p, /**< snapshot globals */
+static_snapshot_error_unsupported_literal (jjs_context_t *context_p, /**< JJS context */
+                                           snapshot_globals_t *globals_p, /**< snapshot globals */
                                            ecma_value_t literal) /**< literal form the literal pool */
 {
   lit_utf8_byte_t *str_p = (lit_utf8_byte_t *) "Unsupported static snapshot literal: ";
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create_raw (str_p, 37);
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create_raw (context_p, str_p, 37);
 
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (literal));
 
-  ecma_string_t *literal_string_p = ecma_op_to_string (literal);
+  ecma_string_t *literal_string_p = ecma_op_to_string (context_p, literal);
   JJS_ASSERT (literal_string_p != NULL);
 
   ecma_stringbuilder_append (&builder, literal_string_p);
 
-  ecma_deref_ecma_string (literal_string_p);
+  ecma_deref_ecma_string (context_p, literal_string_p);
 
-  ecma_object_t *error_object_p = ecma_new_standard_error (JJS_ERROR_RANGE, ecma_stringbuilder_finalize (&builder));
+  ecma_object_t *error_object_p = ecma_new_standard_error (context_p, JJS_ERROR_RANGE, ecma_stringbuilder_finalize (&builder));
 
-  globals_p->snapshot_error = ecma_create_exception_from_object (error_object_p);
+  globals_p->snapshot_error = ecma_create_exception_from_object (context_p, error_object_p);
 } /* static_snapshot_error_unsupported_literal */
 
 /**
@@ -395,14 +396,14 @@ static_snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
   {
     if (!ecma_is_value_direct (literal_start_p[i]) && !ecma_is_value_direct_string (literal_start_p[i]))
     {
-      static_snapshot_error_unsupported_literal (globals_p, literal_start_p[i]);
+      static_snapshot_error_unsupported_literal (context_p, globals_p, literal_start_p[i]);
       return 0;
     }
   }
 
   for (uint32_t i = const_literal_end; i < literal_end; i++)
   {
-    ecma_compiled_code_t *bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, literal_start_p[i]);
+    ecma_compiled_code_t *bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, literal_start_p[i]);
 
     if (bytecode_p == compiled_code_p)
     {
@@ -426,7 +427,7 @@ static_snapshot_add_compiled_code (jjs_context_t* context_p, /**< JJS context */
   {
     if (!ecma_is_value_direct_string (*literal_start_p) && !ecma_is_value_empty (*literal_start_p))
     {
-      static_snapshot_error_unsupported_literal (globals_p, *literal_start_p);
+      static_snapshot_error_unsupported_literal (context_p, globals_p, *literal_start_p);
       return 0;
     }
 
@@ -555,10 +556,10 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
     const uint8_t *regex_start_p = ((const uint8_t *) bytecode_p) + sizeof (ecma_compiled_code_t);
 
     /* Real size is stored in refs. */
-    ecma_string_t *pattern_str_p = ecma_new_ecma_string_from_utf8 (regex_start_p, bytecode_p->refs);
+    ecma_string_t *pattern_str_p = ecma_new_ecma_string_from_utf8 (context_p, regex_start_p, bytecode_p->refs);
 
     const re_compiled_code_t *re_bytecode_p = re_compile_bytecode (context_p, pattern_str_p, bytecode_p->status_flags);
-    ecma_deref_ecma_string (pattern_str_p);
+    ecma_deref_ecma_string (context_p, pattern_str_p);
 
     return (ecma_compiled_code_t *) re_bytecode_p;
   }
@@ -589,7 +590,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
     literal_end = (uint32_t) (args_p->literal_end - args_p->register_end);
     header_size = sizeof (cbc_uint16_arguments_t);
 
-    ECMA_SET_INTERNAL_VALUE_POINTER (args_p->script_value, script_p);
+    ECMA_SET_INTERNAL_VALUE_POINTER (context_p, args_p->script_value, script_p);
   }
   else
   {
@@ -601,12 +602,12 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
     literal_end = (uint32_t) (args_p->literal_end - args_p->register_end);
     header_size = sizeof (cbc_uint8_arguments_t);
 
-    ECMA_SET_INTERNAL_VALUE_POINTER (args_p->script_value, script_p);
+    ECMA_SET_INTERNAL_VALUE_POINTER (context_p, args_p->script_value, script_p);
   }
 
   if (copy_bytecode || (header_size + (literal_end * sizeof (uint16_t)) + BYTECODE_NO_COPY_THRESHOLD > code_size))
   {
-    bytecode_p = (ecma_compiled_code_t *) jmem_heap_alloc_block (code_size);
+    bytecode_p = (ecma_compiled_code_t *) jmem_heap_alloc_block (context_p, code_size);
 
 #if JJS_MEM_STATS
     jmem_stats_allocate_byte_code_bytes (code_size);
@@ -650,7 +651,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
 
     new_code_size = JJS_ALIGNUP (new_code_size + extra_bytes, JMEM_ALIGNMENT);
 
-    bytecode_p = (ecma_compiled_code_t *) jmem_heap_alloc_block (new_code_size);
+    bytecode_p = (ecma_compiled_code_t *) jmem_heap_alloc_block (context_p, new_code_size);
 
 #if JJS_MEM_STATS
     jmem_stats_allocate_byte_code_bytes (new_code_size);
@@ -688,7 +689,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
   {
     if ((literal_start_p[i] & ECMA_VALUE_TYPE_MASK) == ECMA_TYPE_SNAPSHOT_OFFSET)
     {
-      literal_start_p[i] = ecma_snapshot_get_literal (literal_base_p, literal_start_p[i]);
+      literal_start_p[i] = ecma_snapshot_get_literal (context_p, literal_base_p, literal_start_p[i]);
     }
   }
 
@@ -699,7 +700,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
     if (literal_offset == 0)
     {
       /* Self reference */
-      ECMA_SET_INTERNAL_VALUE_POINTER (literal_start_p[i], bytecode_p);
+      ECMA_SET_INTERNAL_VALUE_POINTER (context_p, literal_start_p[i], bytecode_p);
     }
     else
     {
@@ -707,7 +708,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
       literal_bytecode_p =
         snapshot_load_compiled_code (context_p, base_addr_p + literal_offset, literal_base_p, script_p, copy_bytecode);
 
-      ECMA_SET_INTERNAL_VALUE_POINTER (literal_start_p[i], literal_bytecode_p);
+      ECMA_SET_INTERNAL_VALUE_POINTER (context_p, literal_start_p[i], literal_bytecode_p);
     }
   }
 
@@ -718,7 +719,7 @@ snapshot_load_compiled_code (jjs_context_t* context_p, /**< JJS context */
   {
     if ((*literal_start_p & ECMA_VALUE_TYPE_MASK) == ECMA_TYPE_SNAPSHOT_OFFSET)
     {
-      *literal_start_p = ecma_snapshot_get_literal (literal_base_p, *literal_start_p);
+      *literal_start_p = ecma_snapshot_get_literal (context_p, literal_base_p, *literal_start_p);
     }
 
     literal_start_p++;
@@ -756,19 +757,19 @@ jjs_generate_snapshot (jjs_context_t* context_p, /**< JJS context */
 
   if (ecma_is_value_object (compiled_code))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (compiled_code);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, compiled_code);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SCRIPT))
     {
       ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
 
-      bytecode_data_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
+      bytecode_data_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
     }
     else if (ecma_get_object_type (object_p) == ECMA_OBJECT_TYPE_FUNCTION)
     {
       ecma_extended_object_t *ext_func_p = (ecma_extended_object_t *) object_p;
 
-      bytecode_data_p = ecma_op_function_get_compiled_code (ext_func_p);
+      bytecode_data_p = ecma_op_function_get_compiled_code (context_p, ext_func_p);
 
       uint16_t type = CBC_FUNCTION_GET_TYPE (bytecode_data_p->status_flags);
 
@@ -819,11 +820,12 @@ jjs_generate_snapshot (jjs_context_t* context_p, /**< JJS context */
 
   if (!(generate_snapshot_opts & JJS_SNAPSHOT_SAVE_STATIC))
   {
-    ecma_collection_t *lit_pool_p = ecma_new_collection ();
+    ecma_collection_t *lit_pool_p = ecma_new_collection (context_p);
 
-    ecma_save_literals_add_compiled_code (bytecode_data_p, lit_pool_p);
+    ecma_save_literals_add_compiled_code (context_p, bytecode_data_p, lit_pool_p);
 
-    if (!ecma_save_literals_for_snapshot (lit_pool_p,
+    if (!ecma_save_literals_for_snapshot (context_p,
+                                          lit_pool_p,
                                           buffer_p,
                                           buffer_size,
                                           &globals.snapshot_buffer_write_offset,
@@ -845,10 +847,10 @@ jjs_generate_snapshot (jjs_context_t* context_p, /**< JJS context */
 
   if (lit_map_p != NULL)
   {
-    jmem_heap_free_block (lit_map_p, literals_num * sizeof (lit_mem_to_snapshot_id_map_entry_t));
+    jmem_heap_free_block (context_p, lit_map_p, literals_num * sizeof (lit_mem_to_snapshot_id_map_entry_t));
   }
 
-  return ecma_make_number_value ((ecma_number_t) globals.snapshot_buffer_write_offset);
+  return ecma_make_number_value (context_p, (ecma_number_t) globals.snapshot_buffer_write_offset);
 #else /* !JJS_SNAPSHOT_SAVE */
   JJS_UNUSED_ALL (compiled_code, generate_snapshot_opts, buffer_p, buffer_size);
   return jjs_throw_sz (context_p, JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_SAVE_DISABLED));
@@ -945,7 +947,7 @@ jjs_exec_snapshot (jjs_context_t* context_p, /**< JJS context */
       script_size += sizeof (ecma_value_t);
     }
 
-    cbc_script_t *script_p = jmem_heap_alloc_block (script_size);
+    cbc_script_t *script_p = jmem_heap_alloc_block (context_p, script_size);
 
     CBC_SCRIPT_SET_TYPE (script_p, user_value, CBC_SCRIPT_REF_ONE);
 
@@ -959,7 +961,7 @@ jjs_exec_snapshot (jjs_context_t* context_p, /**< JJS context */
     if ((exec_snapshot_opts & JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME) && option_values_p != NULL
         && ecma_is_value_string (option_values_p->source_name) > 0)
     {
-      ecma_ref_ecma_string (ecma_get_string_from_value (option_values_p->source_name));
+      ecma_ref_ecma_string (ecma_get_string_from_value (context_p, option_values_p->source_name));
       source_name = option_values_p->source_name;
     }
 
@@ -981,15 +983,15 @@ jjs_exec_snapshot (jjs_context_t* context_p, /**< JJS context */
     if (bytecode_p == NULL)
     {
       JJS_ASSERT (script_p->refs_and_type >= CBC_SCRIPT_REF_ONE);
-      jmem_heap_free_block (script_p, script_size);
-      return ecma_raise_type_error (ECMA_ERR_INVALID_SNAPSHOT_FORMAT);
+      jmem_heap_free_block (context_p, script_p, script_size);
+      return ecma_raise_type_error (context_p, ECMA_ERR_INVALID_SNAPSHOT_FORMAT);
     }
 
     script_p->refs_and_type -= CBC_SCRIPT_REF_ONE;
 
     if (user_value != ECMA_VALUE_EMPTY)
     {
-      CBC_SCRIPT_GET_USER_VALUE (script_p) = ecma_copy_value_if_not_object (user_value);
+      CBC_SCRIPT_GET_USER_VALUE (script_p) = ecma_copy_value_if_not_object (context_p, user_value);
     }
   }
 
@@ -1004,38 +1006,38 @@ jjs_exec_snapshot (jjs_context_t* context_p, /**< JJS context */
 
   if (exec_snapshot_opts & JJS_SNAPSHOT_EXEC_LOAD_AS_FUNCTION)
   {
-    ecma_object_t *global_object_p = ecma_builtin_get_global ();
+    ecma_object_t *global_object_p = ecma_builtin_get_global (context_p);
 
 #if JJS_BUILTIN_REALMS
-    JJS_ASSERT (global_object_p == (ecma_object_t *) ecma_op_function_get_realm (bytecode_p));
+    JJS_ASSERT (global_object_p == (ecma_object_t *) ecma_op_function_get_realm (context_p, bytecode_p));
 #endif /* JJS_BUILTIN_REALMS */
 
     if (bytecode_p->status_flags & CBC_CODE_FLAGS_LEXICAL_BLOCK_NEEDED)
     {
-      ecma_create_global_lexical_block (global_object_p);
+      ecma_create_global_lexical_block (context_p, global_object_p);
     }
 
-    ecma_object_t *lex_env_p = ecma_get_global_scope (global_object_p);
-    ecma_object_t *func_obj_p = ecma_op_create_simple_function_object (lex_env_p, bytecode_p);
+    ecma_object_t *lex_env_p = ecma_get_global_scope (context_p, global_object_p);
+    ecma_object_t *func_obj_p = ecma_op_create_simple_function_object (context_p, lex_env_p, bytecode_p);
 
     if (!(bytecode_p->status_flags & CBC_CODE_FLAGS_STATIC_FUNCTION))
     {
-      ecma_bytecode_deref (bytecode_p);
+      ecma_bytecode_deref (context_p, bytecode_p);
     }
-    ret_val = ecma_make_object_value (func_obj_p);
+    ret_val = ecma_make_object_value (context_p, func_obj_p);
   }
   else
   {
     ret_val = vm_run_global (context_p, bytecode_p, NULL);
     if (!(bytecode_p->status_flags & CBC_CODE_FLAGS_STATIC_FUNCTION))
     {
-      ecma_bytecode_deref (bytecode_p);
+      ecma_bytecode_deref (context_p, bytecode_p);
     }
   }
 
   if (ECMA_IS_VALUE_ERROR (ret_val))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
   return ret_val;
@@ -1055,7 +1057,8 @@ jjs_exec_snapshot (jjs_context_t* context_p, /**< JJS context */
  * Collect all literals from a snapshot file.
  */
 static void
-scan_snapshot_functions (const uint8_t *buffer_p, /**< snapshot buffer start */
+scan_snapshot_functions (jjs_context_t *context_p, /**< JJS context */
+                         const uint8_t *buffer_p, /**< snapshot buffer start */
                          const uint8_t *buffer_end_p, /**< snapshot buffer end */
                          ecma_collection_t *lit_pool_p, /**< list of known values */
                          const uint8_t *literal_base_p) /**< start of literal data */
@@ -1091,8 +1094,8 @@ scan_snapshot_functions (const uint8_t *buffer_p, /**< snapshot buffer start */
       {
         if ((literal_start_p[i] & ECMA_VALUE_TYPE_MASK) == ECMA_TYPE_SNAPSHOT_OFFSET)
         {
-          ecma_value_t lit_value = ecma_snapshot_get_literal (literal_base_p, literal_start_p[i]);
-          ecma_save_literals_append_value (lit_value, lit_pool_p);
+          ecma_value_t lit_value = ecma_snapshot_get_literal (context_p, literal_base_p, literal_start_p[i]);
+          ecma_save_literals_append_value (context_p, lit_value, lit_pool_p);
         }
       }
 
@@ -1103,8 +1106,8 @@ scan_snapshot_functions (const uint8_t *buffer_p, /**< snapshot buffer start */
       {
         if ((*literal_start_p & ECMA_VALUE_TYPE_MASK) == ECMA_TYPE_SNAPSHOT_OFFSET)
         {
-          ecma_value_t lit_value = ecma_snapshot_get_literal (literal_base_p, *literal_start_p);
-          ecma_save_literals_append_value (lit_value, lit_pool_p);
+          ecma_value_t lit_value = ecma_snapshot_get_literal (context_p, literal_base_p, *literal_start_p);
+          ecma_save_literals_append_value (context_p, lit_value, lit_pool_p);
         }
 
         literal_start_p++;
@@ -1119,7 +1122,8 @@ scan_snapshot_functions (const uint8_t *buffer_p, /**< snapshot buffer start */
  * Update all literal offsets in a snapshot data.
  */
 static void
-update_literal_offsets (uint8_t *buffer_p, /**< [in,out] snapshot buffer start */
+update_literal_offsets (jjs_context_t *context_p, /**< JJS context */
+                        uint8_t *buffer_p, /**< [in,out] snapshot buffer start */
                         const uint8_t *buffer_end_p, /**< snapshot buffer end */
                         const lit_mem_to_snapshot_id_map_entry_t *lit_map_p, /**< literal map */
                         const uint8_t *literal_base_p) /**< start of literal data */
@@ -1155,7 +1159,7 @@ update_literal_offsets (uint8_t *buffer_p, /**< [in,out] snapshot buffer start *
       {
         if ((literal_start_p[i] & ECMA_VALUE_TYPE_MASK) == ECMA_TYPE_SNAPSHOT_OFFSET)
         {
-          ecma_value_t lit_value = ecma_snapshot_get_literal (literal_base_p, literal_start_p[i]);
+          ecma_value_t lit_value = ecma_snapshot_get_literal (context_p, literal_base_p, literal_start_p[i]);
           const lit_mem_to_snapshot_id_map_entry_t *current_p = lit_map_p;
 
           while (current_p->literal_id != lit_value)
@@ -1174,7 +1178,7 @@ update_literal_offsets (uint8_t *buffer_p, /**< [in,out] snapshot buffer start *
       {
         if ((*literal_start_p & ECMA_VALUE_TYPE_MASK) == ECMA_TYPE_SNAPSHOT_OFFSET)
         {
-          ecma_value_t lit_value = ecma_snapshot_get_literal (literal_base_p, *literal_start_p);
+          ecma_value_t lit_value = ecma_snapshot_get_literal (context_p, literal_base_p, *literal_start_p);
           const lit_mem_to_snapshot_id_map_entry_t *current_p = lit_map_p;
 
           while (current_p->literal_id != lit_value)
@@ -1222,14 +1226,14 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  ecma_collection_t *lit_pool_p = ecma_new_collection ();
+  ecma_collection_t *lit_pool_p = ecma_new_collection (context_p);
 
   for (uint32_t i = 0; i < number_of_snapshots; i++)
   {
     if (inp_buffer_sizes_p[i] < sizeof (jjs_snapshot_header_t))
     {
       *error_p = "invalid snapshot file";
-      ecma_collection_destroy (lit_pool_p);
+      ecma_collection_destroy (context_p, lit_pool_p);
       return 0;
     }
 
@@ -1239,7 +1243,7 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
         || !snapshot_check_global_flags (header_p->global_flags))
     {
       *error_p = "invalid snapshot version or unsupported features present";
-      ecma_collection_destroy (lit_pool_p);
+      ecma_collection_destroy (context_p, lit_pool_p);
       return 0;
     }
 
@@ -1254,7 +1258,7 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
     number_of_funcs += header_p->number_of_funcs;
     functions_size += header_p->lit_table_offset - start_offset;
 
-    scan_snapshot_functions (data_p + start_offset, literal_base_p, lit_pool_p, literal_base_p);
+    scan_snapshot_functions (context_p, data_p + start_offset, literal_base_p, lit_pool_p, literal_base_p);
   }
 
   JJS_ASSERT (number_of_funcs > 0);
@@ -1264,7 +1268,7 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
   if (functions_size >= out_buffer_size)
   {
     *error_p = "output buffer is too small";
-    ecma_collection_destroy (lit_pool_p);
+    ecma_collection_destroy (context_p, lit_pool_p);
     return 0;
   }
 
@@ -1279,7 +1283,8 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
   lit_mem_to_snapshot_id_map_entry_t *lit_map_p;
   uint32_t literals_num;
 
-  if (!ecma_save_literals_for_snapshot (lit_pool_p,
+  if (!ecma_save_literals_for_snapshot (context_p,
+                                        lit_pool_p,
                                         out_buffer_p,
                                         out_buffer_size,
                                         &functions_size,
@@ -1305,7 +1310,8 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
             current_header_p->lit_table_offset - start_offset);
 
     const uint8_t *literal_base_p = ((const uint8_t *) inp_buffers_p[i]) + current_header_p->lit_table_offset;
-    update_literal_offsets (dst_p,
+    update_literal_offsets (context_p,
+                            dst_p,
                             dst_p + current_header_p->lit_table_offset - start_offset,
                             lit_map_p,
                             literal_base_p);
@@ -1325,7 +1331,7 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
 
   if (lit_map_p != NULL)
   {
-    jmem_heap_free_block (lit_map_p, literals_num * sizeof (lit_mem_to_snapshot_id_map_entry_t));
+    jmem_heap_free_block (context_p, lit_map_p, literals_num * sizeof (lit_mem_to_snapshot_id_map_entry_t));
   }
 
   *error_p = NULL;
@@ -1351,15 +1357,16 @@ jjs_merge_snapshots (jjs_context_t* context_p, /**< JJS context */
  *         false - otherwise
  */
 static bool
-jjs_save_literals_compare (ecma_string_t *literal1, /**< first literal */
-                             ecma_string_t *literal2) /**< second literal */
+jjs_save_literals_compare (jjs_context_t *context_p, /**< JJS context */
+                           ecma_string_t *literal1, /**< first literal */
+                           ecma_string_t *literal2) /**< second literal */
 {
-  const lit_utf8_size_t lit1_size = ecma_string_get_size (literal1);
-  const lit_utf8_size_t lit2_size = ecma_string_get_size (literal2);
+  const lit_utf8_size_t lit1_size = ecma_string_get_size (context_p, literal1);
+  const lit_utf8_size_t lit2_size = ecma_string_get_size (context_p, literal2);
 
   if (lit1_size == lit2_size)
   {
-    return ecma_compare_ecma_strings_relational (literal1, literal2);
+    return ecma_compare_ecma_strings_relational (context_p, literal1, literal2);
   }
 
   return (lit1_size < lit2_size);
@@ -1371,20 +1378,21 @@ jjs_save_literals_compare (ecma_string_t *literal1, /**< first literal */
  * @return index of the maximum value
  */
 static lit_utf8_size_t
-jjs_save_literals_heap_max (ecma_string_t *literals[], /**< array of literals */
-                              lit_utf8_size_t num_of_nodes, /**< number of nodes */
-                              lit_utf8_size_t node_idx, /**< index of parent node */
-                              lit_utf8_size_t child_idx1, /**< index of the first child */
-                              lit_utf8_size_t child_idx2) /**< index of the second child */
+jjs_save_literals_heap_max (jjs_context_t *context_p, /**< JJS context */
+                            ecma_string_t *literals[], /**< array of literals */
+                            lit_utf8_size_t num_of_nodes, /**< number of nodes */
+                            lit_utf8_size_t node_idx, /**< index of parent node */
+                            lit_utf8_size_t child_idx1, /**< index of the first child */
+                            lit_utf8_size_t child_idx2) /**< index of the second child */
 {
   lit_utf8_size_t max_idx = node_idx;
 
-  if (child_idx1 < num_of_nodes && jjs_save_literals_compare (literals[max_idx], literals[child_idx1]))
+  if (child_idx1 < num_of_nodes && jjs_save_literals_compare (context_p, literals[max_idx], literals[child_idx1]))
   {
     max_idx = child_idx1;
   }
 
-  if (child_idx2 < num_of_nodes && jjs_save_literals_compare (literals[max_idx], literals[child_idx2]))
+  if (child_idx2 < num_of_nodes && jjs_save_literals_compare (context_p, literals[max_idx], literals[child_idx2]))
   {
     max_idx = child_idx2;
   }
@@ -1396,14 +1404,15 @@ jjs_save_literals_heap_max (ecma_string_t *literals[], /**< array of literals */
  * Helper function for the heapsort algorithm.
  */
 static void
-jjs_save_literals_down_heap (ecma_string_t *literals[], /**< array of literals */
-                               lit_utf8_size_t num_of_nodes, /**< number of nodes */
-                               lit_utf8_size_t node_idx) /**< index of parent node */
+jjs_save_literals_down_heap (jjs_context_t *context_p, /**< JJS context */
+                             ecma_string_t *literals[], /**< array of literals */
+                             lit_utf8_size_t num_of_nodes, /**< number of nodes */
+                             lit_utf8_size_t node_idx) /**< index of parent node */
 {
   while (true)
   {
     lit_utf8_size_t max_idx =
-      jjs_save_literals_heap_max (literals, num_of_nodes, node_idx, 2 * node_idx + 1, 2 * node_idx + 2);
+      jjs_save_literals_heap_max (context_p, literals, num_of_nodes, node_idx, 2 * node_idx + 1, 2 * node_idx + 2);
     if (max_idx == node_idx)
     {
       break;
@@ -1421,8 +1430,9 @@ jjs_save_literals_down_heap (ecma_string_t *literals[], /**< array of literals *
  * Helper function for a heapsort algorithm.
  */
 static void
-jjs_save_literals_sort (ecma_string_t *literals[], /**< array of literals */
-                          lit_utf8_size_t num_of_literals) /**< number of literals */
+jjs_save_literals_sort (jjs_context_t *context_p, /**< JJS context */
+                        ecma_string_t *literals[], /**< array of literals */
+                        lit_utf8_size_t num_of_literals) /**< number of literals */
 {
   if (num_of_literals < 2)
   {
@@ -1433,7 +1443,7 @@ jjs_save_literals_sort (ecma_string_t *literals[], /**< array of literals */
 
   while (lit_idx <= (num_of_literals - 2) / 2)
   {
-    jjs_save_literals_down_heap (literals, num_of_literals, lit_idx--);
+    jjs_save_literals_down_heap (context_p, literals, num_of_literals, lit_idx--);
   }
 
   for (lit_idx = 0; lit_idx < num_of_literals; lit_idx++)
@@ -1444,7 +1454,7 @@ jjs_save_literals_sort (ecma_string_t *literals[], /**< array of literals */
     literals[last_idx] = literals[0];
     literals[0] = tmp_str_p;
 
-    jjs_save_literals_down_heap (literals, last_idx, 0);
+    jjs_save_literals_down_heap (context_p, literals, last_idx, 0);
   }
 } /* jjs_save_literals_sort */
 
@@ -1486,17 +1496,18 @@ jjs_append_chars_to_buffer (uint8_t *buffer_p, /**< buffer */
  * @return the position of the buffer pointer after copy.
  */
 static uint8_t *
-jjs_append_ecma_string_to_buffer (uint8_t *buffer_p, /**< buffer */
-                                    uint8_t *buffer_end_p, /**< the end of the buffer */
-                                    ecma_string_t *string_p) /**< ecma-string */
+jjs_append_ecma_string_to_buffer (jjs_context_t *context_p, /**< JJS context */
+                                  uint8_t *buffer_p, /**< buffer */
+                                  uint8_t *buffer_end_p, /**< the end of the buffer */
+                                  ecma_string_t *string_p) /**< ecma-string */
 {
-  ECMA_STRING_TO_UTF8_STRING (string_p, str_buffer_p, str_buffer_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, string_p, str_buffer_p, str_buffer_size);
 
   /* Append the string to the buffer. */
   uint8_t *new_buffer_p =
     jjs_append_chars_to_buffer (buffer_p, buffer_end_p, (const char *) str_buffer_p, str_buffer_size);
 
-  ECMA_FINALIZE_UTF8_STRING (str_buffer_p, str_buffer_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, str_buffer_p, str_buffer_size);
 
   return new_buffer_p;
 } /* jjs_append_ecma_string_to_buffer */
@@ -1534,11 +1545,12 @@ jjs_append_number_to_buffer (uint8_t *buffer_p, /**< buffer */
  *         0 - otherwise.
  */
 size_t
-jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot buffer */
-                                  size_t snapshot_size, /**< size of the input snapshot buffer */
-                                  jjs_char_t *lit_buf_p, /**< [out] buffer to save literals to */
-                                  size_t lit_buf_size, /**< the buffer's size */
-                                  bool is_c_format) /**< format-flag */
+jjs_get_literals_from_snapshot (jjs_context_t *context_p, /**< JJS context */
+                                const uint32_t *snapshot_p, /**< input snapshot buffer */
+                                size_t snapshot_size, /**< size of the input snapshot buffer */
+                                jjs_char_t *lit_buf_p, /**< [out] buffer to save literals to */
+                                size_t lit_buf_size, /**< the buffer's size */
+                                bool is_c_format) /**< format-flag */
 {
 #if JJS_SNAPSHOT_SAVE
   const uint8_t *snapshot_data_p = (uint8_t *) snapshot_p;
@@ -1554,8 +1566,8 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
   JJS_ASSERT ((header_p->lit_table_offset % sizeof (uint32_t)) == 0);
   const uint8_t *literal_base_p = snapshot_data_p + header_p->lit_table_offset;
 
-  ecma_collection_t *lit_pool_p = ecma_new_collection ();
-  scan_snapshot_functions (snapshot_data_p + header_p->func_offsets[0], literal_base_p, lit_pool_p, literal_base_p);
+  ecma_collection_t *lit_pool_p = ecma_new_collection (context_p);
+  scan_snapshot_functions (context_p, snapshot_data_p + header_p->func_offsets[0], literal_base_p, lit_pool_p, literal_base_p);
 
   lit_utf8_size_t literal_count = 0;
   ecma_value_t *buffer_p = lit_pool_p->buffer_p;
@@ -1565,7 +1577,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
   {
     if (ecma_is_value_string (buffer_p[i]))
     {
-      ecma_string_t *literal_p = ecma_get_string_from_value (buffer_p[i]);
+      ecma_string_t *literal_p = ecma_get_string_from_value (context_p, buffer_p[i]);
 
       if (ecma_get_string_magic (literal_p) == LIT_MAGIC_STRING__COUNT)
       {
@@ -1576,14 +1588,14 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
 
   if (literal_count == 0)
   {
-    ecma_collection_destroy (lit_pool_p);
+    ecma_collection_destroy (context_p, lit_pool_p);
     return 0;
   }
 
   jjs_char_t *const buffer_start_p = lit_buf_p;
   jjs_char_t *const buffer_end_p = lit_buf_p + lit_buf_size;
 
-  JMEM_DEFINE_LOCAL_ARRAY (literal_array, literal_count, ecma_string_t *);
+  JMEM_DEFINE_LOCAL_ARRAY (context_p, literal_array, literal_count, ecma_string_t *);
   lit_utf8_size_t literal_idx = 0;
 
   buffer_p = lit_pool_p->buffer_p;
@@ -1593,7 +1605,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
   {
     if (ecma_is_value_string (buffer_p[i]))
     {
-      ecma_string_t *literal_p = ecma_get_string_from_value (buffer_p[i]);
+      ecma_string_t *literal_p = ecma_get_string_from_value (context_p, buffer_p[i]);
 
       if (ecma_get_string_magic (literal_p) == LIT_MAGIC_STRING__COUNT)
       {
@@ -1602,10 +1614,10 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
     }
   }
 
-  ecma_collection_destroy (lit_pool_p);
+  ecma_collection_destroy (context_p, lit_pool_p);
 
   /* Sort the strings by size at first, then lexicographically. */
-  jjs_save_literals_sort (literal_array, literal_count);
+  jjs_save_literals_sort (context_p, literal_array, literal_count);
 
   if (is_c_format)
   {
@@ -1623,7 +1635,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
     for (lit_utf8_size_t i = 0; i < literal_count; i++)
     {
       lit_buf_p = jjs_append_chars_to_buffer (lit_buf_p, buffer_end_p, "  \"", 0);
-      ECMA_STRING_TO_UTF8_STRING (literal_array[i], str_buffer_p, str_buffer_size);
+      ECMA_STRING_TO_UTF8_STRING (context_p, literal_array[i], str_buffer_p, str_buffer_size);
       for (lit_utf8_size_t j = 0; j < str_buffer_size; j++)
       {
         uint8_t byte = str_buffer_p[j];
@@ -1645,7 +1657,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
         }
       }
 
-      ECMA_FINALIZE_UTF8_STRING (str_buffer_p, str_buffer_size);
+      ECMA_FINALIZE_UTF8_STRING (context_p, str_buffer_p, str_buffer_size);
       lit_buf_p = jjs_append_chars_to_buffer (lit_buf_p, buffer_end_p, "\"", 0);
 
       if (i < literal_count - 1)
@@ -1665,7 +1677,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
   /* Save the literal sizes respectively. */
   for (lit_utf8_size_t i = 0; i < literal_count; i++)
   {
-    lit_utf8_size_t str_size = ecma_string_get_size (literal_array[i]);
+    lit_utf8_size_t str_size = ecma_string_get_size (context_p, literal_array[i]);
 
     if (is_c_format)
     {
@@ -1679,7 +1691,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
     {
       /* Show the given string as a comment. */
       lit_buf_p = jjs_append_chars_to_buffer (lit_buf_p, buffer_end_p, "/* ", 0);
-      lit_buf_p = jjs_append_ecma_string_to_buffer (lit_buf_p, buffer_end_p, literal_array[i]);
+      lit_buf_p = jjs_append_ecma_string_to_buffer (context_p, lit_buf_p, buffer_end_p, literal_array[i]);
       lit_buf_p = jjs_append_chars_to_buffer (lit_buf_p, buffer_end_p, " */", 0);
 
       if (i < literal_count - 1)
@@ -1689,7 +1701,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
     }
     else
     {
-      lit_buf_p = jjs_append_ecma_string_to_buffer (lit_buf_p, buffer_end_p, literal_array[i]);
+      lit_buf_p = jjs_append_ecma_string_to_buffer (context_p, lit_buf_p, buffer_end_p, literal_array[i]);
     }
 
     lit_buf_p = jjs_append_chars_to_buffer (lit_buf_p, buffer_end_p, "\n", 0);
@@ -1700,7 +1712,7 @@ jjs_get_literals_from_snapshot (const uint32_t *snapshot_p, /**< input snapshot 
     lit_buf_p = jjs_append_chars_to_buffer (lit_buf_p, buffer_end_p, "};\n", 0);
   }
 
-  JMEM_FINALIZE_LOCAL_ARRAY (literal_array);
+  JMEM_FINALIZE_LOCAL_ARRAY (context_p, literal_array);
 
   return lit_buf_p <= buffer_end_p ? (size_t) (lit_buf_p - buffer_start_p) : 0;
 #else /* !JJS_SNAPSHOT_SAVE */

@@ -38,12 +38,13 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-opfunc_equality (ecma_value_t left_value, /**< left value */
+opfunc_equality (ecma_context_t *context_p, /**< JJS context */
+                 ecma_value_t left_value, /**< left value */
                  ecma_value_t right_value) /**< right value */
 {
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (left_value) && !ECMA_IS_VALUE_ERROR (right_value));
 
-  ecma_value_t compare_result = ecma_op_abstract_equality_compare (left_value, right_value);
+  ecma_value_t compare_result = ecma_op_abstract_equality_compare (context_p, left_value, right_value);
 
   JJS_ASSERT (ecma_is_value_boolean (compare_result) || ECMA_IS_VALUE_ERROR (compare_result));
 
@@ -59,14 +60,15 @@ opfunc_equality (ecma_value_t left_value, /**< left value */
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-opfunc_relation (ecma_value_t left_value, /**< left value */
+opfunc_relation (ecma_context_t *context_p, /**< JJS context */
+                 ecma_value_t left_value, /**< left value */
                  ecma_value_t right_value, /**< right value */
                  bool left_first, /**< 'LeftFirst' flag */
                  bool is_invert) /**< is invert */
 {
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (left_value) && !ECMA_IS_VALUE_ERROR (right_value));
 
-  ecma_value_t ret_value = ecma_op_abstract_relational_compare (left_value, right_value, left_first);
+  ecma_value_t ret_value = ecma_op_abstract_relational_compare (context_p, left_value, right_value, left_first);
 
   if (ECMA_IS_VALUE_ERROR (ret_value))
   {
@@ -99,15 +101,16 @@ opfunc_relation (ecma_value_t left_value, /**< left value */
  *         returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-opfunc_instanceof (ecma_value_t left_value, /**< left value */
+opfunc_instanceof (ecma_context_t *context_p, /**< JJS context */
+                   ecma_value_t left_value, /**< left value */
                    ecma_value_t right_value) /**< right value */
 {
   if (!ecma_is_value_object (right_value))
   {
-    return ecma_raise_type_error (ECMA_ERR_RIGHT_VALUE_OF_INSTANCEOF_MUST_BE_AN_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_RIGHT_VALUE_OF_INSTANCEOF_MUST_BE_AN_OBJECT);
   }
 
-  ecma_value_t has_instance_method = ecma_op_get_method_by_symbol_id (right_value, LIT_GLOBAL_SYMBOL_HAS_INSTANCE);
+  ecma_value_t has_instance_method = ecma_op_get_method_by_symbol_id (context_p, right_value, LIT_GLOBAL_SYMBOL_HAS_INSTANCE);
   if (ECMA_IS_VALUE_ERROR (has_instance_method))
   {
     return has_instance_method;
@@ -115,24 +118,24 @@ opfunc_instanceof (ecma_value_t left_value, /**< left value */
 
   if (JJS_UNLIKELY (!ecma_is_value_undefined (has_instance_method)))
   {
-    ecma_object_t *method_obj_p = ecma_get_object_from_value (has_instance_method);
-    ecma_value_t has_instance_result = ecma_op_function_call (method_obj_p, right_value, &left_value, 1);
+    ecma_object_t *method_obj_p = ecma_get_object_from_value (context_p, has_instance_method);
+    ecma_value_t has_instance_result = ecma_op_function_call (context_p, method_obj_p, right_value, &left_value, 1);
 
-    ecma_free_value (has_instance_method);
+    ecma_free_value (context_p, has_instance_method);
 
     if (ECMA_IS_VALUE_ERROR (has_instance_result))
     {
       return has_instance_result;
     }
 
-    bool has_instance = ecma_op_to_boolean (has_instance_result);
-    ecma_free_value (has_instance_result);
+    bool has_instance = ecma_op_to_boolean (context_p, has_instance_result);
+    ecma_free_value (context_p, has_instance_result);
 
     return ecma_make_boolean_value (has_instance);
   }
 
-  ecma_object_t *right_value_obj_p = ecma_get_object_from_value (right_value);
-  return ecma_op_object_has_instance (right_value_obj_p, left_value);
+  ecma_object_t *right_value_obj_p = ecma_get_object_from_value (context_p, right_value);
+  return ecma_op_object_has_instance (context_p, right_value_obj_p, left_value);
 } /* opfunc_instanceof */
 
 /**
@@ -146,24 +149,25 @@ opfunc_instanceof (ecma_value_t left_value, /**< left value */
  *         returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-opfunc_in (ecma_value_t left_value, /**< left value */
+opfunc_in (ecma_context_t *context_p, /**< JJS context */
+           ecma_value_t left_value, /**< left value */
            ecma_value_t right_value) /**< right value */
 {
   if (!ecma_is_value_object (right_value))
   {
-    return ecma_raise_type_error (ECMA_ERR_RIGHT_VALUE_OF_IN_MUST_BE_AN_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_RIGHT_VALUE_OF_IN_MUST_BE_AN_OBJECT);
   }
 
-  ecma_string_t *property_name_p = ecma_op_to_property_key (left_value);
+  ecma_string_t *property_name_p = ecma_op_to_property_key (context_p, left_value);
 
   if (JJS_UNLIKELY (property_name_p == NULL))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  ecma_object_t *right_value_obj_p = ecma_get_object_from_value (right_value);
-  ecma_value_t result = ecma_op_object_has_property (right_value_obj_p, property_name_p);
-  ecma_deref_ecma_string (property_name_p);
+  ecma_object_t *right_value_obj_p = ecma_get_object_from_value (context_p, right_value);
+  ecma_value_t result = ecma_op_object_has_property (context_p, right_value_obj_p, property_name_p);
+  ecma_deref_ecma_string (context_p, property_name_p);
   return result;
 } /* opfunc_in */
 

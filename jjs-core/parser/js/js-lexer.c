@@ -2421,7 +2421,7 @@ lexer_construct_literal_object (parser_context_t *parser_context_p, /**< context
                                 uint8_t literal_type) /**< final literal type */
 {
   uint8_t local_byte_array[LEXER_MAX_LITERAL_LOCAL_BUFFER_SIZE];
-
+  ecma_context_t *context_p = parser_context_p->context_p;
   const uint8_t *char_p =
     lexer_convert_literal_to_chars (parser_context_p, lit_location_p, local_byte_array, LEXER_STRING_NO_OPTS);
 
@@ -2495,7 +2495,7 @@ lexer_construct_literal_object (parser_context_t *parser_context_p, /**< context
 
   if (length > 0 && char_p == local_byte_array)
   {
-    literal_p->u.char_p = (uint8_t *) jmem_heap_alloc_block (length);
+    literal_p->u.char_p = (uint8_t *) jmem_heap_alloc_block (context_p, length);
     memcpy ((uint8_t *) literal_p->u.char_p, char_p, length);
     status_flags = 0;
   }
@@ -2547,6 +2547,7 @@ lexer_construct_number_object (parser_context_t *parser_context_p, /**< context 
   ecma_value_t lit_value;
   uint32_t literal_index = 0;
   prop_length_t length = parser_context_p->token.lit_location.length;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
 #if JJS_BUILTIN_BIGINT
   if (JJS_LIKELY (parser_context_p->token.extra_value != LEXER_NUMBER_BIGINT))
@@ -2580,7 +2581,7 @@ lexer_construct_number_object (parser_context_t *parser_context_p, /**< context 
       num = -num;
     }
 
-    lit_value = ecma_find_or_create_literal_number (num);
+    lit_value = ecma_find_or_create_literal_number (context_p, num);
 #if JJS_BUILTIN_BIGINT
   }
   else
@@ -2595,7 +2596,7 @@ lexer_construct_number_object (parser_context_t *parser_context_p, /**< context 
 
     JJS_ASSERT (length >= 2);
     lit_value =
-      ecma_bigint_parse_string (parser_context_p->token.lit_location.char_p, (lit_utf8_size_t) (length - 1), options);
+      ecma_bigint_parse_string (context_p, parser_context_p->token.lit_location.char_p, (lit_utf8_size_t) (length - 1), options);
 
     JJS_ASSERT (lit_value != ECMA_VALUE_FALSE && !ECMA_IS_VALUE_ERROR (lit_value));
 
@@ -2604,7 +2605,7 @@ lexer_construct_number_object (parser_context_t *parser_context_p, /**< context 
       parser_raise_error (parser_context_p, PARSER_ERR_OUT_OF_MEMORY);
     }
 
-    lit_value = ecma_find_or_create_literal_bigint (lit_value);
+    lit_value = ecma_find_or_create_literal_bigint (context_p, lit_value);
   }
 #endif /* JJS_BUILTIN_BIGINT */
 
@@ -2733,7 +2734,7 @@ lexer_construct_function_object (parser_context_t *parser_context_p, /**< contex
 
   if (context_p->vm_stack_limit != 0)
   {
-    if (JJS_UNLIKELY (ecma_get_current_stack_usage () > context_p->vm_stack_limit))
+    if (JJS_UNLIKELY (ecma_get_current_stack_usage (context_p) > context_p->vm_stack_limit))
     {
       parser_raise_error (parser_context_p, PARSER_ERR_STACK_OVERFLOW);
     }
@@ -2964,19 +2965,20 @@ lexer_construct_regexp_object (parser_context_t *parser_context_p, /**< context 
 
   /* Compile the RegExp literal and store the RegExp bytecode pointer */
   ecma_string_t *pattern_str_p = NULL;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
   if (lit_is_valid_cesu8_string (regex_start_p, length))
   {
-    pattern_str_p = ecma_new_ecma_string_from_utf8 (regex_start_p, length);
+    pattern_str_p = ecma_new_ecma_string_from_utf8 (context_p, regex_start_p, length);
   }
   else
   {
     JJS_ASSERT (lit_is_valid_utf8_string (regex_start_p, length, false));
-    pattern_str_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (regex_start_p, length);
+    pattern_str_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (context_p, regex_start_p, length);
   }
 
   re_compiled_code_t *re_bytecode_p = re_compile_bytecode (parser_context_p->context_p, pattern_str_p, current_flags);
-  ecma_deref_ecma_string (pattern_str_p);
+  ecma_deref_ecma_string (context_p, pattern_str_p);
 
   if (JJS_UNLIKELY (re_bytecode_p == NULL))
   {
@@ -3468,7 +3470,7 @@ lexer_compare_identifiers (parser_context_t *parser_context_p, /**< context */
 
   lexer_convert_ident_to_cesu8 (dynamic_buf_p, left_p->char_p, length);
   bool result = lexer_compare_identifier_to_chars (right_p->char_p, dynamic_buf_p, length);
-  parser_free (dynamic_buf_p, length);
+  parser_free (parser_context_p, dynamic_buf_p, length);
 
   return result;
 } /* lexer_compare_identifiers */

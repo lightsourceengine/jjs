@@ -43,7 +43,8 @@
  *         error - in case of any problems
  */
 ecma_value_t
-ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
+ecma_op_abstract_equality_compare (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_value_t x, /**< first operand */
                                    ecma_value_t y) /**< second operand */
 {
   if (x == y)
@@ -62,8 +63,8 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
     if (ecma_is_value_number (y))
     {
       /* 1.c */
-      ecma_number_t x_num = ecma_get_number_from_value (x);
-      ecma_number_t y_num = ecma_get_number_from_value (y);
+      ecma_number_t x_num = ecma_get_number_from_value (context_p, x);
+      ecma_number_t y_num = ecma_get_number_from_value (context_p, y);
 
       bool is_x_equal_to_y = (x_num == y_num);
 
@@ -100,8 +101,8 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
     if (ecma_is_value_string (y))
     {
       /* 1., d. */
-      ecma_string_t *x_str_p = ecma_get_string_from_value (x);
-      ecma_string_t *y_str_p = ecma_get_string_from_value (y);
+      ecma_string_t *x_str_p = ecma_get_string_from_value (context_p, x);
+      ecma_string_t *y_str_p = ecma_get_string_from_value (context_p, y);
 
       bool is_equal = ecma_compare_ecma_strings (x_str_p, y_str_p);
 
@@ -112,16 +113,16 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
     {
       /* 4. */
       ecma_number_t num;
-      ecma_value_t x_num_value = ecma_op_to_number (x, &num);
+      ecma_value_t x_num_value = ecma_op_to_number (context_p, x, &num);
 
       if (ECMA_IS_VALUE_ERROR (x_num_value))
       {
         return x_num_value;
       }
-      ecma_value_t num_value = ecma_make_number_value (num);
-      ecma_value_t compare_result = ecma_op_abstract_equality_compare (num_value, y);
+      ecma_value_t num_value = ecma_make_number_value (context_p, num);
+      ecma_value_t compare_result = ecma_op_abstract_equality_compare (context_p, num_value, y);
 
-      ecma_free_value (num_value);
+      ecma_free_value (context_p, num_value);
       return compare_result;
     }
 
@@ -141,13 +142,13 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
     }
 
     /* 7. */
-    return ecma_op_abstract_equality_compare (x, ecma_make_integer_value (ecma_is_value_true (y) ? 1 : 0));
+    return ecma_op_abstract_equality_compare (context_p, x, ecma_make_integer_value (ecma_is_value_true (y) ? 1 : 0));
   }
 
   if (ecma_is_value_boolean (x))
   {
     /* 6. */
-    return ecma_op_abstract_equality_compare (ecma_make_integer_value (ecma_is_value_true (x) ? 1 : 0), y);
+    return ecma_op_abstract_equality_compare (context_p, ecma_make_integer_value (ecma_is_value_true (x) ? 1 : 0), y);
   }
 
 #if JJS_BUILTIN_BIGINT
@@ -155,12 +156,12 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
   {
     if (ecma_is_value_bigint (y))
     {
-      return ecma_make_boolean_value (ecma_bigint_is_equal_to_bigint (x, y));
+      return ecma_make_boolean_value (ecma_bigint_is_equal_to_bigint (context_p, x, y));
     }
 
     if (ecma_is_value_string (y))
     {
-      ecma_value_t bigint = ecma_bigint_parse_string_value (y, ECMA_BIGINT_PARSE_DISALLOW_SYNTAX_ERROR);
+      ecma_value_t bigint = ecma_bigint_parse_string_value (context_p, y, ECMA_BIGINT_PARSE_DISALLOW_SYNTAX_ERROR);
 
       if (ECMA_IS_VALUE_ERROR (bigint) || bigint == ECMA_VALUE_FALSE)
       {
@@ -169,15 +170,15 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
 
       JJS_ASSERT (ecma_is_value_bigint (bigint));
 
-      ecma_value_t result = ecma_make_boolean_value (ecma_bigint_is_equal_to_bigint (x, bigint));
+      ecma_value_t result = ecma_make_boolean_value (ecma_bigint_is_equal_to_bigint (context_p, x, bigint));
 
-      ecma_free_value (bigint);
+      ecma_free_value (context_p, bigint);
       return result;
     }
 
     if (ecma_is_value_number (y))
     {
-      return ecma_make_boolean_value (ecma_bigint_is_equal_to_number (x, ecma_get_number_from_value (y)));
+      return ecma_make_boolean_value (ecma_bigint_is_equal_to_number (context_p, x, ecma_get_number_from_value (context_p, y)));
     }
 
     /* Swap values. */
@@ -218,18 +219,18 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
       || ecma_is_value_number (y))
   {
     /* 9. */
-    ecma_object_t *obj_p = ecma_get_object_from_value (x);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, x);
 
-    ecma_value_t def_value = ecma_op_object_default_value (obj_p, ECMA_PREFERRED_TYPE_NO);
+    ecma_value_t def_value = ecma_op_object_default_value (context_p, obj_p, ECMA_PREFERRED_TYPE_NO);
 
     if (ECMA_IS_VALUE_ERROR (def_value))
     {
       return def_value;
     }
 
-    ecma_value_t compare_result = ecma_op_abstract_equality_compare (def_value, y);
+    ecma_value_t compare_result = ecma_op_abstract_equality_compare (context_p, def_value, y);
 
-    ecma_free_value (def_value);
+    ecma_free_value (context_p, def_value);
 
     return compare_result;
   }
@@ -246,7 +247,8 @@ ecma_op_abstract_equality_compare (ecma_value_t x, /**< first operand */
  *         false - otherwise
  */
 bool
-ecma_op_strict_equality_compare (ecma_value_t x, /**< first operand */
+ecma_op_strict_equality_compare (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_value_t x, /**< first operand */
                                  ecma_value_t y) /**< second operand */
 {
   if (ecma_is_value_direct (x) || ecma_is_value_direct (y) || ecma_is_value_symbol (x) || ecma_is_value_symbol (y)
@@ -277,8 +279,8 @@ ecma_op_strict_equality_compare (ecma_value_t x, /**< first operand */
       return false;
     }
 
-    ecma_string_t *x_str_p = ecma_get_string_from_value (x);
-    ecma_string_t *y_str_p = ecma_get_string_from_value (y);
+    ecma_string_t *x_str_p = ecma_get_string_from_value (context_p, x);
+    ecma_string_t *y_str_p = ecma_get_string_from_value (context_p, y);
 
     return ecma_compare_ecma_strings (x_str_p, y_str_p);
   }
@@ -291,7 +293,7 @@ ecma_op_strict_equality_compare (ecma_value_t x, /**< first operand */
       return false;
     }
 
-    return ecma_bigint_is_equal_to_bigint (x, y);
+    return ecma_bigint_is_equal_to_bigint (context_p, x, y);
   }
 #endif /* JJS_BUILTIN_BIGINT */
 
@@ -300,8 +302,8 @@ ecma_op_strict_equality_compare (ecma_value_t x, /**< first operand */
     return false;
   }
 
-  ecma_number_t x_num = ecma_get_number_from_value (x);
-  ecma_number_t y_num = ecma_get_number_from_value (y);
+  ecma_number_t x_num = ecma_get_number_from_value (context_p, x);
+  ecma_number_t y_num = ecma_get_number_from_value (context_p, y);
 
   bool is_x_equal_to_y = (x_num == y_num);
 
@@ -336,23 +338,24 @@ ecma_op_strict_equality_compare (ecma_value_t x, /**< first operand */
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_abstract_relational_compare (ecma_value_t x, /**< first operand */
+ecma_op_abstract_relational_compare (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_value_t x, /**< first operand */
                                      ecma_value_t y, /**< second operand */
                                      bool left_first) /**< 'LeftFirst' flag */
 {
   ecma_value_t ret_value = ECMA_VALUE_EMPTY;
 
   /* 1., 2. */
-  ecma_value_t prim_first_converted_value = ecma_op_to_primitive (x, ECMA_PREFERRED_TYPE_NUMBER);
+  ecma_value_t prim_first_converted_value = ecma_op_to_primitive (context_p, x, ECMA_PREFERRED_TYPE_NUMBER);
   if (ECMA_IS_VALUE_ERROR (prim_first_converted_value))
   {
     return prim_first_converted_value;
   }
 
-  ecma_value_t prim_second_converted_value = ecma_op_to_primitive (y, ECMA_PREFERRED_TYPE_NUMBER);
+  ecma_value_t prim_second_converted_value = ecma_op_to_primitive (context_p, y, ECMA_PREFERRED_TYPE_NUMBER);
   if (ECMA_IS_VALUE_ERROR (prim_second_converted_value))
   {
-    ecma_free_value (prim_first_converted_value);
+    ecma_free_value (context_p, prim_first_converted_value);
     return prim_second_converted_value;
   }
 
@@ -375,7 +378,7 @@ ecma_op_abstract_relational_compare (ecma_value_t x, /**< first operand */
       ecma_number_t nx;
       ecma_number_t ny;
 
-      if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (px, &nx)) || ECMA_IS_VALUE_ERROR (ecma_op_to_number (py, &ny)))
+      if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, px, &nx)) || ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, py, &ny)))
       {
         ret_value = ECMA_VALUE_ERROR;
         goto end;
@@ -460,11 +463,11 @@ ecma_op_abstract_relational_compare (ecma_value_t x, /**< first operand */
 
       if (ecma_is_value_bigint (py))
       {
-        compare_result = ecma_bigint_compare_to_bigint (px, py);
+        compare_result = ecma_bigint_compare_to_bigint (context_p, px, py);
       }
       else if (ecma_is_value_string (py))
       {
-        ret_value = ecma_bigint_parse_string_value (py, ECMA_BIGINT_PARSE_DISALLOW_SYNTAX_ERROR);
+        ret_value = ecma_bigint_parse_string_value (context_p, py, ECMA_BIGINT_PARSE_DISALLOW_SYNTAX_ERROR);
 
         if (!ECMA_IS_VALUE_ERROR (ret_value))
         {
@@ -474,8 +477,8 @@ ecma_op_abstract_relational_compare (ecma_value_t x, /**< first operand */
           }
           else
           {
-            compare_result = ecma_bigint_compare_to_bigint (px, ret_value);
-            ecma_free_value (ret_value);
+            compare_result = ecma_bigint_compare_to_bigint (context_p, px, ret_value);
+            ecma_free_value (context_p, ret_value);
             ret_value = ECMA_VALUE_EMPTY;
           }
         }
@@ -483,7 +486,7 @@ ecma_op_abstract_relational_compare (ecma_value_t x, /**< first operand */
       else
       {
         ecma_number_t ny;
-        if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (py, &ny)))
+        if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, py, &ny)))
         {
           ret_value = ECMA_VALUE_ERROR;
           goto end;
@@ -495,7 +498,7 @@ ecma_op_abstract_relational_compare (ecma_value_t x, /**< first operand */
         }
         else
         {
-          compare_result = ecma_bigint_compare_to_number (px, ny);
+          compare_result = ecma_bigint_compare_to_number (context_p, px, ny);
         }
       }
 
@@ -515,17 +518,17 @@ ecma_op_abstract_relational_compare (ecma_value_t x, /**< first operand */
   { /* 4. */
     JJS_ASSERT (is_px_string && is_py_string);
 
-    ecma_string_t *str_x_p = ecma_get_string_from_value (px);
-    ecma_string_t *str_y_p = ecma_get_string_from_value (py);
+    ecma_string_t *str_x_p = ecma_get_string_from_value (context_p, px);
+    ecma_string_t *str_y_p = ecma_get_string_from_value (context_p, py);
 
-    bool is_px_less = ecma_compare_ecma_strings_relational (str_x_p, str_y_p);
+    bool is_px_less = ecma_compare_ecma_strings_relational (context_p, str_x_p, str_y_p);
 
     ret_value = ecma_make_boolean_value (is_px_less);
   }
 
 end:
-  ecma_free_value (prim_second_converted_value);
-  ecma_free_value (prim_first_converted_value);
+  ecma_free_value (context_p, prim_second_converted_value);
+  ecma_free_value (context_p, prim_first_converted_value);
 
   return ret_value;
 } /* ecma_op_abstract_relational_compare */

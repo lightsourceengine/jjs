@@ -157,7 +157,7 @@ jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context
   jjs_api_enable (ctx_p);
   jmem_init (ctx_p);
   ecma_init (ctx_p);
-  jjs_api_object_init (ctx_p, ecma_make_object_value (ecma_builtin_get_global ()));
+  jjs_api_object_init (ctx_p, ecma_make_object_value (context_p, ecma_builtin_get_global (context_p)));
   jjs_annex_init (ctx_p);
   jjs_annex_init_realm (ctx_p, ctx_p->global_object_p);
 
@@ -194,7 +194,7 @@ jjs_context_free (jjs_context_t* context_p)
     }
   }
 
-  ecma_free_all_enqueued_jobs ();
+  ecma_free_all_enqueued_jobs (context_p);
   jjs_annex_finalize (context_p);
   ecma_finalize (context_p);
   jjs_api_disable (context_p);
@@ -210,7 +210,7 @@ jjs_context_free (jjs_context_t* context_p)
       this_p->manager_p->finalize_cb (data);
     }
 
-    jmem_heap_free_block (this_p, sizeof (jjs_context_data_header_t) + this_p->manager_p->bytes_needed);
+    jmem_heap_free_block (context_p, this_p, sizeof (jjs_context_data_header_t) + this_p->manager_p->bytes_needed);
   }
 
   jjs_context_cleanup (context_p);
@@ -239,7 +239,7 @@ jjs_context_data (jjs_context_t* context_p, const jjs_context_data_manager_t *ma
     }
   }
 
-  item_p = jmem_heap_alloc_block (sizeof (jjs_context_data_header_t) + manager_p->bytes_needed);
+  item_p = jmem_heap_alloc_block (context_p, sizeof (jjs_context_data_header_t) + manager_p->bytes_needed);
   item_p->manager_p = manager_p;
   item_p->next_p = context_p->context_data_p;
   context_p->context_data_p = item_p;
@@ -270,7 +270,8 @@ jjs_register_magic_strings (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  lit_magic_strings_ex_set ((const lit_utf8_byte_t *const *) ext_strings_p,
+  lit_magic_strings_ex_set (context_p, 
+                            (const lit_utf8_byte_t *const *) ext_strings_p,
                             count,
                             (const lit_utf8_size_t *) str_lengths_p);
 } /* jjs_register_magic_strings */
@@ -362,7 +363,8 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
   if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) && options_p != NULL
       && (options_p->options & JJS_PARSE_HAS_SOURCE_NAME) && ecma_is_value_string (options_p->source_name))
   {
-    ECMA_STRING_TO_UTF8_STRING (ecma_get_string_from_value (options_p->source_name),
+    ECMA_STRING_TO_UTF8_STRING (context_p,
+                                ecma_get_string_from_value (context_p, options_p->source_name),
                                 source_name_start_p,
                                 source_name_size);
     jjs_debugger_send_string (context_p,
@@ -370,7 +372,7 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
                               JJS_DEBUGGER_NO_SUBTYPE,
                               source_name_start_p,
                               source_name_size);
-    ECMA_FINALIZE_UTF8_STRING (source_name_start_p, source_name_size);
+    ECMA_FINALIZE_UTF8_STRING (context_p, source_name_start_p, source_name_size);
   }
 #endif /* JJS_DEBUGGER */
 
@@ -400,7 +402,7 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
     }
 #endif /* JJS_MODULE_SYSTEM */
 
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
 #if JJS_MODULE_SYSTEM
@@ -411,32 +413,32 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
 
     context_p->module_current_p = NULL;
 
-    return ecma_make_object_value ((ecma_object_t *) module_p);
+    return ecma_make_object_value (context_p, (ecma_object_t *) module_p);
   }
 #endif /* JJS_MODULE_SYSTEM */
 
   if (JJS_UNLIKELY (options_p != NULL && (options_p->options & JJS_PARSE_HAS_ARGUMENT_LIST)))
   {
-    ecma_object_t *global_object_p = ecma_builtin_get_global ();
+    ecma_object_t *global_object_p = ecma_builtin_get_global (context_p);
 
 #if JJS_BUILTIN_REALMS
-    JJS_ASSERT (global_object_p == (ecma_object_t *) ecma_op_function_get_realm (bytecode_data_p));
+    JJS_ASSERT (global_object_p == (ecma_object_t *) ecma_op_function_get_realm (context_p, bytecode_data_p));
 #endif /* JJS_BUILTIN_REALMS */
 
-    ecma_object_t *lex_env_p = ecma_get_global_environment (global_object_p);
-    ecma_object_t *func_obj_p = ecma_op_create_simple_function_object (lex_env_p, bytecode_data_p);
-    ecma_bytecode_deref (bytecode_data_p);
+    ecma_object_t *lex_env_p = ecma_get_global_environment (context_p, global_object_p);
+    ecma_object_t *func_obj_p = ecma_op_create_simple_function_object (context_p, lex_env_p, bytecode_data_p);
+    ecma_bytecode_deref (context_p, bytecode_data_p);
 
-    return ecma_make_object_value (func_obj_p);
+    return ecma_make_object_value (context_p, func_obj_p);
   }
 
-  ecma_object_t *object_p = ecma_create_object (NULL, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+  ecma_object_t *object_p = ecma_create_object (context_p, NULL, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
   ext_object_p->u.cls.type = ECMA_OBJECT_CLASS_SCRIPT;
-  ECMA_SET_INTERNAL_VALUE_POINTER (ext_object_p->u.cls.u3.value, bytecode_data_p);
+  ECMA_SET_INTERNAL_VALUE_POINTER (context_p, ext_object_p->u.cls.u3.value, bytecode_data_p);
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* jjs_parse_common */
 
 #endif /* JJS_PARSER */
@@ -511,7 +513,7 @@ jjs_run (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (script);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, script);
 
   if (!ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SCRIPT))
   {
@@ -521,11 +523,11 @@ jjs_run (jjs_context_t* context_p, /**< JJS context */
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
 
   const ecma_compiled_code_t *bytecode_data_p;
-  bytecode_data_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
+  bytecode_data_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
 
   JJS_ASSERT (CBC_FUNCTION_GET_TYPE (bytecode_data_p->status_flags) == CBC_FUNCTION_SCRIPT);
 
-  return jjs_return (vm_run_global (context_p, bytecode_data_p, object_p));
+  return jjs_return (context_p, vm_run_global (context_p, bytecode_data_p, object_p));
 } /* jjs_run */
 
 /**
@@ -556,7 +558,7 @@ jjs_eval (jjs_context_t* context_p, /**< JJS context */
     .source_size = source_size,
   };
 
-  return jjs_return (ecma_op_eval_chars_buffer ((void *) &source_char, flags));
+  return jjs_return (context_p, ecma_op_eval_chars_buffer (context_p, (void *) &source_char, flags));
 } /* jjs_eval */
 
 /**
@@ -572,14 +574,14 @@ jjs_run_jobs (jjs_context_t* context_p) /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return jjs_return (ecma_process_all_enqueued_jobs ());
+  return jjs_return (context_p, ecma_process_all_enqueued_jobs (context_p));
 } /* jjs_run_jobs */
 
 bool
 jjs_has_pending_jobs (jjs_context_t* context_p) /**< JJS context */ {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_has_enqueued_jobs ();
+  return ecma_has_enqueued_jobs (context_p);
 } /* jjs_has_pending_jobs */
 
 /**
@@ -594,9 +596,9 @@ jjs_value_t
 jjs_current_realm (jjs_context_t* context_p) /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
-  ecma_object_t *global_obj_p = ecma_builtin_get_global ();
+  ecma_object_t *global_obj_p = ecma_builtin_get_global (context_p);
   ecma_ref_object (global_obj_p);
-  return ecma_make_object_value (global_obj_p);
+  return ecma_make_object_value (context_p, global_obj_p);
 } /* jjs_current_realm */
 
 /**
@@ -616,7 +618,7 @@ jjs_value_is_abort (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (value);
+  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (context_p, value);
 
   return (error_ref_p->refs_and_type & ECMA_ERROR_API_FLAG_ABORT) != 0;
 } /* jjs_value_is_abort */
@@ -634,7 +636,7 @@ jjs_value_is_array (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
   return (ecma_is_value_object (value)
-          && ecma_get_object_base_type (ecma_get_object_from_value (value)) == ECMA_OBJECT_BASE_TYPE_ARRAY);
+          && ecma_get_object_base_type (ecma_get_object_from_value (context_p, value)) == ECMA_OBJECT_BASE_TYPE_ARRAY);
 } /* jjs_value_is_array */
 
 /**
@@ -694,7 +696,7 @@ jjs_value_is_constructor (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_is_constructor (value);
+  return ecma_is_constructor (context_p, value);
 } /* jjs_value_is_constructor */
 
 /**
@@ -724,7 +726,7 @@ jjs_value_is_function (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_op_is_callable (value);
+  return ecma_op_is_callable (context_p, value);
 } /* jjs_value_is_function */
 
 /**
@@ -741,12 +743,12 @@ jjs_value_is_async_function (jjs_context_t* context_p, /**< JJS context */
 
   if (ecma_is_value_object (value))
   {
-    ecma_object_t *obj_p = ecma_get_object_from_value (value);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, value);
 
     if (ecma_get_object_type (obj_p) == ECMA_OBJECT_TYPE_FUNCTION)
     {
       const ecma_compiled_code_t *bytecode_data_p;
-      bytecode_data_p = ecma_op_function_get_compiled_code ((ecma_extended_object_t *) obj_p);
+      bytecode_data_p = ecma_op_function_get_compiled_code (context_p, (ecma_extended_object_t *) obj_p);
       uint16_t type = CBC_FUNCTION_GET_TYPE (bytecode_data_p->status_flags);
 
       return (type == CBC_FUNCTION_ASYNC || type == CBC_FUNCTION_ASYNC_ARROW || type == CBC_FUNCTION_ASYNC_GENERATOR);
@@ -813,7 +815,7 @@ jjs_value_is_promise (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return (ecma_is_value_object (value) && ecma_is_promise (ecma_get_object_from_value (value)));
+  return (ecma_is_value_object (value) && ecma_is_promise (ecma_get_object_from_value (context_p, value)));
 } /* jjs_value_is_promise */
 
 /**
@@ -828,7 +830,7 @@ jjs_value_is_proxy (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_BUILTIN_PROXY
-  return (ecma_is_value_object (value) && ECMA_OBJECT_IS_PROXY (ecma_get_object_from_value (value)));
+  return (ecma_is_value_object (value) && ECMA_OBJECT_IS_PROXY (ecma_get_object_from_value (context_p, value)));
 #else /* !JJS_BUILTIN_PROXY */
   JJS_UNUSED (value);
   return false;
@@ -916,7 +918,7 @@ jjs_value_type (jjs_context_t* context_p, /**< JJS context */
     return JJS_TYPE_EXCEPTION;
   }
 
-  lit_magic_string_id_t lit_id = ecma_get_typeof_lit_id (value);
+  lit_magic_string_id_t lit_id = ecma_get_typeof_lit_id (context_p, value);
 
   JJS_ASSERT (lit_id != LIT_MAGIC_STRING__EMPTY);
 
@@ -1050,7 +1052,7 @@ jjs_object_type (jjs_context_t* context_p, /**< JJS context */
     return JJS_OBJECT_TYPE_NONE;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (value);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, value);
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
 
   switch (ecma_get_object_type (obj_p))
@@ -1100,7 +1102,7 @@ jjs_function_type (jjs_context_t* context_p, /**< JJS context */
 
   if (ecma_is_value_object (value))
   {
-    ecma_object_t *obj_p = ecma_get_object_from_value (value);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, value);
     ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
 
     switch (ecma_get_object_type (obj_p))
@@ -1116,7 +1118,7 @@ jjs_function_type (jjs_context_t* context_p, /**< JJS context */
       }
       case ECMA_OBJECT_TYPE_FUNCTION:
       {
-        const ecma_compiled_code_t *bytecode_data_p = ecma_op_function_get_compiled_code (ext_obj_p);
+        const ecma_compiled_code_t *bytecode_data_p = ecma_op_function_get_compiled_code (context_p, ext_obj_p);
 
         switch (CBC_FUNCTION_GET_TYPE (bytecode_data_p->status_flags))
         {
@@ -1165,7 +1167,7 @@ jjs_iterator_type (jjs_context_t* context_p, /**< JJS context */
 
   if (ecma_is_value_object (value))
   {
-    ecma_object_t *obj_p = ecma_get_object_from_value (value);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, value);
     ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) obj_p;
 
     if (ecma_get_object_type (obj_p) == ECMA_OBJECT_TYPE_CLASS)
@@ -1318,48 +1320,48 @@ jjs_binary_op (jjs_context_t* context_p, /**< JJS context */
   {
     case JJS_BIN_OP_EQUAL:
     {
-      return jjs_return (ecma_op_abstract_equality_compare (lhs, rhs));
+      return jjs_return (context_p, ecma_op_abstract_equality_compare (context_p, lhs, rhs));
     }
     case JJS_BIN_OP_STRICT_EQUAL:
     {
-      return ecma_make_boolean_value (ecma_op_strict_equality_compare (lhs, rhs));
+      return ecma_make_boolean_value (ecma_op_strict_equality_compare (context_p, lhs, rhs));
     }
     case JJS_BIN_OP_LESS:
     {
-      return jjs_return (opfunc_relation (lhs, rhs, true, false));
+      return jjs_return (context_p, opfunc_relation (context_p, lhs, rhs, true, false));
     }
     case JJS_BIN_OP_LESS_EQUAL:
     {
-      return jjs_return (opfunc_relation (lhs, rhs, false, true));
+      return jjs_return (context_p, opfunc_relation (context_p, lhs, rhs, false, true));
     }
     case JJS_BIN_OP_GREATER:
     {
-      return jjs_return (opfunc_relation (lhs, rhs, false, false));
+      return jjs_return (context_p, opfunc_relation (context_p, lhs, rhs, false, false));
     }
     case JJS_BIN_OP_GREATER_EQUAL:
     {
-      return jjs_return (opfunc_relation (lhs, rhs, true, true));
+      return jjs_return (context_p, opfunc_relation (context_p, lhs, rhs, true, true));
     }
     case JJS_BIN_OP_INSTANCEOF:
     {
-      if (!ecma_is_value_object (lhs) || !ecma_op_is_callable (rhs))
+      if (!ecma_is_value_object (lhs) || !ecma_op_is_callable (context_p, rhs))
       {
         return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
       }
 
-      ecma_object_t *proto_obj_p = ecma_get_object_from_value (rhs);
-      return jjs_return (ecma_op_object_has_instance (proto_obj_p, lhs));
+      ecma_object_t *proto_obj_p = ecma_get_object_from_value (context_p, rhs);
+      return jjs_return (context_p, ecma_op_object_has_instance (context_p, proto_obj_p, lhs));
     }
     case JJS_BIN_OP_ADD:
     {
-      return jjs_return (opfunc_addition (lhs, rhs));
+      return jjs_return (context_p, opfunc_addition (context_p, lhs, rhs));
     }
     case JJS_BIN_OP_SUB:
     case JJS_BIN_OP_MUL:
     case JJS_BIN_OP_DIV:
     case JJS_BIN_OP_REM:
     {
-      return jjs_return (do_number_arithmetic (operation - ECMA_NUMBER_ARITHMETIC_OP_API_OFFSET, lhs, rhs));
+      return jjs_return (context_p, do_number_arithmetic (context_p, operation - ECMA_NUMBER_ARITHMETIC_OP_API_OFFSET, lhs, rhs));
     }
     default:
     {
@@ -1396,10 +1398,10 @@ jjs_throw_abort (jjs_context_t* context_p, /**< JJS context */
 
   if (!take_ownership)
   {
-    value = ecma_copy_value (value);
+    value = ecma_copy_value (context_p, value);
   }
 
-  return ecma_create_exception (value, ECMA_ERROR_API_FLAG_ABORT);
+  return ecma_create_exception (context_p, value, ECMA_ERROR_API_FLAG_ABORT);
 } /* jjs_throw_abort */
 
 /**
@@ -1430,10 +1432,10 @@ jjs_throw_value (jjs_context_t* context_p, /**< JJS context */
 
   if (!take_ownership)
   {
-    value = ecma_copy_value (value);
+    value = ecma_copy_value (context_p, value);
   }
 
-  return ecma_create_exception (value, ECMA_ERROR_API_FLAG_NONE);
+  return ecma_create_exception (context_p, value, ECMA_ERROR_API_FLAG_NONE);
 } /* jjs_throw_value */
 
 /**
@@ -1451,10 +1453,10 @@ jjs_exception_value (jjs_context_t* context_p, /**< JJS context */
 
   if (!ecma_is_value_exception (value))
   {
-    return free_exception ? value : ecma_copy_value (value);
+    return free_exception ? value : ecma_copy_value (context_p, value);
   }
 
-  jjs_value_t ret_val = jjs_value_copy (context_p, ecma_get_extended_primitive_from_value (value)->u.value);
+  jjs_value_t ret_val = jjs_value_copy (context_p, ecma_get_extended_primitive_from_value (context_p, value)->u.value);
 
   if (free_exception)
   {
@@ -1564,7 +1566,7 @@ jjs_value_is_error (jjs_context_t* context_p, /**< JJS context */
 {
   JJS_UNUSED (context_p);
   return ecma_is_value_object (value)
-         && ecma_object_class_is (ecma_get_object_from_value (value), ECMA_OBJECT_CLASS_ERROR);
+         && ecma_object_class_is (ecma_get_object_from_value (context_p, value), ECMA_OBJECT_CLASS_ERROR);
 } /* jjs_value_is_error */
 
 /**
@@ -1581,7 +1583,7 @@ jjs_error_type (jjs_context_t* context_p, /**< JJS context */
 
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
-    value = ecma_get_extended_primitive_from_value (value)->u.value;
+    value = ecma_get_extended_primitive_from_value (context_p, value)->u.value;
   }
 
   if (!ecma_is_value_object (value))
@@ -1589,7 +1591,7 @@ jjs_error_type (jjs_context_t* context_p, /**< JJS context */
     return JJS_ERROR_NONE;
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (value);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, value);
   /* TODO(check if error object) */
   jjs_error_t error_type = ecma_get_error_type (object_p);
 
@@ -1612,7 +1614,7 @@ jjs_value_as_number (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  return (double) ecma_get_number_from_value (value);
+  return (double) ecma_get_number_from_value (context_p, value);
 } /* jjs_value_as_number */
 
 /**
@@ -1632,7 +1634,7 @@ jjs_value_to_boolean (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  return ecma_op_to_boolean (value);
+  return ecma_op_to_boolean (context_p, value);
 } /* jjs_value_to_boolean */
 
 /**
@@ -1656,14 +1658,14 @@ jjs_value_to_number (jjs_context_t* context_p, /**< JJS context */
   }
 
   ecma_number_t num;
-  ecma_value_t ret_value = ecma_op_to_number (value, &num);
+  ecma_value_t ret_value = ecma_op_to_number (context_p, value, &num);
 
   if (ECMA_IS_VALUE_ERROR (ret_value))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
-  return ecma_make_number_value (num);
+  return ecma_make_number_value (context_p, num);
 } /* jjs_value_to_number */
 
 /**
@@ -1686,7 +1688,7 @@ jjs_value_to_object (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  return jjs_return (ecma_op_to_object (value));
+  return jjs_return (context_p, ecma_op_to_object (context_p, value));
 } /* jjs_value_to_object */
 
 /**
@@ -1709,7 +1711,7 @@ jjs_value_to_primitive (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  return jjs_return (ecma_op_to_primitive (value, ECMA_PREFERRED_TYPE_NO));
+  return jjs_return (context_p, ecma_op_to_primitive (context_p, value, ECMA_PREFERRED_TYPE_NO));
 } /* jjs_value_to_primitive */
 
 /**
@@ -1732,13 +1734,13 @@ jjs_value_to_string (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  ecma_string_t *str_p = ecma_op_to_string (value);
+  ecma_string_t *str_p = ecma_op_to_string (context_p, value);
   if (JJS_UNLIKELY (str_p == NULL))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
-  return ecma_make_string_value (str_p);
+  return ecma_make_string_value (context_p, str_p);
 } /* jjs_value_to_string */
 
 /**
@@ -1762,7 +1764,7 @@ jjs_value_to_bigint (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  return jjs_return (ecma_bigint_to_bigint (value, true));
+  return jjs_return (context_p, ecma_bigint_to_bigint (context_p, value, true));
 #else /* !JJS_BUILTIN_BIGINT */
   JJS_UNUSED (value);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_BIGINT_NOT_SUPPORTED));
@@ -1788,7 +1790,7 @@ jjs_value_as_integer (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  double number = ecma_get_number_from_value (value);
+  double number = ecma_get_number_from_value (context_p, value);
 
   if (ecma_number_is_nan (number))
   {
@@ -1824,7 +1826,7 @@ jjs_value_as_int32 (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  return ecma_number_to_int32 (ecma_get_number_from_value (value));
+  return ecma_number_to_int32 (ecma_get_number_from_value (context_p, value));
 } /* jjs_value_as_int32 */
 
 /**
@@ -1846,7 +1848,7 @@ jjs_value_as_uint32 (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  return ecma_number_to_uint32 (ecma_get_number_from_value (value));
+  return ecma_number_to_uint32 (ecma_get_number_from_value (context_p, value));
 } /* jjs_value_as_uint32 */
 
 /**
@@ -1866,9 +1868,9 @@ jjs_value_as_float (jjs_context_t* context_p, /**< JJS context */
   }
 
 #if JJS_NUMBER_TYPE_FLOAT64
-  return (float) ecma_get_number_from_value (value);
+  return (float) ecma_get_number_from_value (context_p, value);
 #else
-  return ecma_get_number_from_value (value);
+  return ecma_get_number_from_value (context_p, value);
 #endif
 } /* jjs_value_as_float */
 
@@ -1889,9 +1891,9 @@ jjs_value_as_double (jjs_context_t* context_p, /**< JJS context */
   }
 
 #if JJS_NUMBER_TYPE_FLOAT64
-  return ecma_get_number_from_value (value);
+  return ecma_get_number_from_value (context_p, value);
 #else
-  return (double) ecma_get_number_from_value (value);
+  return (double) ecma_get_number_from_value (context_p, value);
 #endif
 } /* jjs_value_as_double */
 
@@ -1910,11 +1912,11 @@ jjs_value_copy (jjs_context_t* context_p, /**< JJS context */
 
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
-    ecma_ref_extended_primitive (ecma_get_extended_primitive_from_value (value));
+    ecma_ref_extended_primitive (ecma_get_extended_primitive_from_value (context_p, value));
     return value;
   }
 
-  return ecma_copy_value (value);
+  return ecma_copy_value (context_p, value);
 } /* jjs_value_copy */
 
 /**
@@ -1928,11 +1930,11 @@ jjs_value_free (jjs_context_t* context_p, /**< JJS context */
 
   if (JJS_UNLIKELY (ecma_is_value_exception (value)))
   {
-    ecma_deref_exception (ecma_get_extended_primitive_from_value (value));
+    ecma_deref_exception (context_p, ecma_get_extended_primitive_from_value (context_p, value));
     return;
   }
 
-  ecma_free_value (value);
+  ecma_free_value (context_p, value);
 } /* jjs_value_free */
 
 /**
@@ -1978,8 +1980,8 @@ jjs_array (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  ecma_object_t *array_p = ecma_op_new_array_object (length);
-  return ecma_make_object_value (array_p);
+  ecma_object_t *array_p = ecma_op_new_array_object (context_p, length);
+  return ecma_make_object_value (context_p, array_p);
 } /* jjs_array */
 
 /**
@@ -2013,12 +2015,12 @@ jjs_error (jjs_context_t* context_p, /**< JJS context */
   ecma_string_t *message_p = NULL;
   if (ecma_is_value_string (message))
   {
-    message_p = ecma_get_string_from_value (message);
+    message_p = ecma_get_string_from_value (context_p, message);
   }
 
-  ecma_object_t *error_object_p = ecma_new_standard_error_with_options((jjs_error_t) error_type, message_p, options);
+  ecma_object_t *error_object_p = ecma_new_standard_error_with_options(context_p, (jjs_error_t) error_type, message_p, options);
 
-  return ecma_make_object_value (error_object_p);
+  return ecma_make_object_value (context_p, error_object_p);
 } /* jjs_error */
 
 /**
@@ -2041,7 +2043,7 @@ jjs_error_sz (jjs_context_t* context_p, /**< JJS context */
   }
 
   ecma_value_t error = jjs_error (context_p, error_type, message, options);
-  ecma_free_value (message);
+  ecma_free_value (context_p, message);
 
   return error;
 } /* jjs_error_sz */
@@ -2065,7 +2067,7 @@ jjs_error_sz (jjs_context_t* context_p, /**< JJS context */
 jjs_value_t jjs_aggregate_error (jjs_context_t* context_p, const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options) {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_new_aggregate_error(errors, message, options);
+  return ecma_new_aggregate_error (context_p, errors, message, options);
 } /* jjs_aggregate_error */
 
 /**
@@ -2093,7 +2095,7 @@ jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t 
   }
 
   ecma_value_t error = jjs_aggregate_error (context_p, errors, message, options);
-  ecma_free_value (message);
+  ecma_free_value (context_p, message);
 
   return error;
 } /* jjs_aggregate_error_sz */
@@ -2141,8 +2143,8 @@ jjs_function_external (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  ecma_object_t *func_obj_p = ecma_op_create_external_function_object (handler);
-  return ecma_make_object_value (func_obj_p);
+  ecma_object_t *func_obj_p = ecma_op_create_external_function_object (context_p, handler);
+  return ecma_make_object_value (context_p, func_obj_p);
 } /* jjs_function_external */
 
 /**
@@ -2159,7 +2161,7 @@ jjs_number (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_make_number_value ((ecma_number_t) value);
+  return ecma_make_number_value (context_p, (ecma_number_t) value);
 } /* jjs_number */
 
 /**
@@ -2176,7 +2178,7 @@ jjs_infinity (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_make_number_value (ecma_number_make_infinity (sign));
+  return ecma_make_number_value (context_p, ecma_number_make_infinity (sign));
 } /* jjs_infinity */
 
 /**
@@ -2192,7 +2194,7 @@ jjs_nan (jjs_context_t* context_p) /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_make_nan_value ();
+  return ecma_make_nan_value (context_p);
 } /* jjs_nan */
 
 /**
@@ -2209,9 +2211,9 @@ jjs_value_t jjs_number_from_float (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_NUMBER_TYPE_FLOAT64
-  return ecma_make_number_value ((ecma_number_t) value);
+  return ecma_make_number_value (context_p, (ecma_number_t) value);
 #else
-  return ecma_make_number_value (value);
+  return ecma_make_number_value (context_p, value);
 #endif
 } /* jjs_number_from_float */
 
@@ -2229,9 +2231,9 @@ jjs_value_t jjs_number_from_double (jjs_context_t* context_p, /**< JJS context *
   jjs_assert_api_enabled (context_p);
 
 #if JJS_NUMBER_TYPE_FLOAT64
-  return ecma_make_number_value (value);
+  return ecma_make_number_value (context_p, value);
 #else
-  return ecma_make_number_value ((ecma_number_t) value);
+  return ecma_make_number_value (context_p, (ecma_number_t) value);
 #endif
 } /* jjs_number_from_double */
 
@@ -2248,7 +2250,7 @@ jjs_value_t jjs_number_from_int32 (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_make_int32_value (value);
+  return ecma_make_int32_value (context_p, value);
 } /* jjs_number_from_int32 */
 
 /**
@@ -2264,7 +2266,7 @@ jjs_value_t jjs_number_from_uint32 (jjs_context_t* context_p, /**< JJS context *
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_make_uint32_value (value);
+  return ecma_make_uint32_value (context_p, value);
 } /* jjs_number_from_uint32 */
 
 /**
@@ -2306,7 +2308,7 @@ jjs_object (jjs_context_t* context_p) /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_make_object_value (ecma_op_create_object_object_noarg ());
+  return ecma_make_object_value (context_p, ecma_op_create_object_object_noarg (context_p));
 } /* jjs_object */
 
 /**
@@ -2323,7 +2325,7 @@ jjs_promise (jjs_context_t* context_p) /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return jjs_return (ecma_op_create_promise_object (ECMA_VALUE_EMPTY, ECMA_VALUE_UNDEFINED, NULL));
+  return jjs_return (context_p, ecma_op_create_promise_object (context_p, ECMA_VALUE_EMPTY, ECMA_VALUE_UNDEFINED, NULL));
 } /* jjs_create_promise */
 
 /**
@@ -2347,14 +2349,14 @@ jjs_proxy (jjs_context_t* context_p, /**< JJS context */
   }
 
 #if JJS_BUILTIN_PROXY
-  ecma_object_t *proxy_p = ecma_proxy_create (target, handler, 0);
+  ecma_object_t *proxy_p = ecma_proxy_create (context_p, target, handler, 0);
 
   if (proxy_p == NULL)
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
-  return ecma_make_object_value (proxy_p);
+  return ecma_make_object_value (context_p, proxy_p);
 #else /* !JJS_BUILTIN_PROXY */
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PROXY_IS_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_PROXY */
@@ -2391,14 +2393,14 @@ jjs_proxy_custom (jjs_context_t* context_p, /**< JJS context */
 #if JJS_BUILTIN_PROXY
   flags &= JJS_PROXY_SKIP_RESULT_VALIDATION;
 
-  ecma_object_t *proxy_p = ecma_proxy_create (target, handler, flags);
+  ecma_object_t *proxy_p = ecma_proxy_create (context_p, target, handler, flags);
 
   if (proxy_p == NULL)
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
-  return ecma_make_object_value (proxy_p);
+  return ecma_make_object_value (context_p, proxy_p);
 #else /* !JJS_BUILTIN_PROXY */
   JJS_UNUSED (flags);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PROXY_IS_NOT_SUPPORTED));
@@ -2469,12 +2471,12 @@ jjs_string (jjs_context_t* context_p, /**< JJS context */
   {
     case JJS_ENCODING_CESU8:
     {
-      ecma_str_p = ecma_new_ecma_string_from_utf8 (buffer_p, buffer_size);
+      ecma_str_p = ecma_new_ecma_string_from_utf8 (context_p, buffer_p, buffer_size);
       break;
     }
     case JJS_ENCODING_UTF8:
     {
-      ecma_str_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (buffer_p, buffer_size);
+      ecma_str_p = ecma_new_ecma_string_from_utf8_converted_to_cesu8 (context_p, buffer_p, buffer_size);
       break;
     }
     default:
@@ -2483,7 +2485,7 @@ jjs_string (jjs_context_t* context_p, /**< JJS context */
     }
   }
 
-  return ecma_make_string_value (ecma_str_p);
+  return ecma_make_string_value (context_p, ecma_str_p);
 } /* jjs_string */
 
 /**
@@ -2518,8 +2520,8 @@ jjs_string_external (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
   JJS_ASSERT (jjs_validate_string (context_p, buffer_p, buffer_size, JJS_ENCODING_CESU8));
-  ecma_string_t *ecma_str_p = ecma_new_ecma_external_string_from_cesu8 (buffer_p, buffer_size, user_p);
-  return ecma_make_string_value (ecma_str_p);
+  ecma_string_t *ecma_str_p = ecma_new_ecma_external_string_from_cesu8 (context_p, buffer_p, buffer_size, user_p);
+  return ecma_make_string_value (context_p, ecma_str_p);
 } /* jjs_string_external_sz_sz */
 
 /**
@@ -2541,7 +2543,7 @@ jjs_symbol_with_description (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  return jjs_return (ecma_op_create_symbol (&value, 1));
+  return jjs_return (context_p, ecma_op_create_symbol (context_p, &value, 1));
 } /* jjs_create_symbol */
 
 /**
@@ -2561,7 +2563,7 @@ jjs_bigint (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_BIGINT
-  return jjs_return (ecma_bigint_create_from_digits (digits_p, digit_count, sign));
+  return jjs_return (context_p, ecma_bigint_create_from_digits (context_p, digits_p, digit_count, sign));
 #else /* !JJS_BUILTIN_BIGINT */
   JJS_UNUSED (digits_p);
   JJS_UNUSED (digit_count);
@@ -2586,7 +2588,7 @@ jjs_regexp_sz (jjs_context_t* context_p, /**< JJS context */
   jjs_value_t result = jjs_regexp (context_p, pattern, flags);
 
   jjs_value_free (context_p, pattern);
-  return jjs_return (result);
+  return jjs_return (context_p, result);
 } /* jjs_regexp_sz */
 
 /**
@@ -2607,16 +2609,16 @@ jjs_regexp (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_object_t *regexp_obj_p = ecma_op_regexp_alloc (NULL);
+  ecma_object_t *regexp_obj_p = ecma_op_regexp_alloc (context_p, NULL);
 
   if (JJS_UNLIKELY (regexp_obj_p == NULL))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
-  jjs_value_t result = ecma_op_create_regexp_with_flags (regexp_obj_p, pattern, flags);
+  jjs_value_t result = ecma_op_create_regexp_with_flags (context_p, regexp_obj_p, pattern, flags);
 
-  return jjs_return (result);
+  return jjs_return (context_p, result);
 
 #else /* !JJS_BUILTIN_REGEXP */
   JJS_UNUSED_ALL (pattern, flags);
@@ -2636,7 +2638,7 @@ jjs_realm (jjs_context_t* context_p) /**< JJS context */
 
 #if JJS_BUILTIN_REALMS
   ecma_global_object_t *global_object_p = ecma_builtin_create_global_object ();
-  ecma_value_t global = ecma_make_object_value ((ecma_object_t *) global_object_p);
+  ecma_value_t global = ecma_make_object_value (context_p, (ecma_object_t *) global_object_p);
 
   jjs_api_object_init (context_p, global);
   jjs_annex_init_realm (context_p, global_object_p);
@@ -2666,7 +2668,7 @@ jjs_array_length (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (value);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, value);
 
   if (JJS_LIKELY (ecma_get_object_base_type (object_p) == ECMA_OBJECT_BASE_TYPE_ARRAY))
   {
@@ -2698,11 +2700,11 @@ jjs_string_size (jjs_context_t* context_p, /**< JJS context */
   {
     case JJS_ENCODING_CESU8:
     {
-      return ecma_string_get_size (ecma_get_string_from_value (value));
+      return ecma_string_get_size (context_p, ecma_get_string_from_value (context_p, value));
     }
     case JJS_ENCODING_UTF8:
     {
-      return ecma_string_get_utf8_size (ecma_get_string_from_value (value));
+      return ecma_string_get_utf8_size (context_p, ecma_get_string_from_value (context_p, value));
     }
     default:
     {
@@ -2728,7 +2730,7 @@ jjs_string_length (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  return ecma_string_get_length (ecma_get_string_from_value (value));
+  return ecma_string_get_length (context_p, ecma_get_string_from_value (context_p, value));
 } /* jjs_string_length */
 
 /**
@@ -2751,9 +2753,9 @@ jjs_string_to_buffer (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  ecma_string_t *str_p = ecma_get_string_from_value (value);
+  ecma_string_t *str_p = ecma_get_string_from_value (context_p, value);
 
-  return ecma_string_copy_to_buffer (str_p, (lit_utf8_byte_t *) buffer_p, buffer_size, encoding);
+  return ecma_string_copy_to_buffer (context_p, str_p, (lit_utf8_byte_t *) buffer_p, buffer_size, encoding);
 } /* jjs_string_to_char_buffer */
 
 /**
@@ -2776,7 +2778,7 @@ jjs_string_substr (jjs_context_t* context_p, const jjs_value_t value, jjs_length
     return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
   }
 
-  return ecma_make_string_value (ecma_string_substr (ecma_get_string_from_value (value), start, end));
+  return ecma_make_string_value (context_p, ecma_string_substr (context_p, ecma_get_string_from_value (context_p, value), start, end));
 } /* jjs_string_substr */
 
 /**
@@ -2803,8 +2805,8 @@ jjs_string_iterate (jjs_context_t* context_p,
     return;
   }
 
-  ecma_string_t *str_p = ecma_get_string_from_value (value);
-  ECMA_STRING_TO_UTF8_STRING (str_p, buffer_p, buffer_size);
+  ecma_string_t *str_p = ecma_get_string_from_value (context_p, value);
+  ECMA_STRING_TO_UTF8_STRING (context_p, str_p, buffer_p, buffer_size);
 
   const lit_utf8_byte_t *current_p = buffer_p;
   const lit_utf8_byte_t *end_p = buffer_p + buffer_size;
@@ -2851,7 +2853,7 @@ jjs_string_iterate (jjs_context_t* context_p,
       break;
     }
   }
-  ECMA_FINALIZE_UTF8_STRING (buffer_p, buffer_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, buffer_p, buffer_size);
 } /* jjs_string_iterate */
 
 /**
@@ -2889,7 +2891,7 @@ jjs_string_user_ptr (jjs_context_t* context_p, /**< JJS context */
     return NULL;
   }
 
-  ecma_string_t *string_p = ecma_get_string_from_value (value);
+  ecma_string_t *string_p = ecma_get_string_from_value (context_p, value);
 
   if (ECMA_IS_DIRECT_STRING (string_p)
       || ECMA_STRING_GET_CONTAINER (string_p) != ECMA_STRING_CONTAINER_LONG_OR_EXTERNAL_STRING)
@@ -2930,10 +2932,10 @@ jjs_object_has (jjs_context_t* context_p, /**< JJS context */
     return ECMA_VALUE_FALSE;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
-  ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (key);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
+  ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (context_p, key);
 
-  return jjs_return (ecma_op_object_has_property (obj_p, prop_name_p));
+  return jjs_return (context_p, ecma_op_object_has_property (context_p, obj_p, prop_name_p));
 } /* jjs_object_has */
 
 /**
@@ -2951,7 +2953,7 @@ jjs_object_has_sz (jjs_context_t* context_p, /**< JJS context */
 
   jjs_value_t key_str = jjs_string_sz (context_p, key_p);
   jjs_value_t result = jjs_object_has (context_p, object, key_str);
-  ecma_free_value (key_str);
+  ecma_free_value (context_p, key_str);
 
   return result;
 } /* jjs_object_has_sz */
@@ -2974,10 +2976,10 @@ jjs_object_has_own (jjs_context_t* context_p, /**< JJS context */
     return ECMA_VALUE_FALSE;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
-  ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (key);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
+  ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (context_p, key);
 
-  return jjs_return (ecma_op_object_has_own_property (obj_p, prop_name_p));
+  return jjs_return (context_p, ecma_op_object_has_own_property (context_p, obj_p, prop_name_p));
 } /* jjs_has_own_property */
 
 /**
@@ -2998,7 +3000,7 @@ jjs_object_has_internal (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
 
   ecma_string_t *internal_string_p = ecma_get_magic_string (LIT_INTERNAL_MAGIC_API_INTERNAL);
 
@@ -3007,15 +3009,15 @@ jjs_object_has_internal (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_property_t *property_p = ecma_find_named_property (obj_p, internal_string_p);
+  ecma_property_t *property_p = ecma_find_named_property (context_p, obj_p, internal_string_p);
 
   if (property_p == NULL)
   {
     return false;
   }
 
-  ecma_object_t *internal_object_p = ecma_get_object_from_value (ECMA_PROPERTY_VALUE_PTR (property_p)->value);
-  property_p = ecma_find_named_property (internal_object_p, ecma_get_prop_name_from_value (key));
+  ecma_object_t *internal_object_p = ecma_get_object_from_value (context_p, ECMA_PROPERTY_VALUE_PTR (property_p)->value);
+  property_p = ecma_find_named_property (context_p, internal_object_p, ecma_get_prop_name_from_value (context_p, key));
 
   return property_p != NULL;
 } /* jjs_object_has_internal */
@@ -3038,7 +3040,7 @@ jjs_object_delete (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  return ecma_op_object_delete (ecma_get_object_from_value (object), ecma_get_prop_name_from_value (key), false);
+  return ecma_op_object_delete (context_p, ecma_get_object_from_value (context_p, object), ecma_get_prop_name_from_value (context_p, key), false);
 } /* jjs_object_delete */
 
 /**
@@ -3056,7 +3058,7 @@ jjs_object_delete_sz (jjs_context_t* context_p, /**< JJS context */
 
   jjs_value_t key_str = jjs_string_sz (context_p, key_p);
   jjs_value_t result = jjs_object_delete (context_p, object, key_str);
-  ecma_free_value (key_str);
+  ecma_free_value (context_p, key_str);
 
   return result;
 } /* jjs_object_delete */
@@ -3079,9 +3081,9 @@ jjs_object_delete_index (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_string_t *str_idx_p = ecma_new_ecma_string_from_uint32 (index);
-  ecma_value_t ret_value = ecma_op_object_delete (ecma_get_object_from_value (object), str_idx_p, false);
-  ecma_deref_ecma_string (str_idx_p);
+  ecma_string_t *str_idx_p = ecma_new_ecma_string_from_uint32 (context_p, index);
+  ecma_value_t ret_value = ecma_op_object_delete (context_p, ecma_get_object_from_value (context_p, object), str_idx_p, false);
+  ecma_deref_ecma_string (context_p, str_idx_p);
 
   return ret_value;
 } /* jjs_object_delete_index */
@@ -3104,7 +3106,7 @@ jjs_object_delete_internal (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
 
   ecma_string_t *internal_string_p = ecma_get_magic_string (LIT_INTERNAL_MAGIC_API_INTERNAL);
 
@@ -3113,22 +3115,22 @@ jjs_object_delete_internal (jjs_context_t* context_p, /**< JJS context */
     return true;
   }
 
-  ecma_property_t *property_p = ecma_find_named_property (obj_p, internal_string_p);
+  ecma_property_t *property_p = ecma_find_named_property (context_p, obj_p, internal_string_p);
 
   if (property_p == NULL)
   {
     return true;
   }
 
-  ecma_object_t *internal_object_p = ecma_get_object_from_value (ECMA_PROPERTY_VALUE_PTR (property_p)->value);
-  property_p = ecma_find_named_property (internal_object_p, ecma_get_prop_name_from_value (key));
+  ecma_object_t *internal_object_p = ecma_get_object_from_value (context_p, ECMA_PROPERTY_VALUE_PTR (property_p)->value);
+  property_p = ecma_find_named_property (context_p, internal_object_p, ecma_get_prop_name_from_value (context_p, key));
 
   if (property_p == NULL)
   {
     return true;
   }
 
-  ecma_delete_property (internal_object_p, ECMA_PROPERTY_VALUE_PTR (property_p));
+  ecma_delete_property (context_p, internal_object_p, ECMA_PROPERTY_VALUE_PTR (property_p));
 
   return true;
 } /* jjs_object_delete_internal */
@@ -3155,8 +3157,8 @@ jjs_object_get (jjs_context_t* context_p, /**< JJS context */
   }
 
   jjs_value_t ret_value =
-    ecma_op_object_get (ecma_get_object_from_value (object), ecma_get_prop_name_from_value (key));
-  return jjs_return (ret_value);
+    ecma_op_object_get (context_p, ecma_get_object_from_value (context_p, object), ecma_get_prop_name_from_value (context_p, key));
+  return jjs_return (context_p, ret_value);
 } /* jjs_object_get */
 
 /**
@@ -3177,7 +3179,7 @@ jjs_object_get_sz (jjs_context_t* context_p, /**< JJS context */
 
   jjs_value_t key_str = jjs_string_sz (context_p, key_p);
   jjs_value_t result = jjs_object_get (context_p, object, key_str);
-  ecma_free_value (key_str);
+  ecma_free_value (context_p, key_str);
 
   return result;
 } /* jjs_object_get_sz */
@@ -3203,9 +3205,9 @@ jjs_object_get_index (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_value_t ret_value = ecma_op_object_get_by_index (ecma_get_object_from_value (object), index);
+  ecma_value_t ret_value = ecma_op_object_get_by_index (context_p, ecma_get_object_from_value (context_p, object), index);
 
-  return jjs_return (ret_value);
+  return jjs_return (context_p, ret_value);
 } /* jjs_object_get_index */
 
 /**
@@ -3237,8 +3239,8 @@ jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (object);
-  ecma_string_t *property_name_p = ecma_get_prop_name_from_value (key);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, object);
+  ecma_string_t *property_name_p = ecma_get_prop_name_from_value (context_p, key);
 
 #if JJS_BUILTIN_PROXY
   if (ECMA_OBJECT_IS_PROXY (object_p))
@@ -3248,11 +3250,11 @@ jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
       *found_p = true;
     }
 
-    return jjs_return (ecma_proxy_object_get (object_p, property_name_p, receiver));
+    return jjs_return (context_p, ecma_proxy_object_get (context_p, object_p, property_name_p, receiver));
   }
 #endif /* JJS_BUILTIN_PROXY */
 
-  ecma_value_t ret_value = ecma_op_object_find_own (receiver, object_p, property_name_p);
+  ecma_value_t ret_value = ecma_op_object_find_own (context_p, receiver, object_p, property_name_p);
 
   if (ecma_is_value_found (ret_value))
   {
@@ -3261,7 +3263,7 @@ jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
       *found_p = true;
     }
 
-    return jjs_return (ret_value);
+    return jjs_return (context_p, ret_value);
   }
 
   return ECMA_VALUE_UNDEFINED;
@@ -3289,31 +3291,31 @@ jjs_object_get_internal (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
 
   ecma_string_t *internal_string_p = ecma_get_magic_string (LIT_INTERNAL_MAGIC_API_INTERNAL);
 
   if (ecma_op_object_is_fast_array (obj_p))
   {
-    return jjs_return (ECMA_VALUE_UNDEFINED);
+    return jjs_return (context_p, ECMA_VALUE_UNDEFINED);
   }
 
-  ecma_property_t *property_p = ecma_find_named_property (obj_p, internal_string_p);
+  ecma_property_t *property_p = ecma_find_named_property (context_p, obj_p, internal_string_p);
 
   if (property_p == NULL)
   {
-    return jjs_return (ECMA_VALUE_UNDEFINED);
+    return jjs_return (context_p, ECMA_VALUE_UNDEFINED);
   }
 
-  ecma_object_t *internal_object_p = ecma_get_object_from_value (ECMA_PROPERTY_VALUE_PTR (property_p)->value);
-  property_p = ecma_find_named_property (internal_object_p, ecma_get_prop_name_from_value (key));
+  ecma_object_t *internal_object_p = ecma_get_object_from_value (context_p, ECMA_PROPERTY_VALUE_PTR (property_p)->value);
+  property_p = ecma_find_named_property (context_p, internal_object_p, ecma_get_prop_name_from_value (context_p, key));
 
   if (property_p == NULL)
   {
-    return jjs_return (ECMA_VALUE_UNDEFINED);
+    return jjs_return (context_p, ECMA_VALUE_UNDEFINED);
   }
 
-  return jjs_return (ecma_copy_value (ECMA_PROPERTY_VALUE_PTR (property_p)->value));
+  return jjs_return (context_p, ecma_copy_value (context_p, ECMA_PROPERTY_VALUE_PTR (property_p)->value));
 } /* jjs_object_get_internal */
 
 /**
@@ -3338,8 +3340,8 @@ jjs_object_set (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  return jjs_return (
-    ecma_op_object_put (ecma_get_object_from_value (object), ecma_get_prop_name_from_value (key), value, true));
+  return jjs_return (context_p, 
+    ecma_op_object_put (context_p, ecma_get_object_from_value (context_p, object), ecma_get_prop_name_from_value (context_p, key), value, true));
 } /* jjs_object_set */
 
 /**
@@ -3361,7 +3363,7 @@ jjs_object_set_sz (jjs_context_t* context_p, /**< JJS context */
 
   jjs_value_t key_str = jjs_string_sz (context_p, key_p);
   jjs_value_t result = jjs_object_set (context_p, object, key_str, value);
-  ecma_free_value (key_str);
+  ecma_free_value (context_p, key_str);
 
   return result;
 } /* jjs_object_set_sz */
@@ -3388,9 +3390,9 @@ jjs_object_set_index (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_value_t ret_value = ecma_op_object_put_by_index (ecma_get_object_from_value (object), index, value, true);
+  ecma_value_t ret_value = ecma_op_object_put_by_index (context_p, ecma_get_object_from_value (context_p, object), index, value, true);
 
-  return jjs_return (ret_value);
+  return jjs_return (context_p, ret_value);
 } /* jjs_object_set_index */
 
 /**
@@ -3416,52 +3418,53 @@ jjs_object_set_internal (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
 
   ecma_string_t *internal_string_p = ecma_get_magic_string (LIT_INTERNAL_MAGIC_API_INTERNAL);
 
   if (ecma_op_object_is_fast_array (obj_p))
   {
-    ecma_fast_array_convert_to_normal (obj_p);
+    ecma_fast_array_convert_to_normal (context_p, obj_p);
   }
 
-  ecma_property_t *property_p = ecma_find_named_property (obj_p, internal_string_p);
+  ecma_property_t *property_p = ecma_find_named_property (context_p, obj_p, internal_string_p);
   ecma_object_t *internal_object_p;
 
   if (property_p == NULL)
   {
     ecma_property_value_t *value_p =
-      ecma_create_named_data_property (obj_p, internal_string_p, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE, NULL);
+      ecma_create_named_data_property (context_p, obj_p, internal_string_p, ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE, NULL);
 
-    internal_object_p = ecma_create_object (NULL, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    internal_object_p = ecma_create_object (context_p, NULL, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
     {
       ecma_extended_object_t *container_p = (ecma_extended_object_t *) internal_object_p;
       container_p->u.cls.type = ECMA_OBJECT_CLASS_INTERNAL_OBJECT;
     }
 
-    value_p->value = ecma_make_object_value (internal_object_p);
+    value_p->value = ecma_make_object_value (context_p, internal_object_p);
     ecma_deref_object (internal_object_p);
   }
   else
   {
-    internal_object_p = ecma_get_object_from_value (ECMA_PROPERTY_VALUE_PTR (property_p)->value);
+    internal_object_p = ecma_get_object_from_value (context_p, ECMA_PROPERTY_VALUE_PTR (property_p)->value);
   }
 
-  ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (key);
-  property_p = ecma_find_named_property (internal_object_p, prop_name_p);
+  ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (context_p, key);
+  property_p = ecma_find_named_property (context_p, internal_object_p, prop_name_p);
 
   if (property_p == NULL)
   {
-    ecma_property_value_t *value_p = ecma_create_named_data_property (internal_object_p,
+    ecma_property_value_t *value_p = ecma_create_named_data_property (context_p,
+                                                                      internal_object_p,
                                                                       prop_name_p,
                                                                       ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
                                                                       NULL);
 
-    value_p->value = ecma_copy_value_if_not_object (value);
+    value_p->value = ecma_copy_value_if_not_object (context_p, value);
   }
   else
   {
-    ecma_named_data_property_assign_value (internal_object_p, ECMA_PROPERTY_VALUE_PTR (property_p), value);
+    ecma_named_data_property_assign_value (context_p, internal_object_p, ECMA_PROPERTY_VALUE_PTR (property_p), value);
   }
 
   return true;
@@ -3513,8 +3516,8 @@ jjs_property_descriptor_from_ecma (jjs_context_t* context_p, /**< JJS context */
 
     if (prop_desc_p->get_p != NULL)
     {
-      prop_desc.getter = ecma_make_object_value (prop_desc_p->get_p);
-      JJS_ASSERT (ecma_op_is_callable (prop_desc.getter));
+      prop_desc.getter = ecma_make_object_value (context_p, prop_desc_p->get_p);
+      JJS_ASSERT (ecma_op_is_callable (context_p, prop_desc.getter));
     }
   }
 
@@ -3524,8 +3527,8 @@ jjs_property_descriptor_from_ecma (jjs_context_t* context_p, /**< JJS context */
 
     if (prop_desc_p->set_p != NULL)
     {
-      prop_desc.setter = ecma_make_object_value (prop_desc_p->set_p);
-      JJS_ASSERT (ecma_op_is_callable (prop_desc.setter));
+      prop_desc.setter = ecma_make_object_value (context_p, prop_desc_p->set_p);
+      JJS_ASSERT (ecma_op_is_callable (context_p, prop_desc.setter));
     }
   }
 
@@ -3575,9 +3578,9 @@ jjs_property_descriptor_to_ecma (jjs_context_t* context_p, /**< JJS context */
       return prop_desc;
     }
 
-    if (ecma_op_is_callable (getter))
+    if (ecma_op_is_callable (context_p, getter))
     {
-      prop_desc.get_p = ecma_get_object_from_value (getter);
+      prop_desc.get_p = ecma_get_object_from_value (context_p, getter);
     }
     else if (!ecma_is_value_null (getter))
     {
@@ -3596,9 +3599,9 @@ jjs_property_descriptor_to_ecma (jjs_context_t* context_p, /**< JJS context */
       return prop_desc;
     }
 
-    if (ecma_op_is_callable (setter))
+    if (ecma_op_is_callable (context_p, setter))
     {
-      prop_desc.set_p = ecma_get_object_from_value (setter);
+      prop_desc.set_p = ecma_get_object_from_value (context_p, setter);
     }
     else if (!ecma_is_value_null (setter))
     {
@@ -3678,9 +3681,10 @@ jjs_object_define_own_prop (jjs_context_t* context_p, /**< JJS context */
     return jjs_type_error_or_false (context_p, ECMA_ERR_WRONG_ARGS_MSG, prop_desc_p->flags);
   }
 
-  return jjs_return (ecma_op_object_define_own_property (ecma_get_object_from_value (object),
-                                                           ecma_get_prop_name_from_value (key),
-                                                           &prop_desc));
+  return jjs_return (context_p, ecma_op_object_define_own_property (context_p,
+                                                                    ecma_get_object_from_value (context_p, object),
+                                                                    ecma_get_prop_name_from_value (context_p, key),
+                                                                    &prop_desc));
 } /* jjs_object_define_own_prop */
 
 /**
@@ -3704,14 +3708,15 @@ jjs_object_get_own_prop (jjs_context_t* context_p, /**< JJS context */
 
   ecma_property_descriptor_t prop_desc;
 
-  ecma_value_t status = ecma_op_object_get_own_property_descriptor (ecma_get_object_from_value (object),
-                                                                    ecma_get_prop_name_from_value (key),
+  ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p,
+                                                                    ecma_get_object_from_value (context_p, object),
+                                                                    ecma_get_prop_name_from_value (context_p, key),
                                                                     &prop_desc);
 
 #if JJS_BUILTIN_PROXY
   if (ECMA_IS_VALUE_ERROR (status))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 #endif /* JJS_BUILTIN_PROXY */
 
@@ -3739,7 +3744,7 @@ jjs_object_get_own_prop (jjs_context_t* context_p, /**< JJS context */
   {
     if (prop_desc.get_p != NULL)
     {
-      prop_desc_p->getter = ecma_make_object_value (prop_desc.get_p);
+      prop_desc_p->getter = ecma_make_object_value (context_p, prop_desc.get_p);
     }
     else
     {
@@ -3751,7 +3756,7 @@ jjs_object_get_own_prop (jjs_context_t* context_p, /**< JJS context */
   {
     if (prop_desc.set_p != NULL)
     {
-      prop_desc_p->setter = ecma_make_object_value (prop_desc.set_p);
+      prop_desc_p->setter = ecma_make_object_value (context_p, prop_desc.set_p);
     }
     else
     {
@@ -3816,7 +3821,7 @@ jjs_call (jjs_context_t* context_p, /**< JJS context */
     }
   }
 
-  return jjs_return (ecma_op_function_validated_call (func_object, this_value, args_p, args_count));
+  return jjs_return (context_p, ecma_op_function_validated_call (context_p, func_object, this_value, args_p, args_count));
 } /* jjs_call */
 
 /**
@@ -3850,10 +3855,11 @@ jjs_construct (jjs_context_t* context_p, /**< JJS context */
     }
   }
 
-  return jjs_return (ecma_op_function_construct (ecma_get_object_from_value (func_object),
-                                                   ecma_get_object_from_value (func_object),
-                                                   args_p,
-                                                   args_count));
+  return jjs_return (context_p, ecma_op_function_construct (context_p,
+                                                            ecma_get_object_from_value (context_p, func_object),
+                                                            ecma_get_object_from_value (context_p, func_object),
+                                                            args_p,
+                                                            args_count));
 } /* jjs_construct */
 
 /**
@@ -3877,16 +3883,16 @@ jjs_object_keys (jjs_context_t* context_p, /**< JJS context */
   }
 
   ecma_collection_t *prop_names =
-    ecma_op_object_get_enumerable_property_names (ecma_get_object_from_value (object), ECMA_ENUMERABLE_PROPERTY_KEYS);
+    ecma_op_object_get_enumerable_property_names (context_p, ecma_get_object_from_value (context_p, object), ECMA_ENUMERABLE_PROPERTY_KEYS);
 
 #if JJS_BUILTIN_PROXY
   if (JJS_UNLIKELY (prop_names == NULL))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 #endif /* JJS_BUILTIN_PROXY */
 
-  return ecma_op_new_array_object_from_collection (prop_names, false);
+  return ecma_op_new_array_object_from_collection (context_p, prop_names, false);
 } /* jjs_object_keys */
 
 /**
@@ -3909,12 +3915,12 @@ jjs_object_proto (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
 
 #if JJS_BUILTIN_PROXY
   if (ECMA_OBJECT_IS_PROXY (obj_p))
   {
-    return jjs_return (ecma_proxy_object_get_prototype_of (obj_p));
+    return jjs_return (context_p, ecma_proxy_object_get_prototype_of (context_p, obj_p));
   }
 #endif /* JJS_BUILTIN_PROXY */
 
@@ -3923,10 +3929,10 @@ jjs_object_proto (jjs_context_t* context_p, /**< JJS context */
     return ECMA_VALUE_NULL;
   }
 
-  ecma_object_t *proto_obj_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, obj_p->u2.prototype_cp);
+  ecma_object_t *proto_obj_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, obj_p->u2.prototype_cp);
   ecma_ref_object (proto_obj_p);
 
-  return ecma_make_object_value (proto_obj_p);
+  return ecma_make_object_value (context_p, proto_obj_p);
 } /* jjs_object_proto */
 
 /**
@@ -3947,16 +3953,16 @@ jjs_object_set_proto (jjs_context_t* context_p, /**< JJS context */
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
 
 #if JJS_BUILTIN_PROXY
   if (ECMA_OBJECT_IS_PROXY (obj_p))
   {
-    return jjs_return (ecma_proxy_object_set_prototype_of (obj_p, proto));
+    return jjs_return (context_p, ecma_proxy_object_set_prototype_of (context_p, obj_p, proto));
   }
 #endif /* JJS_BUILTIN_PROXY */
 
-  return ecma_op_ordinary_object_set_prototype_of (obj_p, proto);
+  return ecma_op_ordinary_object_set_prototype_of (context_p, obj_p, proto);
 } /* jjs_object_set_proto */
 
 /**
@@ -4016,9 +4022,9 @@ jjs_foreach_live_object (jjs_context_t* context_p, /**< JJS context */
 
   while (iter_cp != JMEM_CP_NULL)
   {
-    ecma_object_t *iter_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, iter_cp);
+    ecma_object_t *iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, iter_cp);
 
-    if (jjs_object_is_valid_foreach (context_p, iter_p) && !callback (ecma_make_object_value (iter_p), user_data_p))
+    if (jjs_object_is_valid_foreach (context_p, iter_p) && !callback (ecma_make_object_value (context_p, iter_p), user_data_p))
     {
       return true;
     }
@@ -4054,12 +4060,12 @@ jjs_foreach_live_object_with_info (jjs_context_t* context_p, /**< JJS context */
 
   while (iter_cp != JMEM_CP_NULL)
   {
-    ecma_object_t *iter_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, iter_cp);
+    ecma_object_t *iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, iter_cp);
 
     if (jjs_object_is_valid_foreach (context_p, iter_p))
     {
-      native_pointer_p = ecma_get_native_pointer_value (iter_p, (void *) native_info_p);
-      if (native_pointer_p && !callback (ecma_make_object_value (iter_p), native_pointer_p->native_p, user_data_p))
+      native_pointer_p = ecma_get_native_pointer_value (context_p, iter_p, (void *) native_info_p);
+      if (native_pointer_p && !callback (ecma_make_object_value (context_p, iter_p), native_pointer_p->native_p, user_data_p))
       {
         return true;
       }
@@ -4093,8 +4099,8 @@ jjs_object_get_native_ptr (jjs_context_t* context_p, /**< JJS context */
     return NULL;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
-  ecma_native_pointer_t *native_pointer_p = ecma_get_native_pointer_value (obj_p, (void *) native_info_p);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
+  ecma_native_pointer_t *native_pointer_p = ecma_get_native_pointer_value (context_p, obj_p, (void *) native_info_p);
 
   if (native_pointer_p == NULL)
   {
@@ -4128,9 +4134,9 @@ jjs_object_set_native_ptr (jjs_context_t* context_p, /**< JJS context */
 
   if (ecma_is_value_object (object))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (object);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, object);
 
-    ecma_create_native_pointer_property (object_p, native_pointer_p, native_info_p);
+    ecma_create_native_pointer_property (context_p, object_p, native_pointer_p, native_info_p);
   }
 } /* jjs_object_set_native_ptr */
 
@@ -4152,8 +4158,8 @@ jjs_object_has_native_ptr (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
-  ecma_native_pointer_t *native_pointer_p = ecma_get_native_pointer_value (obj_p, (void *) native_info_p);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
+  ecma_native_pointer_t *native_pointer_p = ecma_get_native_pointer_value (context_p, obj_p, (void *) native_info_p);
 
   return native_pointer_p != NULL;
 } /* jjs_object_has_native_ptr */
@@ -4180,9 +4186,9 @@ jjs_object_delete_native_ptr (jjs_context_t* context_p, /**< JJS context */
 
   if (ecma_is_value_object (object))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (object);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, object);
 
-    return ecma_delete_native_pointer_property (object_p, (void *) native_info_p);
+    return ecma_delete_native_pointer_property (context_p, object_p, (void *) native_info_p);
   }
 
   return false;
@@ -4237,7 +4243,7 @@ jjs_native_ptr_free (jjs_context_t* context_p, /**< JJS context */
 
   while (value_p < end_p)
   {
-    ecma_free_value_if_not_object (*value_p);
+    ecma_free_value_if_not_object (context_p, *value_p);
     *value_p++ = ECMA_VALUE_UNDEFINED;
   }
 } /* jjs_native_ptr_free */
@@ -4263,7 +4269,7 @@ jjs_native_ptr_set (jjs_context_t* context_p, /**< JJS context */
     return;
   }
 
-  ecma_free_value_if_not_object (*reference_p);
+  ecma_free_value_if_not_object (context_p, *reference_p);
 
   if (ecma_is_value_exception (value))
   {
@@ -4271,7 +4277,7 @@ jjs_native_ptr_set (jjs_context_t* context_p, /**< JJS context */
     return;
   }
 
-  *reference_p = ecma_copy_value_if_not_object (value);
+  *reference_p = ecma_copy_value_if_not_object (context_p, value);
 } /* jjs_native_ptr_set */
 
 /**
@@ -4296,8 +4302,8 @@ jjs_object_foreach (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (object);
-  ecma_collection_t *names_p = ecma_op_object_enumerate (object_p);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, object);
+  ecma_collection_t *names_p = ecma_op_object_enumerate (context_p, object_p);
 
 #if JJS_BUILTIN_PROXY
   if (names_p == NULL)
@@ -4316,9 +4322,9 @@ jjs_object_foreach (jjs_context_t* context_p, /**< JJS context */
 
   for (uint32_t i = 0; continuous && (i < names_p->item_count); i++)
   {
-    ecma_string_t *property_name_p = ecma_get_string_from_value (buffer_p[i]);
+    ecma_string_t *property_name_p = ecma_get_string_from_value (context_p, buffer_p[i]);
 
-    property_value = ecma_op_object_get (object_p, property_name_p);
+    property_value = ecma_op_object_get (context_p, object_p, property_name_p);
 
     if (ECMA_IS_VALUE_ERROR (property_value))
     {
@@ -4326,10 +4332,10 @@ jjs_object_foreach (jjs_context_t* context_p, /**< JJS context */
     }
 
     continuous = foreach_p (buffer_p[i], property_value, user_data_p);
-    ecma_free_value (property_value);
+    ecma_free_value (context_p, property_value);
   }
 
-  ecma_collection_free (names_p);
+  ecma_collection_free (context_p, names_p);
 
   if (!ECMA_IS_VALUE_ERROR (property_value))
   {
@@ -4358,29 +4364,29 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (object);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
   ecma_object_t *obj_iter_p = obj_p;
-  ecma_collection_t *result_p = ecma_new_collection ();
+  ecma_collection_t *result_p = ecma_new_collection (context_p);
 
   ecma_ref_object (obj_iter_p);
 
   while (true)
   {
     /* Step 1. Get Object.[[OwnKeys]] */
-    ecma_collection_t *prop_names_p = ecma_op_object_own_property_keys (obj_iter_p, filter);
+    ecma_collection_t *prop_names_p = ecma_op_object_own_property_keys (context_p, obj_iter_p, filter);
 
 #if JJS_BUILTIN_PROXY
     if (prop_names_p == NULL)
     {
       ecma_deref_object (obj_iter_p);
-      return ecma_create_exception_from_context ();
+      return ecma_create_exception_from_context (context_p);
     }
 #endif /* JJS_BUILTIN_PROXY */
 
     for (uint32_t i = 0; i < prop_names_p->item_count; i++)
     {
       ecma_value_t key = prop_names_p->buffer_p[i];
-      ecma_string_t *key_p = ecma_get_prop_name_from_value (key);
+      ecma_string_t *key_p = ecma_get_prop_name_from_value (context_p, key);
       uint32_t index = ecma_string_get_array_index (key_p);
 
       /* Step 2. Filter by key type */
@@ -4416,21 +4422,21 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
              | JJS_PROPERTY_FILTER_EXCLUDE_NON_WRITABLE))
       {
         ecma_property_descriptor_t prop_desc;
-        ecma_value_t status = ecma_op_object_get_own_property_descriptor (obj_iter_p, key_p, &prop_desc);
+        ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p, obj_iter_p, key_p, &prop_desc);
 
 #if JJS_BUILTIN_PROXY
         if (ECMA_IS_VALUE_ERROR (status))
         {
-          ecma_collection_free (prop_names_p);
-          ecma_collection_free (result_p);
+          ecma_collection_free (context_p, prop_names_p);
+          ecma_collection_free (context_p, result_p);
           ecma_deref_object (obj_iter_p);
-          return ecma_create_exception_from_context ();
+          return ecma_create_exception_from_context (context_p);
         }
 #endif /* JJS_BUILTIN_PROXY */
 
         JJS_ASSERT (ecma_is_value_true (status));
         uint16_t flags = prop_desc.flags;
-        ecma_free_property_descriptor (&prop_desc);
+        ecma_free_property_descriptor (context_p, &prop_desc);
 
         if ((!(flags & JJS_PROP_IS_CONFIGURABLE) && (filter & JJS_PROPERTY_FILTER_EXCLUDE_NON_CONFIGURABLE))
             || (!(flags & JJS_PROP_IS_ENUMERABLE) && (filter & JJS_PROPERTY_FILTER_EXCLUDE_NON_ENUMERABLE))
@@ -4442,8 +4448,8 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
 
       if (index != ECMA_STRING_NOT_ARRAY_INDEX && (filter & JJS_PROPERTY_FILTER_INTEGER_INDICES_AS_NUMBER))
       {
-        ecma_deref_ecma_string (key_p);
-        key = ecma_make_uint32_value (index);
+        ecma_deref_ecma_string (context_p, key_p);
+        key = ecma_make_uint32_value (context_p, index);
       }
       else
       {
@@ -4459,12 +4465,12 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
           JJS_ASSERT (ecma_is_value_prop_name (value) || ecma_is_value_number (value));
           if (JJS_UNLIKELY (ecma_is_value_number (value)))
           {
-            if (ecma_get_number_from_value (value) == ecma_get_number_from_value (key))
+            if (ecma_get_number_from_value (context_p, value) == ecma_get_number_from_value (context_p, key))
             {
               break;
             }
           }
-          else if (ecma_compare_ecma_strings (ecma_get_prop_name_from_value (value), key_p))
+          else if (ecma_compare_ecma_strings (ecma_get_prop_name_from_value (context_p, value), key_p))
           {
             break;
           }
@@ -4474,16 +4480,16 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
 
         if (duplicate_idx == result_p->item_count)
         {
-          ecma_collection_push_back (result_p, key);
+          ecma_collection_push_back (context_p, result_p, key);
         }
       }
       else
       {
-        ecma_collection_push_back (result_p, key);
+        ecma_collection_push_back (context_p, result_p, key);
       }
     }
 
-    ecma_collection_free (prop_names_p);
+    ecma_collection_free (context_p, prop_names_p);
 
     /* Step 4: Traverse prototype chain */
 
@@ -4492,7 +4498,7 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
       break;
     }
 
-    ecma_object_t *proto_p = ecma_op_object_get_prototype_of (obj_iter_p);
+    ecma_object_t *proto_p = ecma_op_object_get_prototype_of (context_p, obj_iter_p);
 
     if (proto_p == NULL)
     {
@@ -4503,8 +4509,8 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
 
     if (JJS_UNLIKELY (proto_p == ECMA_OBJECT_POINTER_ERROR))
     {
-      ecma_collection_free (result_p);
-      return ecma_create_exception_from_context ();
+      ecma_collection_free (context_p, result_p);
+      return ecma_create_exception_from_context (context_p);
     }
 
     obj_iter_p = proto_p;
@@ -4512,7 +4518,7 @@ jjs_object_property_names (jjs_context_t* context_p, /**< JJS context */
 
   ecma_deref_object (obj_iter_p);
 
-  return ecma_op_new_array_object_from_collection (result_p, false);
+  return ecma_op_new_array_object_from_collection (context_p, result_p, false);
 } /* jjs_object_property_names */
 
 /**
@@ -4534,9 +4540,9 @@ jjs_property_descriptor_to_object (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_object_t *desc_obj_p = ecma_op_from_property_descriptor (&prop_desc);
+  ecma_object_t *desc_obj_p = ecma_op_from_property_descriptor (context_p, &prop_desc);
 
-  return ecma_make_object_value (desc_obj_p);
+  return ecma_make_object_value (context_p, desc_obj_p);
 } /* jjs_property_descriptor_to_object */
 
 /**
@@ -4555,11 +4561,11 @@ jjs_property_descriptor_from_object (jjs_context_t* context_p, /**< JJS context 
   jjs_assert_api_enabled (context_p);
 
   ecma_property_descriptor_t prop_desc;
-  jjs_value_t result = ecma_op_to_property_descriptor (object, &prop_desc);
+  jjs_value_t result = ecma_op_to_property_descriptor (context_p, object, &prop_desc);
 
   if (ECMA_IS_VALUE_ERROR (result))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
   JJS_ASSERT (result == ECMA_VALUE_EMPTY);
@@ -4591,7 +4597,7 @@ jjs_promise_resolve (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  return ecma_fulfill_promise_with_checks (promise, argument);
+  return ecma_fulfill_promise_with_checks (context_p, promise, argument);
 } /* jjs_promise_resolve */
 
 /**
@@ -4617,7 +4623,7 @@ jjs_promise_reject (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
 
-  return ecma_reject_promise_with_checks (promise, argument);
+  return ecma_reject_promise_with_checks (context_p, promise, argument);
 } /* jjs_promise_reject */
 
 /**
@@ -4637,7 +4643,7 @@ jjs_promise_result (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  return ecma_promise_get_result (ecma_get_object_from_value (promise));
+  return ecma_promise_get_result (context_p, ecma_get_object_from_value (context_p, promise));
 } /* jjs_get_promise_result */
 
 /**
@@ -4658,7 +4664,7 @@ jjs_promise_state (jjs_context_t* context_p, /**< JJS context */
     return JJS_PROMISE_STATE_NONE;
   }
 
-  uint16_t flags = ecma_promise_get_flags (ecma_get_object_from_value (promise));
+  uint16_t flags = ecma_promise_get_flags (ecma_get_object_from_value (context_p, promise));
   flags &= (ECMA_PROMISE_IS_PENDING | ECMA_PROMISE_IS_FULFILLED);
 
   return (flags ? flags : JJS_PROMISE_STATE_REJECTED);
@@ -4715,7 +4721,7 @@ jjs_symbol (jjs_context_t* context_p, /**< JJS context */
     return ECMA_VALUE_UNDEFINED;
   }
 
-  return ecma_make_symbol_value (ecma_op_get_global_symbol (id));
+  return ecma_make_symbol_value (context_p, ecma_op_get_global_symbol (context_p, id));
 } /* jjs_get_well_known_symbol */
 
 /**
@@ -4739,7 +4745,7 @@ jjs_symbol_description (jjs_context_t* context_p, /**< JJS context */
   }
 
   /* Note: This operation cannot throw an error */
-  return ecma_copy_value (ecma_get_symbol_description (ecma_get_symbol_from_value (symbol)));
+  return ecma_copy_value (context_p, ecma_get_symbol_description (context_p, ecma_get_symbol_from_value (context_p, symbol)));
 } /* jjs_get_symbol_description */
 
 /**
@@ -4763,7 +4769,7 @@ jjs_symbol_descriptive_string (jjs_context_t* context_p, /**< JJS context */
   }
 
   /* Note: This operation cannot throw an error */
-  return ecma_get_symbol_descriptive_string (symbol);
+  return ecma_get_symbol_descriptive_string (context_p, symbol);
 } /* jjs_get_symbol_descriptive_string */
 
 /**
@@ -4783,7 +4789,7 @@ jjs_bigint_digit_count (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  return ecma_bigint_get_size_in_digits (value);
+  return ecma_bigint_get_size_in_digits (context_p, value);
 #else /* !JJS_BUILTIN_BIGINT */
   JJS_UNUSED (value);
   return 0;
@@ -4812,7 +4818,7 @@ jjs_bigint_to_digits (jjs_context_t* context_p, /**< JJS context */
     memset (digits_p, 0, digit_count * sizeof (uint64_t));
   }
 
-  ecma_bigint_get_digits_and_sign (value, digits_p, digit_count, sign_p);
+  ecma_bigint_get_digits_and_sign (context_p, value, digits_p, digit_count, sign_p);
 #else /* !JJS_BUILTIN_BIGINT */
   JJS_UNUSED (value);
 
@@ -4839,7 +4845,7 @@ jjs_proxy_target (jjs_context_t* context_p, /**< JJS context */
 #if JJS_BUILTIN_PROXY
   if (ecma_is_value_object (proxy_value))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (proxy_value);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, proxy_value);
 
     if (ECMA_OBJECT_IS_PROXY (object_p))
     {
@@ -4847,7 +4853,7 @@ jjs_proxy_target (jjs_context_t* context_p, /**< JJS context */
 
       if (!ecma_is_value_null (proxy_object_p->target))
       {
-        ecma_ref_object (ecma_get_object_from_value (proxy_object_p->target));
+        ecma_ref_object (ecma_get_object_from_value (context_p, proxy_object_p->target));
       }
       return proxy_object_p->target;
     }
@@ -4874,7 +4880,7 @@ jjs_proxy_handler (jjs_context_t* context_p, /**< JJS context */
 #if JJS_BUILTIN_PROXY
   if (ecma_is_value_object (proxy_value))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (proxy_value);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, proxy_value);
 
     if (ECMA_OBJECT_IS_PROXY (object_p))
     {
@@ -4882,7 +4888,7 @@ jjs_proxy_handler (jjs_context_t* context_p, /**< JJS context */
 
       if (!ecma_is_value_null (proxy_object_p->handler))
       {
-        ecma_ref_object (ecma_get_object_from_value (proxy_object_p->handler));
+        ecma_ref_object (ecma_get_object_from_value (context_p, proxy_object_p->handler));
       }
       return proxy_object_p->handler;
     }
@@ -5264,7 +5270,7 @@ jjs_heap_alloc (jjs_context_t* context_p,
 {
   jjs_assert_api_enabled (context_p);
 
-  return jmem_heap_alloc_block_null_on_error (size);
+  return jmem_heap_alloc_block_null_on_error (context_p, size);
 } /* jjs_heap_alloc */
 
 /**
@@ -5277,7 +5283,7 @@ jjs_heap_free (jjs_context_t* context_p,
 {
   jjs_assert_api_enabled (context_p);
 
-  jmem_heap_free_block (mem_p, size);
+  jmem_heap_free_block (context_p, mem_p, size);
 } /* jjs_heap_free */
 
 /**
@@ -5387,9 +5393,9 @@ jjs_frame_location (jjs_context_t* context_p, /**< JJS context */
       return NULL;
     }
 
-    frame_p->location.source_name = ecma_get_source_name (bytecode_header_p);
+    frame_p->location.source_name = ecma_get_source_name (context_p, bytecode_header_p);
 
-    ecma_line_info_get (ecma_compiled_code_get_line_info (bytecode_header_p),
+    ecma_line_info_get (ecma_compiled_code_get_line_info (context_p, bytecode_header_p),
                         (uint32_t) (frame_context_p->byte_code_p - frame_context_p->byte_code_start_p),
                         &frame_p->location);
 
@@ -5419,7 +5425,7 @@ jjs_frame_callee (jjs_context_t* context_p, /**< JJS context */
 
     if (frame_context_p->shared_p->function_object_p != NULL)
     {
-      frame_p->function = ecma_make_object_value (frame_context_p->shared_p->function_object_p);
+      frame_p->function = ecma_make_object_value (context_p, frame_context_p->shared_p->function_object_p);
       return &frame_p->function;
     }
   }
@@ -5484,19 +5490,19 @@ jjs_source_name (jjs_context_t* context_p, /**< JJS context */
 #if JJS_SOURCE_NAME
   if (ecma_is_value_undefined (value) && context_p->vm_top_context_p != NULL)
   {
-    return ecma_copy_value (ecma_get_source_name (context_p->vm_top_context_p->shared_p->bytecode_header_p));
+    return ecma_copy_value (context_p, ecma_get_source_name (context_p, context_p->vm_top_context_p->shared_p->bytecode_header_p));
   }
 
-  ecma_value_t script_value = ecma_script_get_from_value (value);
+  ecma_value_t script_value = ecma_script_get_from_value (context_p, value);
 
   if (script_value == JMEM_CP_NULL)
   {
     return ecma_make_magic_string_value (LIT_MAGIC_STRING_SOURCE_NAME_ANON);
   }
 
-  const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+  const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
 
-  return ecma_copy_value (script_p->source_name);
+  return ecma_copy_value (context_p, script_p->source_name);
 #else /* !JJS_SOURCE_NAME */
   JJS_UNUSED_ALL (context_p, value);
   return ecma_make_magic_string_value (LIT_MAGIC_STRING_SOURCE_NAME_ANON);
@@ -5517,21 +5523,21 @@ jjs_source_user_value (jjs_context_t* context_p, /**< JJS context */
                        const jjs_value_t value) /**< JJS api value */
 {
   jjs_assert_api_enabled (context_p);
-  ecma_value_t script_value = ecma_script_get_from_value (value);
+  ecma_value_t script_value = ecma_script_get_from_value (context_p, value);
 
   if (script_value == JMEM_CP_NULL)
   {
     return ECMA_VALUE_UNDEFINED;
   }
 
-  const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+  const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
 
   if (!(script_p->refs_and_type & CBC_SCRIPT_HAS_USER_VALUE))
   {
     return ECMA_VALUE_UNDEFINED;
   }
 
-  return ecma_copy_value (CBC_SCRIPT_GET_USER_VALUE (script_p));
+  return ecma_copy_value (context_p, CBC_SCRIPT_GET_USER_VALUE (script_p));
 } /* jjs_source_user_value */
 
 /**
@@ -5547,14 +5553,14 @@ jjs_function_is_dynamic (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  ecma_value_t script_value = ecma_script_get_from_value (value);
+  ecma_value_t script_value = ecma_script_get_from_value (context_p, value);
 
   if (script_value == JMEM_CP_NULL)
   {
     return false;
   }
 
-  const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+  const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
 
   return (script_p->refs_and_type & CBC_SCRIPT_IS_EVAL_CODE) != 0;
 } /* jjs_function_is_dynamic */
@@ -5584,7 +5590,7 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
   source_info.source_range_start = 0;
   source_info.source_range_length = 0;
 
-  ecma_object_t *object_p = ecma_get_object_from_value (value);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, value);
   cbc_script_t *script_p = NULL;
 
   while (true)
@@ -5598,7 +5604,7 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
 
         if (ext_object_p->u.cls.type == ECMA_OBJECT_CLASS_SCRIPT)
         {
-          bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
+          bytecode_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
         }
 #if JJS_MODULE_SYSTEM
         else if (ext_object_p->u.cls.type == ECMA_OBJECT_CLASS_MODULE)
@@ -5618,16 +5624,16 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
         }
 
         ecma_value_t script_value = ((cbc_uint8_arguments_t *) bytecode_p)->script_value;
-        script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+        script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
         break;
       }
       case ECMA_OBJECT_TYPE_FUNCTION:
       {
         const ecma_compiled_code_t *bytecode_p;
-        bytecode_p = ecma_op_function_get_compiled_code ((ecma_extended_object_t *) object_p);
+        bytecode_p = ecma_op_function_get_compiled_code (context_p, (ecma_extended_object_t *) object_p);
 
         ecma_value_t script_value = ((cbc_uint8_arguments_t *) bytecode_p)->script_value;
-        script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+        script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
 
         if (bytecode_p->status_flags & CBC_CODE_FLAGS_HAS_EXTENDED_INFO)
         {
@@ -5643,7 +5649,7 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
           {
             ecma_value_t function_arguments = CBC_SCRIPT_GET_FUNCTION_ARGUMENTS (script_p, script_p->refs_and_type);
 
-            ecma_ref_ecma_string (ecma_get_string_from_value (function_arguments));
+            ecma_ref_ecma_string (ecma_get_string_from_value (context_p, function_arguments));
 
             source_info.enabled_fields |= JJS_SOURCE_INFO_HAS_SOURCE_CODE;
             source_info.source_code = function_arguments;
@@ -5661,7 +5667,7 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
         {
           ecma_value_t function_arguments = CBC_SCRIPT_GET_FUNCTION_ARGUMENTS (script_p, script_p->refs_and_type);
 
-          ecma_ref_ecma_string (ecma_get_string_from_value (function_arguments));
+          ecma_ref_ecma_string (ecma_get_string_from_value (context_p, function_arguments));
 
           source_info.enabled_fields |= JJS_SOURCE_INFO_HAS_FUNCTION_ARGUMENTS;
           source_info.function_arguments = function_arguments;
@@ -5673,13 +5679,13 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
         ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
 
         object_p =
-          ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (ecma_object_t, ext_object_p->u.bound_function.target_function);
+          ECMA_GET_NON_NULL_POINTER_FROM_POINTER_TAG (context_p, ecma_object_t, ext_object_p->u.bound_function.target_function);
         continue;
       }
       case ECMA_OBJECT_TYPE_CONSTRUCTOR_FUNCTION:
       {
         ecma_value_t script_value = ((ecma_extended_object_t *) object_p)->u.constructor_function.script_value;
-        script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+        script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
         break;
       }
       default:
@@ -5691,7 +5697,7 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
     break;
   }
 
-  jjs_source_info_t *source_info_p = jmem_heap_alloc_block_null_on_error (sizeof (jjs_source_info_t));
+  jjs_source_info_t *source_info_p = jmem_heap_alloc_block_null_on_error (context_p, sizeof (jjs_source_info_t));
 
   if (source_info_p == NULL)
   {
@@ -5700,7 +5706,7 @@ jjs_source_info (jjs_context_t* context_p, /**< JJS context */
 
   if (script_p != NULL)
   {
-    ecma_ref_ecma_string (ecma_get_string_from_value (script_p->source_code));
+    ecma_ref_ecma_string (ecma_get_string_from_value (context_p, script_p->source_code));
 
     source_info.enabled_fields |= JJS_SOURCE_INFO_HAS_SOURCE_CODE;
     source_info.source_code = script_p->source_code;
@@ -5728,9 +5734,9 @@ jjs_source_info_free (jjs_context_t* context_p, /**< JJS context */
 #if JJS_FUNCTION_TO_STRING
   if (source_info_p != NULL)
   {
-    ecma_free_value (source_info_p->source_code);
-    ecma_free_value (source_info_p->function_arguments);
-    jmem_heap_free_block (source_info_p, sizeof (jjs_source_info_t));
+    ecma_free_value (context_p, source_info_p->source_code);
+    ecma_free_value (context_p, source_info_p->function_arguments);
+    jmem_heap_free_block (context_p, source_info_p, sizeof (jjs_source_info_t));
   }
 #else /* !JJS_FUNCTION_TO_STRING */
   JJS_UNUSED (source_info_p);
@@ -5758,13 +5764,13 @@ jjs_set_realm (jjs_context_t* context_p, /**< JJS context */
 #if JJS_BUILTIN_REALMS
   if (ecma_is_value_object (realm_value))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (realm_value);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, realm_value);
 
     if (ecma_builtin_is_global (object_p))
     {
       ecma_global_object_t *previous_global_object_p = context_p->global_object_p;
       context_p->global_object_p = (ecma_global_object_t *) object_p;
-      return ecma_make_object_value ((ecma_object_t *) previous_global_object_p);
+      return ecma_make_object_value (context_p, (ecma_object_t *) previous_global_object_p);
     }
   }
 
@@ -5790,13 +5796,13 @@ jjs_realm_this (jjs_context_t* context_p, /**< JJS context */
 #if JJS_BUILTIN_REALMS
   if (ecma_is_value_object (realm))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (realm);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, realm);
 
     if (ecma_builtin_is_global (object_p))
     {
       ecma_global_object_t *global_object_p = (ecma_global_object_t *) object_p;
 
-      ecma_ref_object (ecma_get_object_from_value (global_object_p->this_binding));
+      ecma_ref_object (ecma_get_object_from_value (context_p, global_object_p->this_binding));
       return global_object_p->this_binding;
     }
   }
@@ -5804,7 +5810,7 @@ jjs_realm_this (jjs_context_t* context_p, /**< JJS context */
 #else /* !JJS_BUILTIN_REALMS */
   ecma_object_t *global_object_p = ecma_builtin_get_global ();
 
-  if (realm == ecma_make_object_value (global_object_p))
+  if (realm == ecma_make_object_value (context_p, global_object_p))
   {
     ecma_ref_object (global_object_p);
     return realm;
@@ -5838,16 +5844,16 @@ jjs_realm_set_this (jjs_context_t* context_p, /**< JJS context */
 
   if (ecma_is_value_object (realm))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (realm);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, realm);
 
     if (ecma_builtin_is_global (object_p))
     {
       ecma_global_object_t *global_object_p = (ecma_global_object_t *) object_p;
       global_object_p->this_binding = this_value;
 
-      ecma_object_t *global_lex_env_p = ecma_create_object_lex_env (NULL, ecma_get_object_from_value (this_value));
+      ecma_object_t *global_lex_env_p = ecma_create_object_lex_env (context_p, NULL, ecma_get_object_from_value (context_p, this_value));
 
-      ECMA_SET_NON_NULL_POINTER (global_object_p->global_env_cp, global_lex_env_p);
+      ECMA_SET_NON_NULL_POINTER (context_p, global_object_p->global_env_cp, global_lex_env_p);
       global_object_p->global_scope_cp = global_object_p->global_env_cp;
 
       ecma_deref_object (global_lex_env_p);
@@ -5875,9 +5881,10 @@ jjs_value_is_arraybuffer (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  return ecma_is_arraybuffer (value);
+  return ecma_is_arraybuffer (context_p, value);
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (value);
+  JJS_UNUSED (context_p);
   return false;
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 } /* jjs_value_is_arraybuffer */
@@ -5900,7 +5907,7 @@ jjs_arraybuffer (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  return jjs_return (ecma_make_object_value (ecma_arraybuffer_new_object (size)));
+  return jjs_return (context_p, ecma_make_object_value (context_p, ecma_arraybuffer_new_object (context_p, size)));
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (size);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
@@ -5931,11 +5938,11 @@ jjs_arraybuffer_external (jjs_context_t* context_p, /**< JJS context */
 
   if (JJS_UNLIKELY (size == 0))
   {
-    arraybuffer_p = ecma_arraybuffer_new_object (0);
+    arraybuffer_p = ecma_arraybuffer_new_object (context_p, 0);
   }
   else
   {
-    arraybuffer_p = ecma_arraybuffer_create_object_with_buffer (ECMA_OBJECT_CLASS_ARRAY_BUFFER, size);
+    arraybuffer_p = ecma_arraybuffer_create_object_with_buffer (context_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER, size);
 
     ecma_arraybuffer_pointer_t *arraybuffer_pointer_p = (ecma_arraybuffer_pointer_t *) arraybuffer_p;
     arraybuffer_pointer_p->arraybuffer_user_p = user_p;
@@ -5947,7 +5954,7 @@ jjs_arraybuffer_external (jjs_context_t* context_p, /**< JJS context */
     }
   }
 
-  return jjs_return (ecma_make_object_value (arraybuffer_p));
+  return jjs_return (context_p, ecma_make_object_value (context_p, arraybuffer_p));
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED_ALL (size, buffer_p, user_p);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
@@ -5966,7 +5973,7 @@ jjs_value_is_shared_arraybuffer (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  return ecma_is_shared_arraybuffer (value);
+  return ecma_is_shared_arraybuffer (context_p, value);
 } /* jjs_value_is_shared_arraybuffer */
 
 /**
@@ -5987,7 +5994,7 @@ jjs_shared_arraybuffer (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
-  return jjs_return (ecma_make_object_value (ecma_shared_arraybuffer_new_object (size)));
+  return jjs_return (context_p, ecma_make_object_value (context_p, ecma_shared_arraybuffer_new_object (context_p, size)));
 #else /* !JJS_BUILTIN_SHAREDARRAYBUFFER */
   JJS_UNUSED (size);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SHARED_ARRAYBUFFER_NOT_SUPPORTED));
@@ -6020,11 +6027,11 @@ jjs_shared_arraybuffer_external (jjs_context_t* context_p, /**< JJS context */
 
   if (JJS_UNLIKELY (size == 0))
   {
-    shared_arraybuffer_p = ecma_shared_arraybuffer_new_object (0);
+    shared_arraybuffer_p = ecma_shared_arraybuffer_new_object (context_p, 0);
   }
   else
   {
-    shared_arraybuffer_p = ecma_arraybuffer_create_object_with_buffer (ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER, size);
+    shared_arraybuffer_p = ecma_arraybuffer_create_object_with_buffer (context_p, ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER, size);
 
     ecma_arraybuffer_pointer_t *shared_arraybuffer_pointer_p = (ecma_arraybuffer_pointer_t *) shared_arraybuffer_p;
     shared_arraybuffer_pointer_p->arraybuffer_user_p = user_p;
@@ -6036,7 +6043,7 @@ jjs_shared_arraybuffer_external (jjs_context_t* context_p, /**< JJS context */
     }
   }
 
-  return ecma_make_object_value (shared_arraybuffer_p);
+  return ecma_make_object_value (context_p, shared_arraybuffer_p);
 #else /* !JJS_BUILTIN_SHAREDARRAYBUFFER */
   JJS_UNUSED_ALL (size, buffer_p, user_p);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_SHARED_ARRAYBUFFER_NOT_SUPPORTED));
@@ -6052,7 +6059,8 @@ jjs_shared_arraybuffer_external (jjs_context_t* context_p, /**< JJS context */
  *         false otherwise
  */
 static bool
-jjs_arraybuffer_allocate_buffer_no_throw (ecma_object_t *arraybuffer_p) /**< ArrayBuffer object */
+jjs_arraybuffer_allocate_buffer_no_throw (ecma_context_t *context_p, /**< JJS context */
+                                          ecma_object_t *arraybuffer_p) /**< ArrayBuffer object */
 {
   JJS_ASSERT (!(ECMA_ARRAYBUFFER_GET_FLAGS (arraybuffer_p) & ECMA_ARRAYBUFFER_ALLOCATED));
 
@@ -6061,7 +6069,7 @@ jjs_arraybuffer_allocate_buffer_no_throw (ecma_object_t *arraybuffer_p) /**< Arr
     return false;
   }
 
-  return ecma_arraybuffer_allocate_buffer (arraybuffer_p) != ECMA_VALUE_ERROR;
+  return ecma_arraybuffer_allocate_buffer (context_p, arraybuffer_p) != ECMA_VALUE_ERROR;
 } /* jjs_arraybuffer_allocate_buffer_no_throw */
 
 #endif /* JJS_BUILTIN_TYPEDARRAY */
@@ -6084,20 +6092,20 @@ jjs_arraybuffer_write (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (!(ecma_is_arraybuffer (value) || ecma_is_shared_arraybuffer (value)))
+  if (!(ecma_is_arraybuffer (context_p, value) || ecma_is_shared_arraybuffer (context_p, value)))
   {
     return 0;
   }
 
-  ecma_object_t *arraybuffer_p = ecma_get_object_from_value (value);
+  ecma_object_t *arraybuffer_p = ecma_get_object_from_value (context_p, value);
 
   if (!(ECMA_ARRAYBUFFER_GET_FLAGS (arraybuffer_p) & ECMA_ARRAYBUFFER_ALLOCATED)
-      && !jjs_arraybuffer_allocate_buffer_no_throw (arraybuffer_p))
+      && !jjs_arraybuffer_allocate_buffer_no_throw (context_p, arraybuffer_p))
   {
     return 0;
   }
 
-  jjs_length_t length = ecma_arraybuffer_get_length (arraybuffer_p);
+  jjs_length_t length = ecma_arraybuffer_get_length (context_p, arraybuffer_p);
 
   if (offset >= length)
   {
@@ -6108,7 +6116,7 @@ jjs_arraybuffer_write (jjs_context_t* context_p, /**< JJS context */
 
   if (copy_count > 0)
   {
-    lit_utf8_byte_t *buffer_p = ecma_arraybuffer_get_buffer (arraybuffer_p);
+    lit_utf8_byte_t *buffer_p = ecma_arraybuffer_get_buffer (context_p, arraybuffer_p);
 
     memcpy ((void *) (buffer_p + offset), (void *) buf_p, copy_count);
   }
@@ -6138,20 +6146,20 @@ jjs_arraybuffer_read (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (!(ecma_is_arraybuffer (value) || ecma_is_shared_arraybuffer (value)))
+  if (!(ecma_is_arraybuffer (context_p, value) || ecma_is_shared_arraybuffer (context_p, value)))
   {
     return 0;
   }
 
-  ecma_object_t *arraybuffer_p = ecma_get_object_from_value (value);
+  ecma_object_t *arraybuffer_p = ecma_get_object_from_value (context_p, value);
 
   if (!(ECMA_ARRAYBUFFER_GET_FLAGS (arraybuffer_p) & ECMA_ARRAYBUFFER_ALLOCATED)
-      && !jjs_arraybuffer_allocate_buffer_no_throw (arraybuffer_p))
+      && !jjs_arraybuffer_allocate_buffer_no_throw (context_p, arraybuffer_p))
   {
     return 0;
   }
 
-  jjs_length_t length = ecma_arraybuffer_get_length (arraybuffer_p);
+  jjs_length_t length = ecma_arraybuffer_get_length (context_p, arraybuffer_p);
 
   if (offset >= length)
   {
@@ -6162,7 +6170,7 @@ jjs_arraybuffer_read (jjs_context_t* context_p, /**< JJS context */
 
   if (copy_count > 0)
   {
-    lit_utf8_byte_t *buffer_p = ecma_arraybuffer_get_buffer (arraybuffer_p);
+    lit_utf8_byte_t *buffer_p = ecma_arraybuffer_get_buffer (context_p, arraybuffer_p);
 
     memcpy ((void *) buf_p, (void *) (buffer_p + offset), copy_count);
   }
@@ -6189,10 +6197,10 @@ jjs_arraybuffer_size (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (ecma_is_arraybuffer (value) || ecma_is_shared_arraybuffer (value))
+  if (ecma_is_arraybuffer (context_p, value) || ecma_is_shared_arraybuffer (context_p, value))
   {
-    ecma_object_t *arraybuffer_p = ecma_get_object_from_value (value);
-    return ecma_arraybuffer_get_length (arraybuffer_p);
+    ecma_object_t *arraybuffer_p = ecma_get_object_from_value (context_p, value);
+    return ecma_arraybuffer_get_length (context_p, arraybuffer_p);
   }
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (value);
@@ -6219,20 +6227,20 @@ jjs_arraybuffer_data (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (!(ecma_is_arraybuffer (array_buffer) || ecma_is_shared_arraybuffer (array_buffer)))
+  if (!(ecma_is_arraybuffer (context_p, array_buffer) || ecma_is_shared_arraybuffer (context_p, array_buffer)))
   {
     return NULL;
   }
 
-  ecma_object_t *arraybuffer_p = ecma_get_object_from_value (array_buffer);
+  ecma_object_t *arraybuffer_p = ecma_get_object_from_value (context_p, array_buffer);
 
   if (!(ECMA_ARRAYBUFFER_GET_FLAGS (arraybuffer_p) & ECMA_ARRAYBUFFER_ALLOCATED)
-      && !jjs_arraybuffer_allocate_buffer_no_throw (arraybuffer_p))
+      && !jjs_arraybuffer_allocate_buffer_no_throw (context_p, arraybuffer_p))
   {
     return NULL;
   }
 
-  return (uint8_t *) ecma_arraybuffer_get_buffer (arraybuffer_p);
+  return (uint8_t *) ecma_arraybuffer_get_buffer (context_p, arraybuffer_p);
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (array_buffer);
   return NULL;
@@ -6252,10 +6260,10 @@ jjs_arraybuffer_is_detachable (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (ecma_is_arraybuffer (value))
+  if (ecma_is_arraybuffer (context_p, value))
   {
-    ecma_object_t *buffer_p = ecma_get_object_from_value (value);
-    return !ecma_arraybuffer_is_detached (buffer_p);
+    ecma_object_t *buffer_p = ecma_get_object_from_value (context_p, value);
+    return !ecma_arraybuffer_is_detached (context_p, buffer_p);
   }
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (value);
@@ -6279,10 +6287,10 @@ jjs_arraybuffer_detach (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (ecma_is_arraybuffer (value))
+  if (ecma_is_arraybuffer (context_p, value))
   {
-    ecma_object_t *buffer_p = ecma_get_object_from_value (value);
-    if (ecma_arraybuffer_detach (buffer_p))
+    ecma_object_t *buffer_p = ecma_get_object_from_value (context_p, value);
+    if (ecma_arraybuffer_detach (context_p, buffer_p))
     {
       return ECMA_VALUE_NULL;
     }
@@ -6312,14 +6320,14 @@ jjs_arraybuffer_has_buffer (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (value);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, value);
 
-  if (ecma_object_is_typedarray (object_p))
+  if (ecma_object_is_typedarray (context_p, object_p))
   {
-    object_p = ecma_typedarray_get_arraybuffer (object_p);
+    object_p = ecma_typedarray_get_arraybuffer (context_p, object_p);
   }
   else if (!(ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-             || ecma_object_is_shared_arraybuffer (object_p)))
+             || ecma_object_is_shared_arraybuffer (context_p, object_p)))
   {
     return false;
   }
@@ -6401,17 +6409,17 @@ jjs_dataview (jjs_context_t* context_p, /**< JJS context */
   }
 
   ecma_value_t arguments_p[3] = { array_buffer,
-                                  ecma_make_uint32_value (byte_offset),
-                                  ecma_make_uint32_value (byte_length) };
+                                  ecma_make_uint32_value (context_p, byte_offset),
+                                  ecma_make_uint32_value (context_p, byte_length) };
   ecma_object_t *old_new_target_p = context_p->current_new_target_p;
   if (old_new_target_p == NULL)
   {
     context_p->current_new_target_p = ecma_builtin_get (ECMA_BUILTIN_ID_DATAVIEW);
   }
 
-  ecma_value_t dataview_value = ecma_op_dataview_create (arguments_p, 3);
+  ecma_value_t dataview_value = ecma_op_dataview_create (context_p, arguments_p, 3);
   context_p->current_new_target_p = old_new_target_p;
-  return jjs_return (dataview_value);
+  return jjs_return (context_p, dataview_value);
 #else /* !JJS_BUILTIN_DATAVIEW */
   JJS_UNUSED_ALL (array_buffer, byte_offset, byte_length);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_DATA_VIEW_NOT_SUPPORTED));
@@ -6431,8 +6439,9 @@ jjs_value_is_dataview (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_DATAVIEW
-  return ecma_is_dataview (value);
+  return ecma_is_dataview (context_p, value);
 #else /* !JJS_BUILTIN_DATAVIEW */
+  JJS_UNUSED (context_p);
   JJS_UNUSED (value);
   return false;
 #endif /* JJS_BUILTIN_DATAVIEW */
@@ -6464,11 +6473,11 @@ jjs_dataview_buffer (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
   }
 
-  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (value);
+  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (context_p, value);
 
   if (JJS_UNLIKELY (dataview_p == NULL))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
   if (byte_offset != NULL)
@@ -6484,7 +6493,7 @@ jjs_dataview_buffer (jjs_context_t* context_p, /**< JJS context */
   ecma_object_t *arraybuffer_p = dataview_p->buffer_p;
   ecma_ref_object (arraybuffer_p);
 
-  return ecma_make_object_value (arraybuffer_p);
+  return ecma_make_object_value (context_p, arraybuffer_p);
 #else /* !JJS_BUILTIN_DATAVIEW */
   JJS_UNUSED_ALL (value, byte_offset, byte_length);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_DATA_VIEW_NOT_SUPPORTED));
@@ -6508,8 +6517,9 @@ jjs_value_is_typedarray (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  return ecma_is_typedarray (value);
+  return ecma_is_typedarray (context_p, value);
 #else /* !JJS_BUILTIN_TYPEDARRAY */
+  JJS_UNUSED (context_p);
   JJS_UNUSED (value);
   return false;
 #endif /* JJS_BUILTIN_TYPEDARRAY */
@@ -6612,7 +6622,7 @@ jjs_typedarray (jjs_context_t* context_p, /**< JJS context */
   ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
 
   ecma_value_t array_value =
-    ecma_typedarray_create_object_with_length (length, NULL, prototype_obj_p, element_size_shift, id);
+    ecma_typedarray_create_object_with_length (context_p, length, NULL, prototype_obj_p, element_size_shift, id);
 
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (array_value));
 
@@ -6656,19 +6666,19 @@ jjs_typedarray_with_buffer_span (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_FOR_TYPEDARRAY));
   }
 
-  if (!ecma_is_arraybuffer (arraybuffer))
+  if (!ecma_is_arraybuffer (context_p, arraybuffer))
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ARGUMENT_NOT_ARRAY_BUFFER));
   }
 
   ecma_object_t *prototype_obj_p = ecma_builtin_get (prototype_id);
-  ecma_value_t arguments_p[3] = { arraybuffer, ecma_make_uint32_value (byte_offset), ecma_make_uint32_value (length) };
+  ecma_value_t arguments_p[3] = { arraybuffer, ecma_make_uint32_value (context_p, byte_offset), ecma_make_uint32_value (context_p, length) };
 
-  ecma_value_t array_value = ecma_op_create_typedarray (arguments_p, 3, prototype_obj_p, element_size_shift, id);
-  ecma_free_value (arguments_p[1]);
-  ecma_free_value (arguments_p[2]);
+  ecma_value_t array_value = ecma_op_create_typedarray (context_p, arguments_p, 3, prototype_obj_p, element_size_shift, id);
+  ecma_free_value (context_p, arguments_p[1]);
+  ecma_free_value (context_p, arguments_p[2]);
 
-  return jjs_return (array_value);
+  return jjs_return (context_p, array_value);
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED_ALL (type, arraybuffer, byte_offset, length);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
@@ -6718,13 +6728,13 @@ jjs_typedarray_type (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (!ecma_is_typedarray (value))
+  if (!ecma_is_typedarray (context_p, value))
   {
     return JJS_TYPEDARRAY_INVALID;
   }
 
-  ecma_object_t *array_p = ecma_get_object_from_value (value);
-  ecma_typedarray_type_t class_type = ecma_get_typedarray_id (array_p);
+  ecma_object_t *array_p = ecma_get_object_from_value (context_p, value);
+  ecma_typedarray_type_t class_type = ecma_get_typedarray_id (context_p, array_p);
 
   for (uint32_t i = 0; i < sizeof (jjs_typedarray_mappings) / sizeof (jjs_typedarray_mappings[0]); i++)
   {
@@ -6752,10 +6762,10 @@ jjs_typedarray_length (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (ecma_is_typedarray (value))
+  if (ecma_is_typedarray (context_p, value))
   {
-    ecma_object_t *array_p = ecma_get_object_from_value (value);
-    return ecma_typedarray_get_length (array_p);
+    ecma_object_t *array_p = ecma_get_object_from_value (context_p, value);
+    return ecma_typedarray_get_length (context_p, array_p);
   }
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED (value);
@@ -6785,27 +6795,27 @@ jjs_typedarray_buffer (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_TYPEDARRAY
-  if (!ecma_is_typedarray (value))
+  if (!ecma_is_typedarray (context_p, value))
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_OBJECT_IS_NOT_A_TYPEDARRAY));
   }
 
-  ecma_object_t *array_p = ecma_get_object_from_value (value);
-  uint8_t shift = ecma_typedarray_get_element_size_shift (array_p);
+  ecma_object_t *array_p = ecma_get_object_from_value (context_p, value);
+  uint8_t shift = ecma_typedarray_get_element_size_shift (context_p, array_p);
 
   if (byte_length != NULL)
   {
-    *byte_length = (jjs_length_t) (ecma_typedarray_get_length (array_p) << shift);
+    *byte_length = (jjs_length_t) (ecma_typedarray_get_length (context_p, array_p) << shift);
   }
 
   if (byte_offset != NULL)
   {
-    *byte_offset = (jjs_length_t) ecma_typedarray_get_offset (array_p);
+    *byte_offset = (jjs_length_t) ecma_typedarray_get_offset (context_p, array_p);
   }
 
-  ecma_object_t *arraybuffer_p = ecma_typedarray_get_arraybuffer (array_p);
+  ecma_object_t *arraybuffer_p = ecma_typedarray_get_arraybuffer (context_p, array_p);
   ecma_ref_object (arraybuffer_p);
-  return jjs_return (ecma_make_object_value (arraybuffer_p));
+  return jjs_return (context_p, ecma_make_object_value (context_p, arraybuffer_p));
 #else /* !JJS_BUILTIN_TYPEDARRAY */
   JJS_UNUSED_ALL (value, byte_length, byte_offset);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_TYPED_ARRAY_NOT_SUPPORTED));
@@ -6834,7 +6844,7 @@ jjs_json_parse (jjs_context_t* context_p, /**< JJS context */
     ret_value = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRING_PARSE_ERROR));
   }
 
-  return jjs_return (ret_value);
+  return jjs_return (context_p, ret_value);
 #else /* !JJS_BUILTIN_JSON */
   JJS_UNUSED_All (string_p, string_size);
 
@@ -6920,7 +6930,7 @@ jjs_json_stringify (jjs_context_t* context_p, /**< JJS context */
     ret_value = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRINGIFY_ERROR));
   }
 
-  return jjs_return (ret_value);
+  return jjs_return (context_p, ret_value);
 #else /* JJS_BUILTIN_JSON */
   JJS_UNUSED (input_value);
 
@@ -7000,10 +7010,10 @@ jjs_container (jjs_context_t* context_p, /**< JJS context */
     context_p->current_new_target_p = ecma_builtin_get (ctor_id);
   }
 
-  ecma_value_t container_value = ecma_op_container_create (arguments_list_p, arguments_list_len, lit_id, proto_id);
+  ecma_value_t container_value = ecma_op_container_create (context_p, arguments_list_p, arguments_list_len, lit_id, proto_id);
 
   context_p->current_new_target_p = old_new_target_p;
-  return jjs_return (container_value);
+  return jjs_return (context_p, container_value);
 #else /* !JJS_BUILTIN_CONTAINER */
   JJS_UNUSED_ALL (arguments_list_p, arguments_list_len, container_type);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
@@ -7024,7 +7034,7 @@ jjs_container_type (jjs_context_t* context_p, /**< JJS context */
 #if JJS_BUILTIN_CONTAINER
   if (ecma_is_value_object (value))
   {
-    ecma_object_t *obj_p = ecma_get_object_from_value (value);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, value);
 
     if (ecma_object_class_is (obj_p, ECMA_OBJECT_CLASS_CONTAINER))
     {
@@ -7082,7 +7092,7 @@ jjs_container_to_array (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NEEDED));
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (value);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, value);
 
   if (ecma_get_object_type (obj_p) != ECMA_OBJECT_TYPE_CLASS)
   {
@@ -7107,12 +7117,12 @@ jjs_container_to_array (jjs_context_t* context_p, /**< JJS context */
 
     if (ecma_is_value_empty (iterated_value))
     {
-      return ecma_op_new_array_object_from_collection (ecma_new_collection (), false);
+      return ecma_op_new_array_object_from_collection (context_p, ecma_new_collection (context_p), false);
     }
 
-    ecma_extended_object_t *map_object_p = (ecma_extended_object_t *) (ecma_get_object_from_value (iterated_value));
+    ecma_extended_object_t *map_object_p = (ecma_extended_object_t *) (ecma_get_object_from_value (context_p, iterated_value));
 
-    ecma_collection_t *container_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, map_object_p->u.cls.u3.value);
+    ecma_collection_t *container_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_collection_t, map_object_p->u.cls.u3.value);
     entry_count = ECMA_CONTAINER_ENTRY_COUNT (container_p);
     index = ext_obj_p->u.cls.u2.iterator_index;
 
@@ -7123,7 +7133,7 @@ jjs_container_to_array (jjs_context_t* context_p, /**< JJS context */
   }
   else if (jjs_container_type (context_p, value) != JJS_CONTAINER_TYPE_INVALID)
   {
-    ecma_collection_t *container_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, ext_obj_p->u.cls.u3.value);
+    ecma_collection_t *container_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_collection_t, ext_obj_p->u.cls.u3.value);
     entry_count = ECMA_CONTAINER_ENTRY_COUNT (container_p);
     entry_size = ecma_op_container_entry_size (ext_obj_p->u.cls.u2.container_id);
 
@@ -7143,7 +7153,7 @@ jjs_container_to_array (jjs_context_t* context_p, /**< JJS context */
   }
 
   *is_key_value_p = (iterator_kind == ECMA_ITERATOR_ENTRIES);
-  ecma_collection_t *collection_buffer = ecma_new_collection ();
+  ecma_collection_t *collection_buffer = ecma_new_collection (context_p);
 
   for (uint32_t i = index; i < entry_count; i += entry_size)
   {
@@ -7156,15 +7166,15 @@ jjs_container_to_array (jjs_context_t* context_p, /**< JJS context */
 
     if (iterator_kind != ECMA_ITERATOR_VALUES)
     {
-      ecma_collection_push_back (collection_buffer, ecma_copy_value_if_not_object (entry_p[0]));
+      ecma_collection_push_back (context_p, collection_buffer, ecma_copy_value_if_not_object (context_p, entry_p[0]));
     }
 
     if (iterator_kind != ECMA_ITERATOR_KEYS)
     {
-      ecma_collection_push_back (collection_buffer, ecma_copy_value_if_not_object (entry_p[1]));
+      ecma_collection_push_back (context_p, collection_buffer, ecma_copy_value_if_not_object (context_p, entry_p[1]));
     }
   }
-  return ecma_op_new_array_object_from_collection (collection_buffer, false);
+  return ecma_op_new_array_object_from_collection (context_p, collection_buffer, false);
 #else /* !JJS_BUILTIN_CONTAINER */
   JJS_UNUSED_ALL (value, is_key_value_p);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
@@ -7191,18 +7201,18 @@ jjs_container_op (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_IS_NOT_AN_OBJECT));
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (container);
+  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, container);
 
   if (ecma_get_object_type (obj_p) != ECMA_OBJECT_TYPE_CLASS)
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_IS_NOT_A_CONTAINER_OBJECT));
   }
   uint16_t type = ((ecma_extended_object_t *) obj_p)->u.cls.u2.container_id;
-  ecma_extended_object_t *container_object_p = ecma_op_container_get_object (container, type);
+  ecma_extended_object_t *container_object_p = ecma_op_container_get_object (context_p, container, type);
 
   if (container_object_p == NULL)
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
   switch (operation)
@@ -7251,7 +7261,7 @@ jjs_container_op (jjs_context_t* context_p, /**< JJS context */
       {
         return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
-      result = ecma_op_container_set (container_object_p, arguments[0], arguments[0], type);
+      result = ecma_op_container_set (context_p, container_object_p, arguments[0], arguments[0], type);
       break;
     }
     case JJS_CONTAINER_OP_GET:
@@ -7260,7 +7270,7 @@ jjs_container_op (jjs_context_t* context_p, /**< JJS context */
       {
         return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
-      result = ecma_op_container_get (container_object_p, arguments[0], type);
+      result = ecma_op_container_get (context_p, container_object_p, arguments[0], type);
       break;
     }
     case JJS_CONTAINER_OP_SET:
@@ -7269,27 +7279,27 @@ jjs_container_op (jjs_context_t* context_p, /**< JJS context */
       {
         return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
-      result = ecma_op_container_set (container_object_p, arguments[0], arguments[1], type);
+      result = ecma_op_container_set (context_p, container_object_p, arguments[0], arguments[1], type);
       break;
     }
     case JJS_CONTAINER_OP_HAS:
     {
-      result = ecma_op_container_has (container_object_p, arguments[0], type);
+      result = ecma_op_container_has (context_p, container_object_p, arguments[0], type);
       break;
     }
     case JJS_CONTAINER_OP_DELETE:
     {
       if (type == LIT_MAGIC_STRING_WEAKMAP_UL || type == LIT_MAGIC_STRING_WEAKSET_UL)
       {
-        result = ecma_op_container_delete_weak (container_object_p, arguments[0], type);
+        result = ecma_op_container_delete_weak (context_p, container_object_p, arguments[0], type);
         break;
       }
-      result = ecma_op_container_delete (container_object_p, arguments[0], type);
+      result = ecma_op_container_delete (context_p, container_object_p, arguments[0], type);
       break;
     }
     case JJS_CONTAINER_OP_SIZE:
     {
-      result = ecma_op_container_size (container_object_p);
+      result = ecma_op_container_size (context_p, container_object_p);
       break;
     }
     case JJS_CONTAINER_OP_CLEAR:
@@ -7298,7 +7308,7 @@ jjs_container_op (jjs_context_t* context_p, /**< JJS context */
       {
         return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INCORRECT_TYPE_CALL));
       }
-      result = ecma_op_container_clear (container_object_p);
+      result = ecma_op_container_clear (context_p, container_object_p);
       break;
     }
     default:
@@ -7307,7 +7317,7 @@ jjs_container_op (jjs_context_t* context_p, /**< JJS context */
       break;
     }
   }
-  return jjs_return (result);
+  return jjs_return (context_p, result);
 #else /* !JJS_BUILTIN_CONTAINER */
   JJS_UNUSED_ALL (operation, container, arguments, arguments_number);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
@@ -7377,7 +7387,7 @@ fmt_write_value (jjs_context_t* context_p,
     ecma_value_t stack = ecma_make_magic_string_value (LIT_MAGIC_STRING_STACK);
     jjs_value_t backtrace_val = jjs_object_get (context_p, value, stack);
 
-    ecma_fast_free_value (stack);
+    ecma_fast_free_value (context_p, stack);
 
     if (jjs_value_is_array (context_p, backtrace_val))
     {
@@ -7512,7 +7522,7 @@ jjs_fmt_to_string_v (jjs_context_t* context_p, /**< JJS context */
     return jjs_string_utf8_sz (context_p, format_p);
   }
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
   jjs_wstream_t wstream;
 
   if (!jjs_wstream_from_stringbuilder (&builder, &wstream))
@@ -7523,7 +7533,7 @@ jjs_fmt_to_string_v (jjs_context_t* context_p, /**< JJS context */
 
   jjs_fmt_v (context_p, &wstream, format_p, values_p, values_length);
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_to_string_v */
 
 /**
@@ -7591,7 +7601,7 @@ jjs_fmt_join_v (jjs_context_t* context_p, /**< JJS context */
     return ecma_make_magic_string_value (LIT_MAGIC_STRING__EMPTY);
   }
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
   jjs_wstream_t wstream;
 
   if (!jjs_wstream_from_stringbuilder (&builder, &wstream))
@@ -7612,7 +7622,7 @@ jjs_fmt_join_v (jjs_context_t* context_p, /**< JJS context */
 
   JJS_DISOWN (context_p, delimiter, delimiter_o);
 
-  return ecma_make_string_value (ecma_stringbuilder_finalize (&builder));
+  return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_join_v */
 
 /**

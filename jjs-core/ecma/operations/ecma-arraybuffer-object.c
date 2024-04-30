@@ -43,7 +43,8 @@
  * @return new ArrayBuffer object
  */
 ecma_object_t *
-ecma_arraybuffer_create_object (uint8_t type, /**< type of the arraybuffer */
+ecma_arraybuffer_create_object (ecma_context_t *context_p, /**< JJS context */
+                                uint8_t type, /**< type of the arraybuffer */
                                 uint32_t length) /**< length of the arraybuffer */
 {
   ecma_builtin_id_t prototype_id;
@@ -59,7 +60,8 @@ ecma_arraybuffer_create_object (uint8_t type, /**< type of the arraybuffer */
   prototype_id = ECMA_BUILTIN_ID_ARRAYBUFFER_PROTOTYPE;
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 
-  ecma_object_t *object_p = ecma_create_object (ecma_builtin_get (prototype_id),
+  ecma_object_t *object_p = ecma_create_object (context_p,
+                                                ecma_builtin_get (prototype_id),
                                                 sizeof (ecma_extended_object_t) + length,
                                                 ECMA_OBJECT_TYPE_CLASS);
 
@@ -78,7 +80,8 @@ ecma_arraybuffer_create_object (uint8_t type, /**< type of the arraybuffer */
  * @return new ArrayBuffer object
  */
 ecma_object_t *
-ecma_arraybuffer_create_object_with_buffer (uint8_t type, /**< type of the arraybuffer */
+ecma_arraybuffer_create_object_with_buffer (ecma_context_t *context_p, /**< JJS context */
+                                            uint8_t type, /**< type of the arraybuffer */
                                             uint32_t length)
 {
   ecma_builtin_id_t prototype_id;
@@ -95,7 +98,7 @@ ecma_arraybuffer_create_object_with_buffer (uint8_t type, /**< type of the array
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 
   ecma_object_t *object_p =
-    ecma_create_object (ecma_builtin_get (prototype_id), sizeof (ecma_arraybuffer_pointer_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, ecma_builtin_get (prototype_id), sizeof (ecma_arraybuffer_pointer_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_arraybuffer_pointer_t *arraybuffer_pointer_p = (ecma_arraybuffer_pointer_t *) object_p;
   arraybuffer_pointer_p->extended_object.u.cls.type = type;
@@ -114,14 +117,15 @@ ecma_arraybuffer_create_object_with_buffer (uint8_t type, /**< type of the array
  * @return new ArrayBuffer object
  */
 ecma_object_t *
-ecma_arraybuffer_new_object (uint32_t length) /**< length of the arraybuffer */
+ecma_arraybuffer_new_object (ecma_context_t *context_p, /**< JJS context */
+                             uint32_t length) /**< length of the arraybuffer */
 {
-  if (length > JJS_CONTEXT (arraybuffer_compact_allocation_limit))
+  if (length > context_p->arraybuffer_compact_allocation_limit)
   {
-    return ecma_arraybuffer_create_object_with_buffer (ECMA_OBJECT_CLASS_ARRAY_BUFFER, length);
+    return ecma_arraybuffer_create_object_with_buffer (context_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER, length);
   }
 
-  return ecma_arraybuffer_create_object (ECMA_OBJECT_CLASS_ARRAY_BUFFER, length);
+  return ecma_arraybuffer_create_object (context_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER, length);
 } /* ecma_arraybuffer_new_object */
 
 /**
@@ -131,7 +135,8 @@ ecma_arraybuffer_new_object (uint32_t length) /**< length of the arraybuffer */
  *         NULL otherwise
  */
 ecma_value_t
-ecma_arraybuffer_allocate_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer object */
+ecma_arraybuffer_allocate_buffer (ecma_context_t *context_p, /**< JJS context */
+                                  ecma_object_t *arraybuffer_p) /**< ArrayBuffer object */
 {
   JJS_ASSERT (!(ECMA_ARRAYBUFFER_GET_FLAGS (arraybuffer_p) & ECMA_ARRAYBUFFER_ALLOCATED));
 
@@ -145,7 +150,7 @@ ecma_arraybuffer_allocate_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer
 
   uint32_t arraybuffer_length = extended_object_p->u.cls.u3.length;
   ecma_arraybuffer_pointer_t *arraybuffer_pointer_p = (ecma_arraybuffer_pointer_t *) arraybuffer_p;
-  jjs_arraybuffer_allocate_cb_t arraybuffer_allocate_callback = JJS_CONTEXT (arraybuffer_allocate_callback);
+  jjs_arraybuffer_allocate_cb_t arraybuffer_allocate_callback = context_p->arraybuffer_allocate_callback;
   uint8_t *buffer_p;
 
   if (arraybuffer_allocate_callback != NULL)
@@ -162,16 +167,16 @@ ecma_arraybuffer_allocate_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer
     buffer_p = arraybuffer_allocate_callback (type,
                                               arraybuffer_length,
                                               &arraybuffer_pointer_p->arraybuffer_user_p,
-                                              JJS_CONTEXT (arraybuffer_allocate_callback_user_p));
+                                              context_p->arraybuffer_allocate_callback_user_p);
   }
   else
   {
-    buffer_p = (uint8_t *) jmem_heap_alloc_block_null_on_error (arraybuffer_length);
+    buffer_p = (uint8_t *) jmem_heap_alloc_block_null_on_error (context_p, arraybuffer_length);
   }
 
   if (buffer_p == NULL)
   {
-    return ecma_raise_range_error (ECMA_ERR_ALLOCATE_ARRAY_BUFFER);
+    return ecma_raise_range_error (context_p, ECMA_ERR_ALLOCATE_ARRAY_BUFFER);
   }
 
   arraybuffer_pointer_p->buffer_p = buffer_p;
@@ -188,23 +193,25 @@ ecma_arraybuffer_allocate_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer
  *         ECMA_VALUE_ERROR otherwise
  */
 extern inline ecma_value_t
-ecma_arraybuffer_allocate_buffer_throw (ecma_object_t *arraybuffer_p)
+ecma_arraybuffer_allocate_buffer_throw (ecma_context_t *context_p, /**< JJS context */
+                                        ecma_object_t *arraybuffer_p)
 {
   JJS_ASSERT (!(ECMA_ARRAYBUFFER_GET_FLAGS (arraybuffer_p) & ECMA_ARRAYBUFFER_ALLOCATED));
 
-  return ecma_arraybuffer_allocate_buffer (arraybuffer_p);
+  return ecma_arraybuffer_allocate_buffer (context_p, arraybuffer_p);
 } /* ecma_arraybuffer_allocate_buffer_throw */
 
 /**
  * Release the backing store allocated by an array buffer.
  */
 void
-ecma_arraybuffer_release_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer object */
+ecma_arraybuffer_release_buffer (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_object_t *arraybuffer_p) /**< ArrayBuffer object */
 {
   JJS_ASSERT (ecma_object_class_is (arraybuffer_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-                || ecma_object_is_shared_arraybuffer (arraybuffer_p));
+                || ecma_object_is_shared_arraybuffer (context_p, arraybuffer_p));
 
-  jjs_arraybuffer_free_cb_t free_callback = JJS_CONTEXT (arraybuffer_free_callback);
+  jjs_arraybuffer_free_cb_t free_callback = context_p->arraybuffer_free_callback;
   ecma_arraybuffer_pointer_t *arraybuffer_pointer_p = (ecma_arraybuffer_pointer_t *) arraybuffer_p;
 
   if (arraybuffer_pointer_p->buffer_p == NULL)
@@ -216,7 +223,7 @@ ecma_arraybuffer_release_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer 
 
   if (free_callback == NULL)
   {
-    jmem_heap_free_block (arraybuffer_pointer_p->buffer_p, arraybuffer_length);
+    jmem_heap_free_block (context_p, arraybuffer_pointer_p->buffer_p, arraybuffer_length);
     return;
   }
 
@@ -233,7 +240,7 @@ ecma_arraybuffer_release_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer 
                  arraybuffer_pointer_p->buffer_p,
                  arraybuffer_length,
                  arraybuffer_pointer_p->arraybuffer_user_p,
-                 JJS_CONTEXT (arraybuffer_allocate_callback_user_p));
+                 context_p->arraybuffer_allocate_callback_user_p);
 } /* ecma_arraybuffer_release_buffer */
 
 /**
@@ -245,13 +252,15 @@ ecma_arraybuffer_release_buffer (ecma_object_t *arraybuffer_p) /**< ArrayBuffer 
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_arraybuffer_object (const ecma_value_t *arguments_list_p, /**< list of arguments that
+ecma_op_create_arraybuffer_object (ecma_context_t *context_p, /**< JJS context */
+                                   const ecma_value_t *arguments_list_p, /**< list of arguments that
                                                                           *   are passed to String constructor */
                                    uint32_t arguments_list_len) /**< length of the arguments' list */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  ecma_object_t *proto_p = ecma_op_get_prototype_from_constructor (JJS_CONTEXT (current_new_target_p),
+  ecma_object_t *proto_p = ecma_op_get_prototype_from_constructor (context_p,
+                                                                   context_p->current_new_target_p,
                                                                    ECMA_BUILTIN_ID_ARRAYBUFFER_PROTOTYPE);
 
   if (proto_p == NULL)
@@ -265,11 +274,11 @@ ecma_op_create_arraybuffer_object (const ecma_value_t *arguments_list_p, /**< li
   {
     if (ecma_is_value_number (arguments_list_p[0]))
     {
-      length_num = ecma_get_number_from_value (arguments_list_p[0]);
+      length_num = ecma_get_number_from_value (context_p, arguments_list_p[0]);
     }
     else
     {
-      ecma_value_t to_number_value = ecma_op_to_number (arguments_list_p[0], &length_num);
+      ecma_value_t to_number_value = ecma_op_to_number (context_p, arguments_list_p[0], &length_num);
 
       if (ECMA_IS_VALUE_ERROR (to_number_value))
       {
@@ -288,17 +297,17 @@ ecma_op_create_arraybuffer_object (const ecma_value_t *arguments_list_p, /**< li
     if (length_num <= -1.0 || length_num > (ecma_number_t) maximum_size_in_byte + 0.5)
     {
       ecma_deref_object (proto_p);
-      return ecma_raise_range_error (ECMA_ERR_INVALID_ARRAYBUFFER_LENGTH);
+      return ecma_raise_range_error (context_p, ECMA_ERR_INVALID_ARRAYBUFFER_LENGTH);
     }
   }
 
   uint32_t length_uint32 = ecma_number_to_uint32 (length_num);
 
-  ecma_object_t *array_buffer = ecma_arraybuffer_new_object (length_uint32);
-  ECMA_SET_NON_NULL_POINTER (array_buffer->u2.prototype_cp, proto_p);
+  ecma_object_t *array_buffer = ecma_arraybuffer_new_object (context_p, length_uint32);
+  ECMA_SET_NON_NULL_POINTER (context_p, array_buffer->u2.prototype_cp, proto_p);
   ecma_deref_object (proto_p);
 
-  return ecma_make_object_value (array_buffer);
+  return ecma_make_object_value (context_p, array_buffer);
 } /* ecma_op_create_arraybuffer_object */
 
 /**
@@ -311,10 +320,11 @@ ecma_op_create_arraybuffer_object (const ecma_value_t *arguments_list_p, /**< li
  *         false - otherwise
  */
 bool
-ecma_is_arraybuffer (ecma_value_t target) /**< the target value */
+ecma_is_arraybuffer (ecma_context_t *context_p, /**< JJS context */
+                     ecma_value_t target) /**< the target value */
 {
   return (ecma_is_value_object (target)
-          && ecma_object_class_is (ecma_get_object_from_value (target), ECMA_OBJECT_CLASS_ARRAY_BUFFER));
+          && ecma_object_class_is (ecma_get_object_from_value (context_p, target), ECMA_OBJECT_CLASS_ARRAY_BUFFER));
 } /* ecma_is_arraybuffer */
 
 /**
@@ -323,13 +333,14 @@ ecma_is_arraybuffer (ecma_value_t target) /**< the target value */
  * @return uint32_t, the length of the arraybuffer
  */
 uint32_t JJS_ATTR_PURE
-ecma_arraybuffer_get_length (ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
+ecma_arraybuffer_get_length (ecma_context_t *context_p, /**< JJS context */
+                             ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
 {
   JJS_ASSERT (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-                || ecma_object_is_shared_arraybuffer (object_p));
+                || ecma_object_is_shared_arraybuffer (context_p, object_p));
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
-  return ecma_arraybuffer_is_detached (object_p) ? 0 : ext_object_p->u.cls.u3.length;
+  return ecma_arraybuffer_is_detached (context_p, object_p) ? 0 : ext_object_p->u.cls.u3.length;
 } /* ecma_arraybuffer_get_length */
 
 /**
@@ -338,10 +349,11 @@ ecma_arraybuffer_get_length (ecma_object_t *object_p) /**< pointer to the ArrayB
  * @return pointer to the data buffer
  */
 extern inline uint8_t *JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_arraybuffer_get_buffer (ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
+ecma_arraybuffer_get_buffer (ecma_context_t *context_p, /**< JJS context */
+                             ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
 {
   JJS_ASSERT (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-                || ecma_object_is_shared_arraybuffer (object_p));
+                || ecma_object_is_shared_arraybuffer (context_p, object_p));
 
   if (!(ECMA_ARRAYBUFFER_GET_FLAGS (object_p) & ECMA_ARRAYBUFFER_HAS_POINTER))
   {
@@ -359,10 +371,11 @@ ecma_arraybuffer_get_buffer (ecma_object_t *object_p) /**< pointer to the ArrayB
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
-ecma_arraybuffer_is_detached (ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
+ecma_arraybuffer_is_detached (ecma_context_t *context_p, /**< JJS context */
+                              ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
 {
   JJS_ASSERT (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-                || ecma_object_is_shared_arraybuffer (object_p));
+                || ecma_object_is_shared_arraybuffer (context_p, object_p));
 
   return (ECMA_ARRAYBUFFER_GET_FLAGS (object_p) & ECMA_ARRAYBUFFER_DETACHED) != 0;
 } /* ecma_arraybuffer_is_detached */
@@ -376,7 +389,8 @@ ecma_arraybuffer_is_detached (ecma_object_t *object_p) /**< pointer to the Array
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_ALWAYS_INLINE
-ecma_arraybuffer_detach (ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
+ecma_arraybuffer_detach (ecma_context_t *context_p, /**< JJS context */
+                         ecma_object_t *object_p) /**< pointer to the ArrayBuffer object */
 {
   JJS_ASSERT (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER));
 
@@ -400,7 +414,7 @@ ecma_arraybuffer_detach (ecma_object_t *object_p) /**< pointer to the ArrayBuffe
     return true;
   }
 
-  ecma_arraybuffer_release_buffer (object_p);
+  ecma_arraybuffer_release_buffer (context_p, object_p);
   return true;
 } /* ecma_arraybuffer_detach */
 
@@ -414,23 +428,26 @@ ecma_arraybuffer_detach (ecma_object_t *object_p) /**< pointer to the ArrayBuffe
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_builtin_arraybuffer_slice (ecma_value_t this_arg, const ecma_value_t *argument_list_p, uint32_t arguments_number)
+ecma_builtin_arraybuffer_slice (ecma_context_t *context_p, /**< JJS context */
+                                ecma_value_t this_arg,
+                                const ecma_value_t *argument_list_p,
+                                uint32_t arguments_number)
 {
-  ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
   /* 3-4. */
-  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (object_p))
+  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (context_p, object_p))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  if (ecma_arraybuffer_is_detached (object_p))
+  if (ecma_arraybuffer_is_detached (context_p, object_p))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
   }
 
   /* 5. */
-  uint32_t len = ecma_arraybuffer_get_length (object_p);
+  uint32_t len = ecma_arraybuffer_get_length (context_p, object_p);
 
   uint32_t start = 0;
   uint32_t end = len;
@@ -459,12 +476,12 @@ ecma_builtin_arraybuffer_slice (ecma_value_t this_arg, const ecma_value_t *argum
   /* 11. */
   ecma_builtin_id_t buffer_builtin_id = ECMA_BUILTIN_ID_ARRAYBUFFER;
 
-  if (ecma_is_shared_arraybuffer (this_arg))
+  if (ecma_is_shared_arraybuffer (context_p, this_arg))
   {
     buffer_builtin_id = ECMA_BUILTIN_ID_SHARED_ARRAYBUFFER;
   }
 
-  ecma_value_t ctor = ecma_op_species_constructor (object_p, buffer_builtin_id);
+  ecma_value_t ctor = ecma_op_species_constructor (context_p, object_p, buffer_builtin_id);
 
   if (ECMA_IS_VALUE_ERROR (ctor))
   {
@@ -472,69 +489,69 @@ ecma_builtin_arraybuffer_slice (ecma_value_t this_arg, const ecma_value_t *argum
   }
 
   /* 12. */
-  ecma_object_t *ctor_obj_p = ecma_get_object_from_value (ctor);
-  ecma_value_t new_len_value = ecma_make_uint32_value (new_len);
+  ecma_object_t *ctor_obj_p = ecma_get_object_from_value (context_p, ctor);
+  ecma_value_t new_len_value = ecma_make_uint32_value (context_p, new_len);
 
-  ecma_value_t new_arraybuffer = ecma_op_function_construct (ctor_obj_p, ctor_obj_p, &new_len_value, 1);
+  ecma_value_t new_arraybuffer = ecma_op_function_construct (context_p, ctor_obj_p, ctor_obj_p, &new_len_value, 1);
 
   ecma_deref_object (ctor_obj_p);
-  ecma_free_value (new_len_value);
+  ecma_free_value (context_p, new_len_value);
 
   if (ECMA_IS_VALUE_ERROR (new_arraybuffer))
   {
     return new_arraybuffer;
   }
 
-  ecma_object_t *new_arraybuffer_p = ecma_get_object_from_value (new_arraybuffer);
+  ecma_object_t *new_arraybuffer_p = ecma_get_object_from_value (context_p, new_arraybuffer);
   ecma_value_t ret_value = ECMA_VALUE_EMPTY;
 
   /* 13. */
   if (!(ecma_object_class_is (new_arraybuffer_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-        || ecma_object_is_shared_arraybuffer (new_arraybuffer_p)))
+        || ecma_object_is_shared_arraybuffer (context_p, new_arraybuffer_p)))
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_RETURN_VALUE_IS_NOT_AN_ARRAYBUFFER_OBJECT);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_RETURN_VALUE_IS_NOT_AN_ARRAYBUFFER_OBJECT);
     goto free_new_arraybuffer;
   }
 
   /* 14-15. */
-  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (new_arraybuffer_p))
+  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (context_p, new_arraybuffer_p))
   {
     ret_value = ECMA_VALUE_ERROR;
     goto free_new_arraybuffer;
   }
 
-  if (ecma_arraybuffer_is_detached (new_arraybuffer_p))
+  if (ecma_arraybuffer_is_detached (context_p, new_arraybuffer_p))
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
     goto free_new_arraybuffer;
   }
 
   /* 16. */
   if (new_arraybuffer == this_arg)
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_ARRAY_BUFFER_RETURNED_THIS_FROM_CONSTRUCTOR);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_ARRAY_BUFFER_RETURNED_THIS_FROM_CONSTRUCTOR);
     goto free_new_arraybuffer;
   }
 
   /* 17. */
-  if (ecma_arraybuffer_get_length (new_arraybuffer_p) < new_len)
+  if (ecma_arraybuffer_get_length (context_p, new_arraybuffer_p) < new_len)
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_DERIVED_ARRAY_BUFFER_CTOR_BUFFER_TOO_SMALL);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_DERIVED_ARRAY_BUFFER_CTOR_BUFFER_TOO_SMALL);
     goto free_new_arraybuffer;
   }
 
   /* 19. */
-  if (ecma_arraybuffer_is_detached (object_p))
+  if (ecma_arraybuffer_is_detached (context_p, object_p))
   {
     ret_value = ECMA_VALUE_ERROR;
     goto free_new_arraybuffer;
   }
 
   /* 20. */
-  lit_utf8_byte_t *old_buf = ecma_arraybuffer_get_buffer (object_p);
+  lit_utf8_byte_t *old_buf = ecma_arraybuffer_get_buffer (context_p, object_p);
 
   /* 21. */
-  lit_utf8_byte_t *new_buf = ecma_arraybuffer_get_buffer (new_arraybuffer_p);
+  lit_utf8_byte_t *new_buf = ecma_arraybuffer_get_buffer (context_p, new_arraybuffer_p);
 
   /* 22. */
   memcpy (new_buf, old_buf + start, new_len);
@@ -547,7 +564,7 @@ free_new_arraybuffer:
   else
   {
     /* 23. */
-    ret_value = ecma_make_object_value (new_arraybuffer_p);
+    ret_value = ecma_make_object_value (context_p, new_arraybuffer_p);
   }
 
   return ret_value;

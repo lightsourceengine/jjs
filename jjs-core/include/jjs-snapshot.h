@@ -87,11 +87,12 @@ size_t jjs_merge_snapshots (jjs_context_t* context_p,
                             uint32_t *out_buffer_p,
                             size_t out_buffer_size,
                             const char **error_p);
-size_t jjs_get_literals_from_snapshot (const uint32_t *snapshot_p,
-                                         size_t snapshot_size,
-                                         jjs_char_t *lit_buf_p,
-                                         size_t lit_buf_size,
-                                         bool is_c_format);
+size_t jjs_get_literals_from_snapshot (jjs_context_t* context_p,
+                                       const uint32_t *snapshot_p,
+                                       size_t snapshot_size,
+                                       jjs_char_t *lit_buf_p,
+                                       size_t lit_buf_size,
+                                       bool is_c_format);
 /**
  * @}
  */

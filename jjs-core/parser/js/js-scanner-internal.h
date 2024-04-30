@@ -342,8 +342,8 @@ struct scanner_context_t
 void scanner_raise_error (parser_context_t *context_p);
 void scanner_raise_redeclaration_error (parser_context_t *context_p);
 
-void *scanner_malloc (parser_context_t *context_p, size_t size);
-void scanner_free (void *ptr, size_t size);
+void *scanner_malloc (parser_context_t *parser_context_p, size_t size);
+void scanner_free (parser_context_t *parser_context_p, void *ptr, size_t size);
 
 size_t scanner_get_stream_size (scanner_info_t *info_p, size_t size);
 scanner_info_t *scanner_insert_info (parser_context_t *context_p, const uint8_t *source_p, size_t size);
@@ -353,8 +353,8 @@ scanner_info_t *scanner_insert_info_before (parser_context_t *context_p,
                                             size_t size);
 scanner_literal_pool_t *
 scanner_push_literal_pool (parser_context_t *context_p, scanner_context_t *scanner_context_p, uint16_t status_flags);
-void scanner_pop_literal_pool (parser_context_t *context_p, scanner_context_t *scanner_context_p);
-void scanner_filter_arguments (parser_context_t *context_p, scanner_context_t *scanner_context_p);
+void scanner_pop_literal_pool (parser_context_t *parser_context_p, scanner_context_t *scanner_context_p);
+void scanner_filter_arguments (parser_context_t *parser_context_p, scanner_context_t *scanner_context_p);
 void scanner_construct_global_block (parser_context_t *context_p, scanner_context_t *scanner_context_p);
 lexer_lit_location_t *scanner_add_custom_literal (parser_context_t *context_p,
                                                   scanner_literal_pool_t *literal_pool_p,
@@ -376,7 +376,7 @@ void scanner_push_destructuring_pattern (parser_context_t *context_p,
                                          scanner_context_t *scanner_context_p,
                                          uint8_t binding_type,
                                          bool is_nested);
-void scanner_pop_binding_list (scanner_context_t *scanner_context_p);
+void scanner_pop_binding_list (parser_context_t *parser_context_p, scanner_context_t *scanner_context_p);
 void scanner_append_hole (parser_context_t *context_p, scanner_context_t *scanner_context_p);
 
 /* Scanner operations. */

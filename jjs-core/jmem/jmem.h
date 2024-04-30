@@ -142,10 +142,10 @@ typedef struct
 void jmem_init (jjs_context_t *context_p);
 void jmem_finalize (jjs_context_t *context_p);
 
-void *jmem_heap_alloc_block (const size_t size);
-void *jmem_heap_alloc_block_null_on_error (const size_t size);
-void *jmem_heap_realloc_block (void *ptr, const size_t old_size, const size_t new_size);
-void jmem_heap_free_block (void *ptr, const size_t size);
+void *jmem_heap_alloc_block (jjs_context_t *context_p, const size_t size);
+void *jmem_heap_alloc_block_null_on_error (jjs_context_t *context_p, const size_t size);
+void *jmem_heap_realloc_block (jjs_context_t *context_p, void *ptr, const size_t old_size, const size_t new_size);
+void jmem_heap_free_block (jjs_context_t *context_p, void *ptr, const size_t size);
 
 #if JJS_MEM_STATS
 /**
@@ -188,8 +188,8 @@ void jmem_heap_stats_reset_peak (void);
 void jmem_heap_stats_print (void);
 #endif /* JJS_MEM_STATS */
 
-jmem_cpointer_t JJS_ATTR_PURE jmem_compress_pointer (const void *pointer_p);
-void *JJS_ATTR_PURE jmem_decompress_pointer (uintptr_t compressed_pointer);
+jmem_cpointer_t JJS_ATTR_PURE jmem_compress_pointer (jjs_context_t *context_p, const void *pointer_p);
+void *JJS_ATTR_PURE jmem_decompress_pointer (jjs_context_t *context_p, uintptr_t compressed_pointer);
 
 /**
  * Define a local array variable and allocate memory for the array on the heap.
@@ -199,51 +199,51 @@ void *JJS_ATTR_PURE jmem_decompress_pointer (uintptr_t compressed_pointer);
  * Warning:
  *         if there is not enough memory on the heap, shutdown engine with JJS_FATAL_OUT_OF_MEMORY.
  */
-#define JMEM_DEFINE_LOCAL_ARRAY(var_name, number, type)           \
-  {                                                               \
-    size_t var_name##___size = (size_t) (number) * sizeof (type); \
-    type *var_name = (type *) (jmem_heap_alloc_block (var_name##___size));
+#define JMEM_DEFINE_LOCAL_ARRAY(ctx, var_name, number, type)                     \
+  {                                                                              \
+    size_t var_name##___size = (size_t) (number) * sizeof (type);                \
+    type *var_name = (type *) (jmem_heap_alloc_block ((ctx), var_name##___size));
 
 /**
  * Free the previously defined local array variable, freeing corresponding block on the heap,
  * if it was allocated (i.e. if the array's size was non-zero).
  */
-#define JMEM_FINALIZE_LOCAL_ARRAY(var_name)             \
-  if (var_name != NULL)                                 \
-  {                                                     \
-    JJS_ASSERT (var_name##___size != 0);              \
-                                                        \
-    jmem_heap_free_block (var_name, var_name##___size); \
-  }                                                     \
-  else                                                  \
-  {                                                     \
-    JJS_ASSERT (var_name##___size == 0);              \
-  }                                                     \
+#define JMEM_FINALIZE_LOCAL_ARRAY(ctx, var_name)               \
+  if (var_name != NULL)                                        \
+  {                                                            \
+    JJS_ASSERT (var_name##___size != 0);                       \
+                                                               \
+    jmem_heap_free_block ((ctx), var_name, var_name##___size); \
+  }                                                            \
+  else                                                         \
+  {                                                            \
+    JJS_ASSERT (var_name##___size == 0);                       \
+  }                                                            \
   }
 
 /**
  * Get value of pointer from specified non-null compressed pointer value
  */
-#define JMEM_CP_GET_NON_NULL_POINTER(type, cp_value) ((type *) (jmem_decompress_pointer (cp_value)))
+#define JMEM_CP_GET_NON_NULL_POINTER(ctx, type, cp_value) ((type *) (jmem_decompress_pointer (ctx, cp_value)))
 
 /**
  * Get value of pointer from specified compressed pointer value
  */
-#define JMEM_CP_GET_POINTER(type, cp_value) \
-  (((JJS_UNLIKELY ((cp_value) == JMEM_CP_NULL)) ? NULL : JMEM_CP_GET_NON_NULL_POINTER (type, cp_value)))
+#define JMEM_CP_GET_POINTER(ctx, type, cp_value) \
+  (((JJS_UNLIKELY ((cp_value) == JMEM_CP_NULL)) ? NULL : JMEM_CP_GET_NON_NULL_POINTER (ctx, type, cp_value)))
 
 /**
  * Set value of non-null compressed pointer so that it will correspond
  * to specified non_compressed_pointer
  */
-#define JMEM_CP_SET_NON_NULL_POINTER(cp_value, non_compressed_pointer) \
-  (cp_value) = jmem_compress_pointer (non_compressed_pointer)
+#define JMEM_CP_SET_NON_NULL_POINTER(ctx, cp_value, non_compressed_pointer) \
+  (cp_value) = jmem_compress_pointer (ctx, non_compressed_pointer)
 
 /**
  * Set value of compressed pointer so that it will correspond
  * to specified non_compressed_pointer
  */
-#define JMEM_CP_SET_POINTER(cp_value, non_compressed_pointer) \
+#define JMEM_CP_SET_POINTER(ctx, cp_value, non_compressed_pointer) \
   do                                                          \
   {                                                           \
     void *ptr_value = (void *) non_compressed_pointer;        \
@@ -254,7 +254,7 @@ void *JJS_ATTR_PURE jmem_decompress_pointer (uintptr_t compressed_pointer);
     }                                                         \
     else                                                      \
     {                                                         \
-      JMEM_CP_SET_NON_NULL_POINTER (cp_value, ptr_value);     \
+      JMEM_CP_SET_NON_NULL_POINTER ((ctx), cp_value, ptr_value);     \
     }                                                         \
   } while (false);
 
@@ -262,19 +262,19 @@ void *JJS_ATTR_PURE jmem_decompress_pointer (uintptr_t compressed_pointer);
  * Set value of pointer-tag value so that it will correspond
  * to specified non_compressed_pointer along with tag
  */
-#define JMEM_CP_SET_NON_NULL_POINTER_TAG(cp_value, pointer, tag)                   \
+#define JMEM_CP_SET_NON_NULL_POINTER_TAG(ctx, cp_value, pointer, tag)                   \
   do                                                                               \
   {                                                                                \
     JJS_ASSERT ((uintptr_t) tag < (uintptr_t) (JMEM_ALIGNMENT));                 \
-    jmem_cpointer_tag_t compressed_ptr = jmem_compress_pointer (pointer);          \
+    jmem_cpointer_tag_t compressed_ptr = jmem_compress_pointer ((ctx), pointer);          \
     (cp_value) = (jmem_cpointer_tag_t) ((compressed_ptr << JMEM_TAG_SHIFT) | tag); \
   } while (false);
 
 /**
  * Extract value of pointer from specified pointer-tag value
  */
-#define JMEM_CP_GET_NON_NULL_POINTER_FROM_POINTER_TAG(type, cp_value) \
-  ((type *) (jmem_decompress_pointer ((cp_value & ~JMEM_TAG_MASK) >> JMEM_TAG_SHIFT)))
+#define JMEM_CP_GET_NON_NULL_POINTER_FROM_POINTER_TAG(ctx, type, cp_value) \
+  ((type *) (jmem_decompress_pointer ((ctx), (cp_value & ~JMEM_TAG_MASK) >> JMEM_TAG_SHIFT)))
 
 /**
  * Extract tag bits from pointer-tag value

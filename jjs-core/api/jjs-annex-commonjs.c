@@ -114,7 +114,7 @@ jjs_value_t jjs_annex_create_require (jjs_context_t* context_p, jjs_value_t refe
   }
   else if (jjs_value_is_string (context_p, referrer))
   {
-    annex_specifier_type_t type = annex_path_specifier_type (referrer);
+    annex_specifier_type_t type = annex_path_specifier_type (context_p, referrer);
 
     // this function is only called internally with an absolute filename
     JJS_ASSERT (type == ANNEX_SPECIFIER_TYPE_ABSOLUTE);
@@ -123,7 +123,7 @@ jjs_value_t jjs_annex_create_require (jjs_context_t* context_p, jjs_value_t refe
       return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "create_require expects an absolute filename");
     }
 
-    path = annex_path_dirname (referrer);
+    path = annex_path_dirname (context_p, referrer);
   }
   else
   {
@@ -134,12 +134,12 @@ jjs_value_t jjs_annex_create_require (jjs_context_t* context_p, jjs_value_t refe
   {
     ecma_value_t fn = create_require_from_directory (context_p, path);
 
-    ecma_free_value (path);
+    ecma_free_value (context_p, path);
 
     return fn;
   }
 
-  ecma_free_value (path);
+  ecma_free_value (context_p, path);
 
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_EXPECTED_STRING_OR_UNDEFINED));
 } /* jjs_annex_create_require */
@@ -167,10 +167,9 @@ jjs_annex_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t 
  */
 static jjs_value_t create_require_from_directory (jjs_context_t* context_p, jjs_value_t referrer_path)
 {
-  JJS_UNUSED (context_p);
-  ecma_global_object_t* global_p = ecma_get_global_object ();
-  ecma_value_t require = ecma_make_object_value (ecma_op_create_external_function_object (require_handler));
-  ecma_value_t resolve = ecma_make_object_value (ecma_op_create_external_function_object (resolve_handler));
+  ecma_global_object_t* global_p = ecma_get_global_object (context_p);
+  ecma_value_t require = ecma_make_object_value (context_p, ecma_op_create_external_function_object (context_p, require_handler));
+  ecma_value_t resolve = ecma_make_object_value (context_p, ecma_op_create_external_function_object (context_p, resolve_handler));
 
   // put path in internal slot
   annex_util_set_internal_m (context_p, require, LIT_MAGIC_STRING_PATH, referrer_path);
@@ -183,7 +182,7 @@ static jjs_value_t create_require_from_directory (jjs_context_t* context_p, jjs_
   ecma_set_m (require, LIT_MAGIC_STRING_CACHE, global_p->commonjs_cache);
 
   // cleanup
-  ecma_free_value(resolve);
+  ecma_free_value (context_p, resolve);
 
   return require;
 } /* create_require_from_directory */
@@ -204,7 +203,7 @@ static JJS_HANDLER (resolve_handler)
 #if JJS_ANNEX_VMOD
   if (jjs_vmod_exists (context_p, request, JJS_KEEP))
   {
-    return ecma_copy_value (request);
+    return ecma_copy_value (context_p, request);
   }
 #endif
 
@@ -218,7 +217,7 @@ static JJS_HANDLER (resolve_handler)
 
   jjs_annex_module_resolve_t result = jjs_annex_module_resolve (context_p, request, referrer_path, JJS_MODULE_TYPE_COMMONJS);
 
-  ecma_free_value (referrer_path);
+  ecma_free_value (context_p, referrer_path);
 
   if (jjs_value_is_exception (context_p, result.result))
   {
@@ -289,7 +288,7 @@ require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t ref
   }
 
   /* find the request in the module cache. */
-  ecma_value_t commonjs_cache = ecma_get_global_object ()->commonjs_cache;
+  ecma_value_t commonjs_cache = ecma_get_global_object (context_p)->commonjs_cache;
   ecma_value_t cached_module = ecma_find_own_v (commonjs_cache, resolved.path);
 
   if (cached_module != ECMA_VALUE_NOT_FOUND)
@@ -298,12 +297,12 @@ require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t ref
     ecma_value_t loaded = ecma_find_own_m (cached_module, LIT_MAGIC_STRING_LOADED);
     bool is_loaded = ecma_is_value_true (loaded);
 
-    ecma_free_value (loaded);
+    ecma_free_value (context_p, loaded);
     jjs_annex_module_resolve_free (context_p, &resolved);
 
     if (!is_loaded)
     {
-      ecma_free_value (cached_module);
+      ecma_free_value (context_p, cached_module);
 
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Circular dependency");
     }
@@ -311,11 +310,11 @@ require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t ref
     /* return module.exports */
     ecma_value_t exports = ecma_find_own_m (cached_module, LIT_MAGIC_STRING_EXPORTS);
 
-    ecma_free_value (cached_module);
+    ecma_free_value (context_p, cached_module);
 
     if (exports == ECMA_VALUE_NOT_FOUND)
     {
-      ecma_free_value (exports);
+      ecma_free_value (context_p, exports);
 
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Invalid module");
     }
@@ -333,11 +332,12 @@ require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t ref
 
   if (jjs_value_is_exception (context_p, load_module_result))
   {
-    ecma_value_t delete_result = ecma_op_object_delete (ecma_get_object_from_value (commonjs_cache),
-                                                        ecma_get_string_from_value (resolved.path),
+    ecma_value_t delete_result = ecma_op_object_delete (context_p,
+                                                        ecma_get_object_from_value (context_p, commonjs_cache),
+                                                        ecma_get_string_from_value (context_p, resolved.path),
                                                         false);
-    ecma_free_value (delete_result);
-    ecma_free_value (module);
+    ecma_free_value (context_p, delete_result);
+    ecma_free_value (context_p, module);
 
     return load_module_result;
   }
@@ -346,8 +346,8 @@ require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t ref
 
   ecma_set_m (module, LIT_MAGIC_STRING_LOADED, ECMA_VALUE_TRUE);
 
-  ecma_free_value (load_module_result);
-  ecma_free_value (module);
+  ecma_free_value (context_p, load_module_result);
+  ecma_free_value (context_p, module);
 
   return exports;
 } /* require_impl */
@@ -357,21 +357,19 @@ require_impl (jjs_context_t* context_p, ecma_value_t specifier, ecma_value_t ref
  */
 static ecma_value_t create_module (jjs_context_t* context_p, ecma_value_t filename)
 {
-  JJS_UNUSED (context_p);
-
-  ecma_value_t module = ecma_create_object_with_null_proto ();
-  ecma_value_t exports = ecma_create_object_with_null_proto ();
-  ecma_value_t path_dirname = annex_path_dirname (filename);
+  ecma_value_t module = ecma_create_object_with_null_proto (context_p);
+  ecma_value_t exports = ecma_create_object_with_null_proto (context_p);
+  ecma_value_t path_dirname = annex_path_dirname (context_p, filename);
 
   ecma_set_m (module, LIT_MAGIC_STRING_ID, filename);
   ecma_set_m (module, LIT_MAGIC_STRING_FILENAME, filename);
   ecma_set_m (module, LIT_MAGIC_STRING_EXPORTS, exports);
-  ecma_free_value (exports);
+  ecma_free_value (context_p, exports);
   ecma_set_m (module, LIT_MAGIC_STRING_PATH, path_dirname);
-  ecma_free_value (path_dirname);
+  ecma_free_value (context_p, path_dirname);
   ecma_set_m (module, LIT_MAGIC_STRING_LOADED, ECMA_VALUE_FALSE);
 
-  ecma_op_ordinary_object_prevent_extensions (ecma_get_object_from_value (module));
+  ecma_op_ordinary_object_prevent_extensions (context_p, ecma_get_object_from_value (context_p, module));
 
   return module;
 } /* create_module */
@@ -388,7 +386,7 @@ static ecma_value_t load_module (jjs_context_t* context_p, ecma_value_t module, 
     return loaded.result;
   }
 
-  ecma_string_t* format_p = ecma_get_string_from_value (format);
+  ecma_string_t* format_p = ecma_get_string_from_value (context_p, format);
   ecma_value_t exports;
 
   if (ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_JS)
@@ -429,13 +427,13 @@ static ecma_value_t load_module_exports_from_source (jjs_context_t* context_p, e
 
   if (jjs_value_is_exception (context_p, fn))
   {
-    ecma_free_value (filename);
+    ecma_free_value (context_p, filename);
     return fn;
   }
 
   ecma_value_t exports = run_module (context_p, module, filename, fn);
 
-  ecma_free_value (filename);
+  ecma_free_value (context_p, filename);
   jjs_value_free (context_p, fn);
 
   return exports;
@@ -481,13 +479,13 @@ static ecma_value_t load_module_exports_from_snapshot (jjs_context_t* context_p,
 
   if (jjs_value_is_exception (context_p, fn))
   {
-    ecma_free_value (filename);
+    ecma_free_value (context_p, filename);
     return fn;
   }
 
   ecma_value_t exports = run_module (context_p, module, filename, fn);
 
-  ecma_free_value (filename);
+  ecma_free_value (context_p, filename);
   jjs_value_free (context_p, fn);
 
   return exports;
@@ -511,7 +509,7 @@ static ecma_value_t run_module (jjs_context_t* context_p, ecma_value_t module, e
 
   if (!ecma_is_value_found (module_dirname))
   {
-    ecma_free_value (require);
+    ecma_free_value (context_p, require);
     return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "CommonJS module missing path");
   }
 
@@ -525,9 +523,9 @@ static ecma_value_t run_module (jjs_context_t* context_p, ecma_value_t module, e
 
   jjs_value_t result = jjs_call (context_p, fn, ECMA_VALUE_UNDEFINED, argv, sizeof (argv) / sizeof (ecma_value_t));
 
-  ecma_free_value (module_dirname);
-  ecma_free_value (exports);
-  ecma_free_value (require);
+  ecma_free_value (context_p, module_dirname);
+  ecma_free_value (context_p, exports);
+  ecma_free_value (context_p, require);
 
   if (jjs_value_is_exception (context_p, result))
   {

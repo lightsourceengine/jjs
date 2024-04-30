@@ -42,12 +42,13 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-do_number_arithmetic (number_arithmetic_op op, /**< number arithmetic operation */
+do_number_arithmetic (ecma_context_t *context_p, /**< JJS context */
+                      number_arithmetic_op op, /**< number arithmetic operation */
                       ecma_value_t left_value, /**< left value */
                       ecma_value_t right_value) /**< right value */
 {
   ecma_number_t left_number;
-  left_value = ecma_op_to_numeric (left_value, &left_number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
+  left_value = ecma_op_to_numeric (context_p, left_value, &left_number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
 
   if (ECMA_IS_VALUE_ERROR (left_value))
   {
@@ -62,7 +63,7 @@ do_number_arithmetic (number_arithmetic_op op, /**< number arithmetic operation 
 #endif /* JJS_BUILTIN_BIGINT */
 
     ecma_number_t right_number;
-    if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (right_value, &right_number)))
+    if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, right_value, &right_number)))
     {
       return ECMA_VALUE_ERROR;
     }
@@ -112,17 +113,17 @@ do_number_arithmetic (number_arithmetic_op op, /**< number arithmetic operation 
       }
     }
 
-    ret_value = ecma_make_number_value (result);
+    ret_value = ecma_make_number_value (context_p, result);
 #if JJS_BUILTIN_BIGINT
   }
   else
   {
     bool free_right_value;
-    right_value = ecma_bigint_get_bigint (right_value, &free_right_value);
+    right_value = ecma_bigint_get_bigint (context_p, right_value, &free_right_value);
 
     if (ECMA_IS_VALUE_ERROR (right_value))
     {
-      ecma_free_value (left_value);
+      ecma_free_value (context_p, left_value);
       return right_value;
     }
 
@@ -130,35 +131,35 @@ do_number_arithmetic (number_arithmetic_op op, /**< number arithmetic operation 
     {
       case NUMBER_ARITHMETIC_SUBTRACTION:
       {
-        ret_value = ecma_bigint_add_sub (left_value, right_value, false);
+        ret_value = ecma_bigint_add_sub (context_p, left_value, right_value, false);
         break;
       }
       case NUMBER_ARITHMETIC_MULTIPLICATION:
       {
-        ret_value = ecma_bigint_mul (left_value, right_value);
+        ret_value = ecma_bigint_mul (context_p, left_value, right_value);
         break;
       }
       case NUMBER_ARITHMETIC_DIVISION:
       {
-        ret_value = ecma_bigint_div_mod (left_value, right_value, false);
+        ret_value = ecma_bigint_div_mod (context_p, left_value, right_value, false);
         break;
       }
       case NUMBER_ARITHMETIC_REMAINDER:
       {
-        ret_value = ecma_bigint_div_mod (left_value, right_value, true);
+        ret_value = ecma_bigint_div_mod (context_p, left_value, right_value, true);
         break;
       }
       case NUMBER_ARITHMETIC_EXPONENTIATION:
       {
-        ret_value = ecma_bigint_pow (left_value, right_value);
+        ret_value = ecma_bigint_pow (context_p, left_value, right_value);
         break;
       }
     }
 
-    ecma_free_value (left_value);
+    ecma_free_value (context_p, left_value);
     if (free_right_value)
     {
-      ecma_free_value (right_value);
+      ecma_free_value (context_p, right_value);
     }
   }
 #endif /* JJS_BUILTIN_BIGINT */
@@ -174,7 +175,8 @@ do_number_arithmetic (number_arithmetic_op op, /**< number arithmetic operation 
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-opfunc_addition (ecma_value_t left_value, /**< left value */
+opfunc_addition (ecma_context_t *context_p, /**< JJS context */
+                 ecma_value_t left_value, /**< left value */
                  ecma_value_t right_value) /**< right value */
 {
   bool free_left_value = false;
@@ -182,8 +184,8 @@ opfunc_addition (ecma_value_t left_value, /**< left value */
 
   if (ecma_is_value_object (left_value))
   {
-    ecma_object_t *obj_p = ecma_get_object_from_value (left_value);
-    left_value = ecma_op_object_default_value (obj_p, ECMA_PREFERRED_TYPE_NO);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, left_value);
+    left_value = ecma_op_object_default_value (context_p, obj_p, ECMA_PREFERRED_TYPE_NO);
     free_left_value = true;
 
     if (ECMA_IS_VALUE_ERROR (left_value))
@@ -194,15 +196,15 @@ opfunc_addition (ecma_value_t left_value, /**< left value */
 
   if (ecma_is_value_object (right_value))
   {
-    ecma_object_t *obj_p = ecma_get_object_from_value (right_value);
-    right_value = ecma_op_object_default_value (obj_p, ECMA_PREFERRED_TYPE_NO);
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, right_value);
+    right_value = ecma_op_object_default_value (context_p, obj_p, ECMA_PREFERRED_TYPE_NO);
     free_right_value = true;
 
     if (ECMA_IS_VALUE_ERROR (right_value))
     {
       if (free_left_value)
       {
-        ecma_free_value (left_value);
+        ecma_free_value (context_p, left_value);
       }
       return right_value;
     }
@@ -212,56 +214,56 @@ opfunc_addition (ecma_value_t left_value, /**< left value */
 
   if (ecma_is_value_string (left_value) || ecma_is_value_string (right_value))
   {
-    ecma_string_t *string1_p = ecma_op_to_string (left_value);
+    ecma_string_t *string1_p = ecma_op_to_string (context_p, left_value);
 
     if (JJS_UNLIKELY (string1_p == NULL))
     {
       if (free_left_value)
       {
-        ecma_free_value (left_value);
+        ecma_free_value (context_p, left_value);
       }
       if (free_right_value)
       {
-        ecma_free_value (right_value);
+        ecma_free_value (context_p, right_value);
       }
       return ECMA_VALUE_ERROR;
     }
 
-    ecma_string_t *string2_p = ecma_op_to_string (right_value);
+    ecma_string_t *string2_p = ecma_op_to_string (context_p, right_value);
 
     if (JJS_UNLIKELY (string2_p == NULL))
     {
       if (free_right_value)
       {
-        ecma_free_value (right_value);
+        ecma_free_value (context_p, right_value);
       }
       if (free_left_value)
       {
-        ecma_free_value (left_value);
+        ecma_free_value (context_p, left_value);
       }
-      ecma_deref_ecma_string (string1_p);
+      ecma_deref_ecma_string (context_p, string1_p);
       return ECMA_VALUE_ERROR;
     }
 
-    string1_p = ecma_concat_ecma_strings (string1_p, string2_p);
-    ret_value = ecma_make_string_value (string1_p);
+    string1_p = ecma_concat_ecma_strings (context_p, string1_p, string2_p);
+    ret_value = ecma_make_string_value (context_p, string1_p);
 
-    ecma_deref_ecma_string (string2_p);
+    ecma_deref_ecma_string (context_p, string2_p);
   }
 #if JJS_BUILTIN_BIGINT
   else if (JJS_UNLIKELY (ecma_is_value_bigint (left_value)) && JJS_UNLIKELY (ecma_is_value_bigint (right_value)))
   {
-    ret_value = ecma_bigint_add_sub (left_value, right_value, true);
+    ret_value = ecma_bigint_add_sub (context_p, left_value, right_value, true);
   }
 #endif /* JJS_BUILTIN_BIGINT */
   else
   {
     ecma_number_t num_left;
     ecma_number_t num_right;
-    if (!ECMA_IS_VALUE_ERROR (ecma_op_to_number (left_value, &num_left))
-        && !ECMA_IS_VALUE_ERROR (ecma_op_to_number (right_value, &num_right)))
+    if (!ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, left_value, &num_left))
+        && !ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, right_value, &num_right)))
     {
-      ret_value = ecma_make_number_value (num_left + num_right);
+      ret_value = ecma_make_number_value (context_p, num_left + num_right);
     }
     else
     {
@@ -271,12 +273,12 @@ opfunc_addition (ecma_value_t left_value, /**< left value */
 
   if (free_left_value)
   {
-    ecma_free_value (left_value);
+    ecma_free_value (context_p, left_value);
   }
 
   if (free_right_value)
   {
-    ecma_free_value (right_value);
+    ecma_free_value (context_p, right_value);
   }
 
   return ret_value;
@@ -291,11 +293,12 @@ opfunc_addition (ecma_value_t left_value, /**< left value */
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-opfunc_unary_operation (ecma_value_t left_value, /**< left value */
+opfunc_unary_operation (ecma_context_t *context_p, /**< JJS context */
+                        ecma_value_t left_value, /**< left value */
                         bool is_plus) /**< unary plus flag */
 {
   ecma_number_t left_number;
-  left_value = ecma_op_to_numeric (left_value, &left_number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
+  left_value = ecma_op_to_numeric (context_p, left_value, &left_number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
 
   if (ECMA_IS_VALUE_ERROR (left_value))
   {
@@ -305,14 +308,14 @@ opfunc_unary_operation (ecma_value_t left_value, /**< left value */
 #if JJS_BUILTIN_BIGINT
   if (JJS_LIKELY (!ecma_is_value_bigint (left_value)))
   {
-    return ecma_make_number_value (is_plus ? left_number : -left_number);
+    return ecma_make_number_value (context_p, is_plus ? left_number : -left_number);
   }
 
   ecma_value_t ret_value;
 
   if (is_plus)
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_UNARY_PLUS_IS_NOT_ALLOWED_FOR_BIGINTS);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_UNARY_PLUS_IS_NOT_ALLOWED_FOR_BIGINTS);
   }
   else
   {
@@ -320,11 +323,11 @@ opfunc_unary_operation (ecma_value_t left_value, /**< left value */
 
     if (left_value != ECMA_BIGINT_ZERO)
     {
-      ret_value = ecma_bigint_negate (ecma_get_extended_primitive_from_value (left_value));
+      ret_value = ecma_bigint_negate (context_p, ecma_get_extended_primitive_from_value (context_p, left_value));
     }
   }
 
-  ecma_free_value (left_value);
+  ecma_free_value (context_p, left_value);
   return ret_value;
 #else /* !JJS_BUILTIN_BIGINT */
   return ecma_make_number_value (is_plus ? left_number : -left_number);

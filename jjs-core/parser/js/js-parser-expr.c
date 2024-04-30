@@ -1800,63 +1800,64 @@ parser_parse_template_literal (parser_context_t *context_p) /**< context */
  * Parse tagged template literal.
  */
 static size_t
-parser_parse_tagged_template_literal (parser_context_t *context_p) /**< context */
+parser_parse_tagged_template_literal (parser_context_t *parser_context_p) /**< parser context */
 {
-  JJS_ASSERT (context_p->token.type == LEXER_TEMPLATE_LITERAL);
+  JJS_ASSERT (parser_context_p->token.type == LEXER_TEMPLATE_LITERAL);
 
   uint32_t call_arguments = 0;
   ecma_collection_t *collection_p;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
-  if (context_p->tagged_template_literal_cp == JMEM_CP_NULL)
+  if (parser_context_p->tagged_template_literal_cp == JMEM_CP_NULL)
   {
-    collection_p = ecma_new_collection ();
-    ECMA_SET_INTERNAL_VALUE_POINTER (context_p->tagged_template_literal_cp, collection_p);
+    collection_p = ecma_new_collection (context_p);
+    ECMA_SET_INTERNAL_VALUE_POINTER (context_p, parser_context_p->tagged_template_literal_cp, collection_p);
   }
   else
   {
-    collection_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, context_p->tagged_template_literal_cp);
+    collection_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_collection_t, parser_context_p->tagged_template_literal_cp);
     if (collection_p->item_count > CBC_MAXIMUM_BYTE_VALUE)
     {
-      parser_raise_error (context_p, PARSER_ERR_ARGUMENT_LIMIT_REACHED);
+      parser_raise_error (parser_context_p, PARSER_ERR_ARGUMENT_LIMIT_REACHED);
     }
   }
 
   const uint32_t tagged_id = collection_p->item_count;
   uint32_t prop_idx = 0;
   ecma_object_t *raw_strings_p;
-  ecma_object_t *template_obj_p = parser_new_tagged_template_literal (&raw_strings_p);
-  ecma_collection_push_back (collection_p, ecma_make_object_value (template_obj_p));
+  ecma_object_t *template_obj_p = parser_new_tagged_template_literal (parser_context_p, &raw_strings_p);
+  ecma_collection_push_back (context_p, collection_p, ecma_make_object_value (context_p, template_obj_p));
 
-  parser_tagged_template_literal_append_strings (context_p, template_obj_p, raw_strings_p, prop_idx++);
+  parser_tagged_template_literal_append_strings (parser_context_p, template_obj_p, raw_strings_p, prop_idx++);
 
   call_arguments++;
-  parser_emit_cbc_ext_call (context_p, CBC_EXT_GET_TAGGED_TEMPLATE_LITERAL, tagged_id);
+  parser_emit_cbc_ext_call (parser_context_p, CBC_EXT_GET_TAGGED_TEMPLATE_LITERAL, tagged_id);
 
-  while (context_p->source_p[-1] != LIT_CHAR_GRAVE_ACCENT)
+  while (parser_context_p->source_p[-1] != LIT_CHAR_GRAVE_ACCENT)
   {
-    JJS_ASSERT (context_p->source_p[-1] == LIT_CHAR_LEFT_BRACE);
-    lexer_next_token (context_p);
+    JJS_ASSERT (parser_context_p->source_p[-1] == LIT_CHAR_LEFT_BRACE);
+    lexer_next_token (parser_context_p);
 
     if (++call_arguments > CBC_MAXIMUM_BYTE_VALUE)
     {
-      parser_raise_error (context_p, PARSER_ERR_ARGUMENT_LIMIT_REACHED);
+      parser_raise_error (parser_context_p, PARSER_ERR_ARGUMENT_LIMIT_REACHED);
     }
 
-    parser_parse_expression (context_p, PARSE_EXPR);
+    parser_parse_expression (parser_context_p, PARSE_EXPR);
 
-    if (context_p->token.type != LEXER_RIGHT_BRACE)
+    if (parser_context_p->token.type != LEXER_RIGHT_BRACE)
     {
-      parser_raise_error (context_p, PARSER_ERR_RIGHT_BRACE_EXPECTED);
+      parser_raise_error (parser_context_p, PARSER_ERR_RIGHT_BRACE_EXPECTED);
     }
 
-    context_p->source_p--;
-    context_p->column--;
-    lexer_parse_string (context_p, LEXER_STRING_NO_OPTS);
+    parser_context_p->source_p--;
+    parser_context_p->column--;
+    lexer_parse_string (parser_context_p, LEXER_STRING_NO_OPTS);
 
-    parser_tagged_template_literal_append_strings (context_p, template_obj_p, raw_strings_p, prop_idx++);
+    parser_tagged_template_literal_append_strings (parser_context_p, template_obj_p, raw_strings_p, prop_idx++);
   }
 
-  parser_tagged_template_literal_finalize (template_obj_p, raw_strings_p);
+  parser_tagged_template_literal_finalize (parser_context_p, template_obj_p, raw_strings_p);
 
   return call_arguments;
 } /* parser_parse_tagged_template_literal */

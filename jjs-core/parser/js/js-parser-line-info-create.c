@@ -117,7 +117,7 @@
  * Free line info temporary data collected during parsing.
  */
 void
-parser_line_info_free (parser_line_info_data_t *line_info_p)
+parser_line_info_free (parser_context_t *parser_context_p, parser_line_info_data_t *line_info_p)
 {
   if (line_info_p == NULL)
   {
@@ -125,13 +125,13 @@ parser_line_info_free (parser_line_info_data_t *line_info_p)
   }
 
   parser_mem_page_t *current_page_p = PARSER_LINE_INFO_GET_FIRST_PAGE (line_info_p)->next_p;
-  parser_free (line_info_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
+  parser_free (parser_context_p, line_info_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
 
   while (current_page_p != NULL)
   {
     parser_mem_page_t *next_p = current_page_p->next_p;
 
-    parser_free (current_page_p, PARSER_LINE_INFO_PAGE_SIZE);
+    parser_free (parser_context_p, current_page_p, PARSER_LINE_INFO_PAGE_SIZE);
     current_page_p = next_p;
   }
 } /* parser_line_info_free */
@@ -565,7 +565,7 @@ parser_line_info_generate (parser_context_t *parser_context_p) /**< context */
     total_length_size = parser_line_info_encode_vlq (block_buffer, total_length);
 
     /* TODO: Support allocation fail. */
-    line_info_p = (uint8_t *) jmem_heap_alloc_block (total_length + total_length_size);
+    line_info_p = (uint8_t *) jmem_heap_alloc_block (parser_context_p->context_p, total_length + total_length_size);
     dst_p = line_info_p + parser_line_info_encode_vlq (line_info_p, total_length);
   }
 

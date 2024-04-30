@@ -37,7 +37,8 @@ JJS_STATIC_ASSERT ((ECMA_BIG_UINT_BITWISE_DECREASE_LEFT << 1) == ECMA_BIG_UINT_B
  * @return new BigInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_bigint_create (uint32_t size) /**< size of the new BigInt value */
+ecma_bigint_create (ecma_context_t *context_p, /**< JJS context */
+                    uint32_t size) /**< size of the new BigInt value */
 {
   JJS_ASSERT (size > 0);
   JJS_ASSERT ((size % sizeof (ecma_bigint_digit_t)) == 0);
@@ -50,7 +51,7 @@ ecma_bigint_create (uint32_t size) /**< size of the new BigInt value */
   ecma_extended_primitive_t *value_p;
 
   size_t mem_size = ECMA_BIGINT_GET_BYTE_SIZE (size) + sizeof (ecma_extended_primitive_t);
-  value_p = (ecma_extended_primitive_t *) jmem_heap_alloc_block_null_on_error (mem_size);
+  value_p = (ecma_extended_primitive_t *) jmem_heap_alloc_block_null_on_error (context_p, mem_size);
 
   if (JJS_UNLIKELY (value_p == NULL))
   {
@@ -68,7 +69,8 @@ ecma_bigint_create (uint32_t size) /**< size of the new BigInt value */
  * @return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_extend (ecma_extended_primitive_t *value_p, /**< BigUInt value */
+ecma_big_uint_extend (ecma_context_t *context_p, /**< JJS context */
+                      ecma_extended_primitive_t *value_p, /**< BigUInt value */
                       ecma_bigint_digit_t digit) /**< new digit */
 {
   uint32_t old_size = ECMA_BIGINT_GET_SIZE (value_p);
@@ -80,16 +82,16 @@ ecma_big_uint_extend (ecma_extended_primitive_t *value_p, /**< BigUInt value */
     return value_p;
   }
 
-  ecma_extended_primitive_t *result_p = ecma_bigint_create (old_size + (uint32_t) sizeof (ecma_bigint_digit_t));
+  ecma_extended_primitive_t *result_p = ecma_bigint_create (context_p, old_size + (uint32_t) sizeof (ecma_bigint_digit_t));
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
-    ecma_deref_bigint (value_p);
+    ecma_deref_bigint (context_p, value_p);
     return NULL;
   }
 
   memcpy (result_p + 1, value_p + 1, old_size);
-  ecma_deref_bigint (value_p);
+  ecma_deref_bigint (context_p, value_p);
 
   *ECMA_BIGINT_GET_DIGITS (result_p, old_size) = digit;
   return result_p;
@@ -126,7 +128,8 @@ ecma_big_uint_count_leading_zero (ecma_bigint_digit_t digit) /**< digit value */
  * @return new BigUInt value, NULL on error
  */
 static ecma_extended_primitive_t *
-ecma_big_uint_normalize_result (ecma_extended_primitive_t *value_p, /**< BigUInt value */
+ecma_big_uint_normalize_result (ecma_context_t *context_p, /**< JJS context */
+                                ecma_extended_primitive_t *value_p, /**< BigUInt value */
                                 ecma_bigint_digit_t *last_digit_p) /**< points to the end of BigUInt */
 {
   JJS_ASSERT (last_digit_p[-1] == 0);
@@ -146,7 +149,7 @@ ecma_big_uint_normalize_result (ecma_extended_primitive_t *value_p, /**< BigUInt
 
   if (first_digit_p == last_digit_p)
   {
-    ecma_deref_bigint (value_p);
+    ecma_deref_bigint (context_p, value_p);
     return ECMA_BIGINT_POINTER_TO_ZERO;
   }
 
@@ -159,16 +162,16 @@ ecma_big_uint_normalize_result (ecma_extended_primitive_t *value_p, /**< BigUInt
     return value_p;
   }
 
-  ecma_extended_primitive_t *result_p = ecma_bigint_create (new_size);
+  ecma_extended_primitive_t *result_p = ecma_bigint_create (context_p, new_size);
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
-    ecma_deref_bigint (value_p);
+    ecma_deref_bigint (context_p, value_p);
     return NULL;
   }
 
   memcpy (ECMA_BIGINT_GET_DIGITS (result_p, 0), ECMA_BIGINT_GET_DIGITS (value_p, 0), new_size);
-  ecma_deref_bigint (value_p);
+  ecma_deref_bigint (context_p, value_p);
 
   return result_p;
 } /* ecma_big_uint_normalize_result */
@@ -179,7 +182,8 @@ ecma_big_uint_normalize_result (ecma_extended_primitive_t *value_p, /**< BigUInt
  * @return new BigUInt value, NULL on error
  */
 static ecma_extended_primitive_t *
-ecma_big_uint_increase_result (ecma_extended_primitive_t *value_p) /**< BigUInt value */
+ecma_big_uint_increase_result (ecma_context_t *context_p, /**< JJS context */
+                               ecma_extended_primitive_t *value_p) /**< BigUInt value */
 {
   uint32_t size = ECMA_BIGINT_GET_SIZE (value_p);
 
@@ -194,7 +198,7 @@ ecma_big_uint_increase_result (ecma_extended_primitive_t *value_p) /**< BigUInt 
 
     if (first_digit_p == last_digit_p)
     {
-      return ecma_big_uint_extend (value_p, 1);
+      return ecma_big_uint_extend (context_p, value_p, 1);
     }
   }
 
@@ -205,7 +209,7 @@ ecma_big_uint_increase_result (ecma_extended_primitive_t *value_p) /**< BigUInt 
     return value_p;
   }
 
-  return ecma_big_uint_normalize_result (value_p, last_digit_p);
+  return ecma_big_uint_normalize_result (context_p, value_p, last_digit_p);
 } /* ecma_big_uint_increase_result */
 
 /**
@@ -262,7 +266,8 @@ ecma_big_uint_compare (ecma_extended_primitive_t *left_value_p, /**< left BigUIn
  * return updated value on success, NULL if no memory is available
  */
 ecma_extended_primitive_t *
-ecma_big_uint_mul_digit (ecma_extended_primitive_t *value_p, /**< BigUInt value */
+ecma_big_uint_mul_digit (ecma_context_t *context_p, /**< JJS context */
+                         ecma_extended_primitive_t *value_p, /**< BigUInt value */
                          ecma_bigint_digit_t mul, /**< multiply value */
                          ecma_bigint_digit_t add) /**< addition value */
 {
@@ -273,7 +278,7 @@ ecma_big_uint_mul_digit (ecma_extended_primitive_t *value_p, /**< BigUInt value 
   {
     JJS_ASSERT (add > 0);
 
-    value_p = ecma_bigint_create (sizeof (ecma_bigint_digit_t));
+    value_p = ecma_bigint_create (context_p, sizeof (ecma_bigint_digit_t));
 
     if (JJS_UNLIKELY (value_p == NULL))
     {
@@ -315,7 +320,7 @@ ecma_big_uint_mul_digit (ecma_extended_primitive_t *value_p, /**< BigUInt value 
     return value_p;
   }
 
-  return ecma_big_uint_extend (value_p, carry);
+  return ecma_big_uint_extend (context_p, value_p, carry);
 } /* ecma_big_uint_mul_digit */
 
 /**
@@ -324,7 +329,8 @@ ecma_big_uint_mul_digit (ecma_extended_primitive_t *value_p, /**< BigUInt value 
  * return char sequence on success, NULL otherwise
  */
 lit_utf8_byte_t *
-ecma_big_uint_to_string (ecma_extended_primitive_t *value_p, /**< BigUInt value */
+ecma_big_uint_to_string (ecma_context_t *context_p, /**< JJS context */
+                         ecma_extended_primitive_t *value_p, /**< BigUInt value */
                          uint32_t radix, /**< radix number between 2 and 36 */
                          uint32_t *char_start_p, /**< [out] start offset of numbers */
                          uint32_t *char_size_p) /**< [out] size of the output buffer */
@@ -362,7 +368,7 @@ ecma_big_uint_to_string (ecma_extended_primitive_t *value_p, /**< BigUInt value 
   max_size &= ~(uint32_t) (sizeof (ecma_bigint_digit_t) - 1);
   *char_size_p = max_size;
 
-  lit_utf8_byte_t *result_p = (lit_utf8_byte_t *) jmem_heap_alloc_block_null_on_error (max_size);
+  lit_utf8_byte_t *result_p = (lit_utf8_byte_t *) jmem_heap_alloc_block_null_on_error (context_p, max_size);
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
@@ -451,7 +457,8 @@ ecma_big_uint_to_string (ecma_extended_primitive_t *value_p, /**< BigUInt value 
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_increase (ecma_extended_primitive_t *value_p) /**< BigUInt value */
+ecma_big_uint_increase (ecma_context_t *context_p, /**< JJS context */
+                        ecma_extended_primitive_t *value_p) /**< BigUInt value */
 {
   uint32_t size = ECMA_BIGINT_GET_SIZE (value_p);
 
@@ -470,7 +477,7 @@ ecma_big_uint_increase (ecma_extended_primitive_t *value_p) /**< BigUInt value *
     if (digits_p == digits_end_p)
     {
       ecma_extended_primitive_t *result_value_p;
-      result_value_p = ecma_bigint_create ((uint32_t) (size + sizeof (ecma_bigint_digit_t)));
+      result_value_p = ecma_bigint_create (context_p, (uint32_t) (size + sizeof (ecma_bigint_digit_t)));
 
       if (JJS_UNLIKELY (result_value_p == NULL))
       {
@@ -485,7 +492,7 @@ ecma_big_uint_increase (ecma_extended_primitive_t *value_p) /**< BigUInt value *
     digits_p = ECMA_BIGINT_GET_DIGITS (value_p, 0);
   }
 
-  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (size);
+  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (context_p, size);
 
   if (JJS_UNLIKELY (result_value_p == NULL))
   {
@@ -515,7 +522,8 @@ ecma_big_uint_increase (ecma_extended_primitive_t *value_p) /**< BigUInt value *
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_decrease (ecma_extended_primitive_t *value_p) /**< BigUInt value */
+ecma_big_uint_decrease (ecma_context_t *context_p, /**< JJS context */
+                        ecma_extended_primitive_t *value_p) /**< BigUInt value */
 {
   uint32_t size = ECMA_BIGINT_GET_SIZE (value_p);
 
@@ -537,7 +545,7 @@ ecma_big_uint_decrease (ecma_extended_primitive_t *value_p) /**< BigUInt value *
     if (digits_p + 1 == digits_end_p)
     {
       size -= (uint32_t) sizeof (ecma_bigint_digit_t);
-      ecma_extended_primitive_t *result_value_p = ecma_bigint_create (size);
+      ecma_extended_primitive_t *result_value_p = ecma_bigint_create (context_p, size);
 
       if (JJS_UNLIKELY (result_value_p == NULL))
       {
@@ -551,7 +559,7 @@ ecma_big_uint_decrease (ecma_extended_primitive_t *value_p) /**< BigUInt value *
     digits_p = ECMA_BIGINT_GET_DIGITS (value_p, 0);
   }
 
-  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (size);
+  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (context_p, size);
 
   if (JJS_UNLIKELY (result_value_p == NULL))
   {
@@ -581,7 +589,8 @@ ecma_big_uint_decrease (ecma_extended_primitive_t *value_p) /**< BigUInt value *
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_add (ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
+ecma_big_uint_add (ecma_context_t *context_p, /**< JJS context */
+                   ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                    ecma_extended_primitive_t *right_value_p) /**< right BigUInt value */
 {
   uint32_t left_size = ECMA_BIGINT_GET_SIZE (left_value_p);
@@ -602,7 +611,7 @@ ecma_big_uint_add (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
     right_size = tmp_size;
   }
 
-  ecma_extended_primitive_t *result_p = ecma_bigint_create (left_size);
+  ecma_extended_primitive_t *result_p = ecma_bigint_create (context_p, left_size);
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
@@ -652,7 +661,7 @@ ecma_big_uint_add (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
     {
       if (JJS_UNLIKELY (current_p == end_p))
       {
-        return ecma_big_uint_extend (result_p, 1);
+        return ecma_big_uint_extend (context_p, result_p, 1);
       }
 
       ecma_bigint_digit_t value = *left_p++;
@@ -681,7 +690,8 @@ ecma_big_uint_add (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_sub (ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
+ecma_big_uint_sub (ecma_context_t *context_p, /**< JJS context */
+                   ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                    ecma_extended_primitive_t *right_value_p) /**< right BigUInt value */
 {
   uint32_t left_size = ECMA_BIGINT_GET_SIZE (left_value_p);
@@ -691,7 +701,7 @@ ecma_big_uint_sub (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
   JJS_ASSERT (right_size > 0 && ECMA_BIGINT_GET_LAST_DIGIT (right_value_p, right_size) != 0);
   JJS_ASSERT (left_size >= right_size);
 
-  ecma_extended_primitive_t *result_p = ecma_bigint_create (left_size);
+  ecma_extended_primitive_t *result_p = ecma_bigint_create (context_p, left_size);
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
@@ -756,7 +766,7 @@ ecma_big_uint_sub (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
     return result_p;
   }
 
-  return ecma_big_uint_normalize_result (result_p, current_p);
+  return ecma_big_uint_normalize_result (context_p, result_p, current_p);
 } /* ecma_big_uint_sub */
 
 /**
@@ -765,7 +775,8 @@ ecma_big_uint_sub (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_mul (ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
+ecma_big_uint_mul (ecma_context_t *context_p, /**< JJS context */
+                   ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                    ecma_extended_primitive_t *right_value_p) /**< right BigUInt value */
 {
   uint32_t left_size = ECMA_BIGINT_GET_SIZE (left_value_p);
@@ -788,7 +799,7 @@ ecma_big_uint_mul (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
 
   uint32_t result_size = left_size + right_size - (uint32_t) sizeof (ecma_bigint_digit_t);
 
-  ecma_extended_primitive_t *result_p = ecma_bigint_create (result_size);
+  ecma_extended_primitive_t *result_p = ecma_bigint_create (context_p, result_size);
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
@@ -889,7 +900,7 @@ ecma_big_uint_mul (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
     return result_p;
   }
 
-  return ecma_big_uint_extend (result_p, extra_space[0]);
+  return ecma_big_uint_extend (context_p, result_p, extra_space[0]);
 } /* ecma_big_uint_mul */
 
 /**
@@ -898,7 +909,8 @@ ecma_big_uint_mul (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
  * return new BigUInt value, NULL on error
  */
 static ecma_extended_primitive_t *
-ecma_big_uint_div_digit (ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
+ecma_big_uint_div_digit (ecma_context_t *context_p, /**< JJS context */
+                         ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                          ecma_bigint_digit_t divisor_digit, /**< divisor value */
                          bool is_mod) /**< true if return with remainder */
 {
@@ -927,7 +939,7 @@ ecma_big_uint_div_digit (ecma_extended_primitive_t *left_value_p, /**< left BigU
       result_size -= (uint32_t) sizeof (ecma_bigint_digit_t);
     }
 
-    result_p = ecma_bigint_create (result_size);
+    result_p = ecma_bigint_create (context_p, result_size);
 
     if (JJS_UNLIKELY (result_p == NULL))
     {
@@ -967,7 +979,7 @@ ecma_big_uint_div_digit (ecma_extended_primitive_t *left_value_p, /**< left BigU
     return ECMA_BIGINT_POINTER_TO_ZERO;
   }
 
-  result_p = ecma_bigint_create (sizeof (ecma_bigint_digit_t));
+  result_p = ecma_bigint_create (context_p, sizeof (ecma_bigint_digit_t));
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
@@ -984,7 +996,8 @@ ecma_big_uint_div_digit (ecma_extended_primitive_t *left_value_p, /**< left BigU
  * return newly allocated buffer, NULL on error
  */
 static ecma_bigint_digit_t *
-ecma_big_uint_div_shift_left (ecma_extended_primitive_t *value_p, /**< BigUInt value */
+ecma_big_uint_div_shift_left (ecma_context_t *context_p, /**< JJS context */
+                              ecma_extended_primitive_t *value_p, /**< BigUInt value */
                               ecma_bigint_digit_t shift_left, /**< left shift */
                               bool extend) /**< extend the result with an extra digit */
 {
@@ -1000,7 +1013,7 @@ ecma_big_uint_div_shift_left (ecma_extended_primitive_t *value_p, /**< BigUInt v
     size += (uint32_t) sizeof (ecma_bigint_digit_t);
   }
 
-  ecma_bigint_digit_t *result_p = (ecma_bigint_digit_t *) jmem_heap_alloc_block_null_on_error (size);
+  ecma_bigint_digit_t *result_p = (ecma_bigint_digit_t *) jmem_heap_alloc_block_null_on_error (context_p, size);
 
   if (JJS_UNLIKELY (result_p == NULL))
   {
@@ -1044,7 +1057,8 @@ ecma_big_uint_div_shift_left (ecma_extended_primitive_t *value_p, /**< BigUInt v
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_div_mod (ecma_extended_primitive_t *dividend_value_p, /**< divider BigUInt value */
+ecma_big_uint_div_mod (ecma_context_t *context_p, /**< JJS context */
+                       ecma_extended_primitive_t *dividend_value_p, /**< divider BigUInt value */
                        ecma_extended_primitive_t *divisor_value_p, /**< divisor BigUInt value */
                        bool is_mod) /**< true if return with remainder instead of quotient */
 {
@@ -1056,13 +1070,13 @@ ecma_big_uint_div_mod (ecma_extended_primitive_t *dividend_value_p, /**< divider
   /* The divisor must have at least two digits, so the single digit case is handled separately. */
   if (divisor_size == sizeof (ecma_bigint_digit_t))
   {
-    return ecma_big_uint_div_digit (dividend_value_p, *ECMA_BIGINT_GET_DIGITS (divisor_value_p, 0), is_mod);
+    return ecma_big_uint_div_digit (context_p, dividend_value_p, *ECMA_BIGINT_GET_DIGITS (divisor_value_p, 0), is_mod);
   }
 
   /* D1. [Normalize] */
   ecma_bigint_digit_t divisor_high = ECMA_BIGINT_GET_LAST_DIGIT (divisor_value_p, divisor_size);
   ecma_bigint_digit_t shift_left = ecma_big_uint_count_leading_zero (divisor_high);
-  ecma_bigint_digit_t *buffer_p = ecma_big_uint_div_shift_left (dividend_value_p, shift_left, true);
+  ecma_bigint_digit_t *buffer_p = ecma_big_uint_div_shift_left (context_p, dividend_value_p, shift_left, true);
 
   if (JJS_UNLIKELY (buffer_p == NULL))
   {
@@ -1078,7 +1092,7 @@ ecma_big_uint_div_mod (ecma_extended_primitive_t *dividend_value_p, /**< divider
 
   if (shift_left > 0)
   {
-    divisor_p = ecma_big_uint_div_shift_left (divisor_value_p, shift_left, false);
+    divisor_p = ecma_big_uint_div_shift_left (context_p, divisor_value_p, shift_left, false);
 
     if (JJS_UNLIKELY (divisor_p == NULL))
     {
@@ -1259,7 +1273,7 @@ ecma_big_uint_div_mod (ecma_extended_primitive_t *dividend_value_p, /**< divider
 
   if (source_p < source_end_p)
   {
-    result_p = ecma_bigint_create ((uint32_t) ((uint8_t *) source_end_p - (uint8_t *) source_p));
+    result_p = ecma_bigint_create (context_p, (uint32_t) ((uint8_t *) source_end_p - (uint8_t *) source_p));
 
     if (result_p != NULL)
     {
@@ -1290,11 +1304,11 @@ ecma_big_uint_div_mod (ecma_extended_primitive_t *dividend_value_p, /**< divider
   }
 
 error:
-  jmem_heap_free_block (buffer_p, dividend_size + sizeof (ecma_bigint_digit_t));
+  jmem_heap_free_block (context_p, buffer_p, dividend_size + sizeof (ecma_bigint_digit_t));
 
   if (shift_left > 0 && divisor_p != NULL)
   {
-    jmem_heap_free_block (divisor_p, divisor_size);
+    jmem_heap_free_block (context_p, divisor_p, divisor_size);
   }
 
   return result_p;
@@ -1306,7 +1320,8 @@ error:
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_shift_left (ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
+ecma_big_uint_shift_left (ecma_context_t *context_p, /**< JJS context */
+                          ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                           uint32_t right_value) /**< shift value */
 {
   JJS_ASSERT (right_value > 0);
@@ -1330,7 +1345,7 @@ ecma_big_uint_shift_left (ecma_extended_primitive_t *left_value_p, /**< left Big
     return NULL;
   }
 
-  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (result_size);
+  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (context_p, result_size);
 
   if (JJS_UNLIKELY (result_value_p == NULL))
   {
@@ -1378,7 +1393,8 @@ ecma_big_uint_shift_left (ecma_extended_primitive_t *left_value_p, /**< left Big
  * @return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_shift_right (ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
+ecma_big_uint_shift_right (ecma_context_t *context_p, /**< JJS context */
+                           ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                            uint32_t right_value, /**< shift value */
                            bool increase_result) /**< increase result */
 {
@@ -1406,7 +1422,7 @@ ecma_big_uint_shift_right (ecma_extended_primitive_t *left_value_p, /**< left Bi
       return ECMA_BIGINT_POINTER_TO_ZERO;
     }
 
-    ecma_extended_primitive_t *result_value_p = ecma_bigint_create (sizeof (ecma_bigint_digit_t));
+    ecma_extended_primitive_t *result_value_p = ecma_bigint_create (context_p, sizeof (ecma_bigint_digit_t));
     if (result_value_p != NULL)
     {
       *ECMA_BIGINT_GET_DIGITS (result_value_p, 0) = 1;
@@ -1436,7 +1452,7 @@ ecma_big_uint_shift_right (ecma_extended_primitive_t *left_value_p, /**< left Bi
   }
 
   uint32_t size = left_size - crop_size;
-  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (size);
+  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (context_p, size);
 
   if (JJS_UNLIKELY (result_value_p == NULL))
   {
@@ -1451,7 +1467,7 @@ ecma_big_uint_shift_right (ecma_extended_primitive_t *left_value_p, /**< left Bi
     {
       return result_value_p;
     }
-    return ecma_big_uint_increase_result (result_value_p);
+    return ecma_big_uint_increase_result (context_p, result_value_p);
   }
 
   ecma_bigint_digit_t *left_p = ECMA_BIGINT_GET_DIGITS (left_value_p, left_size);
@@ -1470,7 +1486,7 @@ ecma_big_uint_shift_right (ecma_extended_primitive_t *left_value_p, /**< left Bi
   {
     return result_value_p;
   }
-  return ecma_big_uint_increase_result (result_value_p);
+  return ecma_big_uint_increase_result (context_p, result_value_p);
 } /* ecma_big_uint_shift_right */
 
 /**
@@ -1479,7 +1495,8 @@ ecma_big_uint_shift_right (ecma_extended_primitive_t *left_value_p, /**< left Bi
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_pow (ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
+ecma_big_uint_pow (ecma_context_t *context_p, /**< JJS context */
+                   ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                    uint32_t right_value) /**< power value */
 {
   ecma_extended_primitive_t *result_p = ECMA_BIGINT_NUMBER_IS_ODD (right_value) ? left_value_p : NULL;
@@ -1489,13 +1506,13 @@ ecma_big_uint_pow (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
 
   while (true)
   {
-    ecma_extended_primitive_t *new_square_p = ecma_big_uint_mul (square_p, square_p);
+    ecma_extended_primitive_t *new_square_p = ecma_big_uint_mul (context_p, square_p, square_p);
 
     if (JJS_UNLIKELY (new_square_p == NULL))
     {
       if (result_p != NULL && result_p != left_value_p)
       {
-        ecma_deref_bigint (result_p);
+        ecma_deref_bigint (context_p, result_p);
       }
       result_p = NULL;
       break;
@@ -1503,7 +1520,7 @@ ecma_big_uint_pow (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
 
     if (square_p != left_value_p)
     {
-      ecma_deref_bigint (square_p);
+      ecma_deref_bigint (context_p, square_p);
     }
 
     square_p = new_square_p;
@@ -1513,11 +1530,11 @@ ecma_big_uint_pow (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
     {
       if (result_p != NULL)
       {
-        ecma_extended_primitive_t *new_result_p = ecma_big_uint_mul (square_p, result_p);
+        ecma_extended_primitive_t *new_result_p = ecma_big_uint_mul (context_p, square_p, result_p);
 
         if (result_p != left_value_p)
         {
-          ecma_deref_bigint (result_p);
+          ecma_deref_bigint (context_p, result_p);
         }
 
         result_p = new_result_p;
@@ -1537,7 +1554,7 @@ ecma_big_uint_pow (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
 
   if (square_p != left_value_p)
   {
-    ecma_deref_bigint (square_p);
+    ecma_deref_bigint (context_p, square_p);
   }
 
   return result_p;
@@ -1549,7 +1566,8 @@ ecma_big_uint_pow (ecma_extended_primitive_t *left_value_p, /**< left BigUInt va
  * return new BigUInt value, NULL on error
  */
 ecma_extended_primitive_t *
-ecma_big_uint_bitwise_op (uint32_t operation_and_options, /**< bitwise operation type and options */
+ecma_big_uint_bitwise_op (ecma_context_t *context_p, /**< JJS context */
+                          uint32_t operation_and_options, /**< bitwise operation type and options */
                           ecma_extended_primitive_t *left_value_p, /**< left BigUInt value */
                           ecma_extended_primitive_t *right_value_p) /**< right BigUInt value */
 {
@@ -1609,7 +1627,7 @@ ecma_big_uint_bitwise_op (uint32_t operation_and_options, /**< bitwise operation
     }
   }
 
-  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (left_size);
+  ecma_extended_primitive_t *result_value_p = ecma_bigint_create (context_p, left_size);
 
   if (JJS_UNLIKELY (result_value_p == NULL))
   {
@@ -1634,7 +1652,7 @@ ecma_big_uint_bitwise_op (uint32_t operation_and_options, /**< bitwise operation
 
       if (result_p[-1] == 0)
       {
-        return ecma_big_uint_normalize_result (result_value_p, result_p);
+        return ecma_big_uint_normalize_result (context_p, result_value_p, result_p);
       }
       return result_value_p;
     }
@@ -1668,7 +1686,7 @@ ecma_big_uint_bitwise_op (uint32_t operation_and_options, /**< bitwise operation
 
     if (result_p[-1] == 0)
     {
-      return ecma_big_uint_normalize_result (result_value_p, result_p);
+      return ecma_big_uint_normalize_result (context_p, result_value_p, result_p);
     }
     return result_value_p;
   }
@@ -1750,7 +1768,7 @@ ecma_big_uint_bitwise_op (uint32_t operation_and_options, /**< bitwise operation
 
       if (operation_and_options & ECMA_BIG_UINT_BITWISE_INCREASE_RESULT)
       {
-        return ecma_big_uint_increase_result (result_value_p);
+        return ecma_big_uint_increase_result (context_p, result_value_p);
       }
       return result_value_p;
     }
@@ -1758,12 +1776,12 @@ ecma_big_uint_bitwise_op (uint32_t operation_and_options, /**< bitwise operation
 
   if (operation_and_options & ECMA_BIG_UINT_BITWISE_INCREASE_RESULT)
   {
-    return ecma_big_uint_increase_result (result_value_p);
+    return ecma_big_uint_increase_result (context_p, result_value_p);
   }
 
   if (result_p[-1] == 0)
   {
-    return ecma_big_uint_normalize_result (result_value_p, result_p);
+    return ecma_big_uint_normalize_result (context_p, result_value_p, result_p);
   }
   return result_value_p;
 } /* ecma_big_uint_bitwise_op */

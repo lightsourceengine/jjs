@@ -72,14 +72,14 @@ jjs_debugger_free_unreferenced_byte_code (jjs_context_t* context_p) /**< JJS con
   jjs_debugger_byte_code_free_t *byte_code_free_p;
 
   byte_code_free_p =
-    JMEM_CP_GET_POINTER (jjs_debugger_byte_code_free_t, context_p->debugger_byte_code_free_tail);
+    JMEM_CP_GET_POINTER (context_p, jjs_debugger_byte_code_free_t, context_p->debugger_byte_code_free_tail);
 
   while (byte_code_free_p != NULL)
   {
     jjs_debugger_byte_code_free_t *prev_byte_code_free_p;
-    prev_byte_code_free_p = JMEM_CP_GET_POINTER (jjs_debugger_byte_code_free_t, byte_code_free_p->prev_cp);
+    prev_byte_code_free_p = JMEM_CP_GET_POINTER (context_p, jjs_debugger_byte_code_free_t, byte_code_free_p->prev_cp);
 
-    jmem_heap_free_block (byte_code_free_p, ((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
+    jmem_heap_free_block (context_p, byte_code_free_p, ((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
 
     byte_code_free_p = prev_byte_code_free_p;
   }
@@ -183,7 +183,7 @@ jjs_debugger_send_backtrace (jjs_context_t* context_p, /**< JJS context */
       jjs_debugger_frame_t *frame_p = backtrace_p->frames + current_frame;
 
       jmem_cpointer_t byte_code_cp;
-      JMEM_CP_SET_NON_NULL_POINTER (byte_code_cp, frame_ctx_p->shared_p->bytecode_header_p);
+      JMEM_CP_SET_NON_NULL_POINTER (context_p, byte_code_cp, frame_ctx_p->shared_p->bytecode_header_p);
       memcpy (frame_p->byte_code_cp, &byte_code_cp, sizeof (jmem_cpointer_t));
 
       uint32_t offset = (uint32_t) (frame_ctx_p->byte_code_p - (uint8_t *) frame_ctx_p->shared_p->bytecode_header_p);
@@ -263,7 +263,7 @@ jjs_debugger_send_scope_chain (jjs_context_t* context_p) /**< JJS context */
     }
 
     JJS_ASSERT (lex_env_p->u2.outer_reference_cp != JMEM_CP_NULL);
-    lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+    lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
   }
 
   message_type_p->type = JJS_DEBUGGER_SCOPE_CHAIN_END;
@@ -276,7 +276,8 @@ jjs_debugger_send_scope_chain (jjs_context_t* context_p) /**< JJS context */
  * @return (jjs_debugger_scope_variable_type_t)
  */
 static uint8_t
-jjs_debugger_get_variable_type (ecma_value_t value) /**< input ecma value */
+jjs_debugger_get_variable_type (ecma_context_t *context_p, /**< JJS context */
+                                ecma_value_t value) /**< input ecma value */
 {
   uint8_t ret_value = JJS_DEBUGGER_VALUE_NONE;
 
@@ -304,13 +305,13 @@ jjs_debugger_get_variable_type (ecma_value_t value) /**< input ecma value */
   {
     JJS_ASSERT (ecma_is_value_object (value));
 
-    if (ecma_get_object_type (ecma_get_object_from_value (value)) == ECMA_OBJECT_TYPE_ARRAY)
+    if (ecma_get_object_type (ecma_get_object_from_value (context_p, value)) == ECMA_OBJECT_TYPE_ARRAY)
     {
       ret_value = JJS_DEBUGGER_VALUE_ARRAY;
     }
     else
     {
-      ret_value = ecma_op_is_callable (value) ? JJS_DEBUGGER_VALUE_FUNCTION : JJS_DEBUGGER_VALUE_OBJECT;
+      ret_value = ecma_op_is_callable (context_p, value) ? JJS_DEBUGGER_VALUE_FUNCTION : JJS_DEBUGGER_VALUE_OBJECT;
     }
   }
 
@@ -338,7 +339,7 @@ jjs_debugger_copy_variables_to_string_message (jjs_context_t* context_p, /**< JJ
   const size_t max_byte_count = JJS_DEBUGGER_SEND_MAX (context_p, uint8_t);
   const size_t max_message_size = JJS_DEBUGGER_SEND_SIZE (max_byte_count, uint8_t);
 
-  ECMA_STRING_TO_UTF8_STRING (value_str, str_buff, str_buff_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, value_str, str_buff, str_buff_size);
 
   size_t str_size = 0;
   size_t str_limit = 255;
@@ -412,7 +413,7 @@ jjs_debugger_copy_variables_to_string_message (jjs_context_t* context_p, /**< JJ
     }
   }
 
-  ECMA_FINALIZE_UTF8_STRING (str_buff, str_buff_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, str_buff, str_buff_size);
 
   return result;
 } /* jjs_debugger_copy_variables_to_string_message */
@@ -440,7 +441,7 @@ jjs_debugger_send_scope_variables (jjs_context_t* context_p, /**< JJS context */
       return;
     }
 
-    lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+    lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
 
     if ((ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND)
         || (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE))
@@ -458,11 +459,11 @@ jjs_debugger_send_scope_variables (jjs_context_t* context_p, /**< JJS context */
   else
   {
     JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
-    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
 
     if (JJS_UNLIKELY (ecma_op_object_is_fast_array (binding_obj_p)))
     {
-      ecma_fast_array_convert_to_normal (binding_obj_p);
+      ecma_fast_array_convert_to_normal (context_p, binding_obj_p);
     }
 
     prop_iter_cp = binding_obj_p->u1.property_list_cp;
@@ -475,7 +476,7 @@ jjs_debugger_send_scope_variables (jjs_context_t* context_p, /**< JJS context */
 
   while (prop_iter_cp != JMEM_CP_NULL)
   {
-    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
     JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
     ecma_property_pair_t *prop_pair_p = (ecma_property_pair_t *) prop_iter_p;
@@ -490,7 +491,7 @@ jjs_debugger_send_scope_variables (jjs_context_t* context_p, /**< JJS context */
           continue;
         }
 
-        ecma_string_t *prop_name = ecma_string_from_property_name (prop_iter_p->types[i], prop_pair_p->names_cp[i]);
+        ecma_string_t *prop_name = ecma_string_from_property_name (context_p, prop_iter_p->types[i], prop_pair_p->names_cp[i]);
 
         if (!jjs_debugger_copy_variables_to_string_message (context_p,
                                                             JJS_DEBUGGER_VALUE_NONE,
@@ -498,26 +499,26 @@ jjs_debugger_send_scope_variables (jjs_context_t* context_p, /**< JJS context */
                                                             message_string_p,
                                                             &buffer_pos))
         {
-          ecma_deref_ecma_string (prop_name);
+          ecma_deref_ecma_string (context_p, prop_name);
           return;
         }
 
-        ecma_deref_ecma_string (prop_name);
+        ecma_deref_ecma_string (context_p, prop_name);
 
         ecma_property_value_t prop_value_p = prop_pair_p->values[i];
 
-        uint8_t variable_type = jjs_debugger_get_variable_type (prop_value_p.value);
+        uint8_t variable_type = jjs_debugger_get_variable_type (context_p, prop_value_p.value);
 
-        ecma_string_t *str_p = ecma_op_to_string (prop_value_p.value);
+        ecma_string_t *str_p = ecma_op_to_string (context_p, prop_value_p.value);
         JJS_ASSERT (str_p != NULL);
 
         if (!jjs_debugger_copy_variables_to_string_message (context_p, variable_type, str_p, message_string_p, &buffer_pos))
         {
-          ecma_deref_ecma_string (str_p);
+          ecma_deref_ecma_string (context_p, str_p);
           return;
         }
 
-        ecma_deref_ecma_string (str_p);
+        ecma_deref_ecma_string (context_p, str_p);
       }
     }
 
@@ -553,7 +554,7 @@ jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
   source_char.source_p = eval_string_p + 5;
   source_char.source_size = eval_string_size - 5;
 
-  ecma_value_t result = ecma_op_eval_chars_buffer ((void *) &source_char, parse_opts);
+  ecma_value_t result = ecma_op_eval_chars_buffer (context_p, (void *) &source_char, parse_opts);
   JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_VM_IGNORE);
 
   if (!ECMA_IS_VALUE_ERROR (result))
@@ -575,9 +576,9 @@ jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
 
     if (!ecma_is_value_string (result))
     {
-      ecma_string_t *str_p = ecma_op_to_string (result);
-      ecma_value_t to_string_value = ecma_make_string_value (str_p);
-      ecma_free_value (result);
+      ecma_string_t *str_p = ecma_op_to_string (context_p, result);
+      ecma_value_t to_string_value = ecma_make_string_value (context_p, str_p);
+      ecma_free_value (context_p, result);
       result = to_string_value;
     }
   }
@@ -593,13 +594,13 @@ jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
     if (ecma_is_value_object (result))
     {
       message =
-        ecma_op_object_find (ecma_get_object_from_value (result), ecma_get_magic_string (LIT_MAGIC_STRING_MESSAGE));
+        ecma_op_object_find (context_p, ecma_get_object_from_value (context_p, result), ecma_get_magic_string (LIT_MAGIC_STRING_MESSAGE));
 
-      if (!ecma_is_value_string (message) || ecma_string_is_empty (ecma_get_string_from_value (message)))
+      if (!ecma_is_value_string (message) || ecma_string_is_empty (ecma_get_string_from_value (context_p, message)))
       {
-        ecma_free_value (message);
-        lit_magic_string_id_t id = ecma_object_get_class_name (ecma_get_object_from_value (result));
-        ecma_free_value (result);
+        ecma_free_value (context_p, message);
+        lit_magic_string_id_t id = ecma_object_get_class_name (context_p, ecma_get_object_from_value (context_p, result));
+        ecma_free_value (context_p, result);
 
         const lit_utf8_byte_t *string_p = lit_get_magic_string_utf8 (id);
         jjs_debugger_send_string (context_p, JJS_DEBUGGER_EVAL_RESULT, type, string_p, strlen ((const char *) string_p));
@@ -609,20 +610,20 @@ jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
     else
     {
       /* Primitive type. */
-      ecma_string_t *str_p = ecma_op_to_string (result);
+      ecma_string_t *str_p = ecma_op_to_string (context_p, result);
       JJS_ASSERT (str_p != NULL);
 
-      message = ecma_make_string_value (str_p);
+      message = ecma_make_string_value (context_p, str_p);
     }
 
-    ecma_free_value (result);
+    ecma_free_value (context_p, result);
   }
 
-  ecma_string_t *string_p = ecma_get_string_from_value (message);
+  ecma_string_t *string_p = ecma_get_string_from_value (context_p, message);
 
-  ECMA_STRING_TO_UTF8_STRING (string_p, buffer_p, buffer_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, string_p, buffer_p, buffer_size);
   jjs_debugger_send_string (context_p, JJS_DEBUGGER_EVAL_RESULT, type, buffer_p, buffer_size);
-  ECMA_FINALIZE_UTF8_STRING (buffer_p, buffer_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, buffer_p, buffer_size);
 
   ecma_free_value (message);
 
@@ -672,7 +673,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
     if (recv_buffer_p[0] != *expected_message_type_p)
     {
-      jmem_heap_free_block (uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
+      jmem_heap_free_block (context_p, uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
       JJS_ERROR_MSG ("Unexpected message\n");
       jjs_debugger_transport_close (context_p);
       return false;
@@ -682,7 +683,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
     if (message_size < sizeof (jjs_debugger_receive_uint8_data_part_t) + 1)
     {
-      jmem_heap_free_block (uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
+      jmem_heap_free_block (context_p, uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
       JJS_ERROR_MSG ("Invalid message size\n");
       jjs_debugger_transport_close (context_p);
       return false;
@@ -694,7 +695,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
     if (message_size > expected_data)
     {
-      jmem_heap_free_block (uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
+      jmem_heap_free_block (context_p, uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
       JJS_ERROR_MSG ("Invalid message size\n");
       jjs_debugger_transport_close (context_p);
       return false;
@@ -749,7 +750,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       }
 
       jjs_debugger_byte_code_free_t *byte_code_free_p;
-      byte_code_free_p = JMEM_CP_GET_NON_NULL_POINTER (jjs_debugger_byte_code_free_t, byte_code_free_cp);
+      byte_code_free_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, jjs_debugger_byte_code_free_t, byte_code_free_cp);
 
       if (byte_code_free_p->prev_cp != ECMA_NULL_POINTER)
       {
@@ -765,7 +766,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       jmem_stats_free_byte_code_bytes (((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
 #endif /* JJS_MEM_STATS */
 
-      jmem_heap_free_block (byte_code_free_p, ((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
+      jmem_heap_free_block (context_p, byte_code_free_p, ((size_t) byte_code_free_p->size) << JMEM_ALIGNMENT_LOG);
       return true;
     }
 
@@ -777,7 +778,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
       jmem_cpointer_t byte_code_cp;
       memcpy (&byte_code_cp, update_breakpoint_p->byte_code_cp, sizeof (jmem_cpointer_t));
-      uint8_t *byte_code_p = JMEM_CP_GET_NON_NULL_POINTER (uint8_t, byte_code_cp);
+      uint8_t *byte_code_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, uint8_t, byte_code_cp);
 
       uint32_t offset;
       memcpy (&offset, update_breakpoint_p->offset, sizeof (uint32_t));
@@ -963,7 +964,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       jjs_debugger_uint8_data_t *eval_uint8_data_p;
       size_t eval_data_size = sizeof (jjs_debugger_uint8_data_t) + eval_size;
 
-      eval_uint8_data_p = (jjs_debugger_uint8_data_t *) jmem_heap_alloc_block (eval_data_size);
+      eval_uint8_data_p = (jjs_debugger_uint8_data_t *) jmem_heap_alloc_block (context_p, eval_data_size);
 
       eval_uint8_data_p->uint8_size = eval_size;
       eval_uint8_data_p->uint8_offset = (uint32_t) (message_size - sizeof (jjs_debugger_receive_eval_first_t));
@@ -1013,7 +1014,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       jjs_debugger_uint8_data_t *client_source_data_p;
       size_t client_source_data_size = sizeof (jjs_debugger_uint8_data_t) + client_source_size;
 
-      client_source_data_p = (jjs_debugger_uint8_data_t *) jmem_heap_alloc_block (client_source_data_size);
+      client_source_data_p = (jjs_debugger_uint8_data_t *) jmem_heap_alloc_block (context_p, client_source_data_size);
 
       client_source_data_p->uint8_size = client_source_size;
       client_source_data_p->uint8_offset =
@@ -1167,7 +1168,7 @@ jjs_debugger_breakpoint_hit (jjs_context_t* context_p, /**< JJS context */
   vm_frame_ctx_t *frame_ctx_p = context_p->vm_top_context_p;
 
   jmem_cpointer_t byte_code_header_cp;
-  JMEM_CP_SET_NON_NULL_POINTER (byte_code_header_cp, frame_ctx_p->shared_p->bytecode_header_p);
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, byte_code_header_cp, frame_ctx_p->shared_p->bytecode_header_p);
   memcpy (breakpoint_hit_p->byte_code_cp, &byte_code_header_cp, sizeof (jmem_cpointer_t));
 
   uint32_t offset = (uint32_t) (frame_ctx_p->byte_code_p - (uint8_t *) frame_ctx_p->shared_p->bytecode_header_p);
@@ -1189,7 +1190,7 @@ jjs_debugger_breakpoint_hit (jjs_context_t* context_p, /**< JJS context */
 
   if (uint8_data != NULL)
   {
-    jmem_heap_free_block (uint8_data, uint8_data->uint8_size + sizeof (jjs_debugger_uint8_data_t));
+    jmem_heap_free_block (context_p, uint8_data, uint8_data->uint8_size + sizeof (jjs_debugger_uint8_data_t));
   }
 
   JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_BREAKPOINT_MODE);
@@ -1343,7 +1344,7 @@ jjs_debugger_send_function_cp (jjs_context_t* context_p, /**< JJS context */
   byte_code_cp_p->type = (uint8_t) type;
 
   jmem_cpointer_t compiled_code_cp;
-  JMEM_CP_SET_NON_NULL_POINTER (compiled_code_cp, compiled_code_p);
+  JMEM_CP_SET_NON_NULL_POINTER (context_p, compiled_code_cp, compiled_code_p);
   memcpy (byte_code_cp_p->byte_code_cp, &compiled_code_cp, sizeof (jmem_cpointer_t));
 
   return jjs_debugger_send (context_p, sizeof (jjs_debugger_send_byte_code_cp_t));
@@ -1417,7 +1418,7 @@ jjs_debugger_exception_object_to_string (jjs_context_t* context_p, /**< JJS cont
                                          ecma_value_t exception_obj_value) /**< exception object */
 {
   JJS_UNUSED (context_p);
-  ecma_object_t *object_p = ecma_get_object_from_value (exception_obj_value);
+  ecma_object_t *object_p = ecma_get_object_from_value (context_p, exception_obj_value);
 
   jmem_cpointer_t prototype_cp = object_p->u2.prototype_cp;
 
@@ -1426,7 +1427,7 @@ jjs_debugger_exception_object_to_string (jjs_context_t* context_p, /**< JJS cont
     return NULL;
   }
 
-  ecma_object_t *prototype_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, prototype_cp);
+  ecma_object_t *prototype_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, prototype_cp);
 
   if (ecma_get_object_type (prototype_p) != ECMA_OBJECT_TYPE_BUILT_IN_GENERAL)
   {
@@ -1485,12 +1486,13 @@ jjs_debugger_exception_object_to_string (jjs_context_t* context_p, /**< JJS cont
     }
   }
 
-  ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+  ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
 
   ecma_stringbuilder_append_magic (&builder, string_id);
 
   ecma_property_t *property_p;
-  property_p = ecma_find_named_property (ecma_get_object_from_value (exception_obj_value),
+  property_p = ecma_find_named_property (context_p,
+                                         ecma_get_object_from_value (context_p, exception_obj_value),
                                          ecma_get_magic_string (LIT_MAGIC_STRING_MESSAGE));
 
   if (property_p == NULL || !(*property_p & ECMA_PROPERTY_FLAG_DATA))
@@ -1507,7 +1509,7 @@ jjs_debugger_exception_object_to_string (jjs_context_t* context_p, /**< JJS cont
 
   ecma_stringbuilder_append_byte (&builder, LIT_CHAR_COLON);
   ecma_stringbuilder_append_byte (&builder, LIT_CHAR_SP);
-  ecma_stringbuilder_append (&builder, ecma_get_string_from_value (prop_value_p->value));
+  ecma_stringbuilder_append (&builder, ecma_get_string_from_value (context_p, prop_value_p->value));
 
   return ecma_stringbuilder_finalize (&builder);
 } /* jjs_debugger_exception_object_to_string */
@@ -1530,27 +1532,27 @@ jjs_debugger_send_exception_string (jjs_context_t* context_p, ecma_value_t excep
 
     if (string_p == NULL)
     {
-      string_p = ecma_get_string_from_value (ecma_builtin_helper_object_to_string (exception_value));
+      string_p = ecma_get_string_from_value (context_p, ecma_builtin_helper_object_to_string (exception_value));
     }
   }
   else if (ecma_is_value_string (exception_value))
   {
-    string_p = ecma_get_string_from_value (exception_value);
+    string_p = ecma_get_string_from_value (context_p, exception_value);
     ecma_ref_ecma_string (string_p);
   }
   else
   {
-    string_p = ecma_op_to_string (exception_value);
+    string_p = ecma_op_to_string (context_p, exception_value);
   }
 
-  ECMA_STRING_TO_UTF8_STRING (string_p, string_data_p, string_size);
+  ECMA_STRING_TO_UTF8_STRING (context_p, string_p, string_data_p, string_size);
 
   bool result =
     jjs_debugger_send_string (context_p, JJS_DEBUGGER_EXCEPTION_STR, JJS_DEBUGGER_NO_SUBTYPE, string_data_p, string_size);
 
-  ECMA_FINALIZE_UTF8_STRING (string_data_p, string_size);
+  ECMA_FINALIZE_UTF8_STRING (context_p, string_data_p, string_size);
 
-  ecma_deref_ecma_string (string_p);
+  ecma_deref_ecma_string (context_p, string_p);
   return result;
 } /* jjs_debugger_send_exception_string */
 

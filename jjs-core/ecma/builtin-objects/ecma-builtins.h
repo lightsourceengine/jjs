@@ -135,7 +135,7 @@ void ecma_builtin_list_lazy_property_names (ecma_object_t *object_p,
                                             jjs_property_filter_t filter);
 bool ecma_builtin_is_global (ecma_object_t *object_p);
 ecma_object_t *ecma_builtin_get (ecma_builtin_id_t builtin_id);
-ecma_object_t *ecma_builtin_get_global (void);
+ecma_object_t *ecma_builtin_get_global (ecma_context_t *context_p);
 bool ecma_builtin_function_is_routine (ecma_object_t *func_obj_p);
 
 #if JJS_BUILTIN_REALMS

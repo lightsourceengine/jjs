@@ -44,7 +44,7 @@ annex_util_define_function (jjs_context_t* context_p,
                             lit_magic_string_id_t name_id,
                             ecma_native_handler_t handler_p)
 {
-  ecma_value_t fn = ecma_make_object_value (ecma_op_create_external_function_object (handler_p));
+  ecma_value_t fn = ecma_make_object_value (context_p, ecma_op_create_external_function_object (context_p, handler_p));
 
   annex_util_define_value (context_p, object_p, name_id, fn, JJS_MOVE);
 } /* annex_util_define_function */
@@ -71,11 +71,12 @@ annex_util_define_value (jjs_context_t* context_p,
   };
 
   ecma_value_t result = ecma_op_object_define_own_property (
+    context_p,
     object_p,
     ecma_get_magic_string (name_id),
     &prop_desc);
 
-  ecma_free_value (result);
+  ecma_free_value (context_p, result);
 
   JJS_DISOWN (context_p, value, value_o);
 } /* annex_util_define_value */
@@ -102,11 +103,12 @@ annex_util_define_ro_value (jjs_context_t* context_p,
   };
 
   ecma_value_t result = ecma_op_object_define_own_property (
+    context_p,
     object_p,
     ecma_get_magic_string (name_id),
     &prop_desc);
 
-  ecma_free_value (result);
+  ecma_free_value (context_p, result);
 
   JJS_DISOWN (context_p, value, value_o);
 } /* annex_util_define_value_ro */
@@ -318,7 +320,8 @@ annex_util_create_string_utf8_sz (jjs_context_t* context_p, const char* str_p)
  * @return true if the package name is valid; otherwise, false
  */
 bool
-annex_util_is_valid_package_name (ecma_value_t name)
+annex_util_is_valid_package_name (jjs_context_t *context_p, /**< JJS context */
+                                  ecma_value_t name)
 {
   if (!ecma_is_value_string (name))
   {
@@ -328,9 +331,9 @@ annex_util_is_valid_package_name (ecma_value_t name)
   bool result = false;
   lit_utf8_byte_t c;
   lit_utf8_size_t i;
-  ecma_string_t* name_p = ecma_get_string_from_value (name);
+  ecma_string_t* name_p = ecma_get_string_from_value (context_p, name);
 
-  ECMA_STRING_TO_UTF8_STRING (name_p, name_bytes_p, name_bytes_len);
+  ECMA_STRING_TO_UTF8_STRING (context_p, name_p, name_bytes_p, name_bytes_len);
 
   // empty strings are invalid
   // strings that are too long are invalid
@@ -377,6 +380,6 @@ annex_util_is_valid_package_name (ecma_value_t name)
   result = true;
 
 done:
-  ECMA_FINALIZE_UTF8_STRING (name_bytes_p, name_bytes_len);
+  ECMA_FINALIZE_UTF8_STRING (context_p, name_bytes_p, name_bytes_len);
   return result;
 } /* annex_util_is_valid_package_name */

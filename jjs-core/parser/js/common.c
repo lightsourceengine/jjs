@@ -39,18 +39,19 @@
  * Free literal.
  */
 void
-util_free_literal (lexer_literal_t *literal_p) /**< literal */
+util_free_literal (ecma_context_t *context_p, /**< JJS context */
+                   lexer_literal_t *literal_p) /**< literal */
 {
   if (literal_p->type == LEXER_IDENT_LITERAL || literal_p->type == LEXER_STRING_LITERAL)
   {
     if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
     {
-      jmem_heap_free_block ((void *) literal_p->u.char_p, literal_p->prop.length);
+      jmem_heap_free_block (context_p, (void *) literal_p->u.char_p, literal_p->prop.length);
     }
   }
   else if ((literal_p->type == LEXER_FUNCTION_LITERAL) || (literal_p->type == LEXER_REGEXP_LITERAL))
   {
-    ecma_bytecode_deref (literal_p->u.bytecode_p);
+    ecma_bytecode_deref (context_p, literal_p->u.bytecode_p);
   }
 } /* util_free_literal */
 

@@ -39,7 +39,7 @@ static void module_on_init_scope (jjs_context_t* context_p, ecma_module_t* modul
  }
 
  ecma_value_t script_value = ((cbc_uint8_arguments_t *) module_p->u.compiled_code_p)->script_value;
- const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (cbc_script_t, script_value);
+ const cbc_script_t *script_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, cbc_script_t, script_value);
 
  if (!(script_p->refs_and_type & CBC_SCRIPT_HAS_USER_VALUE))
  {
@@ -51,7 +51,8 @@ static void module_on_init_scope (jjs_context_t* context_p, ecma_module_t* modul
  if (!jjs_value_is_exception (context_p, require))
  {
    ecma_property_value_t *value_p =
-     ecma_create_named_data_property (module_p->scope_p,
+     ecma_create_named_data_property (context_p,
+                                      module_p->scope_p,
                                       ecma_get_magic_string (LIT_MAGIC_STRING_REQUIRE),
                                       ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
                                       NULL);
@@ -123,8 +124,8 @@ void jjs_annex_init_realm (jjs_context_t* context_p, ecma_global_object_t* globa
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
 
 #if JJS_ANNEX_COMMONJS
-  global_p->commonjs_cache = ecma_create_object_with_null_proto ();
-  ecma_free_value (global_p->commonjs_cache);
+  global_p->commonjs_cache = ecma_create_object_with_null_proto (context_p);
+  ecma_free_value (context_p, global_p->commonjs_cache);
 
   ecma_value_t fn = jjs_annex_create_require (context_p, ECMA_VALUE_UNDEFINED);
 
@@ -138,13 +139,13 @@ void jjs_annex_init_realm (jjs_context_t* context_p, ecma_global_object_t* globa
 #endif /* JJS_ANNEX_COMMONJS */
 
 #if JJS_ANNEX_ESM
-  global_p->esm_cache = ecma_create_object_with_null_proto ();
-  ecma_free_value (global_p->esm_cache);
+  global_p->esm_cache = ecma_create_object_with_null_proto (context_p);
+  ecma_free_value (context_p, global_p->esm_cache);
 #endif /* JJS_ANNEX_ESM */
 
 #if JJS_ANNEX_VMOD
-  global_p->vmod_cache = ecma_create_object_with_null_proto ();
-  ecma_free_value (global_p->vmod_cache);
+  global_p->vmod_cache = ecma_create_object_with_null_proto (context_p);
+  ecma_free_value (context_p, global_p->vmod_cache);
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_annex_init_realm */
 
@@ -163,7 +164,7 @@ void jjs_annex_finalize (jjs_context_t* context_p)
   // mark esm_cache, fixes the issue.
   //
   // in the future, jjs_esm_cleanup(realm) should be exposed for realm users.
-  ecma_get_global_object ()->esm_cache = ECMA_VALUE_UNDEFINED;
+  ecma_get_global_object (context_p)->esm_cache = ECMA_VALUE_UNDEFINED;
 #endif /* JJS_MODULE_SYSTEM */
 
 #if JJS_ANNEX_PMAP

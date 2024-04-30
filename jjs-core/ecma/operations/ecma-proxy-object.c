@@ -49,7 +49,8 @@
  *         raised error - otherwise
  */
 ecma_object_t *
-ecma_proxy_create (ecma_value_t target, /**< proxy target */
+ecma_proxy_create (ecma_context_t *context_p, /**< JJS context */
+                   ecma_value_t target, /**< proxy target */
                    ecma_value_t handler, /**< proxy handler */
                    uint32_t options) /**< ecma_proxy_flag_types_t option bits */
 {
@@ -57,14 +58,14 @@ ecma_proxy_create (ecma_value_t target, /**< proxy target */
   /* ES11+: 1 - 2. */
   if (!ecma_is_value_object (target) || !ecma_is_value_object (handler))
   {
-    ecma_raise_type_error (ECMA_ERR_CANNOT_CREATE_PROXY);
+    ecma_raise_type_error (context_p, ECMA_ERR_CANNOT_CREATE_PROXY);
     return NULL;
   }
 
   /* ES2015: 5 - 6. */
   /* ES11+: 3 - 4. */
   /* A Proxy does not have [[Prototype]] value as per standard */
-  ecma_object_t *obj_p = ecma_create_object (NULL, sizeof (ecma_proxy_object_t), ECMA_OBJECT_TYPE_PROXY);
+  ecma_object_t *obj_p = ecma_create_object (context_p, NULL, sizeof (ecma_proxy_object_t), ECMA_OBJECT_TYPE_PROXY);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -72,13 +73,13 @@ ecma_proxy_create (ecma_value_t target, /**< proxy target */
 
   /* ES2015: 7. */
   /* ES11+: 5. */
-  if (ecma_op_is_callable (target))
+  if (ecma_op_is_callable (context_p, target))
   {
     obj_p->u2.prototype_cp |= ECMA_PROXY_IS_CALLABLE;
 
     /* ES2015: 7.b. */
     /* ES11+: 5.b. */
-    if (ecma_is_constructor (target))
+    if (ecma_is_constructor (context_p, target))
     {
       obj_p->u2.prototype_cp |= ECMA_PROXY_IS_CONSTRUCTABLE;
     }
@@ -106,7 +107,8 @@ ecma_proxy_create (ecma_value_t target, /**< proxy target */
  * @return ECMA_VALUE_UNDEFINED
  */
 ecma_value_t
-ecma_proxy_revoke_cb (ecma_object_t *function_obj_p, /**< function object */
+ecma_proxy_revoke_cb (ecma_context_t *context_p, /**< JJS context */
+                      ecma_object_t *function_obj_p, /**< function object */
                       const ecma_value_t args_p[], /**< argument list */
                       const uint32_t args_count) /**< argument number */
 {
@@ -122,7 +124,7 @@ ecma_proxy_revoke_cb (ecma_object_t *function_obj_p, /**< function object */
   }
 
   /* 4. */
-  ecma_proxy_object_t *proxy_p = (ecma_proxy_object_t *) ecma_get_object_from_value (rev_proxy_p->proxy);
+  ecma_proxy_object_t *proxy_p = (ecma_proxy_object_t *) ecma_get_object_from_value (context_p, rev_proxy_p->proxy);
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY ((ecma_object_t *) proxy_p));
 
   /* 3. */
@@ -148,11 +150,12 @@ ecma_proxy_revoke_cb (ecma_object_t *function_obj_p, /**< function object */
  *         pointer to the newly created revocable proxy object - otherwise
  */
 ecma_object_t *
-ecma_proxy_create_revocable (ecma_value_t target, /**< target argument */
+ecma_proxy_create_revocable (ecma_context_t *context_p, /**< JJS context */
+                             ecma_value_t target, /**< target argument */
                              ecma_value_t handler) /**< handler argument */
 {
   /* 1. */
-  ecma_object_t *proxy_p = ecma_proxy_create (target, handler, 0);
+  ecma_object_t *proxy_p = ecma_proxy_create (context_p, target, handler, 0);
 
   /* 2. */
   if (proxy_p == NULL)
@@ -160,32 +163,32 @@ ecma_proxy_create_revocable (ecma_value_t target, /**< target argument */
     return proxy_p;
   }
 
-  ecma_value_t proxy_value = ecma_make_object_value (proxy_p);
+  ecma_value_t proxy_value = ecma_make_object_value (context_p, proxy_p);
 
   /* 3. */
   ecma_object_t *func_obj_p;
-  func_obj_p = ecma_op_create_native_handler (ECMA_NATIVE_HANDLER_PROXY_REVOKE, sizeof (ecma_revocable_proxy_object_t));
+  func_obj_p = ecma_op_create_native_handler (context_p, ECMA_NATIVE_HANDLER_PROXY_REVOKE, sizeof (ecma_revocable_proxy_object_t));
 
   /* 4. */
   ecma_revocable_proxy_object_t *rev_proxy_p = (ecma_revocable_proxy_object_t *) func_obj_p;
   rev_proxy_p->proxy = proxy_value;
 
   ecma_property_value_t *prop_value_p;
-  ecma_value_t revoker = ecma_make_object_value (func_obj_p);
+  ecma_value_t revoker = ecma_make_object_value (context_p, func_obj_p);
 
   /* 5. */
   ecma_object_t *obj_p =
-    ecma_create_object (ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
+    ecma_create_object (context_p, ecma_builtin_get (ECMA_BUILTIN_ID_OBJECT_PROTOTYPE), 0, ECMA_OBJECT_TYPE_GENERAL);
 
   /* 6. */
-  prop_value_p = ecma_create_named_data_property (obj_p,
+  prop_value_p = ecma_create_named_data_property (context_p, obj_p,
                                                   ecma_get_magic_string (LIT_MAGIC_STRING_PROXY),
                                                   ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
                                                   NULL);
   prop_value_p->value = proxy_value;
 
   /* 7. */
-  prop_value_p = ecma_create_named_data_property (obj_p,
+  prop_value_p = ecma_create_named_data_property (context_p, obj_p,
                                                   ecma_get_magic_string (LIT_MAGIC_STRING_REVOKE),
                                                   ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE,
                                                   NULL);
@@ -208,12 +211,13 @@ ecma_proxy_create_revocable (ecma_value_t target, /**< target argument */
  *         value of the property - otherwise
  */
 ecma_value_t
-ecma_proxy_object_find (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_find (ecma_context_t *context_p, /**< JJS context */
+                        ecma_object_t *obj_p, /**< proxy object */
                         ecma_string_t *prop_name_p) /**< property name */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
 
-  ecma_value_t has_result = ecma_proxy_object_has (obj_p, prop_name_p);
+  ecma_value_t has_result = ecma_proxy_object_has (context_p, obj_p, prop_name_p);
 
   if (ECMA_IS_VALUE_ERROR (has_result))
   {
@@ -225,7 +229,7 @@ ecma_proxy_object_find (ecma_object_t *obj_p, /**< proxy object */
     return ECMA_VALUE_NOT_FOUND;
   }
 
-  return ecma_proxy_object_get (obj_p, prop_name_p, ecma_make_object_value (obj_p));
+  return ecma_proxy_object_get (context_p, obj_p, prop_name_p, ecma_make_object_value (context_p, obj_p));
 } /* ecma_proxy_object_find */
 
 /**
@@ -235,17 +239,18 @@ ecma_proxy_object_find (ecma_object_t *obj_p, /**< proxy object */
  *         ECMA_VALUE_ERROR - otherwise
  */
 static ecma_value_t
-ecma_validate_proxy_object (ecma_value_t handler, /**< proxy handler */
+ecma_validate_proxy_object (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t handler, /**< proxy handler */
                             lit_magic_string_id_t magic_id) /**< routine magic id */
 {
   if (ecma_is_value_null (handler))
   {
-    return ecma_raise_type_error (ECMA_ERR_HANDLER_CANNOT_BE_NULL);
+    return ecma_raise_type_error (context_p, ECMA_ERR_HANDLER_CANNOT_BE_NULL);
   }
 
   JJS_ASSERT (ecma_is_value_object (handler));
 
-  return ecma_op_get_method_by_magic_id (handler, magic_id);
+  return ecma_op_get_method_by_magic_id (context_p, handler, magic_id);
 } /* ecma_validate_proxy_object */
 
 /* Interal operations */
@@ -260,7 +265,8 @@ ecma_validate_proxy_object (ecma_value_t handler, /**< proxy handler */
  *         ECMA_VALUE_NULL or valid object (prototype) otherwise
  */
 ecma_value_t
-ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
+ecma_proxy_object_get_prototype_of (ecma_context_t *context_p, /**< JJS context */
+                                    ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
   ECMA_CHECK_STACK_USAGE ();
@@ -271,7 +277,7 @@ ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 2-5. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_GET_PROTOTYPE_OF_UL);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_GET_PROTOTYPE_OF_UL);
 
   /* 6. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -280,7 +286,7 @@ ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 7. */
   if (ecma_is_value_undefined (trap))
@@ -290,10 +296,10 @@ ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
 
   /* 8. */
-  ecma_value_t handler_proto = ecma_op_function_call (func_obj_p, handler, &target, 1);
+  ecma_value_t handler_proto = ecma_op_function_call (context_p, func_obj_p, handler, &target, 1);
 
   ecma_deref_object (func_obj_p);
 
@@ -306,9 +312,9 @@ ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
   /* 10. */
   if (!ecma_is_value_object (handler_proto) && !ecma_is_value_null (handler_proto))
   {
-    ecma_free_value (handler_proto);
+    ecma_free_value (context_p, handler_proto);
 
-    return ecma_raise_type_error (ECMA_ERR_TRAP_RETURNED_NEITHER_OBJECT_NOR_NULL);
+    return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_RETURNED_NEITHER_OBJECT_NOR_NULL);
   }
 
   if (obj_p->u2.prototype_cp & JJS_PROXY_SKIP_RESULT_VALIDATION)
@@ -322,7 +328,7 @@ ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
   /* 12. */
   if (ECMA_IS_VALUE_ERROR (extensible_target))
   {
-    ecma_free_value (handler_proto);
+    ecma_free_value (context_p, handler_proto);
 
     return extensible_target;
   }
@@ -347,12 +353,12 @@ ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
   /* 16. */
   if (handler_proto != target_proto)
   {
-    ecma_free_value (handler_proto);
+    ecma_free_value (context_p, handler_proto);
 
-    ret_value = ecma_raise_type_error (ECMA_ERR_TARGET_NOT_EXTENSIBLE_NOT_RETURNED_ITS_PROTOTYPE);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TARGET_NOT_EXTENSIBLE_NOT_RETURNED_ITS_PROTOTYPE);
   }
 
-  ecma_free_value (target_proto);
+  ecma_free_value (context_p, target_proto);
 
   /* 17. */
   return ret_value;
@@ -371,7 +377,8 @@ ecma_proxy_object_get_prototype_of (ecma_object_t *obj_p) /**< proxy object */
  *         ECMA_VALUE_{TRUE/FALSE} - depends on whether the new prototype can be set for the given object
  */
 ecma_value_t
-ecma_proxy_object_set_prototype_of (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_set_prototype_of (ecma_context_t *context_p, /**< JJS context */
+                                    ecma_object_t *obj_p, /**< proxy object */
                                     ecma_value_t proto) /**< new prototype object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
@@ -386,7 +393,7 @@ ecma_proxy_object_set_prototype_of (ecma_object_t *obj_p, /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 3-6. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_SET_PROTOTYPE_OF_UL);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_SET_PROTOTYPE_OF_UL);
 
   /* 7.*/
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -395,28 +402,28 @@ ecma_proxy_object_set_prototype_of (ecma_object_t *obj_p, /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 8. */
   if (ecma_is_value_undefined (trap))
   {
     if (ECMA_OBJECT_IS_PROXY (target_obj_p))
     {
-      ecma_value_t result = ecma_proxy_object_set_prototype_of (target_obj_p, proto);
+      ecma_value_t result = ecma_proxy_object_set_prototype_of (context_p, target_obj_p, proto);
       JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
       return result;
     }
 
-    ecma_value_t result = ecma_op_ordinary_object_set_prototype_of (target_obj_p, proto);
+    ecma_value_t result = ecma_op_ordinary_object_set_prototype_of (context_p, target_obj_p, proto);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
   ecma_value_t args[] = { target, proto };
 
   /* 9. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, args, 2);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, args, 2);
 
   ecma_deref_object (func_obj_p);
 
@@ -426,9 +433,9 @@ ecma_proxy_object_set_prototype_of (ecma_object_t *obj_p, /**< proxy object */
     return trap_result;
   }
 
-  bool boolean_trap_result = ecma_op_to_boolean (trap_result);
+  bool boolean_trap_result = ecma_op_to_boolean (context_p, trap_result);
 
-  ecma_free_value (trap_result);
+  ecma_free_value (context_p, trap_result);
 
   /* ES11: 9 */
   if (!boolean_trap_result)
@@ -470,10 +477,10 @@ ecma_proxy_object_set_prototype_of (ecma_object_t *obj_p, /**< proxy object */
   /* 16. */
   if (boolean_trap_result && (target_proto != proto))
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_TARGET_NOT_EXTENSIBLE_DIFFERENT_PROTOTYPE_RETURNED);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TARGET_NOT_EXTENSIBLE_DIFFERENT_PROTOTYPE_RETURNED);
   }
 
-  ecma_free_value (target_proto);
+  ecma_free_value (context_p, target_proto);
 
   /* 17. */
   return ret_value;
@@ -491,7 +498,8 @@ ecma_proxy_object_set_prototype_of (ecma_object_t *obj_p, /**< proxy object */
  *         ECMA_VALUE_{TRUE/FALSE} - depends on whether the object is extensible
  */
 ecma_value_t
-ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
+ecma_proxy_object_is_extensible (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
   ECMA_CHECK_STACK_USAGE ();
@@ -502,7 +510,7 @@ ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 2-5. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_IS_EXTENSIBLE);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_IS_EXTENSIBLE);
 
   /* 6. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -511,7 +519,7 @@ ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 7. */
   if (ecma_is_value_undefined (trap))
@@ -521,10 +529,10 @@ ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
 
   /* 8. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, &target, 1);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, &target, 1);
 
   ecma_deref_object (func_obj_p);
 
@@ -534,9 +542,9 @@ ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
     return trap_result;
   }
 
-  bool boolean_trap_result = ecma_op_to_boolean (trap_result);
+  bool boolean_trap_result = ecma_op_to_boolean (context_p, trap_result);
 
-  ecma_free_value (trap_result);
+  ecma_free_value (context_p, trap_result);
 
   if (obj_p->u2.prototype_cp & JJS_PROXY_SKIP_RESULT_VALIDATION)
   {
@@ -548,7 +556,7 @@ ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
   /* 10. */
   if (ECMA_OBJECT_IS_PROXY (target_obj_p))
   {
-    ecma_value_t proxy_is_ext = ecma_proxy_object_is_extensible (target_obj_p);
+    ecma_value_t proxy_is_ext = ecma_proxy_object_is_extensible (context_p, target_obj_p);
 
     if (ECMA_IS_VALUE_ERROR (proxy_is_ext))
     {
@@ -559,13 +567,13 @@ ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
   }
   else
   {
-    target_result = ecma_op_ordinary_object_is_extensible (target_obj_p);
+    target_result = ecma_op_ordinary_object_is_extensible (context_p, target_obj_p);
   }
 
   /* 12. */
   if (boolean_trap_result != target_result)
   {
-    return ecma_raise_type_error (ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_EXTENSIBILITY);
+    return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_EXTENSIBILITY);
   }
 
   return ecma_make_boolean_value (boolean_trap_result);
@@ -583,7 +591,8 @@ ecma_proxy_object_is_extensible (ecma_object_t *obj_p) /**< proxy object */
  *         ECMA_VALUE_{TRUE/FALSE} - depends on whether the object can be set as inextensible
  */
 ecma_value_t
-ecma_proxy_object_prevent_extensions (ecma_object_t *obj_p) /**< proxy object */
+ecma_proxy_object_prevent_extensions (ecma_context_t *context_p, /**< JJS context */
+                                      ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
   ECMA_CHECK_STACK_USAGE ();
@@ -594,7 +603,7 @@ ecma_proxy_object_prevent_extensions (ecma_object_t *obj_p) /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 2-5. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_PREVENT_EXTENSIONS_UL);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_PREVENT_EXTENSIONS_UL);
 
   /* 6. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -603,7 +612,7 @@ ecma_proxy_object_prevent_extensions (ecma_object_t *obj_p) /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 7. */
   if (ecma_is_value_undefined (trap))
@@ -620,10 +629,10 @@ ecma_proxy_object_prevent_extensions (ecma_object_t *obj_p) /**< proxy object */
     return ECMA_VALUE_TRUE;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
 
   /* 8. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, &target, 1);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, &target, 1);
 
   ecma_deref_object (func_obj_p);
 
@@ -633,9 +642,9 @@ ecma_proxy_object_prevent_extensions (ecma_object_t *obj_p) /**< proxy object */
     return trap_result;
   }
 
-  bool boolean_trap_result = ecma_op_to_boolean (trap_result);
+  bool boolean_trap_result = ecma_op_to_boolean (context_p, trap_result);
 
-  ecma_free_value (trap_result);
+  ecma_free_value (context_p, trap_result);
 
   /* 10. */
   if (boolean_trap_result && !(obj_p->u2.prototype_cp & JJS_PROXY_SKIP_RESULT_VALIDATION))
@@ -649,7 +658,7 @@ ecma_proxy_object_prevent_extensions (ecma_object_t *obj_p) /**< proxy object */
 
     if (ecma_is_value_true (target_is_ext))
     {
-      return ecma_raise_type_error (ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_INEXTENSIBILITY);
+      return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_RESULT_NOT_REFLECT_TARGET_INEXTENSIBILITY);
     }
   }
 
@@ -670,7 +679,8 @@ ecma_proxy_object_prevent_extensions (ecma_object_t *obj_p) /**< proxy object */
  *         ECMA_VALUE_{TRUE_FALSE} - depends on whether object has property with the given name
  */
 ecma_value_t
-ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_get_own_property_descriptor (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_object_t *obj_p, /**< proxy object */
                                                ecma_string_t *prop_name_p, /**< property name */
                                                ecma_property_descriptor_t *prop_desc_p) /**< [out] property
                                                                                          *   descriptor */
@@ -683,7 +693,7 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 3-6. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_GET_OWN_PROPERTY_DESCRIPTOR_UL);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_GET_OWN_PROPERTY_DESCRIPTOR_UL);
 
   ecma_value_t target = proxy_obj_p->target;
 
@@ -693,22 +703,22 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
     return trap;
   }
 
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 8. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t result = ecma_op_object_get_own_property_descriptor (target_obj_p, prop_name_p, prop_desc_p);
+    ecma_value_t result = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, prop_desc_p);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
-  ecma_value_t prop_value = ecma_make_prop_name_value (prop_name_p);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
+  ecma_value_t prop_value = ecma_make_prop_name_value (context_p, prop_name_p);
   ecma_value_t args[] = { target, prop_value };
 
   /* 9. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, args, 2);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, args, 2);
   ecma_deref_object (func_obj_p);
 
   /* 10. */
@@ -720,8 +730,8 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
   /* 11. */
   if (!ecma_is_value_object (trap_result) && !ecma_is_value_undefined (trap_result))
   {
-    ecma_free_value (trap_result);
-    return ecma_raise_type_error (ECMA_ERR_TRAP_IS_NEITHER_AN_OBJECT_NOR_UNDEFINED);
+    ecma_free_value (context_p, trap_result);
+    return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_IS_NEITHER_AN_OBJECT_NOR_UNDEFINED);
   }
 
   if (obj_p->u2.prototype_cp & JJS_PROXY_SKIP_RESULT_VALIDATION)
@@ -731,26 +741,26 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
       return ECMA_VALUE_FALSE;
     }
 
-    ecma_value_t result_val = ecma_op_to_property_descriptor (trap_result, prop_desc_p);
-    ecma_free_value (trap_result);
+    ecma_value_t result_val = ecma_op_to_property_descriptor (context_p, trap_result, prop_desc_p);
+    ecma_free_value (context_p, trap_result);
 
     if (ECMA_IS_VALUE_ERROR (result_val))
     {
       return result_val;
     }
 
-    ecma_op_to_complete_property_descriptor (prop_desc_p);
+    ecma_op_to_complete_property_descriptor (context_p, prop_desc_p);
     return ECMA_VALUE_TRUE;
   }
 
   /* 12. */
   ecma_property_descriptor_t target_desc;
-  ecma_value_t target_status = ecma_op_object_get_own_property_descriptor (target_obj_p, prop_name_p, &target_desc);
+  ecma_value_t target_status = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, &target_desc);
 
   /* 13. */
   if (ECMA_IS_VALUE_ERROR (target_status))
   {
-    ecma_free_value (trap_result);
+    ecma_free_value (context_p, trap_result);
     return target_status;
   }
 
@@ -765,12 +775,12 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
     /* .b */
     if (!(target_desc.flags & JJS_PROP_IS_CONFIGURABLE))
     {
-      ecma_free_property_descriptor (&target_desc);
-      return ecma_raise_type_error (ECMA_ERR_GIVEN_PROPERTY_IS_A_NON_CONFIGURABLE);
+      ecma_free_property_descriptor (context_p, &target_desc);
+      return ecma_raise_type_error (context_p, ECMA_ERR_GIVEN_PROPERTY_IS_A_NON_CONFIGURABLE);
     }
 
     /* .c */
-    ecma_free_property_descriptor (&target_desc);
+    ecma_free_property_descriptor (context_p, &target_desc);
     ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
 
     /* .d */
@@ -785,7 +795,7 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
     /* .f */
     if (ecma_is_value_false (extensible_target))
     {
-      return ecma_raise_type_error (ECMA_ERR_TARGET_NOT_EXTENSIBLE);
+      return ecma_raise_type_error (context_p, ECMA_ERR_TARGET_NOT_EXTENSIBLE);
     }
 
     /* .g */
@@ -800,24 +810,24 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
   {
     if (ecma_is_value_true (target_status))
     {
-      ecma_free_property_descriptor (&target_desc);
+      ecma_free_property_descriptor (context_p, &target_desc);
     }
-    ecma_free_value (trap_result);
+    ecma_free_value (context_p, trap_result);
     return extensible_target;
   }
 
   /* 17, 19 */
-  ecma_value_t result_val = ecma_op_to_property_descriptor (trap_result, prop_desc_p);
+  ecma_value_t result_val = ecma_op_to_property_descriptor (context_p, trap_result, prop_desc_p);
 
-  ecma_op_to_complete_property_descriptor (prop_desc_p);
-  ecma_free_value (trap_result);
+  ecma_op_to_complete_property_descriptor (context_p, prop_desc_p);
+  ecma_free_value (context_p, trap_result);
 
   /* 18. */
   if (ECMA_IS_VALUE_ERROR (result_val))
   {
     if (ecma_is_value_true (target_status))
     {
-      ecma_free_property_descriptor (&target_desc);
+      ecma_free_property_descriptor (context_p, &target_desc);
     }
     return result_val;
   }
@@ -825,7 +835,8 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
   /* 20. */
   bool is_extensible = ecma_is_value_true (extensible_target);
 
-  bool is_valid = ecma_op_is_compatible_property_descriptor (prop_desc_p,
+  bool is_valid = ecma_op_is_compatible_property_descriptor (context_p,
+                                                             prop_desc_p,
                                                              (ecma_is_value_true (target_status) ? &target_desc : NULL),
                                                              is_extensible);
 
@@ -836,14 +847,14 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
   if (target_has_desc)
   {
     target_is_configurable = ((target_desc.flags & JJS_PROP_IS_CONFIGURABLE) != 0);
-    ecma_free_property_descriptor (&target_desc);
+    ecma_free_property_descriptor (context_p, &target_desc);
   }
 
   /* 21. */
   if (!is_valid)
   {
-    ecma_free_property_descriptor (prop_desc_p);
-    return ecma_raise_type_error (ECMA_ERR_THE_TWO_DESCRIPTORS_ARE_INCOMPATIBLE);
+    ecma_free_property_descriptor (context_p, prop_desc_p);
+    return ecma_raise_type_error (context_p, ECMA_ERR_THE_TWO_DESCRIPTORS_ARE_INCOMPATIBLE);
   }
 
   /* 22. */
@@ -854,8 +865,8 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
     if (!target_has_desc || target_is_configurable
         || ((prop_desc_p->flags & mask) == JJS_PROP_IS_WRITABLE_DEFINED && target_is_writable))
     {
-      ecma_free_property_descriptor (prop_desc_p);
-      return ecma_raise_type_error (ECMA_ERR_THE_TWO_DESCRIPTORS_ARE_INCOMPATIBLE);
+      ecma_free_property_descriptor (context_p, prop_desc_p);
+      return ecma_raise_type_error (context_p, ECMA_ERR_THE_TWO_DESCRIPTORS_ARE_INCOMPATIBLE);
     }
   }
   return ECMA_VALUE_TRUE;
@@ -873,7 +884,8 @@ ecma_proxy_object_get_own_property_descriptor (ecma_object_t *obj_p, /**< proxy 
  *         ECMA_VALUE_{TRUE_FALSE} - depends on whether the property can be defined for the given object
  */
 ecma_value_t
-ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_define_own_property (ecma_context_t *context_p, /**< JJS context */
+                                       ecma_object_t *obj_p, /**< proxy object */
                                        ecma_string_t *prop_name_p, /**< property name */
                                        const ecma_property_descriptor_t *prop_desc_p) /**< property descriptor */
 {
@@ -886,7 +898,7 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 3-6. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_DEFINE_PROPERTY_UL);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_DEFINE_PROPERTY_UL);
 
   /* 7. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -895,26 +907,26 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 8. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t result = ecma_op_object_define_own_property (target_obj_p, prop_name_p, prop_desc_p);
+    ecma_value_t result = ecma_op_object_define_own_property (context_p, target_obj_p, prop_name_p, prop_desc_p);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
   /* 9. */
-  ecma_object_t *desc_obj = ecma_op_from_property_descriptor (prop_desc_p);
+  ecma_object_t *desc_obj = ecma_op_from_property_descriptor (context_p, prop_desc_p);
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
-  ecma_value_t prop_value = ecma_make_prop_name_value (prop_name_p);
-  ecma_value_t desc_obj_value = ecma_make_object_value (desc_obj);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
+  ecma_value_t prop_value = ecma_make_prop_name_value (context_p, prop_name_p);
+  ecma_value_t desc_obj_value = ecma_make_object_value (context_p, desc_obj);
   ecma_value_t args[] = { target, prop_value, desc_obj_value };
 
   /* 10. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, args, 3);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, args, 3);
 
   ecma_deref_object (func_obj_p);
   ecma_deref_object (desc_obj);
@@ -925,9 +937,9 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
     return trap_result;
   }
 
-  bool boolean_trap_result = ecma_op_to_boolean (trap_result);
+  bool boolean_trap_result = ecma_op_to_boolean (context_p, trap_result);
 
-  ecma_free_value (trap_result);
+  ecma_free_value (context_p, trap_result);
 
   /* 12. */
   if (!boolean_trap_result)
@@ -943,7 +955,7 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
   /* 13. */
   ecma_property_descriptor_t target_desc;
 
-  ecma_value_t status = ecma_op_object_get_own_property_descriptor (target_obj_p, prop_name_p, &target_desc);
+  ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, &target_desc);
 
   /* 14. */
   if (ECMA_IS_VALUE_ERROR (status))
@@ -963,7 +975,7 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
   {
     if (target_prop_found)
     {
-      ecma_free_property_descriptor (&target_desc);
+      ecma_free_property_descriptor (context_p, &target_desc);
     }
 
     return extensible_target;
@@ -978,12 +990,12 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
   {
     if (!is_target_ext)
     {
-      return ecma_raise_type_error (ECMA_ERR_TRAP_TRUISH_ADDING_PROPERTY_NON_EXTENSIBLE_TARGET);
+      return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_ADDING_PROPERTY_NON_EXTENSIBLE_TARGET);
     }
 
     if (setting_config_false)
     {
-      return ecma_raise_type_error (ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY);
+      return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY);
     }
   }
   /* 20. */
@@ -991,13 +1003,13 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
   {
     ecma_value_t ret_value = ECMA_VALUE_EMPTY;
 
-    if (!ecma_op_is_compatible_property_descriptor (prop_desc_p, &target_desc, is_target_ext))
+    if (!ecma_op_is_compatible_property_descriptor (context_p, prop_desc_p, &target_desc, is_target_ext))
     {
-      ret_value = ecma_raise_type_error (ECMA_ERR_TRAP_TRUISH_ADD_PROPERTY_INCOMPATIBLE_OTHER_PROP);
+      ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_ADD_PROPERTY_INCOMPATIBLE_OTHER_PROP);
     }
     else if (setting_config_false && (target_desc.flags & JJS_PROP_IS_CONFIGURABLE))
     {
-      ret_value = ecma_raise_type_error (ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY);
+      ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY);
     }
     /* ES11: 16.c */
     else if ((target_desc.flags & (JJS_PROP_IS_VALUE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED)) != 0
@@ -1006,10 +1018,10 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
              && (target_desc.flags & (JJS_PROP_IS_WRITABLE | JJS_PROP_IS_CONFIGURABLE)) == JJS_PROP_IS_WRITABLE)
 
     {
-      ret_value = ecma_raise_type_error (ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY);
+      ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_DEFINING_NON_EXISTENT_PROPERTY);
     }
 
-    ecma_free_property_descriptor (&target_desc);
+    ecma_free_property_descriptor (context_p, &target_desc);
 
     if (ECMA_IS_VALUE_ERROR (ret_value))
     {
@@ -1032,7 +1044,8 @@ ecma_proxy_object_define_own_property (ecma_object_t *obj_p, /**< proxy object *
  *         ECMA_VALUE_{TRUE_FALSE} - depends on whether the property is found
  */
 ecma_value_t
-ecma_proxy_object_has (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_has (ecma_context_t *context_p, /**< JJS context */
+                       ecma_object_t *obj_p, /**< proxy object */
                        ecma_string_t *prop_name_p) /**< property name */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
@@ -1044,7 +1057,7 @@ ecma_proxy_object_has (ecma_object_t *obj_p, /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 3-6. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_HAS);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_HAS);
 
   /* 7. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -1053,22 +1066,22 @@ ecma_proxy_object_has (ecma_object_t *obj_p, /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 8. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t result = ecma_op_object_has_property (target_obj_p, prop_name_p);
+    ecma_value_t result = ecma_op_object_has_property (context_p, target_obj_p, prop_name_p);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
-  ecma_value_t prop_value = ecma_make_prop_name_value (prop_name_p);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
+  ecma_value_t prop_value = ecma_make_prop_name_value (context_p, prop_name_p);
   ecma_value_t args[] = { target, prop_value };
 
   /* 9. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, args, 2);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, args, 2);
 
   ecma_deref_object (func_obj_p);
 
@@ -1078,16 +1091,16 @@ ecma_proxy_object_has (ecma_object_t *obj_p, /**< proxy object */
     return trap_result;
   }
 
-  bool boolean_trap_result = ecma_op_to_boolean (trap_result);
+  bool boolean_trap_result = ecma_op_to_boolean (context_p, trap_result);
 
-  ecma_free_value (trap_result);
+  ecma_free_value (context_p, trap_result);
 
   /* 11. */
   if (!boolean_trap_result && !(obj_p->u2.prototype_cp & JJS_PROXY_SKIP_RESULT_VALIDATION))
   {
     ecma_property_descriptor_t target_desc;
 
-    ecma_value_t status = ecma_op_object_get_own_property_descriptor (target_obj_p, prop_name_p, &target_desc);
+    ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, &target_desc);
 
     if (ECMA_IS_VALUE_ERROR (status))
     {
@@ -1098,11 +1111,11 @@ ecma_proxy_object_has (ecma_object_t *obj_p, /**< proxy object */
     {
       bool prop_is_configurable = target_desc.flags & JJS_PROP_IS_CONFIGURABLE;
 
-      ecma_free_property_descriptor (&target_desc);
+      ecma_free_property_descriptor (context_p, &target_desc);
 
       if (!prop_is_configurable)
       {
-        return ecma_raise_type_error (ECMA_ERR_TRAP_FALSISH_PROPERTY_NON_CONFIGURABLE);
+        return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_FALSISH_PROPERTY_NON_CONFIGURABLE);
       }
 
       ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
@@ -1114,7 +1127,7 @@ ecma_proxy_object_has (ecma_object_t *obj_p, /**< proxy object */
 
       if (ecma_is_value_false (extensible_target))
       {
-        return ecma_raise_type_error (ECMA_ERR_TRAP_FALSISH_PROPERTY_TARGET_NOT_EXTENSIBLE);
+        return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_FALSISH_PROPERTY_TARGET_NOT_EXTENSIBLE);
       }
     }
   }
@@ -1135,7 +1148,8 @@ ecma_proxy_object_has (ecma_object_t *obj_p, /**< proxy object */
  *         value of the given nameddata property or the result of the getter function call - otherwise
  */
 ecma_value_t
-ecma_proxy_object_get (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_get (ecma_context_t *context_p, /**< JJS context */
+                       ecma_object_t *obj_p, /**< proxy object */
                        ecma_string_t *prop_name_p, /**< property name */
                        ecma_value_t receiver) /**< receiver to invoke getter function */
 {
@@ -1148,7 +1162,7 @@ ecma_proxy_object_get (ecma_object_t *obj_p, /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 3-6. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_GET);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_GET);
 
   /* 7. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -1159,18 +1173,18 @@ ecma_proxy_object_get (ecma_object_t *obj_p, /**< proxy object */
   /* 8. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_object_t *target_obj_p = ecma_get_object_from_value (proxy_obj_p->target);
-    ecma_value_t result = ecma_op_object_get_with_receiver (target_obj_p, prop_name_p, receiver);
+    ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, proxy_obj_p->target);
+    ecma_value_t result = ecma_op_object_get_with_receiver (context_p, target_obj_p, prop_name_p, receiver);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
-  ecma_value_t prop_value = ecma_make_prop_name_value (prop_name_p);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
+  ecma_value_t prop_value = ecma_make_prop_name_value (context_p, prop_name_p);
   ecma_value_t args[] = { proxy_obj_p->target, prop_value, receiver };
 
   /* 9. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, args, 3);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, args, 3);
 
   ecma_deref_object (func_obj_p);
 
@@ -1182,12 +1196,12 @@ ecma_proxy_object_get (ecma_object_t *obj_p, /**< proxy object */
 
   /* 11. */
   ecma_property_descriptor_t target_desc;
-  ecma_value_t status = ecma_op_get_own_property_descriptor (proxy_obj_p->target, prop_name_p, &target_desc);
+  ecma_value_t status = ecma_op_get_own_property_descriptor (context_p, proxy_obj_p->target, prop_name_p, &target_desc);
 
   /* 12. */
   if (ECMA_IS_VALUE_ERROR (status))
   {
-    ecma_free_value (trap_result);
+    ecma_free_value (context_p, trap_result);
     return status;
   }
 
@@ -1197,22 +1211,22 @@ ecma_proxy_object_get (ecma_object_t *obj_p, /**< proxy object */
     ecma_value_t ret_value = ECMA_VALUE_EMPTY;
 
     if ((target_desc.flags & JJS_PROP_IS_VALUE_DEFINED) && !(target_desc.flags & JJS_PROP_IS_CONFIGURABLE)
-        && !(target_desc.flags & JJS_PROP_IS_WRITABLE) && !ecma_op_same_value (trap_result, target_desc.value))
+        && !(target_desc.flags & JJS_PROP_IS_WRITABLE) && !ecma_op_same_value (context_p, trap_result, target_desc.value))
     {
-      ret_value = ecma_raise_type_error (ECMA_ERR_INCORRECT_RETURN_PROXY_GET_TRAP);
+      ret_value = ecma_raise_type_error (context_p, ECMA_ERR_INCORRECT_RETURN_PROXY_GET_TRAP);
     }
     else if (!(target_desc.flags & JJS_PROP_IS_CONFIGURABLE)
              && (target_desc.flags & (JJS_PROP_IS_GET_DEFINED | JJS_PROP_IS_SET_DEFINED))
              && target_desc.get_p == NULL && !ecma_is_value_undefined (trap_result))
     {
-      ret_value = ecma_raise_type_error (ECMA_ERR_PROXY_PROPERTY_NOT_CONFIGURABLE_NOT_HAVE_GETTER);
+      ret_value = ecma_raise_type_error (context_p, ECMA_ERR_PROXY_PROPERTY_NOT_CONFIGURABLE_NOT_HAVE_GETTER);
     }
 
-    ecma_free_property_descriptor (&target_desc);
+    ecma_free_property_descriptor (context_p, &target_desc);
 
     if (ECMA_IS_VALUE_ERROR (ret_value))
     {
-      ecma_free_value (trap_result);
+      ecma_free_value (context_p, trap_result);
 
       return ret_value;
     }
@@ -1234,7 +1248,8 @@ ecma_proxy_object_get (ecma_object_t *obj_p, /**< proxy object */
  *         ECMA_VALUE_{TRUE/FALSE} - depends on whether the propety can be set to the given object
  */
 ecma_value_t
-ecma_proxy_object_set (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_set (ecma_context_t *context_p, /**< JJS context */
+                       ecma_object_t *obj_p, /**< proxy object */
                        ecma_string_t *prop_name_p, /**< property name */
                        ecma_value_t value, /**< value to set */
                        ecma_value_t receiver, /**< receiver to invoke setter function */
@@ -1249,7 +1264,7 @@ ecma_proxy_object_set (ecma_object_t *obj_p, /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 3-6. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_SET);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_SET);
 
   /* 7. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -1258,22 +1273,22 @@ ecma_proxy_object_set (ecma_object_t *obj_p, /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 8. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t result = ecma_op_object_put_with_receiver (target_obj_p, prop_name_p, value, receiver, is_strict);
+    ecma_value_t result = ecma_op_object_put_with_receiver (context_p, target_obj_p, prop_name_p, value, receiver, is_strict);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
-  ecma_value_t prop_name_value = ecma_make_prop_name_value (prop_name_p);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
+  ecma_value_t prop_name_value = ecma_make_prop_name_value (context_p, prop_name_p);
   ecma_value_t args[] = { target, prop_name_value, value, receiver };
 
   /* 9. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, args, 4);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, args, 4);
 
   ecma_deref_object (func_obj_p);
 
@@ -1283,16 +1298,16 @@ ecma_proxy_object_set (ecma_object_t *obj_p, /**< proxy object */
     return trap_result;
   }
 
-  bool boolean_trap_result = ecma_op_to_boolean (trap_result);
+  bool boolean_trap_result = ecma_op_to_boolean (context_p, trap_result);
 
-  ecma_free_value (trap_result);
+  ecma_free_value (context_p, trap_result);
 
   /* 11. */
   if (!boolean_trap_result)
   {
     if (is_strict)
     {
-      return ecma_raise_type_error (ECMA_ERR_PROXY_TRAP_RETURNED_FALSISH);
+      return ecma_raise_type_error (context_p, ECMA_ERR_PROXY_TRAP_RETURNED_FALSISH);
     }
 
     return ECMA_VALUE_FALSE;
@@ -1306,7 +1321,7 @@ ecma_proxy_object_set (ecma_object_t *obj_p, /**< proxy object */
   /* 12. */
   ecma_property_descriptor_t target_desc;
 
-  ecma_value_t status = ecma_op_object_get_own_property_descriptor (target_obj_p, prop_name_p, &target_desc);
+  ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, &target_desc);
 
   /* 13. */
   if (ECMA_IS_VALUE_ERROR (status))
@@ -1320,18 +1335,18 @@ ecma_proxy_object_set (ecma_object_t *obj_p, /**< proxy object */
     ecma_value_t ret_value = ECMA_VALUE_EMPTY;
 
     if ((target_desc.flags & JJS_PROP_IS_VALUE_DEFINED) && !(target_desc.flags & JJS_PROP_IS_CONFIGURABLE)
-        && !(target_desc.flags & JJS_PROP_IS_WRITABLE) && !ecma_op_same_value (value, target_desc.value))
+        && !(target_desc.flags & JJS_PROP_IS_WRITABLE) && !ecma_op_same_value (context_p, value, target_desc.value))
     {
-      ret_value = ecma_raise_type_error (ECMA_ERR_INCORRECT_RETURN_PROXY_SET_TRAP);
+      ret_value = ecma_raise_type_error (context_p, ECMA_ERR_INCORRECT_RETURN_PROXY_SET_TRAP);
     }
     else if (!(target_desc.flags & JJS_PROP_IS_CONFIGURABLE)
              && (target_desc.flags & (JJS_PROP_IS_GET_DEFINED | JJS_PROP_IS_SET_DEFINED))
              && target_desc.set_p == NULL)
     {
-      ret_value = ecma_raise_type_error (ECMA_ERR_TARGET_PROPERTY_CONFIGURE_ACCESSOR_WITHOUT_SETTER);
+      ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TARGET_PROPERTY_CONFIGURE_ACCESSOR_WITHOUT_SETTER);
     }
 
-    ecma_free_property_descriptor (&target_desc);
+    ecma_free_property_descriptor (context_p, &target_desc);
 
     if (ECMA_IS_VALUE_ERROR (ret_value))
     {
@@ -1355,7 +1370,8 @@ ecma_proxy_object_set (ecma_object_t *obj_p, /**< proxy object */
  *         ECMA_VALUE_{TRUE/FALSE} - depends on whether the propety can be deleted
  */
 ecma_value_t
-ecma_proxy_object_delete_property (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_delete_property (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_object_t *obj_p, /**< proxy object */
                                    ecma_string_t *prop_name_p, /**< property name */
                                    bool is_strict) /**< delete in strict mode? */
 {
@@ -1368,7 +1384,7 @@ ecma_proxy_object_delete_property (ecma_object_t *obj_p, /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 3-6.*/
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_DELETE_PROPERTY_UL);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_DELETE_PROPERTY_UL);
 
   /* 7. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -1377,22 +1393,22 @@ ecma_proxy_object_delete_property (ecma_object_t *obj_p, /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 8. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_value_t result = ecma_op_object_delete (target_obj_p, prop_name_p, is_strict);
+    ecma_value_t result = ecma_op_object_delete (context_p, target_obj_p, prop_name_p, is_strict);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
-  ecma_value_t prop_name_value = ecma_make_prop_name_value (prop_name_p);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
+  ecma_value_t prop_name_value = ecma_make_prop_name_value (context_p, prop_name_p);
   ecma_value_t args[] = { target, prop_name_value };
 
   /* 9. */
-  ecma_value_t trap_result = ecma_op_function_call (func_obj_p, handler, args, 2);
+  ecma_value_t trap_result = ecma_op_function_call (context_p, func_obj_p, handler, args, 2);
 
   ecma_deref_object (func_obj_p);
 
@@ -1402,9 +1418,9 @@ ecma_proxy_object_delete_property (ecma_object_t *obj_p, /**< proxy object */
     return trap_result;
   }
 
-  bool boolean_trap_result = ecma_op_to_boolean (trap_result);
+  bool boolean_trap_result = ecma_op_to_boolean (context_p, trap_result);
 
-  ecma_free_value (trap_result);
+  ecma_free_value (context_p, trap_result);
 
   /* 11. */
   if (!boolean_trap_result)
@@ -1420,7 +1436,7 @@ ecma_proxy_object_delete_property (ecma_object_t *obj_p, /**< proxy object */
   /* 12. */
   ecma_property_descriptor_t target_desc;
 
-  ecma_value_t status = ecma_op_object_get_own_property_descriptor (target_obj_p, prop_name_p, &target_desc);
+  ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, &target_desc);
 
   /* 13. */
   if (ECMA_IS_VALUE_ERROR (status))
@@ -1439,17 +1455,17 @@ ecma_proxy_object_delete_property (ecma_object_t *obj_p, /**< proxy object */
   /* 15. */
   if (!(target_desc.flags & JJS_PROP_IS_CONFIGURABLE))
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_TRAP_TRUISH_PROPERTY_NON_CONFIGURABLE);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_PROPERTY_NON_CONFIGURABLE);
   }
   /* ES11: 13-14 */
   ecma_value_t extensible_target = ecma_builtin_object_object_is_extensible (target_obj_p);
 
   if (!ecma_is_value_true (extensible_target))
   {
-    ret_value = ecma_raise_type_error (ECMA_ERR_TRAP_TRUISH_TARGET_NOT_EXTENSIBLE);
+    ret_value = ecma_raise_type_error (context_p, ECMA_ERR_TRAP_TRUISH_TARGET_NOT_EXTENSIBLE);
   }
 
-  ecma_free_property_descriptor (&target_desc);
+  ecma_free_property_descriptor (context_p, &target_desc);
 
   /* 16. */
   return ret_value;
@@ -1465,7 +1481,8 @@ ecma_proxy_object_delete_property (ecma_object_t *obj_p, /**< proxy object */
  *         ECMA_VALUE_EMPTY - otherwise
  */
 static ecma_value_t
-ecma_proxy_object_own_property_keys_helper (ecma_collection_t *target_collection, /**< target keys */
+ecma_proxy_object_own_property_keys_helper (ecma_context_t *context_p, /**< JJS context */
+                                            ecma_collection_t *target_collection, /**< target keys */
                                             ecma_collection_t *unchecked_result_keys, /**< unchecked keys */
                                             uint32_t *counter) /**< unchecked property counter */
 {
@@ -1473,7 +1490,7 @@ ecma_proxy_object_own_property_keys_helper (ecma_collection_t *target_collection
 
   for (uint32_t i = 0; i < target_collection->item_count; i++)
   {
-    ecma_string_t *current_prop_name = ecma_get_prop_name_from_value (target_collection->buffer_p[i]);
+    ecma_string_t *current_prop_name = ecma_get_prop_name_from_value (context_p, target_collection->buffer_p[i]);
 
     ret_value = ECMA_VALUE_ERROR;
 
@@ -1484,11 +1501,11 @@ ecma_proxy_object_own_property_keys_helper (ecma_collection_t *target_collection
         continue;
       }
 
-      ecma_string_t *unchecked_prop_name = ecma_get_prop_name_from_value (unchecked_result_keys->buffer_p[j]);
+      ecma_string_t *unchecked_prop_name = ecma_get_prop_name_from_value (context_p, unchecked_result_keys->buffer_p[j]);
 
       if (ecma_compare_ecma_strings (current_prop_name, unchecked_prop_name))
       {
-        ecma_deref_ecma_string (unchecked_prop_name);
+        ecma_deref_ecma_string (context_p, unchecked_prop_name);
         ret_value = ECMA_VALUE_EMPTY;
         unchecked_result_keys->buffer_p[j] = ECMA_VALUE_EMPTY;
         (*counter)++;
@@ -1514,19 +1531,20 @@ ecma_proxy_object_own_property_keys_helper (ecma_collection_t *target_collection
  *         false - otherwise
  */
 static bool
-ecma_proxy_check_invariants_for_own_prop_keys (ecma_collection_t *trap_result,
+ecma_proxy_check_invariants_for_own_prop_keys (ecma_context_t *context_p, /**< JJS context */
+                                               ecma_collection_t *trap_result,
                                                ecma_collection_t *target_non_configurable_keys,
                                                ecma_collection_t *target_configurable_keys,
                                                ecma_value_t extensible_target)
 {
   /* 20. */
-  ecma_collection_t *unchecked_result_keys = ecma_new_collection ();
+  ecma_collection_t *unchecked_result_keys = ecma_new_collection (context_p);
 
-  ecma_collection_append (unchecked_result_keys, trap_result->buffer_p, trap_result->item_count);
+  ecma_collection_append (context_p, unchecked_result_keys, trap_result->buffer_p, trap_result->item_count);
 
   for (uint32_t i = 0; i < unchecked_result_keys->item_count; i++)
   {
-    ecma_string_t *unchecked_prop_name = ecma_get_prop_name_from_value (unchecked_result_keys->buffer_p[i]);
+    ecma_string_t *unchecked_prop_name = ecma_get_prop_name_from_value (context_p, unchecked_result_keys->buffer_p[i]);
     ecma_ref_ecma_string (unchecked_prop_name);
   }
 
@@ -1534,11 +1552,12 @@ ecma_proxy_check_invariants_for_own_prop_keys (ecma_collection_t *trap_result,
   uint32_t unchecked_prop_name_counter = 0;
 
   /* 21. */
-  if (ECMA_IS_VALUE_ERROR (ecma_proxy_object_own_property_keys_helper (target_non_configurable_keys,
+  if (ECMA_IS_VALUE_ERROR (ecma_proxy_object_own_property_keys_helper (context_p,
+                                                                       target_non_configurable_keys,
                                                                        unchecked_result_keys,
                                                                        &unchecked_prop_name_counter)))
   {
-    ecma_raise_type_error (ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_NON_CONFIGURABLE_KEYS);
+    ecma_raise_type_error (context_p, ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_NON_CONFIGURABLE_KEYS);
   }
   /* 22. */
   else if (ecma_is_value_true (extensible_target))
@@ -1546,16 +1565,17 @@ ecma_proxy_check_invariants_for_own_prop_keys (ecma_collection_t *trap_result,
     check_ok = true;
   }
   /* 23. */
-  else if (ECMA_IS_VALUE_ERROR (ecma_proxy_object_own_property_keys_helper (target_configurable_keys,
+  else if (ECMA_IS_VALUE_ERROR (ecma_proxy_object_own_property_keys_helper (context_p,
+                                                                            target_configurable_keys,
                                                                             unchecked_result_keys,
                                                                             &unchecked_prop_name_counter)))
   {
-    ecma_raise_type_error (ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_CONFIGURABLE_KEYS);
+    ecma_raise_type_error (context_p, ECMA_ERR_TRAP_RESULT_NOT_INCLUDE_ALL_CONFIGURABLE_KEYS);
   }
   /* 24. */
   else if (unchecked_result_keys->item_count != unchecked_prop_name_counter)
   {
-    ecma_raise_type_error (ECMA_ERR_TRAP_EXTRA_KEYS_FOR_A_NON_EXTENSIBLE_TARGET);
+    ecma_raise_type_error (context_p, ECMA_ERR_TRAP_EXTRA_KEYS_FOR_A_NON_EXTENSIBLE_TARGET);
   }
   /* 25. */
   else
@@ -1563,7 +1583,7 @@ ecma_proxy_check_invariants_for_own_prop_keys (ecma_collection_t *trap_result,
     check_ok = true;
   }
 
-  ecma_collection_free (unchecked_result_keys);
+  ecma_collection_free (context_p, unchecked_result_keys);
 
   return check_ok;
 } /* ecma_proxy_check_invariants_for_own_prop_keys */
@@ -1581,7 +1601,8 @@ ecma_proxy_check_invariants_for_own_prop_keys (ecma_collection_t *trap_result,
  *         pointer to a newly allocated list of property names - otherwise
  */
 ecma_collection_t *
-ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
+ecma_proxy_object_own_property_keys (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
   ECMA_CHECK_STACK_USAGE_RETURN (NULL);
@@ -1592,7 +1613,7 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 2-5. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_OWN_KEYS_UL);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_OWN_KEYS_UL);
 
   if (ECMA_IS_VALUE_ERROR (trap))
   {
@@ -1600,20 +1621,20 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 6. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_collection_t *result = ecma_op_object_own_property_keys (target_obj_p, JJS_PROPERTY_FILTER_ALL);
+    ecma_collection_t *result = ecma_op_object_own_property_keys (context_p, target_obj_p, JJS_PROPERTY_FILTER_ALL);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
 
   /* 7. */
-  ecma_value_t trap_result_array = ecma_op_function_call (func_obj_p, handler, &target, 1);
+  ecma_value_t trap_result_array = ecma_op_function_call (context_p, func_obj_p, handler, &target, 1);
 
   ecma_deref_object (func_obj_p);
 
@@ -1623,9 +1644,9 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
   }
 
   /* 8. */
-  ecma_collection_t *trap_result = ecma_op_create_list_from_array_like (trap_result_array, true);
+  ecma_collection_t *trap_result = ecma_op_create_list_from_array_like (context_p, trap_result_array, true);
 
-  ecma_free_value (trap_result_array);
+  ecma_free_value (context_p, trap_result_array);
 
   if (trap_result == NULL || (obj_p->u2.prototype_cp & JJS_PROXY_SKIP_RESULT_VALIDATION))
   {
@@ -1633,10 +1654,10 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
   }
 
   /* 9. */
-  if (ecma_collection_check_duplicated_entries (trap_result))
+  if (ecma_collection_check_duplicated_entries (context_p, trap_result))
   {
-    ecma_collection_free (trap_result);
-    ecma_raise_type_error (ECMA_ERR_TRAP_WITH_DUPLICATED_ENTRIES);
+    ecma_collection_free (context_p, trap_result);
+    ecma_raise_type_error (context_p, ECMA_ERR_TRAP_WITH_DUPLICATED_ENTRIES);
     return NULL;
   }
 
@@ -1645,24 +1666,24 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
 
   if (ECMA_IS_VALUE_ERROR (extensible_target))
   {
-    ecma_collection_free (trap_result);
+    ecma_collection_free (context_p, trap_result);
     return NULL;
   }
 
   /* 11. */
-  ecma_collection_t *target_keys = ecma_op_object_own_property_keys (target_obj_p, JJS_PROPERTY_FILTER_ALL);
+  ecma_collection_t *target_keys = ecma_op_object_own_property_keys (context_p, target_obj_p, JJS_PROPERTY_FILTER_ALL);
 
   if (target_keys == NULL)
   {
-    ecma_collection_free (trap_result);
+    ecma_collection_free (context_p, trap_result);
     return target_keys;
   }
 
   /* 14. */
-  ecma_collection_t *target_configurable_keys = ecma_new_collection ();
+  ecma_collection_t *target_configurable_keys = ecma_new_collection (context_p);
 
   /* 15. */
-  ecma_collection_t *target_non_configurable_keys = ecma_new_collection ();
+  ecma_collection_t *target_non_configurable_keys = ecma_new_collection (context_p);
 
   ecma_collection_t *ret_value = NULL;
 
@@ -1671,30 +1692,30 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
   {
     ecma_property_descriptor_t target_desc;
 
-    ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (target_keys->buffer_p[i]);
+    ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (context_p, target_keys->buffer_p[i]);
 
-    ecma_value_t status = ecma_op_object_get_own_property_descriptor (target_obj_p, prop_name_p, &target_desc);
+    ecma_value_t status = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, &target_desc);
 
     if (ECMA_IS_VALUE_ERROR (status))
     {
-      ecma_collection_free (trap_result);
+      ecma_collection_free (context_p, trap_result);
       goto free_target_collections;
     }
 
-    ecma_value_t prop_value = ecma_make_prop_name_value (prop_name_p);
+    ecma_value_t prop_value = ecma_make_prop_name_value (context_p, prop_name_p);
 
     if (ecma_is_value_true (status) && !(target_desc.flags & JJS_PROP_IS_CONFIGURABLE))
     {
-      ecma_collection_push_back (target_non_configurable_keys, prop_value);
+      ecma_collection_push_back (context_p, target_non_configurable_keys, prop_value);
     }
     else
     {
-      ecma_collection_push_back (target_configurable_keys, prop_value);
+      ecma_collection_push_back (context_p, target_configurable_keys, prop_value);
     }
 
     if (ecma_is_value_true (status))
     {
-      ecma_free_property_descriptor (&target_desc);
+      ecma_free_property_descriptor (context_p, &target_desc);
     }
   }
 
@@ -1704,7 +1725,8 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
     ret_value = trap_result;
   }
   /* 18-22. */
-  else if (ecma_proxy_check_invariants_for_own_prop_keys (trap_result,
+  else if (ecma_proxy_check_invariants_for_own_prop_keys (context_p,
+                                                          trap_result,
                                                           target_non_configurable_keys,
                                                           target_configurable_keys,
                                                           extensible_target))
@@ -1714,13 +1736,13 @@ ecma_proxy_object_own_property_keys (ecma_object_t *obj_p) /**< proxy object */
   else
   {
     JJS_ASSERT (ret_value == NULL);
-    ecma_collection_free (trap_result);
+    ecma_collection_free (context_p, trap_result);
   }
 
 free_target_collections:
-  ecma_collection_destroy (target_keys);
-  ecma_collection_free (target_configurable_keys);
-  ecma_collection_free (target_non_configurable_keys);
+  ecma_collection_destroy (context_p, target_keys);
+  ecma_collection_free (context_p, target_configurable_keys);
+  ecma_collection_free (context_p, target_non_configurable_keys);
 
   /* 23. */
   return ret_value;
@@ -1738,16 +1760,17 @@ free_target_collections:
  *         result of the function call - otherwise
  */
 ecma_value_t
-ecma_proxy_object_call (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_call (ecma_context_t *context_p, /**< JJS context */
+                        ecma_object_t *obj_p, /**< proxy object */
                         ecma_value_t this_argument, /**< this argument to invoke the function */
                         const ecma_value_t *args_p, /**< argument list */
                         uint32_t argc) /**< number of arguments */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
 
-  if (!ecma_op_proxy_object_is_callable (obj_p))
+  if (!ecma_op_proxy_object_is_callable (context_p, obj_p))
   {
-    return ecma_raise_type_error (ECMA_ERR_EXPECTED_A_FUNCTION);
+    return ecma_raise_type_error (context_p, ECMA_ERR_EXPECTED_A_FUNCTION);
   }
 
   ECMA_CHECK_STACK_USAGE ();
@@ -1758,7 +1781,7 @@ ecma_proxy_object_call (ecma_object_t *obj_p, /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 2-5.*/
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_APPLY);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_APPLY);
 
   /* 6. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -1771,20 +1794,20 @@ ecma_proxy_object_call (ecma_object_t *obj_p, /**< proxy object */
   /* 7. */
   if (ecma_is_value_undefined (trap))
   {
-    ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
-    ecma_value_t result = ecma_op_function_call (target_obj_p, this_argument, args_p, argc);
+    ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
+    ecma_value_t result = ecma_op_function_call (context_p, target_obj_p, this_argument, args_p, argc);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
   /* 8. */
-  ecma_value_t args_array = ecma_op_new_array_object_from_buffer (args_p, argc);
+  ecma_value_t args_array = ecma_op_new_array_object_from_buffer (context_p, args_p, argc);
   ecma_value_t value_array[] = { target, this_argument, args_array };
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
   /* 9. */
-  ecma_value_t ret_value = ecma_op_function_call (func_obj_p, handler, value_array, 3);
+  ecma_value_t ret_value = ecma_op_function_call (context_p, func_obj_p, handler, value_array, 3);
   ecma_deref_object (func_obj_p);
-  ecma_free_object (args_array);
+  ecma_free_object (context_p, args_array);
 
   return ret_value;
 } /* ecma_proxy_object_call */
@@ -1801,7 +1824,8 @@ ecma_proxy_object_call (ecma_object_t *obj_p, /**< proxy object */
  *         result of the construct call - otherwise
  */
 ecma_value_t
-ecma_proxy_object_construct (ecma_object_t *obj_p, /**< proxy object */
+ecma_proxy_object_construct (ecma_context_t *context_p, /**< JJS context */
+                             ecma_object_t *obj_p, /**< proxy object */
                              ecma_object_t *new_target_p, /**< new target */
                              const ecma_value_t *args_p, /**< argument list */
                              uint32_t argc) /**< number of arguments */
@@ -1815,7 +1839,7 @@ ecma_proxy_object_construct (ecma_object_t *obj_p, /**< proxy object */
   ecma_value_t handler = proxy_obj_p->handler;
 
   /* 2-5. */
-  ecma_value_t trap = ecma_validate_proxy_object (handler, LIT_MAGIC_STRING_CONSTRUCT);
+  ecma_value_t trap = ecma_validate_proxy_object (context_p, handler, LIT_MAGIC_STRING_CONSTRUCT);
 
   /* 6. */
   if (ECMA_IS_VALUE_ERROR (trap))
@@ -1824,29 +1848,29 @@ ecma_proxy_object_construct (ecma_object_t *obj_p, /**< proxy object */
   }
 
   ecma_value_t target = proxy_obj_p->target;
-  ecma_object_t *target_obj_p = ecma_get_object_from_value (target);
+  ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
 
   /* 7. */
   if (ecma_is_value_undefined (trap))
   {
-    JJS_ASSERT (ecma_object_is_constructor (target_obj_p));
+    JJS_ASSERT (ecma_object_is_constructor (context_p, target_obj_p));
 
-    ecma_value_t result = ecma_op_function_construct (target_obj_p, new_target_p, args_p, argc);
+    ecma_value_t result = ecma_op_function_construct (context_p, target_obj_p, new_target_p, args_p, argc);
     JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
     return result;
   }
 
   /* 8. */
-  ecma_value_t args_array = ecma_op_new_array_object_from_buffer (args_p, argc);
+  ecma_value_t args_array = ecma_op_new_array_object_from_buffer (context_p, args_p, argc);
 
-  ecma_object_t *func_obj_p = ecma_get_object_from_value (trap);
-  ecma_value_t new_target_value = ecma_make_object_value (new_target_p);
+  ecma_object_t *func_obj_p = ecma_get_object_from_value (context_p, trap);
+  ecma_value_t new_target_value = ecma_make_object_value (context_p, new_target_p);
   ecma_value_t function_call_args[] = { target, args_array, new_target_value };
 
   /* 9. */
-  ecma_value_t new_obj = ecma_op_function_call (func_obj_p, handler, function_call_args, 3);
+  ecma_value_t new_obj = ecma_op_function_call (context_p, func_obj_p, handler, function_call_args, 3);
 
-  ecma_free_object (args_array);
+  ecma_free_object (context_p, args_array);
   ecma_deref_object (func_obj_p);
 
   /* 10 .*/
@@ -1858,9 +1882,9 @@ ecma_proxy_object_construct (ecma_object_t *obj_p, /**< proxy object */
   /* 11. */
   if (!ecma_is_value_object (new_obj))
   {
-    ecma_free_value (new_obj);
+    ecma_free_value (context_p, new_obj);
 
-    return ecma_raise_type_error (ECMA_ERR_TRAP_MUST_RETURN_WITH_AN_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_TRAP_MUST_RETURN_WITH_AN_OBJECT);
   }
 
   /* 12. */

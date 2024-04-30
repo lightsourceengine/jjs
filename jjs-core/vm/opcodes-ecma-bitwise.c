@@ -41,14 +41,15 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-do_number_bitwise_logic (number_bitwise_logic_op op, /**< number bitwise logic operation */
+do_number_bitwise_logic (ecma_context_t *context_p, /**< JJS context */
+                         number_bitwise_logic_op op, /**< number bitwise logic operation */
                          ecma_value_t left_value, /**< left value */
                          ecma_value_t right_value) /**< right value */
 {
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (left_value) && !ECMA_IS_VALUE_ERROR (right_value));
 
   ecma_number_t left_number;
-  left_value = ecma_op_to_numeric (left_value, &left_number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
+  left_value = ecma_op_to_numeric (context_p, left_value, &left_number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
 
   if (ECMA_IS_VALUE_ERROR (left_value))
   {
@@ -63,7 +64,7 @@ do_number_bitwise_logic (number_bitwise_logic_op op, /**< number bitwise logic o
 #endif /* JJS_BUILTIN_BIGINT */
     ecma_number_t right_number;
 
-    if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (right_value, &right_number)))
+    if (ECMA_IS_VALUE_ERROR (ecma_op_to_number (context_p, right_value, &right_number)))
     {
       return ECMA_VALUE_ERROR;
     }
@@ -111,18 +112,18 @@ do_number_bitwise_logic (number_bitwise_logic_op op, /**< number bitwise logic o
       }
     }
 
-    ret_value = ecma_make_number_value (result);
+    ret_value = ecma_make_number_value (context_p, result);
 
 #if JJS_BUILTIN_BIGINT
   }
   else
   {
     bool free_right_value;
-    right_value = ecma_bigint_get_bigint (right_value, &free_right_value);
+    right_value = ecma_bigint_get_bigint (context_p, right_value, &free_right_value);
 
     if (ECMA_IS_VALUE_ERROR (right_value))
     {
-      ecma_free_value (left_value);
+      ecma_free_value (context_p, left_value);
       return right_value;
     }
 
@@ -130,42 +131,42 @@ do_number_bitwise_logic (number_bitwise_logic_op op, /**< number bitwise logic o
     {
       case NUMBER_BITWISE_LOGIC_AND:
       {
-        ret_value = ecma_bigint_and (left_value, right_value);
+        ret_value = ecma_bigint_and (context_p, left_value, right_value);
         break;
       }
       case NUMBER_BITWISE_LOGIC_OR:
       {
-        ret_value = ecma_bigint_or (left_value, right_value);
+        ret_value = ecma_bigint_or (context_p, left_value, right_value);
         break;
       }
       case NUMBER_BITWISE_LOGIC_XOR:
       {
-        ret_value = ecma_bigint_xor (left_value, right_value);
+        ret_value = ecma_bigint_xor (context_p, left_value, right_value);
         break;
       }
       case NUMBER_BITWISE_SHIFT_LEFT:
       {
-        ret_value = ecma_bigint_shift (left_value, right_value, true);
+        ret_value = ecma_bigint_shift (context_p, left_value, right_value, true);
         break;
       }
       case NUMBER_BITWISE_SHIFT_RIGHT:
       {
-        ret_value = ecma_bigint_shift (left_value, right_value, false);
+        ret_value = ecma_bigint_shift (context_p, left_value, right_value, false);
         break;
       }
       default:
       {
         JJS_ASSERT (op == NUMBER_BITWISE_SHIFT_URIGHT);
 
-        ret_value = ecma_raise_type_error (ECMA_ERR_UNSIGNED_RIGHT_SHIFT_IS_NOT_ALLOWED_FOR_BIGINTS);
+        ret_value = ecma_raise_type_error (context_p, ECMA_ERR_UNSIGNED_RIGHT_SHIFT_IS_NOT_ALLOWED_FOR_BIGINTS);
         break;
       }
     }
 
-    ecma_free_value (left_value);
+    ecma_free_value (context_p, left_value);
     if (free_right_value)
     {
-      ecma_free_value (right_value);
+      ecma_free_value (context_p, right_value);
     }
   }
 #endif /* JJS_BUILTIN_BIGINT */
@@ -180,12 +181,13 @@ do_number_bitwise_logic (number_bitwise_logic_op op, /**< number bitwise logic o
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-do_number_bitwise_not (ecma_value_t value) /**< value */
+do_number_bitwise_not (ecma_context_t *context_p, /**< JJS context */
+                       ecma_value_t value) /**< value */
 {
   JJS_ASSERT (!ECMA_IS_VALUE_ERROR (value));
 
   ecma_number_t number;
-  value = ecma_op_to_numeric (value, &number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
+  value = ecma_op_to_numeric (context_p, value, &number, ECMA_TO_NUMERIC_ALLOW_BIGINT);
 
   if (ECMA_IS_VALUE_ERROR (value))
   {
@@ -196,12 +198,12 @@ do_number_bitwise_not (ecma_value_t value) /**< value */
   if (JJS_LIKELY (!ecma_is_value_bigint (value)))
   {
 #endif /* JJS_BUILTIN_BIGINT */
-    return ecma_make_number_value ((ecma_number_t) ((int32_t) ~ecma_number_to_uint32 (number)));
+    return ecma_make_number_value (context_p, (ecma_number_t) ((int32_t) ~ecma_number_to_uint32 (number)));
 #if JJS_BUILTIN_BIGINT
   }
 
-  ecma_value_t ret_value = ecma_bigint_unary (value, ECMA_BIGINT_UNARY_BITWISE_NOT);
-  ecma_free_value (value);
+  ecma_value_t ret_value = ecma_bigint_unary (context_p, value, ECMA_BIGINT_UNARY_BITWISE_NOT);
+  ecma_free_value (context_p, value);
   return ret_value;
 #endif /* JJS_BUILTIN_BIGINT */
 } /* do_number_bitwise_not */

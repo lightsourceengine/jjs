@@ -43,17 +43,18 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_number_object (ecma_value_t arg) /**< argument passed to the Number constructor */
+ecma_op_create_number_object (ecma_context_t *context_p, /**< JJS context */
+                              ecma_value_t arg) /**< argument passed to the Number constructor */
 {
   ecma_number_t num;
-  ecma_value_t conv_to_num_completion = ecma_op_to_number (arg, &num);
+  ecma_value_t conv_to_num_completion = ecma_op_to_number (context_p, arg, &num);
 
   if (ECMA_IS_VALUE_ERROR (conv_to_num_completion))
   {
     return conv_to_num_completion;
   }
 
-  conv_to_num_completion = ecma_make_number_value (num);
+  conv_to_num_completion = ecma_make_number_value (context_p, num);
   ecma_builtin_id_t proto_id;
 #if JJS_BUILTIN_NUMBER
   proto_id = ECMA_BUILTIN_ID_NUMBER_PROTOTYPE;
@@ -62,10 +63,10 @@ ecma_op_create_number_object (ecma_value_t arg) /**< argument passed to the Numb
 #endif /* JJS_BUILTIN_NUMBER */
   ecma_object_t *prototype_obj_p = ecma_builtin_get (proto_id);
 
-  ecma_object_t *new_target = JJS_CONTEXT (current_new_target_p);
+  ecma_object_t *new_target = context_p->current_new_target_p;
   if (new_target)
   {
-    prototype_obj_p = ecma_op_get_prototype_from_constructor (new_target, proto_id);
+    prototype_obj_p = ecma_op_get_prototype_from_constructor (context_p, new_target, proto_id);
     if (JJS_UNLIKELY (prototype_obj_p == NULL))
     {
       return ECMA_VALUE_ERROR;
@@ -73,7 +74,7 @@ ecma_op_create_number_object (ecma_value_t arg) /**< argument passed to the Numb
   }
 
   ecma_object_t *object_p =
-    ecma_create_object (prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
   ext_object_p->u.cls.type = ECMA_OBJECT_CLASS_NUMBER;
@@ -86,7 +87,7 @@ ecma_op_create_number_object (ecma_value_t arg) /**< argument passed to the Numb
     ecma_deref_object (prototype_obj_p);
   }
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_op_create_number_object */
 
 /**

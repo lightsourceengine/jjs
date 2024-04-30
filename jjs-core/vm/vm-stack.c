@@ -57,6 +57,7 @@ vm_stack_context_abort_variable_length (vm_frame_ctx_t *frame_ctx_p, /**< frame 
 {
   JJS_ASSERT (VM_CONTEXT_IS_VARIABLE_LENGTH (VM_GET_CONTEXT_TYPE (vm_stack_top_p[-1])));
 
+  ecma_context_t *context_p = frame_ctx_p->shared_p->context_p;
   uint32_t context_size = VM_GET_CONTEXT_END (vm_stack_top_p[-1]);
   VM_MINUS_EQUAL_U16 (frame_ctx_p->context_depth, context_size);
 
@@ -70,7 +71,7 @@ vm_stack_context_abort_variable_length (vm_frame_ctx_t *frame_ctx_p, /**< frame 
 
   for (uint32_t i = 1; i < context_stack_allocation; i++)
   {
-    ecma_free_value (*(--vm_stack_top_p));
+    ecma_free_value (context_p, *(--vm_stack_top_p));
   }
 
   return vm_stack_top_p;
@@ -86,12 +87,13 @@ vm_stack_context_abort (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
                         ecma_value_t *vm_stack_top_p) /**< current stack top */
 {
   ecma_value_t context_info = vm_stack_top_p[-1];
+  ecma_context_t *context_p = frame_ctx_p->shared_p->context_p;
 
   if (context_info & VM_CONTEXT_HAS_LEX_ENV)
   {
     ecma_object_t *lex_env_p = frame_ctx_p->lex_env_p;
     JJS_ASSERT (lex_env_p->u2.outer_reference_cp != JMEM_CP_NULL);
-    frame_ctx_p->lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+    frame_ctx_p->lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
     ecma_deref_object (lex_env_p);
   }
 
@@ -100,7 +102,7 @@ vm_stack_context_abort (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
     case VM_CONTEXT_FINALLY_THROW:
     case VM_CONTEXT_FINALLY_RETURN:
     {
-      ecma_free_value (vm_stack_top_p[-2]);
+      ecma_free_value (context_p, vm_stack_top_p[-2]);
       /* FALLTHRU */
     }
     case VM_CONTEXT_FINALLY_JUMP:
@@ -128,9 +130,9 @@ vm_stack_context_abort (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
     case VM_CONTEXT_FOR_OF:
     case VM_CONTEXT_FOR_AWAIT_OF:
     {
-      ecma_free_value (vm_stack_top_p[-2]);
-      ecma_free_value (vm_stack_top_p[-3]);
-      ecma_free_value (vm_stack_top_p[-4]);
+      ecma_free_value (context_p, vm_stack_top_p[-2]);
+      ecma_free_value (context_p, vm_stack_top_p[-3]);
+      ecma_free_value (context_p, vm_stack_top_p[-4]);
 
       VM_MINUS_EQUAL_U16 (frame_ctx_p->context_depth, PARSER_FOR_OF_CONTEXT_STACK_ALLOCATION);
       vm_stack_top_p -= PARSER_FOR_OF_CONTEXT_STACK_ALLOCATION;
@@ -141,18 +143,18 @@ vm_stack_context_abort (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
       JJS_ASSERT (VM_GET_CONTEXT_TYPE (vm_stack_top_p[-1]) == VM_CONTEXT_FOR_IN);
 
       ecma_collection_t *collection_p;
-      collection_p = ECMA_GET_INTERNAL_VALUE_POINTER (ecma_collection_t, vm_stack_top_p[-2]);
+      collection_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_collection_t, vm_stack_top_p[-2]);
 
       ecma_value_t *buffer_p = collection_p->buffer_p;
 
       for (uint32_t index = vm_stack_top_p[-3]; index < collection_p->item_count; index++)
       {
-        ecma_free_value (buffer_p[index]);
+        ecma_free_value (context_p, buffer_p[index]);
       }
 
-      ecma_collection_destroy (collection_p);
+      ecma_collection_destroy (context_p, collection_p);
 
-      ecma_free_value (vm_stack_top_p[-4]);
+      ecma_free_value (context_p, vm_stack_top_p[-4]);
 
       VM_MINUS_EQUAL_U16 (frame_ctx_p->context_depth, PARSER_FOR_IN_CONTEXT_STACK_ALLOCATION);
       vm_stack_top_p -= PARSER_FOR_IN_CONTEXT_STACK_ALLOCATION;
@@ -206,13 +208,13 @@ static const uint8_t vm_stack_resume_executable_object_with_context_end[1] = { C
  * @return value specified in vm_stack_found_type
  */
 vm_stack_found_type
-vm_stack_find_finally (jjs_context_t *context_p, /**< JJS context */
-                       vm_frame_ctx_t *frame_ctx_p, /**< frame context */
+vm_stack_find_finally (vm_frame_ctx_t *frame_ctx_p, /**< frame context */
                        ecma_value_t *stack_top_p, /**< current stack top */
                        vm_stack_context_type_t finally_type, /**< searching this finally */
                        uint32_t search_limit) /**< search up-to this byte code */
 {
   JJS_ASSERT (finally_type <= VM_CONTEXT_FINALLY_RETURN);
+  ecma_context_t *context_p = frame_ctx_p->shared_p->context_p;
 
   if (finally_type != VM_CONTEXT_FINALLY_JUMP)
   {
@@ -247,7 +249,7 @@ vm_stack_find_finally (jjs_context_t *context_p, /**< JJS context */
       {
         ecma_object_t *lex_env_p = frame_ctx_p->lex_env_p;
         JJS_ASSERT (lex_env_p->u2.outer_reference_cp != JMEM_CP_NULL);
-        frame_ctx_p->lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+        frame_ctx_p->lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
         ecma_deref_object (lex_env_p);
       }
 
@@ -341,24 +343,24 @@ vm_stack_find_finally (jjs_context_t *context_p, /**< JJS context */
 
       if (context_type == VM_CONTEXT_ITERATOR)
       {
-        result = ecma_op_iterator_close (stack_top_p[-2]);
+        result = ecma_op_iterator_close (context_p, stack_top_p[-2]);
       }
       else
       {
         ecma_value_t iterator = stack_top_p[-3];
-        result = ecma_op_get_method_by_magic_id (iterator, LIT_MAGIC_STRING_RETURN);
+        result = ecma_op_get_method_by_magic_id (context_p, iterator, LIT_MAGIC_STRING_RETURN);
 
         if (!ECMA_IS_VALUE_ERROR (result) && !ecma_is_value_undefined (result))
         {
-          ecma_object_t *return_obj_p = ecma_get_object_from_value (result);
-          result = ecma_op_function_validated_call (result, iterator, NULL, 0);
+          ecma_object_t *return_obj_p = ecma_get_object_from_value (context_p, result);
+          result = ecma_op_function_validated_call (context_p, result, iterator, NULL, 0);
           ecma_deref_object (return_obj_p);
 
           if (context_type == VM_CONTEXT_FOR_AWAIT_OF && !ECMA_IS_VALUE_ERROR (result))
           {
             ecma_extended_object_t *async_generator_object_p = VM_GET_EXECUTABLE_OBJECT (frame_ctx_p);
 
-            result = ecma_promise_async_await (async_generator_object_p, result);
+            result = ecma_promise_async_await (context_p, async_generator_object_p, result);
 
             if (!ECMA_IS_VALUE_ERROR (result))
             {
@@ -388,12 +390,12 @@ vm_stack_find_finally (jjs_context_t *context_p, /**< JJS context */
           {
             bool is_object = ecma_is_value_object (result);
 
-            ecma_free_value (result);
+            ecma_free_value (context_p, result);
             result = ECMA_VALUE_UNDEFINED;
 
             if (!is_object)
             {
-              result = ecma_raise_type_error (ECMA_ERR_ITERATOR_RETURN_RESULT_IS_NOT_OBJECT);
+              result = ecma_raise_type_error (context_p, ECMA_ERR_ITERATOR_RETURN_RESULT_IS_NOT_OBJECT);
             }
           }
         }
@@ -409,7 +411,7 @@ vm_stack_find_finally (jjs_context_t *context_p, /**< JJS context */
           return VM_CONTEXT_FOUND_ERROR;
         }
 
-        ecma_free_value (jcontext_take_exception (context_p));
+        ecma_free_value (context_p, jcontext_take_exception (context_p));
         jcontext_raise_exception (context_p, exception);
       }
       else if (finally_type == VM_CONTEXT_FINALLY_THROW)
@@ -470,7 +472,8 @@ vm_get_context_value_offsets (ecma_value_t *context_item_p) /**< any item of a c
  * Ref / deref lexical environments in the chain using the current context.
  */
 void
-vm_ref_lex_env_chain (ecma_object_t *lex_env_p, /**< top of lexical environment */
+vm_ref_lex_env_chain (ecma_context_t *context_p, /**< JJS context */
+                      ecma_object_t *lex_env_p, /**< top of lexical environment */
                       uint16_t context_depth, /**< depth of function context */
                       ecma_value_t *context_end_p, /**< end of function context */
                       bool do_ref) /**< ref or deref lexical environments */
@@ -483,7 +486,7 @@ vm_ref_lex_env_chain (ecma_object_t *lex_env_p, /**< top of lexical environment 
     if (context_top_p[-1] & VM_CONTEXT_HAS_LEX_ENV)
     {
       JJS_ASSERT (lex_env_p->u2.outer_reference_cp != JMEM_CP_NULL);
-      ecma_object_t *next_lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+      ecma_object_t *next_lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
 
       if (do_ref)
       {
@@ -507,11 +510,11 @@ vm_ref_lex_env_chain (ecma_object_t *lex_env_p, /**< top of lexical environment 
       {
         if (do_ref)
         {
-          ecma_ref_if_object (*(--context_top_p));
+          ecma_ref_if_object (context_p, *(--context_top_p));
         }
         else
         {
-          ecma_deref_if_object (*(--context_top_p));
+          ecma_deref_if_object (context_p, *(--context_top_p));
         }
       } while (context_top_p > last_item_p);
 
@@ -526,11 +529,11 @@ vm_ref_lex_env_chain (ecma_object_t *lex_env_p, /**< top of lexical environment 
 
       if (do_ref)
       {
-        ecma_ref_if_object (context_top_p[offset]);
+        ecma_ref_if_object (context_p, context_top_p[offset]);
       }
       else
       {
-        ecma_deref_if_object (context_top_p[offset]);
+        ecma_deref_if_object (context_p, context_top_p[offset]);
       }
 
       offsets >>= VM_CONTEXT_OFFSET_SHIFT;

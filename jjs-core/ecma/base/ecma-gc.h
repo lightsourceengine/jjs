@@ -37,12 +37,12 @@ typedef enum
   ECMA_GC_FREE_REFERENCES = (1 << 1), /**< free references */
 } ecma_gc_free_options_t;
 
-void ecma_init_gc_info (ecma_object_t *object_p);
+void ecma_init_gc_info (ecma_context_t *context_p, ecma_object_t *object_p);
 void ecma_ref_object (ecma_object_t *object_p);
 void ecma_ref_object_inline (ecma_object_t *object_p);
 void ecma_deref_object (ecma_object_t *object_p);
-void ecma_gc_free_property (ecma_object_t *object_p, ecma_property_pair_t *prop_pair_p, uint32_t options);
-void ecma_gc_free_properties (ecma_object_t *object_p, uint32_t options);
+void ecma_gc_free_property (ecma_context_t *context_p, ecma_object_t *object_p, ecma_property_pair_t *prop_pair_p, uint32_t options);
+void ecma_gc_free_properties (ecma_context_t *context_p, ecma_object_t *object_p, uint32_t options);
 void ecma_gc_run (ecma_context_t *context_p);
 void ecma_free_unused_memory (ecma_context_t *context_p, jmem_pressure_t pressure);
 

@@ -43,7 +43,8 @@
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_get_value_lex_env_base (ecma_context_t *context_p, /**< JJS context */
+                                ecma_object_t *lex_env_p, /**< lexical environment */
                                 ecma_object_t **ref_base_lex_env_p, /**< [out] reference's base (lexical environment) */
                                 ecma_string_t *name_p) /**< variable name */
 {
@@ -55,7 +56,7 @@ ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
     {
       case ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE:
       {
-        ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
+        ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, name_p);
 
         if (property_p != NULL)
         {
@@ -64,10 +65,10 @@ ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
 
           if (JJS_UNLIKELY (property_value_p->value == ECMA_VALUE_UNINITIALIZED))
           {
-            return ecma_raise_reference_error (ECMA_ERR_LET_CONST_NOT_INITIALIZED);
+            return ecma_raise_reference_error (context_p, ECMA_ERR_LET_CONST_NOT_INITIALIZED);
           }
 
-          return ecma_fast_copy_value (property_value_p->value);
+          return ecma_fast_copy_value (context_p, property_value_p->value);
         }
         break;
       }
@@ -76,7 +77,7 @@ ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
 #if JJS_MODULE_SYSTEM
         if (ECMA_LEX_ENV_CLASS_IS_MODULE (lex_env_p))
         {
-          ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
+          ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, name_p);
 
           if (property_p != NULL)
           {
@@ -85,15 +86,15 @@ ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
 
             if (!(*property_p & ECMA_PROPERTY_FLAG_DATA))
             {
-              property_value_p = ecma_get_property_value_from_named_reference (property_value_p);
+              property_value_p = ecma_get_property_value_from_named_reference (context_p, property_value_p);
             }
 
             if (JJS_UNLIKELY (property_value_p->value == ECMA_VALUE_UNINITIALIZED))
             {
-              return ecma_raise_reference_error (ECMA_ERR_LET_CONST_NOT_INITIALIZED);
+              return ecma_raise_reference_error (context_p, ECMA_ERR_LET_CONST_NOT_INITIALIZED);
             }
 
-            return ecma_fast_copy_value (property_value_p->value);
+            return ecma_fast_copy_value (context_p, property_value_p->value);
           }
         }
 #endif /* JJS_MODULE_SYSTEM */
@@ -103,7 +104,7 @@ ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
       {
         JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-        ecma_value_t result = ecma_op_object_bound_environment_resolve_reference_value (lex_env_p, name_p);
+        ecma_value_t result = ecma_op_object_bound_environment_resolve_reference_value (context_p, lex_env_p, name_p);
 
         if (ecma_is_value_found (result))
         {
@@ -121,14 +122,15 @@ ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
       break;
     }
 
-    lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+    lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
   }
 
   *ref_base_lex_env_p = NULL;
 #if JJS_ERROR_MESSAGES
-  return ecma_raise_standard_error_with_format (JJS_ERROR_REFERENCE,
+  return ecma_raise_standard_error_with_format (context_p,
+                                                JJS_ERROR_REFERENCE,
                                                 "% is not defined",
-                                                ecma_make_string_value (name_p));
+                                                ecma_make_string_value (context_p, name_p));
 #else /* JJS_ERROR_MESSAGES */
   return ecma_raise_reference_error (ECMA_ERR_EMPTY);
 #endif /* JJS_ERROR_MESSAGES */
@@ -144,14 +146,15 @@ ecma_op_get_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_op_get_value_object_base (ecma_value_t base_value, /**< base value */
+ecma_op_get_value_object_base (ecma_context_t *context_p, /**< JJS context */
+                               ecma_value_t base_value, /**< base value */
                                ecma_string_t *property_name_p) /**< property name */
 {
   ecma_object_t *obj_p;
 
   if (JJS_UNLIKELY (ecma_is_value_object (base_value)))
   {
-    obj_p = ecma_get_object_from_value (base_value);
+    obj_p = ecma_get_object_from_value (context_p, base_value);
   }
   else
   {
@@ -159,19 +162,19 @@ ecma_op_get_value_object_base (ecma_value_t base_value, /**< base value */
 
     if (JJS_LIKELY (ecma_is_value_string (base_value)))
     {
-      ecma_string_t *string_p = ecma_get_string_from_value (base_value);
+      ecma_string_t *string_p = ecma_get_string_from_value (context_p, base_value);
 
       if (ecma_string_is_length (property_name_p))
       {
-        return ecma_make_uint32_value (ecma_string_get_length (string_p));
+        return ecma_make_uint32_value (context_p, ecma_string_get_length (context_p, string_p));
       }
 
       uint32_t index = ecma_string_get_array_index (property_name_p);
 
-      if (index != ECMA_STRING_NOT_ARRAY_INDEX && index < ecma_string_get_length (string_p))
+      if (index != ECMA_STRING_NOT_ARRAY_INDEX && index < ecma_string_get_length (context_p, string_p))
       {
-        ecma_char_t char_at_idx = ecma_string_get_char_at_pos (string_p, index);
-        return ecma_make_string_value (ecma_new_ecma_string_from_code_unit (char_at_idx));
+        ecma_char_t char_at_idx = ecma_string_get_char_at_pos (context_p, string_p, index);
+        return ecma_make_string_value (context_p, ecma_new_ecma_string_from_code_unit (context_p, char_at_idx));
       }
 
 #if JJS_BUILTIN_STRING
@@ -205,7 +208,7 @@ ecma_op_get_value_object_base (ecma_value_t base_value, /**< base value */
     obj_p = ecma_builtin_get (id);
   }
 
-  return ecma_op_object_get_with_receiver (obj_p, property_name_p, base_value);
+  return ecma_op_object_get_with_receiver (context_p, obj_p, property_name_p, base_value);
 } /* ecma_op_get_value_object_base */
 
 /**
@@ -217,7 +220,8 @@ ecma_op_get_value_object_base (ecma_value_t base_value, /**< base value */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_put_value_lex_env_base (ecma_context_t *context_p, /**< JJS context */
+                                ecma_object_t *lex_env_p, /**< lexical environment */
                                 ecma_string_t *name_p, /**< variable name */
                                 bool is_strict, /**< flag indicating strict mode */
                                 ecma_value_t value) /**< ECMA-value */
@@ -238,7 +242,7 @@ ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
       }
       case ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE:
       {
-        ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
+        ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, name_p);
 
         if (property_p != NULL)
         {
@@ -248,11 +252,11 @@ ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
 
           if ((*property_p & ECMA_PROPERTY_FLAG_WRITABLE) && property_value_p->value != ECMA_VALUE_UNINITIALIZED)
           {
-            ecma_named_data_property_assign_value (lex_env_p, property_value_p, value);
+            ecma_named_data_property_assign_value (context_p, lex_env_p, property_value_p, value);
             return ECMA_VALUE_EMPTY;
           }
 
-          return ecma_op_raise_set_binding_error (property_p, is_strict);
+          return ecma_op_raise_set_binding_error (context_p, property_p, is_strict);
         }
         break;
       }
@@ -260,9 +264,9 @@ ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
       {
         JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-        ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+        ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
 
-        ecma_value_t has_property = ecma_op_object_has_property (binding_obj_p, name_p);
+        ecma_value_t has_property = ecma_op_object_has_property (context_p, binding_obj_p, name_p);
 
 #if JJS_BUILTIN_PROXY
         if (ECMA_IS_VALUE_ERROR (has_property))
@@ -273,7 +277,7 @@ ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
 
         if (ecma_is_value_true (has_property))
         {
-          ecma_value_t completion = ecma_op_object_put (binding_obj_p, name_p, value, is_strict);
+          ecma_value_t completion = ecma_op_object_put (context_p, binding_obj_p, name_p, value, is_strict);
 
           if (ECMA_IS_VALUE_ERROR (completion))
           {
@@ -293,7 +297,7 @@ ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
       break;
     }
 
-    lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+    lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
   }
 
   JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
@@ -301,15 +305,16 @@ ecma_op_put_value_lex_env_base (ecma_object_t *lex_env_p, /**< lexical environme
   if (is_strict)
   {
 #if JJS_ERROR_MESSAGES
-    return ecma_raise_standard_error_with_format (JJS_ERROR_REFERENCE,
+    return ecma_raise_standard_error_with_format (context_p,
+                                                  JJS_ERROR_REFERENCE,
                                                   "% is not defined",
-                                                  ecma_make_string_value (name_p));
+                                                  ecma_make_string_value (context_p, name_p));
 #else /* !JJS_ERROR_MESSAGES */
     return ecma_raise_reference_error (ECMA_ERR_EMPTY);
 #endif /* JJS_ERROR_MESSAGES */
   }
 
-  ecma_value_t completion = ecma_op_object_put (ecma_get_lex_env_binding_object (lex_env_p), name_p, value, false);
+  ecma_value_t completion = ecma_op_object_put (context_p, ecma_get_lex_env_binding_object (context_p, lex_env_p), name_p, value, false);
 
   JJS_ASSERT (ecma_is_value_boolean (completion));
 

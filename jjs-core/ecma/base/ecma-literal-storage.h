@@ -39,18 +39,19 @@ typedef struct
 } lit_mem_to_snapshot_id_map_entry_t;
 #endif /* JJS_SNAPSHOT_SAVE */
 
-void ecma_finalize_lit_storage (void);
+void ecma_finalize_lit_storage (ecma_context_t *context_p);
 
-ecma_value_t ecma_find_or_create_literal_string (const lit_utf8_byte_t *chars_p, lit_utf8_size_t size, bool is_ascii);
-ecma_value_t ecma_find_or_create_literal_number (ecma_number_t number_arg);
+ecma_value_t ecma_find_or_create_literal_string (ecma_context_t *context_p, const lit_utf8_byte_t *chars_p, lit_utf8_size_t size, bool is_ascii);
+ecma_value_t ecma_find_or_create_literal_number (ecma_context_t *context_p, ecma_number_t number_arg);
 #if JJS_BUILTIN_BIGINT
-ecma_value_t ecma_find_or_create_literal_bigint (ecma_value_t bigint);
+ecma_value_t ecma_find_or_create_literal_bigint (ecma_context_t *context_p, ecma_value_t bigint);
 #endif /* JJS_BUILTIN_BIGINT */
 
 #if JJS_SNAPSHOT_SAVE
-void ecma_save_literals_append_value (ecma_value_t value, ecma_collection_t *lit_pool_p);
-void ecma_save_literals_add_compiled_code (const ecma_compiled_code_t *compiled_code_p, ecma_collection_t *lit_pool_p);
-bool ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p,
+void ecma_save_literals_append_value (ecma_context_t *context_p, ecma_value_t value, ecma_collection_t *lit_pool_p);
+void ecma_save_literals_add_compiled_code (ecma_context_t *context_p, const ecma_compiled_code_t *compiled_code_p, ecma_collection_t *lit_pool_p);
+bool ecma_save_literals_for_snapshot (ecma_context_t *context_p,
+                                      ecma_collection_t *lit_pool_p,
                                       uint32_t *buffer_p,
                                       size_t buffer_size,
                                       size_t *in_out_buffer_offset_p,
@@ -59,7 +60,7 @@ bool ecma_save_literals_for_snapshot (ecma_collection_t *lit_pool_p,
 #endif /* JJS_SNAPSHOT_SAVE */
 
 #if JJS_SNAPSHOT_EXEC || JJS_SNAPSHOT_SAVE
-ecma_value_t ecma_snapshot_get_literal (const uint8_t *literal_base_p, ecma_value_t literal_value);
+ecma_value_t ecma_snapshot_get_literal (ecma_context_t *context_p, const uint8_t *literal_base_p, ecma_value_t literal_value);
 ecma_value_t *ecma_snapshot_resolve_serializable_values (const ecma_compiled_code_t *compiled_code_p,
                                                          uint8_t *byte_code_end_p);
 #endif /* JJS_SNAPSHOT_EXEC || JJS_SNAPSHOT_SAVE */

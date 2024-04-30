@@ -112,7 +112,7 @@ typedef struct
  */
 #define ECMA_RE_IS_CAPTURE_DEFINED(c) ((c)->begin_p != NULL)
 
-ecma_value_t ecma_regexp_get_capture_value (const ecma_regexp_capture_t *const capture_p);
+ecma_value_t ecma_regexp_get_capture_value (ecma_context_t *context_p, const ecma_regexp_capture_t *const capture_p);
 
 /**
  * Value used ase result when stack limit is reached
@@ -161,23 +161,23 @@ typedef struct
 } ecma_regexp_string_iterator_t;
 
 lit_code_point_t ecma_regexp_unicode_advance (const lit_utf8_byte_t **str_p, const lit_utf8_byte_t *end_p);
-ecma_object_t *ecma_op_regexp_alloc (ecma_object_t *new_target_obj_p);
-ecma_value_t ecma_regexp_exec_helper (ecma_object_t *regexp_object_p, ecma_string_t *input_string_p);
-ecma_string_t *ecma_regexp_read_pattern_str_helper (ecma_value_t pattern_arg);
+ecma_object_t *ecma_op_regexp_alloc (ecma_context_t *context_p, ecma_object_t *new_target_obj_p);
+ecma_value_t ecma_regexp_exec_helper (ecma_context_t *context_p, ecma_object_t *regexp_object_p, ecma_string_t *input_string_p);
+ecma_string_t *ecma_regexp_read_pattern_str_helper (ecma_context_t *context_p, ecma_value_t pattern_arg);
 lit_code_point_t ecma_regexp_canonicalize_char (lit_code_point_t ch, bool unicode);
-ecma_value_t ecma_regexp_parse_flags (ecma_string_t *flags_str_p, uint16_t *flags_p);
-void ecma_regexp_create_and_initialize_props (ecma_object_t *re_object_p, ecma_string_t *source_p, uint16_t flags);
-ecma_value_t ecma_regexp_replace_helper (ecma_value_t this_arg, ecma_value_t string_arg, ecma_value_t replace_arg);
-ecma_value_t ecma_regexp_search_helper (ecma_value_t regexp_arg, ecma_value_t string_arg);
-ecma_value_t ecma_regexp_split_helper (ecma_value_t this_arg, ecma_value_t string_arg, ecma_value_t limit_arg);
-ecma_value_t ecma_regexp_match_helper (ecma_value_t this_arg, ecma_value_t string_arg);
+ecma_value_t ecma_regexp_parse_flags (ecma_context_t *context_p, ecma_string_t *flags_str_p, uint16_t *flags_p);
+void ecma_regexp_create_and_initialize_props (ecma_context_t *context_p, ecma_object_t *re_object_p, ecma_string_t *source_p, uint16_t flags);
+ecma_value_t ecma_regexp_replace_helper (ecma_context_t *context_p, ecma_value_t this_arg, ecma_value_t string_arg, ecma_value_t replace_arg);
+ecma_value_t ecma_regexp_search_helper (ecma_context_t *context_p, ecma_value_t regexp_arg, ecma_value_t string_arg);
+ecma_value_t ecma_regexp_split_helper (ecma_context_t *context_p, ecma_value_t this_arg, ecma_value_t string_arg, ecma_value_t limit_arg);
+ecma_value_t ecma_regexp_match_helper (ecma_context_t *context_p, ecma_value_t this_arg, ecma_value_t string_arg);
 
-ecma_value_t ecma_op_regexp_exec (ecma_value_t this_arg, ecma_string_t *str_p);
+ecma_value_t ecma_op_regexp_exec (ecma_context_t *context_p, ecma_value_t this_arg, ecma_string_t *str_p);
 
-ecma_value_t ecma_op_create_regexp_from_bytecode (ecma_object_t *regexp_obj_p, re_compiled_code_t *bc_p);
+ecma_value_t ecma_op_create_regexp_from_bytecode (ecma_context_t *context_p, ecma_object_t *regexp_obj_p, re_compiled_code_t *bc_p);
 ecma_value_t
-ecma_op_create_regexp_from_pattern (ecma_object_t *regexp_obj_p, ecma_value_t pattern_value, ecma_value_t flags_value);
-ecma_value_t ecma_op_create_regexp_with_flags (ecma_object_t *regexp_obj_p, ecma_value_t pattern_value, uint16_t flags);
+ecma_op_create_regexp_from_pattern (ecma_context_t *context_p, ecma_object_t *regexp_obj_p, ecma_value_t pattern_value, ecma_value_t flags_value);
+ecma_value_t ecma_op_create_regexp_with_flags (ecma_context_t *context_p, ecma_object_t *regexp_obj_p, ecma_value_t pattern_value, uint16_t flags);
 /**
  * @}
  * @}

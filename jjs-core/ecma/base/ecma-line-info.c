@@ -102,12 +102,13 @@ ecma_line_info_difference_update (uint32_t current_value, /**< current value */
  * Release line info data.
  */
 void
-ecma_line_info_free (uint8_t *line_info_p) /**< line info buffer */
+ecma_line_info_free (ecma_context_t *context_p, /**< JJS context */
+                     uint8_t *line_info_p) /**< line info buffer */
 {
   uint8_t *source_p = line_info_p;
   uint32_t total_length = ecma_line_info_decode_vlq (&source_p);
 
-  jmem_heap_free_block (line_info_p, total_length + (uint32_t) (source_p - line_info_p));
+  jmem_heap_free_block (context_p, line_info_p, total_length + (uint32_t) (source_p - line_info_p));
 } /* ecma_line_info_free */
 
 /**

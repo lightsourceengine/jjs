@@ -63,17 +63,19 @@ ecma_finalize_global_environment (ecma_context_t *context_p)
  * @return pointer to the object's instance
  */
 ecma_object_t *
-ecma_get_global_environment (ecma_object_t *global_object_p) /**< global object */
+ecma_get_global_environment (ecma_context_t *context_p, /**< JJS context */
+                             ecma_object_t *global_object_p) /**< global object */
 {
   JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (global_object_p));
-  return ECMA_GET_NON_NULL_POINTER (ecma_object_t, ((ecma_global_object_t *) global_object_p)->global_env_cp);
+  return ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, ((ecma_global_object_t *) global_object_p)->global_env_cp);
 } /* ecma_get_global_environment */
 
 /**
  * Create the global lexical block on top of the global environment.
  */
 void
-ecma_create_global_lexical_block (ecma_object_t *global_object_p) /**< global object */
+ecma_create_global_lexical_block (ecma_context_t *context_p, /**< JJS context */
+                                  ecma_object_t *global_object_p) /**< global object */
 {
   JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (global_object_p));
 
@@ -81,9 +83,9 @@ ecma_create_global_lexical_block (ecma_object_t *global_object_p) /**< global ob
 
   if (real_global_object_p->global_scope_cp == real_global_object_p->global_env_cp)
   {
-    ecma_object_t *global_scope_p = ecma_create_decl_lex_env (ecma_get_global_environment (global_object_p));
+    ecma_object_t *global_scope_p = ecma_create_decl_lex_env (context_p, ecma_get_global_environment (context_p, global_object_p));
     global_scope_p->type_flags_refs |= ECMA_OBJECT_FLAG_BLOCK;
-    ECMA_SET_NON_NULL_POINTER (real_global_object_p->global_scope_cp, global_scope_p);
+    ECMA_SET_NON_NULL_POINTER (context_p, real_global_object_p->global_scope_cp, global_scope_p);
     ecma_deref_object (global_scope_p);
   }
 } /* ecma_create_global_lexical_block */
@@ -94,7 +96,8 @@ ecma_create_global_lexical_block (ecma_object_t *global_object_p) /**< global ob
  * @return ECMA_VALUE_EMPTY or ECMA_VALUE_ERROR
  */
 ecma_value_t
-ecma_op_raise_set_binding_error (ecma_property_t *property_p, /**< property */
+ecma_op_raise_set_binding_error (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_property_t *property_p, /**< property */
                                  bool is_strict) /**< flag indicating strict mode */
 {
   JJS_UNUSED (property_p);
@@ -107,17 +110,17 @@ ecma_op_raise_set_binding_error (ecma_property_t *property_p, /**< property */
 
     if (JJS_UNLIKELY (property_value_p->value == ECMA_VALUE_UNINITIALIZED))
     {
-      return ecma_raise_reference_error (ECMA_ERR_LET_CONST_NOT_INITIALIZED);
+      return ecma_raise_reference_error (context_p, ECMA_ERR_LET_CONST_NOT_INITIALIZED);
     }
 
     JJS_ASSERT (!ecma_is_property_writable (*property_p));
 
-    return ecma_raise_type_error (ECMA_ERR_CONSTANT_BINDINGS_CANNOT_BE_REASSIGNED);
+    return ecma_raise_type_error (context_p, ECMA_ERR_CONSTANT_BINDINGS_CANNOT_BE_REASSIGNED);
   }
 
   if (is_strict)
   {
-    return ecma_raise_type_error (ECMA_ERR_BINDING_CANNOT_SET);
+    return ecma_raise_type_error (context_p, ECMA_ERR_BINDING_CANNOT_SET);
   }
   return ECMA_VALUE_EMPTY;
 } /* ecma_op_raise_set_binding_error */
@@ -129,10 +132,11 @@ ecma_op_raise_set_binding_error (ecma_property_t *property_p, /**< property */
  * @return pointer to the object's instance
  */
 ecma_object_t *
-ecma_get_global_scope (ecma_object_t *global_object_p) /**< global object */
+ecma_get_global_scope (ecma_context_t *context_p, /**< JJS context */
+                       ecma_object_t *global_object_p) /**< global object */
 {
   JJS_ASSERT (global_object_p != NULL && ecma_builtin_is_global (global_object_p));
-  return ECMA_GET_NON_NULL_POINTER (ecma_object_t, ((ecma_global_object_t *) global_object_p)->global_scope_cp);
+  return ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, ((ecma_global_object_t *) global_object_p)->global_scope_cp);
 } /* ecma_get_global_scope */
 
 /**
@@ -147,7 +151,8 @@ ecma_get_global_scope (ecma_object_t *global_object_p) /**< global object */
  * @return true / false
  */
 ecma_value_t
-ecma_op_has_binding (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_has_binding (ecma_context_t *context_p, /**< JJS context */
+                     ecma_object_t *lex_env_p, /**< lexical environment */
                      ecma_string_t *name_p) /**< argument N */
 {
   JJS_ASSERT (lex_env_p != NULL && ecma_is_lexical_environment (lex_env_p));
@@ -166,7 +171,7 @@ ecma_op_has_binding (ecma_object_t *lex_env_p, /**< lexical environment */
     }
     case ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE:
     {
-      ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
+      ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, name_p);
 
       return ecma_make_boolean_value (property_p != NULL);
     }
@@ -174,9 +179,9 @@ ecma_op_has_binding (ecma_object_t *lex_env_p, /**< lexical environment */
     {
       JJS_ASSERT (lex_env_type == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-      ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+      ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
 
-      return ecma_op_object_has_property (binding_obj_p, name_p);
+      return ecma_op_object_has_property (context_p, binding_obj_p, name_p);
     }
   }
 } /* ecma_op_has_binding */
@@ -191,7 +196,8 @@ ecma_op_has_binding (ecma_object_t *lex_env_p, /**< lexical environment */
  *         NULL - otherwise
  */
 ecma_property_t *
-ecma_op_create_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_create_mutable_binding (ecma_context_t *context_p, /**< JJS context */
+                                ecma_object_t *lex_env_p, /**< lexical environment */
                                 ecma_string_t *name_p, /**< argument N */
                                 bool is_deletable) /**< argument D */
 {
@@ -209,19 +215,19 @@ ecma_op_create_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environme
 
     ecma_property_t *prop_p;
 
-    ecma_create_named_data_property (lex_env_p, name_p, prop_attributes, &prop_p);
+    ecma_create_named_data_property (context_p, lex_env_p, name_p, prop_attributes, &prop_p);
     return prop_p;
   }
   else
   {
     JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
 
 #if JJS_BUILTIN_PROXY && JJS_BUILTIN_REALMS
     if (ECMA_OBJECT_IS_PROXY (binding_obj_p))
     {
-      ecma_value_t result = ecma_proxy_object_is_extensible (binding_obj_p);
+      ecma_value_t result = ecma_proxy_object_is_extensible (context_p, binding_obj_p);
 
       if (ECMA_IS_VALUE_ERROR (result))
       {
@@ -233,7 +239,7 @@ ecma_op_create_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environme
         return NULL;
       }
     }
-    else if (!ecma_op_ordinary_object_is_extensible (binding_obj_p))
+    else if (!ecma_op_ordinary_object_is_extensible (context_p, binding_obj_p))
     {
       return NULL;
     }
@@ -274,7 +280,8 @@ ecma_op_create_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environme
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_op_set_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_set_mutable_binding (ecma_context_t *context_p, /**< JJS context */
+                             ecma_object_t *lex_env_p, /**< lexical environment */
                              ecma_string_t *name_p, /**< argument N */
                              ecma_value_t value, /**< argument V */
                              bool is_strict) /**< argument S */
@@ -294,11 +301,11 @@ ecma_op_set_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environment 
     }
     case ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE:
     {
-      ecma_property_t *property_p = ecma_find_named_property (lex_env_p, name_p);
+      ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, name_p);
 
       if (JJS_UNLIKELY (property_p == NULL))
       {
-        property_p = ecma_op_create_mutable_binding (lex_env_p, name_p, is_strict);
+        property_p = ecma_op_create_mutable_binding (context_p, lex_env_p, name_p, is_strict);
         JJS_ASSERT (property_p != ECMA_PROPERTY_POINTER_ERROR);
       }
 
@@ -311,19 +318,19 @@ ecma_op_set_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environment 
 
         JJS_ASSERT (property_value_p->value != ECMA_VALUE_UNINITIALIZED);
 
-        ecma_named_data_property_assign_value (lex_env_p, property_value_p, value);
+        ecma_named_data_property_assign_value (context_p, lex_env_p, property_value_p, value);
         return ECMA_VALUE_EMPTY;
       }
 
-      return ecma_op_raise_set_binding_error (property_p, is_strict);
+      return ecma_op_raise_set_binding_error (context_p, property_p, is_strict);
     }
     default:
     {
       JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-      ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+      ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
 
-      ecma_value_t completion = ecma_op_object_put (binding_obj_p, name_p, value, is_strict);
+      ecma_value_t completion = ecma_op_object_put (context_p, binding_obj_p, name_p, value, is_strict);
 
       if (ECMA_IS_VALUE_ERROR (completion))
       {
@@ -345,7 +352,8 @@ ecma_op_set_mutable_binding (ecma_object_t *lex_env_p, /**< lexical environment 
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_op_get_binding_value (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_get_binding_value (ecma_context_t *context_p, /**< JJS context */
+                           ecma_object_t *lex_env_p, /**< lexical environment */
                            ecma_string_t *name_p, /**< argument N */
                            bool is_strict) /**< argument S */
 {
@@ -354,17 +362,17 @@ ecma_op_get_binding_value (ecma_object_t *lex_env_p, /**< lexical environment */
 
   if (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE)
   {
-    ecma_property_value_t *prop_value_p = ecma_get_named_data_property (lex_env_p, name_p);
+    ecma_property_value_t *prop_value_p = ecma_get_named_data_property (context_p, lex_env_p, name_p);
 
-    return ecma_copy_value (prop_value_p->value);
+    return ecma_copy_value (context_p, prop_value_p->value);
   }
   else
   {
     JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
 
-    ecma_value_t result = ecma_op_object_find (binding_obj_p, name_p);
+    ecma_value_t result = ecma_op_object_find (context_p, binding_obj_p, name_p);
 
     if (ECMA_IS_VALUE_ERROR (result))
     {
@@ -375,7 +383,7 @@ ecma_op_get_binding_value (ecma_object_t *lex_env_p, /**< lexical environment */
     {
       if (is_strict)
       {
-        result = ecma_raise_reference_error (ECMA_ERR_BINDING_NOT_EXIST_OR_UNINITIALIZED);
+        result = ecma_raise_reference_error (context_p, ECMA_ERR_BINDING_NOT_EXIST_OR_UNINITIALIZED);
       }
       else
       {
@@ -397,7 +405,8 @@ ecma_op_get_binding_value (ecma_object_t *lex_env_p, /**< lexical environment */
  *         ECMA_VALUE_{TRUE/FALSE} - depends on whether the binding can be deleted
  */
 ecma_value_t
-ecma_op_delete_binding (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_delete_binding (ecma_context_t *context_p, /**< JJS context */
+                        ecma_object_t *lex_env_p, /**< lexical environment */
                         ecma_string_t *name_p) /**< argument N */
 {
   JJS_ASSERT (lex_env_p != NULL && ecma_is_lexical_environment (lex_env_p));
@@ -405,7 +414,7 @@ ecma_op_delete_binding (ecma_object_t *lex_env_p, /**< lexical environment */
 
   if (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE)
   {
-    ecma_property_t *prop_p = ecma_find_named_property (lex_env_p, name_p);
+    ecma_property_t *prop_p = ecma_find_named_property (context_p, lex_env_p, name_p);
     ecma_value_t ret_val;
 
     if (prop_p == NULL)
@@ -422,7 +431,7 @@ ecma_op_delete_binding (ecma_object_t *lex_env_p, /**< lexical environment */
       }
       else
       {
-        ecma_delete_property (lex_env_p, ECMA_PROPERTY_VALUE_PTR (prop_p));
+        ecma_delete_property (context_p, lex_env_p, ECMA_PROPERTY_VALUE_PTR (prop_p));
 
         ret_val = ECMA_VALUE_TRUE;
       }
@@ -434,9 +443,9 @@ ecma_op_delete_binding (ecma_object_t *lex_env_p, /**< lexical environment */
   {
     JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
 
-    return ecma_op_object_delete (binding_obj_p, name_p, false);
+    return ecma_op_object_delete (context_p, binding_obj_p, name_p, false);
   }
 } /* ecma_op_delete_binding */
 
@@ -449,7 +458,8 @@ ecma_op_delete_binding (ecma_object_t *lex_env_p, /**< lexical environment */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_op_implicit_this_value (ecma_object_t *lex_env_p) /**< lexical environment */
+ecma_op_implicit_this_value (ecma_context_t *context_p, /**< JJS context */
+                             ecma_object_t *lex_env_p) /**< lexical environment */
 {
   JJS_ASSERT (lex_env_p != NULL && ecma_is_lexical_environment (lex_env_p));
 
@@ -461,10 +471,10 @@ ecma_op_implicit_this_value (ecma_object_t *lex_env_p) /**< lexical environment 
   {
     JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_THIS_OBJECT_BOUND);
 
-    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (lex_env_p);
+    ecma_object_t *binding_obj_p = ecma_get_lex_env_binding_object (context_p, lex_env_p);
     ecma_ref_object (binding_obj_p);
 
-    return ecma_make_object_value (binding_obj_p);
+    return ecma_make_object_value (context_p, binding_obj_p);
   }
 } /* ecma_op_implicit_this_value */
 
@@ -474,7 +484,8 @@ ecma_op_implicit_this_value (ecma_object_t *lex_env_p) /**< lexical environment 
  * See also: ECMA-262 v5, 10.2.1
  */
 void
-ecma_op_create_immutable_binding (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_create_immutable_binding (ecma_context_t *context_p, /**< JJS context */
+                                  ecma_object_t *lex_env_p, /**< lexical environment */
                                   ecma_string_t *name_p, /**< argument N */
                                   ecma_value_t value) /**< argument V */
 {
@@ -485,9 +496,9 @@ ecma_op_create_immutable_binding (ecma_object_t *lex_env_p, /**< lexical environ
    * Warning:
    *         Whether immutable bindings are deletable seems not to be defined by ECMA v5.
    */
-  ecma_property_value_t *prop_value_p = ecma_create_named_data_property (lex_env_p, name_p, ECMA_PROPERTY_FIXED, NULL);
+  ecma_property_value_t *prop_value_p = ecma_create_named_data_property (context_p, lex_env_p, name_p, ECMA_PROPERTY_FIXED, NULL);
 
-  prop_value_p->value = ecma_copy_value_if_not_object (value);
+  prop_value_p->value = ecma_copy_value_if_not_object (context_p, value);
 } /* ecma_op_create_immutable_binding */
 
 /**
@@ -496,20 +507,21 @@ ecma_op_create_immutable_binding (ecma_object_t *lex_env_p, /**< lexical environ
  * See also: ECMA-262 v6, 8.1.1.1.4
  */
 void
-ecma_op_initialize_binding (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_initialize_binding (ecma_context_t *context_p, /**< JJS context */
+                            ecma_object_t *lex_env_p, /**< lexical environment */
                             ecma_string_t *name_p, /**< argument N */
                             ecma_value_t value) /**< argument V */
 {
   JJS_ASSERT (lex_env_p != NULL && ecma_is_lexical_environment (lex_env_p));
   JJS_ASSERT (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE);
 
-  ecma_property_t *prop_p = ecma_find_named_property (lex_env_p, name_p);
+  ecma_property_t *prop_p = ecma_find_named_property (context_p, lex_env_p, name_p);
   JJS_ASSERT (prop_p != NULL && ECMA_PROPERTY_IS_RAW_DATA (*prop_p));
 
   ecma_property_value_t *prop_value_p = ECMA_PROPERTY_VALUE_PTR (prop_p);
   JJS_ASSERT (prop_value_p->value == ECMA_VALUE_UNINITIALIZED);
 
-  prop_value_p->value = ecma_copy_value_if_not_object (value);
+  prop_value_p->value = ecma_copy_value_if_not_object (context_p, value);
 } /* ecma_op_initialize_binding */
 
 /**
@@ -518,7 +530,8 @@ ecma_op_initialize_binding (ecma_object_t *lex_env_p, /**< lexical environment *
  * See also: ECMA-262 v6, 8.1.1.3.1
  */
 void
-ecma_op_create_environment_record (ecma_object_t *lex_env_p, /**< lexical environment */
+ecma_op_create_environment_record (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_object_t *lex_env_p, /**< lexical environment */
                                    ecma_value_t this_binding, /**< this binding value */
                                    ecma_object_t *func_obj_p) /**< function object */
 {
@@ -526,18 +539,18 @@ ecma_op_create_environment_record (ecma_object_t *lex_env_p, /**< lexical enviro
   JJS_ASSERT (ecma_is_value_object (this_binding) || this_binding == ECMA_VALUE_UNINITIALIZED);
 
   ecma_environment_record_t *environment_record_p;
-  environment_record_p = (ecma_environment_record_t *) jmem_heap_alloc_block (sizeof (ecma_environment_record_t));
+  environment_record_p = (ecma_environment_record_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_environment_record_t));
 
   environment_record_p->this_binding = this_binding;
-  environment_record_p->function_object = ecma_make_object_value (func_obj_p);
+  environment_record_p->function_object = ecma_make_object_value (context_p, func_obj_p);
 
   ecma_string_t *property_name_p = ecma_get_internal_string (LIT_INTERNAL_MAGIC_STRING_ENVIRONMENT_RECORD);
 
   ecma_property_t *property_p;
   ecma_property_value_t *prop_value_p;
-  ECMA_CREATE_INTERNAL_PROPERTY (lex_env_p, property_name_p, property_p, prop_value_p);
+  ECMA_CREATE_INTERNAL_PROPERTY (context_p, lex_env_p, property_name_p, property_p, prop_value_p);
 
-  ECMA_SET_INTERNAL_VALUE_POINTER (prop_value_p->value, environment_record_p);
+  ECMA_SET_INTERNAL_VALUE_POINTER (context_p, prop_value_p->value, environment_record_p);
 } /* ecma_op_create_environment_record */
 
 /**
@@ -548,7 +561,8 @@ ecma_op_create_environment_record (ecma_object_t *lex_env_p, /**< lexical enviro
  * @return property pointer for the internal [[ThisBindingValue]] property
  */
 ecma_environment_record_t *
-ecma_op_get_environment_record (ecma_object_t *lex_env_p) /**< lexical environment */
+ecma_op_get_environment_record (ecma_context_t *context_p, /**< JJS context */
+                                ecma_object_t *lex_env_p) /**< lexical environment */
 {
   JJS_ASSERT (lex_env_p != NULL);
 
@@ -557,12 +571,12 @@ ecma_op_get_environment_record (ecma_object_t *lex_env_p) /**< lexical environme
   {
     if (ecma_get_lex_env_type (lex_env_p) == ECMA_LEXICAL_ENVIRONMENT_DECLARATIVE)
     {
-      ecma_property_t *property_p = ecma_find_named_property (lex_env_p, property_name_p);
+      ecma_property_t *property_p = ecma_find_named_property (context_p, lex_env_p, property_name_p);
 
       if (property_p != NULL)
       {
         ecma_property_value_t *property_value_p = ECMA_PROPERTY_VALUE_PTR (property_p);
-        return ECMA_GET_INTERNAL_VALUE_POINTER (ecma_environment_record_t, property_value_p->value);
+        return ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_environment_record_t, property_value_p->value);
       }
     }
 
@@ -571,7 +585,7 @@ ecma_op_get_environment_record (ecma_object_t *lex_env_p) /**< lexical environme
       break;
     }
 
-    lex_env_p = ECMA_GET_NON_NULL_POINTER (ecma_object_t, lex_env_p->u2.outer_reference_cp);
+    lex_env_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, lex_env_p->u2.outer_reference_cp);
   }
 
   return NULL;
@@ -618,21 +632,22 @@ ecma_op_bind_this_value (ecma_environment_record_t *environment_record_p, /**< e
  *         ecma-object - otherwise
  */
 ecma_value_t
-ecma_op_get_this_binding (ecma_object_t *lex_env_p) /**< lexical environment */
+ecma_op_get_this_binding (ecma_context_t *context_p, /**< JJS context */
+                          ecma_object_t *lex_env_p) /**< lexical environment */
 {
   JJS_ASSERT (lex_env_p != NULL);
 
-  ecma_environment_record_t *environment_record_p = ecma_op_get_environment_record (lex_env_p);
+  ecma_environment_record_t *environment_record_p = ecma_op_get_environment_record (context_p, lex_env_p);
   JJS_ASSERT (environment_record_p != NULL);
 
   ecma_value_t this_value = environment_record_p->this_binding;
 
   if (this_value == ECMA_VALUE_UNINITIALIZED)
   {
-    return ecma_raise_reference_error (ECMA_ERR_CALL_SUPER_CONSTRUCTOR_DERIVED_CLASS_BEFORE_THIS);
+    return ecma_raise_reference_error (context_p, ECMA_ERR_CALL_SUPER_CONSTRUCTOR_DERIVED_CLASS_BEFORE_THIS);
   }
 
-  ecma_ref_object (ecma_get_object_from_value (this_value));
+  ecma_ref_object (ecma_get_object_from_value (context_p, this_value));
 
   return this_value;
 } /* ecma_op_get_this_binding */

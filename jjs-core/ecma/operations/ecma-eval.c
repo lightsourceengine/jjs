@@ -43,7 +43,8 @@
  * @return ecma value
  */
 ecma_value_t
-ecma_op_eval (ecma_value_t source_code, /**< source code */
+ecma_op_eval (ecma_context_t *context_p, /**< JJS context */
+              ecma_value_t source_code, /**< source code */
               uint32_t parse_opts) /**< ecma_parse_opts_t option bits */
 {
   JJS_ASSERT (ecma_is_value_string (source_code));
@@ -53,7 +54,7 @@ ecma_op_eval (ecma_value_t source_code, /**< source code */
     return ECMA_VALUE_UNDEFINED;
   }
 
-  return ecma_op_eval_chars_buffer ((void *) &source_code, parse_opts | ECMA_PARSE_HAS_SOURCE_VALUE);
+  return ecma_op_eval_chars_buffer (context_p, (void *) &source_code, parse_opts | ECMA_PARSE_HAS_SOURCE_VALUE);
 } /* ecma_op_eval */
 
 /**
@@ -66,7 +67,8 @@ ecma_op_eval (ecma_value_t source_code, /**< source code */
  * @return ecma value
  */
 ecma_value_t
-ecma_op_eval_chars_buffer (void *source_p, /**< source code */
+ecma_op_eval_chars_buffer (ecma_context_t *context_p, /**< JJS context */
+                           void *source_p, /**< source code */
                            uint32_t parse_opts) /**< ecma_parse_opts_t option bits */
 {
 #if JJS_PARSER
@@ -83,14 +85,14 @@ ecma_op_eval_chars_buffer (void *source_p, /**< source code */
 
   ECMA_CLEAR_LOCAL_PARSE_OPTS (&JJS_CONTEXT_STRUCT);
 
-  ecma_compiled_code_t *bytecode_p = parser_parse_script (&JJS_CONTEXT_STRUCT, source_p, parse_opts, NULL);
+  ecma_compiled_code_t *bytecode_p = parser_parse_script (context_p, source_p, parse_opts, NULL);
 
   if (JJS_UNLIKELY (bytecode_p == NULL))
   {
     return ECMA_VALUE_ERROR;
   }
 
-  return vm_run_eval (&JJS_CONTEXT_STRUCT, bytecode_p, parse_opts);
+  return vm_run_eval (context_p, bytecode_p, parse_opts);
 #endif /* JJS_PARSER */
 } /* ecma_op_eval_chars_buffer */
 

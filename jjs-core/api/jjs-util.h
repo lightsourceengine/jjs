@@ -25,7 +25,7 @@ typedef struct
   uint32_t value;
 } jjs_util_option_pair_t;
 
-jjs_value_t jjs_return (jjs_value_t value);
+jjs_value_t jjs_return (jjs_context_t *context_p, jjs_value_t value);
 
 bool jjs_util_map_option (jjs_context_t* context_p,
                           jjs_value_t option,

@@ -59,7 +59,7 @@ ecma_init (ecma_context_t *context_p)
     context_p->stack_base = (uintptr_t) &sp;
   }
 
-  ecma_job_queue_init ();
+  ecma_job_queue_init (context_p);
 
   context_p->current_new_target_p = NULL;
 
@@ -94,11 +94,11 @@ ecma_finalize (ecma_context_t *context_p)
   {
     if (global_symbols_cp[i] != JMEM_CP_NULL)
     {
-      ecma_deref_ecma_string (ECMA_GET_NON_NULL_POINTER (ecma_string_t, global_symbols_cp[i]));
+      ecma_deref_ecma_string (context_p, ECMA_GET_NON_NULL_POINTER (context_p, ecma_string_t, global_symbols_cp[i]));
     }
   }
 
-  ecma_finalize_lit_storage ();
+  ecma_finalize_lit_storage (context_p);
 } /* ecma_finalize */
 
 /**

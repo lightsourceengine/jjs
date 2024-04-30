@@ -669,7 +669,7 @@ scanner_scan_primary_expression_end (parser_context_t *parser_context_p, /**< pa
         item_p = item_p->next_p;
       }
 
-      scanner_pop_binding_list (scanner_context_p);
+      scanner_pop_binding_list (parser_context_p, scanner_context_p);
       scanner_context_p->mode = SCAN_MODE_PRIMARY_EXPRESSION_END;
       return SCAN_KEEP_TOKEN;
     }
@@ -930,7 +930,7 @@ scanner_scan_primary_expression_end (parser_context_t *parser_context_p, /**< pa
 
       if (binding_type == SCANNER_BINDING_CATCH && stack_top == SCAN_STACK_CATCH_STATEMENT)
       {
-        scanner_pop_binding_list (scanner_context_p);
+        scanner_pop_binding_list (parser_context_p, scanner_context_p);
 
         if (object_literal_flags != 0)
         {
@@ -974,7 +974,7 @@ scanner_scan_primary_expression_end (parser_context_t *parser_context_p, /**< pa
       {
         if (SCANNER_NEEDS_BINDING_LIST (binding_type))
         {
-          scanner_pop_binding_list (scanner_context_p);
+          scanner_pop_binding_list (parser_context_p, scanner_context_p);
         }
 
         if ((stack_top == SCAN_STACK_ARRAY_LITERAL || stack_top == SCAN_STACK_OBJECT_LITERAL)
@@ -3386,7 +3386,7 @@ scan_completed:
   {
     while (scanner_context.active_binding_list_p != NULL)
     {
-      scanner_pop_binding_list (&scanner_context);
+      scanner_pop_binding_list (parser_context_p, &scanner_context);
     }
 
     if (JJS_UNLIKELY (parser_context_p->error != PARSER_ERR_OUT_OF_MEMORY))
@@ -3428,8 +3428,8 @@ scan_completed:
 
         scanner_context.active_literal_pool_p = literal_pool_p->prev_p;
 
-        parser_list_free (&literal_pool_p->literal_pool);
-        scanner_free (literal_pool_p, sizeof (scanner_literal_pool_t));
+        parser_list_free (parser_context_p, &literal_pool_p->literal_pool);
+        scanner_free (parser_context_p, literal_pool_p, sizeof (scanner_literal_pool_t));
       }
 
       parser_stack_free (parser_context_p);

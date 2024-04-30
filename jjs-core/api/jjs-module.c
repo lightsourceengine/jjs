@@ -66,14 +66,14 @@ jjs_module_link (jjs_context_t* context_p, /**< JJS context */
     user_p = NULL;
   }
 
-  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (context_p, module);
 
   if (module_p == NULL)
   {
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_NOT_MODULE));
   }
 
-  return jjs_return (ecma_module_link (context_p, module_p, callback, user_p));
+  return jjs_return (context_p, ecma_module_link (context_p, module_p, callback, user_p));
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED_ALL (module, callback, user_p);
 
@@ -97,7 +97,7 @@ jjs_module_evaluate (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (context_p, module);
 
   if (module_p == NULL)
   {
@@ -109,7 +109,7 @@ jjs_module_evaluate (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_MUST_BE_IN_LINKED_STATE));
   }
 
-  return jjs_return (ecma_module_evaluate (context_p, module_p));
+  return jjs_return (context_p, ecma_module_evaluate (context_p, module_p));
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (module);
 
@@ -130,7 +130,7 @@ jjs_module_state (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (context_p, module);
 
   if (module_p == NULL)
   {
@@ -193,7 +193,7 @@ jjs_module_request_count (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (context_p, module);
 
   if (module_p == NULL)
   {
@@ -236,7 +236,7 @@ jjs_module_request (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (context_p, module);
 
   if (module_p == NULL)
   {
@@ -249,7 +249,7 @@ jjs_module_request (jjs_context_t* context_p, /**< JJS context */
   {
     if (request_index == 0)
     {
-      return ecma_copy_value (node_p->u.path_or_module);
+      return ecma_copy_value (context_p, node_p->u.path_or_module);
     }
 
     --request_index;
@@ -279,7 +279,7 @@ jjs_module_namespace (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (context_p, module);
 
   if (module_p == NULL)
   {
@@ -295,7 +295,7 @@ jjs_module_namespace (jjs_context_t* context_p, /**< JJS context */
   JJS_ASSERT (module_p->namespace_object_p != NULL);
 
   ecma_ref_object (module_p->namespace_object_p);
-  return ecma_make_object_value (module_p->namespace_object_p);
+  return ecma_make_object_value (context_p, module_p->namespace_object_p);
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED (module);
 
@@ -342,8 +342,8 @@ jjs_synthetic_module (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_MODULE_SYSTEM
-  ecma_object_t *global_object_p = ecma_builtin_get_global ();
-  ecma_object_t *scope_p = ecma_create_decl_lex_env (ecma_get_global_environment (global_object_p));
+  ecma_object_t *global_object_p = ecma_builtin_get_global (context_p);
+  ecma_object_t *scope_p = ecma_create_decl_lex_env (context_p, ecma_get_global_environment (context_p, global_object_p));
   ecma_module_names_t *local_exports_p = NULL;
 
   for (size_t i = 0; i < export_count; i++)
@@ -351,15 +351,15 @@ jjs_synthetic_module (jjs_context_t* context_p, /**< JJS context */
     if (!ecma_is_value_string (exports_p[i]))
     {
       ecma_deref_object (scope_p);
-      ecma_module_release_module_names (local_exports_p);
+      ecma_module_release_module_names (context_p, local_exports_p);
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_EXPORTS_MUST_BE_STRING_VALUES));
     }
 
-    ecma_string_t *name_str_p = ecma_get_string_from_value (exports_p[i]);
+    ecma_string_t *name_str_p = ecma_get_string_from_value (context_p, exports_p[i]);
 
     bool valid_identifier = false;
 
-    ECMA_STRING_TO_UTF8_STRING (name_str_p, name_start_p, name_size);
+    ECMA_STRING_TO_UTF8_STRING (context_p, name_str_p, name_start_p, name_size);
 
     if (name_size > 0)
     {
@@ -390,24 +390,24 @@ jjs_synthetic_module (jjs_context_t* context_p, /**< JJS context */
       }
     }
 
-    ECMA_FINALIZE_UTF8_STRING (name_start_p, name_size);
+    ECMA_FINALIZE_UTF8_STRING (context_p, name_start_p, name_size);
 
     if (!valid_identifier)
     {
       ecma_deref_object (scope_p);
-      ecma_module_release_module_names (local_exports_p);
+      ecma_module_release_module_names (context_p, local_exports_p);
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_MODULE_EXPORTS_MUST_BE_VALID_IDENTIFIERS));
     }
 
-    if (ecma_find_named_property (scope_p, name_str_p) != NULL)
+    if (ecma_find_named_property (context_p, scope_p, name_str_p) != NULL)
     {
       continue;
     }
 
-    ecma_create_named_data_property (scope_p, name_str_p, ECMA_PROPERTY_FLAG_WRITABLE, NULL);
+    ecma_create_named_data_property (context_p, scope_p, name_str_p, ECMA_PROPERTY_FLAG_WRITABLE, NULL);
 
     ecma_module_names_t *new_export_p;
-    new_export_p = (ecma_module_names_t *) jmem_heap_alloc_block (sizeof (ecma_module_names_t));
+    new_export_p = (ecma_module_names_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_module_names_t));
 
     new_export_p->next_p = local_exports_p;
     local_exports_p = new_export_p;
@@ -428,7 +428,7 @@ jjs_synthetic_module (jjs_context_t* context_p, /**< JJS context */
 
   ecma_deref_object (scope_p);
 
-  return ecma_make_object_value (&module_p->header.object);
+  return ecma_make_object_value (context_p, &module_p->header.object);
 
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED_ALL (callback, exports_p, export_count);
@@ -455,7 +455,7 @@ jjs_synthetic_module_set_export (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_MODULE_SYSTEM
-  ecma_module_t *module_p = ecma_module_get_resolved_module (module);
+  ecma_module_t *module_p = ecma_module_get_resolved_module (context_p, module);
 
   if (module_p == NULL)
   {
@@ -474,14 +474,14 @@ jjs_synthetic_module_set_export (jjs_context_t* context_p, /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Cannot set exports on a module in evaluated or error state.");
   }
 
-  ecma_property_t *property_p = ecma_find_named_property (module_p->scope_p, ecma_get_string_from_value (export_name));
+  ecma_property_t *property_p = ecma_find_named_property (context_p, module_p->scope_p, ecma_get_string_from_value (context_p, export_name));
 
   if (property_p == NULL)
   {
     return jjs_throw_sz (context_p, JJS_ERROR_REFERENCE, ecma_get_error_msg (ECMA_ERR_UNKNOWN_EXPORT));
   }
 
-  ecma_named_data_property_assign_value (module_p->scope_p, ECMA_PROPERTY_VALUE_PTR (property_p), value);
+  ecma_named_data_property_assign_value (context_p, module_p->scope_p, ECMA_PROPERTY_VALUE_PTR (property_p), value);
   return ECMA_VALUE_TRUE;
 #else /* !JJS_MODULE_SYSTEM */
   JJS_UNUSED_ALL (module, export_name, value);

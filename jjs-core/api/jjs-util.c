@@ -28,11 +28,11 @@
  * @return return value for JJS API functions
  */
 jjs_value_t
-jjs_return (const jjs_value_t value) /**< return value */
+jjs_return (jjs_context_t *context_p, const jjs_value_t value) /**< return value */
 {
   if (ECMA_IS_VALUE_ERROR (value))
   {
-    return ecma_create_exception_from_context ();
+    return ecma_create_exception_from_context (context_p);
   }
 
   return value;

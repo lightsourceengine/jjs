@@ -72,16 +72,16 @@ vm_get_backtrace (jjs_context_t* context_p, /**< JJS context */
     max_depth = UINT32_MAX;
   }
 
-  ecma_object_t *array_p = ecma_op_new_array_object (0);
+  ecma_object_t *array_p = ecma_op_new_array_object (context_p, 0);
   JJS_ASSERT (ecma_op_object_is_fast_array (array_p));
   uint32_t index = 0;
 
   while (frame_context_p != NULL)
   {
     const ecma_compiled_code_t *bytecode_header_p = frame_context_p->shared_p->bytecode_header_p;
-    ecma_value_t source_name = ecma_get_source_name (bytecode_header_p);
-    ecma_string_t *str_p = ecma_get_string_from_value (source_name);
-    ecma_stringbuilder_t builder = ecma_stringbuilder_create ();
+    ecma_value_t source_name = ecma_get_source_name (context_p, bytecode_header_p);
+    ecma_string_t *str_p = ecma_get_string_from_value (context_p, source_name);
+    ecma_stringbuilder_t builder = ecma_stringbuilder_create (context_p);
 
     if (ecma_string_is_empty (str_p))
     {
@@ -96,19 +96,19 @@ vm_get_backtrace (jjs_context_t* context_p, /**< JJS context */
     if (bytecode_header_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO)
     {
       jjs_frame_location_t location;
-      ecma_line_info_get (ecma_compiled_code_get_line_info (bytecode_header_p),
+      ecma_line_info_get (ecma_compiled_code_get_line_info (context_p, bytecode_header_p),
                           (uint32_t) (frame_context_p->byte_code_p - frame_context_p->byte_code_start_p),
                           &location);
 
-      ecma_string_t *line_str_p = ecma_new_ecma_string_from_uint32 (location.line);
+      ecma_string_t *line_str_p = ecma_new_ecma_string_from_uint32 (context_p, location.line);
       ecma_stringbuilder_append (&builder, line_str_p);
-      ecma_deref_ecma_string (line_str_p);
+      ecma_deref_ecma_string (context_p, line_str_p);
 
       ecma_stringbuilder_append_byte (&builder, LIT_CHAR_COLON);
 
-      line_str_p = ecma_new_ecma_string_from_uint32 (location.column);
+      line_str_p = ecma_new_ecma_string_from_uint32 (context_p, location.column);
       ecma_stringbuilder_append (&builder, line_str_p);
-      ecma_deref_ecma_string (line_str_p);
+      ecma_deref_ecma_string (context_p, line_str_p);
     }
     else
     {
@@ -116,8 +116,8 @@ vm_get_backtrace (jjs_context_t* context_p, /**< JJS context */
     }
 
     ecma_string_t *builder_str_p = ecma_stringbuilder_finalize (&builder);
-    ecma_fast_array_set_property (array_p, index, ecma_make_string_value (builder_str_p));
-    ecma_deref_ecma_string (builder_str_p);
+    ecma_fast_array_set_property (context_p, array_p, index, ecma_make_string_value (context_p, builder_str_p));
+    ecma_deref_ecma_string (context_p, builder_str_p);
 
     frame_context_p = frame_context_p->prev_context_p;
     index++;
@@ -128,7 +128,7 @@ vm_get_backtrace (jjs_context_t* context_p, /**< JJS context */
     }
   }
 
-  return ecma_make_object_value (array_p);
+  return ecma_make_object_value (context_p, array_p);
 #else /* !JJS_LINE_INFO */
   JJS_UNUSED_ALL (context_p, max_depth);
 

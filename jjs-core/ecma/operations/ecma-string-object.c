@@ -43,7 +43,8 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_string_object (const ecma_value_t *arguments_list_p, /**< list of arguments that
+ecma_op_create_string_object (ecma_context_t *context_p, /**< JJS context */
+                              const ecma_value_t *arguments_list_p, /**< list of arguments that
                                                                          are passed to String constructor */
                               uint32_t arguments_list_len) /**< length of the arguments' list */
 {
@@ -53,14 +54,14 @@ ecma_op_create_string_object (const ecma_value_t *arguments_list_p, /**< list of
 
   if (arguments_list_len > 0)
   {
-    ecma_string_t *str_p = ecma_op_to_string (arguments_list_p[0]);
+    ecma_string_t *str_p = ecma_op_to_string (context_p, arguments_list_p[0]);
 
     if (JJS_UNLIKELY (str_p == NULL))
     {
       return ECMA_VALUE_ERROR;
     }
 
-    prim_value = ecma_make_string_value (str_p);
+    prim_value = ecma_make_string_value (context_p, str_p);
   }
 
   ecma_builtin_id_t proto_id;
@@ -71,10 +72,10 @@ ecma_op_create_string_object (const ecma_value_t *arguments_list_p, /**< list of
 #endif /* JJS_BUILTIN_STRING */
   ecma_object_t *prototype_obj_p = ecma_builtin_get (proto_id);
 
-  ecma_object_t *new_target = JJS_CONTEXT (current_new_target_p);
+  ecma_object_t *new_target = context_p->current_new_target_p;
   if (new_target)
   {
-    prototype_obj_p = ecma_op_get_prototype_from_constructor (new_target, proto_id);
+    prototype_obj_p = ecma_op_get_prototype_from_constructor (context_p, new_target, proto_id);
     if (JJS_UNLIKELY (prototype_obj_p == NULL))
     {
       return ECMA_VALUE_ERROR;
@@ -82,7 +83,7 @@ ecma_op_create_string_object (const ecma_value_t *arguments_list_p, /**< list of
   }
 
   ecma_object_t *object_p =
-    ecma_create_object (prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
   ext_object_p->u.cls.type = ECMA_OBJECT_CLASS_STRING;
@@ -93,7 +94,7 @@ ecma_op_create_string_object (const ecma_value_t *arguments_list_p, /**< list of
     ecma_deref_object (prototype_obj_p);
   }
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_op_create_string_object */
 
 /**
@@ -102,7 +103,8 @@ ecma_op_create_string_object (const ecma_value_t *arguments_list_p, /**< list of
  * @return string values collection
  */
 void
-ecma_op_string_list_lazy_property_names (ecma_object_t *obj_p, /**< a String object */
+ecma_op_string_list_lazy_property_names (ecma_context_t *context_p, /**< JJS context */
+                                         ecma_object_t *obj_p, /**< a String object */
                                          ecma_collection_t *prop_names_p, /**< prop name collection */
                                          ecma_property_counter_t *prop_counter_p, /**< property counters */
                                          jjs_property_filter_t filter) /**< property name filter options */
@@ -114,16 +116,16 @@ ecma_op_string_list_lazy_property_names (ecma_object_t *obj_p, /**< a String obj
     ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) obj_p;
     JJS_ASSERT (ext_object_p->u.cls.type == ECMA_OBJECT_CLASS_STRING);
 
-    ecma_string_t *prim_value_str_p = ecma_get_string_from_value (ext_object_p->u.cls.u3.value);
+    ecma_string_t *prim_value_str_p = ecma_get_string_from_value (context_p, ext_object_p->u.cls.u3.value);
 
-    lit_utf8_size_t length = ecma_string_get_length (prim_value_str_p);
+    lit_utf8_size_t length = ecma_string_get_length (context_p, prim_value_str_p);
 
     for (lit_utf8_size_t i = 0; i < length; i++)
     {
-      ecma_string_t *name_p = ecma_new_ecma_string_from_uint32 (i);
+      ecma_string_t *name_p = ecma_new_ecma_string_from_uint32 (context_p, i);
 
       /* the properties are enumerable (ECMA-262 v5, 15.5.5.2.9) */
-      ecma_collection_push_back (prop_names_p, ecma_make_string_value (name_p));
+      ecma_collection_push_back (context_p, prop_names_p, ecma_make_string_value (context_p, name_p));
     }
 
     prop_counter_p->array_index_named_props += length;
@@ -131,7 +133,7 @@ ecma_op_string_list_lazy_property_names (ecma_object_t *obj_p, /**< a String obj
 
   if (!(filter & JJS_PROPERTY_FILTER_EXCLUDE_STRINGS))
   {
-    ecma_collection_push_back (prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
+    ecma_collection_push_back (context_p, prop_names_p, ecma_make_magic_string_value (LIT_MAGIC_STRING_LENGTH));
     prop_counter_p->string_named_props++;
   }
 } /* ecma_op_string_list_lazy_property_names */

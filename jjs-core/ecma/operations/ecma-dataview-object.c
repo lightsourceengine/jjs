@@ -47,26 +47,27 @@
  *         raised error - otherwise
  */
 ecma_value_t
-ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments list */
+ecma_op_dataview_create (ecma_context_t *context_p, /**< JJS context */
+                         const ecma_value_t *arguments_list_p, /**< arguments list */
                          uint32_t arguments_list_len) /**< number of arguments */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
-  JJS_ASSERT (JJS_CONTEXT (current_new_target_p));
+  JJS_ASSERT (context_p->current_new_target_p);
 
   ecma_value_t buffer = arguments_list_len > 0 ? arguments_list_p[0] : ECMA_VALUE_UNDEFINED;
 
   /* 2. */
   if (!ecma_is_value_object (buffer))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_BUFFER_NOT_OBJECT);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_BUFFER_NOT_OBJECT);
   }
 
-  ecma_object_t *buffer_p = ecma_get_object_from_value (buffer);
+  ecma_object_t *buffer_p = ecma_get_object_from_value (context_p, buffer);
 
   if (!(ecma_object_class_is (buffer_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-        || ecma_object_is_shared_arraybuffer (buffer_p)))
+        || ecma_object_is_shared_arraybuffer (context_p, buffer_p)))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARGUMENT_BUFFER_NOT_ARRAY_OR_SHARED_BUFFER);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARGUMENT_BUFFER_NOT_ARRAY_OR_SHARED_BUFFER);
   }
 
   /* 3. */
@@ -74,7 +75,7 @@ ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments li
 
   if (arguments_list_len > 1)
   {
-    ecma_value_t offset_value = ecma_op_to_index (arguments_list_p[1], &offset);
+    ecma_value_t offset_value = ecma_op_to_index (context_p, arguments_list_p[1], &offset);
     if (ECMA_IS_VALUE_ERROR (offset_value))
     {
       return offset_value;
@@ -82,18 +83,18 @@ ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments li
   }
 
   /* 4. */
-  if (ecma_arraybuffer_is_detached (buffer_p))
+  if (ecma_arraybuffer_is_detached (context_p, buffer_p))
   {
-    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
   }
 
   /* 5. */
-  ecma_number_t buffer_byte_length = ecma_arraybuffer_get_length (buffer_p);
+  ecma_number_t buffer_byte_length = ecma_arraybuffer_get_length (context_p, buffer_p);
 
   /* 6. */
   if (offset > buffer_byte_length)
   {
-    return ecma_raise_range_error (ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER);
+    return ecma_raise_range_error (context_p, ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER);
   }
 
   /* 7. */
@@ -102,7 +103,7 @@ ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments li
   {
     /* 8.a */
     ecma_number_t byte_length_to_index;
-    ecma_value_t byte_length_value = ecma_op_to_index (arguments_list_p[2], &byte_length_to_index);
+    ecma_value_t byte_length_value = ecma_op_to_index (context_p, arguments_list_p[2], &byte_length_to_index);
 
     if (ECMA_IS_VALUE_ERROR (byte_length_value))
     {
@@ -112,7 +113,7 @@ ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments li
     /* 8.b */
     if (offset + byte_length_to_index > buffer_byte_length)
     {
-      return ecma_raise_range_error (ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER);
+      return ecma_raise_range_error (context_p, ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER);
     }
 
     JJS_ASSERT (byte_length_to_index <= UINT32_MAX);
@@ -126,23 +127,23 @@ ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments li
 
   /* 9. */
   ecma_object_t *prototype_obj_p =
-    ecma_op_get_prototype_from_constructor (JJS_CONTEXT (current_new_target_p), ECMA_BUILTIN_ID_DATAVIEW_PROTOTYPE);
+    ecma_op_get_prototype_from_constructor (context_p, context_p->current_new_target_p, ECMA_BUILTIN_ID_DATAVIEW_PROTOTYPE);
   if (JJS_UNLIKELY (prototype_obj_p == NULL))
   {
     return ECMA_VALUE_ERROR;
   }
 
   /* 10. */
-  if (ecma_arraybuffer_is_detached (buffer_p))
+  if (ecma_arraybuffer_is_detached (context_p, buffer_p))
   {
     ecma_deref_object (prototype_obj_p);
-    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
   }
 
   /* 9. */
   /* It must happen after 10., because uninitialized object can't be destroyed properly. */
   ecma_object_t *object_p =
-    ecma_create_object (prototype_obj_p, sizeof (ecma_dataview_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_dataview_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_deref_object (prototype_obj_p);
 
@@ -153,7 +154,7 @@ ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments li
   dataview_obj_p->buffer_p = buffer_p;
   dataview_obj_p->byte_offset = (uint32_t) offset;
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_op_dataview_create */
 
 /**
@@ -167,11 +168,12 @@ ecma_op_dataview_create (const ecma_value_t *arguments_list_p, /**< arguments li
  *         NULL otherwise
  */
 ecma_dataview_object_t *
-ecma_op_dataview_get_object (ecma_value_t this_arg) /**< this argument */
+ecma_op_dataview_get_object (ecma_context_t *context_p, /**< JJS context */
+                             ecma_value_t this_arg) /**< this argument */
 {
   if (ecma_is_value_object (this_arg))
   {
-    ecma_object_t *object_p = ecma_get_object_from_value (this_arg);
+    ecma_object_t *object_p = ecma_get_object_from_value (context_p, this_arg);
 
     if (ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_DATAVIEW))
     {
@@ -179,7 +181,7 @@ ecma_op_dataview_get_object (ecma_value_t this_arg) /**< this argument */
     }
   }
 
-  ecma_raise_type_error (ECMA_ERR_EXPECTED_A_DATAVIEW_OBJECT);
+  ecma_raise_type_error (context_p, ECMA_ERR_EXPECTED_A_DATAVIEW_OBJECT);
   return NULL;
 } /* ecma_op_dataview_get_object */
 
@@ -240,7 +242,8 @@ ecma_dataview_swap_order (bool system_is_little_endian, /**< true - if the syste
  * @return ecma value
  */
 ecma_value_t
-ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'view' argument */
+ecma_op_dataview_get_set_view_value (ecma_context_t *context_p, /**< JJS context */
+                                     ecma_value_t view, /**< the operation's 'view' argument */
                                      ecma_value_t request_index, /**< the operation's 'requestIndex' argument */
                                      ecma_value_t is_little_endian_value, /**< the operation's
                                                                            *   'isLittleEndian' argument */
@@ -248,7 +251,7 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
                                      ecma_typedarray_type_t id) /**< the operation's 'type' argument */
 {
   /* 1 - 2. */
-  ecma_dataview_object_t *view_p = ecma_op_dataview_get_object (view);
+  ecma_dataview_object_t *view_p = ecma_op_dataview_get_object (context_p, view);
 
   if (JJS_UNLIKELY (view_p == NULL))
   {
@@ -257,11 +260,11 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
 
   ecma_object_t *buffer_p = view_p->buffer_p;
   JJS_ASSERT (ecma_object_class_is (buffer_p, ECMA_OBJECT_CLASS_ARRAY_BUFFER)
-                || ecma_object_is_shared_arraybuffer (buffer_p));
+                || ecma_object_is_shared_arraybuffer (context_p, buffer_p));
 
   /* 3. */
   ecma_number_t get_index;
-  ecma_value_t number_index_value = ecma_op_to_index (request_index, &get_index);
+  ecma_value_t number_index_value = ecma_op_to_index (context_p, request_index, &get_index);
 
   if (ECMA_IS_VALUE_ERROR (number_index_value))
   {
@@ -274,7 +277,7 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
 #if JJS_BUILTIN_BIGINT
     if (ECMA_TYPEDARRAY_IS_BIGINT_TYPE (id))
     {
-      value_to_set = ecma_bigint_to_bigint (value_to_set, true);
+      value_to_set = ecma_bigint_to_bigint (context_p, value_to_set, true);
 
       if (ECMA_IS_VALUE_ERROR (value_to_set))
       {
@@ -285,30 +288,30 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
 #endif /* JJS_BUILTIN_BIGINT */
     {
       ecma_number_t value_to_set_number;
-      ecma_value_t value = ecma_op_to_number (value_to_set, &value_to_set_number);
+      ecma_value_t value = ecma_op_to_number (context_p, value_to_set, &value_to_set_number);
 
       if (ECMA_IS_VALUE_ERROR (value))
       {
         return value;
       }
 
-      value_to_set = ecma_make_number_value (value_to_set_number);
+      value_to_set = ecma_make_number_value (context_p, value_to_set_number);
     }
   }
 
   /* GetViewValue 4., SetViewValue 6. */
-  bool is_little_endian = ecma_op_to_boolean (is_little_endian_value);
+  bool is_little_endian = ecma_op_to_boolean (context_p, is_little_endian_value);
 
-  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (buffer_p))
+  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (context_p, buffer_p))
   {
-    ecma_free_value (value_to_set);
+    ecma_free_value (context_p, value_to_set);
     return ECMA_VALUE_ERROR;
   }
 
-  if (ecma_arraybuffer_is_detached (buffer_p))
+  if (ecma_arraybuffer_is_detached (context_p, buffer_p))
   {
-    ecma_free_value (value_to_set);
-    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    ecma_free_value (context_p, value_to_set);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
   }
 
   /* GetViewValue 7., SetViewValue 9. */
@@ -323,20 +326,20 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
   /* GetViewValue 10., SetViewValue 12. */
   if (get_index + element_size > (ecma_number_t) view_size)
   {
-    ecma_free_value (value_to_set);
-    return ecma_raise_range_error (ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER);
+    ecma_free_value (context_p, value_to_set);
+    return ecma_raise_range_error (context_p, ECMA_ERR_START_OFFSET_IS_OUTSIDE_THE_BOUNDS_OF_THE_BUFFER);
   }
 
-  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (buffer_p))
+  if (ECMA_ARRAYBUFFER_LAZY_ALLOC (context_p, buffer_p))
   {
-    ecma_free_value (value_to_set);
+    ecma_free_value (context_p, value_to_set);
     return ECMA_VALUE_ERROR;
   }
 
-  if (ecma_arraybuffer_is_detached (buffer_p))
+  if (ecma_arraybuffer_is_detached (context_p, buffer_p))
   {
-    ecma_free_value (value_to_set);
-    return ecma_raise_type_error (ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
+    ecma_free_value (context_p, value_to_set);
+    return ecma_raise_type_error (context_p, ECMA_ERR_ARRAYBUFFER_IS_DETACHED);
   }
 
   /* GetViewValue 11., SetViewValue 13. */
@@ -351,7 +354,7 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
   info.array_buffer_p = buffer_p;
 
   /* GetViewValue 12. */
-  uint8_t *block_p = ecma_arraybuffer_get_buffer (buffer_p) + (uint32_t) get_index + view_offset;
+  uint8_t *block_p = ecma_arraybuffer_get_buffer (context_p, buffer_p) + (uint32_t) get_index + view_offset;
 
   if (ecma_is_value_empty (value_to_set))
   {
@@ -360,7 +363,7 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
     ecma_dataview_swap_order (system_is_little_endian, is_little_endian, element_size, swap_block_p);
 
     ecma_typedarray_getter_fn_t typedarray_getter_cb = ecma_get_typedarray_getter_fn (info.id);
-    return typedarray_getter_cb (swap_block_p);
+    return typedarray_getter_cb (context_p, swap_block_p);
   }
 
   if (!ecma_number_is_nan (get_index) && get_index <= 0)
@@ -370,9 +373,9 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
 
   /* SetViewValue 14. */
   ecma_typedarray_setter_fn_t typedarray_setter_cb = ecma_get_typedarray_setter_fn (info.id);
-  ecma_value_t set_element = typedarray_setter_cb (block_p, value_to_set);
+  ecma_value_t set_element = typedarray_setter_cb (context_p, block_p, value_to_set);
 
-  ecma_free_value (value_to_set);
+  ecma_free_value (context_p, value_to_set);
 
   if (ECMA_IS_VALUE_ERROR (set_element))
   {
@@ -391,14 +394,15 @@ ecma_op_dataview_get_set_view_value (ecma_value_t view, /**< the operation's 'vi
  *         false - otherwise
  */
 bool
-ecma_is_dataview (ecma_value_t value) /**< the target need to be checked */
+ecma_is_dataview (ecma_context_t *context_p, /**< JJS context */
+                  ecma_value_t value) /**< the target need to be checked */
 {
   if (!ecma_is_value_object (value))
   {
     return false;
   }
 
-  return ecma_object_class_is (ecma_get_object_from_value (value), ECMA_OBJECT_CLASS_DATAVIEW);
+  return ecma_object_class_is (ecma_get_object_from_value (context_p, value), ECMA_OBJECT_CLASS_DATAVIEW);
 } /* ecma_is_dataview */
 
 /**

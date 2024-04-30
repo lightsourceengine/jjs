@@ -93,46 +93,49 @@ typedef struct
  */
 
 bool ecma_is_promise (ecma_object_t *obj_p);
-ecma_value_t ecma_op_create_promise_object (ecma_value_t executor, ecma_value_t parent, ecma_object_t *new_target_p);
+ecma_value_t ecma_op_create_promise_object (ecma_context_t *context_p, ecma_value_t executor, ecma_value_t parent, ecma_object_t *new_target_p);
 uint8_t ecma_promise_get_flags (ecma_object_t *promise_p);
-ecma_value_t ecma_promise_get_result (ecma_object_t *promise_p);
-void ecma_reject_promise (ecma_value_t promise, ecma_value_t reason);
-void ecma_fulfill_promise (ecma_value_t promise, ecma_value_t value);
-ecma_value_t ecma_reject_promise_with_checks (ecma_value_t promise, ecma_value_t reason);
-ecma_value_t ecma_fulfill_promise_with_checks (ecma_value_t promise, ecma_value_t value);
-ecma_object_t *ecma_promise_new_capability (ecma_value_t constructor, ecma_value_t parent);
-ecma_value_t ecma_promise_reject_or_resolve (ecma_value_t this_arg, ecma_value_t value, bool is_resolve);
-ecma_value_t ecma_promise_then (ecma_value_t promise, ecma_value_t on_fulfilled, ecma_value_t on_rejected);
-ecma_value_t ecma_promise_with_resolvers (ecma_value_t this_arg);
+ecma_value_t ecma_promise_get_result (ecma_context_t *context_p, ecma_object_t *promise_p);
+void ecma_reject_promise (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t reason);
+void ecma_fulfill_promise (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t value);
+ecma_value_t ecma_reject_promise_with_checks (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t reason);
+ecma_value_t ecma_fulfill_promise_with_checks (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t value);
+ecma_object_t *ecma_promise_new_capability (ecma_context_t *context_p, ecma_value_t constructor, ecma_value_t parent);
+ecma_value_t ecma_promise_reject_or_resolve (ecma_context_t *context_p, ecma_value_t this_arg, ecma_value_t value, bool is_resolve);
+ecma_value_t ecma_promise_then (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t on_fulfilled, ecma_value_t on_rejected);
+ecma_value_t ecma_promise_with_resolvers (ecma_context_t *context_p, ecma_value_t this_arg);
 
 ecma_value_t
-ecma_value_thunk_helper_cb (ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
+ecma_value_thunk_helper_cb (ecma_context_t *context_p, ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
 ecma_value_t
-ecma_value_thunk_thrower_cb (ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
+ecma_value_thunk_thrower_cb (ecma_context_t *context_p, ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
 ecma_value_t
-ecma_promise_then_finally_cb (ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
+ecma_promise_then_finally_cb (ecma_context_t *context_p, ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
 ecma_value_t
-ecma_promise_catch_finally_cb (ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
+ecma_promise_catch_finally_cb (ecma_context_t *context_p, ecma_object_t *function_obj_p, const ecma_value_t args_p[], const uint32_t args_count);
 ecma_value_t
-ecma_promise_reject_handler (ecma_object_t *function_obj_p, const ecma_value_t argv[], const uint32_t args_count);
+ecma_promise_reject_handler (ecma_context_t *context_p, ecma_object_t *function_obj_p, const ecma_value_t argv[], const uint32_t args_count);
 ecma_value_t
-ecma_promise_resolve_handler (ecma_object_t *function_obj_p, const ecma_value_t argv[], const uint32_t args_count);
-ecma_value_t ecma_promise_all_or_all_settled_handler_cb (ecma_object_t *function_obj_p,
+ecma_promise_resolve_handler (ecma_context_t *context_p, ecma_object_t *function_obj_p, const ecma_value_t argv[], const uint32_t args_count);
+ecma_value_t ecma_promise_all_or_all_settled_handler_cb (ecma_context_t *context_p,
+                                                         ecma_object_t *function_obj_p,
                                                          const ecma_value_t args_p[],
                                                          const uint32_t args_count);
-ecma_value_t ecma_op_get_capabilities_executor_cb (ecma_object_t *function_obj_p,
+ecma_value_t ecma_op_get_capabilities_executor_cb (ecma_context_t *context_p,
+                                                   ecma_object_t *function_obj_p,
                                                    const ecma_value_t args_p[],
                                                    const uint32_t args_count);
 
-ecma_value_t ecma_promise_finally (ecma_value_t promise, ecma_value_t on_finally);
-void ecma_promise_async_then (ecma_value_t promise, ecma_value_t executable_object);
-ecma_value_t ecma_promise_async_await (ecma_extended_object_t *async_generator_object_p, ecma_value_t value);
-ecma_value_t ecma_promise_run_executor (ecma_object_t *promise_p, ecma_value_t executor, ecma_value_t this_value);
-ecma_value_t ecma_op_if_abrupt_reject_promise (ecma_value_t *value_p, ecma_object_t *capability_obj_p);
+ecma_value_t ecma_promise_finally (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t on_finally);
+void ecma_promise_async_then (ecma_context_t *context_p, ecma_value_t promise, ecma_value_t executable_object);
+ecma_value_t ecma_promise_async_await (ecma_context_t *context_p, ecma_extended_object_t *async_generator_object_p, ecma_value_t value);
+ecma_value_t ecma_promise_run_executor (ecma_context_t *context_p, ecma_object_t *promise_p, ecma_value_t executor, ecma_value_t this_value);
+ecma_value_t ecma_op_if_abrupt_reject_promise (ecma_context_t *context_p, ecma_value_t *value_p, ecma_object_t *capability_obj_p);
 
-uint32_t ecma_promise_remaining_inc_or_dec (ecma_value_t remaining, bool is_inc);
+uint32_t ecma_promise_remaining_inc_or_dec (ecma_context_t *context_p, ecma_value_t remaining, bool is_inc);
 
-ecma_value_t ecma_promise_perform_then (ecma_value_t promise,
+ecma_value_t ecma_promise_perform_then (ecma_context_t *context_p,
+                                        ecma_value_t promise,
                                         ecma_value_t on_fulfilled,
                                         ecma_value_t on_rejected,
                                         ecma_object_t *result_capability_obj_p);

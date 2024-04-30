@@ -42,14 +42,15 @@
  * @return new SharedArrayBuffer object
  */
 ecma_object_t *
-ecma_shared_arraybuffer_new_object (uint32_t length) /**< length of the SharedArrayBuffer */
+ecma_shared_arraybuffer_new_object (ecma_context_t *context_p, /**< JJS context */
+                                    uint32_t length) /**< length of the SharedArrayBuffer */
 {
   if (length > 0)
   {
-    return ecma_arraybuffer_create_object_with_buffer (ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER, length);
+    return ecma_arraybuffer_create_object_with_buffer (context_p, ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER, length);
   }
 
-  return ecma_arraybuffer_create_object (ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER, length);
+  return ecma_arraybuffer_create_object (context_p, ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER, length);
 } /* ecma_shared_arraybuffer_new_object */
 
 /**
@@ -61,13 +62,15 @@ ecma_shared_arraybuffer_new_object (uint32_t length) /**< length of the SharedAr
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_shared_arraybuffer_object (const ecma_value_t *arguments_list_p, /**< list of arguments that
+ecma_op_create_shared_arraybuffer_object (ecma_context_t *context_p, /**< JJS context */
+                                          const ecma_value_t *arguments_list_p, /**< list of arguments that
                                                                                  *   are passed to String constructor */
                                           uint32_t arguments_list_len) /**< length of the arguments' list */
 {
   JJS_ASSERT (arguments_list_len == 0 || arguments_list_p != NULL);
 
-  ecma_object_t *proto_p = ecma_op_get_prototype_from_constructor (JJS_CONTEXT (current_new_target_p),
+  ecma_object_t *proto_p = ecma_op_get_prototype_from_constructor (context_p,
+                                                                   context_p->current_new_target_p,
                                                                    ECMA_BUILTIN_ID_SHARED_ARRAYBUFFER_PROTOTYPE);
 
   if (proto_p == NULL)
@@ -81,11 +84,11 @@ ecma_op_create_shared_arraybuffer_object (const ecma_value_t *arguments_list_p, 
   {
     if (ecma_is_value_number (arguments_list_p[0]))
     {
-      length_num = ecma_get_number_from_value (arguments_list_p[0]);
+      length_num = ecma_get_number_from_value (context_p, arguments_list_p[0]);
     }
     else
     {
-      ecma_value_t to_number_value = ecma_op_to_number (arguments_list_p[0], &length_num);
+      ecma_value_t to_number_value = ecma_op_to_number (context_p, arguments_list_p[0], &length_num);
 
       if (ECMA_IS_VALUE_ERROR (to_number_value))
       {
@@ -104,16 +107,16 @@ ecma_op_create_shared_arraybuffer_object (const ecma_value_t *arguments_list_p, 
     if (length_num <= -1.0 || length_num > (ecma_number_t) maximum_size_in_byte + 0.5)
     {
       ecma_deref_object (proto_p);
-      return ecma_raise_range_error (ECMA_ERR_INVALID_SHARED_ARRAYBUFFER_LENGTH);
+      return ecma_raise_range_error (context_p, ECMA_ERR_INVALID_SHARED_ARRAYBUFFER_LENGTH);
     }
   }
 
   uint32_t length_uint32 = ecma_number_to_uint32 (length_num);
-  ecma_object_t *shared_array_buffer = ecma_shared_arraybuffer_new_object (length_uint32);
-  ECMA_SET_NON_NULL_POINTER (shared_array_buffer->u2.prototype_cp, proto_p);
+  ecma_object_t *shared_array_buffer = ecma_shared_arraybuffer_new_object (context_p, length_uint32);
+  ECMA_SET_NON_NULL_POINTER (context_p, shared_array_buffer->u2.prototype_cp, proto_p);
   ecma_deref_object (proto_p);
 
-  return ecma_make_object_value (shared_array_buffer);
+  return ecma_make_object_value (context_p, shared_array_buffer);
 } /* ecma_op_create_shared_arraybuffer_object */
 
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
@@ -127,12 +130,14 @@ ecma_op_create_shared_arraybuffer_object (const ecma_value_t *arguments_list_p, 
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_ALWAYS_INLINE
-ecma_is_shared_arraybuffer (ecma_value_t target) /**< the target value */
+ecma_is_shared_arraybuffer (ecma_context_t *context_p, /**< JJS context */
+                            ecma_value_t target) /**< the target value */
 {
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
   return (ecma_is_value_object (target)
-          && ecma_object_class_is (ecma_get_object_from_value (target), ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER));
+          && ecma_object_class_is (ecma_get_object_from_value (context_p, target), ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER));
 #else /* !JJS_BUILTIN_SHAREDARRAYBUFFER */
+  JJS_UNUSED (context_p);
   JJS_UNUSED (target);
   return false;
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
@@ -145,8 +150,10 @@ ecma_is_shared_arraybuffer (ecma_value_t target) /**< the target value */
  *         false - otherwise
  */
 extern inline bool JJS_ATTR_ALWAYS_INLINE
-ecma_object_is_shared_arraybuffer (ecma_object_t *object_p) /**< the target object */
+ecma_object_is_shared_arraybuffer (ecma_context_t *context_p, /**< JJS context */
+                                   ecma_object_t *object_p) /**< the target object */
 {
+  JJS_UNUSED (context_p);
 #if JJS_BUILTIN_SHAREDARRAYBUFFER
   return ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SHARED_ARRAY_BUFFER);
 #else /* !JJS_BUILTIN_SHAREDARRAYBUFFER */

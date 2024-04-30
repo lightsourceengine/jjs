@@ -70,9 +70,10 @@ static const uint8_t ecma_property_hashmap_steps[ECMA_PROPERTY_HASHMAP_NUMBER_OF
  * The object must not have a property hashmap.
  */
 void
-ecma_property_hashmap_create (ecma_object_t *object_p) /**< object */
+ecma_property_hashmap_create (ecma_context_t *context_p, /**< JJS context */
+                              ecma_object_t *object_p) /**< object */
 {
-  if (JJS_CONTEXT (ecma_prop_hashmap_alloc_state) != ECMA_PROP_HASHMAP_ALLOC_ON)
+  if (context_p->ecma_prop_hashmap_alloc_state != ECMA_PROP_HASHMAP_ALLOC_ON)
   {
     return;
   }
@@ -88,7 +89,7 @@ ecma_property_hashmap_create (ecma_object_t *object_p) /**< object */
 
   while (prop_iter_cp != JMEM_CP_NULL)
   {
-    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
     JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
     for (int i = 0; i < ECMA_PROPERTY_PAIR_ITEM_COUNT; i++)
@@ -118,7 +119,7 @@ ecma_property_hashmap_create (ecma_object_t *object_p) /**< object */
 
   size_t total_size = ECMA_PROPERTY_HASHMAP_GET_TOTAL_SIZE (max_property_count);
 
-  ecma_property_hashmap_t *hashmap_p = (ecma_property_hashmap_t *) jmem_heap_alloc_block_null_on_error (total_size);
+  ecma_property_hashmap_t *hashmap_p = (ecma_property_hashmap_t *) jmem_heap_alloc_block_null_on_error (context_p, total_size);
 
   if (hashmap_p == NULL)
   {
@@ -138,11 +139,11 @@ ecma_property_hashmap_create (ecma_object_t *object_p) /**< object */
   uint32_t mask = max_property_count - 1;
 
   prop_iter_cp = object_p->u1.property_list_cp;
-  ECMA_SET_NON_NULL_POINTER (object_p->u1.property_list_cp, hashmap_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, object_p->u1.property_list_cp, hashmap_p);
 
   while (prop_iter_cp != JMEM_CP_NULL)
   {
-    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
     JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
     for (int i = 0; i < ECMA_PROPERTY_PAIR_ITEM_COUNT; i++)
@@ -156,7 +157,7 @@ ecma_property_hashmap_create (ecma_object_t *object_p) /**< object */
 
       ecma_property_pair_t *property_pair_p = (ecma_property_pair_t *) prop_iter_p;
 
-      uint32_t entry_index = ecma_string_get_property_name_hash (prop_iter_p->types[i], property_pair_p->names_cp[i]);
+      uint32_t entry_index = ecma_string_get_property_name_hash (context_p, prop_iter_p->types[i], property_pair_p->names_cp[i]);
       uint32_t step = ecma_property_hashmap_steps[entry_index & (ECMA_PROPERTY_HASHMAP_NUMBER_OF_STEPS - 1)];
 
       entry_index &= mask;
@@ -179,7 +180,7 @@ ecma_property_hashmap_create (ecma_object_t *object_p) /**< object */
 #endif /* !JJS_NDEBUG */
       }
 
-      ECMA_SET_NON_NULL_POINTER (pair_list_p[entry_index], property_pair_p);
+      ECMA_SET_NON_NULL_POINTER (context_p, pair_list_p[entry_index], property_pair_p);
 
       if (i != 0)
       {
@@ -196,13 +197,14 @@ ecma_property_hashmap_create (ecma_object_t *object_p) /**< object */
  * The object must have a property hashmap.
  */
 void
-ecma_property_hashmap_free (ecma_object_t *object_p) /**< object */
+ecma_property_hashmap_free (ecma_context_t *context_p, /**< JJS context */
+                            ecma_object_t *object_p) /**< object */
 {
   /* Property hash must be exists and must be the first property. */
   JJS_ASSERT (object_p->u1.property_list_cp != JMEM_CP_NULL);
 
   ecma_property_header_t *property_p =
-    ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, object_p->u1.property_list_cp);
+    ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, object_p->u1.property_list_cp);
 
   JJS_ASSERT (property_p->types[0] == ECMA_PROPERTY_TYPE_HASHMAP);
 
@@ -210,14 +212,15 @@ ecma_property_hashmap_free (ecma_object_t *object_p) /**< object */
 
   object_p->u1.property_list_cp = property_p->next_property_cp;
 
-  jmem_heap_free_block (hashmap_p, ECMA_PROPERTY_HASHMAP_GET_TOTAL_SIZE (hashmap_p->max_property_count));
+  jmem_heap_free_block (context_p, hashmap_p, ECMA_PROPERTY_HASHMAP_GET_TOTAL_SIZE (hashmap_p->max_property_count));
 } /* ecma_property_hashmap_free */
 
 /**
  * Insert named property into the hashmap.
  */
 void
-ecma_property_hashmap_insert (ecma_object_t *object_p, /**< object */
+ecma_property_hashmap_insert (ecma_context_t *context_p, /**< JJS context */
+                              ecma_object_t *object_p, /**< object */
                               ecma_string_t *name_p, /**< name of the property */
                               ecma_property_pair_t *property_pair_p, /**< property pair */
                               int property_index) /**< property index in the pair (0 or 1) */
@@ -225,15 +228,15 @@ ecma_property_hashmap_insert (ecma_object_t *object_p, /**< object */
   JJS_ASSERT (property_pair_p != NULL);
 
   ecma_property_hashmap_t *hashmap_p =
-    ECMA_GET_NON_NULL_POINTER (ecma_property_hashmap_t, object_p->u1.property_list_cp);
+    ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_hashmap_t, object_p->u1.property_list_cp);
 
   JJS_ASSERT (hashmap_p->header.types[0] == ECMA_PROPERTY_TYPE_HASHMAP);
 
   /* The NULLs are reduced below 1/8 of the hashmap. */
   if (hashmap_p->null_count < (hashmap_p->max_property_count >> 3))
   {
-    ecma_property_hashmap_free (object_p);
-    ecma_property_hashmap_create (object_p);
+    ecma_property_hashmap_free (context_p, object_p);
+    ecma_property_hashmap_create (context_p, object_p);
     return;
   }
 
@@ -260,7 +263,7 @@ ecma_property_hashmap_insert (ecma_object_t *object_p, /**< object */
 #endif /* !JJS_NDEBUG */
   }
 
-  ECMA_SET_NON_NULL_POINTER (pair_list_p[entry_index], property_pair_p);
+  ECMA_SET_NON_NULL_POINTER (context_p, pair_list_p[entry_index], property_pair_p);
 
   uint8_t *bits_p = (uint8_t *) (pair_list_p + hashmap_p->max_property_count);
   bits_p += (entry_index >> 3);
@@ -294,12 +297,13 @@ ecma_property_hashmap_insert (ecma_object_t *object_p, /**< object */
  *         ECMA_PROPERTY_HASHMAP_DELETE_HAS_HASHMAP otherwise
  */
 ecma_property_hashmap_delete_status
-ecma_property_hashmap_delete (ecma_object_t *object_p, /**< object */
+ecma_property_hashmap_delete (ecma_context_t *context_p, /**< JJS context */
+                              ecma_object_t *object_p, /**< object */
                               jmem_cpointer_t name_cp, /**< property name */
                               ecma_property_t *property_p) /**< property */
 {
   ecma_property_hashmap_t *hashmap_p =
-    ECMA_GET_NON_NULL_POINTER (ecma_property_hashmap_t, object_p->u1.property_list_cp);
+    ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_hashmap_t, object_p->u1.property_list_cp);
 
   JJS_ASSERT (hashmap_p->header.types[0] == ECMA_PROPERTY_TYPE_HASHMAP);
 
@@ -311,7 +315,7 @@ ecma_property_hashmap_delete (ecma_object_t *object_p, /**< object */
     return ECMA_PROPERTY_HASHMAP_DELETE_RECREATE_HASHMAP;
   }
 
-  uint32_t entry_index = ecma_string_get_property_name_hash (*property_p, name_cp);
+  uint32_t entry_index = ecma_string_get_property_name_hash (context_p, *property_p, name_cp);
   uint32_t step = ecma_property_hashmap_steps[entry_index & (ECMA_PROPERTY_HASHMAP_NUMBER_OF_STEPS - 1)];
   uint32_t mask = hashmap_p->max_property_count - 1;
   jmem_cpointer_t *pair_list_p = (jmem_cpointer_t *) (hashmap_p + 1);
@@ -336,7 +340,7 @@ ecma_property_hashmap_delete (ecma_object_t *object_p, /**< object */
       }
 
       ecma_property_pair_t *property_pair_p =
-        ECMA_GET_NON_NULL_POINTER (ecma_property_pair_t, pair_list_p[entry_index]);
+        ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_pair_t, pair_list_p[entry_index]);
 
       if ((property_pair_p->header.types + offset) == property_p)
       {
@@ -367,7 +371,8 @@ ecma_property_hashmap_delete (ecma_object_t *object_p, /**< object */
  * @return pointer to the property if found or NULL otherwise
  */
 ecma_property_t *
-ecma_property_hashmap_find (ecma_property_hashmap_t *hashmap_p, /**< hashmap */
+ecma_property_hashmap_find (ecma_context_t *context_p, /**< JJS context */
+                            ecma_property_hashmap_t *hashmap_p, /**< hashmap */
                             ecma_string_t *name_p, /**< property name */
                             jmem_cpointer_t *property_real_name_cp) /**< [out] property real name */
 {
@@ -382,7 +387,7 @@ ecma_property_hashmap_find (ecma_property_hashmap_t *hashmap_p, /**< hashmap */
 
   while (prop_iter_cp != JMEM_CP_NULL && !property_found)
   {
-    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (ecma_property_header_t, prop_iter_cp);
+    ecma_property_header_t *prop_iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_header_t, prop_iter_cp);
     JJS_ASSERT (ECMA_PROPERTY_IS_PROPERTY_PAIR (prop_iter_p));
 
     ecma_property_pair_t *prop_pair_p = (ecma_property_pair_t *) prop_iter_p;
@@ -391,7 +396,7 @@ ecma_property_hashmap_find (ecma_property_hashmap_t *hashmap_p, /**< hashmap */
     {
       if (ECMA_PROPERTY_IS_NAMED_PROPERTY (prop_iter_p->types[i]))
       {
-        if (ecma_string_compare_to_property_name (prop_iter_p->types[i], prop_pair_p->names_cp[i], name_p))
+        if (ecma_string_compare_to_property_name (context_p, prop_iter_p->types[i], prop_pair_p->names_cp[i], name_p))
         {
           /* Property is found */
           property_found = true;
@@ -434,7 +439,7 @@ ecma_property_hashmap_find (ecma_property_hashmap_t *hashmap_p, /**< hashmap */
         }
 
         ecma_property_pair_t *property_pair_p =
-          ECMA_GET_NON_NULL_POINTER (ecma_property_pair_t, pair_list_p[entry_index]);
+          ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_pair_t, pair_list_p[entry_index]);
 
         ecma_property_t *property_p = property_pair_p->header.types + offset;
 
@@ -483,7 +488,7 @@ ecma_property_hashmap_find (ecma_property_hashmap_t *hashmap_p, /**< hashmap */
       }
 
       ecma_property_pair_t *property_pair_p =
-        ECMA_GET_NON_NULL_POINTER (ecma_property_pair_t, pair_list_p[entry_index]);
+        ECMA_GET_NON_NULL_POINTER (context_p, ecma_property_pair_t, pair_list_p[entry_index]);
 
       ecma_property_t *property_p = property_pair_p->header.types + offset;
 
@@ -491,7 +496,7 @@ ecma_property_hashmap_find (ecma_property_hashmap_t *hashmap_p, /**< hashmap */
 
       if (ECMA_PROPERTY_GET_NAME_TYPE (*property_p) == ECMA_DIRECT_STRING_PTR)
       {
-        ecma_string_t *prop_name_p = ECMA_GET_NON_NULL_POINTER (ecma_string_t, property_pair_p->names_cp[offset]);
+        ecma_string_t *prop_name_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_string_t, property_pair_p->names_cp[offset]);
 
         if (ecma_compare_ecma_non_direct_strings (prop_name_p, name_p))
         {

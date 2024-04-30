@@ -92,41 +92,47 @@ typedef enum
  */
 #define ECMA_BIG_UINT_BITWISE_DECREASE_BOTH (ECMA_BIG_UINT_BITWISE_DECREASE_LEFT | ECMA_BIG_UINT_BITWISE_DECREASE_RIGHT)
 
-ecma_extended_primitive_t *ecma_bigint_create (uint32_t size);
-ecma_extended_primitive_t *ecma_big_uint_extend (ecma_extended_primitive_t *value_p, ecma_bigint_digit_t digit);
+ecma_extended_primitive_t *ecma_bigint_create (ecma_context_t *context_p, uint32_t size);
+ecma_extended_primitive_t *ecma_big_uint_extend (ecma_context_t *context_p, ecma_extended_primitive_t *value_p, ecma_bigint_digit_t digit);
 
 ecma_bigint_digit_t ecma_big_uint_count_leading_zero (ecma_bigint_digit_t digit);
 
 int ecma_big_uint_compare (ecma_extended_primitive_t *left_value_p, ecma_extended_primitive_t *right_value_p);
 
 ecma_extended_primitive_t *
-ecma_big_uint_mul_digit (ecma_extended_primitive_t *value_p, ecma_bigint_digit_t mul, ecma_bigint_digit_t add);
+ecma_big_uint_mul_digit (ecma_context_t *context_p, ecma_extended_primitive_t *value_p, ecma_bigint_digit_t mul, ecma_bigint_digit_t add);
 
-uint8_t *ecma_big_uint_to_string (ecma_extended_primitive_t *value_p,
+uint8_t *ecma_big_uint_to_string (ecma_context_t *context_p,
+                                  ecma_extended_primitive_t *value_p,
                                   uint32_t radix,
                                   uint32_t *char_start_p,
                                   uint32_t *char_size_p);
 
-ecma_extended_primitive_t *ecma_big_uint_increase (ecma_extended_primitive_t *value_p);
-ecma_extended_primitive_t *ecma_big_uint_decrease (ecma_extended_primitive_t *value_p);
+ecma_extended_primitive_t *ecma_big_uint_increase (ecma_context_t *context_p, ecma_extended_primitive_t *value_p);
+ecma_extended_primitive_t *ecma_big_uint_decrease (ecma_context_t *context_p, ecma_extended_primitive_t *value_p);
 
-ecma_extended_primitive_t *ecma_big_uint_add (ecma_extended_primitive_t *left_value_p,
+ecma_extended_primitive_t *ecma_big_uint_add (ecma_context_t *context_p,
+                                              ecma_extended_primitive_t *left_value_p,
                                               ecma_extended_primitive_t *right_value_p);
-ecma_extended_primitive_t *ecma_big_uint_sub (ecma_extended_primitive_t *left_value_p,
+ecma_extended_primitive_t *ecma_big_uint_sub (ecma_context_t *context_p,
+                                              ecma_extended_primitive_t *left_value_p,
                                               ecma_extended_primitive_t *right_value_p);
-ecma_extended_primitive_t *ecma_big_uint_mul (ecma_extended_primitive_t *left_value_p,
+ecma_extended_primitive_t *ecma_big_uint_mul (ecma_context_t *context_p,
+                                              ecma_extended_primitive_t *left_value_p,
                                               ecma_extended_primitive_t *right_value_p);
-ecma_extended_primitive_t *ecma_big_uint_div_mod (ecma_extended_primitive_t *dividend_value_p,
+ecma_extended_primitive_t *ecma_big_uint_div_mod (ecma_context_t *context_p,
+                                                  ecma_extended_primitive_t *dividend_value_p,
                                                   ecma_extended_primitive_t *divisor_value_p,
                                                   bool is_mod);
 
-ecma_extended_primitive_t *ecma_big_uint_shift_left (ecma_extended_primitive_t *left_value_p, uint32_t right_value);
+ecma_extended_primitive_t *ecma_big_uint_shift_left (ecma_context_t *context_p, ecma_extended_primitive_t *left_value_p, uint32_t right_value);
 ecma_extended_primitive_t *
-ecma_big_uint_shift_right (ecma_extended_primitive_t *left_value_p, uint32_t right_value, bool increase_result);
+ecma_big_uint_shift_right (ecma_context_t *context_p, ecma_extended_primitive_t *left_value_p, uint32_t right_value, bool increase_result);
 
-ecma_extended_primitive_t *ecma_big_uint_pow (ecma_extended_primitive_t *left_value_p, uint32_t right_value);
+ecma_extended_primitive_t *ecma_big_uint_pow (ecma_context_t *context_p, ecma_extended_primitive_t *left_value_p, uint32_t right_value);
 
-ecma_extended_primitive_t *ecma_big_uint_bitwise_op (uint32_t operation_and_options,
+ecma_extended_primitive_t *ecma_big_uint_bitwise_op (ecma_context_t *context_p,
+                                                     uint32_t operation_and_options,
                                                      ecma_extended_primitive_t *left_value_p,
                                                      ecma_extended_primitive_t *right_value_p);
 

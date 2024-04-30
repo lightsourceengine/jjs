@@ -55,18 +55,19 @@ JJS_STATIC_ASSERT (sizeof (ecma_extended_object_t) - sizeof (ecma_object_t) <= s
  * @return pointer to allocated memory
  */
 extern inline ecma_number_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_number (void)
+ecma_alloc_number (ecma_context_t *context_p) /**< JJS context */
 {
-  return (ecma_number_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_number_t));
+  return (ecma_number_t *) jmem_pools_alloc (context_p, sizeof (ecma_number_t));
 } /* ecma_alloc_number */
 
 /**
  * Dealloc memory from an ecma-number
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_number (ecma_number_t *number_p) /**< number to be freed */
+ecma_dealloc_number (ecma_context_t *context_p, /**< JJS context */
+                     ecma_number_t *number_p) /**< number to be freed */
 {
-  jmem_pools_free (&JJS_CONTEXT_STRUCT, (uint8_t *) number_p, sizeof (ecma_number_t));
+  jmem_pools_free (context_p, (uint8_t *) number_p, sizeof (ecma_number_t));
 } /* ecma_dealloc_number */
 
 /**
@@ -75,26 +76,27 @@ ecma_dealloc_number (ecma_number_t *number_p) /**< number to be freed */
  * @return pointer to allocated memory
  */
 extern inline ecma_object_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_object (void)
+ecma_alloc_object (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
   jmem_stats_allocate_object_bytes (sizeof (ecma_object_t));
 #endif /* JJS_MEM_STATS */
 
-  return (ecma_object_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_object_t));
+  return (ecma_object_t *) jmem_pools_alloc (context_p, sizeof (ecma_object_t));
 } /* ecma_alloc_object */
 
 /**
  * Dealloc memory from an ecma-object
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_object (ecma_object_t *object_p) /**< object to be freed */
+ecma_dealloc_object (ecma_context_t *context_p, /**< JJS context */
+                     ecma_object_t *object_p) /**< object to be freed */
 {
 #if JJS_MEM_STATS
   jmem_stats_free_object_bytes (sizeof (ecma_object_t));
 #endif /* JJS_MEM_STATS */
 
-  jmem_pools_free (&JJS_CONTEXT_STRUCT, object_p, sizeof (ecma_object_t));
+  jmem_pools_free (context_p, object_p, sizeof (ecma_object_t));
 } /* ecma_dealloc_object */
 
 /**
@@ -103,27 +105,29 @@ ecma_dealloc_object (ecma_object_t *object_p) /**< object to be freed */
  * @return pointer to allocated memory
  */
 extern inline ecma_extended_object_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_extended_object (size_t size) /**< size of object */
+ecma_alloc_extended_object (ecma_context_t *context_p, /**< JJS context */
+                            size_t size) /**< size of object */
 {
 #if JJS_MEM_STATS
   jmem_stats_allocate_object_bytes (size);
 #endif /* JJS_MEM_STATS */
 
-  return jmem_heap_alloc_block (size);
+  return jmem_heap_alloc_block (context_p, size);
 } /* ecma_alloc_extended_object */
 
 /**
  * Dealloc memory of an extended object
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_extended_object (ecma_object_t *object_p, /**< extended object */
+ecma_dealloc_extended_object (ecma_context_t *context_p, /**< JJS context */
+                              ecma_object_t *object_p, /**< extended object */
                               size_t size) /**< size of object */
 {
 #if JJS_MEM_STATS
   jmem_stats_free_object_bytes (size);
 #endif /* JJS_MEM_STATS */
 
-  jmem_heap_free_block (object_p, size);
+  jmem_heap_free_block (context_p, object_p, size);
 } /* ecma_dealloc_extended_object */
 
 /**
@@ -132,26 +136,27 @@ ecma_dealloc_extended_object (ecma_object_t *object_p, /**< extended object */
  * @return pointer to allocated memory
  */
 extern inline ecma_string_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_string (void)
+ecma_alloc_string (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
   jmem_stats_allocate_string_bytes (sizeof (ecma_string_t));
 #endif /* JJS_MEM_STATS */
 
-  return (ecma_string_t *) jmem_pools_alloc (&JJS_CONTEXT_STRUCT, sizeof (ecma_string_t));
+  return (ecma_string_t *) jmem_pools_alloc (context_p, sizeof (ecma_string_t));
 } /* ecma_alloc_string */
 
 /**
  * Dealloc memory from ecma-string descriptor
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_string (ecma_string_t *string_p) /**< string to be freed */
+ecma_dealloc_string (ecma_context_t *context_p, /**< JJS context */
+                     ecma_string_t *string_p) /**< string to be freed */
 {
 #if JJS_MEM_STATS
   jmem_stats_free_string_bytes (sizeof (ecma_string_t));
 #endif /* JJS_MEM_STATS */
 
-  jmem_pools_free (&JJS_CONTEXT_STRUCT, string_p, sizeof (ecma_string_t));
+  jmem_pools_free (context_p, string_p, sizeof (ecma_string_t));
 } /* ecma_dealloc_string */
 
 /**
@@ -160,26 +165,27 @@ ecma_dealloc_string (ecma_string_t *string_p) /**< string to be freed */
  * @return pointer to allocated memory
  */
 extern inline ecma_extended_string_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_extended_string (void)
+ecma_alloc_extended_string (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
   jmem_stats_allocate_string_bytes (sizeof (ecma_extended_string_t));
 #endif /* JJS_MEM_STATS */
 
-  return (ecma_extended_string_t *) jmem_heap_alloc_block (sizeof (ecma_extended_string_t));
+  return (ecma_extended_string_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_extended_string_t));
 } /* ecma_alloc_extended_string */
 
 /**
  * Dealloc memory from extended ecma-string descriptor
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_extended_string (ecma_extended_string_t *ext_string_p) /**< extended string to be freed */
+ecma_dealloc_extended_string (ecma_context_t *context_p, /**< JJS context */
+                              ecma_extended_string_t *ext_string_p) /**< extended string to be freed */
 {
 #if JJS_MEM_STATS
   jmem_stats_free_string_bytes (sizeof (ecma_extended_string_t));
 #endif /* JJS_MEM_STATS */
 
-  jmem_heap_free_block (ext_string_p, sizeof (ecma_extended_string_t));
+  jmem_heap_free_block (context_p, ext_string_p, sizeof (ecma_extended_string_t));
 } /* ecma_dealloc_extended_string */
 
 /**
@@ -188,26 +194,27 @@ ecma_dealloc_extended_string (ecma_extended_string_t *ext_string_p) /**< extende
  * @return pointer to allocated memory
  */
 extern inline ecma_external_string_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_external_string (void)
+ecma_alloc_external_string (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
   jmem_stats_allocate_string_bytes (sizeof (ecma_external_string_t));
 #endif /* JJS_MEM_STATS */
 
-  return (ecma_external_string_t *) jmem_heap_alloc_block (sizeof (ecma_external_string_t));
+  return (ecma_external_string_t *) jmem_heap_alloc_block (context_p, sizeof (ecma_external_string_t));
 } /* ecma_alloc_external_string */
 
 /**
  * Dealloc memory from external ecma-string descriptor
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_external_string (ecma_external_string_t *ext_string_p) /**< external string to be freed */
+ecma_dealloc_external_string (ecma_context_t *context_p, /**< JJS context */
+                              ecma_external_string_t *ext_string_p) /**< external string to be freed */
 {
 #if JJS_MEM_STATS
   jmem_stats_free_string_bytes (sizeof (ecma_external_string_t));
 #endif /* JJS_MEM_STATS */
 
-  jmem_heap_free_block (ext_string_p, sizeof (ecma_external_string_t));
+  jmem_heap_free_block (context_p, ext_string_p, sizeof (ecma_external_string_t));
 } /* ecma_dealloc_external_string */
 
 /**
@@ -216,27 +223,29 @@ ecma_dealloc_external_string (ecma_external_string_t *ext_string_p) /**< externa
  * @return pointer to allocated memory
  */
 extern inline ecma_string_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_string_buffer (size_t size) /**< size of string */
+ecma_alloc_string_buffer (ecma_context_t *context_p, /**< JJS context */
+                          size_t size) /**< size of string */
 {
 #if JJS_MEM_STATS
   jmem_stats_allocate_string_bytes (size);
 #endif /* JJS_MEM_STATS */
 
-  return jmem_heap_alloc_block (size);
+  return jmem_heap_alloc_block (context_p, size);
 } /* ecma_alloc_string_buffer */
 
 /**
  * Dealloc memory of a string with character data
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_string_buffer (ecma_string_t *string_p, /**< string with data */
+ecma_dealloc_string_buffer (ecma_context_t *context_p, /**< JJS context */
+                            ecma_string_t *string_p, /**< string with data */
                             size_t size) /**< size of string */
 {
 #if JJS_MEM_STATS
   jmem_stats_free_string_bytes (size);
 #endif /* JJS_MEM_STATS */
 
-  jmem_heap_free_block (string_p, size);
+  jmem_heap_free_block (context_p, string_p, size);
 } /* ecma_dealloc_string_buffer */
 
 /**
@@ -245,26 +254,27 @@ ecma_dealloc_string_buffer (ecma_string_t *string_p, /**< string with data */
  * @return pointer to allocated memory
  */
 extern inline ecma_property_pair_t *JJS_ATTR_ALWAYS_INLINE
-ecma_alloc_property_pair (void)
+ecma_alloc_property_pair (ecma_context_t *context_p) /**< JJS context */
 {
 #if JJS_MEM_STATS
   jmem_stats_allocate_property_bytes (sizeof (ecma_property_pair_t));
 #endif /* JJS_MEM_STATS */
 
-  return jmem_heap_alloc_block (sizeof (ecma_property_pair_t));
+  return jmem_heap_alloc_block (context_p, sizeof (ecma_property_pair_t));
 } /* ecma_alloc_property_pair */
 
 /**
  * Dealloc memory of an ecma-property
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-ecma_dealloc_property_pair (ecma_property_pair_t *property_pair_p) /**< property pair to be freed */
+ecma_dealloc_property_pair (ecma_context_t *context_p, /**< JJS context */
+                            ecma_property_pair_t *property_pair_p) /**< property pair to be freed */
 {
 #if JJS_MEM_STATS
   jmem_stats_free_property_bytes (sizeof (ecma_property_pair_t));
 #endif /* JJS_MEM_STATS */
 
-  jmem_heap_free_block (property_pair_p, sizeof (ecma_property_pair_t));
+  jmem_heap_free_block (context_p, property_pair_p, sizeof (ecma_property_pair_t));
 } /* ecma_dealloc_property_pair */
 
 /**

@@ -34,17 +34,17 @@
  * @return allocated memory.
  */
 void *
-parser_malloc (parser_context_t *context_p, /**< context */
+parser_malloc (parser_context_t *parser_context_p, /**< context */
                size_t size) /**< size of the memory block */
 {
   void *result;
 
   JJS_ASSERT (size > 0);
-  result = jmem_heap_alloc_block_null_on_error (size);
+  result = jmem_heap_alloc_block_null_on_error (parser_context_p->context_p, size);
 
   if (result == NULL)
   {
-    parser_raise_error (context_p, PARSER_ERR_OUT_OF_MEMORY);
+    parser_raise_error (parser_context_p, PARSER_ERR_OUT_OF_MEMORY);
   }
   return result;
 } /* parser_malloc */
@@ -53,10 +53,11 @@ parser_malloc (parser_context_t *context_p, /**< context */
  * Free memory allocated by parser_malloc.
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
-parser_free (void *ptr, /**< pointer to free */
+parser_free (parser_context_t *parser_context_p, /**< parser context */
+             void *ptr, /**< pointer to free */
              size_t size) /**< size of the memory block */
 {
-  jmem_heap_free_block (ptr, size);
+  jmem_heap_free_block (parser_context_p->context_p, ptr, size);
 } /* parser_free */
 
 /**
@@ -65,13 +66,14 @@ parser_free (void *ptr, /**< pointer to free */
  * @return allocated memory.
  */
 void *
-parser_malloc_local (parser_context_t *context_p, /**< context */
+parser_malloc_local (parser_context_t *parser_context_p, /**< context */
                      size_t size) /**< size of the memory */
 {
   void *result;
+  ecma_context_t *context_p = parser_context_p->context_p;
 
   JJS_ASSERT (size > 0);
-  result = jmem_heap_alloc_block (size);
+  result = jmem_heap_alloc_block (context_p, size);
   if (result == 0)
   {
     parser_raise_error (context_p, PARSER_ERR_OUT_OF_MEMORY);
@@ -83,10 +85,11 @@ parser_malloc_local (parser_context_t *context_p, /**< context */
  * Free memory allocated by parser_malloc_local.
  */
 void
-parser_free_local (void *ptr, /**< pointer to free */
+parser_free_local (parser_context_t *parser_context_p, /**< parser context */
+                   void *ptr, /**< pointer to free */
                    size_t size) /**< size of the memory */
 {
-  jmem_heap_free_block (ptr, size);
+  jmem_heap_free_block (parser_context_p->context_p, ptr, size);
 } /* parser_free_local */
 
 /**
@@ -97,7 +100,7 @@ parser_free_allocated_buffer (parser_context_t *context_p) /**< context */
 {
   if (context_p->u.allocated_buffer_p != NULL)
   {
-    parser_free_local (context_p->u.allocated_buffer_p, context_p->allocated_buffer_size);
+    parser_free_local (context_p, context_p->u.allocated_buffer_p, context_p->allocated_buffer_size);
     context_p->u.allocated_buffer_p = NULL;
   }
 } /* parser_free_allocated_buffer */
@@ -122,7 +125,8 @@ parser_data_init (parser_mem_data_t *data_p, /**< memory manager */
  * Free parse data.
  */
 static void
-parser_data_free (parser_mem_data_t *data_p, /**< memory manager */
+parser_data_free (parser_context_t *parser_context_p, /**< parser context */
+                  parser_mem_data_t *data_p, /**< memory manager */
                   uint32_t page_size) /**< size of each page */
 {
   parser_mem_page_t *page_p = data_p->first_p;
@@ -131,7 +135,7 @@ parser_data_free (parser_mem_data_t *data_p, /**< memory manager */
   {
     parser_mem_page_t *next_p = page_p->next_p;
 
-    parser_free (page_p, page_size);
+    parser_free (parser_context_p, page_p, page_size);
     page_p = next_p;
   }
 } /* parser_data_free */
@@ -153,9 +157,10 @@ parser_cbc_stream_init (parser_mem_data_t *data_p) /**< memory manager */
  * Free byte stream.
  */
 void
-parser_cbc_stream_free (parser_mem_data_t *data_p) /**< memory manager */
+parser_cbc_stream_free (parser_context_t *parser_context_p, /**< parser context */
+                        parser_mem_data_t *data_p) /**< memory manager */
 {
-  parser_data_free (data_p, sizeof (parser_mem_page_t *) + PARSER_CBC_STREAM_PAGE_SIZE);
+  parser_data_free (parser_context_p, data_p, sizeof (parser_mem_page_t *) + PARSER_CBC_STREAM_PAGE_SIZE);
 } /* parser_cbc_stream_free */
 
 /**
@@ -206,9 +211,10 @@ parser_list_init (parser_list_t *list_p, /**< parser list */
  * Free parser list.
  */
 void
-parser_list_free (parser_list_t *list_p) /**< parser list */
+parser_list_free (parser_context_t *parser_context_p, /**< parser context */
+                  parser_list_t *list_p) /**< parser list */
 {
-  parser_data_free (&list_p->data, (uint32_t) (sizeof (parser_mem_page_t *) + list_p->page_size));
+  parser_data_free (parser_context_p, &list_p->data, (uint32_t) (sizeof (parser_mem_page_t *) + list_p->page_size));
 } /* parser_list_free */
 
 /**
@@ -349,11 +355,11 @@ parser_stack_init (parser_context_t *parser_context_p) /**< context */
 void
 parser_stack_free (parser_context_t *parser_context_p) /**< context */
 {
-  parser_data_free (&parser_context_p->stack, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
+  parser_data_free (parser_context_p, &parser_context_p->stack, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
 
   if (parser_context_p->free_page_p != NULL)
   {
-    parser_free (parser_context_p->free_page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
+    parser_free (parser_context_p, parser_context_p->free_page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
   }
 } /* parser_stack_free */
 
@@ -416,7 +422,7 @@ parser_stack_pop_uint8 (parser_context_t *parser_context_p) /**< context */
     }
     else
     {
-      parser_free (page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
+      parser_free (parser_context_p, page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
     }
 
     page_p = parser_context_p->stack.first_p;
@@ -622,7 +628,7 @@ parser_stack_pop (parser_context_t *parser_context_p, /**< context */
   }
   else
   {
-    parser_free (page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
+    parser_free (parser_context_p, page_p, sizeof (parser_mem_page_t *) + PARSER_STACK_PAGE_SIZE);
   }
 } /* parser_stack_pop */
 

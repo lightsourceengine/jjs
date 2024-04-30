@@ -463,7 +463,8 @@ ecma_integer_multiply (ecma_integer_value_t left_integer, /**< left operand */
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_number_parse_int (const lit_utf8_byte_t *str_p, /**< routine's first argument's
+ecma_number_parse_int (ecma_context_t *context_p, /**< JJS context */
+                       const lit_utf8_byte_t *str_p, /**< routine's first argument's
                                                       *   string buffer */
                        lit_utf8_size_t str_size, /**< routine's first argument's
                                                   *   string buffer's size */
@@ -474,7 +475,7 @@ ecma_number_parse_int (const lit_utf8_byte_t *str_p, /**< routine's first argume
 
   if (str_size == 0)
   {
-    return ecma_make_nan_value ();
+    return ecma_make_nan_value (context_p);
   }
 
   const lit_utf8_byte_t *str_end_p = str_p + str_size;
@@ -496,7 +497,7 @@ ecma_number_parse_int (const lit_utf8_byte_t *str_p, /**< routine's first argume
 
   /* 6. */
   ecma_number_t radix_num;
-  radix_value = ecma_op_to_number (radix_value, &radix_num);
+  radix_value = ecma_op_to_number (context_p, radix_value, &radix_num);
 
   if (ECMA_IS_VALUE_ERROR (radix_value))
   {
@@ -514,7 +515,7 @@ ecma_number_parse_int (const lit_utf8_byte_t *str_p, /**< routine's first argume
     /* 8.a */
     if (radix < 2 || radix > 36)
     {
-      return ecma_make_nan_value ();
+      return ecma_make_nan_value (context_p);
     }
     /* 8.b */
     else if (radix != 16)
@@ -575,7 +576,7 @@ ecma_number_parse_int (const lit_utf8_byte_t *str_p, /**< routine's first argume
   /* 12. */
   if (str_p == digit_start_p)
   {
-    return ecma_make_nan_value ();
+    return ecma_make_nan_value (context_p);
   }
 
   /* 15. */
@@ -584,7 +585,7 @@ ecma_number_parse_int (const lit_utf8_byte_t *str_p, /**< routine's first argume
     value *= ECMA_NUMBER_MINUS_ONE;
   }
 
-  return ecma_make_number_value (value);
+  return ecma_make_number_value (context_p, value);
 } /* ecma_number_parse_int */
 
 /**
@@ -597,7 +598,8 @@ ecma_number_parse_int (const lit_utf8_byte_t *str_p, /**< routine's first argume
  *         Returned value must be freed with ecma_free_value.
  */
 ecma_value_t
-ecma_number_parse_float (const lit_utf8_byte_t *str_p, /**< routine's first argument's
+ecma_number_parse_float (ecma_context_t *context_p, /**< JJS context */
+                         const lit_utf8_byte_t *str_p, /**< routine's first argument's
                                                         *   string buffer */
                          lit_utf8_size_t str_size) /**< routine's first argument's
                                                     *   string buffer's size */
@@ -610,7 +612,7 @@ ecma_number_parse_float (const lit_utf8_byte_t *str_p, /**< routine's first argu
 
   if (str_size == 0)
   {
-    return ecma_make_nan_value ();
+    return ecma_make_nan_value (context_p);
   }
 
   if (*str_p == LIT_CHAR_PLUS)
@@ -632,7 +634,7 @@ ecma_number_parse_float (const lit_utf8_byte_t *str_p, /**< routine's first argu
    */
   if ((lit_utf8_size_t) (str_end_p - str_p) >= infinity_length && memcmp (infinity_str_p, str_p, infinity_length) == 0)
   {
-    return ecma_make_number_value (ecma_number_make_infinity (sign));
+    return ecma_make_number_value (context_p, ecma_number_make_infinity (sign));
   }
 
   const lit_utf8_byte_t *num_start_p = str_p;
@@ -681,7 +683,7 @@ ecma_number_parse_float (const lit_utf8_byte_t *str_p, /**< routine's first argu
 
   if (num_size == 0)
   {
-    return ecma_make_nan_value ();
+    return ecma_make_nan_value (context_p);
   }
 
   /* 5. */
@@ -692,7 +694,7 @@ ecma_number_parse_float (const lit_utf8_byte_t *str_p, /**< routine's first argu
     ret_num *= ECMA_NUMBER_MINUS_ONE;
   }
 
-  return ecma_make_number_value (ret_num);
+  return ecma_make_number_value (context_p, ret_num);
 } /* ecma_number_parse_float */
 
 /**

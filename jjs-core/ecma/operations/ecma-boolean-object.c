@@ -43,9 +43,10 @@
  *         Returned value must be freed with ecma_free_value
  */
 ecma_value_t
-ecma_op_create_boolean_object (ecma_value_t arg) /**< argument passed to the Boolean constructor */
+ecma_op_create_boolean_object (ecma_context_t *context_p, /**< JJS context */
+                               ecma_value_t arg) /**< argument passed to the Boolean constructor */
 {
-  bool boolean_value = ecma_op_to_boolean (arg);
+  bool boolean_value = ecma_op_to_boolean (context_p, arg);
   ecma_builtin_id_t proto_id;
 
 #if JJS_BUILTIN_BOOLEAN
@@ -56,10 +57,10 @@ ecma_op_create_boolean_object (ecma_value_t arg) /**< argument passed to the Boo
 
   ecma_object_t *prototype_obj_p = ecma_builtin_get (proto_id);
 
-  ecma_object_t *new_target = JJS_CONTEXT (current_new_target_p);
+  ecma_object_t *new_target = context_p->current_new_target_p;
   if (new_target)
   {
-    prototype_obj_p = ecma_op_get_prototype_from_constructor (new_target, proto_id);
+    prototype_obj_p = ecma_op_get_prototype_from_constructor (context_p, new_target, proto_id);
 
     if (JJS_UNLIKELY (prototype_obj_p == NULL))
     {
@@ -68,7 +69,7 @@ ecma_op_create_boolean_object (ecma_value_t arg) /**< argument passed to the Boo
   }
 
   ecma_object_t *object_p =
-    ecma_create_object (prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
+    ecma_create_object (context_p, prototype_obj_p, sizeof (ecma_extended_object_t), ECMA_OBJECT_TYPE_CLASS);
 
   ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
   ext_object_p->u.cls.type = ECMA_OBJECT_CLASS_BOOLEAN;
@@ -79,7 +80,7 @@ ecma_op_create_boolean_object (ecma_value_t arg) /**< argument passed to the Boo
     ecma_deref_object (prototype_obj_p);
   }
 
-  return ecma_make_object_value (object_p);
+  return ecma_make_object_value (context_p, object_p);
 } /* ecma_op_create_boolean_object */
 
 /**
