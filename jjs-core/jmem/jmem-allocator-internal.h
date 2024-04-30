@@ -70,17 +70,17 @@ void jmem_pools_finalize (jjs_context_t *context_p);
  * JJS mem-stat definitions
  */
 #if JJS_MEM_STATS
-void jmem_heap_stat_init (void);
-void jmem_heap_stat_alloc (size_t num);
-void jmem_heap_stat_free (size_t num);
+void jmem_heap_stat_init (jjs_context_t *context_p);
+void jmem_heap_stat_alloc (jjs_context_t *context_p, size_t num);
+void jmem_heap_stat_free (jjs_context_t *context_p, size_t num);
 
-#define JMEM_HEAP_STAT_INIT()    jmem_heap_stat_init ()
-#define JMEM_HEAP_STAT_ALLOC(v1) jmem_heap_stat_alloc (v1)
-#define JMEM_HEAP_STAT_FREE(v1)  jmem_heap_stat_free (v1)
+#define JMEM_HEAP_STAT_INIT(ctx)    jmem_heap_stat_init (ctx)
+#define JMEM_HEAP_STAT_ALLOC(ctx, v1) jmem_heap_stat_alloc (ctx, v1)
+#define JMEM_HEAP_STAT_FREE(ctx, v1)  jmem_heap_stat_free (ctx, v1)
 #else /* !JJS_MEM_STATS */
-#define JMEM_HEAP_STAT_INIT()
-#define JMEM_HEAP_STAT_ALLOC(v1) JJS_UNUSED (v1)
-#define JMEM_HEAP_STAT_FREE(v1)  JJS_UNUSED (v1)
+#define JMEM_HEAP_STAT_INIT(ctx) JJS_UNUSED (ctx)
+#define JMEM_HEAP_STAT_ALLOC(ctx, v1) JJS_UNUSED_ALL (ctx, v1)
+#define JMEM_HEAP_STAT_FREE(ctx, v1)  JJS_UNUSED_ALL (ctx, v1)
 #endif /* JJS_MEM_STATS */
 
 /** @} */

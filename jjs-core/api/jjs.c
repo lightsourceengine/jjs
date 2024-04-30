@@ -144,15 +144,14 @@ jjs_api_disable (jjs_context_t* context_p)
 jjs_status_t
 jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context_p)
 {
-  jjs_status_t status = jjs_context_init (options_p);
+  jjs_status_t status = jjs_context_init (options_p, context_p);
 
   if (status != JJS_STATUS_OK)
   {
     return status;
   }
 
-  // TODO: get from init
-  jjs_context_t* ctx_p = &JJS_CONTEXT_STRUCT;
+  jjs_context_t* ctx_p = *context_p;
 
   jjs_api_enable (ctx_p);
   jmem_init (ctx_p);

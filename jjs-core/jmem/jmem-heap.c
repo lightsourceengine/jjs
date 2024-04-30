@@ -97,7 +97,7 @@ jmem_heap_init (jjs_context_t *context_p)
   JMEM_VALGRIND_NOACCESS_SPACE (&context_p->heap_p->first, sizeof (jmem_heap_free_t));
   JMEM_VALGRIND_NOACCESS_SPACE (context_p->heap_p->area, heap_area_size);
 
-  JMEM_HEAP_STAT_INIT ();
+  JMEM_HEAP_STAT_INIT (context_p);
 } /* jmem_heap_init */
 
 /**
@@ -223,7 +223,7 @@ jmem_heap_alloc (jjs_context_t *context_p, /**< JJS context */
 
         while (context_p->jmem_heap_allocated_size >= context_p->jmem_heap_limit)
         {
-          context_p->jmem_heap_limit += JJS_CONTEXT(gc_limit);
+          context_p->jmem_heap_limit += context_p->gc_limit;
         }
 
         break;
@@ -314,7 +314,7 @@ jmem_heap_alloc_block (jjs_context_t *context_p, /**< JJS context */
                        const size_t size) /**< required memory size */
 {
   void *block_p = jmem_heap_gc_and_alloc_block (context_p, size, JMEM_PRESSURE_FULL);
-  JMEM_HEAP_STAT_ALLOC (size);
+  JMEM_HEAP_STAT_ALLOC (context_p, size);
   return block_p;
 } /* jmem_heap_alloc_block */
 
@@ -337,7 +337,7 @@ jmem_heap_alloc_block_null_on_error (jjs_context_t *context_p, /**< JJS context 
 #if JJS_MEM_STATS
   if (block_p != NULL)
   {
-    JMEM_HEAP_STAT_ALLOC (size);
+    JMEM_HEAP_STAT_ALLOC (context_p, size);
   }
 #endif /* JJS_MEM_STATS */
 
@@ -499,16 +499,16 @@ jmem_heap_realloc_block (jjs_context_t *context_p, /**< JJS context */
   if (aligned_old_size == aligned_new_size)
   {
     JMEM_VALGRIND_RESIZE_SPACE (block_p, old_size, new_size);
-    JMEM_HEAP_STAT_FREE (old_size);
-    JMEM_HEAP_STAT_ALLOC (new_size);
+    JMEM_HEAP_STAT_FREE (context_p, old_size);
+    JMEM_HEAP_STAT_ALLOC (context_p, new_size);
     return block_p;
   }
 
   if (aligned_new_size < aligned_old_size)
   {
     JMEM_VALGRIND_RESIZE_SPACE (block_p, old_size, new_size);
-    JMEM_HEAP_STAT_FREE (old_size);
-    JMEM_HEAP_STAT_ALLOC (new_size);
+    JMEM_HEAP_STAT_FREE (context_p, old_size);
+    JMEM_HEAP_STAT_ALLOC (context_p, new_size);
     jmem_heap_insert_block (context_p,
                             (jmem_heap_free_t *) ((uint8_t *) block_p + aligned_new_size),
                             jmem_heap_find_prev (context_p, block_p),
@@ -644,8 +644,8 @@ jmem_heap_realloc_block (jjs_context_t *context_p, /**< JJS context */
     JMEM_VALGRIND_FREELIKE_SPACE (block_p);
   }
 
-  JMEM_HEAP_STAT_FREE (old_size);
-  JMEM_HEAP_STAT_ALLOC (new_size);
+  JMEM_HEAP_STAT_FREE (context_p, old_size);
+  JMEM_HEAP_STAT_ALLOC (context_p, new_size);
   return ret_block_p;
 } /* jmem_heap_realloc_block */
 
@@ -658,8 +658,7 @@ jmem_heap_free_block (jjs_context_t *context_p, /**< JJS context */
                       const size_t size) /**< size of allocated region */
 {
   jmem_heap_free_block_internal (context_p, ptr, size);
-  JMEM_HEAP_STAT_FREE (size);
-  return;
+  JMEM_HEAP_STAT_FREE (context_p, size);
 } /* jmem_heap_free_block */
 
 #ifndef JJS_NDEBUG
@@ -701,41 +700,41 @@ jmem_heap_stats_print (jjs_context_t *context_p)
 {
   jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
-  JJS_DEBUG_MSG ("Heap stats:\n");
-  JJS_DEBUG_MSG ("  Heap size = %u bytes\n", (unsigned) heap_stats->size);
-  JJS_DEBUG_MSG ("  Allocated = %u bytes\n", (unsigned) heap_stats->allocated_bytes);
-  JJS_DEBUG_MSG ("  Peak allocated = %u bytes\n", (unsigned) heap_stats->peak_allocated_bytes);
-  JJS_DEBUG_MSG ("  Waste = %u bytes\n", (unsigned) heap_stats->waste_bytes);
-  JJS_DEBUG_MSG ("  Peak waste = %u bytes\n", (unsigned) heap_stats->peak_waste_bytes);
-  JJS_DEBUG_MSG ("  Allocated byte code data = %u bytes\n", (unsigned) heap_stats->byte_code_bytes);
-  JJS_DEBUG_MSG ("  Peak allocated byte code data = %u bytes\n", (unsigned) heap_stats->peak_byte_code_bytes);
-  JJS_DEBUG_MSG ("  Allocated string data = %u bytes\n", (unsigned) heap_stats->string_bytes);
-  JJS_DEBUG_MSG ("  Peak allocated string data = %u bytes\n", (unsigned) heap_stats->peak_string_bytes);
-  JJS_DEBUG_MSG ("  Allocated object data = %u bytes\n", (unsigned) heap_stats->object_bytes);
-  JJS_DEBUG_MSG ("  Peak allocated object data = %u bytes\n", (unsigned) heap_stats->peak_object_bytes);
-  JJS_DEBUG_MSG ("  Allocated property data = %u bytes\n", (unsigned) heap_stats->property_bytes);
-  JJS_DEBUG_MSG ("  Peak allocated property data = %u bytes\n", (unsigned) heap_stats->peak_property_bytes);
+  JJS_DEBUG_MSG (context_p, "Heap stats:\n");
+  JJS_DEBUG_MSG (context_p, "  Heap size = %u bytes\n", (unsigned) heap_stats->size);
+  JJS_DEBUG_MSG (context_p, "  Allocated = %u bytes\n", (unsigned) heap_stats->allocated_bytes);
+  JJS_DEBUG_MSG (context_p, "  Peak allocated = %u bytes\n", (unsigned) heap_stats->peak_allocated_bytes);
+  JJS_DEBUG_MSG (context_p, "  Waste = %u bytes\n", (unsigned) heap_stats->waste_bytes);
+  JJS_DEBUG_MSG (context_p, "  Peak waste = %u bytes\n", (unsigned) heap_stats->peak_waste_bytes);
+  JJS_DEBUG_MSG (context_p, "  Allocated byte code data = %u bytes\n", (unsigned) heap_stats->byte_code_bytes);
+  JJS_DEBUG_MSG (context_p, "  Peak allocated byte code data = %u bytes\n", (unsigned) heap_stats->peak_byte_code_bytes);
+  JJS_DEBUG_MSG (context_p, "  Allocated string data = %u bytes\n", (unsigned) heap_stats->string_bytes);
+  JJS_DEBUG_MSG (context_p, "  Peak allocated string data = %u bytes\n", (unsigned) heap_stats->peak_string_bytes);
+  JJS_DEBUG_MSG (context_p, "  Allocated object data = %u bytes\n", (unsigned) heap_stats->object_bytes);
+  JJS_DEBUG_MSG (context_p, "  Peak allocated object data = %u bytes\n", (unsigned) heap_stats->peak_object_bytes);
+  JJS_DEBUG_MSG (context_p, "  Allocated property data = %u bytes\n", (unsigned) heap_stats->property_bytes);
+  JJS_DEBUG_MSG (context_p, "  Peak allocated property data = %u bytes\n", (unsigned) heap_stats->peak_property_bytes);
 } /* jmem_heap_stats_print */
 
 /**
  * Initalize heap memory usage statistics account structure
  */
 void
-jmem_heap_stat_init (void)
+jmem_heap_stat_init (jjs_context_t *context_p)
 {
-  JJS_CONTEXT (jmem_heap_stats).size = JMEM_HEAP_AREA_SIZE (&JJS_CONTEXT_STRUCT);
+  context_p->jmem_heap_stats.size = JMEM_HEAP_AREA_SIZE (context_p);
 } /* jmem_heap_stat_init */
 
 /**
  * Account allocation
  */
 void
-jmem_heap_stat_alloc (size_t size) /**< Size of allocated block */
+jmem_heap_stat_alloc (jjs_context_t *context_p, size_t size) /**< Size of allocated block */
 {
   const size_t aligned_size = (size + JMEM_ALIGNMENT - 1) / JMEM_ALIGNMENT * JMEM_ALIGNMENT;
   const size_t waste_bytes = aligned_size - size;
 
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   heap_stats->allocated_bytes += aligned_size;
   heap_stats->waste_bytes += waste_bytes;
@@ -755,12 +754,12 @@ jmem_heap_stat_alloc (size_t size) /**< Size of allocated block */
  * Account freeing
  */
 void
-jmem_heap_stat_free (size_t size) /**< Size of freed block */
+jmem_heap_stat_free (jjs_context_t *context_p, size_t size) /**< Size of freed block */
 {
   const size_t aligned_size = (size + JMEM_ALIGNMENT - 1) / JMEM_ALIGNMENT * JMEM_ALIGNMENT;
   const size_t waste_bytes = aligned_size - size;
 
-  jmem_heap_stats_t *heap_stats = &JJS_CONTEXT (jmem_heap_stats);
+  jmem_heap_stats_t *heap_stats = &context_p->jmem_heap_stats;
 
   heap_stats->allocated_bytes -= aligned_size;
   heap_stats->waste_bytes -= waste_bytes;

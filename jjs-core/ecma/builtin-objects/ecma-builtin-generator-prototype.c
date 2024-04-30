@@ -81,12 +81,11 @@ JJS_STATIC_ASSERT (ECMA_GENERATOR_ROUTINE_TO_OPERATION (ECMA_GENERATOR_PROTOTYPE
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_generator_prototype_object_do (vm_executable_object_t *generator_object_p, /**< generator object */
+ecma_builtin_generator_prototype_object_do (ecma_context_t *context_p, /**< JJS context */
+                                            vm_executable_object_t *generator_object_p, /**< generator object */
                                             ecma_value_t arg, /**< argument */
                                             ecma_iterator_command_type_t resume_mode) /**< resume mode */
 {
-  ecma_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   arg = ecma_copy_value (context_p, arg);
 
   while (true)
@@ -251,7 +250,8 @@ ecma_builtin_generator_prototype_dispatch_routine (ecma_context_t *context_p, /*
     return ECMA_VALUE_ERROR;
   }
 
-  return ecma_builtin_generator_prototype_object_do (executable_object_p,
+  return ecma_builtin_generator_prototype_object_do (context_p,
+                                                     executable_object_p,
                                                      arguments_list_p[0],
                                                      ECMA_GENERATOR_ROUTINE_TO_OPERATION (builtin_routine_id));
 } /* ecma_builtin_generator_prototype_dispatch_routine */

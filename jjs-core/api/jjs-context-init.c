@@ -49,23 +49,8 @@ unhandled_rejection_default (jjs_context_t* context_p, jjs_value_t promise, jjs_
  * initialize the context.
  */
 jjs_status_t
-jjs_context_init (const jjs_context_options_t* options_p)
+jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
 {
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
-  if (context_p->status_flags & ECMA_STATUS_CONTEXT_INITIALIZED)
-  {
-    return JJS_STATUS_CONTEXT_ALREADY_INITIALIZED;
-  }
-
-  /* context should be zero'd out at program init or jjs_cleanup */
-  JJS_ASSERT (context_p->heap_p == NULL);
-
-  if (context_p->heap_p != NULL)
-  {
-    return JJS_STATUS_CONTEXT_CHAOS;
-  }
-
   jjs_context_options_t default_options = {0};
 
   if (options_p == NULL)
@@ -86,6 +71,21 @@ jjs_context_init (const jjs_context_options_t* options_p)
     jjs_platform_new (NULL, &platform);
   }
 
+  jjs_size_t context_aligned_size_b = JJS_ALIGNUP (sizeof (jjs_context_t), JMEM_ALIGNMENT);
+  jjs_size_t vm_heap_size_b = (options_p->vm_heap_size_kb > 0 ? options_p->vm_heap_size_kb : JJS_DEFAULT_VM_HEAP_SIZE) * 1024;
+  uint8_t* block_p = allocator->alloc (allocator, context_aligned_size_b + vm_heap_size_b);
+
+  if (!block_p)
+  {
+    return JJS_STATUS_BAD_ALLOC;
+  }
+
+  jjs_context_t *context_p = (jjs_context_t *) block_p;
+
+  memset (block_p, 0, context_aligned_size_b + vm_heap_size_b);
+
+  context_p->context_size_b = context_aligned_size_b + vm_heap_size_b;
+  context_p->context_allocator = allocator;
   context_p->platform_p = platform;
 
   /* javascript jjs namespace exclusions */
@@ -97,9 +97,9 @@ jjs_context_init (const jjs_context_options_t* options_p)
     return JJS_STATUS_CONTEXT_CHAOS;
   }
 
-  context_p->vm_heap_size = (options_p->vm_heap_size_kb > 0 ? options_p->vm_heap_size_kb : JJS_DEFAULT_VM_HEAP_SIZE) * 1024;
+  context_p->vm_heap_size = vm_heap_size_b;
   context_p->vm_stack_limit = (options_p->vm_stack_limit_kb > 0 ? options_p->vm_stack_limit_kb : JJS_DEFAULT_VM_STACK_LIMIT) * 1024;
-  context_p->gc_limit = (options_p->gc_limit_kb == 0) ? JJS_COMPUTE_GC_LIMIT (context_p->vm_heap_size) : (options_p->gc_limit_kb * 1024);
+  context_p->gc_limit = (options_p->gc_limit_kb == 0) ? JJS_COMPUTE_GC_LIMIT (vm_heap_size_b) : (options_p->gc_limit_kb * 1024);
   context_p->gc_mark_limit = options_p->gc_mark_limit > 0 ? options_p->gc_mark_limit : JJS_DEFAULT_GC_MARK_LIMIT;
   context_p->gc_new_objects_fraction = options_p->gc_new_objects_fraction > 0 ? options_p->gc_new_objects_fraction : JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION;
 
@@ -113,8 +113,7 @@ jjs_context_init (const jjs_context_options_t* options_p)
     context_p->unhandled_rejection_cb = &unhandled_rejection_default;
   }
 
-  context_p->heap_p = allocator->alloc (allocator, context_p->vm_heap_size);
-  context_p->heap_allocator_p = allocator;
+  context_p->heap_p = (jmem_heap_t *) (block_p + context_aligned_size_b);
   context_p->context_flags = options_p->context_flags | ECMA_STATUS_CONTEXT_INITIALIZED;
 
   /* install streams iff they are non-null and a write function exists */
@@ -131,6 +130,8 @@ jjs_context_init (const jjs_context_options_t* options_p)
     }
   }
 
+  *out_p = context_p;
+
   return JJS_STATUS_OK;
 }
 
@@ -140,13 +141,9 @@ jjs_context_init (const jjs_context_options_t* options_p)
 void
 jjs_context_cleanup (jjs_context_t* context_p)
 {
-  // TODO: check initialized?
-  // TODO: delete context?
-  jjs_allocator_t *allocator = context_p->heap_allocator_p;
-
-  allocator->free (allocator, context_p->heap_p, context_p->vm_heap_size);
-
   jjs_platform_free (context_p->platform_p);
 
-  memset (&JJS_CONTEXT_STRUCT, 0, sizeof (JJS_CONTEXT_STRUCT));
+  jjs_allocator_t *allocator = context_p->context_allocator;
+
+  allocator->free (allocator, context_p, context_p->context_size_b);
 }

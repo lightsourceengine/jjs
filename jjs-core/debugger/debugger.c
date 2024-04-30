@@ -633,12 +633,12 @@ jjs_debugger_send_eval (jjs_context_t* context_p, /**< JJS context */
 /**
  * Check received packet size.
  */
-#define JJS_DEBUGGER_CHECK_PACKET_SIZE(ctx, type)  \
-  if (message_size != sizeof (type))               \
-  {                                                \
-    JJS_ERROR_MSG ("Invalid message size\n");      \
-    jjs_debugger_transport_close (ctx);            \
-    return false;                                  \
+#define JJS_DEBUGGER_CHECK_PACKET_SIZE(ctx, type)        \
+  if (message_size != sizeof (type))                     \
+  {                                                      \
+    JJS_ERROR_MSG (context_p, "Invalid message size\n"); \
+    jjs_debugger_transport_close (ctx);                  \
+    return false;                                        \
   }
 
 /**
@@ -659,7 +659,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
   if (recv_buffer_p[0] >= JJS_DEBUGGER_CONTINUE && !(context_p->debugger_flags & JJS_DEBUGGER_BREAKPOINT_MODE))
   {
-    JJS_ERROR_MSG ("Message requires breakpoint mode\n");
+    JJS_ERROR_MSG (context_p, "Message requires breakpoint mode\n");
     jjs_debugger_transport_close (context_p);
     return false;
   }
@@ -674,7 +674,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
     if (recv_buffer_p[0] != *expected_message_type_p)
     {
       jmem_heap_free_block (context_p, uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
-      JJS_ERROR_MSG ("Unexpected message\n");
+      JJS_ERROR_MSG (context_p, "Unexpected message\n");
       jjs_debugger_transport_close (context_p);
       return false;
     }
@@ -684,7 +684,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
     if (message_size < sizeof (jjs_debugger_receive_uint8_data_part_t) + 1)
     {
       jmem_heap_free_block (context_p, uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
-      JJS_ERROR_MSG ("Invalid message size\n");
+      JJS_ERROR_MSG (context_p, "Invalid message size\n");
       jjs_debugger_transport_close (context_p);
       return false;
     }
@@ -696,7 +696,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
     if (message_size > expected_data)
     {
       jmem_heap_free_block (context_p, uint8_data_p, uint8_data_p->uint8_size + sizeof (jjs_debugger_uint8_data_t));
-      JJS_ERROR_MSG ("Invalid message size\n");
+      JJS_ERROR_MSG (context_p, "Invalid message size\n");
       jjs_debugger_transport_close (context_p);
       return false;
     }
@@ -744,7 +744,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
       if (byte_code_free_cp != context_p->debugger_byte_code_free_tail)
       {
-        JJS_ERROR_MSG ("Invalid byte code free order\n");
+        JJS_ERROR_MSG (context_p, "Invalid byte code free order\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
@@ -885,12 +885,12 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       if (exception_config_p->enable == 0)
       {
         JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_VM_IGNORE_EXCEPTION);
-        JJS_DEBUG_MSG ("Stop at exception disabled\n");
+        JJS_DEBUG_MSG (context_p, "Stop at exception disabled\n");
       }
       else
       {
         JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_VM_IGNORE_EXCEPTION);
-        JJS_DEBUG_MSG ("Stop at exception enabled\n");
+        JJS_DEBUG_MSG (context_p, "Stop at exception enabled\n");
       }
 
       return true;
@@ -904,12 +904,12 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       if (parser_config_p->enable_wait != 0)
       {
         JJS_DEBUGGER_SET_FLAGS (context_p, JJS_DEBUGGER_PARSER_WAIT);
-        JJS_DEBUG_MSG ("Waiting after parsing enabled\n");
+        JJS_DEBUG_MSG (context_p, "Waiting after parsing enabled\n");
       }
       else
       {
         JJS_DEBUGGER_CLEAR_FLAGS (context_p, JJS_DEBUGGER_PARSER_WAIT);
-        JJS_DEBUG_MSG ("Waiting after parsing disabled\n");
+        JJS_DEBUG_MSG (context_p, "Waiting after parsing disabled\n");
       }
 
       return true;
@@ -921,7 +921,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
       if (!(context_p->debugger_flags & JJS_DEBUGGER_PARSER_WAIT_MODE))
       {
-        JJS_ERROR_MSG ("Not in parser wait mode\n");
+        JJS_ERROR_MSG (context_p, "Not in parser wait mode\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
@@ -934,7 +934,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
     {
       if (message_size < sizeof (jjs_debugger_receive_eval_first_t) + 5)
       {
-        JJS_ERROR_MSG ("Invalid message size\n");
+        JJS_ERROR_MSG (context_p, "Invalid message size\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
@@ -948,7 +948,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       {
         if (eval_size != message_size - sizeof (jjs_debugger_receive_eval_first_t))
         {
-          JJS_ERROR_MSG ("Invalid message size\n");
+          JJS_ERROR_MSG (context_p, "Invalid message size\n");
           jjs_debugger_transport_close (context_p);
           return false;
         }
@@ -984,14 +984,14 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
     {
       if (message_size <= sizeof (jjs_debugger_receive_client_source_first_t))
       {
-        JJS_ERROR_MSG ("Invalid message size\n");
+        JJS_ERROR_MSG (context_p, "Invalid message size\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
 
       if (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
       {
-        JJS_ERROR_MSG ("Not in client source mode\n");
+        JJS_ERROR_MSG (context_p, "Not in client source mode\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
@@ -1006,7 +1006,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
       if (client_source_size <= context_p->debugger_max_receive_size - header_size
           && client_source_size != message_size - header_size)
       {
-        JJS_ERROR_MSG ("Invalid message size\n");
+        JJS_ERROR_MSG (context_p, "Invalid message size\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
@@ -1043,7 +1043,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
     {
       if (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
       {
-        JJS_ERROR_MSG ("Not in client source mode\n");
+        JJS_ERROR_MSG (context_p, "Not in client source mode\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
@@ -1061,7 +1061,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
     {
       if (!(context_p->debugger_flags & JJS_DEBUGGER_CLIENT_SOURCE_MODE))
       {
-        JJS_ERROR_MSG ("Not in client source mode\n");
+        JJS_ERROR_MSG (context_p, "Not in client source mode\n");
         jjs_debugger_transport_close (context_p);
         return false;
       }
@@ -1077,7 +1077,7 @@ jjs_debugger_process_message (jjs_context_t* context_p, /**< JJS context */
 
     default:
     {
-      JJS_ERROR_MSG ("Unexpected message.");
+      JJS_ERROR_MSG (context_p, "Unexpected message.");
       jjs_debugger_transport_close (context_p);
       return false;
     }

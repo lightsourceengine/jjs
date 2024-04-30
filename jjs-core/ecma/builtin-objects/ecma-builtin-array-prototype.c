@@ -2669,7 +2669,7 @@ ecma_builtin_array_flatten_into_array (ecma_context_t *context_p, /**< JJS conte
                                        ecma_value_t mapped_value, /**< mapped value  */
                                        ecma_value_t thisArg) /**< this arg */
 {
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   /* 7. */
   ecma_length_t target_index = start;

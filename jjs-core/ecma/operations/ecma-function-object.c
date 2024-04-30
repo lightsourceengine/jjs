@@ -1423,7 +1423,7 @@ ecma_op_function_call (ecma_context_t *context_p, /**< JJS context */
 {
   JJS_ASSERT (func_obj_p != NULL && !ecma_is_lexical_environment (func_obj_p));
 
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_object_t *old_new_target_p = context_p->current_new_target_p;
 
@@ -1746,7 +1746,7 @@ ecma_op_function_construct (ecma_context_t *context_p, /**< JJS context */
 {
   JJS_ASSERT (func_obj_p != NULL && !ecma_is_lexical_environment (func_obj_p));
 
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   switch (ecma_get_object_type (func_obj_p))
   {

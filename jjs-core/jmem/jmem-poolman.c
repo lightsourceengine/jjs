@@ -77,13 +77,13 @@ jmem_pools_alloc (jjs_context_t *context_p, size_t size) /**< size of the chunk 
       context_p->jmem_free_8_byte_chunk_p = chunk_p->next_p;
       JMEM_VALGRIND_UNDEFINED_SPACE (chunk_p, sizeof (jmem_pools_chunk_t));
 
-      JMEM_HEAP_STAT_ALLOC (8);
+      JMEM_HEAP_STAT_ALLOC (context_p, 8);
       return (void *) chunk_p;
     }
     else
     {
       void *chunk_p = jmem_heap_alloc_block_internal (context_p, 8);
-      JMEM_HEAP_STAT_ALLOC (8);
+      JMEM_HEAP_STAT_ALLOC (context_p, 8);
       return chunk_p;
     }
 
@@ -100,13 +100,13 @@ jmem_pools_alloc (jjs_context_t *context_p, size_t size) /**< size of the chunk 
     context_p->jmem_free_16_byte_chunk_p = chunk_p->next_p;
     JMEM_VALGRIND_UNDEFINED_SPACE (chunk_p, sizeof (jmem_pools_chunk_t));
 
-    JMEM_HEAP_STAT_ALLOC (16);
+    JMEM_HEAP_STAT_ALLOC (context_p, 16);
     return (void *) chunk_p;
   }
   else
   {
     void *chunk_p = jmem_heap_alloc_block_internal (context_p, 16);
-    JMEM_HEAP_STAT_ALLOC (16);
+    JMEM_HEAP_STAT_ALLOC (context_p, 16);
     return chunk_p;
   }
 #endif /* JJS_CPOINTER_32_BIT */
@@ -121,7 +121,7 @@ jmem_pools_free (jjs_context_t *context_p, /**< JJS context */
                  size_t size) /**< size of the chunk */
 {
   JJS_ASSERT (chunk_p != NULL);
-  JMEM_HEAP_STAT_FREE (size);
+  JMEM_HEAP_STAT_FREE (context_p, size);
 
   jmem_pools_chunk_t *const chunk_to_free_p = (jmem_pools_chunk_t *) chunk_p;
 

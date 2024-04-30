@@ -1092,7 +1092,7 @@ ecma_value_t
 re_parse_alternative (re_compiler_ctx_t *re_ctx_p, /**< RegExp compiler context */
                       bool expect_eof) /**< expect end of file */
 {
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
   uint32_t alternative_offset = re_bytecode_size (re_ctx_p);
   bool first_alternative = true;
 

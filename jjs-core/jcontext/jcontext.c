@@ -125,10 +125,5 @@ jcontext_take_exception (jjs_context_t *context_p)
 } /* jcontext_take_exception */
 
 /**
- * Global context.
- */
-jjs_context_t jjs_global_context = {0};
-
-/**
  * @}
  */

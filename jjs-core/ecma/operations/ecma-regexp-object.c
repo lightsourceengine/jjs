@@ -231,7 +231,7 @@ ecma_op_create_regexp_from_pattern (ecma_context_t *context_p, /**< JJS context 
     JJS_ASSERT (ecma_is_value_empty (parse_flags_value));
   }
 
-  re_compiled_code_t *bc_p = re_compile_bytecode (&JJS_CONTEXT_STRUCT, pattern_str_p, flags);
+  re_compiled_code_t *bc_p = re_compile_bytecode (context_p, pattern_str_p, flags);
 
   if (JJS_UNLIKELY (bc_p == NULL))
   {
@@ -286,7 +286,7 @@ ecma_op_create_regexp_with_flags (ecma_context_t *context_p, /**< JJS context */
     return ECMA_VALUE_ERROR;
   }
 
-  re_compiled_code_t *bc_p = re_compile_bytecode (&JJS_CONTEXT_STRUCT, pattern_str_p, flags);
+  re_compiled_code_t *bc_p = re_compile_bytecode (context_p, pattern_str_p, flags);
   ecma_deref_ecma_string (context_p, pattern_str_p);
 
   if (JJS_UNLIKELY (bc_p == NULL))

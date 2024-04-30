@@ -2050,12 +2050,12 @@ typedef enum
  * Check the current stack usage. If the limit is reached a RangeError is raised.
  * The macro argument specifies the return value which is usally ECMA_VALUE_ERROR or NULL.
  */
-#define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)                          \
+#define ECMA_CHECK_STACK_USAGE_RETURN(CTX, RETURN_VALUE)                     \
   do                                                                         \
   {                                                                          \
-    if (JJS_CONTEXT(vm_stack_limit) != 0 && ecma_is_stack_limit_exceeded())  \
+    if ((CTX)->vm_stack_limit != 0 && ecma_is_stack_limit_exceeded(CTX))  \
     {                                                                        \
-      ecma_raise_maximum_callstack_error ();                                 \
+      ecma_raise_maximum_callstack_error (CTX);                                 \
       return RETURN_VALUE;                                                   \
     }                                                                        \
   } while (0)
@@ -2064,20 +2064,20 @@ typedef enum
  * Specialized version of ECMA_CHECK_STACK_USAGE_RETURN which returns ECMA_VALUE_ERROR.
  * This version should be used in most cases.
  */
-#define ECMA_CHECK_STACK_USAGE() ECMA_CHECK_STACK_USAGE_RETURN (ECMA_VALUE_ERROR)
+#define ECMA_CHECK_STACK_USAGE(CTX) ECMA_CHECK_STACK_USAGE_RETURN (CTX, ECMA_VALUE_ERROR)
 #else /* !(!JJS_VM_STACK_STATIC && JJS_DEFAULT_VM_STACK_LIMIT > 0) */
 
 /**
  * Check the current stack usage. If the limit is reached a RangeError is raised.
  * The macro argument specifies the return value which is usually ECMA_VALUE_ERROR or NULL.
  */
-#define ECMA_CHECK_STACK_USAGE_RETURN(RETURN_VALUE)
+#define ECMA_CHECK_STACK_USAGE_RETURN(CTX, RETURN_VALUE)
 
 /**
  * Specialized version of ECMA_CHECK_STACK_USAGE_RETURN which returns ECMA_VALUE_ERROR.
  * This version should be used in most cases.
  */
-#define ECMA_CHECK_STACK_USAGE()
+#define ECMA_CHECK_STACK_USAGE(CTX)
 #endif /* JJS_STACK_LIMIT > 0 */
 
 /**

@@ -123,42 +123,42 @@ void jjs_jrt_set_log_level (jjs_log_level_t level);
  * Logging
  */
 #if JJS_LOGGING
-#define JJS_ERROR_MSG(...)   jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_ERROR, __VA_ARGS__)
-#define JJS_WARNING_MSG(...) jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_WARNING, __VA_ARGS__)
-#define JJS_DEBUG_MSG(...)   jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_DEBUG, __VA_ARGS__)
-#define JJS_TRACE_MSG(...)   jjs_log (&JJS_CONTEXT_STRUCT, JJS_LOG_LEVEL_TRACE, __VA_ARGS__)
+#define JJS_ERROR_MSG(ctx, ...)   jjs_log ((ctx), JJS_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define JJS_WARNING_MSG(ctx, ...) jjs_log ((ctx), JJS_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define JJS_DEBUG_MSG(ctx, ...)   jjs_log ((ctx), JJS_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define JJS_TRACE_MSG(ctx, ...)   jjs_log ((ctx), JJS_LOG_LEVEL_TRACE, __VA_ARGS__)
 #else /* !JJS_LOGGING */
-#define JJS_ERROR_MSG(...)          \
-  do                                  \
-  {                                   \
-    if (false)                        \
-    {                                 \
+#define JJS_ERROR_MSG(ctx, ...)     \
+  do                                \
+  {                                 \
+    if (false)                      \
+    {                               \
       JJS_UNUSED_ALL (__VA_ARGS__); \
-    }                                 \
+    }                               \
   } while (0)
-#define JJS_WARNING_MSG(...)        \
-  do                                  \
-  {                                   \
-    if (false)                        \
-    {                                 \
+#define JJS_WARNING_MSG(ctx, ...)   \
+  do                                \
+  {                                 \
+    if (false)                      \
+    {                               \
       JJS_UNUSED_ALL (__VA_ARGS__); \
-    }                                 \
+    }                               \
   } while (0)
-#define JJS_DEBUG_MSG(...)          \
-  do                                  \
-  {                                   \
-    if (false)                        \
-    {                                 \
+#define JJS_DEBUG_MSG(ctx, ...)     \
+  do                                \
+  {                                 \
+    if (false)                      \
+    {                               \
       JJS_UNUSED_ALL (__VA_ARGS__); \
-    }                                 \
+    }                               \
   } while (0)
-#define JJS_TRACE_MSG(...)          \
-  do                                  \
-  {                                   \
-    if (false)                        \
-    {                                 \
+#define JJS_TRACE_MSG(ctx, ...)     \
+  do                                \
+  {                                 \
+    if (false)                      \
+    {                               \
       JJS_UNUSED_ALL (__VA_ARGS__); \
-    }                                 \
+    }                               \
   } while (0)
 #endif /* JJS_LOGGING */
 
@@ -216,13 +216,13 @@ void jjs_jrt_set_log_level (jjs_log_level_t level);
  */
 #if defined(__clang__) || defined(__GNUC__)
 /* Clang/GCC will not tail call given inline volatile assembly. */
-#define JJS_BLOCK_TAIL_CALL_OPTIMIZATION() __asm__ __volatile__("")
+#define JJS_BLOCK_TAIL_CALL_OPTIMIZATION(ctx) __asm__ __volatile__("")
 #else /* !defined(__clang__) && !defined(__GNUC__) */
 /* On GCC 10.x this version also works. */
-#define JJS_BLOCK_TAIL_CALL_OPTIMIZATION()                 \
-  do                                                         \
-  {                                                          \
-    JJS_CONTEXT (status_flags) |= ECMA_STATUS_API_ENABLED; \
+#define JJS_BLOCK_TAIL_CALL_OPTIMIZATION(ctx)     \
+  do                                              \
+  {                                               \
+    ctx->status_flags |= ECMA_STATUS_API_ENABLED; \
   } while (0)
 #endif /* defined(__clang__) || defined (__GNUC__) */
 

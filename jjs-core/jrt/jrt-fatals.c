@@ -30,38 +30,40 @@
 void JJS_ATTR_NORETURN
 jjs_fatal (jjs_fatal_code_t code) /**< status code */
 {
-#ifndef JJS_NDEBUG
-  switch (code)
-  {
-    case JJS_FATAL_OUT_OF_MEMORY:
-    {
-      JJS_ERROR_MSG ("Error: JJS_FATAL_OUT_OF_MEMORY\n");
-      break;
-    }
-    case JJS_FATAL_REF_COUNT_LIMIT:
-    {
-      JJS_ERROR_MSG ("Error: JJS_FATAL_REF_COUNT_LIMIT\n");
-      break;
-    }
-    case JJS_FATAL_UNTERMINATED_GC_LOOPS:
-    {
-      JJS_ERROR_MSG ("Error: JJS_FATAL_UNTERMINATED_GC_LOOPS\n");
-      break;
-    }
-    case JJS_FATAL_DISABLED_BYTE_CODE:
-    {
-      JJS_ERROR_MSG ("Error: JJS_FATAL_DISABLED_BYTE_CODE\n");
-      break;
-    }
-    case JJS_FATAL_FAILED_ASSERTION:
-    {
-      JJS_ERROR_MSG ("Error: JJS_FATAL_FAILED_ASSERTION\n");
-      break;
-    }
-  }
-#endif /* !JJS_NDEBUG */
+//#ifndef JJS_NDEBUG
+//  switch (code)
+//  {
+//    case JJS_FATAL_OUT_OF_MEMORY:
+//    {
+//      JJS_ERROR_MSG ("Error: JJS_FATAL_OUT_OF_MEMORY\n");
+//      break;
+//    }
+//    case JJS_FATAL_REF_COUNT_LIMIT:
+//    {
+//      JJS_ERROR_MSG ("Error: JJS_FATAL_REF_COUNT_LIMIT\n");
+//      break;
+//    }
+//    case JJS_FATAL_UNTERMINATED_GC_LOOPS:
+//    {
+//      JJS_ERROR_MSG ("Error: JJS_FATAL_UNTERMINATED_GC_LOOPS\n");
+//      break;
+//    }
+//    case JJS_FATAL_DISABLED_BYTE_CODE:
+//    {
+//      JJS_ERROR_MSG ("Error: JJS_FATAL_DISABLED_BYTE_CODE\n");
+//      break;
+//    }
+//    case JJS_FATAL_FAILED_ASSERTION:
+//    {
+//      JJS_ERROR_MSG ("Error: JJS_FATAL_FAILED_ASSERTION\n");
+//      break;
+//    }
+//  }
+//#endif /* !JJS_NDEBUG */
 
-  jjs_platform_fatal (&JJS_CONTEXT_STRUCT, code);
+//  jjs_platform_fatal (context_p, code);
+  JJS_UNUSED (code);
+  abort();
 
   /* to make compiler happy for some RTOS: 'control reaches end of non-void function' */
   while (true)
@@ -79,9 +81,8 @@ jjs_assert_fail (const char *assertion, /**< assertion condition string */
                    const char *function, /**< function name */
                    const uint32_t line) /**< line */
 {
-  JJS_ERROR_MSG ("ICE: Assertion '%s' failed at %s(%s):%u.\n", assertion, file, function, line);
-
-  jjs_fatal (JJS_FATAL_FAILED_ASSERTION);
+  fprintf (stderr, "ICE: Assertion '%s' failed at %s(%s):%u.\n", assertion, file, function, line);
+  abort ();
 } /* jjs_assert_fail */
 
 /**
@@ -92,8 +93,7 @@ jjs_unreachable (const char *file, /**< file name */
                    const char *function, /**< function name */
                    const uint32_t line) /**< line */
 {
-  JJS_ERROR_MSG ("ICE: Unreachable control path at %s(%s):%u was executed.\n", file, function, line);
-
-  jjs_fatal (JJS_FATAL_FAILED_ASSERTION);
+  fprintf (stderr, "ICE: Unreachable control path at %s(%s):%u was executed.\n", file, function, line);
+  abort ();
 } /* jjs_unreachable */
 #endif /* !JJS_NDEBUG */

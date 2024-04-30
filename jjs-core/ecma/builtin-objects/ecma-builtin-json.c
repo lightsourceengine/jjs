@@ -643,7 +643,7 @@ ecma_builtin_json_internalize_property (ecma_context_t *context_p, /**< JJS cont
   JJS_ASSERT (holder_p);
   JJS_ASSERT (name_p);
 
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   /* 1. */
   ecma_value_t value = ecma_op_object_get (context_p, holder_p, name_p);

@@ -83,7 +83,7 @@ ecma_op_eval_chars_buffer (ecma_context_t *context_p, /**< JJS context */
 
   parse_opts |= ECMA_PARSE_EVAL;
 
-  ECMA_CLEAR_LOCAL_PARSE_OPTS (&JJS_CONTEXT_STRUCT);
+  ECMA_CLEAR_LOCAL_PARSE_OPTS (context_p);
 
   ecma_compiled_code_t *bytecode_p = parser_parse_script (context_p, source_p, parse_opts, NULL);
 

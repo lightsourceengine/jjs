@@ -269,7 +269,7 @@ ecma_proxy_object_get_prototype_of (ecma_context_t *context_p, /**< JJS context 
                                     ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -292,7 +292,7 @@ ecma_proxy_object_get_prototype_of (ecma_context_t *context_p, /**< JJS context 
   if (ecma_is_value_undefined (trap))
   {
     ecma_value_t result = ecma_builtin_object_object_get_prototype_of (context_p, target_obj_p);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -382,7 +382,7 @@ ecma_proxy_object_set_prototype_of (ecma_context_t *context_p, /**< JJS context 
                                     ecma_value_t proto) /**< new prototype object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   /* 1. */
   JJS_ASSERT (ecma_is_value_object (proto) || ecma_is_value_null (proto));
@@ -410,12 +410,12 @@ ecma_proxy_object_set_prototype_of (ecma_context_t *context_p, /**< JJS context 
     if (ECMA_OBJECT_IS_PROXY (target_obj_p))
     {
       ecma_value_t result = ecma_proxy_object_set_prototype_of (context_p, target_obj_p, proto);
-      JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+      JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
       return result;
     }
 
     ecma_value_t result = ecma_op_ordinary_object_set_prototype_of (context_p, target_obj_p, proto);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -502,7 +502,7 @@ ecma_proxy_object_is_extensible (ecma_context_t *context_p, /**< JJS context */
                                  ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -525,7 +525,7 @@ ecma_proxy_object_is_extensible (ecma_context_t *context_p, /**< JJS context */
   if (ecma_is_value_undefined (trap))
   {
     ecma_value_t result = ecma_builtin_object_object_is_extensible (context_p, target_obj_p);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -595,7 +595,7 @@ ecma_proxy_object_prevent_extensions (ecma_context_t *context_p, /**< JJS contex
                                       ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -685,7 +685,7 @@ ecma_proxy_object_get_own_property_descriptor (ecma_context_t *context_p, /**< J
                                                ecma_property_descriptor_t *prop_desc_p) /**< [out] property
                                                                                          *   descriptor */
 {
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -709,7 +709,7 @@ ecma_proxy_object_get_own_property_descriptor (ecma_context_t *context_p, /**< J
   if (ecma_is_value_undefined (trap))
   {
     ecma_value_t result = ecma_op_object_get_own_property_descriptor (context_p, target_obj_p, prop_name_p, prop_desc_p);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -890,7 +890,7 @@ ecma_proxy_object_define_own_property (ecma_context_t *context_p, /**< JJS conte
                                        const ecma_property_descriptor_t *prop_desc_p) /**< property descriptor */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -913,7 +913,7 @@ ecma_proxy_object_define_own_property (ecma_context_t *context_p, /**< JJS conte
   if (ecma_is_value_undefined (trap))
   {
     ecma_value_t result = ecma_op_object_define_own_property (context_p, target_obj_p, prop_name_p, prop_desc_p);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -1049,7 +1049,7 @@ ecma_proxy_object_has (ecma_context_t *context_p, /**< JJS context */
                        ecma_string_t *prop_name_p) /**< property name */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -1072,7 +1072,7 @@ ecma_proxy_object_has (ecma_context_t *context_p, /**< JJS context */
   if (ecma_is_value_undefined (trap))
   {
     ecma_value_t result = ecma_op_object_has_property (context_p, target_obj_p, prop_name_p);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -1154,7 +1154,7 @@ ecma_proxy_object_get (ecma_context_t *context_p, /**< JJS context */
                        ecma_value_t receiver) /**< receiver to invoke getter function */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -1175,7 +1175,7 @@ ecma_proxy_object_get (ecma_context_t *context_p, /**< JJS context */
   {
     ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, proxy_obj_p->target);
     ecma_value_t result = ecma_op_object_get_with_receiver (context_p, target_obj_p, prop_name_p, receiver);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -1256,7 +1256,7 @@ ecma_proxy_object_set (ecma_context_t *context_p, /**< JJS context */
                        bool is_strict) /**< indicate strict mode */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -1279,7 +1279,7 @@ ecma_proxy_object_set (ecma_context_t *context_p, /**< JJS context */
   if (ecma_is_value_undefined (trap))
   {
     ecma_value_t result = ecma_op_object_put_with_receiver (context_p, target_obj_p, prop_name_p, value, receiver, is_strict);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -1376,7 +1376,7 @@ ecma_proxy_object_delete_property (ecma_context_t *context_p, /**< JJS context *
                                    bool is_strict) /**< delete in strict mode? */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -1399,7 +1399,7 @@ ecma_proxy_object_delete_property (ecma_context_t *context_p, /**< JJS context *
   if (ecma_is_value_undefined (trap))
   {
     ecma_value_t result = ecma_op_object_delete (context_p, target_obj_p, prop_name_p, is_strict);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -1605,7 +1605,7 @@ ecma_proxy_object_own_property_keys (ecma_context_t *context_p, /**< JJS context
                                      ecma_object_t *obj_p) /**< proxy object */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE_RETURN (NULL);
+  ECMA_CHECK_STACK_USAGE_RETURN (context_p, NULL);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -1627,7 +1627,7 @@ ecma_proxy_object_own_property_keys (ecma_context_t *context_p, /**< JJS context
   if (ecma_is_value_undefined (trap))
   {
     ecma_collection_t *result = ecma_op_object_own_property_keys (context_p, target_obj_p, JJS_PROPERTY_FILTER_ALL);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -1773,7 +1773,7 @@ ecma_proxy_object_call (ecma_context_t *context_p, /**< JJS context */
     return ecma_raise_type_error (context_p, ECMA_ERR_EXPECTED_A_FUNCTION);
   }
 
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -1796,7 +1796,7 @@ ecma_proxy_object_call (ecma_context_t *context_p, /**< JJS context */
   {
     ecma_object_t *target_obj_p = ecma_get_object_from_value (context_p, target);
     ecma_value_t result = ecma_op_function_call (context_p, target_obj_p, this_argument, args_p, argc);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 
@@ -1831,7 +1831,7 @@ ecma_proxy_object_construct (ecma_context_t *context_p, /**< JJS context */
                              uint32_t argc) /**< number of arguments */
 {
   JJS_ASSERT (ECMA_OBJECT_IS_PROXY (obj_p));
-  ECMA_CHECK_STACK_USAGE ();
+  ECMA_CHECK_STACK_USAGE (context_p);
 
   ecma_proxy_object_t *proxy_obj_p = (ecma_proxy_object_t *) obj_p;
 
@@ -1856,7 +1856,7 @@ ecma_proxy_object_construct (ecma_context_t *context_p, /**< JJS context */
     JJS_ASSERT (ecma_object_is_constructor (context_p, target_obj_p));
 
     ecma_value_t result = ecma_op_function_construct (context_p, target_obj_p, new_target_p, args_p, argc);
-    JJS_BLOCK_TAIL_CALL_OPTIMIZATION ();
+    JJS_BLOCK_TAIL_CALL_OPTIMIZATION (context_p);
     return result;
   }
 

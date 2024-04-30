@@ -84,10 +84,9 @@ enum
  *         Returned value must be freed with ecma_free_value.
  */
 static ecma_value_t
-ecma_builtin_global_object_eval (ecma_value_t x) /**< routine's first argument */
+ecma_builtin_global_object_eval (ecma_context_t *context_p, /**< JJS context */
+                                 ecma_value_t x) /**< routine's first argument */
 {
-  jjs_context_t *context_p = &JJS_CONTEXT_STRUCT;
-
   if (JJS_UNLIKELY (!ecma_is_value_string (x)))
   {
     /* step 1 */
@@ -599,7 +598,7 @@ ecma_builtin_global_dispatch_routine (ecma_context_t *context_p, /**< JJS contex
 
   if (builtin_routine_id == ECMA_GLOBAL_EVAL)
   {
-    return ecma_builtin_global_object_eval (routine_arg_1);
+    return ecma_builtin_global_object_eval (context_p, routine_arg_1);
   }
 
   if (builtin_routine_id <= ECMA_GLOBAL_IS_FINITE)
