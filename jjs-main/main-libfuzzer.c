@@ -24,7 +24,7 @@ LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
   srand ((unsigned) time (NULL));
 
   jjs_context_t *context_p = NULL;
-  assert (jjs_context_new (NULL, &context_p));
+  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
 
   if (jjs_validate_string ((jjs_char_t *) data, (jjs_size_t) size, JJS_ENCODING_UTF8))
   {

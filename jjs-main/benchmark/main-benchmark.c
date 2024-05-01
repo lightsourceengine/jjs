@@ -77,7 +77,7 @@ run (void)
 {
   jjs_context_t *context_p = NULL;
 
-  assert (jjs_context_new (NULL, &context_p));
+  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
 
   jjs_value_t ret_value = jjs_undefined ();
 

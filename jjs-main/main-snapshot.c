@@ -509,7 +509,7 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
   }
 
   jjs_context_t *context_p = NULL;
-  assert (jjs_context_new (NULL, &context_p));
+  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
 
   size_t lit_buf_sz = 0;
   if (number_of_files == 1)

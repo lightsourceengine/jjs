@@ -264,7 +264,7 @@ main (int argc, char **argv)
   }
 
   jjs_context_t *context_p = NULL;
-  assert (jjs_context_new (NULL, &context_p));
+  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
 
   jjs_value_t global = jjs_current_realm (context_p);
 
