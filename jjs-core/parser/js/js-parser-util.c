@@ -93,11 +93,13 @@ parser_emit_two_bytes (parser_context_t *context_p, /**< context */
  * Print literal corresponding to the current index
  */
 static void
-parser_print_literal (parser_context_t *context_p, /**< context */
+parser_print_literal (parser_context_t *parser_context_p, /**< parser context */
                       uint16_t literal_index) /**< index of literal */
 {
-  parser_scope_stack_t *scope_stack_p = context_p->scope_stack_p;
-  parser_scope_stack_t *scope_stack_end_p = scope_stack_p + context_p->scope_stack_top;
+  parser_scope_stack_t *scope_stack_p = parser_context_p->scope_stack_p;
+  parser_scope_stack_t *scope_stack_end_p = scope_stack_p + parser_context_p->scope_stack_top;
+  ecma_context_t *context_p = parser_context_p->context_p;
+
   bool in_scope_literal = false;
 
   while (scope_stack_p < scope_stack_end_p)
@@ -121,22 +123,22 @@ parser_print_literal (parser_context_t *context_p, /**< context */
 
   if (literal_index < PARSER_REGISTER_START)
   {
-    JJS_DEBUG_MSG (in_scope_literal ? " IDX:%d->" : " idx:%d->", literal_index);
+    JJS_DEBUG_MSG (context_p, in_scope_literal ? " IDX:%d->" : " idx:%d->", literal_index);
     lexer_literal_t *literal_p = PARSER_GET_LITERAL (literal_index);
-    util_print_literal (literal_p);
+    util_print_literal (context_p, literal_p);
     return;
   }
 
   if (!in_scope_literal)
   {
-    JJS_DEBUG_MSG (" reg:%d", (int) (literal_index - PARSER_REGISTER_START));
+    JJS_DEBUG_MSG (context_p, " reg:%d", (int) (literal_index - PARSER_REGISTER_START));
     return;
   }
 
-  JJS_DEBUG_MSG (" REG:%d->", (int) (literal_index - PARSER_REGISTER_START));
+  JJS_DEBUG_MSG (context_p, " REG:%d->", (int) (literal_index - PARSER_REGISTER_START));
 
   lexer_literal_t *literal_p = PARSER_GET_LITERAL (scope_stack_end_p->map_from);
-  util_print_literal (literal_p);
+  util_print_literal (context_p, literal_p);
 } /* parser_print_literal */
 
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
@@ -222,25 +224,28 @@ parser_flush_cbc (parser_context_t *parser_context_p) /**< context */
   }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("  [%3d] %s",
-                     (int) context_p->stack_depth,
-                     PARSER_IS_BASIC_OPCODE (last_opcode) ? cbc_names[last_opcode]
+    ecma_context_t *context_p = parser_context_p->context_p;
+
+    JJS_DEBUG_MSG (context_p,
+                   "  [%3d] %s",
+                   (int) parser_context_p->stack_depth,
+                   PARSER_IS_BASIC_OPCODE (last_opcode) ? cbc_names[last_opcode]
                                                           : cbc_ext_names[PARSER_GET_EXT_OPCODE (last_opcode)]);
 
     if (flags & (CBC_HAS_LITERAL_ARG | CBC_HAS_LITERAL_ARG2))
     {
-      parser_print_literal (context_p, context_p->last_cbc.literal_index);
+      parser_print_literal (parser_context_p, parser_context_p->last_cbc.literal_index);
     }
 
     if (flags & CBC_HAS_LITERAL_ARG2)
     {
-      parser_print_literal (context_p, context_p->last_cbc.value);
+      parser_print_literal (parser_context_p, parser_context_p->last_cbc.value);
 
       if (!(flags & CBC_HAS_LITERAL_ARG))
       {
-        parser_print_literal (context_p, context_p->last_cbc.third_literal_index);
+        parser_print_literal (parser_context_p, parser_context_p->last_cbc.third_literal_index);
       }
     }
 
@@ -248,19 +253,19 @@ parser_flush_cbc (parser_context_t *parser_context_p) /**< context */
     {
       if (last_opcode == CBC_PUSH_NUMBER_POS_BYTE || last_opcode == CBC_PUSH_LITERAL_PUSH_NUMBER_POS_BYTE)
       {
-        JJS_DEBUG_MSG (" number:%d", (int) context_p->last_cbc.value + 1);
+        JJS_DEBUG_MSG (context_p, " number:%d", (int) parser_context_p->last_cbc.value + 1);
       }
       else if (last_opcode == CBC_PUSH_NUMBER_NEG_BYTE || last_opcode == CBC_PUSH_LITERAL_PUSH_NUMBER_NEG_BYTE)
       {
-        JJS_DEBUG_MSG (" number:%d", -((int) context_p->last_cbc.value + 1));
+        JJS_DEBUG_MSG (context_p, " number:%d", -((int) parser_context_p->last_cbc.value + 1));
       }
       else
       {
-        JJS_DEBUG_MSG (" byte_arg:%d", (int) context_p->last_cbc.value);
+        JJS_DEBUG_MSG (context_p, " byte_arg:%d", (int) parser_context_p->last_cbc.value);
       }
     }
 
-    JJS_DEBUG_MSG ("\n");
+    JJS_DEBUG_MSG (context_p, "\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -489,11 +494,12 @@ parser_emit_cbc_forward_branch (parser_context_t *parser_context_p, /**< context
   PARSER_PLUS_EQUAL_U16 (parser_context_p->stack_depth, CBC_STACK_ADJUST_VALUE (flags));
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("  [%3d] %s\n",
-                     (int) context_p->stack_depth,
-                     extra_byte_code_increase == 0 ? cbc_names[opcode] : cbc_ext_names[opcode]);
+    JJS_DEBUG_MSG (parser_context_p->context_p,
+                   "  [%3d] %s\n",
+                   (int) parser_context_p->stack_depth,
+                   extra_byte_code_increase == 0 ? cbc_names[opcode] : cbc_ext_names[opcode]);
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -601,9 +607,9 @@ parser_emit_cbc_backward_branch (parser_context_t *parser_context_p, /**< contex
   PARSER_PLUS_EQUAL_U16 (parser_context_p->stack_depth, CBC_STACK_ADJUST_VALUE (flags));
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("  [%3d] %s\n", (int) context_p->stack_depth, name);
+    JJS_DEBUG_MSG (parser_context_p->context_p, "  [%3d] %s\n", (int) parser_context_p->stack_depth, name);
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 

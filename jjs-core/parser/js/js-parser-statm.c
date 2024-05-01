@@ -2701,9 +2701,9 @@ parser_parse_statements (parser_context_t *parser_context_p) /**< parser context
     }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-    if (strict_mode == PARSER_USE_STRICT_SET && context_p->is_show_opcodes)
+    if (strict_mode == PARSER_USE_STRICT_SET && parser_context_p->is_show_opcodes)
     {
-      JJS_DEBUG_MSG ("  Note: switch to strict mode\n\n");
+      JJS_DEBUG_MSG (parser_context_p->context_p, "  Note: switch to strict mode\n\n");
     }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 

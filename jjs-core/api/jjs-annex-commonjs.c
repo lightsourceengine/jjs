@@ -54,7 +54,7 @@ jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value
 
   return result;
 #else /* !JJS_ANNEX_COMMONJS */
-  JJS_DISOWN (specifier, specifier_o);
+  JJS_DISOWN (context_p, specifier, specifier_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_commonjs_require */

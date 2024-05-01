@@ -146,7 +146,7 @@ jjs_vmod_resolve_sz (jjs_context_t* context_p, const char *name)
   return jjs_vmod_resolve (context_p, annex_util_create_string_utf8_sz (context_p, name), JJS_MOVE);
 #else /* !JJS_ANNEX_VMOD */
   JJS_UNUSED (name);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_resolve_sz */
 

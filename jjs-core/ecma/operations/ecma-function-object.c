@@ -132,6 +132,8 @@ ecma_op_object_is_callable (ecma_context_t *context_p, /**< JJS context */
   {
     return ecma_op_proxy_object_is_callable (context_p, obj_p);
   }
+#else /* !JJS_BUILTIN_PROXY */
+  JJS_UNUSED (context_p);
 #endif /* JJS_BUILTIN_PROXY */
 
   return type >= ECMA_OBJECT_TYPE_FUNCTION;

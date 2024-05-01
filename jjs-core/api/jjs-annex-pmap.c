@@ -185,9 +185,9 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
   return jjs_undefined (context_p);
 #else /* !JJS_ANNEX_PMAP */
-  JJS_DISOWN (pmap, pmap_o);
-  JJS_DISOWN (root, root_o);
-  return jjs_throw_sz (JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
+  JJS_DISOWN (context_p, pmap, pmap_o);
+  JJS_DISOWN (context_p, root, root_o);
+  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap */
 

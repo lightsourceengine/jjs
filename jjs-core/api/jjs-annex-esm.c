@@ -211,7 +211,7 @@ jjs_esm_default_on_load_cb (jjs_context_t* context_p, jjs_value_t path, jjs_esm_
 
   return result;
 #else /* !(JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM) */
-  JJS_UNUSED (path, load_context_p);
+  JJS_UNUSED_ALL (path, load_context_p);
 
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */
@@ -294,7 +294,7 @@ jjs_esm_default_on_resolve_cb (jjs_context_t* context_p, jjs_value_t specifier, 
 
   return result;
 #else /* !(JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM) */
-  JJS_UNUSED_ALL (specifier, context_p);
+  JJS_UNUSED_ALL (specifier, context_p, resolve_context_p);
 
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS || JJS_ANNEX_ESM */

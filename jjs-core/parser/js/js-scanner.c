@@ -2402,19 +2402,20 @@ void JJS_ATTR_NOINLINE
 scanner_scan_all (parser_context_t *parser_context_p) /**< context */
 {
   scanner_context_t scanner_context;
+#if JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER
+  ecma_context_t *context_p = parser_context_p->context_p;
+#endif /* JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER */
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- Scanning start ---\n\n");
+    JJS_DEBUG_MSG (parser_context_p->context_p, "\n--- Scanning start ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
   scanner_context.context_status_flags = parser_context_p->status_flags;
   scanner_context.status_flags = SCANNER_CONTEXT_NO_FLAGS;
 #if JJS_DEBUGGER
-  ecma_context_t *context_p = parser_context_p->context_p;
-
   if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
     scanner_context.status_flags |= SCANNER_CONTEXT_DEBUGGER_ENABLED;
@@ -3443,11 +3444,11 @@ scan_completed:
   scanner_reverse_info_list (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    scanner_info_t *info_p = context_p->next_scanner_info_p;
+    scanner_info_t *info_p = parser_context_p->next_scanner_info_p;
     const uint8_t *source_start_p =
-      (context_p->arguments_start_p == NULL ? context_p->source_start_p : context_p->arguments_start_p);
+      (parser_context_p->arguments_start_p == NULL ? parser_context_p->source_start_p : parser_context_p->arguments_start_p);
 
     while (info_p->type != SCANNER_TYPE_END)
     {
@@ -3458,8 +3459,8 @@ scan_completed:
       {
         case SCANNER_TYPE_END_ARGUMENTS:
         {
-          JJS_DEBUG_MSG ("  END_ARGUMENTS\n");
-          source_start_p = context_p->source_start_p;
+          JJS_DEBUG_MSG (context_p, "  END_ARGUMENTS\n");
+          source_start_p = parser_context_p->source_start_p;
           break;
         }
         case SCANNER_TYPE_FUNCTION:
@@ -3472,16 +3473,16 @@ scan_completed:
           {
             data_p = (const uint8_t *) (info_p + 1);
 
-            JJS_DEBUG_MSG ("  FUNCTION: flags: 0x%x declarations: %d", (int) info_p->u8_arg, (int) info_p->u16_arg);
+            JJS_DEBUG_MSG (context_p, "  FUNCTION: flags: 0x%x declarations: %d", (int) info_p->u8_arg, (int) info_p->u16_arg);
           }
           else
           {
             data_p = (const uint8_t *) (info_p + 1);
 
-            JJS_DEBUG_MSG ("  BLOCK:");
+            JJS_DEBUG_MSG (context_p, "  BLOCK:");
           }
 
-          JJS_DEBUG_MSG (" source:%d\n", (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p, " source:%d\n", (int) (info_p->source_p - source_start_p));
 
           while (data_p[0] != SCANNER_STREAM_TYPE_END)
           {
@@ -3489,86 +3490,88 @@ scan_completed:
             {
               case SCANNER_STREAM_TYPE_HOLE:
               {
-                JJS_DEBUG_MSG ("    HOLE\n");
+                JJS_DEBUG_MSG (context_p, "    HOLE\n");
                 data_p++;
                 continue;
               }
               case SCANNER_STREAM_TYPE_ARGUMENTS:
               {
-                JJS_DEBUG_MSG ("    ARGUMENTS%s%s\n",
-                                 (data_p[0] & SCANNER_STREAM_NO_REG) ? " *" : "",
-                                 (data_p[0] & SCANNER_STREAM_LOCAL_ARGUMENTS) ? " L" : "");
+                JJS_DEBUG_MSG (context_p,
+                               "    ARGUMENTS%s%s\n",
+                               (data_p[0] & SCANNER_STREAM_NO_REG) ? " *" : "",
+                               (data_p[0] & SCANNER_STREAM_LOCAL_ARGUMENTS) ? " L" : "");
                 data_p++;
                 continue;
               }
               case SCANNER_STREAM_TYPE_ARGUMENTS_FUNC:
               {
-                JJS_DEBUG_MSG ("    ARGUMENTS_FUNC%s%s\n",
-                                 (data_p[0] & SCANNER_STREAM_NO_REG) ? " *" : "",
-                                 (data_p[0] & SCANNER_STREAM_LOCAL_ARGUMENTS) ? " L" : "");
+                JJS_DEBUG_MSG (context_p,
+                               "    ARGUMENTS_FUNC%s%s\n",
+                               (data_p[0] & SCANNER_STREAM_NO_REG) ? " *" : "",
+                               (data_p[0] & SCANNER_STREAM_LOCAL_ARGUMENTS) ? " L" : "");
                 data_p++;
                 continue;
               }
               case SCANNER_STREAM_TYPE_VAR:
               {
-                JJS_DEBUG_MSG ("    VAR ");
+                JJS_DEBUG_MSG (context_p, "    VAR ");
                 break;
               }
               case SCANNER_STREAM_TYPE_LET:
               {
-                JJS_DEBUG_MSG ("    LET ");
+                JJS_DEBUG_MSG (context_p, "    LET ");
                 break;
               }
               case SCANNER_STREAM_TYPE_CONST:
               {
-                JJS_DEBUG_MSG ("    CONST ");
+                JJS_DEBUG_MSG (context_p, "    CONST ");
                 break;
               }
               case SCANNER_STREAM_TYPE_LOCAL:
               {
-                JJS_DEBUG_MSG ("    LOCAL ");
+                JJS_DEBUG_MSG (context_p, "    LOCAL ");
                 break;
               }
 #if JJS_MODULE_SYSTEM
               case SCANNER_STREAM_TYPE_IMPORT:
               {
-                JJS_DEBUG_MSG ("    IMPORT ");
+                JJS_DEBUG_MSG (context_p, "    IMPORT ");
                 break;
               }
 #endif /* JJS_MODULE_SYSTEM */
               case SCANNER_STREAM_TYPE_ARG:
               {
-                JJS_DEBUG_MSG ("    ARG ");
+                JJS_DEBUG_MSG (context_p, "    ARG ");
                 break;
               }
               case SCANNER_STREAM_TYPE_ARG_VAR:
               {
-                JJS_DEBUG_MSG ("    ARG_VAR ");
+                JJS_DEBUG_MSG (context_p, "    ARG_VAR ");
                 break;
               }
               case SCANNER_STREAM_TYPE_DESTRUCTURED_ARG:
               {
-                JJS_DEBUG_MSG ("    DESTRUCTURED_ARG ");
+                JJS_DEBUG_MSG (context_p, "    DESTRUCTURED_ARG ");
                 break;
               }
               case SCANNER_STREAM_TYPE_DESTRUCTURED_ARG_VAR:
               {
-                JJS_DEBUG_MSG ("    DESTRUCTURED_ARG_VAR ");
+                JJS_DEBUG_MSG (context_p, "    DESTRUCTURED_ARG_VAR ");
                 break;
               }
               case SCANNER_STREAM_TYPE_ARG_FUNC:
               {
-                JJS_DEBUG_MSG ("    ARG_FUNC ");
+                JJS_DEBUG_MSG (context_p, "    ARG_FUNC ");
                 break;
               }
               case SCANNER_STREAM_TYPE_DESTRUCTURED_ARG_FUNC:
               {
-                JJS_DEBUG_MSG ("    DESTRUCTURED_ARG_FUNC ");
+                JJS_DEBUG_MSG (context_p, "    DESTRUCTURED_ARG_FUNC ");
                 break;
               }
               case SCANNER_STREAM_TYPE_FUNC:
               {
-                JJS_DEBUG_MSG ("    FUNC ");
+                JJS_DEBUG_MSG (context_p, "    FUNC ");
                 break;
               }
               default:
@@ -3610,15 +3613,15 @@ scan_completed:
             if (data_p[0] & SCANNER_STREAM_EARLY_CREATE)
             {
               JJS_ASSERT (data_p[0] & SCANNER_STREAM_NO_REG);
-              JJS_DEBUG_MSG ("*");
+              JJS_DEBUG_MSG (context_p, "*");
             }
 
             if (data_p[0] & SCANNER_STREAM_NO_REG)
             {
-              JJS_DEBUG_MSG ("* ");
+              JJS_DEBUG_MSG (context_p, "* ");
             }
 
-            JJS_DEBUG_MSG ("'%.*s'\n", data_p[1], (char *) prev_source_p);
+            JJS_DEBUG_MSG (context_p, "'%.*s'\n", data_p[1], (char *) prev_source_p);
             prev_source_p += data_p[1];
             data_p += length;
           }
@@ -3633,14 +3636,15 @@ scan_completed:
         case SCANNER_TYPE_FOR:
         {
           scanner_for_info_t *for_info_p = (scanner_for_info_t *) info_p;
-          JJS_DEBUG_MSG ("  FOR: source:%d expression:%d[%d:%d] end:%d[%d:%d]\n",
-                           (int) (for_info_p->info.source_p - source_start_p),
-                           (int) (for_info_p->expression_location.source_p - source_start_p),
-                           (int) for_info_p->expression_location.line,
-                           (int) for_info_p->expression_location.column,
-                           (int) (for_info_p->end_location.source_p - source_start_p),
-                           (int) for_info_p->end_location.line,
-                           (int) for_info_p->end_location.column);
+          JJS_DEBUG_MSG (context_p,
+                         "  FOR: source:%d expression:%d[%d:%d] end:%d[%d:%d]\n",
+                         (int) (for_info_p->info.source_p - source_start_p),
+                         (int) (for_info_p->expression_location.source_p - source_start_p),
+                         (int) for_info_p->expression_location.line,
+                         (int) for_info_p->expression_location.column,
+                         (int) (for_info_p->end_location.source_p - source_start_p),
+                         (int) for_info_p->end_location.line,
+                         (int) for_info_p->end_location.column);
           break;
         }
         case SCANNER_TYPE_FOR_IN:
@@ -3657,16 +3661,17 @@ scan_completed:
         }
         case SCANNER_TYPE_SWITCH:
         {
-          JJS_DEBUG_MSG ("  SWITCH: source:%d\n", (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p, "  SWITCH: source:%d\n", (int) (info_p->source_p - source_start_p));
 
           scanner_case_info_t *current_case_p = ((scanner_switch_info_t *) info_p)->case_p;
 
           while (current_case_p != NULL)
           {
-            JJS_DEBUG_MSG ("    CASE: location:%d[%d:%d]\n",
-                             (int) (current_case_p->location.source_p - source_start_p),
-                             (int) current_case_p->location.line,
-                             (int) current_case_p->location.column);
+            JJS_DEBUG_MSG (context_p,
+                           "    CASE: location:%d[%d:%d]\n",
+                           (int) (current_case_p->location.source_p - source_start_p),
+                           (int) current_case_p->location.line,
+                           (int) current_case_p->location.column);
 
             current_case_p = current_case_p->next_p;
           }
@@ -3681,17 +3686,18 @@ scan_completed:
         case SCANNER_TYPE_INITIALIZER:
         {
           scanner_location_info_t *location_info_p = (scanner_location_info_t *) info_p;
-          JJS_DEBUG_MSG ("  INITIALIZER: flags: 0x%x source:%d location:%d[%d:%d]\n",
-                           (int) info_p->u8_arg,
-                           (int) (location_info_p->info.source_p - source_start_p),
-                           (int) (location_info_p->location.source_p - source_start_p),
-                           (int) location_info_p->location.line,
-                           (int) location_info_p->location.column);
+          JJS_DEBUG_MSG (context_p,
+                         "  INITIALIZER: flags: 0x%x source:%d location:%d[%d:%d]\n",
+                         (int) info_p->u8_arg,
+                         (int) (location_info_p->info.source_p - source_start_p),
+                         (int) (location_info_p->location.source_p - source_start_p),
+                         (int) location_info_p->location.line,
+                         (int) location_info_p->location.column);
           break;
         }
         case SCANNER_TYPE_CLASS_CONSTRUCTOR:
         {
-          JJS_DEBUG_MSG ("  CLASS: source:%d\n", (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p, "  CLASS: source:%d\n", (int) (info_p->source_p - source_start_p));
           print_location = false;
           break;
         }
@@ -3709,30 +3715,31 @@ scan_completed:
         }
         case SCANNER_TYPE_LET_EXPRESSION:
         {
-          JJS_DEBUG_MSG ("  LET_EXPRESSION: source:%d\n", (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p, "  LET_EXPRESSION: source:%d\n", (int) (info_p->source_p - source_start_p));
           break;
         }
         case SCANNER_TYPE_ERR_REDECLARED:
         {
-          JJS_DEBUG_MSG ("  JJS_FATAL_REDECLARED: source:%d\n", (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p, "  JJS_FATAL_REDECLARED: source:%d\n", (int) (info_p->source_p - source_start_p));
           break;
         }
         case SCANNER_TYPE_ERR_ASYNC_FUNCTION:
         {
-          JJS_DEBUG_MSG ("  JJS_FATAL_ASYNC_FUNCTION: source:%d\n", (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p, "  JJS_FATAL_ASYNC_FUNCTION: source:%d\n", (int) (info_p->source_p - source_start_p));
           break;
         }
         case SCANNER_TYPE_LITERAL_FLAGS:
         {
-          JJS_DEBUG_MSG ("  SCANNER_TYPE_LITERAL_FLAGS: flags: 0x%x source:%d\n",
-                           (int) info_p->u8_arg,
-                           (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p,
+                         "  SCANNER_TYPE_LITERAL_FLAGS: flags: 0x%x source:%d\n",
+                         (int) info_p->u8_arg,
+                         (int) (info_p->source_p - source_start_p));
           print_location = false;
           break;
         }
         case SCANNER_TYPE_EXPORT_MODULE_SPECIFIER:
         {
-          JJS_DEBUG_MSG ("  EXPORT_WITH_MODULE_SPECIFIER: source:%d\n", (int) (info_p->source_p - source_start_p));
+          JJS_DEBUG_MSG (context_p, "  EXPORT_WITH_MODULE_SPECIFIER: source:%d\n", (int) (info_p->source_p - source_start_p));
           print_location = false;
           break;
         }
@@ -3741,18 +3748,19 @@ scan_completed:
       if (print_location)
       {
         scanner_location_info_t *location_info_p = (scanner_location_info_t *) info_p;
-        JJS_DEBUG_MSG ("  %s: source:%d location:%d[%d:%d]\n",
-                         name_p,
-                         (int) (location_info_p->info.source_p - source_start_p),
-                         (int) (location_info_p->location.source_p - source_start_p),
-                         (int) location_info_p->location.line,
-                         (int) location_info_p->location.column);
+        JJS_DEBUG_MSG (context_p,
+                       "  %s: source:%d location:%d[%d:%d]\n",
+                       name_p,
+                       (int) (location_info_p->info.source_p - source_start_p),
+                       (int) (location_info_p->location.source_p - source_start_p),
+                       (int) location_info_p->location.line,
+                       (int) location_info_p->location.column);
       }
 
       info_p = info_p->next_p;
     }
 
-    JJS_DEBUG_MSG ("\n--- Scanning end ---\n\n");
+    JJS_DEBUG_MSG (context_p, "\n--- Scanning end ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 

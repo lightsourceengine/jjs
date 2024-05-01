@@ -1380,11 +1380,11 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
   }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    util_print_cbc (compiled_code_p);
-    JJS_DEBUG_MSG ("\nByte code size: %d bytes\n", (int) length);
-    context_p->total_byte_code_size += (uint32_t) length;
+    util_print_cbc (context_p, compiled_code_p);
+    JJS_DEBUG_MSG (context_p, "\nByte code size: %d bytes\n", (int) length);
+    parser_context_p->total_byte_code_size += (uint32_t) length;
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2175,7 +2175,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
   if (context.is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- %s parsing start ---\n\n", (context.arguments_start_p == NULL) ? "Script" : "Function");
+    JJS_DEBUG_MSG (context_p, "\n--- %s parsing start ---\n\n", (context.arguments_start_p == NULL) ? "Script" : "Function");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2380,9 +2380,10 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 #if JJS_PARSER_DUMP_BYTE_CODE
     if (context.is_show_opcodes)
     {
-      JJS_DEBUG_MSG ("\n%s parsing successfully completed. Total byte code size: %d bytes\n",
-                       (context.arguments_start_p == NULL) ? "Script" : "Function",
-                       (int) context.total_byte_code_size);
+      JJS_DEBUG_MSG (context_p,
+                     "\n%s parsing successfully completed. Total byte code size: %d bytes\n",
+                     (context.arguments_start_p == NULL) ? "Script" : "Function",
+                     (int) context.total_byte_code_size);
     }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
   }
@@ -2432,7 +2433,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 #if JJS_PARSER_DUMP_BYTE_CODE
   if (context.is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- %s parsing end ---\n\n", (context.arguments_start_p == NULL) ? "Script" : "Function");
+    JJS_DEBUG_MSG (context_p, "\n--- %s parsing end ---\n\n", (context.arguments_start_p == NULL) ? "Script" : "Function");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2679,6 +2680,9 @@ parser_parse_function (parser_context_t *parser_context_p, /**< parser context *
 {
   parser_saved_context_t saved_context;
   ecma_compiled_code_t *compiled_code_p;
+#if JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER
+  ecma_context_t *context_p = parser_context_p->context_p;
+#endif /* JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER */
 
   JJS_ASSERT (status_flags & PARSER_IS_FUNCTION);
   parser_save_context (parser_context_p, &saved_context);
@@ -2686,16 +2690,15 @@ parser_parse_function (parser_context_t *parser_context_p, /**< parser context *
   parser_context_p->status_flags |= PARSER_ALLOW_NEW_TARGET;
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- %s parsing start ---\n\n",
-                     (context_p->status_flags & PARSER_CLASS_CONSTRUCTOR) ? "Class constructor" : "Function");
+    JJS_DEBUG_MSG (context_p,
+                   "\n--- %s parsing start ---\n\n",
+                   (context_p->status_flags & PARSER_CLASS_CONSTRUCTOR) ? "Class constructor" : "Function");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_DEBUGGER
-  ecma_context_t *context_p = parser_context_p->context_p;
-
   if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
     jjs_debugger_send_parse_function (context_p,
@@ -2733,9 +2736,9 @@ parser_parse_function (parser_context_t *parser_context_p, /**< parser context *
   }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes && (context_p->status_flags & PARSER_HAS_NON_STRICT_ARG))
+  if (parser_context_p->is_show_opcodes && (context_p->status_flags & PARSER_HAS_NON_STRICT_ARG))
   {
-    JJS_DEBUG_MSG ("  Note: legacy (non-strict) argument definition\n\n");
+    JJS_DEBUG_MSG (context_p, "  Note: legacy (non-strict) argument definition\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2749,10 +2752,11 @@ parser_parse_function (parser_context_t *parser_context_p, /**< parser context *
   compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- %s parsing end ---\n\n",
-                     (context_p->status_flags & PARSER_CLASS_CONSTRUCTOR) ? "Class constructor" : "Function");
+    JJS_DEBUG_MSG (context_p,
+                   "\n--- %s parsing end ---\n\n",
+                   (context_p->status_flags & PARSER_CLASS_CONSTRUCTOR) ? "Class constructor" : "Function");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2771,15 +2775,18 @@ parser_parse_class_static_block (parser_context_t *parser_context_p) /**< parser
 {
   parser_saved_context_t saved_context;
   ecma_compiled_code_t *compiled_code_p;
+#if JJS_PARSER_DUMP_BYTE_CODE
+  ecma_context_t *context_p = parser_context_p->context_p;
+#endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
   parser_save_context (parser_context_p, &saved_context);
   parser_context_p->status_flags |= (PARSER_IS_CLASS_STATIC_BLOCK | PARSER_FUNCTION_CLOSURE | PARSER_ALLOW_SUPER
                               | PARSER_INSIDE_CLASS_FIELD | PARSER_ALLOW_NEW_TARGET | PARSER_DISALLOW_AWAIT_YIELD);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- Static class block parsing start ---\n\n");
+    JJS_DEBUG_MSG (context_p, "\n--- Static class block parsing start ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2790,9 +2797,9 @@ parser_parse_class_static_block (parser_context_t *parser_context_p) /**< parser
   compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- Static class block parsing end ---\n\n");
+    JJS_DEBUG_MSG (context_p, "\n--- Static class block parsing end ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2812,6 +2819,9 @@ parser_parse_arrow_function (parser_context_t *parser_context_p, /**< parser con
 {
   parser_saved_context_t saved_context;
   ecma_compiled_code_t *compiled_code_p;
+#if JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER
+  ecma_context_t *context_p = parser_context_p->context_p;
+#endif /* JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER */
 
   JJS_ASSERT (status_flags & PARSER_IS_FUNCTION);
   JJS_ASSERT (status_flags & PARSER_IS_ARROW_FUNCTION);
@@ -2821,15 +2831,13 @@ parser_parse_arrow_function (parser_context_t *parser_context_p, /**< parser con
     saved_context.status_flags & (PARSER_ALLOW_NEW_TARGET | PARSER_ALLOW_SUPER | PARSER_ALLOW_SUPER_CALL);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- Arrow function parsing start ---\n\n");
+    JJS_DEBUG_MSG (context_p, "\n--- Arrow function parsing start ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_DEBUGGER
-  ecma_context_t *context_p = parser_context_p->context_p;
-
   if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
     jjs_debugger_send_parse_function (context_p,
@@ -2905,9 +2913,9 @@ parser_parse_arrow_function (parser_context_t *parser_context_p, /**< parser con
   compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- Arrow function parsing end ---\n\n");
+    JJS_DEBUG_MSG (context_p, "\n--- Arrow function parsing end ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
@@ -2926,6 +2934,9 @@ parser_parse_class_fields (parser_context_t *parser_context_p) /**< parser conte
 {
   parser_saved_context_t saved_context;
   ecma_compiled_code_t *compiled_code_p;
+#if JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER
+  ecma_context_t *context_p = parser_context_p->context_p;
+#endif /* JJS_PARSER_DUMP_BYTE_CODE || JJS_DEBUGGER */
 
   uint32_t extra_status_flags = parser_context_p->status_flags & PARSER_INSIDE_WITH;
 
@@ -2934,15 +2945,13 @@ parser_parse_class_fields (parser_context_t *parser_context_p) /**< parser conte
                               | PARSER_ALLOW_NEW_TARGET | extra_status_flags);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- Class fields parsing start ---\n\n");
+    JJS_DEBUG_MSG (context_p, "\n--- Class fields parsing start ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #if JJS_DEBUGGER
-  ecma_context_t *context_p = parser_context_p->context_p;
-
   if (context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
   {
     jjs_debugger_send_parse_function (context_p,
@@ -3121,9 +3130,9 @@ parser_parse_class_fields (parser_context_t *parser_context_p) /**< parser conte
   compiled_code_p = parser_post_processing (parser_context_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    JJS_DEBUG_MSG ("\n--- Class fields parsing end ---\n\n");
+    JJS_DEBUG_MSG (context_p, "\n--- Class fields parsing end ---\n\n");
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 

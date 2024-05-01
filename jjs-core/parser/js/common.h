@@ -118,7 +118,7 @@ typedef struct
 void util_free_literal (ecma_context_t *context_p, lexer_literal_t *literal_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-void util_print_literal (lexer_literal_t *);
+void util_print_literal (ecma_context_t *context_p, lexer_literal_t *literal_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 /**

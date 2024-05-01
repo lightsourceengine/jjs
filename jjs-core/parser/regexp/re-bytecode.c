@@ -352,258 +352,259 @@ void
 re_dump_bytecode (re_compiler_ctx_t *re_ctx_p) /**< RegExp bytecode context */
 {
   static const char escape_chars[] = { 'd', 'D', 'w', 'W', 's', 'S' };
+  ecma_context_t *context_p = re_ctx_p->context_p;
 
   re_compiled_code_t *compiled_code_p = (re_compiled_code_t *) re_ctx_p->bytecode_start_p;
-  JJS_DEBUG_MSG ("Flags: 0x%x ", compiled_code_p->header.status_flags);
-  JJS_DEBUG_MSG ("Capturing groups: %d ", compiled_code_p->captures_count);
-  JJS_DEBUG_MSG ("Non-capturing groups: %d\n", compiled_code_p->non_captures_count);
+  JJS_DEBUG_MSG (context_p, "Flags: 0x%x ", compiled_code_p->header.status_flags);
+  JJS_DEBUG_MSG (context_p, "Capturing groups: %d ", compiled_code_p->captures_count);
+  JJS_DEBUG_MSG (context_p, "Non-capturing groups: %d\n", compiled_code_p->non_captures_count);
 
   const uint8_t *bytecode_start_p = (const uint8_t *) (compiled_code_p + 1);
   const uint8_t *bytecode_p = bytecode_start_p;
 
   while (true)
   {
-    JJS_DEBUG_MSG ("[%3u] ", (uint32_t) ((uintptr_t) bytecode_p - (uintptr_t) bytecode_start_p));
+    JJS_DEBUG_MSG (context_p, "[%3u] ", (uint32_t) ((uintptr_t) bytecode_p - (uintptr_t) bytecode_start_p));
     re_opcode_t op = *bytecode_p++;
     switch (op)
     {
       case RE_OP_ALTERNATIVE_START:
       {
-        JJS_DEBUG_MSG ("ALTERNATIVE_START ");
+        JJS_DEBUG_MSG (context_p, "ALTERNATIVE_START ");
         const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-        JJS_DEBUG_MSG ("tail offset: [%3u]\n", offset);
+        JJS_DEBUG_MSG (context_p, "tail offset: [%3u]\n", offset);
         break;
       }
       case RE_OP_ALTERNATIVE_NEXT:
       {
-        JJS_DEBUG_MSG ("ALTERNATIVE_NEXT ");
+        JJS_DEBUG_MSG (context_p, "ALTERNATIVE_NEXT ");
         const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-        JJS_DEBUG_MSG ("tail offset: [%3u]\n", offset);
+        JJS_DEBUG_MSG (context_p, "tail offset: [%3u]\n", offset);
         break;
       }
       case RE_OP_NO_ALTERNATIVE:
       {
-        JJS_DEBUG_MSG ("NO_ALTERNATIVES\n");
+        JJS_DEBUG_MSG (context_p, "NO_ALTERNATIVES\n");
         break;
       }
       case RE_OP_CAPTURING_GROUP_START:
       {
-        JJS_DEBUG_MSG ("CAPTURING_GROUP_START ");
-        JJS_DEBUG_MSG ("idx: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("capture count: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "CAPTURING_GROUP_START ");
+        JJS_DEBUG_MSG (context_p, "idx: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "capture count: %u, ", re_get_value (&bytecode_p));
 
         const uint32_t qmin = re_get_value (&bytecode_p);
-        JJS_DEBUG_MSG ("qmin: %u", qmin);
+        JJS_DEBUG_MSG (context_p, "qmin: %u", qmin);
         if (qmin == 0)
         {
           const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-          JJS_DEBUG_MSG (", tail offset: [%3u]\n", offset);
+          JJS_DEBUG_MSG (context_p, ", tail offset: [%3u]\n", offset);
         }
         else
         {
-          JJS_DEBUG_MSG ("\n");
+          JJS_DEBUG_MSG (context_p, "\n");
         }
 
         break;
       }
       case RE_OP_NON_CAPTURING_GROUP_START:
       {
-        JJS_DEBUG_MSG ("NON_CAPTURING_GROUP_START ");
-        JJS_DEBUG_MSG ("idx: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("capture start: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("capture count: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "NON_CAPTURING_GROUP_START ");
+        JJS_DEBUG_MSG (context_p, "idx: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "capture start: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "capture count: %u, ", re_get_value (&bytecode_p));
 
         const uint32_t qmin = re_get_value (&bytecode_p);
-        JJS_DEBUG_MSG ("qmin: %u", qmin);
+        JJS_DEBUG_MSG (context_p, "qmin: %u", qmin);
         if (qmin == 0)
         {
           const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-          JJS_DEBUG_MSG (", tail offset: [%3u]\n", offset);
+          JJS_DEBUG_MSG (context_p, ", tail offset: [%3u]\n", offset);
         }
         else
         {
-          JJS_DEBUG_MSG ("\n");
+          JJS_DEBUG_MSG (context_p, "\n");
         }
 
         break;
       }
       case RE_OP_GREEDY_CAPTURING_GROUP_END:
       {
-        JJS_DEBUG_MSG ("GREEDY_CAPTURING_GROUP_END ");
-        JJS_DEBUG_MSG ("idx: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmin: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
+        JJS_DEBUG_MSG (context_p, "GREEDY_CAPTURING_GROUP_END ");
+        JJS_DEBUG_MSG (context_p, "idx: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
         break;
       }
       case RE_OP_LAZY_CAPTURING_GROUP_END:
       {
-        JJS_DEBUG_MSG ("LAZY_CAPTURING_GROUP_END ");
-        JJS_DEBUG_MSG ("idx: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmin: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
+        JJS_DEBUG_MSG (context_p, "LAZY_CAPTURING_GROUP_END ");
+        JJS_DEBUG_MSG (context_p, "idx: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
         break;
       }
       case RE_OP_GREEDY_NON_CAPTURING_GROUP_END:
       {
-        JJS_DEBUG_MSG ("GREEDY_NON_CAPTURING_GROUP_END ");
-        JJS_DEBUG_MSG ("idx: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmin: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
+        JJS_DEBUG_MSG (context_p, "GREEDY_NON_CAPTURING_GROUP_END ");
+        JJS_DEBUG_MSG (context_p, "idx: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
         break;
       }
       case RE_OP_LAZY_NON_CAPTURING_GROUP_END:
       {
-        JJS_DEBUG_MSG ("LAZY_NON_CAPTURING_GROUP_END ");
-        JJS_DEBUG_MSG ("idx: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmin: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
+        JJS_DEBUG_MSG (context_p, "LAZY_NON_CAPTURING_GROUP_END ");
+        JJS_DEBUG_MSG (context_p, "idx: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmax: %u\n", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
         break;
       }
       case RE_OP_GREEDY_ITERATOR:
       {
-        JJS_DEBUG_MSG ("GREEDY_ITERATOR ");
-        JJS_DEBUG_MSG ("qmin: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmax: %u, ", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
+        JJS_DEBUG_MSG (context_p, "GREEDY_ITERATOR ");
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmax: %u, ", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
         const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-        JJS_DEBUG_MSG ("tail offset: [%3u]\n", offset);
+        JJS_DEBUG_MSG (context_p, "tail offset: [%3u]\n", offset);
         break;
       }
       case RE_OP_LAZY_ITERATOR:
       {
-        JJS_DEBUG_MSG ("LAZY_ITERATOR ");
-        JJS_DEBUG_MSG ("qmin: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("qmax: %u, ", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
+        JJS_DEBUG_MSG (context_p, "LAZY_ITERATOR ");
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "qmax: %u, ", re_get_value (&bytecode_p) - RE_QMAX_OFFSET);
         const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-        JJS_DEBUG_MSG ("tail offset: [%3u]\n", offset);
+        JJS_DEBUG_MSG (context_p, "tail offset: [%3u]\n", offset);
         break;
       }
       case RE_OP_ITERATOR_END:
       {
-        JJS_DEBUG_MSG ("ITERATOR_END\n");
+        JJS_DEBUG_MSG (context_p, "ITERATOR_END\n");
         break;
       }
       case RE_OP_BACKREFERENCE:
       {
-        JJS_DEBUG_MSG ("BACKREFERENCE ");
-        JJS_DEBUG_MSG ("idx: %d\n", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "BACKREFERENCE ");
+        JJS_DEBUG_MSG (context_p, "idx: %d\n", re_get_value (&bytecode_p));
         break;
       }
       case RE_OP_ASSERT_LINE_START:
       {
-        JJS_DEBUG_MSG ("ASSERT_LINE_START\n");
+        JJS_DEBUG_MSG (context_p, "ASSERT_LINE_START\n");
         break;
       }
       case RE_OP_ASSERT_LINE_END:
       {
-        JJS_DEBUG_MSG ("ASSERT_LINE_END\n");
+        JJS_DEBUG_MSG (context_p, "ASSERT_LINE_END\n");
         break;
       }
       case RE_OP_ASSERT_LOOKAHEAD_POS:
       {
-        JJS_DEBUG_MSG ("ASSERT_LOOKAHEAD_POS ");
-        JJS_DEBUG_MSG ("qmin: %u, ", *bytecode_p++);
-        JJS_DEBUG_MSG ("capture start: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("capture count: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "ASSERT_LOOKAHEAD_POS ");
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", *bytecode_p++);
+        JJS_DEBUG_MSG (context_p, "capture start: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "capture count: %u, ", re_get_value (&bytecode_p));
         const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-        JJS_DEBUG_MSG ("tail offset: [%3u]\n", offset);
+        JJS_DEBUG_MSG (context_p, "tail offset: [%3u]\n", offset);
         break;
       }
       case RE_OP_ASSERT_LOOKAHEAD_NEG:
       {
-        JJS_DEBUG_MSG ("ASSERT_LOOKAHEAD_NEG ");
-        JJS_DEBUG_MSG ("qmin: %u, ", *bytecode_p++);
-        JJS_DEBUG_MSG ("capture start: %u, ", re_get_value (&bytecode_p));
-        JJS_DEBUG_MSG ("capture count: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "ASSERT_LOOKAHEAD_NEG ");
+        JJS_DEBUG_MSG (context_p, "qmin: %u, ", *bytecode_p++);
+        JJS_DEBUG_MSG (context_p, "capture start: %u, ", re_get_value (&bytecode_p));
+        JJS_DEBUG_MSG (context_p, "capture count: %u, ", re_get_value (&bytecode_p));
         const uint32_t offset = re_get_value (&bytecode_p) + re_get_bytecode_offset (bytecode_start_p, bytecode_p);
-        JJS_DEBUG_MSG ("tail offset: [%3u]\n", offset);
+        JJS_DEBUG_MSG (context_p, "tail offset: [%3u]\n", offset);
         break;
       }
       case RE_OP_ASSERT_END:
       {
-        JJS_DEBUG_MSG ("ASSERT_END\n");
+        JJS_DEBUG_MSG (context_p, "ASSERT_END\n");
         break;
       }
       case RE_OP_ASSERT_WORD_BOUNDARY:
       {
-        JJS_DEBUG_MSG ("ASSERT_WORD_BOUNDARY\n");
+        JJS_DEBUG_MSG (context_p, "ASSERT_WORD_BOUNDARY\n");
         break;
       }
       case RE_OP_ASSERT_NOT_WORD_BOUNDARY:
       {
-        JJS_DEBUG_MSG ("ASSERT_NOT_WORD_BOUNDARY\n");
+        JJS_DEBUG_MSG (context_p, "ASSERT_NOT_WORD_BOUNDARY\n");
         break;
       }
       case RE_OP_CLASS_ESCAPE:
       {
         ecma_class_escape_t escape = (ecma_class_escape_t) *bytecode_p++;
-        JJS_DEBUG_MSG ("CLASS_ESCAPE \\%c\n", escape_chars[escape]);
+        JJS_DEBUG_MSG (context_p, "CLASS_ESCAPE \\%c\n", escape_chars[escape]);
         break;
       }
       case RE_OP_CHAR_CLASS:
       {
-        JJS_DEBUG_MSG ("CHAR_CLASS ");
+        JJS_DEBUG_MSG (context_p, "CHAR_CLASS ");
         uint8_t flags = *bytecode_p++;
         uint32_t char_count = (flags & RE_CLASS_HAS_CHARS) ? re_get_value (&bytecode_p) : 0;
         uint32_t range_count = (flags & RE_CLASS_HAS_RANGES) ? re_get_value (&bytecode_p) : 0;
 
         if (flags & RE_CLASS_INVERT)
         {
-          JJS_DEBUG_MSG ("inverted ");
+          JJS_DEBUG_MSG (context_p, "inverted ");
         }
 
-        JJS_DEBUG_MSG ("escapes: ");
+        JJS_DEBUG_MSG (context_p, "escapes: ");
         uint8_t escape_count = flags & RE_CLASS_ESCAPE_COUNT_MASK;
         while (escape_count--)
         {
-          JJS_DEBUG_MSG ("\\%c, ", escape_chars[*bytecode_p++]);
+          JJS_DEBUG_MSG (context_p, "\\%c, ", escape_chars[*bytecode_p++]);
         }
 
-        JJS_DEBUG_MSG ("chars: ");
+        JJS_DEBUG_MSG (context_p, "chars: ");
         while (char_count--)
         {
-          JJS_DEBUG_MSG ("\\u%04x, ", re_get_char (&bytecode_p, re_ctx_p->flags & RE_FLAG_UNICODE));
+          JJS_DEBUG_MSG (context_p, "\\u%04x, ", re_get_char (&bytecode_p, re_ctx_p->flags & RE_FLAG_UNICODE));
         }
 
-        JJS_DEBUG_MSG ("ranges: ");
+        JJS_DEBUG_MSG (context_p, "ranges: ");
         while (range_count--)
         {
           const lit_code_point_t begin = re_get_char (&bytecode_p, re_ctx_p->flags & RE_FLAG_UNICODE);
           const lit_code_point_t end = re_get_char (&bytecode_p, re_ctx_p->flags & RE_FLAG_UNICODE);
-          JJS_DEBUG_MSG ("\\u%04x-\\u%04x, ", begin, end);
+          JJS_DEBUG_MSG (context_p, "\\u%04x-\\u%04x, ", begin, end);
         }
 
-        JJS_DEBUG_MSG ("\n");
+        JJS_DEBUG_MSG (context_p, "\n");
         break;
       }
       case RE_OP_UNICODE_PERIOD:
       {
-        JJS_DEBUG_MSG ("UNICODE_PERIOD\n");
+        JJS_DEBUG_MSG (context_p, "UNICODE_PERIOD\n");
         break;
       }
       case RE_OP_PERIOD:
       {
-        JJS_DEBUG_MSG ("PERIOD\n");
+        JJS_DEBUG_MSG (context_p, "PERIOD\n");
         break;
       }
       case RE_OP_CHAR:
       {
-        JJS_DEBUG_MSG ("CHAR \\u%04x\n", re_get_char (&bytecode_p, re_ctx_p->flags & RE_FLAG_UNICODE));
+        JJS_DEBUG_MSG (context_p, "CHAR \\u%04x\n", re_get_char (&bytecode_p, re_ctx_p->flags & RE_FLAG_UNICODE));
         break;
       }
       case RE_OP_BYTE:
       {
         const uint8_t ch = *bytecode_p++;
-        JJS_DEBUG_MSG ("BYTE \\u%04x '%c'\n", ch, (char) ch);
+        JJS_DEBUG_MSG (context_p, "BYTE \\u%04x '%c'\n", ch, (char) ch);
         break;
       }
       case RE_OP_EOF:
       {
-        JJS_DEBUG_MSG ("EOF\n");
+        JJS_DEBUG_MSG (context_p, "EOF\n");
         return;
       }
       default:
       {
-        JJS_DEBUG_MSG ("UNKNOWN(%d)\n", (uint32_t) op);
+        JJS_DEBUG_MSG (context_p, "UNKNOWN(%d)\n", (uint32_t) op);
         break;
       }
     }

@@ -201,7 +201,7 @@ JJS_HANDLER (jjs_pack_hrtime_handler)
 {
   JJS_HANDLER_HEADER ();
   jjs_context_t *context_p = call_info_p->context_p;
-  uint64_t t = jjs_pack_platform_hrtime (context_p);
+  uint64_t t = jjs_pack_platform_hrtime ();
   jjs_value_t result = jjs_array (context_p, 2);
   uint64_t seconds = t / NANOS_PER_SEC;
   jjs_value_t high_part = jjs_number (context_p, (double) seconds);

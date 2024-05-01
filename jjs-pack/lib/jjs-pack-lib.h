@@ -47,7 +47,7 @@ jjs_value_t jjs_pack_lib_read_exports (jjs_context_t *context_p,
 void jjs_bindings_function (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_external_handler_t function_p);
 void jjs_bindings_value (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
 
-uint64_t jjs_pack_platform_hrtime (jjs_context_t *context_p);
+uint64_t jjs_pack_platform_hrtime (void);
 double jjs_pack_platform_date_now (void);
 
 #define JJS_UNUSED(x) (void) (x)

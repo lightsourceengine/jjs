@@ -101,7 +101,7 @@ void ecma_line_info_free (ecma_context_t *context_p, uint8_t *line_info_p);
 void ecma_line_info_get (uint8_t *line_info_p, uint32_t offset, jjs_frame_location_t *location_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-void ecma_line_info_dump (uint8_t *line_info_p);
+void ecma_line_info_dump (ecma_context_t *context_p, uint8_t *line_info_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 #endif /* ECMA_LINE_INFO_H */

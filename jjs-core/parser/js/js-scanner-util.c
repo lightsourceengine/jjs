@@ -2450,7 +2450,7 @@ scanner_create_variables (parser_context_t *parser_context_p, /**< context */
       scope_stack_p++;
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-      context_p->scope_stack_top = (uint16_t) (scope_stack_p - context_p->scope_stack_p);
+      parser_context_p->scope_stack_top = (uint16_t) (scope_stack_p - parser_context_p->scope_stack_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
       parser_emit_cbc_ext_literal (parser_context_p, CBC_EXT_CREATE_ARGUMENTS, map_to);
@@ -2661,7 +2661,7 @@ scanner_create_variables (parser_context_t *parser_context_p, /**< context */
         case SCANNER_STREAM_TYPE_VAR:
         {
 #if JJS_PARSER_DUMP_BYTE_CODE
-          context_p->scope_stack_top = (uint16_t) (scope_stack_p - context_p->scope_stack_p);
+          parser_context_p->scope_stack_top = (uint16_t) (scope_stack_p - parser_context_p->scope_stack_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
           uint16_t opcode;
 
@@ -2712,7 +2712,7 @@ scanner_create_variables (parser_context_t *parser_context_p, /**< context */
         case SCANNER_STREAM_TYPE_ARG_FUNC:
         {
 #if JJS_PARSER_DUMP_BYTE_CODE
-          context_p->scope_stack_top = (uint16_t) (scope_stack_p - context_p->scope_stack_p);
+          parser_context_p->scope_stack_top = (uint16_t) (scope_stack_p - parser_context_p->scope_stack_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
           scope_stack_map_to |= PARSER_SCOPE_STACK_NO_FUNCTION_COPY;
@@ -2757,7 +2757,7 @@ scanner_create_variables (parser_context_t *parser_context_p, /**< context */
     }
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-    context_p->scope_stack_top = (uint16_t) (scope_stack_p - context_p->scope_stack_p);
+    parser_context_p->scope_stack_top = (uint16_t) (scope_stack_p - parser_context_p->scope_stack_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
     if (!SCANNER_STREAM_TYPE_IS_ARG_FUNC (type))

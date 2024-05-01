@@ -919,7 +919,7 @@ void parser_append_breakpoint_info (parser_context_t *parser_context_p, jjs_debu
 #endif /* JJS_DEBUGGER */
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-void util_print_cbc (ecma_compiled_code_t *compiled_code_p);
+void util_print_cbc (ecma_context_t *context_p, ecma_compiled_code_t *compiled_code_p);
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
 /**

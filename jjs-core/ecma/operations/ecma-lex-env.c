@@ -244,7 +244,7 @@ ecma_op_create_mutable_binding (ecma_context_t *context_p, /**< JJS context */
       return NULL;
     }
 #else /* !JJS_BUILTIN_PROXY || !JJS_BUILTIN_REALMS */
-    if (!ecma_op_ordinary_object_is_extensible (binding_obj_p))
+    if (!ecma_op_ordinary_object_is_extensible (context_p, binding_obj_p))
     {
       return NULL;
     }

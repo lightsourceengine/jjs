@@ -180,7 +180,7 @@ jjsx_debugger_tcp_send (jjs_context_t* context_p, /**< JJS context */
     if (is_err == 0 && errno != JJSX_EWOULDBLOCK)
     {
       int err_val = errno;
-      jjs_debugger_transport_close ();
+      jjs_debugger_transport_close (context_p);
       jjsx_debugger_tcp_log_error (context_p, err_val);
       return false;
     }
@@ -307,7 +307,7 @@ jjsx_debugger_tcp_create (jjs_context_t* context_p, /**< JJS context */
   int wsa_init_status = WSAStartup (MAKEWORD (2, 2), &wsaData);
   if (wsa_init_status != NO_ERROR)
   {
-    JJSX_ERROR_MSG ("WSA Error: %d\n", wsa_init_status);
+    JJSX_ERROR_MSG (context_p, "WSA Error: %d\n", wsa_init_status);
     return false;
   }
 #endif /* _WIN32*/

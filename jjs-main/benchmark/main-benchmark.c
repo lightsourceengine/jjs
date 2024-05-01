@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 
 #include "jjs.h"
 
@@ -34,19 +35,19 @@
 static uint8_t buffer[JJS_BUFFER_SIZE];
 
 static const uint8_t *
-read_file (const char *file_name, size_t *out_size_p)
+read_file (jjs_context_t *context_p, const char *file_name, size_t *out_size_p)
 {
   FILE *file = fopen (file_name, "rb");
   if (file == NULL)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: failed to open file: %s\n", file_name);
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: failed to open file: %s\n", file_name);
     return NULL;
   }
 
   size_t bytes_read = fread (buffer, 1u, sizeof (buffer), file);
   if (!bytes_read)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Error: failed to read file: %s\n", file_name);
+    jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: failed to read file: %s\n", file_name);
     fclose (file);
     return NULL;
   }
@@ -79,45 +80,45 @@ run (void)
 
   assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
 
-  jjs_value_t ret_value = jjs_undefined ();
+  jjs_value_t ret_value = jjs_undefined (context_p);
 
   for (int i = 1; i < argc; i++)
   {
     const char *file_name = argv[i];
     size_t source_size;
 
-    const jjs_char_t *source_p = read_file (file_name, &source_size);
+    const jjs_char_t *source_p = read_file (context_p, file_name, &source_size);
 
     if (source_p == NULL)
     {
-      ret_value = jjs_throw_sz (JJS_ERROR_COMMON, "");
+      ret_value = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "");
       break;
     }
     else
     {
-      ret_value = jjs_parse (source_p, source_size, NULL);
+      ret_value = jjs_parse (context_p, source_p, source_size, NULL);
 
-      if (!jjs_value_is_exception (ret_value))
+      if (!jjs_value_is_exception (context_p, ret_value))
       {
         jjs_value_t func_val = ret_value;
-        ret_value = jjs_run (func_val);
-        jjs_value_free (func_val);
+        ret_value = jjs_run (context_p, func_val);
+        jjs_value_free (context_p, func_val);
       }
     }
 
-    if (jjs_value_is_exception (ret_value))
+    if (jjs_value_is_exception (context_p, ret_value))
     {
       break;
     }
 
-    jjs_value_free (ret_value);
-    ret_value = jjs_undefined ();
+    jjs_value_free (context_p, ret_value);
+    ret_value = jjs_undefined (context_p);
   }
 
   int ret_code =
-    !jjs_value_is_exception (ret_value) ? JJS_STANDALONE_EXIT_CODE_OK : JJS_STANDALONE_EXIT_CODE_FAIL;
+    !jjs_value_is_exception (context_p, ret_value) ? JJS_STANDALONE_EXIT_CODE_OK : JJS_STANDALONE_EXIT_CODE_FAIL;
 
-  jjs_value_free (ret_value);
+  jjs_value_free (context_p, ret_value);
   jjs_context_free (context_p);
 
   return ret_code;
@@ -248,7 +249,7 @@ main (int main_argc, char **main_argv)
 
   if (result == JJS_STANDALONE_EXIT_CODE_FAIL)
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Unhandled exception: Script Error!\n");
+    fprintf (stderr, "Unhandled exception: Script Error!\n");
   }
 
   return result;

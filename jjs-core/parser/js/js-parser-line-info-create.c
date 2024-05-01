@@ -572,9 +572,9 @@ parser_line_info_generate (parser_context_t *parser_context_p) /**< context */
   JJS_ASSERT (line_info_p + total_length_size + total_length == dst_p);
 
 #if JJS_PARSER_DUMP_BYTE_CODE
-  if (context_p->is_show_opcodes)
+  if (parser_context_p->is_show_opcodes)
   {
-    ecma_line_info_dump (line_info_p);
+    ecma_line_info_dump (parser_context_p->context_p, line_info_p);
   }
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 

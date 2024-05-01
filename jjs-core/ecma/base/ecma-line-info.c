@@ -182,7 +182,8 @@ ecma_line_info_get (uint8_t *line_info_p, /**< line info buffer */
  * Dumps line info data.
  */
 void
-ecma_line_info_dump (uint8_t *line_info_p) /**< dumps line info data */
+ecma_line_info_dump (ecma_context_t *context_p, /**< JJS context */
+                     uint8_t *line_info_p) /**< dumps line info data */
 {
   bool block_last = false;
   uint32_t block_line = 1;
@@ -190,18 +191,18 @@ ecma_line_info_dump (uint8_t *line_info_p) /**< dumps line info data */
   uint32_t value;
 
   value = ecma_line_info_decode_vlq (&line_info_p);
-  JJS_DEBUG_MSG ("\nLine info size: %d bytes\n", (int) value);
+  JJS_DEBUG_MSG (context_p, "\nLine info size: %d bytes\n", (int) value);
 
   while (true)
   {
     value = ecma_line_info_decode_vlq (&line_info_p);
     block_line = ecma_line_info_difference_update (block_line, value);
 
-    JJS_DEBUG_MSG ("\nNew block: line: %d", (int) block_line);
+    JJS_DEBUG_MSG (context_p, "\nNew block: line: %d", (int) block_line);
 
     if (*line_info_p == 0)
     {
-      JJS_DEBUG_MSG (" StreamLength: [last]\n");
+      JJS_DEBUG_MSG (context_p, " StreamLength: [last]\n");
       block_last = true;
     }
     else
@@ -210,9 +211,10 @@ ecma_line_info_dump (uint8_t *line_info_p) /**< dumps line info data */
 
       value = ecma_line_info_decode_vlq (&size_p);
 
-      JJS_DEBUG_MSG (" StreamLength: %d ByteCodeSize: %d\n",
-                       (int) (*line_info_p + ECMA_LINE_INFO_STREAM_SIZE_MIN),
-                       (int) value);
+      JJS_DEBUG_MSG (context_p,
+                     " StreamLength: %d ByteCodeSize: %d\n",
+                     (int) (*line_info_p + ECMA_LINE_INFO_STREAM_SIZE_MIN),
+                     (int) value);
     }
 
     line_info_p++;
@@ -239,18 +241,20 @@ ecma_line_info_dump (uint8_t *line_info_p) /**< dumps line info data */
 
       if (stream_end_offset_increase == 0)
       {
-        JJS_DEBUG_MSG ("  ByteCodeEndOffset: [unterminated] Line: %d Column: %d\n",
-                         (int) stream_line,
-                         (int) stream_column);
+        JJS_DEBUG_MSG (context_p,
+                       "  ByteCodeEndOffset: [unterminated] Line: %d Column: %d\n",
+                       (int) stream_line,
+                       (int) stream_column);
         break;
       }
 
       stream_end_offset += stream_end_offset_increase;
 
-      JJS_DEBUG_MSG ("  ByteCodeEndOffset: %d Line: %d Column: %d\n",
-                       (int) stream_end_offset,
-                       (int) stream_line,
-                       (int) stream_column);
+      JJS_DEBUG_MSG (context_p,
+                     "  ByteCodeEndOffset: %d Line: %d Column: %d\n",
+                     (int) stream_end_offset,
+                     (int) stream_line,
+                     (int) stream_column);
     }
 
     if (block_last)
