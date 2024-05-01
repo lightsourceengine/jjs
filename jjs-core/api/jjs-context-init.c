@@ -84,18 +84,20 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
 
   memset (block_p, 0, context_aligned_size_b + vm_heap_size_b);
 
+  /* allocators */
+  if (!jjs_util_context_allocator_init (context_p, jjs_util_system_allocator_ptr ()))
+  {
+    jjs_platform_free (platform);
+    allocator->free (allocator, block_p, context_aligned_size_b + vm_heap_size_b);
+    return JJS_STATUS_CONTEXT_CHAOS;
+  }
+
   context_p->context_size_b = context_aligned_size_b + vm_heap_size_b;
   context_p->context_allocator = allocator;
   context_p->platform_p = platform;
 
   /* javascript jjs namespace exclusions */
   context_p->jjs_namespace_exclusions = options_p->jjs_namespace_exclusions;
-
-  /* allocators */
-  if (!jjs_util_context_allocator_init (context_p, jjs_util_system_allocator_ptr ()))
-  {
-    return JJS_STATUS_CONTEXT_CHAOS;
-  }
 
   context_p->vm_heap_size = vm_heap_size_b;
   context_p->vm_stack_limit = (options_p->vm_stack_limit_kb > 0 ? options_p->vm_stack_limit_kb : JJS_DEFAULT_VM_STACK_LIMIT) * 1024;

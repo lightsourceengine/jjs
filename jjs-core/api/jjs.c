@@ -4930,7 +4930,7 @@ jjs_validate_string (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_validate_string */
 
 /**
- * Set the log level of the engine.
+ * Set the log level of the context.
  *
  * Log messages with lower significance than the current log level will be ignored by `jjs_log`.
  *
@@ -4940,9 +4940,20 @@ jjs_validate_string (jjs_context_t* context_p, /**< JJS context */
 void
 jjs_log_set_level (jjs_context_t* context_p, jjs_log_level_t level)
 {
-  JJS_UNUSED (context_p);
-  jjs_jrt_set_log_level (level);
+  context_p->log_level = level;
 } /* jjs_log_set_level */
+
+/**
+ * Get the log level of the context.
+ *
+ * @param context_p JJS context
+ * @return current log level
+ */
+jjs_log_level_t
+jjs_log_get_level (jjs_context_t* context_p)
+{
+  return context_p->log_level;
+} /* jjs_log_get_level */
 
 /**
  * Log buffer size
@@ -5094,7 +5105,9 @@ jjs_format_int (int num, uint8_t width, char padding, char *buffer_p)
 void
 jjs_log (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, ...)
 {
-  if (level > jjs_jrt_get_log_level ())
+  jjs_assert_api_enabled (context_p);
+
+  if (level > context_p->log_level)
   {
     return;
   }
@@ -5236,8 +5249,9 @@ void
 jjs_log_fmt_v (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length)
 {
   JJS_ASSERT (format_p);
+  jjs_assert_api_enabled (context_p);
 
-  if (level > jjs_jrt_get_log_level ())
+  if (level > context_p->log_level)
   {
     return;
   }

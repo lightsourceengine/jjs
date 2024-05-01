@@ -116,9 +116,6 @@ void JJS_ATTR_NORETURN jjs_unreachable (const char *file, const char *function, 
  */
 void JJS_ATTR_NORETURN jjs_fatal (jjs_fatal_code_t code);
 
-jjs_log_level_t jjs_jrt_get_log_level (void);
-void jjs_jrt_set_log_level (jjs_log_level_t level);
-
 /*
  * Logging
  */

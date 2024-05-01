@@ -101,8 +101,10 @@ jjs_value_t jjs_fmt_join_v (jjs_context_t* context_p,
  * @{
  */
 
-void JJS_ATTR_FORMAT (printf, 3, 4) jjs_log (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, ...);
 void jjs_log_set_level (jjs_context_t* context_p, jjs_log_level_t level);
+jjs_log_level_t jjs_log_get_level (jjs_context_t* context_p);
+
+void JJS_ATTR_FORMAT (printf, 3, 4) jjs_log (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, ...);
 void jjs_log_fmt_v (jjs_context_t* context_p, jjs_log_level_t level, const char *format_p, const jjs_value_t *values, jjs_size_t values_length);
 
 bool jjs_validate_string (jjs_context_t* context_p, const jjs_char_t *buffer_p, jjs_size_t buffer_size, jjs_encoding_t encoding);

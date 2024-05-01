@@ -73,6 +73,7 @@ struct jjs_context_t
 {
   uint32_t context_flags; /**< context flags */
   uint32_t jjs_namespace_exclusions; /**< javascript jjs namespace exclusions */
+  jjs_log_level_t log_level;
 
   ecma_global_object_t *global_object_p; /**< current global object */
 
