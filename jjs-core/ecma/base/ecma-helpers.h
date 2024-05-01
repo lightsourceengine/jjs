@@ -130,22 +130,22 @@ typedef enum
 /**
  * Set an internal property value from pointer.
  */
-#define ECMA_SET_INTERNAL_VALUE_POINTER(field, pointer) ((field) = ((ecma_value_t) pointer))
+#define ECMA_SET_INTERNAL_VALUE_POINTER(ctx, field, pointer) ((field) = ((ecma_value_t) pointer))
 
 /**
  * Set an internal property value from pointer. Pointer can be NULL.
  */
-#define ECMA_SET_INTERNAL_VALUE_ANY_POINTER(field, pointer) ((field) = ((ecma_value_t) pointer))
+#define ECMA_SET_INTERNAL_VALUE_ANY_POINTER(ctx, field, pointer) ((field) = ((ecma_value_t) pointer))
 
 /**
  * Convert an internal property value to pointer.
  */
-#define ECMA_GET_INTERNAL_VALUE_POINTER(type, field) ((type *) field)
+#define ECMA_GET_INTERNAL_VALUE_POINTER(ctx, type, field) ((type *) field)
 
 /**
  * Convert an internal property value to pointer. Result can be NULL.
  */
-#define ECMA_GET_INTERNAL_VALUE_ANY_POINTER(type, field) ((type *) field)
+#define ECMA_GET_INTERNAL_VALUE_ANY_POINTER(ctx, type, field) ((type *) field)
 
 /**
  * Checks whether an internal property is NULL.

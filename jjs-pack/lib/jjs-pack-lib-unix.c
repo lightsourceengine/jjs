@@ -21,7 +21,7 @@
 #include <mach/mach_time.h>
 
 uint64_t
-jjs_pack_platform_hrtime (jjs_context_t *context_p)
+jjs_pack_platform_hrtime (void)
 {
   // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/unix/darwin.c
   static uint64_t timebase = 0;
@@ -33,7 +33,7 @@ jjs_pack_platform_hrtime (jjs_context_t *context_p)
 
     if (KERN_SUCCESS != mach_timebase_info (&hrtime_timebase))
     {
-      jjs_platform_fatal (context_p, JJS_FATAL_FAILED_ASSERTION);
+      jjs_platform_fatal (NULL, JJS_FATAL_FAILED_ASSERTION);
       return 0;
     }
 

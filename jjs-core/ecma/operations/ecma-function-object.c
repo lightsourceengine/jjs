@@ -736,6 +736,7 @@ extern inline const ecma_compiled_code_t *JJS_ATTR_ALWAYS_INLINE
 ecma_op_function_get_compiled_code (ecma_context_t *context_p, /**< JJS context */
                                     ecma_extended_object_t *function_p) /**< function pointer */
 {
+  JJS_UNUSED (context_p);
 #if JJS_SNAPSHOT_EXEC
   if (JJS_LIKELY (function_p->u.function.bytecode_cp != ECMA_NULL_POINTER))
   {

@@ -292,6 +292,7 @@ static ecma_global_object_t *
 ecma_builtin_get_realm (ecma_context_t *context_p, /**< JJS context */
                         ecma_object_t *builtin_object_p) /**< built-in object */
 {
+  JJS_UNUSED (context_p);
   ecma_object_type_t object_type = ecma_get_object_type (builtin_object_p);
   ecma_value_t realm_value;
 

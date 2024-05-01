@@ -182,6 +182,7 @@ ecma_op_regexp_initialize (ecma_context_t *context_p, /**< JJS context */
                            ecma_object_t *regexp_obj_p, /**< RegExp object */
                            const re_compiled_code_t *bc_p) /**< bytecode */
 {
+  JJS_UNUSED (context_p);
   ecma_extended_object_t *ext_obj_p = (ecma_extended_object_t *) regexp_obj_p;
   ext_obj_p->u.cls.type = ECMA_OBJECT_CLASS_REGEXP;
   ECMA_SET_INTERNAL_VALUE_POINTER (context_p, ext_obj_p->u.cls.u3.value, bc_p);

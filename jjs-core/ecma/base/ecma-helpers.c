@@ -1746,6 +1746,7 @@ ecma_collection_t *
 ecma_compiled_code_get_tagged_template_collection (ecma_context_t *context_p, /**< JJS context */
                                                    const ecma_compiled_code_t *bytecode_header_p) /**< compiled code */
 {
+  JJS_UNUSED (context_p);
   JJS_ASSERT (bytecode_header_p != NULL);
   JJS_ASSERT (bytecode_header_p->status_flags & CBC_CODE_FLAGS_HAS_TAGGED_LITERALS);
 
@@ -1764,6 +1765,7 @@ uint8_t *
 ecma_compiled_code_get_line_info (ecma_context_t *context_p, /**< JJS context */
                                   const ecma_compiled_code_t *bytecode_header_p) /**< compiled code */
 {
+  JJS_UNUSED (context_p);
   JJS_ASSERT (bytecode_header_p != NULL);
   JJS_ASSERT (bytecode_header_p->status_flags & CBC_CODE_FLAGS_USING_LINE_INFO);
 
@@ -1793,6 +1795,7 @@ ecma_value_t
 ecma_get_source_name (ecma_context_t *context_p, /**< JJS context */
                       const ecma_compiled_code_t *bytecode_p) /**< compiled code */
 {
+  JJS_UNUSED (context_p);
 #if JJS_SOURCE_NAME
 #if JJS_SNAPSHOT_EXEC
   if (JJS_UNLIKELY (bytecode_p->status_flags & CBC_CODE_FLAGS_STATIC_FUNCTION))

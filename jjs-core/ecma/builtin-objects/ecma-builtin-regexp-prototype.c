@@ -65,6 +65,7 @@ ecma_builtin_regexp_prototype_flags_helper (ecma_context_t *context_p, /**< JJS 
                                             ecma_extended_object_t *re_obj_p, /**< this object */
                                             uint16_t builtin_routine_id) /**< id of the flag */
 {
+  JJS_UNUSED (context_p);
   re_compiled_code_t *bc_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, re_compiled_code_t, re_obj_p->u.cls.u3.value);
 
   uint16_t flags = bc_p->header.status_flags;

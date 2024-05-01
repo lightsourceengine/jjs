@@ -18,9 +18,10 @@
 #if defined(JJS_OS_IS_WINDOWS)
 
 #include <windows.h>
+#include <stdio.h>
 
 uint64_t
-jjs_pack_platform_hrtime (jjs_context_t *context_p)
+jjs_pack_platform_hrtime (void)
 {
   // adapted from uv_hrtime(): https://github.com/libuv/libuv/src/win/util.c
 
@@ -36,8 +37,8 @@ jjs_pack_platform_hrtime (jjs_context_t *context_p)
     }
     else
     {
-      jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
-      jjs_platform_fatal (context_p, JJS_FATAL_FAILED_ASSERTION);
+      fprintf (stderr, "hrtime: %s: %i\n", "QueryPerformanceFrequency", (int32_t) GetLastError());
+      jjs_platform_fatal (NULL, JJS_FATAL_FAILED_ASSERTION);
       return 0;
     }
   }
@@ -46,8 +47,8 @@ jjs_pack_platform_hrtime (jjs_context_t *context_p)
 
   if (!QueryPerformanceCounter (&counter))
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
-    jjs_platform_fatal (context_p, JJS_FATAL_FAILED_ASSERTION);
+    fprintf (stderr, "hrtime: %s: %i\n", "QueryPerformanceCounter", (int32_t) GetLastError());
+    jjs_platform_fatal (NULL, JJS_FATAL_FAILED_ASSERTION);
     return 0;
   }
 

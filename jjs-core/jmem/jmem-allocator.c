@@ -222,6 +222,7 @@ jmem_decompress_pointer (jjs_context_t *context_p, /**< JJS context */
   JJS_ASSERT (((jmem_cpointer_t) uint_ptr) == uint_ptr);
 
 #if defined(ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY) && JJS_CPOINTER_32_BIT
+  JJS_UNUSED (context_p);
   JJS_ASSERT (uint_ptr % JMEM_ALIGNMENT == 0);
 #else /* !ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY || !JJS_CPOINTER_32_BIT */
   const uintptr_t heap_start = (uintptr_t) &context_p->heap_p->first;

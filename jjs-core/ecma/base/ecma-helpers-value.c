@@ -87,6 +87,7 @@ static inline ecma_value_t JJS_ATTR_PURE JJS_ATTR_ALWAYS_INLINE
 ecma_pointer_to_ecma_value (ecma_context_t *context_p, /**< JJS context */
                             const void *ptr) /**< pointer */
 {
+  JJS_UNUSED (context_p);
 #ifdef ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY
 
   JJS_ASSERT (ptr != NULL);

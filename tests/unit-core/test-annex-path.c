@@ -91,8 +91,8 @@ test_annex_path_dirname (void)
                             ctx_cstr ("\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\a"));
 
   // unc long path prefix
-  check_annex_path_dirname ("\\\\?\\UNC\\a", "\\\\?\\UNC\\");
-  check_annex_path_dirname ("\\\\?\\UNC\\a\\b", "\\\\?\\UNC\\a");
+  check_annex_path_dirname (ctx_cstr ("\\\\?\\UNC\\a"), ctx_cstr ("\\\\?\\UNC\\"));
+  check_annex_path_dirname (ctx_cstr ("\\\\?\\UNC\\a\\b"), ctx_cstr ("\\\\?\\UNC\\a"));
 
   check_annex_path_dirname (ctx_cstr ("\\\\?\\X\\a"), ECMA_VALUE_EMPTY);
   check_annex_path_dirname (ctx_cstr ("\\\\?\\unc\\blah"), ECMA_VALUE_EMPTY);
