@@ -13,11 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-#define TEST_COMMON_IMPLEMENTATION
-#include "test-common.h"
+#include "jjs-test.h"
 
 const char* TEST_PACKAGE = "test";
 const char* TEST_EXPORT = "test export";
@@ -25,11 +21,9 @@ const char* TEST_EXPORT = "test export";
 static jjs_value_t
 create_config (void)
 {
-  jjs_value_t config = jjs_object ();
-  jjs_value_t exports = jjs_string_sz (TEST_EXPORT);
+  jjs_value_t config = jjs_object (ctx ());
 
-  jjs_value_free (jjs_object_set_sz (config, "exports", exports));
-  jjs_value_free (exports);
+  ctx_value (jjs_object_set_sz (ctx (), config, "exports", ctx_cstr (TEST_EXPORT)));
 
   return config;
 }
@@ -47,71 +41,61 @@ vmod_callback (const jjs_call_info_t* call_info_p, const jjs_value_t args_p[], j
 static void
 assert_package (const char* package_name, const char* expected_export)
 {
-  TEST_ASSERT (jjs_vmod_exists_sz (package_name));
+  TEST_ASSERT (jjs_vmod_exists_sz (ctx (), package_name));
 
-  jjs_value_t exports = jjs_vmod_resolve_sz (package_name);
+  jjs_value_t exports = ctx_value (jjs_vmod_resolve_sz (ctx (), package_name));
 
-  TEST_ASSERT (strict_equals_cstr (exports, expected_export));
-  jjs_value_free (exports);
+  TEST_ASSERT (strict_equals_cstr (ctx (), exports, expected_export));
 }
 
 static void
 test_jjs_vmod_with_callback (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, jjs_function_external (vmod_callback), JJS_MOVE);
+  jjs_value_t result = jjs_vmod_sz (ctx (), TEST_PACKAGE, jjs_function_external (ctx (), vmod_callback), JJS_MOVE);
 
-  TEST_ASSERT (strict_equals (result, jjs_undefined ()));
+  ctx_value (result);
+  TEST_ASSERT (strict_equals (ctx (), result, jjs_undefined (ctx ())));
   assert_package (TEST_PACKAGE, TEST_EXPORT);
 
-  jjs_value_free (result);
-
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 }
 
 static void
 test_jjs_vmod_with_config (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, create_config (), JJS_MOVE);
+  jjs_value_t result = ctx_value (jjs_vmod_sz (ctx (), TEST_PACKAGE, create_config (), JJS_MOVE));
 
-  TEST_ASSERT (jjs_vmod_exists_sz (TEST_PACKAGE));
+  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
+  TEST_ASSERT (jjs_vmod_exists_sz (ctx (), TEST_PACKAGE));
   assert_package (TEST_PACKAGE, TEST_EXPORT);
 
-  jjs_value_free (result);
-
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 }
 
 static void
 test_jjs_vmod_remove (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t result = jjs_vmod_sz (TEST_PACKAGE, create_config (), JJS_MOVE);
+  jjs_value_t result = ctx_value (jjs_vmod_sz (ctx (), TEST_PACKAGE, create_config (), JJS_MOVE));
 
-  TEST_ASSERT (jjs_vmod_exists_sz (TEST_PACKAGE));
+  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
+  TEST_ASSERT (jjs_vmod_exists_sz (ctx (), TEST_PACKAGE));
 
-  jjs_vmod_remove_sz (TEST_PACKAGE);
+  jjs_vmod_remove_sz (ctx (), TEST_PACKAGE);
 
-  TEST_ASSERT (!jjs_vmod_exists_sz (TEST_PACKAGE));
+  TEST_ASSERT (!jjs_vmod_exists_sz (ctx(), TEST_PACKAGE));
 
-  jjs_value_free (result);
-
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 }
 
-int
-main (void)
-{
-  TEST_INIT ();
-
+TEST_MAIN({
   // note: api is more thoroughly tested in js
   test_jjs_vmod_with_callback ();
   test_jjs_vmod_with_config ();
   test_jjs_vmod_remove ();
-
-  return 0;
-} /* main */
+})

@@ -13,12 +13,10 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
+#include "jjs-test.h"
 
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
-
-#include "test-common.h"
 
 /**
  * Unit test's main function.
@@ -26,8 +24,6 @@
 int
 main (void)
 {
-  TEST_INIT ();
-
   const jjs_char_t *strings[] = {
     (const jjs_char_t *) "1",         (const jjs_char_t *) "0.5",       (const jjs_char_t *) "12345",
     (const jjs_char_t *) "1e-45",     (const jjs_char_t *) "-2.5e+38",  (const jjs_char_t *) "-2.5e38",

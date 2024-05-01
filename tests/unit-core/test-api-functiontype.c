@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 typedef struct
 {
@@ -33,7 +31,7 @@ typedef struct
   {                                                     \
     TYPE, VALUE, jjs_feature_enabled (FEATURE), ASYNC \
   }
-#define EVALUATE(BUFF) (jjs_eval ((BUFF), sizeof ((BUFF)) - 1, JJS_PARSE_NO_OPTS))
+#define EVALUATE(BUFF) (jjs_eval (ctx (), (BUFF), sizeof ((BUFF)) - 1, JJS_PARSE_NO_OPTS))
 static jjs_value_t
 test_ext_function (const jjs_call_info_t *call_info_p, /**< call information */
                    const jjs_value_t args_p[], /**< array of arguments */
@@ -42,15 +40,13 @@ test_ext_function (const jjs_call_info_t *call_info_p, /**< call information */
   (void) call_info_p;
   (void) args_p;
   (void) args_cnt;
-  return jjs_boolean (true);
+  return jjs_boolean (call_info_p->context_p, true);
 } /* test_ext_function */
 
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   const jjs_char_t arrow_function[] = "_ => 5";
   const jjs_char_t async_arrow_function[] = "async _ => 5";
@@ -65,15 +61,15 @@ main (void)
   const jjs_char_t bound_function[] = "function f() {}; f.bind(1,2)";
 
   test_entry_t entries[] = {
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_number (-33.0)),
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_boolean (true)),
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_undefined ()),
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_null ()),
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_string_sz ("foo")),
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_throw_sz (JJS_ERROR_TYPE, "error")),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_number (ctx (), -33.0)),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_boolean (ctx (), true)),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_undefined (ctx ())),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_null (ctx ())),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_string_sz (ctx (), "foo")),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_throw_sz (ctx (), JJS_ERROR_TYPE, "error")),
 
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_object ()),
-    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_array (10)),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_object (ctx ())),
+    ENTRY (JJS_FUNCTION_TYPE_NONE, jjs_array (ctx (), 10)),
 
     ENTRY_IF (JJS_FUNCTION_TYPE_ARROW, EVALUATE (arrow_function), JJS_FEATURE_SYMBOL, false),
     ENTRY_IF (JJS_FUNCTION_TYPE_ARROW, EVALUATE (async_arrow_function), JJS_FEATURE_SYMBOL, true),
@@ -83,21 +79,21 @@ main (void)
     ENTRY (JJS_FUNCTION_TYPE_GENERIC, EVALUATE (builtin_function)),
     ENTRY (JJS_FUNCTION_TYPE_GENERIC, EVALUATE (simple_function)),
     ENTRY (JJS_FUNCTION_TYPE_BOUND, EVALUATE (bound_function)),
-    ENTRY (JJS_FUNCTION_TYPE_GENERIC, jjs_function_external (test_ext_function)),
+    ENTRY (JJS_FUNCTION_TYPE_GENERIC, jjs_function_external (ctx (), test_ext_function)),
     ENTRY (JJS_FUNCTION_TYPE_ACCESSOR, EVALUATE (getter_function)),
     ENTRY (JJS_FUNCTION_TYPE_ACCESSOR, EVALUATE (setter_function)),
   };
 
   for (size_t idx = 0; idx < sizeof (entries) / sizeof (entries[0]); idx++)
   {
-    jjs_function_type_t type_info = jjs_function_type (entries[idx].value);
+    jjs_function_type_t type_info = jjs_function_type (ctx (), entries[idx].value);
     TEST_ASSERT (!entries[idx].active
                  || (type_info == entries[idx].type_info
-                     && jjs_value_is_async_function (entries[idx].value) == entries[idx].is_async));
-    jjs_value_free (entries[idx].value);
+                     && jjs_value_is_async_function (ctx (), entries[idx].value) == entries[idx].is_async));
+    jjs_value_free (ctx (), entries[idx].value);
   }
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

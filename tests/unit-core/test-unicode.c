@@ -13,31 +13,29 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static bool
 test_syntax_error (char *script_p) /**< script */
 {
-  jjs_value_t parse_result = jjs_parse ((const jjs_char_t *) script_p, strlen (script_p), NULL);
+  jjs_value_t parse_result = jjs_parse (ctx (), (const jjs_char_t *) script_p, strlen (script_p), NULL);
 
   bool result = false;
 
-  if (jjs_value_is_exception (parse_result))
+  if (jjs_value_is_exception (ctx (), parse_result))
   {
     result = true;
-    TEST_ASSERT (jjs_error_type (parse_result) == JJS_ERROR_SYNTAX);
+    TEST_ASSERT (jjs_error_type (ctx (), parse_result) == JJS_ERROR_SYNTAX);
   }
 
-  jjs_value_free (parse_result);
+  jjs_value_free (ctx (), parse_result);
   return result;
 } /* test_syntax_error */
 
 int
 main (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   if (!test_syntax_error ("\\u{61}"))
   {
@@ -52,7 +50,7 @@ main (void)
     TEST_ASSERT (!test_syntax_error ("$\xF0\x90\xB2\x80$: break $\xed\xa0\x83\xed\xb2\x80$"));
   }
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

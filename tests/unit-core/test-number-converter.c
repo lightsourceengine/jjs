@@ -13,46 +13,42 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 // basic toUint32 tester method
 static void
 test_to_uint32 (double input, uint32_t test_number)
 {
-  jjs_value_t number_val = jjs_number (input);
-  uint32_t uint_number = jjs_value_as_uint32 (number_val);
+  jjs_value_t number_val = jjs_number (ctx (), input);
+  uint32_t uint_number = jjs_value_as_uint32 (ctx (), number_val);
   TEST_ASSERT (uint_number == test_number);
-  jjs_value_free (number_val);
+  jjs_value_free (ctx (), number_val);
 } /* test_to_uint32 */
 
 // basic toInt32 tester method
 static void
 test_to_int32 (double input, int32_t test_number)
 {
-  jjs_value_t number_val = jjs_number (input);
-  int32_t int_number = jjs_value_as_int32 (number_val);
+  jjs_value_t number_val = jjs_number (ctx (), input);
+  int32_t int_number = jjs_value_as_int32 (ctx (), number_val);
   TEST_ASSERT (int_number == test_number);
-  jjs_value_free (number_val);
+  jjs_value_free (ctx (), number_val);
 } /* test_to_int32 */
 
 // basic toInteger tester method
 static void
 test_to_integer (double input, double test_number)
 {
-  jjs_value_t number_val = jjs_number (input);
-  double double_number = jjs_value_as_integer (number_val);
+  jjs_value_t number_val = jjs_number (ctx (), input);
+  double double_number = jjs_value_as_integer (ctx (), number_val);
   TEST_ASSERT (double_number == test_number);
-  jjs_value_free (number_val);
+  jjs_value_free (ctx (), number_val);
 } /* test_to_integer */
 
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   // few toUint32 test-cases
   test_to_uint32 (1.0, 1);
@@ -115,22 +111,22 @@ main (void)
   test_to_integer (-4294967297, -4294967297);
 
   // few test-cases which return with error
-  jjs_value_t error_val = jjs_throw_sz (JJS_ERROR_TYPE, "error");
-  double number = jjs_value_as_integer (error_val);
-  jjs_value_free (error_val);
+  jjs_value_t error_val = jjs_throw_sz (ctx (), JJS_ERROR_TYPE, "error");
+  double number = jjs_value_as_integer (ctx (), error_val);
+  jjs_value_free (ctx (), error_val);
   TEST_ASSERT (number == 0);
 
-  error_val = jjs_symbol_with_description (error_val);
-  number = jjs_value_as_integer (error_val);
+  error_val = jjs_symbol_with_description (ctx (), error_val);
+  number = jjs_value_as_integer (ctx (), error_val);
   TEST_ASSERT (number == 0);
-  jjs_value_free (error_val);
+  jjs_value_free (ctx (), error_val);
 
   error_val =
-    jjs_eval ((const jjs_char_t *) "({ valueOf() { throw new TypeError('foo')}})", 44, JJS_PARSE_NO_OPTS);
-  number = jjs_value_as_integer (error_val);
+    jjs_eval (ctx (), (const jjs_char_t *) "({ valueOf() { throw new TypeError('foo')}})", 44, JJS_PARSE_NO_OPTS);
+  number = jjs_value_as_integer (ctx (), error_val);
   TEST_ASSERT (number == 0);
-  jjs_value_free (error_val);
+  jjs_value_free (ctx (), error_val);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

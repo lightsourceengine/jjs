@@ -679,7 +679,7 @@ bool jjs_object_delete_native_ptr (jjs_context_t* context_p, jjs_value_t object,
  * @defgroup jjs-api-object-prop-desc-ctor Constructors
  * @{
  */
-jjs_property_descriptor_t jjs_property_descriptor (jjs_context_t* context_p);
+jjs_property_descriptor_t jjs_property_descriptor (void);
 jjs_value_t jjs_property_descriptor_from_object (jjs_context_t* context_p,
                                                  const jjs_value_t obj_value,
                                                  jjs_property_descriptor_t *out_prop_desc_p);

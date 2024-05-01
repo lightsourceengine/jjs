@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 /**
  * Register a JavaScript function in the global object.
@@ -24,16 +22,16 @@ static jjs_value_t
 register_js_function (const char *name_p, /**< name of the function */
                       jjs_external_handler_t handler_p) /**< function callback */
 {
-  jjs_value_t global_obj_val = jjs_current_realm ();
+  jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
-  jjs_value_t function_val = jjs_function_external (handler_p);
-  jjs_value_t function_name_val = jjs_string_sz (name_p);
-  jjs_value_t result_val = jjs_object_set (global_obj_val, function_name_val, function_val);
+  jjs_value_t function_val = jjs_function_external (ctx (), handler_p);
+  jjs_value_t function_name_val = jjs_string_sz (ctx (), name_p);
+  jjs_value_t result_val = jjs_object_set (ctx (), global_obj_val, function_name_val, function_val);
 
-  jjs_value_free (function_name_val);
-  jjs_value_free (global_obj_val);
+  jjs_value_free (ctx (), function_name_val);
+  jjs_value_free (ctx (), global_obj_val);
 
-  jjs_value_free (result_val);
+  jjs_value_free (ctx (), result_val);
 
   return function_val;
 } /* register_js_function */
@@ -52,12 +50,12 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
 {
   JJS_UNUSED (args_p);
 
-  if (args_cnt != 1 || !jjs_value_is_number (args_p[0]))
+  if (args_cnt != 1 || !jjs_value_is_number (ctx (), args_p[0]))
   {
     TEST_ASSERT (0 && "Invalid arguments for demo method");
   }
 
-  int test_id = (int) jjs_value_as_number (args_p[0]);
+  int test_id = (int) jjs_value_as_number (ctx (), args_p[0]);
 
   switch (test_id)
   {
@@ -65,7 +63,7 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
     {
       /* Method was called with "new": new.target should be equal to the function object. */
       jjs_value_t target = call_info_p->new_target;
-      TEST_ASSERT (!jjs_value_is_undefined (target));
+      TEST_ASSERT (!jjs_value_is_undefined (ctx (), target));
       TEST_ASSERT (target == call_info_p->function);
       break;
     }
@@ -73,7 +71,7 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
     {
       /* Method was called directly without "new": new.target should be equal undefined. */
       jjs_value_t target = call_info_p->new_target;
-      TEST_ASSERT (jjs_value_is_undefined (target));
+      TEST_ASSERT (jjs_value_is_undefined (ctx (), target));
       TEST_ASSERT (target != call_info_p->function);
       break;
     }
@@ -81,16 +79,16 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
     {
       /* Method was called with "new": new.target should be equal to the function object. */
       jjs_value_t target = call_info_p->new_target;
-      TEST_ASSERT (!jjs_value_is_undefined (target));
+      TEST_ASSERT (!jjs_value_is_undefined (ctx (), target));
       TEST_ASSERT (target == call_info_p->function);
 
       /* Calling a function should hide the old "new.target". */
-      jjs_value_t sub_arg = jjs_number (TEST_ID_SIMPLE_CALL);
+      jjs_value_t sub_arg = jjs_number (ctx (), TEST_ID_SIMPLE_CALL);
       jjs_value_t func_call_result;
 
-      func_call_result = jjs_call (call_info_p->function, call_info_p->this_value, &sub_arg, 1);
-      TEST_ASSERT (!jjs_value_is_exception (func_call_result));
-      TEST_ASSERT (jjs_value_is_undefined (func_call_result));
+      func_call_result = jjs_call (ctx (), call_info_p->function, call_info_p->this_value, &sub_arg, 1);
+      TEST_ASSERT (!jjs_value_is_exception (ctx (), func_call_result));
+      TEST_ASSERT (jjs_value_is_undefined (ctx (), func_call_result));
       break;
     }
 
@@ -101,68 +99,68 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
     }
   }
 
-  return jjs_undefined ();
+  return jjs_undefined (ctx ());
 } /* construct_handler */
 
 int
 main (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   jjs_value_t demo_func = register_js_function ("Demo", construct_handler);
 
   {
-    jjs_value_t test_arg = jjs_number (TEST_ID_SIMPLE_CONSTRUCT);
-    jjs_value_t constructed = jjs_construct (demo_func, &test_arg, 1);
-    TEST_ASSERT (!jjs_value_is_exception (constructed));
-    TEST_ASSERT (jjs_value_is_object (constructed));
-    jjs_value_free (test_arg);
-    jjs_value_free (constructed);
+    jjs_value_t test_arg = jjs_number (ctx (), TEST_ID_SIMPLE_CONSTRUCT);
+    jjs_value_t constructed = jjs_construct (ctx (), demo_func, &test_arg, 1);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), constructed));
+    TEST_ASSERT (jjs_value_is_object (ctx (), constructed));
+    jjs_value_free (ctx (), test_arg);
+    jjs_value_free (ctx (), constructed);
   }
 
   {
-    jjs_value_t test_arg = jjs_number (TEST_ID_SIMPLE_CALL);
-    jjs_value_t this_arg = jjs_undefined ();
-    jjs_value_t constructed = jjs_call (demo_func, this_arg, &test_arg, 1);
-    TEST_ASSERT (jjs_value_is_undefined (constructed));
-    jjs_value_free (constructed);
-    jjs_value_free (constructed);
-    jjs_value_free (test_arg);
+    jjs_value_t test_arg = jjs_number (ctx (), TEST_ID_SIMPLE_CALL);
+    jjs_value_t this_arg = jjs_undefined (ctx ());
+    jjs_value_t constructed = jjs_call (ctx (), demo_func, this_arg, &test_arg, 1);
+    TEST_ASSERT (jjs_value_is_undefined (ctx (), constructed));
+    jjs_value_free (ctx (), constructed);
+    jjs_value_free (ctx (), constructed);
+    jjs_value_free (ctx (), test_arg);
   }
 
   {
-    jjs_value_t test_arg = jjs_number (TEST_ID_CONSTRUCT_AND_CALL_SUB);
-    jjs_value_t constructed = jjs_construct (demo_func, &test_arg, 1);
-    TEST_ASSERT (!jjs_value_is_exception (constructed));
-    TEST_ASSERT (jjs_value_is_object (constructed));
-    jjs_value_free (test_arg);
-    jjs_value_free (constructed);
+    jjs_value_t test_arg = jjs_number (ctx (), TEST_ID_CONSTRUCT_AND_CALL_SUB);
+    jjs_value_t constructed = jjs_construct (ctx (), demo_func, &test_arg, 1);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), constructed));
+    TEST_ASSERT (jjs_value_is_object (ctx (), constructed));
+    jjs_value_free (ctx (), test_arg);
+    jjs_value_free (ctx (), constructed);
   }
 
   {
     static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("new Demo (1)");
 
-    jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t res = jjs_run (parsed_code_val);
-    TEST_ASSERT (!jjs_value_is_exception (res));
+    jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
-    jjs_value_free (res);
-    jjs_value_free (parsed_code_val);
+    jjs_value_free (ctx (), res);
+    jjs_value_free (ctx (), parsed_code_val);
   }
 
   {
     static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("Demo (2)");
 
-    jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t res = jjs_run (parsed_code_val);
-    TEST_ASSERT (!jjs_value_is_exception (res));
+    jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
-    jjs_value_free (res);
-    jjs_value_free (parsed_code_val);
+    jjs_value_free (ctx (), res);
+    jjs_value_free (ctx (), parsed_code_val);
   }
 
   {
@@ -171,17 +169,17 @@ main (void)
                                                                    "new base(1);"
                                                                    "new base(3);");
 
-    jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t res = jjs_run (parsed_code_val);
-    TEST_ASSERT (!jjs_value_is_exception (res));
+    jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
-    jjs_value_free (res);
-    jjs_value_free (parsed_code_val);
+    jjs_value_free (ctx (), res);
+    jjs_value_free (ctx (), parsed_code_val);
   }
 
-  jjs_value_free (demo_func);
-  TEST_CONTEXT_FREE (context_p);
+  jjs_value_free (ctx (), demo_func);
+  ctx_close ();
   return 0;
 } /* main */

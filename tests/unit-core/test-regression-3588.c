@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 /**
  * Empty constructor
@@ -28,28 +26,28 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
   JJS_UNUSED (call_info_p);
 
   TEST_ASSERT (args_cnt == 1);
-  TEST_ASSERT (jjs_value_as_number (args_p[0]) == 1.0);
+  TEST_ASSERT (jjs_value_as_number (ctx (), args_p[0]) == 1.0);
 
-  return jjs_undefined ();
+  return jjs_undefined (ctx ());
 } /* construct_handler */
 
 int
 main (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   {
-    jjs_value_t global_obj_val = jjs_current_realm ();
+    jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
-    jjs_value_t function_val = jjs_function_external (construct_handler);
-    jjs_value_t function_name_val = jjs_string_sz ("Demo");
-    jjs_value_t result_val = jjs_object_set (global_obj_val, function_name_val, function_val);
-    TEST_ASSERT (!jjs_value_is_exception (result_val));
-    TEST_ASSERT (jjs_value_is_true (result_val));
-    jjs_value_free (result_val);
-    jjs_value_free (function_name_val);
-    jjs_value_free (global_obj_val);
-    jjs_value_free (function_val);
+    jjs_value_t function_val = jjs_function_external (ctx (), construct_handler);
+    jjs_value_t function_name_val = jjs_string_sz (ctx (), "Demo");
+    jjs_value_t result_val = jjs_object_set (ctx (), global_obj_val, function_name_val, function_val);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result_val));
+    TEST_ASSERT (jjs_value_is_true (ctx (), result_val));
+    jjs_value_free (ctx (), result_val);
+    jjs_value_free (ctx (), function_name_val);
+    jjs_value_free (ctx (), global_obj_val);
+    jjs_value_free (ctx (), function_val);
   }
 
   {
@@ -57,30 +55,30 @@ main (void)
       TEST_STRING_LITERAL ("class Sub1 extends Demo { constructor () { super (1); } };"
                            "new Sub1 ()");
 
-    jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t result = jjs_run (parsed_code_val);
-    TEST_ASSERT (!jjs_value_is_exception (result));
+    jjs_value_t result = jjs_run (ctx (), parsed_code_val);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
-    jjs_value_free (result);
-    jjs_value_free (parsed_code_val);
+    jjs_value_free (ctx (), result);
+    jjs_value_free (ctx (), parsed_code_val);
   }
 
   {
     static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("class Sub2 extends Demo { };"
                                                                    "new Sub2 (1)");
 
-    jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t result = jjs_run (parsed_code_val);
-    TEST_ASSERT (!jjs_value_is_exception (result));
+    jjs_value_t result = jjs_run (ctx (), parsed_code_val);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
-    jjs_value_free (result);
-    jjs_value_free (parsed_code_val);
+    jjs_value_free (ctx (), result);
+    jjs_value_free (ctx (), parsed_code_val);
   }
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

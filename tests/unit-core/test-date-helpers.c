@@ -17,7 +17,7 @@
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
 
-#include "test-common.h"
+#include "jjs-test.h"
 
 #define MS_PER_DAY  ((ecma_number_t) 86400000)
 #define MS_PER_YEAR ((ecma_number_t) 365 * MS_PER_DAY)
@@ -68,7 +68,7 @@ main (void)
 
   /* FIXME: Implement */
 
-  /* ecma_number_t ecma_date_hour_from_time (time) */
+  /* ecma_number_t ecma_date_hour_from_time (ctx (), time) */
 
   TEST_ASSERT (ecma_date_hour_from_time (START_OF_GREGORIAN_CALENDAR) == 0);
   TEST_ASSERT (ecma_date_hour_from_time (0) == 0);

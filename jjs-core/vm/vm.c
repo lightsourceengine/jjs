@@ -1142,15 +1142,15 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 
               if (ecma_is_value_exception (result))
               {
-                ecma_throw_exception (result);
+                ecma_throw_exception (context_p, result);
               }
               else
               {
-                jcontext_raise_exception (result);
+                jcontext_raise_exception (context_p, result);
               }
 
-              JJS_ASSERT (jcontext_has_pending_exception ());
-              jcontext_set_abort_flag (true);
+              JJS_ASSERT (jcontext_has_pending_exception (context_p));
+              jcontext_set_abort_flag (context_p, true);
               result = ECMA_VALUE_ERROR;
               goto error;
             }

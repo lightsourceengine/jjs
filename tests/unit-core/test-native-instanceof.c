@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static const char instanceof_source[] = "var x = function(o, c) {return (o instanceof c);}; x";
 
@@ -26,54 +24,54 @@ external_function (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[
   (void) args_p;
   (void) args_count;
 
-  return jjs_undefined ();
+  return jjs_undefined (ctx ());
 } /* external_function */
 
 static void
 test_instanceof (jjs_value_t instanceof, jjs_value_t constructor)
 {
-  jjs_value_t instance = jjs_construct (constructor, NULL, 0);
+  jjs_value_t instance = jjs_construct (ctx (), constructor, NULL, 0);
   jjs_value_t args[2] = { instance, constructor };
 
-  jjs_value_t undefined = jjs_undefined ();
-  jjs_value_t result = jjs_call (instanceof, undefined, args, 2);
-  jjs_value_free (undefined);
+  jjs_value_t undefined = jjs_undefined (ctx ());
+  jjs_value_t result = jjs_call (ctx (), instanceof, undefined, args, 2);
+  jjs_value_free (ctx (), undefined);
 
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  TEST_ASSERT (jjs_value_is_boolean (result));
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+  TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
 
-  TEST_ASSERT (jjs_value_is_true (result));
+  TEST_ASSERT (jjs_value_is_true (ctx (), result));
 
-  jjs_value_free (instance);
-  jjs_value_free (result);
+  jjs_value_free (ctx (), instance);
+  jjs_value_free (ctx (), result);
 } /* test_instanceof */
 
 int
 main (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t instanceof = jjs_eval ((jjs_char_t *) instanceof_source, sizeof (instanceof_source) - 1, true);
+  jjs_value_t instanceof = jjs_eval (ctx (), (jjs_char_t *) instanceof_source, sizeof (instanceof_source) - 1, true);
 
   /* Test for a native-backed function. */
-  jjs_value_t constructor = jjs_function_external (external_function);
+  jjs_value_t constructor = jjs_function_external (ctx (), external_function);
 
   test_instanceof (instanceof, constructor);
-  jjs_value_free (constructor);
+  jjs_value_free (ctx (), constructor);
 
   /* Test for a JS constructor. */
-  jjs_value_t global = jjs_current_realm ();
-  jjs_value_t object_name = jjs_string_sz ("Object");
-  constructor = jjs_object_get (global, object_name);
-  jjs_value_free (object_name);
-  jjs_value_free (global);
+  jjs_value_t global = jjs_current_realm (ctx ());
+  jjs_value_t object_name = jjs_string_sz (ctx (), "Object");
+  constructor = jjs_object_get (ctx (), global, object_name);
+  jjs_value_free (ctx (), object_name);
+  jjs_value_free (ctx (), global);
 
   test_instanceof (instanceof, constructor);
-  jjs_value_free (constructor);
+  jjs_value_free (ctx (), constructor);
 
-  jjs_value_free (instanceof);
+  jjs_value_free (ctx (), instanceof);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

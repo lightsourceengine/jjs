@@ -13,19 +13,14 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-
-#define TEST_COMMON_IMPLEMENTATION
-#include "test-common.h"
+#include "jjs-test.h"
 
 #define TRY_PMAP_PARSE_VALID(JSON)                                                                     \
   do                                                                                                   \
   {                                                                                                    \
-    jjs_value_t result = jjs_pmap (jjs_json_parse_sz (JSON), JJS_MOVE, jjs_string_sz ("."), JJS_MOVE); \
-    TEST_ASSERT (jjs_value_is_undefined (result));                                                     \
-    jjs_value_free (result);                                                                           \
+    jjs_value_t result = jjs_pmap (ctx (), jjs_json_parse_sz (ctx (), JSON), JJS_MOVE, jjs_string_sz (ctx (), "."), JJS_MOVE); \
+    TEST_ASSERT (jjs_value_is_undefined (ctx (), result));                                                     \
+    jjs_value_free (ctx (), result);                                                                           \
   } while (0)
 
 static void
@@ -51,9 +46,9 @@ test_pmap (void)
 #define TRY_PMAP_PARSE_INVALID(JSON)                                                                   \
   do                                                                                                   \
   {                                                                                                    \
-    jjs_value_t result = jjs_pmap (jjs_json_parse_sz (JSON), JJS_MOVE, jjs_string_sz ("."), JJS_MOVE); \
-    TEST_ASSERT (jjs_value_is_exception (result));                                                     \
-    jjs_value_free (result);                                                                           \
+    jjs_value_t result = jjs_pmap (ctx (), jjs_json_parse_sz (ctx (), JSON), JJS_MOVE, jjs_string_sz (ctx (), "."), JJS_MOVE); \
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));                                                     \
+    jjs_value_free (ctx (), result);                                                                           \
   } while (0)
 
 static void
@@ -127,68 +122,68 @@ test_pmap_invalid (void)
 #define TRY_INVALID_JSON_ARG(VALUE)                                              \
   do                                                                             \
   {                                                                              \
-    jjs_value_t result = jjs_pmap (VALUE, JJS_MOVE, jjs_undefined (), JJS_MOVE); \
-    TEST_ASSERT (jjs_value_is_exception (result));                               \
-    jjs_value_free (result);                                                     \
+    jjs_value_t result = jjs_pmap (ctx (), VALUE, JJS_MOVE, jjs_undefined (ctx ()), JJS_MOVE); \
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));                               \
+    jjs_value_free (ctx (), result);                                                     \
   } while (0)
 
 static void
 test_pmap_type_error (void)
 {
-  TRY_INVALID_JSON_ARG (jjs_null ());
-  TRY_INVALID_JSON_ARG (jjs_undefined ());
-  TRY_INVALID_JSON_ARG (jjs_number (0));
-  TRY_INVALID_JSON_ARG (jjs_boolean (true));
-  TRY_INVALID_JSON_ARG (jjs_object ());
-  TRY_INVALID_JSON_ARG (jjs_array (0));
-  TRY_INVALID_JSON_ARG (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+  TRY_INVALID_JSON_ARG (jjs_null (ctx ()));
+  TRY_INVALID_JSON_ARG (jjs_undefined (ctx ()));
+  TRY_INVALID_JSON_ARG (jjs_number (ctx (), 0));
+  TRY_INVALID_JSON_ARG (jjs_boolean (ctx (), true));
+  TRY_INVALID_JSON_ARG (jjs_object (ctx ()));
+  TRY_INVALID_JSON_ARG (jjs_array (ctx (), 0));
+  TRY_INVALID_JSON_ARG (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
 #define TRY_INVALID_ROOT_ARG(VALUE)                                                                      \
   do                                                                                                     \
   {                                                                                                      \
-    jjs_value_t result = jjs_pmap (jjs_json_parse_sz ("{\"packages\": {}}"), JJS_MOVE, VALUE, JJS_MOVE); \
-    TEST_ASSERT (jjs_value_is_exception (result));                                                       \
-    jjs_value_free (result);                                                                             \
+    jjs_value_t result = jjs_pmap (ctx (), jjs_json_parse_sz (ctx (), "{\"packages\": {}}"), JJS_MOVE, VALUE, JJS_MOVE); \
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));                                                       \
+    jjs_value_free (ctx (), result);                                                                             \
   } while (0)
 
 static void
 test_pmap_root_type_error (void)
 {
-  TRY_INVALID_ROOT_ARG (jjs_null ());
-  TRY_INVALID_ROOT_ARG (jjs_number (0));
-  TRY_INVALID_ROOT_ARG (jjs_boolean (true));
-  TRY_INVALID_ROOT_ARG (jjs_object ());
-  TRY_INVALID_ROOT_ARG (jjs_array (0));
-  TRY_INVALID_ROOT_ARG (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+  TRY_INVALID_ROOT_ARG (jjs_null (ctx ()));
+  TRY_INVALID_ROOT_ARG (jjs_number (ctx (), 0));
+  TRY_INVALID_ROOT_ARG (jjs_boolean (ctx (), true));
+  TRY_INVALID_ROOT_ARG (jjs_object (ctx ()));
+  TRY_INVALID_ROOT_ARG (jjs_array (ctx (), 0));
+  TRY_INVALID_ROOT_ARG (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
 #define TRY_JJS_PMAP_FROM_FILE(VALUE)                                            \
   do                                                                             \
   {                                                                              \
     jjs_value_t value = VALUE;                                                   \
-    jjs_value_t result = jjs_pmap (VALUE, JJS_MOVE, jjs_undefined (), JJS_MOVE); \
-    TEST_ASSERT (jjs_value_is_exception (result));                               \
-    jjs_value_free (result);                                                     \
-    jjs_value_free (value);                                                      \
+    jjs_value_t result = jjs_pmap (ctx (), VALUE, JJS_MOVE, jjs_undefined (ctx ()), JJS_MOVE); \
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));                               \
+    jjs_value_free (ctx (), result);                                                     \
+    jjs_value_free (ctx (), value);                                                      \
   } while (0)
 
 static void
 test_pmap_from_file_error (void)
 {
-  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz (""));
-  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz ("unknown"));
-  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz ("./unknown"));
-  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz ("../unknown"));
-  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz ("/unknown"));
+  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz (ctx (), ""));
+  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz (ctx (), "unknown"));
+  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz (ctx (), "./unknown"));
+  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz (ctx (), "../unknown"));
+  TRY_JJS_PMAP_FROM_FILE (jjs_string_sz (ctx (), "/unknown"));
 
-  TRY_JJS_PMAP_FROM_FILE (jjs_null ());
-  TRY_JJS_PMAP_FROM_FILE (jjs_undefined ());
-  TRY_JJS_PMAP_FROM_FILE (jjs_number (0));
-  TRY_JJS_PMAP_FROM_FILE (jjs_boolean (true));
-  TRY_JJS_PMAP_FROM_FILE (jjs_object ());
-  TRY_JJS_PMAP_FROM_FILE (jjs_array (0));
-  TRY_JJS_PMAP_FROM_FILE (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+  TRY_JJS_PMAP_FROM_FILE (jjs_null (ctx ()));
+  TRY_JJS_PMAP_FROM_FILE (jjs_undefined (ctx ()));
+  TRY_JJS_PMAP_FROM_FILE (jjs_number (ctx (), 0));
+  TRY_JJS_PMAP_FROM_FILE (jjs_boolean (ctx (), true));
+  TRY_JJS_PMAP_FROM_FILE (jjs_object (ctx ()));
+  TRY_JJS_PMAP_FROM_FILE (jjs_array (ctx (), 0));
+  TRY_JJS_PMAP_FROM_FILE (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
 #define TRY_JJS_PMAP_RESOLVE(VALUE)                                      \
@@ -202,47 +197,47 @@ test_pmap_from_file_error (void)
     };                                                                   \
     for (size_t i = 0; i < sizeof (types) / sizeof (types[0]); i++)      \
     {                                                                    \
-      jjs_value_t result = jjs_pmap_resolve (value, JJS_KEEP, types[i]); \
-      TEST_ASSERT (jjs_value_is_exception (result));                     \
-      jjs_value_free (result);                                           \
+      jjs_value_t result = jjs_pmap_resolve (ctx (), value, JJS_KEEP, types[i]); \
+      TEST_ASSERT (jjs_value_is_exception (ctx (), result));                     \
+      jjs_value_free (ctx (), result);                                           \
     }                                                                    \
-    jjs_value_free (value);                                              \
+    jjs_value_free (ctx (), value);                                              \
   } while (0)
 
 static void
 test_pmap_resolve_error (void)
 {
-  TRY_JJS_PMAP_RESOLVE (jjs_null ());
-  TRY_JJS_PMAP_RESOLVE (jjs_undefined ());
-  TRY_JJS_PMAP_RESOLVE (jjs_number (0));
-  TRY_JJS_PMAP_RESOLVE (jjs_boolean (true));
-  TRY_JJS_PMAP_RESOLVE (jjs_object ());
-  TRY_JJS_PMAP_RESOLVE (jjs_array (0));
-  TRY_JJS_PMAP_RESOLVE (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+  TRY_JJS_PMAP_RESOLVE (jjs_null (ctx ()));
+  TRY_JJS_PMAP_RESOLVE (jjs_undefined (ctx ()));
+  TRY_JJS_PMAP_RESOLVE (jjs_number (ctx (), 0));
+  TRY_JJS_PMAP_RESOLVE (jjs_boolean (ctx (), true));
+  TRY_JJS_PMAP_RESOLVE (jjs_object (ctx ()));
+  TRY_JJS_PMAP_RESOLVE (jjs_array (ctx (), 0));
+  TRY_JJS_PMAP_RESOLVE (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 
-  TRY_JJS_PMAP_RESOLVE (jjs_string_sz (""));
-  TRY_JJS_PMAP_RESOLVE (jjs_string_sz ("unknown"));
-  TRY_JJS_PMAP_RESOLVE (jjs_string_sz ("./unknown"));
-  TRY_JJS_PMAP_RESOLVE (jjs_string_sz ("../unknown"));
-  TRY_JJS_PMAP_RESOLVE (jjs_string_sz ("/unknown"));
+  TRY_JJS_PMAP_RESOLVE (jjs_string_sz (ctx (), ""));
+  TRY_JJS_PMAP_RESOLVE (jjs_string_sz (ctx (), "unknown"));
+  TRY_JJS_PMAP_RESOLVE (jjs_string_sz (ctx (), "./unknown"));
+  TRY_JJS_PMAP_RESOLVE (jjs_string_sz (ctx (), "../unknown"));
+  TRY_JJS_PMAP_RESOLVE (jjs_string_sz (ctx (), "/unknown"));
 }
 
 static jjs_value_t
 join_with_cwd (const char *base)
 {
   jjs_value_t components[] = {
-    jjs_platform_cwd (),
-    jjs_string_sz (base),
+    jjs_platform_cwd (ctx ()),
+    jjs_string_sz (ctx (), base),
   };
 
-  jjs_value_t raw = jjs_fmt_join_v (jjs_string_sz ("/"), JJS_MOVE, components, JJS_ARRAY_SIZE (components));
-  jjs_value_t result = jjs_platform_realpath (raw, JJS_MOVE);
+  jjs_value_t raw = jjs_fmt_join_v (ctx (), jjs_string_sz (ctx (), "/"), JJS_MOVE, components, JJS_ARRAY_SIZE (components));
+  jjs_value_t result = jjs_platform_realpath (ctx (), raw, JJS_MOVE);
 
-  TEST_ASSERT (!jjs_value_is_exception (result));
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
   for (size_t i = 0; i < JJS_ARRAY_SIZE (components); i++)
   {
-    jjs_value_free (components[i]);
+    jjs_value_free (ctx (), components[i]);
   }
 
   return result;
@@ -253,23 +248,23 @@ expect_filename (jjs_value_t actual, jjs_value_ownership_t actual_o, const char 
 {
   jjs_value_t expected = join_with_cwd (expected_base);
 
-  TEST_ASSERT (strict_equals (actual, expected));
-  jjs_value_free (expected);
+  TEST_ASSERT (strict_equals (ctx (), actual, expected));
+  jjs_value_free (ctx (), expected);
 
   if (actual_o == JJS_MOVE)
   {
-    jjs_value_free (actual);
+    jjs_value_free (ctx (), actual);
   }
 }
 
 static void
 try_pmap_parse (const char *json)
 {
-  jjs_value_t result = jjs_json_parse_sz (json);
+  jjs_value_t result = jjs_json_parse_sz (ctx (), json);
 
-  TEST_ASSERT (!jjs_value_is_exception (result));
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
-  jjs_pmap (result, JJS_MOVE, join_with_cwd ("./unit-fixtures/pmap"), JJS_MOVE);
+  jjs_pmap (ctx (), result, JJS_MOVE, join_with_cwd ("./unit-fixtures/pmap"), JJS_MOVE);
 }
 
 static void
@@ -280,13 +275,13 @@ test_pmap_resolve_package_string (void)
   jjs_value_t resolved;
   const char *expected = "./unit-fixtures/pmap/pkg.cjs";
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
   expect_filename (resolved, JJS_MOVE, expected);
 }
 
@@ -298,13 +293,13 @@ test_pmap_resolve_package_main (void)
   jjs_value_t resolved;
   const char *expected = "./unit-fixtures/pmap/pkg.cjs";
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
   expect_filename (resolved, JJS_MOVE, expected);
 }
 
@@ -328,10 +323,10 @@ test_pmap_resolve_package_main_by_module_type (void)
 
   jjs_value_t resolved;
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
   expect_filename (resolved, JJS_MOVE, "./unit-fixtures/pmap/pkg.cjs");
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
   expect_filename (resolved, JJS_MOVE, "./unit-fixtures/pmap/pkg.mjs");
 }
 
@@ -351,10 +346,10 @@ test_pmap_resolve_package_string_by_module_type (void)
 
   jjs_value_t resolved;
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
   expect_filename (resolved, JJS_MOVE, "./unit-fixtures/pmap/pkg.cjs");
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "pkg"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
   expect_filename (resolved, JJS_MOVE, "./unit-fixtures/pmap/pkg.mjs");
 }
 
@@ -371,34 +366,28 @@ test_pmap_resolve_scoped_package_string (void)
 
   /* @test/pkg1/b.cjs -> root + package.@test/pkg1.path + b.cjs */
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("@test/pkg1/b.cjs"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "@test/pkg1/b.cjs"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("@test/pkg1/b.cjs"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "@test/pkg1/b.cjs"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("@test/pkg1/b.cjs"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "@test/pkg1/b.cjs"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
   expect_filename (resolved, JJS_MOVE, expected);
 
   /* @test/pkg1 -> root + package.@test/pkg1.main */
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("@test/pkg1"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "@test/pkg1"), JJS_MOVE, JJS_MODULE_TYPE_NONE);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("@test/pkg1"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "@test/pkg1"), JJS_MOVE, JJS_MODULE_TYPE_COMMONJS);
   expect_filename (resolved, JJS_MOVE, expected);
 
-  resolved = jjs_pmap_resolve (jjs_string_sz ("@test/pkg1"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
+  resolved = jjs_pmap_resolve (ctx (), jjs_string_sz (ctx (), "@test/pkg1"), JJS_MOVE, JJS_MODULE_TYPE_MODULE);
   expect_filename (resolved, JJS_MOVE, expected);
 }
 
-int
-main (void)
-{
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
-
+TEST_MAIN({
   test_pmap ();
   test_pmap_invalid ();
   test_pmap_type_error ();
@@ -411,7 +400,4 @@ main (void)
   test_pmap_resolve_package_string_by_module_type ();
   test_pmap_resolve_scoped_package_string ();
   test_pmap_resolve_error ();
-
-  TEST_CONTEXT_FREE (context_p);
-  return 0;
-} /* main */
+})

@@ -16,7 +16,7 @@
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
 
-#include "test-common.h"
+#include "jjs-test.h"
 
 typedef struct
 {
@@ -36,7 +36,7 @@ typedef struct
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
   const uint32_test_case_t test_cases_uint32[] = {
 #define TEST_CASE(num, uint32) { num, uint32 }
@@ -95,6 +95,8 @@ main (void)
   {
     TEST_ASSERT (ecma_number_to_int32 (test_cases_int32[i].num) == test_cases_int32[i].int32_num);
   }
+
+  ctx_close ();
 
   return 0;
 } /* main */

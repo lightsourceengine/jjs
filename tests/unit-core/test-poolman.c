@@ -17,16 +17,12 @@
  * Unit test for pool manager.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
+#include "jjs-test.h"
 
-#include "jjs-context-init.h"
 #include "jmem.h"
 
 #define JMEM_ALLOCATOR_INTERNAL
 #include "jmem-allocator-internal.h"
-#include "test-common.h"
 
 /* Iterations count. */
 const uint32_t test_iters = 1024;
@@ -41,10 +37,9 @@ uint8_t data[TEST_MAX_SUB_ITERS][TEST_CHUNK_SIZE];
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_INIT ();
+  jjs_context_t *context_p = ctx_bootstrap (NULL);
 
-  jmem_init ();
+  jmem_init (context_p);
 
   for (uint32_t i = 0; i < test_iters; i++)
   {
@@ -52,7 +47,7 @@ main (void)
 
     for (size_t j = 0; j < subiters; j++)
     {
-      ptrs[j] = (uint8_t *) jmem_pools_alloc (TEST_CHUNK_SIZE);
+      ptrs[j] = (uint8_t *) jmem_pools_alloc (context_p, TEST_CHUNK_SIZE);
 
       if (ptrs[j] != NULL)
       {
@@ -71,24 +66,24 @@ main (void)
     {
       if (rand () % 256 == 0)
       {
-        jmem_pools_collect_empty ();
+        jmem_pools_collect_empty (context_p);
       }
 
       if (ptrs[j] != NULL)
       {
         TEST_ASSERT (!memcmp (data[j], ptrs[j], TEST_CHUNK_SIZE));
 
-        jmem_pools_free (ptrs[j], TEST_CHUNK_SIZE);
+        jmem_pools_free (context_p, ptrs[j], TEST_CHUNK_SIZE);
       }
     }
   }
 
 #ifdef JMEM_STATS
-  jmem_heap_stats_print ();
+  jmem_heap_stats_print (context_p);
 #endif /* JMEM_STATS */
 
-  jmem_finalize ();
-  TEST_CONTEXT_CLEANUP ();
+  jmem_finalize (context_p);
+  ctx_bootstrap_cleanup (context_p);
 
   return 0;
 } /* main */

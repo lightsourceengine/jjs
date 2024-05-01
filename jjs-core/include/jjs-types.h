@@ -1103,7 +1103,7 @@ typedef struct
  *
  * Used by api to test values for a user supplied condition.
  */
-typedef bool (*jjs_value_condition_fn_t)(jjs_value_t);
+typedef bool (*jjs_value_condition_fn_t)(jjs_context_t *, jjs_value_t);
 
 /**
  * Stream object to pass to fmt methods.

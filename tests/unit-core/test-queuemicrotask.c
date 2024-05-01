@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static bool simple_callback_called = false;
 
@@ -26,7 +24,7 @@ simple_callback (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[],
   (void) args_p;
   (void) args_cnt;
   simple_callback_called = true;
-  return jjs_undefined ();
+  return jjs_undefined (ctx ());
 }
 
 static jjs_value_t
@@ -36,7 +34,7 @@ throw_error_callback (const jjs_call_info_t *call_info_p, const jjs_value_t args
   (void) args_p;
   (void) args_cnt;
   simple_callback_called = true;
-  return jjs_throw_sz (JJS_ERROR_COMMON, "throw_error_callback");
+  return jjs_throw_sz (ctx (), JJS_ERROR_COMMON, "throw_error_callback");
 }
 
 int
@@ -45,53 +43,53 @@ main (void)
   jjs_value_t result;
   jjs_value_t callback;
 
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  callback = jjs_function_external (simple_callback);
-  result = jjs_queue_microtask (callback);
-  jjs_value_free (callback);
+  callback = jjs_function_external (ctx (), simple_callback);
+  result = jjs_queue_microtask (ctx (), callback);
+  jjs_value_free (ctx (), callback);
 
-  TEST_ASSERT (jjs_value_is_undefined (result));
-  jjs_value_free (result);
-  TEST_ASSERT (jjs_has_pending_jobs ());
+  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
+  jjs_value_free (ctx (), result);
+  TEST_ASSERT (jjs_has_pending_jobs (ctx ()));
 
-  result = jjs_run_jobs ();
-  TEST_ASSERT (jjs_value_is_undefined (result));
+  result = jjs_run_jobs (ctx ());
+  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
   TEST_ASSERT (simple_callback_called);
-  jjs_value_free (result);
+  jjs_value_free (ctx (), result);
 
-  callback = jjs_function_external (throw_error_callback);
-  result = jjs_queue_microtask (callback);
-  jjs_value_free (callback);
+  callback = jjs_function_external (ctx (), throw_error_callback);
+  result = jjs_queue_microtask (ctx (), callback);
+  jjs_value_free (ctx (), callback);
 
-  TEST_ASSERT (jjs_value_is_undefined (result));
-  jjs_value_free (result);
-  TEST_ASSERT (jjs_has_pending_jobs ());
+  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
+  jjs_value_free (ctx (), result);
+  TEST_ASSERT (jjs_has_pending_jobs (ctx ()));
 
-  result = jjs_run_jobs ();
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  TEST_ASSERT (!jjs_has_pending_jobs ());
+  result = jjs_run_jobs (ctx ());
+  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
+  TEST_ASSERT (!jjs_has_pending_jobs (ctx ()));
 
-  result = jjs_queue_microtask (jjs_undefined ());
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  TEST_ASSERT (!jjs_has_pending_jobs ());
+  result = jjs_queue_microtask (ctx (), jjs_undefined (ctx ()));
+  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
+  TEST_ASSERT (!jjs_has_pending_jobs (ctx ()));
 
   // ensure we get an uncaught error via jjs_run_jobs () if callback throws error
   jjs_esm_source_t source = {
     .source_sz = "queueMicrotask(() => { throw new Error(); });",
   };
 
-  result = jjs_esm_evaluate_source (&source, JJS_MOVE);
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
+  result = jjs_esm_evaluate_source (ctx (), &source, JJS_MOVE);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
 
-  result = jjs_run_jobs ();
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
+  result = jjs_run_jobs (ctx ());
+  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

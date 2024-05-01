@@ -13,11 +13,10 @@
  * limitations under the License.
  */
 
+#include "jjs-test.h"
+
 #include "ecma-helpers.h"
 #include "ecma-literal-storage.h"
-
-#include "jjs-context-init.h"
-#include "test-common.h"
 
 /* Iterations count. */
 #define test_iters 64
@@ -58,15 +57,13 @@ generate_number (void)
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_INIT ();
-
   const lit_utf8_byte_t *ptrs[test_sub_iters];
   ecma_number_t numbers[test_sub_iters];
   lit_utf8_byte_t strings[test_sub_iters][max_characters_in_string + 1];
   lit_utf8_size_t lengths[test_sub_iters];
+  jjs_context_t *context_p = ctx_bootstrap (NULL);
 
-  jmem_init ();
+  jmem_init (context_p);
 
   for (uint32_t i = 0; i < test_iters; i++)
   {
@@ -81,7 +78,7 @@ main (void)
       {
         lengths[j] = (lit_utf8_size_t) (rand () % max_characters_in_string + 1);
         generate_string (strings[j], lengths[j]);
-        ecma_find_or_create_literal_string (strings[j], lengths[j], false);
+        ecma_find_or_create_literal_string (context_p, strings[j], lengths[j], false);
         strings[j][lengths[j]] = '\0';
         ptrs[j] = strings[j];
         TEST_ASSERT (ptrs[j]);
@@ -92,18 +89,18 @@ main (void)
         ptrs[j] = lit_get_magic_string_utf8 (msi);
         TEST_ASSERT (ptrs[j]);
         lengths[j] = (lit_utf8_size_t) lit_zt_utf8_string_size (ptrs[j]);
-        ecma_find_or_create_literal_string (ptrs[j], lengths[j], false);
+        ecma_find_or_create_literal_string (context_p, ptrs[j], lengths[j], false);
       }
       else
       {
         ecma_number_t num = generate_number ();
         lengths[j] = ecma_number_to_utf8_string (num, strings[j], max_characters_in_string);
-        ecma_find_or_create_literal_number (num);
+        ecma_find_or_create_literal_number (context_p, num);
       }
     }
 
     /* Add empty string. */
-    ecma_find_or_create_literal_string (NULL, 0, false);
+    ecma_find_or_create_literal_string (context_p, NULL, 0, false);
 
     for (uint32_t j = 0; j < test_sub_iters; j++)
     {
@@ -111,16 +108,16 @@ main (void)
       ecma_value_t lit2;
       if (ptrs[j])
       {
-        lit1 = ecma_find_or_create_literal_string (ptrs[j], lengths[j], false);
-        lit2 = ecma_find_or_create_literal_string (ptrs[j], lengths[j], false);
+        lit1 = ecma_find_or_create_literal_string (context_p, ptrs[j], lengths[j], false);
+        lit2 = ecma_find_or_create_literal_string (context_p, ptrs[j], lengths[j], false);
         TEST_ASSERT (ecma_is_value_string (lit1));
         TEST_ASSERT (ecma_is_value_string (lit2));
         TEST_ASSERT (lit1 == lit2);
       }
       else
       {
-        lit1 = ecma_find_or_create_literal_number (numbers[j]);
-        lit2 = ecma_find_or_create_literal_number (numbers[j]);
+        lit1 = ecma_find_or_create_literal_number (context_p, numbers[j]);
+        lit2 = ecma_find_or_create_literal_number (context_p, numbers[j]);
         TEST_ASSERT (ecma_is_value_number (lit1));
         TEST_ASSERT (ecma_is_value_number (lit2));
         TEST_ASSERT (lit1 == lit2);
@@ -128,11 +125,12 @@ main (void)
     }
 
     /* Check empty string exists. */
-    TEST_ASSERT (ecma_find_or_create_literal_string (NULL, 0, false) != JMEM_CP_NULL);
+    TEST_ASSERT (ecma_find_or_create_literal_string (context_p, NULL, 0, false) != JMEM_CP_NULL);
   }
 
-  ecma_finalize_lit_storage ();
-  jmem_finalize ();
-  jjs_context_cleanup ();
+  ecma_finalize_lit_storage (context_p);
+  jmem_finalize (context_p);
+  ctx_bootstrap_cleanup (context_p);
+
   return 0;
 } /* main */

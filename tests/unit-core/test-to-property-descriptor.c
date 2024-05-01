@@ -13,16 +13,13 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-#include "test-common.h"
+#include "jjs-test.h"
 
 static jjs_value_t
 create_property_descriptor (const char *script_p) /**< source code */
 {
-  jjs_value_t result = jjs_eval ((const jjs_char_t *) script_p, strlen (script_p), 0);
-  TEST_ASSERT (jjs_value_is_object (result));
+  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) script_p, strlen (script_p), 0);
+  TEST_ASSERT (jjs_value_is_object (ctx (), result));
   return result;
 } /* create_property_descriptor */
 
@@ -31,22 +28,22 @@ check_attribute (jjs_value_t attribute, /**< attribute to be checked */
                  jjs_value_t object, /**< original object */
                  const char *name_p) /**< name of the attribute */
 {
-  jjs_value_t prop_name = jjs_string_sz (name_p);
-  jjs_value_t value = jjs_object_get (object, prop_name);
+  jjs_value_t prop_name = jjs_string_sz (ctx (), name_p);
+  jjs_value_t value = jjs_object_get (ctx (), object, prop_name);
 
-  if (jjs_value_is_undefined (value))
+  if (jjs_value_is_undefined (ctx (), value))
   {
-    TEST_ASSERT (jjs_value_is_null (attribute));
+    TEST_ASSERT (jjs_value_is_null (ctx (), attribute));
   }
   else
   {
-    jjs_value_t result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, attribute, value);
-    TEST_ASSERT (jjs_value_is_true (result));
-    jjs_value_free (result);
+    jjs_value_t result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, attribute, value);
+    TEST_ASSERT (jjs_value_is_true (ctx (), result));
+    jjs_value_free (ctx (), result);
   }
 
-  jjs_value_free (value);
-  jjs_value_free (prop_name);
+  jjs_value_free (ctx (), value);
+  jjs_value_free (ctx (), prop_name);
 } /* check_attribute */
 
 static jjs_property_descriptor_t
@@ -54,9 +51,9 @@ to_property_descriptor (jjs_value_t object /**< object */)
 {
   jjs_property_descriptor_t prop_desc = jjs_property_descriptor ();
 
-  jjs_value_t result = jjs_property_descriptor_from_object (object, &prop_desc);
-  TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
-  jjs_value_free (result);
+  jjs_value_t result = jjs_property_descriptor_from_object (ctx (), object, &prop_desc);
+  TEST_ASSERT (jjs_value_is_boolean (ctx (), result) && jjs_value_is_true (ctx (), result));
+  jjs_value_free (ctx (), result);
 
   return prop_desc;
 } /* to_property_descriptor */
@@ -64,9 +61,7 @@ to_property_descriptor (jjs_value_t object /**< object */)
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   /* Next test. */
   const char *source_p = "({ value:'X', writable:true, enumerable:true, configurable:true })";
@@ -86,8 +81,8 @@ main (void)
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE);
 
-  jjs_value_free (object);
-  jjs_property_descriptor_free (&prop_desc);
+  jjs_value_free (ctx (), object);
+  jjs_property_descriptor_free (ctx (), &prop_desc);
 
   /* Next test. */
   source_p = "({ writable:false, configurable:true })";
@@ -104,8 +99,8 @@ main (void)
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE);
 
-  jjs_value_free (object);
-  jjs_property_descriptor_free (&prop_desc);
+  jjs_value_free (ctx (), object);
+  jjs_property_descriptor_free (ctx (), &prop_desc);
 
   /* Next test. */
   /* Note: the 'set' property is defined, and it has a value of undefined.
@@ -126,8 +121,8 @@ main (void)
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE);
 
-  jjs_value_free (object);
-  jjs_property_descriptor_free (&prop_desc);
+  jjs_value_free (ctx (), object);
+  jjs_property_descriptor_free (ctx (), &prop_desc);
 
   /* Next test. */
   source_p = "({ get: undefined, enumerable:false })";
@@ -145,8 +140,8 @@ main (void)
   TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_ENUMERABLE));
   TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED));
 
-  jjs_value_free (object);
-  jjs_property_descriptor_free (&prop_desc);
+  jjs_value_free (ctx (), object);
+  jjs_property_descriptor_free (ctx (), &prop_desc);
 
   /* Next test. */
   source_p = "({ set: function(v) {}, enumerable:true, configurable:false })";
@@ -165,24 +160,24 @@ main (void)
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_CONFIGURABLE_DEFINED);
   TEST_ASSERT (!(prop_desc.flags & JJS_PROP_IS_CONFIGURABLE));
 
-  jjs_value_free (object);
-  jjs_property_descriptor_free (&prop_desc);
+  jjs_value_free (ctx (), object);
+  jjs_property_descriptor_free (ctx (), &prop_desc);
 
   /* Next test. */
   source_p = "({ get: function(v) {}, writable:true })";
   object = create_property_descriptor (source_p);
-  jjs_value_t result = jjs_property_descriptor_from_object (object, &prop_desc);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (object);
+  jjs_value_t result = jjs_property_descriptor_from_object (ctx (), object, &prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
+  jjs_value_free (ctx (), object);
 
   /* Next test. */
-  object = jjs_null ();
-  result = jjs_property_descriptor_from_object (object, &prop_desc);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  jjs_value_free (result);
-  jjs_value_free (object);
+  object = jjs_null (ctx ());
+  result = jjs_property_descriptor_from_object (ctx (), object, &prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
+  jjs_value_free (ctx (), object);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

@@ -13,154 +13,125 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
+#include "jjs-test.h"
 
-#include "config.h"
 #include "annex.h"
-#define TEST_COMMON_IMPLEMENTATION
-#include "test-common.h"
 
 static void
-try_annex_path_to_file_url (const char* input, const char* expected_output)
+check_annex_path_to_file_url (jjs_value_t input, jjs_value_t expected)
 {
-  ecma_value_t input_value = annex_util_create_string_utf8_sz(input);
-  ecma_value_t output_value = annex_path_to_file_url (input_value);
-
-  TEST_ASSERT (ecma_is_value_string(output_value));
-
-  bool result = strict_equals_cstr (output_value, expected_output);
-
-  ecma_free_value (input_value);
-  ecma_free_value (output_value);
-
-  TEST_ASSERT (result);
+  ctx_assert_strict_equals (ctx_value (annex_path_to_file_url (ctx (), input)), expected);
 }
 
 static void
-try_annex_path_to_file_url_bad_input (ecma_value_t input)
-{
-  TEST_ASSERT (ecma_is_value_empty(annex_path_to_file_url (input)));
-  ecma_free_value (input);
-}
-
-static void
-test_annex_path_to_file_url(void)
+test_annex_path_to_file_url (void)
 {
 #ifdef _WIN32
   // Lowercase ascii alpha
-  try_annex_path_to_file_url ("C:\\foo", "file:///C:/foo");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo"), ctx_cstr ("file:///C:/foo"));
   // Uppercase ascii alpha
-  try_annex_path_to_file_url ("C:\\FOO", "file:///C:/FOO");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\FOO"), ctx_cstr ("file:///C:/FOO"));
   // dir
-  try_annex_path_to_file_url ("C:\\dir\\foo", "file:///C:/dir/foo");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\dir\\foo"), ctx_cstr ("file:///C:/dir/foo"));
   // trailing separator
-  try_annex_path_to_file_url ("C:\\dir\\", "file:///C:/dir/");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\dir\\"), ctx_cstr ("file:///C:/dir/"));
   // dot
-  try_annex_path_to_file_url ("C:\\foo.mjs", "file:///C:/foo.mjs");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo.mjs"), ctx_cstr ("file:///C:/foo.mjs"));
   // space
-  try_annex_path_to_file_url ("C:\\foo bar", "file:///C:/foo%20bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo bar"), ctx_cstr ("file:///C:/foo%20bar"));
   // question mark
-  try_annex_path_to_file_url ("C:\\foo?bar", "file:///C:/foo%3Fbar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo?bar"), ctx_cstr ("file:///C:/foo%3Fbar"));
   // number sign
-  try_annex_path_to_file_url ("C:\\foo#bar", "file:///C:/foo%23bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo#bar"), ctx_cstr ("file:///C:/foo%23bar"));
   // ampersand
-  try_annex_path_to_file_url ("C:\\foo&bar", "file:///C:/foo&bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo&bar"), ctx_cstr ("file:///C:/foo&bar"));
   // equals
-  try_annex_path_to_file_url ("C:\\foo=bar", "file:///C:/foo=bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo=bar"), ctx_cstr ("file:///C:/foo=bar"));
   // colon
-  try_annex_path_to_file_url ("C:\\foo:bar", "file:///C:/foo:bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo:bar"), ctx_cstr ("file:///C:/foo:bar"));
   // semicolon
-  try_annex_path_to_file_url ("C:\\foo;bar", "file:///C:/foo;bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo;bar"), ctx_cstr ("file:///C:/foo;bar"));
   // percent
-  try_annex_path_to_file_url ("C:\\foo%bar", "file:///C:/foo%25bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo%bar"), ctx_cstr ("file:///C:/foo%25bar"));
   // backslash
-  try_annex_path_to_file_url ("C:\\foo\\bar", "file:///C:/foo/bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo\\bar"), ctx_cstr ("file:///C:/foo/bar"));
   // backspace
-  try_annex_path_to_file_url ("C:\\foo\bbar", "file:///C:/foo%08bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo\bbar"), ctx_cstr ("file:///C:/foo%08bar"));
   // tab
-  try_annex_path_to_file_url ("C:\\foo\tbar", "file:///C:/foo%09bar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo\tbar"), ctx_cstr ("file:///C:/foo%09bar"));
   // newline
-  try_annex_path_to_file_url ("C:\\foo\nbar", "file:///C:/foo%0Abar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo\nbar"), ctx_cstr ("file:///C:/foo%0Abar"));
   // carriage return
-  try_annex_path_to_file_url ("C:\\foo\rbar", "file:///C:/foo%0Dbar");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\foo\rbar"), ctx_cstr ("file:///C:/foo%0Dbar"));
   // latin1
-  try_annex_path_to_file_url ("C:\\fóóbàr", "file:///C:/f%C3%B3%C3%B3b%C3%A0r");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\fóóbàr"), ctx_cstr ("file:///C:/f%C3%B3%C3%B3b%C3%A0r"));
   // Euro sign (BMP code point)
-  try_annex_path_to_file_url ("C:\\€", "file:///C:/%E2%82%AC");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\€"), ctx_cstr ("file:///C:/%E2%82%AC"));
   // Rocket emoji (non-BMP code point)
-  try_annex_path_to_file_url ("C:\\🚀", "file:///C:/%F0%9F%9A%80");
+  check_annex_path_to_file_url (ctx_cstr ("C:\\🚀"), ctx_cstr ("file:///C:/%F0%9F%9A%80"));
   // UNC path (see https://docs.microsoft.com/en-us/archive/blogs/ie/file-uris-in-windows)
-  try_annex_path_to_file_url ("\\\\nas\\My Docs\\File.doc", "file://nas/My%20Docs/File.doc");
+  check_annex_path_to_file_url (ctx_cstr ("\\\\nas\\My Docs\\File.doc"), ctx_cstr ("file://nas/My%20Docs/File.doc"));
 #else // !_WIN32
   // Lowercase ascii alpha
-  try_annex_path_to_file_url ("/foo", "file:///foo");
+  check_annex_path_to_file_url (ctx_cstr ("/foo"), ctx_cstr ("file:///foo"));
   // Uppercase ascii alpha
-  try_annex_path_to_file_url ("/FOO", "file:///FOO");
+  check_annex_path_to_file_url (ctx_cstr ("/FOO"), ctx_cstr ("file:///FOO"));
   // dir
-  try_annex_path_to_file_url ("/dir/foo", "file:///dir/foo");
+  check_annex_path_to_file_url (ctx_cstr ("/dir/foo"), ctx_cstr ("file:///dir/foo"));
   // trailing separator
-  try_annex_path_to_file_url ("/dir/", "file:///dir/");
+  check_annex_path_to_file_url (ctx_cstr ("/dir/"), ctx_cstr ("file:///dir/"));
   // dot
-  try_annex_path_to_file_url ("/foo.mjs", "file:///foo.mjs");
+  check_annex_path_to_file_url (ctx_cstr ("/foo.mjs"), ctx_cstr ("file:///foo.mjs"));
   // space
-  try_annex_path_to_file_url ("/foo bar", "file:///foo%20bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo bar"), ctx_cstr ("file:///foo%20bar"));
   // question mark
-  try_annex_path_to_file_url ("/foo?bar", "file:///foo%3Fbar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo?bar"), ctx_cstr ("file:///foo%3Fbar"));
   // number sign
-  try_annex_path_to_file_url ("/foo#bar", "file:///foo%23bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo#bar"), ctx_cstr ("file:///foo%23bar"));
   // ampersand
-  try_annex_path_to_file_url ("/foo&bar", "file:///foo&bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo&bar"), ctx_cstr ("file:///foo&bar"));
   // equals
-  try_annex_path_to_file_url ("/foo=bar", "file:///foo=bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo=bar"), ctx_cstr ("file:///foo=bar"));
   // colon
-  try_annex_path_to_file_url ("/foo:bar", "file:///foo:bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo:bar"), ctx_cstr ("file:///foo:bar"));
   // semicolon
-  try_annex_path_to_file_url ("/foo;bar", "file:///foo;bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo;bar"), ctx_cstr ("file:///foo;bar"));
   // percent
-  try_annex_path_to_file_url ("/foo%bar", "file:///foo%25bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo%bar"), ctx_cstr ("file:///foo%25bar"));
   // backslash
-  try_annex_path_to_file_url ("/foo\\bar", "file:///foo%5Cbar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo\\bar"), ctx_cstr ("file:///foo%5Cbar"));
   // backspace
-  try_annex_path_to_file_url ("/foo\bbar", "file:///foo%08bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo\bbar"), ctx_cstr ("file:///foo%08bar"));
   // tab
-  try_annex_path_to_file_url ("/foo\tbar", "file:///foo%09bar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo\tbar"), ctx_cstr ("file:///foo%09bar"));
   // newline
-  try_annex_path_to_file_url ("/foo\nbar", "file:///foo%0Abar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo\nbar"), ctx_cstr ("file:///foo%0Abar"));
   // carriage return
-  try_annex_path_to_file_url ("/foo\rbar", "file:///foo%0Dbar");
+  check_annex_path_to_file_url (ctx_cstr ("/foo\rbar"), ctx_cstr ("file:///foo%0Dbar"));
   // latin1
-  try_annex_path_to_file_url ("/fóóbàr", "file:///f%C3%B3%C3%B3b%C3%A0r");
+  check_annex_path_to_file_url (ctx_cstr ("/fóóbàr"), ctx_cstr ("file:///f%C3%B3%C3%B3b%C3%A0r"));
   // Euro sign (BMP code point)
-  try_annex_path_to_file_url ("/€", "file:///%E2%82%AC");
+  check_annex_path_to_file_url (ctx_cstr ("/€"), ctx_cstr ("file:///%E2%82%AC"));
   // Rocket emoji (non-BMP code point)
-  try_annex_path_to_file_url ("/🚀", "file:///%F0%9F%9A%80");
+  check_annex_path_to_file_url (ctx_cstr ("/🚀"), ctx_cstr ("file:///%F0%9F%9A%80"));
 #endif
 }
 
 static void
 test_annex_path_to_file_url_bad_input (void)
 {
-  try_annex_path_to_file_url_bad_input (ecma_make_boolean_value (true));
-  try_annex_path_to_file_url_bad_input (ecma_make_int32_value(123));
-  try_annex_path_to_file_url_bad_input (jjs_object());
-  try_annex_path_to_file_url_bad_input (jjs_array(1));
-  try_annex_path_to_file_url_bad_input (jjs_symbol (JJS_SYMBOL_MATCH));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, ""));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, "./relative-path"));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, "../relative-path"));
-  try_annex_path_to_file_url_bad_input (ecma_string_ascii_sz (context_p, "relative-path"));
+  check_annex_path_to_file_url (ctx_boolean (true), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_number (123), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_object (), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_array (1), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_symbol ("test"), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_cstr (""), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_cstr ("./relative-path"), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_cstr ("../relative-path"), ECMA_VALUE_EMPTY);
+  check_annex_path_to_file_url (ctx_cstr ("relative-path"), ECMA_VALUE_EMPTY);
 }
 
-int
-main (void)
-{
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
-
+TEST_MAIN ({
   test_annex_path_to_file_url ();
   test_annex_path_to_file_url_bad_input ();
-  
-  TEST_CONTEXT_FREE (context_p);
-  return 0;
-} /* main */
+})

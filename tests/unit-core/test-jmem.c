@@ -13,27 +13,24 @@
  * limitations under the License.
  */
 
-#include "ecma-init-finalize.h"
+#include "jjs-test.h"
 
-#include "jmem.h"
-#include "jjs-context-init.h"
-#include "test-common.h"
+#include "ecma-init-finalize.h"
 
 #define BASIC_SIZE (64)
 
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_INIT ();
+  jjs_context_t *context_p = ctx_bootstrap (NULL);
 
-  jmem_init ();
-  ecma_init ();
+  jmem_init (context_p);
+  ecma_init (context_p);
 
   {
-    uint8_t *block1_p = (uint8_t *) jmem_heap_alloc_block (BASIC_SIZE);
-    uint8_t *block2_p = (uint8_t *) jmem_heap_alloc_block (BASIC_SIZE);
-    uint8_t *block3_p = (uint8_t *) jmem_heap_alloc_block (BASIC_SIZE);
+    uint8_t *block1_p = (uint8_t *) jmem_heap_alloc_block (context_p, BASIC_SIZE);
+    uint8_t *block2_p = (uint8_t *) jmem_heap_alloc_block (context_p, BASIC_SIZE);
+    uint8_t *block3_p = (uint8_t *) jmem_heap_alloc_block (context_p, BASIC_SIZE);
 
     /* [block1 64] [block2 64] [block3 64] [...] */
 
@@ -43,7 +40,7 @@ main (void)
     }
 
     /* Realloc by moving */
-    block2_p = jmem_heap_realloc_block (block2_p, BASIC_SIZE, BASIC_SIZE * 2);
+    block2_p = jmem_heap_realloc_block (context_p, block2_p, BASIC_SIZE, BASIC_SIZE * 2);
 
     /* [block1 64] [free 64] [block3 64] [block2 128] [...] */
 
@@ -57,16 +54,16 @@ main (void)
       block2_p[i] = i;
     }
 
-    uint8_t *block4_p = (uint8_t *) jmem_heap_alloc_block (BASIC_SIZE * 2);
+    uint8_t *block4_p = (uint8_t *) jmem_heap_alloc_block (context_p, BASIC_SIZE * 2);
 
     /* [block1 64] [free 64] [block3 64] [block2 128] [block4 128] [...] */
 
-    jmem_heap_free_block (block3_p, BASIC_SIZE);
+    jmem_heap_free_block (context_p, block3_p, BASIC_SIZE);
 
     /* [block1 64] [free 128] [block2 128] [block4 128] [...] */
 
     /* Realloc by extending front */
-    block2_p = (uint8_t *) jmem_heap_realloc_block (block2_p, BASIC_SIZE * 2, BASIC_SIZE * 3);
+    block2_p = (uint8_t *) jmem_heap_realloc_block (context_p, block2_p, BASIC_SIZE * 2, BASIC_SIZE * 3);
 
     /* [block1 64] [free 64] [block2 192] [block4 128] [...] */
 
@@ -76,7 +73,7 @@ main (void)
     }
 
     /* Shrink */
-    block2_p = (uint8_t *) jmem_heap_realloc_block (block2_p, BASIC_SIZE * 3, BASIC_SIZE);
+    block2_p = (uint8_t *) jmem_heap_realloc_block (context_p, block2_p, BASIC_SIZE * 3, BASIC_SIZE);
 
     /* [block1 64] [free 64] [block2 64] [free 128] [block4 128] [...] */
 
@@ -91,7 +88,7 @@ main (void)
     }
 
     /* Grow in place */
-    block1_p = (uint8_t *) jmem_heap_realloc_block (block1_p, BASIC_SIZE, BASIC_SIZE * 2);
+    block1_p = (uint8_t *) jmem_heap_realloc_block (context_p, block1_p, BASIC_SIZE, BASIC_SIZE * 2);
 
     /* [block1 128] [block2 64] [free 128] [block4 128] [...] */
 
@@ -100,14 +97,14 @@ main (void)
       TEST_ASSERT (block1_p[i] == i);
     }
 
-    jmem_heap_free_block (block1_p, BASIC_SIZE * 2);
-    jmem_heap_free_block (block2_p, BASIC_SIZE);
-    jmem_heap_free_block (block4_p, BASIC_SIZE * 2);
+    jmem_heap_free_block (context_p, block1_p, BASIC_SIZE * 2);
+    jmem_heap_free_block (context_p, block2_p, BASIC_SIZE);
+    jmem_heap_free_block (context_p, block4_p, BASIC_SIZE * 2);
   }
 
-  ecma_finalize ();
-  jmem_finalize ();
-  TEST_CONTEXT_CLEANUP ();
+  ecma_finalize (context_p);
+  jmem_finalize (context_p);
+  ctx_bootstrap_cleanup (context_p);
 
   return 0;
 } /* main */

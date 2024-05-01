@@ -13,10 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-#include "test-common.h"
+#include "jjs-test.h"
 
 static jjs_value_t
 vm_exec_stop_callback (void *user_p)
@@ -27,39 +24,37 @@ vm_exec_stop_callback (void *user_p)
   {
     (*int_p)--;
 
-    return jjs_undefined ();
+    return jjs_undefined (ctx ());
   }
 
-  return jjs_string_sz ("Abort script");
+  return jjs_string_sz (ctx (), "Abort script");
 } /* vm_exec_stop_callback */
 
 int
 main (void)
 {
-  TEST_INIT ();
-
   /* Test stopping an infinite loop. */
   if (!jjs_feature_enabled (JJS_FEATURE_VM_EXEC_STOP))
   {
     return 0;
   }
 
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   int countdown = 6;
-  jjs_halt_handler (16, vm_exec_stop_callback, &countdown);
+  jjs_halt_handler (ctx (), 16, vm_exec_stop_callback, &countdown);
 
   const jjs_char_t inf_loop_code_src1[] = "while(true) {}";
-  jjs_value_t parsed_code_val = jjs_parse (inf_loop_code_src1, sizeof (inf_loop_code_src1) - 1, NULL);
+  jjs_value_t parsed_code_val = jjs_parse (ctx (), inf_loop_code_src1, sizeof (inf_loop_code_src1) - 1, NULL);
 
-  TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
-  jjs_value_t res = jjs_run (parsed_code_val);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
+  jjs_value_t res = jjs_run (ctx (), parsed_code_val);
   TEST_ASSERT (countdown == 0);
 
-  TEST_ASSERT (jjs_value_is_exception (res));
+  TEST_ASSERT (jjs_value_is_exception (ctx (), res));
 
-  jjs_value_free (res);
-  jjs_value_free (parsed_code_val);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), parsed_code_val);
 
   /* A more complex example. Although the callback error is captured
    * by the catch block, it is automatically thrown again. */
@@ -70,19 +65,19 @@ main (void)
   const jjs_char_t inf_loop_code_src2[] = TEST_STRING_LITERAL ("function f() { while (true) ; }\n"
                                                                  "try { f(); } catch(e) {}");
 
-  parsed_code_val = jjs_parse (inf_loop_code_src2, sizeof (inf_loop_code_src2) - 1, NULL);
+  parsed_code_val = jjs_parse (ctx (), inf_loop_code_src2, sizeof (inf_loop_code_src2) - 1, NULL);
 
-  TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
-  res = jjs_run (parsed_code_val);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
+  res = jjs_run (ctx (), parsed_code_val);
   TEST_ASSERT (countdown == 0);
 
   /* The result must have an error flag which proves that
    * the error is thrown again inside the catch block. */
-  TEST_ASSERT (jjs_value_is_exception (res));
+  TEST_ASSERT (jjs_value_is_exception (ctx (), res));
 
-  jjs_value_free (res);
-  jjs_value_free (parsed_code_val);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), parsed_code_val);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

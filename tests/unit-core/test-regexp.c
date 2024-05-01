@@ -13,59 +13,56 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t global_obj_val = jjs_current_realm ();
+  jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
   char pattern[] = "[^.]+";
   uint16_t flags = JJS_REGEXP_FLAG_GLOBAL | JJS_REGEXP_FLAG_MULTILINE;
-  jjs_value_t regex_obj = jjs_regexp_sz (pattern, flags);
-  TEST_ASSERT (jjs_value_is_object (regex_obj));
+  jjs_value_t regex_obj = jjs_regexp_sz (ctx (), pattern, flags);
+  TEST_ASSERT (jjs_value_is_object (ctx (), regex_obj));
 
   const jjs_char_t func_src[] = "return [regex.exec('something.domain.com'), regex.multiline, regex.global];";
 
   jjs_parse_options_t parse_options;
   parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz ("regex");
+  parse_options.argument_list = jjs_string_sz (ctx (), "regex");
 
-  jjs_value_t func_val = jjs_parse (func_src, sizeof (func_src) - 1, &parse_options);
-  jjs_value_free (parse_options.argument_list);
+  jjs_value_t func_val = jjs_parse (ctx (), func_src, sizeof (func_src) - 1, &parse_options);
+  jjs_value_free (ctx (), parse_options.argument_list);
 
-  jjs_value_t res = jjs_call (func_val, global_obj_val, &regex_obj, 1);
-  jjs_value_t regex_res = jjs_object_get_index (res, 0);
-  jjs_value_t regex_res_str = jjs_object_get_index (regex_res, 0);
-  jjs_value_t is_multiline = jjs_object_get_index (res, 1);
-  jjs_value_t is_global = jjs_object_get_index (res, 2);
+  jjs_value_t res = jjs_call (ctx (), func_val, global_obj_val, &regex_obj, 1);
+  jjs_value_t regex_res = jjs_object_get_index (ctx (), res, 0);
+  jjs_value_t regex_res_str = jjs_object_get_index (ctx (), regex_res, 0);
+  jjs_value_t is_multiline = jjs_object_get_index (ctx (), res, 1);
+  jjs_value_t is_global = jjs_object_get_index (ctx (), res, 2);
 
   const char expected_result[] = "something";
-  jjs_size_t str_size = jjs_string_size (regex_res_str, JJS_ENCODING_CESU8);
+  jjs_size_t str_size = jjs_string_size (ctx (), regex_res_str, JJS_ENCODING_CESU8);
   TEST_ASSERT (str_size == (sizeof (expected_result) - 1));
 
   JJS_VLA (jjs_char_t, res_buff, str_size);
-  jjs_size_t res_size = jjs_string_to_buffer (regex_res_str, JJS_ENCODING_CESU8, res_buff, str_size);
+  jjs_size_t res_size = jjs_string_to_buffer (ctx (), regex_res_str, JJS_ENCODING_CESU8, res_buff, str_size);
 
   TEST_ASSERT (res_size == str_size);
   TEST_ASSERT (strncmp (expected_result, (const char *) res_buff, res_size) == 0);
-  TEST_ASSERT (jjs_value_is_true (is_multiline));
-  TEST_ASSERT (jjs_value_is_true (is_global));
+  TEST_ASSERT (jjs_value_is_true (ctx (), is_multiline));
+  TEST_ASSERT (jjs_value_is_true (ctx (), is_global));
 
-  jjs_value_free (regex_obj);
-  jjs_value_free (res);
-  jjs_value_free (func_val);
-  jjs_value_free (regex_res);
-  jjs_value_free (regex_res_str);
-  jjs_value_free (is_multiline);
-  jjs_value_free (is_global);
-  jjs_value_free (global_obj_val);
+  jjs_value_free (ctx (), regex_obj);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), func_val);
+  jjs_value_free (ctx (), regex_res);
+  jjs_value_free (ctx (), regex_res_str);
+  jjs_value_free (ctx (), is_multiline);
+  jjs_value_free (ctx (), is_global);
+  jjs_value_free (ctx (), global_obj_val);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

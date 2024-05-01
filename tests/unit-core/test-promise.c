@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("var p1 = create_promise1();"
                                                                "var p2 = create_promise2();"
@@ -41,8 +39,8 @@ create_promise1_handler (const jjs_call_info_t *call_info_p, /**< call informati
   JJS_UNUSED (args_p);
   JJS_UNUSED (args_cnt);
 
-  jjs_value_t ret = jjs_promise ();
-  my_promise1 = jjs_value_copy (ret);
+  jjs_value_t ret = jjs_promise (ctx ());
+  my_promise1 = jjs_value_copy (ctx (), ret);
 
   return ret;
 } /* create_promise1_handler */
@@ -56,8 +54,8 @@ create_promise2_handler (const jjs_call_info_t *call_info_p, /**< call informati
   JJS_UNUSED (args_p);
   JJS_UNUSED (args_cnt);
 
-  jjs_value_t ret = jjs_promise ();
-  my_promise2 = jjs_value_copy (ret);
+  jjs_value_t ret = jjs_promise (ctx ());
+  my_promise2 = jjs_value_copy (ctx (), ret);
 
   return ret;
 } /* create_promise2_handler */
@@ -71,14 +69,14 @@ assert_handler (const jjs_call_info_t *call_info_p, /**< call information */
 
   count_in_assert++;
 
-  if (args_cnt == 1 && jjs_value_is_true (args_p[0]))
+  if (args_cnt == 1 && jjs_value_is_true (ctx (), args_p[0]))
   {
-    return jjs_boolean (true);
+    return jjs_boolean (ctx (), true);
   }
 
   TEST_ASSERT (false);
 
-  return jjs_undefined ();
+  return jjs_undefined (ctx ());
 } /* assert_handler */
 
 /**
@@ -88,66 +86,66 @@ static void
 register_js_function (const char *name_p, /**< name of the function */
                       jjs_external_handler_t handler_p) /**< function callback */
 {
-  jjs_value_t global_obj_val = jjs_current_realm ();
+  jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
-  jjs_value_t function_val = jjs_function_external (handler_p);
-  jjs_value_t function_name_val = jjs_string_sz (name_p);
-  jjs_value_t result_val = jjs_object_set (global_obj_val, function_name_val, function_val);
+  jjs_value_t function_val = jjs_function_external (ctx (), handler_p);
+  jjs_value_t function_name_val = jjs_string_sz (ctx (), name_p);
+  jjs_value_t result_val = jjs_object_set (ctx (), global_obj_val, function_name_val, function_val);
 
-  jjs_value_free (function_name_val);
-  jjs_value_free (function_val);
-  jjs_value_free (global_obj_val);
+  jjs_value_free (ctx (), function_name_val);
+  jjs_value_free (ctx (), function_val);
+  jjs_value_free (ctx (), global_obj_val);
 
-  jjs_value_free (result_val);
+  jjs_value_free (ctx (), result_val);
 } /* register_js_function */
 
 int
 main (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   register_js_function ("create_promise1", create_promise1_handler);
   register_js_function ("create_promise2", create_promise2_handler);
   register_js_function ("assert", assert_handler);
 
-  jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+  jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-  jjs_value_t res = jjs_run (parsed_code_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
+  jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
-  jjs_value_free (res);
-  jjs_value_free (parsed_code_val);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), parsed_code_val);
 
   /* Test jjs_promise and jjs_value_is_promise. */
-  TEST_ASSERT (jjs_value_is_promise (my_promise1));
-  TEST_ASSERT (jjs_value_is_promise (my_promise2));
+  TEST_ASSERT (jjs_value_is_promise (ctx (), my_promise1));
+  TEST_ASSERT (jjs_value_is_promise (ctx (), my_promise2));
 
   TEST_ASSERT (count_in_assert == 0);
 
   /* Test jjs_resolve_or_reject_promise. */
-  jjs_value_t str_resolve = jjs_string_sz (s1);
-  jjs_value_t str_reject = jjs_string_sz (s2);
+  jjs_value_t str_resolve = jjs_string_sz (ctx (), s1);
+  jjs_value_t str_reject = jjs_string_sz (ctx (), s2);
 
-  jjs_promise_resolve (my_promise1, str_resolve);
-  jjs_promise_reject (my_promise2, str_reject);
+  jjs_promise_resolve (ctx (), my_promise1, str_resolve);
+  jjs_promise_reject (ctx (), my_promise2, str_reject);
 
   /* The resolve/reject function should be invalid after the promise has the result. */
-  jjs_promise_resolve (my_promise2, str_resolve);
-  jjs_promise_reject (my_promise1, str_reject);
+  jjs_promise_resolve (ctx (), my_promise2, str_resolve);
+  jjs_promise_reject (ctx (), my_promise1, str_reject);
 
   /* Run the jobqueue. */
-  res = jjs_run_jobs ();
+  res = jjs_run_jobs (ctx ());
 
-  TEST_ASSERT (!jjs_value_is_exception (res));
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
   TEST_ASSERT (count_in_assert == 2);
 
-  jjs_value_free (my_promise1);
-  jjs_value_free (my_promise2);
-  jjs_value_free (str_resolve);
-  jjs_value_free (str_reject);
+  jjs_value_free (ctx (), my_promise1);
+  jjs_value_free (ctx (), my_promise2);
+  jjs_value_free (ctx (), str_resolve);
+  jjs_value_free (ctx (), str_reject);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

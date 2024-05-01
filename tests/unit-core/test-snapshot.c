@@ -13,10 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-#include "test-common.h"
+#include "jjs-test.h"
 
 /**
  * Maximum size of snapshots buffer
@@ -54,71 +51,70 @@ test_function_snapshot (void)
 
   const jjs_char_t code_to_snapshot[] = "return a + b";
 
-  jjs_context_t *context_p;
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  ctx_open (NULL);
 
   jjs_parse_options_t parse_options;
   parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz ("a, b");
+  parse_options.argument_list = jjs_string_sz (ctx (), "a, b");
 
-  jjs_value_t parse_result = jjs_parse (code_to_snapshot, sizeof (code_to_snapshot) - 1, &parse_options);
-  TEST_ASSERT (!jjs_value_is_exception (parse_result));
+  jjs_value_t parse_result = jjs_parse (ctx (), code_to_snapshot, sizeof (code_to_snapshot) - 1, &parse_options);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
   jjs_value_t generate_result =
-    jjs_generate_snapshot (parse_result, 0, function_snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
-  jjs_value_free (parse_result);
-  jjs_value_free (parse_options.argument_list);
+    jjs_generate_snapshot (ctx (), parse_result, 0, function_snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
+  jjs_value_free (ctx (), parse_result);
+  jjs_value_free (ctx (), parse_options.argument_list);
 
-  TEST_ASSERT (!jjs_value_is_exception (generate_result) && jjs_value_is_number (generate_result));
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result) && jjs_value_is_number (ctx (), generate_result));
 
-  size_t function_snapshot_size = (size_t) jjs_value_as_number (generate_result);
-  jjs_value_free (generate_result);
+  size_t function_snapshot_size = (size_t) jjs_value_as_number (ctx (), generate_result);
+  jjs_value_free (ctx (), generate_result);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  ctx_open (NULL);
 
-  jjs_value_t function_obj = jjs_exec_snapshot (function_snapshot_buffer,
+  jjs_value_t function_obj = jjs_exec_snapshot (ctx (), function_snapshot_buffer,
                                                     function_snapshot_size,
                                                     0,
                                                     JJS_SNAPSHOT_EXEC_LOAD_AS_FUNCTION,
                                                     NULL);
 
-  TEST_ASSERT (!jjs_value_is_exception (function_obj));
-  TEST_ASSERT (jjs_value_is_function (function_obj));
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), function_obj));
+  TEST_ASSERT (jjs_value_is_function (ctx (), function_obj));
 
-  jjs_value_t this_val = jjs_undefined ();
+  jjs_value_t this_val = jjs_undefined (ctx ());
   jjs_value_t args[2];
-  args[0] = jjs_number (1.0);
-  args[1] = jjs_number (2.0);
+  args[0] = jjs_number (ctx (), 1.0);
+  args[1] = jjs_number (ctx (), 2.0);
 
-  jjs_value_t res = jjs_call (function_obj, this_val, args, 2);
+  jjs_value_t res = jjs_call (ctx (), function_obj, this_val, args, 2);
 
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_number (res));
-  double num = jjs_value_as_number (res);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+  TEST_ASSERT (jjs_value_is_number (ctx (), res));
+  double num = jjs_value_as_number (ctx (), res);
   TEST_ASSERT (num == 3);
 
-  jjs_value_free (args[0]);
-  jjs_value_free (args[1]);
-  jjs_value_free (res);
-  jjs_value_free (function_obj);
+  jjs_value_free (ctx (), args[0]);
+  jjs_value_free (ctx (), args[1]);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), function_obj);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 } /* test_function_snapshot */
 
 static void
 arguments_test_exec_snapshot (uint32_t *snapshot_p, size_t snapshot_size, uint32_t exec_snapshot_flags)
 {
-  TEST_CONTEXT_NEW (context_p);
-  jjs_value_t res = jjs_exec_snapshot (snapshot_p, snapshot_size, 0, exec_snapshot_flags, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_number (res));
-  double raw_value = jjs_value_as_number (res);
+  ctx_open (NULL);
+  jjs_value_t res = jjs_exec_snapshot (ctx (), snapshot_p, snapshot_size, 0, exec_snapshot_flags, NULL);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+  TEST_ASSERT (jjs_value_is_number (ctx (), res));
+  double raw_value = jjs_value_as_number (ctx (), res);
   TEST_ASSERT (raw_value == 15);
-  jjs_value_free (res);
+  jjs_value_free (ctx (), res);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 } /* arguments_test_exec_snapshot */
 
 static void
@@ -135,21 +131,21 @@ test_function_arguments_snapshot (void)
                                                                  "  return a + b + c;"
                                                                  "}"
                                                                  "f(3,4,5);");
-    TEST_CONTEXT_NEW (context_p);
+    ctx_open (NULL);
 
-    jjs_value_t parse_result = jjs_parse (code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parse_result));
+    jjs_value_t parse_result = jjs_parse (ctx (), code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
     jjs_value_t generate_result =
-      jjs_generate_snapshot (parse_result, 0, arguments_snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
-    jjs_value_free (parse_result);
+      jjs_generate_snapshot (ctx (), parse_result, 0, arguments_snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
+    jjs_value_free (ctx (), parse_result);
 
-    TEST_ASSERT (!jjs_value_is_exception (generate_result) && jjs_value_is_number (generate_result));
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result) && jjs_value_is_number (ctx (), generate_result));
 
-    size_t snapshot_size = (size_t) jjs_value_as_number (generate_result);
-    jjs_value_free (generate_result);
+    size_t snapshot_size = (size_t) jjs_value_as_number (ctx (), generate_result);
+    jjs_value_free (ctx (), generate_result);
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
 
     arguments_test_exec_snapshot (arguments_snapshot_buffer, snapshot_size, 0);
     arguments_test_exec_snapshot (arguments_snapshot_buffer, snapshot_size, JJS_SNAPSHOT_EXEC_COPY_DATA);
@@ -161,24 +157,24 @@ test_exec_snapshot (uint32_t *snapshot_p, size_t snapshot_size, uint32_t exec_sn
 {
   char string_data[32];
 
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_register_magic_strings (magic_strings,
+  jjs_register_magic_strings (ctx (), magic_strings,
                                 sizeof (magic_string_lengths) / sizeof (jjs_length_t),
                                 magic_string_lengths);
 
-  jjs_value_t res = jjs_exec_snapshot (snapshot_p, snapshot_size, 0, exec_snapshot_flags, NULL);
+  jjs_value_t res = jjs_exec_snapshot (ctx (), snapshot_p, snapshot_size, 0, exec_snapshot_flags, NULL);
 
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  TEST_ASSERT (jjs_value_is_string (res));
-  jjs_size_t sz = jjs_string_size (res, JJS_ENCODING_CESU8);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+  TEST_ASSERT (jjs_value_is_string (ctx (), res));
+  jjs_size_t sz = jjs_string_size (ctx (), res, JJS_ENCODING_CESU8);
   TEST_ASSERT (sz == 20);
-  sz = jjs_string_to_buffer (res, JJS_ENCODING_CESU8, (jjs_char_t *) string_data, sz);
+  sz = jjs_string_to_buffer (ctx (), res, JJS_ENCODING_CESU8, (jjs_char_t *) string_data, sz);
   TEST_ASSERT (sz == 20);
-  jjs_value_free (res);
+  jjs_value_free (ctx (), res);
   TEST_ASSERT (!strncmp (string_data, "string from snapshot", (size_t) sz));
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 } /* test_exec_snapshot */
 
 static void
@@ -190,18 +186,18 @@ test_snapshot_with_user (void)
 
     const jjs_char_t code_to_snapshot[] = TEST_STRING_LITERAL ("function f() {}\n"
                                                                  "f");
-    TEST_CONTEXT_NEW (context_p);
+    ctx_open (NULL);
 
-    jjs_value_t parse_result = jjs_parse (code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parse_result));
+    jjs_value_t parse_result = jjs_parse (ctx (), code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
-    jjs_value_t generate_result = jjs_generate_snapshot (parse_result, 0, snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
-    jjs_value_free (parse_result);
+    jjs_value_t generate_result = jjs_generate_snapshot (ctx (), parse_result, 0, snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
+    jjs_value_free (ctx (), parse_result);
 
-    TEST_ASSERT (!jjs_value_is_exception (generate_result) && jjs_value_is_number (generate_result));
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result) && jjs_value_is_number (ctx (), generate_result));
 
-    size_t snapshot_size = (size_t) jjs_value_as_number (generate_result);
-    jjs_value_free (generate_result);
+    size_t snapshot_size = (size_t) jjs_value_as_number (ctx (), generate_result);
+    jjs_value_free (ctx (), generate_result);
 
     for (int i = 0; i < 3; i++)
     {
@@ -209,46 +205,44 @@ test_snapshot_with_user (void)
 
       if (i == 0)
       {
-        snapshot_exec_options.user_value = jjs_object ();
+        snapshot_exec_options.user_value = jjs_object (ctx ());
       }
       else if (i == 1)
       {
-        snapshot_exec_options.user_value = jjs_number (-3.5);
+        snapshot_exec_options.user_value = jjs_number (ctx (), -3.5);
       }
       else
       {
-        snapshot_exec_options.user_value = jjs_string_sz ("AnyString...");
+        snapshot_exec_options.user_value = jjs_string_sz (ctx (), "AnyString...");
       }
 
-      jjs_value_t result = jjs_exec_snapshot (snapshot_buffer,
+      jjs_value_t result = jjs_exec_snapshot (ctx (), snapshot_buffer,
                                                   snapshot_size,
                                                   0,
                                                   JJS_SNAPSHOT_EXEC_HAS_USER_VALUE,
                                                   &snapshot_exec_options);
 
-      TEST_ASSERT (!jjs_value_is_exception (result) && jjs_value_is_function (result));
+      TEST_ASSERT (!jjs_value_is_exception (ctx (), result) && jjs_value_is_function (ctx (), result));
 
-      jjs_value_t user_value = jjs_source_user_value (result);
-      jjs_value_free (result);
+      jjs_value_t user_value = jjs_source_user_value (ctx (), result);
+      jjs_value_free (ctx (), result);
 
-      result = jjs_binary_op (JJS_BIN_OP_STRICT_EQUAL, user_value, snapshot_exec_options.user_value);
+      result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, snapshot_exec_options.user_value);
 
-      TEST_ASSERT (jjs_value_is_true (result));
+      TEST_ASSERT (jjs_value_is_true (ctx (), result));
 
-      jjs_value_free (result);
-      jjs_value_free (user_value);
-      jjs_value_free (snapshot_exec_options.user_value);
+      jjs_value_free (ctx (), result);
+      jjs_value_free (ctx (), user_value);
+      jjs_value_free (ctx (), snapshot_exec_options.user_value);
     }
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
   }
 } /* test_snapshot_with_user */
 
 int
 main (void)
 {
-  TEST_INIT ();
-
   /* Static snapshot */
   if (jjs_feature_enabled (JJS_FEATURE_SNAPSHOT_SAVE) && jjs_feature_enabled (JJS_FEATURE_SNAPSHOT_EXEC))
   {
@@ -259,29 +253,29 @@ main (void)
                                                                  "};"
                                                                  "func('string', 'from');");
 
-    TEST_CONTEXT_NEW (context_p);
-    jjs_register_magic_strings (magic_strings,
+    ctx_open (NULL);
+    jjs_register_magic_strings (ctx (), magic_strings,
                                   sizeof (magic_string_lengths) / sizeof (jjs_length_t),
                                   magic_string_lengths);
 
-    jjs_value_t parse_result = jjs_parse (code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parse_result));
+    jjs_value_t parse_result = jjs_parse (ctx (), code_to_snapshot, sizeof (code_to_snapshot) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
     jjs_value_t generate_result =
-      jjs_generate_snapshot (parse_result, JJS_SNAPSHOT_SAVE_STATIC, snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
-    jjs_value_free (parse_result);
+      jjs_generate_snapshot (ctx (), parse_result, JJS_SNAPSHOT_SAVE_STATIC, snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
+    jjs_value_free (ctx (), parse_result);
 
-    TEST_ASSERT (!jjs_value_is_exception (generate_result) && jjs_value_is_number (generate_result));
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result) && jjs_value_is_number (ctx (), generate_result));
 
-    size_t snapshot_size = (size_t) jjs_value_as_number (generate_result);
-    jjs_value_free (generate_result);
+    size_t snapshot_size = (size_t) jjs_value_as_number (ctx (), generate_result);
+    jjs_value_free (ctx (), generate_result);
 
     /* Static snapshots are not supported by default. */
-    jjs_value_t exec_result = jjs_exec_snapshot (snapshot_buffer, snapshot_size, 0, 0, NULL);
-    TEST_ASSERT (jjs_value_is_exception (exec_result));
-    jjs_value_free (exec_result);
+    jjs_value_t exec_result = jjs_exec_snapshot (ctx (), snapshot_buffer, snapshot_size, 0, 0, NULL);
+    TEST_ASSERT (jjs_value_is_exception (ctx (), exec_result));
+    jjs_value_free (ctx (), exec_result);
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
 
     test_exec_snapshot (snapshot_buffer, snapshot_size, JJS_SNAPSHOT_EXEC_ALLOW_STATIC);
   }
@@ -296,40 +290,39 @@ main (void)
 
     const jjs_char_t code_to_snapshot1[] = "var a = 'hello'; 123";
 
-    jjs_context_t *context_p;
-    TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+    ctx_open (NULL);
 
-    jjs_value_t parse_result = jjs_parse (code_to_snapshot1, sizeof (code_to_snapshot1) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parse_result));
+    jjs_value_t parse_result = jjs_parse (ctx (), code_to_snapshot1, sizeof (code_to_snapshot1) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
-    jjs_value_t generate_result = jjs_generate_snapshot (parse_result, 0, snapshot_buffer_0, SNAPSHOT_BUFFER_SIZE);
-    jjs_value_free (parse_result);
+    jjs_value_t generate_result = jjs_generate_snapshot (ctx (), parse_result, 0, snapshot_buffer_0, SNAPSHOT_BUFFER_SIZE);
+    jjs_value_free (ctx (), parse_result);
 
-    TEST_ASSERT (!jjs_value_is_exception (generate_result) && jjs_value_is_number (generate_result));
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result) && jjs_value_is_number (ctx (), generate_result));
 
-    snapshot_sizes[0] = (size_t) jjs_value_as_number (generate_result);
-    jjs_value_free (generate_result);
+    snapshot_sizes[0] = (size_t) jjs_value_as_number (ctx (), generate_result);
+    jjs_value_free (ctx (), generate_result);
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
 
     const jjs_char_t code_to_snapshot2[] = "var b = 'hello'; 456";
 
-    TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+    ctx_open (NULL);
 
-    parse_result = jjs_parse (code_to_snapshot2, sizeof (code_to_snapshot2) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parse_result));
+    parse_result = jjs_parse (ctx (), code_to_snapshot2, sizeof (code_to_snapshot2) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
-    generate_result = jjs_generate_snapshot (parse_result, 0, snapshot_buffer_1, SNAPSHOT_BUFFER_SIZE);
-    jjs_value_free (parse_result);
+    generate_result = jjs_generate_snapshot (ctx (), parse_result, 0, snapshot_buffer_1, SNAPSHOT_BUFFER_SIZE);
+    jjs_value_free (ctx (), parse_result);
 
-    TEST_ASSERT (!jjs_value_is_exception (generate_result) && jjs_value_is_number (generate_result));
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result) && jjs_value_is_number (ctx (), generate_result));
 
-    snapshot_sizes[1] = (size_t) jjs_value_as_number (generate_result);
-    jjs_value_free (generate_result);
+    snapshot_sizes[1] = (size_t) jjs_value_as_number (ctx (), generate_result);
+    jjs_value_free (ctx (), generate_result);
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
 
-    TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+    ctx_open (NULL);
 
     const char *error_p;
     const uint32_t *snapshot_buffers[2];
@@ -343,57 +336,57 @@ main (void)
     memcpy (snapshot_buffer_0_bck, snapshot_buffer_0, SNAPSHOT_BUFFER_SIZE);
     memcpy (snapshot_buffer_1_bck, snapshot_buffer_1, SNAPSHOT_BUFFER_SIZE);
 
-    size_t merged_size = jjs_merge_snapshots (snapshot_buffers,
+    size_t merged_size = jjs_merge_snapshots (ctx (), snapshot_buffers,
                                                 snapshot_sizes,
                                                 2,
                                                 merged_snapshot_buffer,
                                                 SNAPSHOT_BUFFER_SIZE,
                                                 &error_p);
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
 
     TEST_ASSERT (0 == memcmp (snapshot_buffer_0_bck, snapshot_buffer_0, SNAPSHOT_BUFFER_SIZE));
     TEST_ASSERT (0 == memcmp (snapshot_buffer_1_bck, snapshot_buffer_1, SNAPSHOT_BUFFER_SIZE));
 
-    TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+    ctx_open (NULL);
 
-    jjs_value_t res = jjs_exec_snapshot (merged_snapshot_buffer, merged_size, 0, 0, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (res));
-    TEST_ASSERT (jjs_value_as_number (res) == 123);
-    jjs_value_free (res);
+    jjs_value_t res = jjs_exec_snapshot (ctx (), merged_snapshot_buffer, merged_size, 0, 0, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+    TEST_ASSERT (jjs_value_as_number (ctx (), res) == 123);
+    jjs_value_free (ctx (), res);
 
-    res = jjs_exec_snapshot (merged_snapshot_buffer, merged_size, 1, 0, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (res));
-    TEST_ASSERT (jjs_value_as_number (res) == 456);
-    jjs_value_free (res);
+    res = jjs_exec_snapshot (ctx (), merged_snapshot_buffer, merged_size, 1, 0, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+    TEST_ASSERT (jjs_value_as_number (ctx (), res) == 456);
+    jjs_value_free (ctx (), res);
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
   }
 
   /* Save literals */
   if (jjs_feature_enabled (JJS_FEATURE_SNAPSHOT_SAVE))
   {
     /* C format generation */
-    TEST_CONTEXT_NEW (context_p);
+    ctx_open (NULL);
 
     static jjs_char_t literal_buffer_c[LITERAL_BUFFER_SIZE];
     static uint32_t literal_snapshot_buffer[SNAPSHOT_BUFFER_SIZE];
     static const jjs_char_t code_for_c_format[] = "var object = { aa:'fo\" o\\n \\\\', Bb:'max', aaa:'xzy0' };";
 
-    jjs_value_t parse_result = jjs_parse (code_for_c_format, sizeof (code_for_c_format) - 1, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (parse_result));
+    jjs_value_t parse_result = jjs_parse (ctx (), code_for_c_format, sizeof (code_for_c_format) - 1, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
     jjs_value_t generate_result =
-      jjs_generate_snapshot (parse_result, 0, literal_snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
-    jjs_value_free (parse_result);
+      jjs_generate_snapshot (ctx (), parse_result, 0, literal_snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
+    jjs_value_free (ctx (), parse_result);
 
-    TEST_ASSERT (!jjs_value_is_exception (generate_result));
-    TEST_ASSERT (jjs_value_is_number (generate_result));
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result));
+    TEST_ASSERT (jjs_value_is_number (ctx (), generate_result));
 
-    size_t snapshot_size = (size_t) jjs_value_as_number (generate_result);
-    jjs_value_free (generate_result);
+    size_t snapshot_size = (size_t) jjs_value_as_number (ctx (), generate_result);
+    jjs_value_free (ctx (), generate_result);
 
-    const size_t lit_c_buf_sz = jjs_get_literals_from_snapshot (literal_snapshot_buffer,
+    const size_t lit_c_buf_sz = jjs_get_literals_from_snapshot (ctx (), literal_snapshot_buffer,
                                                                   snapshot_size,
                                                                   literal_buffer_c,
                                                                   LITERAL_BUFFER_SIZE,
@@ -423,7 +416,7 @@ main (void)
 
     /* List format generation */
     static jjs_char_t literal_buffer_list[LITERAL_BUFFER_SIZE];
-    const size_t lit_list_buf_sz = jjs_get_literals_from_snapshot (literal_snapshot_buffer,
+    const size_t lit_list_buf_sz = jjs_get_literals_from_snapshot (ctx (), literal_snapshot_buffer,
                                                                      snapshot_size,
                                                                      literal_buffer_list,
                                                                      LITERAL_BUFFER_SIZE,
@@ -432,7 +425,7 @@ main (void)
     TEST_ASSERT (
       !strncmp ((char *) literal_buffer_list, "2 Bb\n2 aa\n3 aaa\n4 xzy0\n8 fo\" o\n \\\n", lit_list_buf_sz));
 
-    TEST_CONTEXT_FREE (context_p);
+    ctx_close ();
   }
 
   test_function_snapshot ();

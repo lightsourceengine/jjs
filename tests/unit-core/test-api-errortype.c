@@ -13,61 +13,57 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   jjs_error_t errors[] = { JJS_ERROR_COMMON, JJS_ERROR_EVAL, JJS_ERROR_RANGE, JJS_ERROR_REFERENCE,
                              JJS_ERROR_SYNTAX, JJS_ERROR_TYPE, JJS_ERROR_URI };
 
   for (size_t idx = 0; idx < sizeof (errors) / sizeof (errors[0]); idx++)
   {
-    jjs_value_t error_obj = jjs_throw_sz (errors[idx], "test");
-    TEST_ASSERT (jjs_value_is_exception (error_obj));
-    TEST_ASSERT (jjs_error_type (error_obj) == errors[idx]);
+    jjs_value_t error_obj = jjs_throw_sz (ctx (), errors[idx], "test");
+    TEST_ASSERT (jjs_value_is_exception (ctx (), error_obj));
+    TEST_ASSERT (jjs_error_type (ctx (), error_obj) == errors[idx]);
 
-    error_obj = jjs_exception_value (error_obj, true);
+    error_obj = jjs_exception_value (ctx (), error_obj, true);
 
-    TEST_ASSERT (jjs_error_type (error_obj) == errors[idx]);
+    TEST_ASSERT (jjs_error_type (ctx (), error_obj) == errors[idx]);
 
-    jjs_value_free (error_obj);
+    jjs_value_free (ctx (), error_obj);
   }
 
   jjs_value_t test_values[] = {
-    jjs_number (11),
-    jjs_string_sz ("message"),
-    jjs_boolean (true),
-    jjs_object (),
+    jjs_number (ctx (), 11),
+    jjs_string_sz (ctx (), "message"),
+    jjs_boolean (ctx (), true),
+    jjs_object (ctx ()),
   };
 
   for (size_t idx = 0; idx < sizeof (test_values) / sizeof (test_values[0]); idx++)
   {
-    jjs_error_t error_type = jjs_error_type (test_values[idx]);
+    jjs_error_t error_type = jjs_error_type (ctx (), test_values[idx]);
     TEST_ASSERT (error_type == JJS_ERROR_NONE);
-    jjs_value_free (test_values[idx]);
+    jjs_value_free (ctx (), test_values[idx]);
   }
 
   char test_source[] = "\xF0\x9D\x84\x9E";
 
-  jjs_value_t result = jjs_parse ((const jjs_char_t *) test_source, sizeof (test_source) - 1, NULL);
-  TEST_ASSERT (jjs_value_is_exception (result));
-  TEST_ASSERT (jjs_error_type (result) == JJS_ERROR_SYNTAX);
+  jjs_value_t result = jjs_parse (ctx (), (const jjs_char_t *) test_source, sizeof (test_source) - 1, NULL);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  TEST_ASSERT (jjs_error_type (ctx (), result) == JJS_ERROR_SYNTAX);
 
-  jjs_value_free (result);
+  jjs_value_free (ctx (), result);
 
   char test_invalid_error[] = "Object.create(Error.prototype)";
-  result = jjs_eval ((const jjs_char_t *) test_invalid_error, sizeof (test_invalid_error) - 1, JJS_PARSE_NO_OPTS);
-  TEST_ASSERT (!jjs_value_is_exception (result) && jjs_value_is_object (result));
-  TEST_ASSERT (jjs_error_type (result) == JJS_ERROR_NONE);
+  result = jjs_eval (ctx (), (const jjs_char_t *) test_invalid_error, sizeof (test_invalid_error) - 1, JJS_PARSE_NO_OPTS);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result) && jjs_value_is_object (ctx (), result));
+  TEST_ASSERT (jjs_error_type (ctx (), result) == JJS_ERROR_NONE);
 
-  jjs_value_free (result);
+  jjs_value_free (ctx (), result);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 } /* main */

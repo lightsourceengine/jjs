@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 typedef struct
 {
@@ -36,128 +34,126 @@ test_ext_function (const jjs_call_info_t *call_info_p, /**< call information */
   (void) call_info_p;
   (void) args_p;
   (void) args_cnt;
-  return jjs_boolean (true);
+  return jjs_boolean (ctx (), true);
 } /* test_ext_function */
 
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   const char test_eval_function[] = "function demo(a) { return a + 1; }; demo";
 
   test_entry_t entries[] = {
-    ENTRY (JJS_TYPE_NUMBER, jjs_number (-33.0)),
-    ENTRY (JJS_TYPE_NUMBER, jjs_number (3)),
-    ENTRY (JJS_TYPE_NUMBER, jjs_nan ()),
-    ENTRY (JJS_TYPE_NUMBER, jjs_infinity (false)),
-    ENTRY (JJS_TYPE_NUMBER, jjs_infinity (true)),
+    ENTRY (JJS_TYPE_NUMBER, jjs_number (ctx (), -33.0)),
+    ENTRY (JJS_TYPE_NUMBER, jjs_number (ctx (), 3)),
+    ENTRY (JJS_TYPE_NUMBER, jjs_nan (ctx ())),
+    ENTRY (JJS_TYPE_NUMBER, jjs_infinity (ctx (), false)),
+    ENTRY (JJS_TYPE_NUMBER, jjs_infinity (ctx (), true)),
 
-    ENTRY (JJS_TYPE_BOOLEAN, jjs_boolean (true)),
-    ENTRY (JJS_TYPE_BOOLEAN, jjs_boolean (false)),
+    ENTRY (JJS_TYPE_BOOLEAN, jjs_boolean (ctx (), true)),
+    ENTRY (JJS_TYPE_BOOLEAN, jjs_boolean (ctx (), false)),
 
-    ENTRY (JJS_TYPE_UNDEFINED, jjs_undefined ()),
+    ENTRY (JJS_TYPE_UNDEFINED, jjs_undefined (ctx ())),
 
-    ENTRY (JJS_TYPE_OBJECT, jjs_object ()),
-    ENTRY (JJS_TYPE_OBJECT, jjs_array (10)),
-    ENTRY (JJS_TYPE_EXCEPTION, jjs_throw_sz (JJS_ERROR_TYPE, "error")),
+    ENTRY (JJS_TYPE_OBJECT, jjs_object (ctx ())),
+    ENTRY (JJS_TYPE_OBJECT, jjs_array (ctx (), 10)),
+    ENTRY (JJS_TYPE_EXCEPTION, jjs_throw_sz (ctx (), JJS_ERROR_TYPE, "error")),
 
-    ENTRY (JJS_TYPE_NULL, jjs_null ()),
+    ENTRY (JJS_TYPE_NULL, jjs_null (ctx ())),
 
     ENTRY (JJS_TYPE_FUNCTION,
-           jjs_eval ((jjs_char_t *) test_eval_function, sizeof (test_eval_function) - 1, JJS_PARSE_NO_OPTS)),
-    ENTRY (JJS_TYPE_FUNCTION, jjs_function_external (test_ext_function)),
+           jjs_eval (ctx (), (jjs_char_t *) test_eval_function, sizeof (test_eval_function) - 1, JJS_PARSE_NO_OPTS)),
+    ENTRY (JJS_TYPE_FUNCTION, jjs_function_external (ctx (), test_ext_function)),
 
-    ENTRY (JJS_TYPE_STRING, jjs_string_sz (test_eval_function)),
-    ENTRY (JJS_TYPE_STRING, jjs_string_sz ("")),
+    ENTRY (JJS_TYPE_STRING, jjs_string_sz (ctx (), test_eval_function)),
+    ENTRY (JJS_TYPE_STRING, jjs_string_sz (ctx (), "")),
   };
 
   for (size_t idx = 0; idx < sizeof (entries) / sizeof (entries[0]); idx++)
   {
-    jjs_type_t type_info = jjs_value_type (entries[idx].value);
+    jjs_type_t type_info = jjs_value_type (ctx (), entries[idx].value);
 
     TEST_ASSERT (type_info != JJS_TYPE_NONE);
     TEST_ASSERT (type_info == entries[idx].type_info);
 
-    jjs_value_free (entries[idx].value);
+    jjs_value_free (ctx (), entries[idx].value);
   }
 
-  jjs_value_t symbol_desc_value = jjs_string_sz ("foo");
-  jjs_value_t symbol_value = jjs_symbol_with_description (symbol_desc_value);
-  jjs_type_t type_info = jjs_value_type (symbol_value);
+  jjs_value_t symbol_desc_value = jjs_string_sz (ctx (), "foo");
+  jjs_value_t symbol_value = jjs_symbol_with_description (ctx (), symbol_desc_value);
+  jjs_type_t type_info = jjs_value_type (ctx (), symbol_value);
 
   TEST_ASSERT (type_info != JJS_TYPE_NONE);
   TEST_ASSERT (type_info == JJS_TYPE_SYMBOL);
 
-  jjs_value_free (symbol_value);
-  jjs_value_free (symbol_desc_value);
+  jjs_value_free (ctx (), symbol_value);
+  jjs_value_free (ctx (), symbol_desc_value);
 
   if (jjs_feature_enabled (JJS_FEATURE_BIGINT))
   {
     /* Check simple bigint value type */
     uint64_t digits_buffer[2] = { 1, 0 };
-    jjs_value_t value_bigint = jjs_bigint (digits_buffer, 2, false);
-    jjs_type_t value_type_info = jjs_value_type (value_bigint);
+    jjs_value_t value_bigint = jjs_bigint (ctx (), digits_buffer, 2, false);
+    jjs_type_t value_type_info = jjs_value_type (ctx (), value_bigint);
 
     TEST_ASSERT (value_type_info != JJS_TYPE_NONE);
     TEST_ASSERT (value_type_info == JJS_TYPE_BIGINT);
 
-    jjs_value_free (value_bigint);
+    jjs_value_free (ctx (), value_bigint);
 
     /* Check bigint wrapped in object type */
     jjs_char_t object_bigint_src[] = "Object(5n)";
-    jjs_value_t object_bigint = jjs_eval (object_bigint_src, sizeof (object_bigint_src) - 1, JJS_PARSE_NO_OPTS);
-    TEST_ASSERT (!jjs_value_is_exception (object_bigint));
+    jjs_value_t object_bigint = jjs_eval (ctx (), object_bigint_src, sizeof (object_bigint_src) - 1, JJS_PARSE_NO_OPTS);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), object_bigint));
 
-    jjs_type_t object_type_info = jjs_value_type (object_bigint);
+    jjs_type_t object_type_info = jjs_value_type (ctx (), object_bigint);
 
     TEST_ASSERT (object_type_info != JJS_TYPE_NONE);
     TEST_ASSERT (object_type_info == JJS_TYPE_OBJECT);
 
-    jjs_value_free (object_bigint);
+    jjs_value_free (ctx (), object_bigint);
   }
 
   if (jjs_feature_enabled (JJS_FEATURE_REALM))
   {
-    jjs_value_t new_realm = jjs_realm ();
-    jjs_value_t old_realm = jjs_set_realm (new_realm);
+    jjs_value_t new_realm = jjs_realm (ctx ());
+    jjs_value_t old_realm = jjs_set_realm (ctx (), new_realm);
 
-    jjs_type_t new_realm_type = jjs_value_type (new_realm);
+    jjs_type_t new_realm_type = jjs_value_type (ctx (), new_realm);
     TEST_ASSERT (new_realm_type == JJS_TYPE_OBJECT);
 
-    jjs_value_t new_realm_this = jjs_realm_this (new_realm);
-    jjs_type_t new_realm_this_type = jjs_value_type (new_realm_this);
+    jjs_value_t new_realm_this = jjs_realm_this (ctx (), new_realm);
+    jjs_type_t new_realm_this_type = jjs_value_type (ctx (), new_realm_this);
     TEST_ASSERT (new_realm_this_type == JJS_TYPE_OBJECT);
-    jjs_value_free (new_realm_this);
+    jjs_value_free (ctx (), new_realm_this);
 
-    jjs_type_t old_realm_type = jjs_value_type (old_realm);
+    jjs_type_t old_realm_type = jjs_value_type (ctx (), old_realm);
     TEST_ASSERT (old_realm_type == JJS_TYPE_OBJECT);
 
-    jjs_value_free (new_realm);
+    jjs_value_free (ctx (), new_realm);
 
-    jjs_value_t old_realm_this = jjs_realm_this (old_realm);
-    jjs_type_t old_realm_this_type = jjs_value_type (old_realm_this);
+    jjs_value_t old_realm_this = jjs_realm_this (ctx (), old_realm);
+    jjs_type_t old_realm_this_type = jjs_value_type (ctx (), old_realm_this);
     TEST_ASSERT (old_realm_this_type == JJS_TYPE_OBJECT);
-    jjs_value_free (old_realm_this);
+    jjs_value_free (ctx (), old_realm_this);
 
     /* Restore the old realm as per docs */
-    jjs_set_realm (old_realm);
+    jjs_set_realm (ctx (), old_realm);
   }
 
   {
-    jjs_value_t ex = jjs_throw_sz (JJS_ERROR_COMMON, "error");
+    jjs_value_t ex = jjs_throw_sz (ctx (), JJS_ERROR_COMMON, "error");
 
-    TEST_ASSERT (jjs_value_free_unless (ex, jjs_value_is_exception) == false);
-    jjs_value_free (ex);
+    TEST_ASSERT (jjs_value_free_unless (ctx (), ex, jjs_value_is_exception) == false);
+    jjs_value_free (ctx (), ex);
 
-    jjs_value_t obj = jjs_object ();
+    jjs_value_t obj = jjs_object (ctx ());
 
-    TEST_ASSERT (jjs_value_free_unless (obj, jjs_value_is_exception) == true);
+    TEST_ASSERT (jjs_value_free_unless (ctx (), obj, jjs_value_is_exception) == true);
   }
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

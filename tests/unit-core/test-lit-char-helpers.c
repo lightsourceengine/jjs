@@ -13,14 +13,13 @@
  * limitations under the License.
  */
 
+#include "jjs-test.h"
+
 #include "ecma-helpers.h"
 #include "ecma-init-finalize.h"
 
 #include "js-parser-internal.h"
-#include "jjs-context-init.h"
 #include "lit-char-helpers.h"
-#include "lit-strings.h"
-#include "test-common.h"
 
 static lit_code_point_t
 lexer_hex_to_character (const uint8_t *source_p) /**< current source position */
@@ -57,11 +56,10 @@ lexer_hex_to_character (const uint8_t *source_p) /**< current source position */
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_INIT ();
+  jjs_context_t *context_p = ctx_bootstrap (NULL);
 
-  jmem_init ();
-  ecma_init ();
+  jmem_init (context_p);
+  ecma_init (context_p);
 
   const uint8_t _1_byte_long1[] = "007F";
   const uint8_t _1_byte_long2[] = "0000";
@@ -116,9 +114,9 @@ main (void)
   length = lit_code_point_get_cesu8_length (lexer_hex_to_character (_6_byte_long2));
   TEST_ASSERT (length == 6);
 
-  ecma_finalize ();
-  jmem_finalize ();
-  TEST_CONTEXT_CLEANUP ();
+  ecma_finalize (context_p);
+  jmem_finalize (context_p);
+  ctx_bootstrap_cleanup (context_p);
 
   return 0;
 } /* main */

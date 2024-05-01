@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static jjs_value_t
 create_special_proxy_handler (const jjs_call_info_t *call_info_p, /**< call information */
@@ -26,19 +24,19 @@ create_special_proxy_handler (const jjs_call_info_t *call_info_p, /**< call info
 
   if (args_count < 2)
   {
-    return jjs_undefined ();
+    return jjs_undefined (ctx ());
   }
 
-  return jjs_proxy_custom (args_p[0], args_p[1], JJS_PROXY_SKIP_RESULT_VALIDATION);
+  return jjs_proxy_custom (ctx (), args_p[0], args_p[1], JJS_PROXY_SKIP_RESULT_VALIDATION);
 } /* create_special_proxy_handler */
 
 static void
 run_eval (const char *source_p)
 {
-  jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
 
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
 } /* run_eval */
 
 /**
@@ -47,28 +45,27 @@ run_eval (const char *source_p)
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
   if (!jjs_feature_enabled (JJS_FEATURE_PROXY))
   {
     printf ("Skipping test, Proxy not enabled\n");
+    ctx_close ();
     return 0;
   }
 
-  TEST_CONTEXT_NEW (context_p);
+  jjs_value_t global = jjs_current_realm (ctx ());
 
-  jjs_value_t global = jjs_current_realm ();
+  jjs_value_t function = jjs_function_external (ctx (), create_special_proxy_handler);
+  jjs_value_t name = jjs_string_sz (ctx (), "create_special_proxy");
+  jjs_value_t result = jjs_object_set (ctx (), global, name, function);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
-  jjs_value_t function = jjs_function_external (create_special_proxy_handler);
-  jjs_value_t name = jjs_string_sz ("create_special_proxy");
-  jjs_value_t result = jjs_object_set (global, name, function);
-  TEST_ASSERT (!jjs_value_is_exception (result));
+  jjs_value_free (ctx (), result);
+  jjs_value_free (ctx (), name);
+  jjs_value_free (ctx (), function);
 
-  jjs_value_free (result);
-  jjs_value_free (name);
-  jjs_value_free (function);
-
-  jjs_value_free (global);
+  jjs_value_free (ctx (), global);
 
   run_eval ("function assert (v) {\n"
             "  if (v !== true)\n"
@@ -158,6 +155,6 @@ main (void)
             "})\n"
             "Object.keys(proxy)");
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

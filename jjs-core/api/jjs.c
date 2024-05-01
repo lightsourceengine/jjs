@@ -1514,7 +1514,7 @@ jjs_exception_is_captured (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (value);
+  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (context_p, value);
 
   return (error_ref_p->refs_and_type & ECMA_ERROR_API_FLAG_THROW_CAPTURED) != 0;
 #else /* !JJS_VM_THROW */
@@ -1534,12 +1534,12 @@ jjs_exception_allow_capture (jjs_context_t* context_p, /**< JJS context */
   jjs_assert_api_enabled (context_p);
 
 #if JJS_VM_THROW
-  if (!ecma_is_value_exception (value))
+  if (!jjs_value_is_exception (context_p, value))
   {
     return;
   }
 
-  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (value);
+  ecma_extended_primitive_t *error_ref_p = ecma_get_extended_primitive_from_value (context_p, value);
 
   if (should_capture)
   {
@@ -1955,7 +1955,7 @@ bool jjs_value_free_unless (jjs_context_t* context_p, jjs_value_t value, jjs_val
   jjs_assert_api_enabled (context_p);
   JJS_ASSERT (condition_fn);
 
-  if (condition_fn (value))
+  if (condition_fn (context_p, value))
   {
     return false;
   }
@@ -3476,9 +3476,8 @@ jjs_object_set_internal (jjs_context_t* context_p, /**< JJS context */
  * @return empty property descriptor
  */
 jjs_property_descriptor_t
-jjs_property_descriptor (jjs_context_t* context_p) /**< JJS context */
+jjs_property_descriptor (void)
 {
-  JJS_UNUSED (context_p);
   jjs_property_descriptor_t prop_desc;
 
   prop_desc.flags = JJS_PROP_NO_OPTS;
@@ -3500,7 +3499,7 @@ static jjs_property_descriptor_t
 jjs_property_descriptor_from_ecma (jjs_context_t* context_p, /**< JJS context */
                                    const ecma_property_descriptor_t *prop_desc_p) /**<[out] property_descriptor */
 {
-  jjs_property_descriptor_t prop_desc = jjs_property_descriptor (context_p);
+  jjs_property_descriptor_t prop_desc = jjs_property_descriptor ();
 
   prop_desc.flags = prop_desc_p->flags;
 

@@ -13,16 +13,16 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static int global_counter;
 
 static void
-native_free_callback (void *native_p, /**< native pointer */
+native_free_callback (jjs_context_t *context_p, /** JJS context */
+                      void *native_p, /**< native pointer */
                       const jjs_object_native_info_t *info_p) /**< native info */
 {
+  JJS_UNUSED (context_p);
   TEST_ASSERT (native_p == (void *) &global_counter);
   TEST_ASSERT (info_p->free_cb == native_free_callback);
   global_counter++;
@@ -43,30 +43,30 @@ create_array_from_container_handler (const jjs_call_info_t *call_info_p,
 
   if (args_count < 2)
   {
-    return jjs_undefined ();
+    return jjs_undefined (ctx ());
   }
 
   bool is_key_value_pairs = false;
-  jjs_value_t result = jjs_container_to_array (args_p[0], &is_key_value_pairs);
+  jjs_value_t result = jjs_container_to_array (ctx (), args_p[0], &is_key_value_pairs);
 
-  TEST_ASSERT (is_key_value_pairs == jjs_value_is_true (args_p[1]));
+  TEST_ASSERT (is_key_value_pairs == jjs_value_is_true (ctx (), args_p[1]));
   return result;
 } /* create_array_from_container_handler */
 
 static void
 run_eval (const char *source_p)
 {
-  jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
 
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
 } /* run_eval */
 
 static void
 run_eval_error (const char *source_p)
 {
-  jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
-  jjs_value_free (result);
+  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_free (ctx (), result);
 } /* run_eval_error */
 
 int
@@ -75,70 +75,70 @@ main (void)
   if (!jjs_feature_enabled (JJS_FEATURE_MAP) || !jjs_feature_enabled (JJS_FEATURE_SET)
       || !jjs_feature_enabled (JJS_FEATURE_WEAKMAP) || !jjs_feature_enabled (JJS_FEATURE_WEAKSET))
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "Containers are disabled!\n");
+    jjs_log (ctx (), JJS_LOG_LEVEL_ERROR, "Containers are disabled!\n");
     return 0;
   }
 
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   jjs_value_t instance_check;
-  jjs_value_t global = jjs_current_realm ();
-  jjs_value_t map_str = jjs_string_sz ("Map");
-  jjs_value_t set_str = jjs_string_sz ("Set");
-  jjs_value_t weakmap_str = jjs_string_sz ("WeakMap");
-  jjs_value_t weakset_str = jjs_string_sz ("WeakSet");
-  jjs_value_t global_map = jjs_object_get (global, map_str);
-  jjs_value_t global_set = jjs_object_get (global, set_str);
-  jjs_value_t global_weakmap = jjs_object_get (global, weakmap_str);
-  jjs_value_t global_weakset = jjs_object_get (global, weakset_str);
+  jjs_value_t global = jjs_current_realm (ctx ());
+  jjs_value_t map_str = jjs_string_sz (ctx (), "Map");
+  jjs_value_t set_str = jjs_string_sz (ctx (), "Set");
+  jjs_value_t weakmap_str = jjs_string_sz (ctx (), "WeakMap");
+  jjs_value_t weakset_str = jjs_string_sz (ctx (), "WeakSet");
+  jjs_value_t global_map = jjs_object_get (ctx (), global, map_str);
+  jjs_value_t global_set = jjs_object_get (ctx (), global, set_str);
+  jjs_value_t global_weakmap = jjs_object_get (ctx (), global, weakmap_str);
+  jjs_value_t global_weakset = jjs_object_get (ctx (), global, weakset_str);
 
-  jjs_value_t function = jjs_function_external (create_array_from_container_handler);
-  jjs_value_t name = jjs_string_sz ("create_array_from_container");
-  jjs_value_t res = jjs_object_set (global, name, function);
-  TEST_ASSERT (!jjs_value_is_exception (res));
+  jjs_value_t function = jjs_function_external (ctx (), create_array_from_container_handler);
+  jjs_value_t name = jjs_string_sz (ctx (), "create_array_from_container");
+  jjs_value_t res = jjs_object_set (ctx (), global, name, function);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
-  jjs_value_free (res);
-  jjs_value_free (name);
-  jjs_value_free (function);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), name);
+  jjs_value_free (ctx (), function);
 
-  jjs_value_free (global);
+  jjs_value_free (ctx (), global);
 
-  jjs_value_free (map_str);
-  jjs_value_free (set_str);
-  jjs_value_free (weakmap_str);
-  jjs_value_free (weakset_str);
+  jjs_value_free (ctx (), map_str);
+  jjs_value_free (ctx (), set_str);
+  jjs_value_free (ctx (), weakmap_str);
+  jjs_value_free (ctx (), weakset_str);
 
-  jjs_value_t empty_map = jjs_container (JJS_CONTAINER_TYPE_MAP, NULL, 0);
-  TEST_ASSERT (jjs_container_type (empty_map) == JJS_CONTAINER_TYPE_MAP);
-  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_map, global_map);
-  TEST_ASSERT (jjs_value_is_true (instance_check));
-  jjs_value_free (instance_check);
-  jjs_value_free (global_map);
-  jjs_value_free (empty_map);
+  jjs_value_t empty_map = jjs_container (ctx (), JJS_CONTAINER_TYPE_MAP, NULL, 0);
+  TEST_ASSERT (jjs_container_type (ctx (), empty_map) == JJS_CONTAINER_TYPE_MAP);
+  instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_map, global_map);
+  TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));
+  jjs_value_free (ctx (), instance_check);
+  jjs_value_free (ctx (), global_map);
+  jjs_value_free (ctx (), empty_map);
 
-  jjs_value_t empty_set = jjs_container (JJS_CONTAINER_TYPE_SET, NULL, 0);
-  TEST_ASSERT (jjs_container_type (empty_set) == JJS_CONTAINER_TYPE_SET);
-  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_set, global_set);
-  TEST_ASSERT (jjs_value_is_true (instance_check));
-  jjs_value_free (instance_check);
-  jjs_value_free (global_set);
-  jjs_value_free (empty_set);
+  jjs_value_t empty_set = jjs_container (ctx (), JJS_CONTAINER_TYPE_SET, NULL, 0);
+  TEST_ASSERT (jjs_container_type (ctx (), empty_set) == JJS_CONTAINER_TYPE_SET);
+  instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_set, global_set);
+  TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));
+  jjs_value_free (ctx (), instance_check);
+  jjs_value_free (ctx (), global_set);
+  jjs_value_free (ctx (), empty_set);
 
-  jjs_value_t empty_weakmap = jjs_container (JJS_CONTAINER_TYPE_WEAKMAP, NULL, 0);
-  TEST_ASSERT (jjs_container_type (empty_weakmap) == JJS_CONTAINER_TYPE_WEAKMAP);
-  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_weakmap, global_weakmap);
-  TEST_ASSERT (jjs_value_is_true (instance_check));
-  jjs_value_free (instance_check);
-  jjs_value_free (global_weakmap);
-  jjs_value_free (empty_weakmap);
+  jjs_value_t empty_weakmap = jjs_container (ctx (), JJS_CONTAINER_TYPE_WEAKMAP, NULL, 0);
+  TEST_ASSERT (jjs_container_type (ctx (), empty_weakmap) == JJS_CONTAINER_TYPE_WEAKMAP);
+  instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_weakmap, global_weakmap);
+  TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));
+  jjs_value_free (ctx (), instance_check);
+  jjs_value_free (ctx (), global_weakmap);
+  jjs_value_free (ctx (), empty_weakmap);
 
-  jjs_value_t empty_weakset = jjs_container (JJS_CONTAINER_TYPE_WEAKSET, NULL, 0);
-  TEST_ASSERT (jjs_container_type (empty_weakset) == JJS_CONTAINER_TYPE_WEAKSET);
-  instance_check = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, empty_weakset, global_weakset);
-  TEST_ASSERT (jjs_value_is_true (instance_check));
-  jjs_value_free (instance_check);
-  jjs_value_free (global_weakset);
-  jjs_value_free (empty_weakset);
+  jjs_value_t empty_weakset = jjs_container (ctx (), JJS_CONTAINER_TYPE_WEAKSET, NULL, 0);
+  TEST_ASSERT (jjs_container_type (ctx (), empty_weakset) == JJS_CONTAINER_TYPE_WEAKSET);
+  instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_weakset, global_weakset);
+  TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));
+  jjs_value_free (ctx (), instance_check);
+  jjs_value_free (ctx (), global_weakset);
+  jjs_value_free (ctx (), empty_weakset);
 
   const jjs_char_t source[] = TEST_STRING_LITERAL ("(function () {\n"
                                                      "  var o1 = {}\n"
@@ -149,14 +149,14 @@ main (void)
                                                      "  wm.set(o2, o3)\n"
                                                      "  return o3\n"
                                                      "})()\n");
-  jjs_value_t result = jjs_eval (source, sizeof (source) - 1, JJS_PARSE_NO_OPTS);
-  TEST_ASSERT (jjs_value_is_object (result));
+  jjs_value_t result = jjs_eval (ctx (), source, sizeof (source) - 1, JJS_PARSE_NO_OPTS);
+  TEST_ASSERT (jjs_value_is_object (ctx (), result));
 
-  jjs_object_set_native_ptr (result, &native_info, (void *) &global_counter);
-  jjs_value_free (result);
+  jjs_object_set_native_ptr (ctx (), result, &native_info, (void *) &global_counter);
+  jjs_value_free (ctx (), result);
 
   global_counter = 0;
-  jjs_heap_gc (JJS_GC_PRESSURE_LOW);
+  jjs_heap_gc (ctx (), JJS_GC_PRESSURE_LOW);
   TEST_ASSERT (global_counter == 1);
 
   run_eval ("function assert(v) {\n"
@@ -240,6 +240,6 @@ main (void)
                   "var result = create_array_from_container(iter, false);\n"
                   "assert(result instanceof Error);");
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

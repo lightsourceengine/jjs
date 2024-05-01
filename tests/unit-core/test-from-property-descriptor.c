@@ -13,68 +13,63 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-#include "test-common.h"
+#include "jjs-test.h"
 
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
-  TEST_CONTEXT_NEW (context_p);
+  jjs_value_t object = jjs_object (ctx ());
+  jjs_value_t prop_name = jjs_string_sz (ctx (), "length");
+  jjs_value_t value = jjs_boolean (ctx (), true);
 
-  jjs_value_t object = jjs_object ();
-  jjs_value_t prop_name = jjs_string_sz ("length");
-  jjs_value_t value = jjs_boolean (true);
-
-  TEST_ASSERT (jjs_object_set (object, prop_name, prop_name));
-  TEST_ASSERT (jjs_object_has (object, prop_name));
-  TEST_ASSERT (jjs_object_has_own (object, prop_name));
+  TEST_ASSERT (jjs_object_set (ctx (), object, prop_name, prop_name));
+  TEST_ASSERT (jjs_object_has (ctx (), object, prop_name));
+  TEST_ASSERT (jjs_object_has_own (ctx (), object, prop_name));
 
   jjs_property_descriptor_t prop_desc;
-  TEST_ASSERT (jjs_object_get_own_prop (object, prop_name, &prop_desc));
+  TEST_ASSERT (jjs_object_get_own_prop (ctx (), object, prop_name, &prop_desc));
 
-  jjs_value_t from_object = jjs_property_descriptor_to_object (&prop_desc);
+  jjs_value_t from_object = jjs_property_descriptor_to_object (ctx (), &prop_desc);
 
-  prop_name = jjs_string_sz ("value");
-  value = jjs_object_get (from_object, prop_name);
+  prop_name = jjs_string_sz (ctx (), "value");
+  value = jjs_object_get (ctx (), from_object, prop_name);
   TEST_ASSERT (value == prop_desc.value);
 
-  prop_name = jjs_string_sz ("writable");
-  value = jjs_object_get (from_object, prop_name);
-  TEST_ASSERT (jjs_value_is_true (value) == ((prop_desc.flags & JJS_PROP_IS_WRITABLE) != 0));
+  prop_name = jjs_string_sz (ctx (), "writable");
+  value = jjs_object_get (ctx (), from_object, prop_name);
+  TEST_ASSERT (jjs_value_is_true (ctx (), value) == ((prop_desc.flags & JJS_PROP_IS_WRITABLE) != 0));
 
-  prop_name = jjs_string_sz ("enumerable");
-  value = jjs_object_get (from_object, prop_name);
-  TEST_ASSERT (jjs_value_is_true (value) == ((prop_desc.flags & JJS_PROP_IS_ENUMERABLE) != 0));
+  prop_name = jjs_string_sz (ctx (), "enumerable");
+  value = jjs_object_get (ctx (), from_object, prop_name);
+  TEST_ASSERT (jjs_value_is_true (ctx (), value) == ((prop_desc.flags & JJS_PROP_IS_ENUMERABLE) != 0));
 
-  prop_name = jjs_string_sz ("configurable");
-  value = jjs_object_get (from_object, prop_name);
-  TEST_ASSERT (jjs_value_is_true (value) == ((prop_desc.flags & JJS_PROP_IS_CONFIGURABLE) != 0));
+  prop_name = jjs_string_sz (ctx (), "configurable");
+  value = jjs_object_get (ctx (), from_object, prop_name);
+  TEST_ASSERT (jjs_value_is_true (ctx (), value) == ((prop_desc.flags & JJS_PROP_IS_CONFIGURABLE) != 0));
 
-  jjs_value_free (object);
-  jjs_value_free (prop_name);
-  jjs_value_free (value);
-  jjs_value_free (from_object);
-  jjs_property_descriptor_free (&prop_desc);
+  jjs_value_free (ctx (), object);
+  jjs_value_free (ctx (), prop_name);
+  jjs_value_free (ctx (), value);
+  jjs_value_free (ctx (), from_object);
+  jjs_property_descriptor_free (ctx (), &prop_desc);
 
   prop_desc.flags = JJS_PROP_IS_CONFIGURABLE;
-  from_object = jjs_property_descriptor_to_object (&prop_desc);
-  TEST_ASSERT (jjs_value_is_exception (from_object));
-  jjs_value_free (from_object);
+  from_object = jjs_property_descriptor_to_object (ctx (), &prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), from_object));
+  jjs_value_free (ctx (), from_object);
 
   prop_desc.flags = JJS_PROP_IS_ENUMERABLE;
-  from_object = jjs_property_descriptor_to_object (&prop_desc);
-  TEST_ASSERT (jjs_value_is_exception (from_object));
-  jjs_value_free (from_object);
+  from_object = jjs_property_descriptor_to_object (ctx (), &prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), from_object));
+  jjs_value_free (ctx (), from_object);
 
   prop_desc.flags = JJS_PROP_IS_WRITABLE;
-  from_object = jjs_property_descriptor_to_object (&prop_desc);
-  TEST_ASSERT (jjs_value_is_exception (from_object));
-  jjs_value_free (from_object);
+  from_object = jjs_property_descriptor_to_object (ctx (), &prop_desc);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), from_object));
+  jjs_value_free (ctx (), from_object);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 typedef struct
 {
@@ -32,14 +30,12 @@ typedef struct
   {                                              \
     TYPE, VALUE, jjs_feature_enabled (FEATURE) \
   }
-#define EVALUATE(BUFF) (jjs_eval ((BUFF), sizeof ((BUFF)) - 1, JJS_PARSE_NO_OPTS))
+#define EVALUATE(BUFF) (jjs_eval (ctx (), (BUFF), sizeof ((BUFF)) - 1, JJS_PARSE_NO_OPTS))
 
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   const jjs_char_t array_iterator_keys[] = "[1, 2, 3].keys()";
   const jjs_char_t array_iterator_values[] = "[1, 2, 3].values()";
@@ -64,15 +60,15 @@ main (void)
   const jjs_char_t set_iterator_symbol_iterator[] = "new Set([1, 2, 3])[Symbol.iterator]()";
 
   test_entry_t entries[] = {
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_number (-33.0)),
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_boolean (true)),
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_undefined ()),
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_null ()),
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_string_sz ("foo")),
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_throw_sz (JJS_ERROR_TYPE, "error")),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_number (ctx (), -33.0)),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_boolean (ctx (), true)),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_undefined (ctx ())),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_null (ctx ())),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_string_sz (ctx (), "foo")),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_throw_sz (ctx (), JJS_ERROR_TYPE, "error")),
 
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_object ()),
-    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_array (10)),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_object (ctx ())),
+    ENTRY (JJS_ITERATOR_TYPE_NONE, jjs_array (ctx (), 10)),
 
     ENTRY_IF (JJS_ITERATOR_TYPE_ARRAY, EVALUATE (array_iterator_keys), JJS_FEATURE_SYMBOL),
     ENTRY_IF (JJS_ITERATOR_TYPE_ARRAY, EVALUATE (array_iterator_values), JJS_FEATURE_SYMBOL),
@@ -99,12 +95,12 @@ main (void)
 
   for (size_t idx = 0; idx < sizeof (entries) / sizeof (entries[0]); idx++)
   {
-    jjs_iterator_type_t type_info = jjs_iterator_type (entries[idx].value);
+    jjs_iterator_type_t type_info = jjs_iterator_type (ctx (), entries[idx].value);
     TEST_ASSERT (!entries[idx].active || type_info == entries[idx].type_info);
-    jjs_value_free (entries[idx].value);
+    jjs_value_free (ctx (), entries[idx].value);
   }
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

@@ -13,10 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-#include "test-common.h"
+#include "jjs-test.h"
 
 static bool test_context_data1_new_called = false;
 static bool test_context_data2_new_called = false;
@@ -131,14 +128,12 @@ static const jjs_context_data_manager_t manager4 = { .init_cb = test_context_dat
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
-  TEST_CONTEXT_NEW (context_p);
-
-  TEST_ASSERT (!strcmp (*((const char **) jjs_context_data (&manager1)), "item1"));
-  TEST_ASSERT (!strcmp (*((const char **) jjs_context_data (&manager2)), "item2"));
-  TEST_ASSERT (jjs_context_data (&manager3) == NULL);
-  TEST_ASSERT (jjs_context_data (&manager4) == NULL);
+  TEST_ASSERT (!strcmp (*((const char **) jjs_context_data (ctx (), &manager1)), "item1"));
+  TEST_ASSERT (!strcmp (*((const char **) jjs_context_data (ctx (), &manager2)), "item2"));
+  TEST_ASSERT (jjs_context_data (ctx (), &manager3) == NULL);
+  TEST_ASSERT (jjs_context_data (ctx (), &manager4) == NULL);
 
   TEST_ASSERT (test_context_data1_new_called);
   TEST_ASSERT (test_context_data2_new_called);
@@ -149,7 +144,7 @@ main (void)
   TEST_ASSERT (!test_context_data2_free_called);
   TEST_ASSERT (!test_context_data4_free_called);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   TEST_ASSERT (test_context_data1_free_called);
   TEST_ASSERT (test_context_data2_free_called);

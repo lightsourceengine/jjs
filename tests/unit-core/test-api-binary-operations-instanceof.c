@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 #define T(lhs, rhs, res) \
   {                      \
@@ -37,76 +35,74 @@ my_constructor (const jjs_call_info_t *call_info_p, /**< call information */
   (void) call_info_p;
   (void) argv;
   (void) argc;
-  return jjs_undefined ();
+  return jjs_undefined (ctx ());
 } /* my_constructor */
 
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
-  TEST_CONTEXT_NEW (context_p);
+  jjs_value_t base_obj = jjs_object (ctx ());
+  jjs_value_t constructor = jjs_function_external (ctx (), my_constructor);
 
-  jjs_value_t base_obj = jjs_object ();
-  jjs_value_t constructor = jjs_function_external (my_constructor);
+  jjs_value_t no_proto_instance_val = jjs_construct (ctx (), constructor, NULL, 0);
 
-  jjs_value_t no_proto_instance_val = jjs_construct (constructor, NULL, 0);
+  jjs_value_t prototype_str = jjs_string_sz (ctx (), "prototype");
+  jjs_value_t res = jjs_object_set (ctx (), constructor, prototype_str, base_obj);
+  jjs_value_free (ctx (), prototype_str);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+  jjs_value_free (ctx (), res);
 
-  jjs_value_t prototype_str = jjs_string_sz ("prototype");
-  jjs_value_t res = jjs_object_set (constructor, prototype_str, base_obj);
-  jjs_value_free (prototype_str);
-  TEST_ASSERT (!jjs_value_is_exception (res));
-  jjs_value_free (res);
+  jjs_value_t instance_val = jjs_construct (ctx (), constructor, NULL, 0);
 
-  jjs_value_t instance_val = jjs_construct (constructor, NULL, 0);
+  jjs_value_t error = jjs_throw_value (ctx (), base_obj, false);
 
-  jjs_value_t error = jjs_throw_value (base_obj, false);
-
-  test_entry_t bool_tests[] = { T (jjs_value_copy (instance_val), jjs_value_copy (constructor), true),
-                                T (jjs_value_copy (no_proto_instance_val), jjs_value_copy (constructor), false),
-                                T (jjs_value_copy (base_obj), jjs_value_copy (constructor), false) };
+  test_entry_t bool_tests[] = { T (jjs_value_copy (ctx (), instance_val), jjs_value_copy (ctx (), constructor), true),
+                                T (jjs_value_copy (ctx (), no_proto_instance_val), jjs_value_copy (ctx (), constructor), false),
+                                T (jjs_value_copy (ctx (), base_obj), jjs_value_copy (ctx (), constructor), false) };
 
   for (uint32_t idx = 0; idx < sizeof (bool_tests) / sizeof (test_entry_t); idx++)
   {
-    jjs_value_t result = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, bool_tests[idx].lhs, bool_tests[idx].rhs);
-    TEST_ASSERT (!jjs_value_is_exception (result));
-    TEST_ASSERT (jjs_value_is_true (result) == bool_tests[idx].expected);
-    jjs_value_free (bool_tests[idx].lhs);
-    jjs_value_free (bool_tests[idx].rhs);
-    jjs_value_free (result);
+    jjs_value_t result = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, bool_tests[idx].lhs, bool_tests[idx].rhs);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+    TEST_ASSERT (jjs_value_is_true (ctx (), result) == bool_tests[idx].expected);
+    jjs_value_free (ctx (), bool_tests[idx].lhs);
+    jjs_value_free (ctx (), bool_tests[idx].rhs);
+    jjs_value_free (ctx (), result);
   }
 
-  test_entry_t error_tests[] = { T (jjs_value_copy (constructor), jjs_value_copy (instance_val), true),
-                                 T (jjs_undefined (), jjs_value_copy (constructor), true),
-                                 T (jjs_value_copy (instance_val), jjs_undefined (), true),
-                                 T (jjs_value_copy (instance_val), jjs_value_copy (base_obj), true),
-                                 T (jjs_value_copy (error), jjs_value_copy (constructor), true),
-                                 T (jjs_value_copy (instance_val), jjs_value_copy (error), true),
-                                 T (jjs_string_sz (""), jjs_string_sz (""), true),
-                                 T (jjs_string_sz (""), jjs_number (5.0), true),
-                                 T (jjs_number (5.0), jjs_string_sz (""), true),
-                                 T (jjs_array (1), jjs_array (1), true),
-                                 T (jjs_array (1), jjs_object (), true),
-                                 T (jjs_object (), jjs_array (1), true),
-                                 T (jjs_null (), jjs_object (), true),
-                                 T (jjs_object (), jjs_string_sz (""), true) };
+  test_entry_t error_tests[] = { T (jjs_value_copy (ctx (), constructor), jjs_value_copy (ctx (), instance_val), true),
+                                 T (jjs_undefined (ctx ()), jjs_value_copy (ctx (), constructor), true),
+                                 T (jjs_value_copy (ctx (), instance_val), jjs_undefined (ctx ()), true),
+                                 T (jjs_value_copy (ctx (), instance_val), jjs_value_copy (ctx (), base_obj), true),
+                                 T (jjs_value_copy (ctx (), error), jjs_value_copy (ctx (), constructor), true),
+                                 T (jjs_value_copy (ctx (), instance_val), jjs_value_copy (ctx (), error), true),
+                                 T (jjs_string_sz (ctx (), ""), jjs_string_sz (ctx (), ""), true),
+                                 T (jjs_string_sz (ctx (), ""), jjs_number (ctx (), 5.0), true),
+                                 T (jjs_number (ctx (), 5.0), jjs_string_sz (ctx (), ""), true),
+                                 T (jjs_array (ctx (), 1), jjs_array (ctx (), 1), true),
+                                 T (jjs_array (ctx (), 1), jjs_object (ctx ()), true),
+                                 T (jjs_object (ctx ()), jjs_array (ctx (), 1), true),
+                                 T (jjs_null (ctx ()), jjs_object (ctx ()), true),
+                                 T (jjs_object (ctx ()), jjs_string_sz (ctx (), ""), true) };
 
   for (uint32_t idx = 0; idx < sizeof (error_tests) / sizeof (test_entry_t); idx++)
   {
-    jjs_value_t result = jjs_binary_op (JJS_BIN_OP_INSTANCEOF, error_tests[idx].lhs, error_tests[idx].rhs);
-    TEST_ASSERT (jjs_value_is_exception (result) == error_tests[idx].expected);
-    jjs_value_free (error_tests[idx].lhs);
-    jjs_value_free (error_tests[idx].rhs);
-    jjs_value_free (result);
+    jjs_value_t result = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, error_tests[idx].lhs, error_tests[idx].rhs);
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result) == error_tests[idx].expected);
+    jjs_value_free (ctx (), error_tests[idx].lhs);
+    jjs_value_free (ctx (), error_tests[idx].rhs);
+    jjs_value_free (ctx (), result);
   }
 
-  jjs_value_free (base_obj);
-  jjs_value_free (constructor);
-  jjs_value_free (error);
-  jjs_value_free (instance_val);
-  jjs_value_free (no_proto_instance_val);
+  jjs_value_free (ctx (), base_obj);
+  jjs_value_free (ctx (), constructor);
+  jjs_value_free (ctx (), error);
+  jjs_value_free (ctx (), instance_val);
+  jjs_value_free (ctx (), no_proto_instance_val);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

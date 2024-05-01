@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 /* Note: RS = ReSolve, RJ = ReJect */
 typedef enum
@@ -42,24 +40,26 @@ static int user;
 static const uint8_t *next_event_p;
 
 static void
-promise_callback (jjs_promise_event_type_t event_type, /**< event type */
+promise_callback (jjs_context_t *context_p, /** JJS context */
+                  jjs_promise_event_type_t event_type, /**< event type */
                   const jjs_value_t object, /**< target object */
                   const jjs_value_t value, /**< optional argument */
                   void *user_p) /**< user pointer passed to the callback */
 {
+  JJS_UNUSED (context_p);
   TEST_ASSERT (user_p == (void *) &user);
 
   switch (event_type)
   {
     case JJS_PROMISE_EVENT_CREATE:
     {
-      TEST_ASSERT (jjs_value_is_promise (object));
-      if (jjs_value_is_undefined (value))
+      TEST_ASSERT (jjs_value_is_promise (ctx (), object));
+      if (jjs_value_is_undefined (ctx (), value))
       {
         break;
       }
 
-      TEST_ASSERT (jjs_value_is_promise (value));
+      TEST_ASSERT (jjs_value_is_promise (ctx (), value));
       TEST_ASSERT (*next_event_p++ == CP);
       return;
     }
@@ -69,21 +69,21 @@ promise_callback (jjs_promise_event_type_t event_type, /**< event type */
     case JJS_PROMISE_EVENT_REJECT_FULFILLED:
     case JJS_PROMISE_EVENT_REJECT_WITHOUT_HANDLER:
     {
-      TEST_ASSERT (jjs_value_is_promise (object));
+      TEST_ASSERT (jjs_value_is_promise (ctx (), object));
       break;
     }
     case JJS_PROMISE_EVENT_CATCH_HANDLER_ADDED:
     case JJS_PROMISE_EVENT_BEFORE_REACTION_JOB:
     case JJS_PROMISE_EVENT_AFTER_REACTION_JOB:
     {
-      TEST_ASSERT (jjs_value_is_promise (object));
-      TEST_ASSERT (jjs_value_is_undefined (value));
+      TEST_ASSERT (jjs_value_is_promise (ctx (), object));
+      TEST_ASSERT (jjs_value_is_undefined (ctx (), value));
       break;
     }
     case JJS_PROMISE_EVENT_ASYNC_AWAIT:
     {
-      TEST_ASSERT (jjs_value_is_object (object));
-      TEST_ASSERT (jjs_value_is_promise (value));
+      TEST_ASSERT (jjs_value_is_object (ctx (), object));
+      TEST_ASSERT (jjs_value_is_promise (ctx (), value));
       break;
     }
     default:
@@ -92,7 +92,7 @@ promise_callback (jjs_promise_event_type_t event_type, /**< event type */
                    || event_type == JJS_PROMISE_EVENT_ASYNC_BEFORE_REJECT
                    || event_type == JJS_PROMISE_EVENT_ASYNC_AFTER_RESOLVE
                    || event_type == JJS_PROMISE_EVENT_ASYNC_AFTER_REJECT);
-      TEST_ASSERT (jjs_value_is_object (object));
+      TEST_ASSERT (jjs_value_is_object (ctx (), object));
       break;
     }
   }
@@ -106,14 +106,14 @@ run_eval (const uint8_t *event_list_p, /**< event list */
 {
   next_event_p = event_list_p;
 
-  jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
 
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
 
-  result = jjs_run_jobs ();
-  TEST_ASSERT (!jjs_value_is_exception (result));
-  jjs_value_free (result);
+  result = jjs_run_jobs (ctx ());
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+  jjs_value_free (ctx (), result);
 
   TEST_ASSERT (*next_event_p == UINT8_MAX);
 } /* run_eval */
@@ -121,19 +121,17 @@ run_eval (const uint8_t *event_list_p, /**< event list */
 int
 main (void)
 {
-  TEST_INIT ();
-
   /* The test system enables this feature when Promises are enabled. */
   TEST_ASSERT (jjs_feature_enabled (JJS_FEATURE_PROMISE_CALLBACK));
 
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   jjs_promise_event_filter_t filters =
     (JJS_PROMISE_EVENT_FILTER_CREATE | JJS_PROMISE_EVENT_FILTER_RESOLVE | JJS_PROMISE_EVENT_FILTER_REJECT
      | JJS_PROMISE_EVENT_FILTER_ERROR | JJS_PROMISE_EVENT_FILTER_REACTION_JOB
      | JJS_PROMISE_EVENT_FILTER_ASYNC_MAIN | JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB);
 
-  jjs_promise_on_event (filters, promise_callback, (void *) &user);
+  jjs_promise_on_event (ctx (), filters, promise_callback, (void *) &user);
 
   /* Test promise creation. */
   static uint8_t events1[] = { C, C, C, E };
@@ -335,7 +333,7 @@ main (void)
             "p.then(() => {}).catch(() => {})\n");
 
   /* Test disabled filters. */
-  jjs_promise_on_event (JJS_PROMISE_EVENT_FILTER_DISABLE, promise_callback, (void *) &user);
+  jjs_promise_on_event (ctx (), JJS_PROMISE_EVENT_FILTER_DISABLE, promise_callback, (void *) &user);
 
   static uint8_t events24[] = { E };
 
@@ -346,7 +344,7 @@ main (void)
 
   /* Test filtered events. */
   filters = JJS_PROMISE_EVENT_FILTER_REACTION_JOB | JJS_PROMISE_EVENT_FILTER_ASYNC_REACTION_JOB;
-  jjs_promise_on_event (filters, promise_callback, (void *) &user);
+  jjs_promise_on_event (ctx (), filters, promise_callback, (void *) &user);
 
   static uint8_t events25[] = { BR, AR, BRS, ARS, E };
 
@@ -355,6 +353,6 @@ main (void)
             "async function f(p) { await p }"
             "f(Promise.resolve(1).then(() => {}))\n");
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

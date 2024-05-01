@@ -13,11 +13,9 @@
  * limitations under the License.
  */
 
+#include "jjs-test.h"
+
 #include <stdio.h>
-
-#include "jjs.h"
-
-#include "test-common.h"
 
 /**
  * Type to describe test cases.
@@ -37,15 +35,15 @@ static void
 register_js_value (const char *name_p, /**< name of the function */
                    jjs_value_t value) /**< function callback */
 {
-  jjs_value_t global_obj_val = jjs_current_realm ();
+  jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
-  jjs_value_t name_val = jjs_string_sz (name_p);
-  jjs_value_t result_val = jjs_object_set (global_obj_val, name_val, value);
+  jjs_value_t name_val = jjs_string_sz (ctx (), name_p);
+  jjs_value_t result_val = jjs_object_set (ctx (), global_obj_val, name_val, value);
 
-  jjs_value_free (name_val);
-  jjs_value_free (global_obj_val);
+  jjs_value_free (ctx (), name_val);
+  jjs_value_free (ctx (), global_obj_val);
 
-  jjs_value_free (result_val);
+  jjs_value_free (ctx (), result_val);
 } /* register_js_value */
 
 static jjs_value_t
@@ -55,23 +53,23 @@ assert_handler (const jjs_call_info_t *call_info_p, /**< call information */
 {
   JJS_UNUSED (call_info_p);
 
-  if (jjs_value_is_true (args_p[0]))
+  if (jjs_value_is_true (ctx (), args_p[0]))
   {
-    return jjs_boolean (true);
+    return jjs_boolean (ctx (), true);
   }
   else
   {
-    if (args_cnt > 1 && jjs_value_is_string (args_p[1]))
+    if (args_cnt > 1 && jjs_value_is_string (ctx (), args_p[1]))
     {
       jjs_char_t utf8_string[128];
       jjs_size_t copied =
-        jjs_string_to_buffer (args_p[1], JJS_ENCODING_UTF8, utf8_string, sizeof (utf8_string) - 1);
+        jjs_string_to_buffer (ctx (), args_p[1], JJS_ENCODING_UTF8, utf8_string, sizeof (utf8_string) - 1);
       utf8_string[copied] = '\0';
 
       printf ("JS assert: %s\n", utf8_string);
     }
     TEST_ASSERT (false);
-    return jjs_undefined ();
+    return jjs_undefined (ctx ());
   }
 } /* assert_handler */
 
@@ -84,20 +82,20 @@ test_typedarray_info (jjs_value_t typedarray, /**< target TypedArray to query */
                       jjs_length_t element_count, /**< expected element count */
                       jjs_length_t bytes_per_element) /**< bytes per element for the given type */
 {
-  TEST_ASSERT (!jjs_value_is_exception (typedarray));
-  TEST_ASSERT (jjs_value_is_typedarray (typedarray));
-  TEST_ASSERT (jjs_typedarray_type (typedarray) == typedarray_type);
-  TEST_ASSERT (jjs_typedarray_length (typedarray) == element_count);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), typedarray));
+  TEST_ASSERT (jjs_value_is_typedarray (ctx (), typedarray));
+  TEST_ASSERT (jjs_typedarray_type (ctx (), typedarray) == typedarray_type);
+  TEST_ASSERT (jjs_typedarray_length (ctx (), typedarray) == element_count);
 
   jjs_length_t byte_length = (uint32_t) -1;
   jjs_length_t byte_offset = (uint32_t) -1;
-  jjs_value_t arraybuffer = jjs_typedarray_buffer (typedarray, &byte_offset, &byte_length);
-  TEST_ASSERT (jjs_value_is_arraybuffer (arraybuffer));
+  jjs_value_t arraybuffer = jjs_typedarray_buffer (ctx (), typedarray, &byte_offset, &byte_length);
+  TEST_ASSERT (jjs_value_is_arraybuffer (ctx (), arraybuffer));
 
   TEST_ASSERT (byte_length == element_count * bytes_per_element);
   TEST_ASSERT (byte_offset == 0);
 
-  jjs_value_free (arraybuffer);
+  jjs_value_free (ctx (), arraybuffer);
 } /* test_typedarray_info */
 
 /**
@@ -106,42 +104,42 @@ test_typedarray_info (jjs_value_t typedarray, /**< target TypedArray to query */
 static void
 test_typedarray_queries (test_entry_t test_entries[]) /**< test cases */
 {
-  jjs_value_t global_obj_val = jjs_current_realm ();
+  jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
   for (uint32_t i = 0; test_entries[i].constructor_name != NULL; i++)
   {
     /* Create TypedArray via construct call */
     {
-      jjs_value_t prop_name = jjs_string_sz (test_entries[i].constructor_name);
-      jjs_value_t prop_value = jjs_object_get (global_obj_val, prop_name);
-      TEST_ASSERT (!jjs_value_is_exception (prop_value));
-      jjs_value_t length_arg = jjs_number (test_entries[i].element_count);
+      jjs_value_t prop_name = jjs_string_sz (ctx (), test_entries[i].constructor_name);
+      jjs_value_t prop_value = jjs_object_get (ctx (), global_obj_val, prop_name);
+      TEST_ASSERT (!jjs_value_is_exception (ctx (), prop_value));
+      jjs_value_t length_arg = jjs_number (ctx (), test_entries[i].element_count);
 
-      jjs_value_t typedarray = jjs_construct (prop_value, &length_arg, 1);
+      jjs_value_t typedarray = jjs_construct (ctx (), prop_value, &length_arg, 1);
 
-      jjs_value_free (prop_name);
-      jjs_value_free (prop_value);
-      jjs_value_free (length_arg);
+      jjs_value_free (ctx (), prop_name);
+      jjs_value_free (ctx (), prop_value);
+      jjs_value_free (ctx (), length_arg);
 
       test_typedarray_info (typedarray,
                             test_entries[i].typedarray_type,
                             test_entries[i].element_count,
                             test_entries[i].bytes_per_element);
-      jjs_value_free (typedarray);
+      jjs_value_free (ctx (), typedarray);
     }
 
     /* Create TypedArray via api call */
     {
-      jjs_value_t typedarray = jjs_typedarray (test_entries[i].typedarray_type, test_entries[i].element_count);
+      jjs_value_t typedarray = jjs_typedarray (ctx (), test_entries[i].typedarray_type, test_entries[i].element_count);
       test_typedarray_info (typedarray,
                             test_entries[i].typedarray_type,
                             test_entries[i].element_count,
                             test_entries[i].bytes_per_element);
-      jjs_value_free (typedarray);
+      jjs_value_free (ctx (), typedarray);
     }
   }
 
-  jjs_value_free (global_obj_val);
+  jjs_value_free (ctx (), global_obj_val);
 } /* test_typedarray_queries */
 
 /**
@@ -237,27 +235,27 @@ test_typedarray_complex_creation (test_entry_t test_entries[], /**< test cases *
 
       if (use_external_buffer)
       {
-        buffer_p = (uint8_t *) jjs_heap_alloc (arraybuffer_size);
-        arraybuffer = jjs_arraybuffer_external (buffer_p, arraybuffer_size, NULL);
+        buffer_p = (uint8_t *) jjs_heap_alloc (ctx (), arraybuffer_size);
+        arraybuffer = jjs_arraybuffer_external (ctx (), buffer_p, arraybuffer_size, NULL);
       }
       else
       {
-        arraybuffer = jjs_arraybuffer (arraybuffer_size);
+        arraybuffer = jjs_arraybuffer (ctx (), arraybuffer_size);
       }
 
-      jjs_value_t js_offset = jjs_number (offset);
-      jjs_value_t js_element_count = jjs_number (element_count);
+      jjs_value_t js_offset = jjs_number (ctx (), offset);
+      jjs_value_t js_element_count = jjs_number (ctx (), element_count);
 
       register_js_value ("expected_offset", js_offset);
       register_js_value ("expected_length", js_element_count);
 
       typedarray =
-        jjs_typedarray_with_buffer_span (test_entries[i].typedarray_type, arraybuffer, offset, element_count);
-      TEST_ASSERT (!jjs_value_is_exception (typedarray));
+        jjs_typedarray_with_buffer_span (ctx (), test_entries[i].typedarray_type, arraybuffer, offset, element_count);
+      TEST_ASSERT (!jjs_value_is_exception (ctx (), typedarray));
 
-      jjs_value_free (js_offset);
-      jjs_value_free (js_element_count);
-      jjs_value_free (arraybuffer);
+      jjs_value_free (ctx (), js_offset);
+      jjs_value_free (ctx (), js_element_count);
+      jjs_value_free (ctx (), arraybuffer);
     }
 
     register_js_value ("array", typedarray);
@@ -266,9 +264,9 @@ test_typedarray_complex_creation (test_entry_t test_entries[], /**< test cases *
       TEST_STRING_LITERAL ("assert (array.length == expected_length,"
                            "        'expected length: ' + expected_length + ' got: ' + array.length);"
                            "assert (array.byteOffset == expected_offset);");
-    jjs_value_t result = jjs_eval (test_exptected_src, sizeof (test_exptected_src) - 1, JJS_PARSE_STRICT_MODE);
-    TEST_ASSERT (!jjs_value_is_exception (result));
-    jjs_value_free (result);
+    jjs_value_t result = jjs_eval (ctx (), test_exptected_src, sizeof (test_exptected_src) - 1, JJS_PARSE_STRICT_MODE);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+    jjs_value_free (ctx (), result);
 
     const jjs_char_t set_element_src[] = TEST_STRING_LITERAL ("array[0] = 0x11223344n");
 
@@ -281,21 +279,21 @@ test_typedarray_complex_creation (test_entry_t test_entries[], /**< test cases *
       src_length++;
     }
 
-    result = jjs_eval (set_element_src, src_length, JJS_PARSE_STRICT_MODE);
-    TEST_ASSERT (!jjs_value_is_exception (result));
-    jjs_value_free (result);
+    result = jjs_eval (ctx (), set_element_src, src_length, JJS_PARSE_STRICT_MODE);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+    jjs_value_free (ctx (), result);
 
     {
       jjs_length_t byte_length = 0;
       jjs_length_t byte_offset = 0;
-      jjs_value_t buffer = jjs_typedarray_buffer (typedarray, &byte_offset, &byte_length);
+      jjs_value_t buffer = jjs_typedarray_buffer (ctx (), typedarray, &byte_offset, &byte_length);
       TEST_ASSERT (byte_length == element_count * bytes_per_element);
       TEST_ASSERT (byte_offset == offset);
 
       JJS_VLA (uint8_t, test_buffer, arraybuffer_size);
 
-      jjs_typedarray_type_t type = jjs_typedarray_type (typedarray);
-      jjs_value_t read_count = jjs_arraybuffer_read (buffer, 0, test_buffer, offset + byte_length);
+      jjs_typedarray_type_t type = jjs_typedarray_type (ctx (), typedarray);
+      jjs_value_t read_count = jjs_arraybuffer_read (ctx (), buffer, 0, test_buffer, offset + byte_length);
       TEST_ASSERT (read_count == offset + byte_length);
       test_buffer_value (0x11223344, test_buffer, offset, type, bytes_per_element);
 
@@ -305,10 +303,10 @@ test_typedarray_complex_creation (test_entry_t test_entries[], /**< test cases *
         TEST_ASSERT (memcmp (buffer_p, test_buffer, offset + byte_length) == 0);
       }
 
-      jjs_value_free (buffer);
+      jjs_value_free (ctx (), buffer);
     }
 
-    jjs_value_free (typedarray);
+    jjs_value_free (ctx (), typedarray);
   }
 } /* test_typedarray_complex_creation */
 
@@ -328,8 +326,8 @@ test_property_by_index (test_entry_t test_entries[])
   {
     jjs_value_t test_number;
     uint32_t test_numbers_length = sizeof (test_int_numbers) / sizeof (int);
-    jjs_value_t typedarray = jjs_typedarray (test_entries[i].typedarray_type, test_numbers_length);
-    jjs_typedarray_type_t type = jjs_typedarray_type (typedarray);
+    jjs_value_t typedarray = jjs_typedarray (ctx (), test_entries[i].typedarray_type, test_numbers_length);
+    jjs_typedarray_type_t type = jjs_typedarray_type (ctx (), typedarray);
 
     jjs_value_t set_result;
     jjs_value_t get_result;
@@ -342,19 +340,19 @@ test_property_by_index (test_entry_t test_entries[])
       {
         for (uint8_t j = 0; j < test_numbers_length; j++)
         {
-          test_number = jjs_number (test_int_numbers[j]);
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
-          set_result = jjs_object_set_index (typedarray, j, test_number);
-          get_result = jjs_object_get_index (typedarray, j);
+          test_number = jjs_number (ctx (), test_int_numbers[j]);
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          get_result = jjs_object_get_index (ctx (), typedarray, j);
 
-          TEST_ASSERT (jjs_value_is_boolean (set_result));
-          TEST_ASSERT (jjs_value_is_true (set_result));
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
-          TEST_ASSERT (jjs_value_as_number (get_result) == test_int_numbers[j]);
+          TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_true (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
+          TEST_ASSERT (jjs_value_as_number (ctx (), get_result) == test_int_numbers[j]);
 
-          jjs_value_free (test_number);
-          jjs_value_free (set_result);
-          jjs_value_free (get_result);
+          jjs_value_free (ctx (), test_number);
+          jjs_value_free (ctx (), set_result);
+          jjs_value_free (ctx (), get_result);
         }
         break;
       }
@@ -363,36 +361,36 @@ test_property_by_index (test_entry_t test_entries[])
       {
         for (uint8_t j = 0; j < test_numbers_length; j++)
         {
-          test_number = jjs_number (test_double_numbers[j]);
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
-          set_result = jjs_object_set_index (typedarray, j, test_number);
-          get_result = jjs_object_get_index (typedarray, j);
+          test_number = jjs_number (ctx (), test_double_numbers[j]);
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          get_result = jjs_object_get_index (ctx (), typedarray, j);
 
-          TEST_ASSERT (jjs_value_is_boolean (set_result));
-          TEST_ASSERT (jjs_value_is_true (set_result));
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
+          TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_true (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
 
           double epsilon = pow (10, -5);
-          double get_abs = fabs (jjs_value_as_number (get_result) - test_double_numbers[j]);
+          double get_abs = fabs (jjs_value_as_number (ctx (), get_result) - test_double_numbers[j]);
           TEST_ASSERT (get_abs < epsilon);
 
-          jjs_value_free (test_number);
-          jjs_value_free (set_result);
-          jjs_value_free (get_result);
+          jjs_value_free (ctx (), test_number);
+          jjs_value_free (ctx (), set_result);
+          jjs_value_free (ctx (), get_result);
 
           /* Testing positive and negative infinity */
           for (uint8_t k = 0; k < 2; k++)
           {
-            jjs_value_t inf = jjs_infinity (k);
-            jjs_value_t set_inf = jjs_object_set_index (typedarray, 0, inf);
-            TEST_ASSERT (jjs_value_is_boolean (set_inf));
-            TEST_ASSERT (jjs_value_is_true (set_inf));
-            jjs_value_t get_inf = jjs_object_get_index (typedarray, 0);
-            TEST_ASSERT (isinf (jjs_value_as_number (get_inf)));
+            jjs_value_t inf = jjs_infinity (ctx (), k);
+            jjs_value_t set_inf = jjs_object_set_index (ctx (), typedarray, 0, inf);
+            TEST_ASSERT (jjs_value_is_boolean (ctx (), set_inf));
+            TEST_ASSERT (jjs_value_is_true (ctx (), set_inf));
+            jjs_value_t get_inf = jjs_object_get_index (ctx (), typedarray, 0);
+            TEST_ASSERT (isinf (jjs_value_as_number (ctx (), get_inf)));
 
-            jjs_value_free (inf);
-            jjs_value_free (set_inf);
-            jjs_value_free (get_inf);
+            jjs_value_free (ctx (), inf);
+            jjs_value_free (ctx (), set_inf);
+            jjs_value_free (ctx (), get_inf);
           }
         }
         break;
@@ -401,23 +399,23 @@ test_property_by_index (test_entry_t test_entries[])
       {
         for (uint8_t j = 0; j < test_numbers_length; j++)
         {
-          test_number = jjs_bigint ((uint64_t *) &test_int64_numbers[j], 1, true);
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
-          set_result = jjs_object_set_index (typedarray, j, test_number);
-          get_result = jjs_object_get_index (typedarray, j);
+          test_number = jjs_bigint (ctx (), (uint64_t *) &test_int64_numbers[j], 1, true);
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          get_result = jjs_object_get_index (ctx (), typedarray, j);
 
-          TEST_ASSERT (jjs_value_is_boolean (set_result));
-          TEST_ASSERT (jjs_value_is_true (set_result));
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
+          TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_true (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
           int64_t get_number;
           bool sign;
-          jjs_bigint_to_digits (get_result, (uint64_t *) &get_number, 1, &sign);
+          jjs_bigint_to_digits (ctx (), get_result, (uint64_t *) &get_number, 1, &sign);
 
           TEST_ASSERT (sign ? get_number : -get_number == test_int64_numbers[j]);
 
-          jjs_value_free (test_number);
-          jjs_value_free (set_result);
-          jjs_value_free (get_result);
+          jjs_value_free (ctx (), test_number);
+          jjs_value_free (ctx (), set_result);
+          jjs_value_free (ctx (), get_result);
         }
         break;
       }
@@ -425,23 +423,23 @@ test_property_by_index (test_entry_t test_entries[])
       {
         for (uint8_t j = 0; j < test_numbers_length; j++)
         {
-          test_number = jjs_bigint (&test_uint64_numbers[j], 1, false);
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
-          set_result = jjs_object_set_index (typedarray, j, test_number);
-          get_result = jjs_object_get_index (typedarray, j);
+          test_number = jjs_bigint (ctx (), &test_uint64_numbers[j], 1, false);
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          get_result = jjs_object_get_index (ctx (), typedarray, j);
 
-          TEST_ASSERT (jjs_value_is_boolean (set_result));
-          TEST_ASSERT (jjs_value_is_true (set_result));
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
+          TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_true (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
           uint64_t get_number;
           bool sign;
-          jjs_bigint_to_digits (get_result, &get_number, 1, &sign);
+          jjs_bigint_to_digits (ctx (), get_result, &get_number, 1, &sign);
 
           TEST_ASSERT (get_number == test_uint64_numbers[j]);
 
-          jjs_value_free (test_number);
-          jjs_value_free (set_result);
-          jjs_value_free (get_result);
+          jjs_value_free (ctx (), test_number);
+          jjs_value_free (ctx (), set_result);
+          jjs_value_free (ctx (), get_result);
         }
         break;
       }
@@ -449,50 +447,50 @@ test_property_by_index (test_entry_t test_entries[])
       {
         for (uint8_t j = 0; j < test_numbers_length; j++)
         {
-          test_number = jjs_number (test_uint_numbers[j]);
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
-          set_result = jjs_object_set_index (typedarray, j, test_number);
-          get_result = jjs_object_get_index (typedarray, j);
+          test_number = jjs_number (ctx (), test_uint_numbers[j]);
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          get_result = jjs_object_get_index (ctx (), typedarray, j);
 
-          TEST_ASSERT (jjs_value_is_boolean (set_result));
-          TEST_ASSERT (jjs_value_is_true (set_result));
-          TEST_ASSERT (jjs_value_is_false (jjs_object_delete_index (typedarray, j)));
-          TEST_ASSERT (jjs_value_as_number (get_result) == test_uint_numbers[j]);
+          TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_true (ctx (), set_result));
+          TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
+          TEST_ASSERT (jjs_value_as_number (ctx (), get_result) == test_uint_numbers[j]);
 
-          jjs_value_free (test_number);
-          jjs_value_free (set_result);
-          jjs_value_free (get_result);
+          jjs_value_free (ctx (), test_number);
+          jjs_value_free (ctx (), set_result);
+          jjs_value_free (ctx (), get_result);
         }
         break;
       }
     }
 
-    jjs_value_t set_undefined = jjs_object_set_index (typedarray, 100, jjs_number (50));
+    jjs_value_t set_undefined = jjs_object_set_index (ctx (), typedarray, 100, jjs_number (ctx (), 50));
 
     if (type == JJS_TYPEDARRAY_BIGINT64 || type == JJS_TYPEDARRAY_BIGUINT64)
     {
-      TEST_ASSERT (jjs_value_is_exception (set_undefined));
+      TEST_ASSERT (jjs_value_is_exception (ctx (), set_undefined));
     }
     else
     {
-      TEST_ASSERT (jjs_value_is_boolean (set_undefined) && !jjs_value_is_true (set_undefined));
+      TEST_ASSERT (jjs_value_is_boolean (ctx (), set_undefined) && !jjs_value_is_true (ctx (), set_undefined));
     }
 
-    jjs_value_t get_undefined = jjs_object_get_index (typedarray, 100);
+    jjs_value_t get_undefined = jjs_object_get_index (ctx (), typedarray, 100);
 
     if (type == JJS_TYPEDARRAY_BIGINT64 || type == JJS_TYPEDARRAY_BIGUINT64)
     {
-      TEST_ASSERT (jjs_value_is_exception (set_undefined));
+      TEST_ASSERT (jjs_value_is_exception (ctx (), set_undefined));
     }
     else
     {
-      TEST_ASSERT (jjs_value_is_undefined (get_undefined));
+      TEST_ASSERT (jjs_value_is_undefined (ctx (), get_undefined));
     }
 
-    TEST_ASSERT (jjs_value_is_undefined (get_undefined));
-    jjs_value_free (set_undefined);
-    jjs_value_free (get_undefined);
-    jjs_value_free (typedarray);
+    TEST_ASSERT (jjs_value_is_undefined (ctx (), get_undefined));
+    jjs_value_free (ctx (), set_undefined);
+    jjs_value_free (ctx (), get_undefined);
+    jjs_value_free (ctx (), typedarray);
   }
 } /* test_property_by_index */
 
@@ -508,75 +506,75 @@ test_detached_arraybuffer (void)
   /* Creating an TypedArray for a detached array buffer with a given length/offset is invalid */
   {
     const uint32_t length = 1;
-    uint8_t *buffer_p = (uint8_t *) jjs_heap_alloc (length);
-    jjs_value_t arraybuffer = jjs_arraybuffer_external (buffer_p, length, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (arraybuffer));
-    TEST_ASSERT (jjs_value_is_arraybuffer (arraybuffer));
-    TEST_ASSERT (jjs_arraybuffer_size (arraybuffer) == length);
+    uint8_t *buffer_p = (uint8_t *) jjs_heap_alloc (ctx (), length);
+    jjs_value_t arraybuffer = jjs_arraybuffer_external (ctx (), buffer_p, length, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), arraybuffer));
+    TEST_ASSERT (jjs_value_is_arraybuffer (ctx (), arraybuffer));
+    TEST_ASSERT (jjs_arraybuffer_size (ctx (), arraybuffer) == length);
 
-    TEST_ASSERT (jjs_arraybuffer_is_detachable (arraybuffer));
+    TEST_ASSERT (jjs_arraybuffer_is_detachable (ctx (), arraybuffer));
 
-    jjs_value_t res = jjs_arraybuffer_detach (arraybuffer);
-    TEST_ASSERT (!jjs_value_is_exception (res));
-    jjs_value_free (res);
+    jjs_value_t res = jjs_arraybuffer_detach (ctx (), arraybuffer);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+    jjs_value_free (ctx (), res);
 
-    TEST_ASSERT (!jjs_arraybuffer_is_detachable (arraybuffer));
+    TEST_ASSERT (!jjs_arraybuffer_is_detachable (ctx (), arraybuffer));
 
     for (size_t idx = 0; idx < (sizeof (types) / sizeof (types[0])); idx++)
     {
-      jjs_value_t typedarray = jjs_typedarray_with_buffer_span (types[idx], arraybuffer, 0, 4);
-      TEST_ASSERT (jjs_value_is_exception (typedarray));
-      TEST_ASSERT (jjs_error_type (typedarray) == JJS_ERROR_TYPE);
-      jjs_value_free (typedarray);
+      jjs_value_t typedarray = jjs_typedarray_with_buffer_span (ctx (), types[idx], arraybuffer, 0, 4);
+      TEST_ASSERT (jjs_value_is_exception (ctx (), typedarray));
+      TEST_ASSERT (jjs_error_type (ctx (), typedarray) == JJS_ERROR_TYPE);
+      jjs_value_free (ctx (), typedarray);
     }
 
-    jjs_value_free (arraybuffer);
+    jjs_value_free (ctx (), arraybuffer);
   }
 
   /* Creating an TypedArray for a detached array buffer without length/offset is valid */
   {
     const uint32_t length = 1;
-    uint8_t *buffer_p = (uint8_t *) jjs_heap_alloc (length);
-    jjs_value_t arraybuffer = jjs_arraybuffer_external (buffer_p, length, NULL);
-    TEST_ASSERT (!jjs_value_is_exception (arraybuffer));
-    TEST_ASSERT (jjs_value_is_arraybuffer (arraybuffer));
-    TEST_ASSERT (jjs_arraybuffer_size (arraybuffer) == length);
+    uint8_t *buffer_p = (uint8_t *) jjs_heap_alloc (ctx (), length);
+    jjs_value_t arraybuffer = jjs_arraybuffer_external (ctx (), buffer_p, length, NULL);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), arraybuffer));
+    TEST_ASSERT (jjs_value_is_arraybuffer (ctx (), arraybuffer));
+    TEST_ASSERT (jjs_arraybuffer_size (ctx (), arraybuffer) == length);
 
-    TEST_ASSERT (jjs_arraybuffer_is_detachable (arraybuffer));
+    TEST_ASSERT (jjs_arraybuffer_is_detachable (ctx (), arraybuffer));
 
-    jjs_value_t res = jjs_arraybuffer_detach (arraybuffer);
-    TEST_ASSERT (!jjs_value_is_exception (res));
-    jjs_value_free (res);
+    jjs_value_t res = jjs_arraybuffer_detach (ctx (), arraybuffer);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
+    jjs_value_free (ctx (), res);
 
-    TEST_ASSERT (!jjs_arraybuffer_is_detachable (arraybuffer));
+    TEST_ASSERT (!jjs_arraybuffer_is_detachable (ctx (), arraybuffer));
 
     for (size_t idx = 0; idx < (sizeof (types) / sizeof (types[0])); idx++)
     {
-      jjs_value_t typedarray = jjs_typedarray_with_buffer (types[idx], arraybuffer);
-      TEST_ASSERT (jjs_value_is_exception (typedarray));
-      TEST_ASSERT (jjs_error_type (typedarray) == JJS_ERROR_TYPE);
-      jjs_value_free (typedarray);
+      jjs_value_t typedarray = jjs_typedarray_with_buffer (ctx (), types[idx], arraybuffer);
+      TEST_ASSERT (jjs_value_is_exception (ctx (), typedarray));
+      TEST_ASSERT (jjs_error_type (ctx (), typedarray) == JJS_ERROR_TYPE);
+      jjs_value_free (ctx (), typedarray);
     }
 
-    jjs_value_free (arraybuffer);
+    jjs_value_free (ctx (), arraybuffer);
   }
 } /* test_detached_arraybuffer */
 
 int
 main (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   if (!jjs_feature_enabled (JJS_FEATURE_TYPEDARRAY))
   {
-    jjs_log (JJS_LOG_LEVEL_ERROR, "TypedArray is disabled!\n");
-    TEST_CONTEXT_FREE (context_p);
+    jjs_log (ctx (), JJS_LOG_LEVEL_ERROR, "TypedArray is disabled!\n");
+    ctx_close ();
     return 0;
   }
 
-  jjs_value_t function_val = jjs_function_external (assert_handler);
+  jjs_value_t function_val = jjs_function_external (ctx (), assert_handler);
   register_js_value ("assert", function_val);
-  jjs_value_free (function_val);
+  jjs_value_free (ctx (), function_val);
 
   test_entry_t test_entries[] = {
 #define TEST_ENTRY(TYPE, CONSTRUCTOR, COUNT, BYTES_PER_ELEMENT) { TYPE, CONSTRUCTOR, COUNT, BYTES_PER_ELEMENT }
@@ -606,7 +604,7 @@ main (void)
   {
     const uint32_t element_count = 14;
 
-    jjs_value_t array = jjs_typedarray (JJS_TYPEDARRAY_UINT8, element_count);
+    jjs_value_t array = jjs_typedarray (ctx (), JJS_TYPEDARRAY_UINT8, element_count);
 
     {
       uint8_t expected_value = 42;
@@ -615,21 +613,21 @@ main (void)
 
       jjs_length_t byte_length;
       jjs_length_t offset;
-      jjs_value_t buffer = jjs_typedarray_buffer (array, &offset, &byte_length);
+      jjs_value_t buffer = jjs_typedarray_buffer (ctx (), array, &offset, &byte_length);
       TEST_ASSERT (byte_length == element_count);
-      jjs_length_t written = jjs_arraybuffer_write (buffer, offset, expected_data, element_count);
+      jjs_length_t written = jjs_arraybuffer_write (ctx (), buffer, offset, expected_data, element_count);
       TEST_ASSERT (written == element_count);
-      jjs_value_free (buffer);
+      jjs_value_free (ctx (), buffer);
 
-      jjs_value_t js_element_count = jjs_number (element_count);
-      jjs_value_t js_expected_value = jjs_number (expected_value);
+      jjs_value_t js_element_count = jjs_number (ctx (), element_count);
+      jjs_value_t js_expected_value = jjs_number (ctx (), expected_value);
 
       register_js_value ("array", array);
       register_js_value ("expected_length", js_element_count);
       register_js_value ("expected_value", js_expected_value);
 
-      jjs_value_free (js_element_count);
-      jjs_value_free (js_expected_value);
+      jjs_value_free (ctx (), js_element_count);
+      jjs_value_free (ctx (), js_expected_value);
     }
 
     /* Check read and to write */
@@ -640,21 +638,21 @@ main (void)
       "  assert (array[i] == expected_value);"
       "  array[i] = i;"
       "};");
-    jjs_value_t result = jjs_eval (eval_src, sizeof (eval_src) - 1, JJS_PARSE_STRICT_MODE);
+    jjs_value_t result = jjs_eval (ctx (), eval_src, sizeof (eval_src) - 1, JJS_PARSE_STRICT_MODE);
 
-    TEST_ASSERT (!jjs_value_is_exception (result));
-    jjs_value_free (result);
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+    jjs_value_free (ctx (), result);
 
     /* Check write results */
     {
       jjs_length_t byte_length;
       jjs_length_t offset;
-      jjs_value_t buffer = jjs_typedarray_buffer (array, &offset, &byte_length);
+      jjs_value_t buffer = jjs_typedarray_buffer (ctx (), array, &offset, &byte_length);
       TEST_ASSERT (byte_length == element_count);
 
       JJS_VLA (uint8_t, result_data, element_count);
 
-      jjs_length_t read_count = jjs_arraybuffer_read (buffer, offset, result_data, byte_length);
+      jjs_length_t read_count = jjs_arraybuffer_read (ctx (), buffer, offset, result_data, byte_length);
       TEST_ASSERT (read_count == byte_length);
 
       for (uint8_t i = 0; i < read_count; i++)
@@ -662,10 +660,10 @@ main (void)
         TEST_ASSERT (result_data[i] == i);
       }
 
-      jjs_value_free (buffer);
+      jjs_value_free (ctx (), buffer);
     }
 
-    jjs_value_free (array);
+    jjs_value_free (ctx (), array);
   }
 
   test_typedarray_complex_creation (test_entries, false);
@@ -676,29 +674,29 @@ main (void)
   /* test invalid things */
   {
     jjs_value_t values[] = {
-      jjs_number (11),
-      jjs_boolean (false),
-      jjs_string_sz ("test"),
-      jjs_object (),
-      jjs_null (),
-      jjs_arraybuffer (16),
-      jjs_error_sz (JJS_ERROR_TYPE, "error", jjs_undefined()),
-      jjs_undefined (),
-      jjs_promise (),
+      jjs_number (ctx (), 11),
+      jjs_boolean (ctx (), false),
+      jjs_string_sz (ctx (), "test"),
+      jjs_object (ctx ()),
+      jjs_null (ctx ()),
+      jjs_arraybuffer (ctx (), 16),
+      jjs_error_sz (ctx (), JJS_ERROR_TYPE, "error", jjs_undefined (ctx ())),
+      jjs_undefined (ctx ()),
+      jjs_promise (ctx ()),
     };
 
     for (size_t idx = 0; idx < sizeof (values) / sizeof (values[0]); idx++)
     {
       /* A non-TypedArray object should not be regarded a TypedArray. */
-      bool is_typedarray = jjs_value_is_typedarray (values[idx]);
+      bool is_typedarray = jjs_value_is_typedarray (ctx (), values[idx]);
       TEST_ASSERT (is_typedarray == false);
 
       /* JJS_TYPEDARRAY_INVALID should be returned for non-TypedArray objects */
-      jjs_typedarray_type_t type = jjs_typedarray_type (values[idx]);
+      jjs_typedarray_type_t type = jjs_typedarray_type (ctx (), values[idx]);
       TEST_ASSERT (type == JJS_TYPEDARRAY_INVALID);
 
       /* Zero should be returned for non-TypedArray objects */
-      jjs_length_t length = jjs_typedarray_length (values[idx]);
+      jjs_length_t length = jjs_typedarray_length (ctx (), values[idx]);
       TEST_ASSERT (length == 0);
 
       /**
@@ -708,30 +706,30 @@ main (void)
       {
         jjs_length_t offset = 22;
         jjs_length_t byte_count = 23;
-        jjs_value_t error = jjs_typedarray_buffer (values[idx], &offset, &byte_count);
-        TEST_ASSERT (jjs_value_is_exception (error));
+        jjs_value_t error = jjs_typedarray_buffer (ctx (), values[idx], &offset, &byte_count);
+        TEST_ASSERT (jjs_value_is_exception (ctx (), error));
         TEST_ASSERT (offset == 22);
         TEST_ASSERT (byte_count == 23);
-        jjs_value_free (error);
+        jjs_value_free (ctx (), error);
       }
 
       /**
        * Creating a TypedArray from a non-ArrayBuffer should result an error.
        */
-      if (!jjs_value_is_arraybuffer (values[idx]))
+      if (!jjs_value_is_arraybuffer (ctx (), values[idx]))
       {
-        jjs_value_t error = jjs_typedarray_with_buffer (JJS_TYPEDARRAY_UINT8, values[idx]);
-        TEST_ASSERT (jjs_value_is_exception (error));
-        jjs_value_free (error);
+        jjs_value_t error = jjs_typedarray_with_buffer (ctx (), JJS_TYPEDARRAY_UINT8, values[idx]);
+        TEST_ASSERT (jjs_value_is_exception (ctx (), error));
+        jjs_value_free (ctx (), error);
       }
 
-      jjs_value_free (values[idx]);
+      jjs_value_free (ctx (), values[idx]);
     }
   }
 
   test_detached_arraybuffer ();
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

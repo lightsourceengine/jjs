@@ -16,7 +16,7 @@
 #include "ecma-globals.h"
 #include "ecma-helpers.h"
 
-#include "test-common.h"
+#include "jjs-test.h"
 
 /**
  * Unit test's main function.
@@ -24,7 +24,7 @@
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
   const lit_utf8_byte_t *strings[] = {
     (const lit_utf8_byte_t *) "1",         (const lit_utf8_byte_t *) "0.5",      (const lit_utf8_byte_t *) "12345",
@@ -49,6 +49,8 @@ main (void)
       return 1;
     }
   }
+
+  ctx_close ();
 
   return 0;
 } /* main */

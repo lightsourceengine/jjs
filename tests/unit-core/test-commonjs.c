@@ -13,38 +13,35 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
+#include "jjs-test.h"
 
-#include "config.h"
-#include "test-common.h"
-
-#define TRY_JJS_COMMONJS_REQUIRE(VALUE)                          \
-  do                                                             \
-  {                                                              \
-    jjs_value_t value = VALUE;                                   \
-    jjs_value_t result = jjs_commonjs_require (value, JJS_MOVE); \
-    TEST_ASSERT (jjs_value_is_exception (result));               \
-    jjs_value_free (result);                                     \
+#define TRY_JJS_COMMONJS_REQUIRE(VALUE)                                  \
+  do                                                                     \
+  {                                                                      \
+    jjs_value_t value = VALUE;                                           \
+    jjs_value_t result = jjs_commonjs_require (ctx (), value, JJS_MOVE); \
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));               \
+    jjs_value_free (ctx (), result);                                     \
   } while (0)
 
 static void
 test_invalid_jjs_commonjs_require_arg (void)
 {
-  TRY_JJS_COMMONJS_REQUIRE (jjs_null ());
-  TRY_JJS_COMMONJS_REQUIRE (jjs_undefined ());
-  TRY_JJS_COMMONJS_REQUIRE (jjs_number (0));
-  TRY_JJS_COMMONJS_REQUIRE (jjs_boolean (true));
-  TRY_JJS_COMMONJS_REQUIRE (jjs_object ());
-  TRY_JJS_COMMONJS_REQUIRE (jjs_array (0));
-  TRY_JJS_COMMONJS_REQUIRE (jjs_symbol (JJS_SYMBOL_TO_STRING_TAG));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_null (ctx ()));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_undefined (ctx ()));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_number (ctx (), 0));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_boolean (ctx (), true));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_object (ctx ()));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_array (ctx (), 0));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
-#define TRY_JJS_COMMONJS_REQUIRE_SZ(VALUE)                \
-  do                                                      \
-  {                                                       \
-    jjs_value_t result = jjs_commonjs_require_sz (VALUE); \
-    TEST_ASSERT (jjs_value_is_exception (result));        \
-    jjs_value_free (result);                              \
+#define TRY_JJS_COMMONJS_REQUIRE_SZ(VALUE)                        \
+  do                                                              \
+  {                                                               \
+    jjs_value_t result = jjs_commonjs_require_sz (ctx (), VALUE); \
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));        \
+    jjs_value_free (ctx (), result);                              \
   } while (0)
 
 static void
@@ -61,9 +58,7 @@ test_invalid_jjs_commonjs_require_sz_arg (void)
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   // note: it is slightly difficult to test filesystem operations
   //       from these unit tests. mostly negative tests are done here.
@@ -72,6 +67,6 @@ main (void)
   test_invalid_jjs_commonjs_require_arg ();
   test_invalid_jjs_commonjs_require_sz_arg ();
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

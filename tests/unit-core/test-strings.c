@@ -13,12 +13,10 @@
  * limitations under the License.
  */
 
+#include "jjs-test.h"
+
 #include "ecma-helpers.h"
 #include "ecma-init-finalize.h"
-
-#include "jjs-context-init.h"
-#include "lit-strings.h"
-#include "test-common.h"
 
 /* Iterations count. */
 #define test_iters (1024)
@@ -99,11 +97,10 @@ generate_cesu8_string (lit_utf8_byte_t *buf_p, lit_utf8_size_t buf_size)
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_INIT ();
+  jjs_context_t *context_p = ctx_bootstrap (NULL);
 
-  jmem_init ();
-  ecma_init ();
+  jmem_init (context_p);
+  ecma_init (context_p);
 
   lit_utf8_byte_t cesu8_string[max_bytes_in_string];
   ecma_char_t code_units[max_code_units_in_string];
@@ -114,10 +111,10 @@ main (void)
     lit_utf8_size_t cesu8_string_size = (i == 0) ? 0 : (lit_utf8_size_t) (rand () % max_bytes_in_string);
     lit_utf8_size_t length = generate_cesu8_string (cesu8_string, cesu8_string_size);
 
-    ecma_string_t *char_collection_string_p = ecma_new_ecma_string_from_utf8 (cesu8_string, cesu8_string_size);
-    lit_utf8_size_t char_collection_len = ecma_string_get_length (char_collection_string_p);
+    ecma_string_t *char_collection_string_p = ecma_new_ecma_string_from_utf8 (context_p, cesu8_string, cesu8_string_size);
+    lit_utf8_size_t char_collection_len = ecma_string_get_length (context_p, char_collection_string_p);
     TEST_ASSERT (char_collection_len == length);
-    ecma_deref_ecma_string (char_collection_string_p);
+    ecma_deref_ecma_string (context_p, char_collection_string_p);
 
     TEST_ASSERT (lit_utf8_string_length (cesu8_string, cesu8_string_size) == length);
 
@@ -249,9 +246,9 @@ main (void)
   lit_utf8_byte_t utf8_string_surrogates[] = { 0xed, 0xa0, 0x80, 0xed, 0xbf, 0xbf };
   TEST_ASSERT (lit_is_valid_utf8_string (utf8_string_surrogates, sizeof (utf8_string_surrogates), false));
 
-  ecma_finalize ();
-  jmem_finalize ();
-  TEST_CONTEXT_CLEANUP ();
+  ecma_finalize (context_p);
+  jmem_finalize (context_p);
+  ctx_bootstrap_cleanup (context_p);
 
   return 0;
 } /* main */

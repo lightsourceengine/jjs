@@ -13,15 +13,13 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static void
 native_cb2 (void)
 {
-  jjs_value_t array = jjs_array (100);
-  jjs_value_free (array);
+  jjs_value_t array = jjs_array (ctx (), 100);
+  jjs_value_free (ctx (), array);
 } /* native_cb2 */
 
 static const jjs_object_native_info_t native_info2 = {
@@ -33,11 +31,11 @@ static const jjs_object_native_info_t native_info2 = {
 static void
 native_cb (void)
 {
-  jjs_value_t array = jjs_array (100);
+  jjs_value_t array = jjs_array (ctx (), 100);
 
-  jjs_object_set_native_ptr (array, &native_info2, NULL);
+  jjs_object_set_native_ptr (ctx (), array, &native_info2, NULL);
 
-  jjs_value_free (array);
+  jjs_value_free (ctx (), array);
 } /* native_cb */
 
 static const jjs_object_native_info_t native_info = {
@@ -49,13 +47,13 @@ static const jjs_object_native_info_t native_info = {
 int
 main (void)
 {
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t obj = jjs_object ();
+  jjs_value_t obj = jjs_object (ctx ());
 
-  jjs_object_set_native_ptr (obj, &native_info, NULL);
-  jjs_value_free (obj);
+  jjs_object_set_native_ptr (ctx (), obj, &native_info, NULL);
+  jjs_value_free (ctx (), obj);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

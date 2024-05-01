@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 int
 main (void)
@@ -28,16 +26,17 @@ main (void)
                                                           "var b = 'world';"
                                                           "var c = a + ' ' + b;");
 
-  TEST_CONTEXT_NEW (context_p);
-  jjs_value_t parsed_code_val = jjs_parse (test_source, sizeof (test_source) - 1, NULL);
-  TEST_ASSERT (!jjs_value_is_exception (parsed_code_val));
+  ctx_open (NULL);
 
-  jjs_value_t res = jjs_run (parsed_code_val);
-  TEST_ASSERT (!jjs_value_is_exception (res));
+  jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
+
+  jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
   jjs_heap_stats_t stats;
   memset (&stats, 0, sizeof (stats));
-  bool get_stats_ret = jjs_heap_stats (&stats);
+  bool get_stats_ret = jjs_heap_stats (ctx (), &stats);
   TEST_ASSERT (get_stats_ret);
   TEST_ASSERT (stats.version == 1);
   // TODO: not sure where this number comes from, but x86 linux builds with ubsan
@@ -45,12 +44,12 @@ main (void)
   // investigated.
   TEST_ASSERT (stats.size == 524280 || stats.size == 524272);
 
-  TEST_ASSERT (!jjs_heap_stats (NULL));
+  TEST_ASSERT (!jjs_heap_stats (ctx (), NULL));
 
-  jjs_value_free (res);
-  jjs_value_free (parsed_code_val);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), parsed_code_val);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

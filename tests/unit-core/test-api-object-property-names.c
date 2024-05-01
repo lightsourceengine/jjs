@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static const char *prop_names[] = { "val1", "val2", "val3", "val4", "val5", "37", "symbol" };
 
@@ -24,33 +22,33 @@ static jjs_char_t buffer[256] = { 0 };
 static void
 create_and_set_property (const jjs_value_t object, const char *prop_name)
 {
-  jjs_value_t jprop_name = jjs_string_sz (prop_name);
-  jjs_value_t ret_val = jjs_object_set (object, jprop_name, jjs_undefined ());
+  jjs_value_t jprop_name = jjs_string_sz (ctx (), prop_name);
+  jjs_value_t ret_val = jjs_object_set (ctx (), object, jprop_name, jjs_undefined (ctx ()));
 
-  jjs_value_free (jprop_name);
-  jjs_value_free (ret_val);
+  jjs_value_free (ctx (), jprop_name);
+  jjs_value_free (ctx (), ret_val);
 } /* create_and_set_property */
 
 static void
 compare_prop_name (const jjs_value_t object, const char *prop_name, uint32_t idx)
 {
-  jjs_value_t name = jjs_object_get_index (object, idx);
-  TEST_ASSERT (jjs_value_is_string (name) || jjs_value_is_number (name));
-  if (jjs_value_is_string (name))
+  jjs_value_t name = jjs_object_get_index (ctx (), object, idx);
+  TEST_ASSERT (jjs_value_is_string (ctx (), name) || jjs_value_is_number (ctx (), name));
+  if (jjs_value_is_string (ctx (), name))
   {
-    jjs_size_t name_size = jjs_string_size (name, JJS_ENCODING_CESU8);
+    jjs_size_t name_size = jjs_string_size (ctx (), name, JJS_ENCODING_CESU8);
     TEST_ASSERT (name_size < sizeof (buffer));
-    jjs_size_t ret_size = jjs_string_to_buffer (name, JJS_ENCODING_CESU8, buffer, sizeof (buffer));
+    jjs_size_t ret_size = jjs_string_to_buffer (ctx (), name, JJS_ENCODING_CESU8, buffer, sizeof (buffer));
     TEST_ASSERT (name_size == ret_size);
     buffer[name_size] = '\0';
     TEST_ASSERT (strcmp ((const char *) buffer, prop_name) == 0);
   }
   else
   {
-    TEST_ASSERT ((int) jjs_value_as_number (name) == atoi (prop_name));
+    TEST_ASSERT ((int) jjs_value_as_number (ctx (), name) == atoi (prop_name));
   }
 
-  jjs_value_free (name);
+  jjs_value_free (ctx (), name);
 } /* compare_prop_name */
 
 static void
@@ -59,34 +57,33 @@ define_property (const jjs_value_t object,
                  jjs_property_descriptor_t *prop_desc_p,
                  bool is_symbol)
 {
-  jjs_value_t jname = jjs_string_sz (prop_name);
+  jjs_value_t jname = jjs_string_sz (ctx (), prop_name);
   jjs_value_t ret_val;
   if (is_symbol)
   {
-    jjs_value_t symbol = jjs_symbol_with_description (jname);
-    ret_val = jjs_object_define_own_prop (object, symbol, prop_desc_p);
-    jjs_value_free (symbol);
+    jjs_value_t symbol = jjs_symbol_with_description (ctx (), jname);
+    ret_val = jjs_object_define_own_prop (ctx (), object, symbol, prop_desc_p);
+    jjs_value_free (ctx (), symbol);
   }
   else
   {
-    ret_val = jjs_object_define_own_prop (object, jname, prop_desc_p);
+    ret_val = jjs_object_define_own_prop (ctx (), object, jname, prop_desc_p);
   }
 
-  jjs_value_free (jname);
-  jjs_value_free (ret_val);
+  jjs_value_free (ctx (), jname);
+  jjs_value_free (ctx (), ret_val);
 } /* define_property */
 
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t error_value = jjs_object_property_names (jjs_undefined (), JJS_PROPERTY_FILTER_ALL);
-  TEST_ASSERT (jjs_value_is_exception (error_value) && jjs_error_type (error_value) == JJS_ERROR_TYPE);
-  jjs_value_free (error_value);
+  jjs_value_t error_value = jjs_object_property_names (ctx (), jjs_undefined (ctx ()), JJS_PROPERTY_FILTER_ALL);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), error_value) && jjs_error_type (ctx (), error_value) == JJS_ERROR_TYPE);
+  jjs_value_free (ctx (), error_value);
 
-  jjs_value_t test_object = jjs_object ();
+  jjs_value_t test_object = jjs_object (ctx ());
   create_and_set_property (test_object, prop_names[0]);
   create_and_set_property (test_object, prop_names[1]);
 
@@ -99,44 +96,44 @@ main (void)
   // Test enumerable - non-enumerable filter
   define_property (test_object, prop_names[2], &prop_desc, false);
   names =
-    jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_NON_ENUMERABLE);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 2);
-  jjs_value_free (names);
-  names = jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 3);
+    jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_NON_ENUMERABLE);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 2);
+  jjs_value_free (ctx (), names);
+  names = jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 3);
   compare_prop_name (names, prop_names[2], 2);
-  jjs_value_free (names);
+  jjs_value_free (ctx (), names);
   prop_desc.flags |= JJS_PROP_IS_ENUMERABLE;
 
   // Test configurable - non-configurable filter
   prop_desc.flags &= (uint16_t) ~JJS_PROP_IS_CONFIGURABLE;
   define_property (test_object, prop_names[3], &prop_desc, false);
-  names = jjs_object_property_names (test_object,
+  names = jjs_object_property_names (ctx (), test_object,
                                        JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_NON_CONFIGURABLE);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 3);
-  jjs_value_free (names);
-  names = jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 4);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 3);
+  jjs_value_free (ctx (), names);
+  names = jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 4);
   compare_prop_name (names, prop_names[3], 3);
-  jjs_value_free (names);
+  jjs_value_free (ctx (), names);
   prop_desc.flags |= JJS_PROP_IS_CONFIGURABLE;
 
   // Test writable - non-writable filter
   prop_desc.flags &= (uint16_t) ~JJS_PROP_IS_WRITABLE;
   define_property (test_object, prop_names[4], &prop_desc, false);
   names =
-    jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_NON_WRITABLE);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 4);
-  jjs_value_free (names);
-  names = jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 5);
+    jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_NON_WRITABLE);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 4);
+  jjs_value_free (ctx (), names);
+  names = jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 5);
   compare_prop_name (names, prop_names[4], 4);
-  jjs_value_free (names);
+  jjs_value_free (ctx (), names);
   prop_desc.flags |= JJS_PROP_IS_WRITABLE;
 
   // Test all property filter
-  names = jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL);
-  jjs_length_t array_len = jjs_array_length (names);
+  names = jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL);
+  jjs_length_t array_len = jjs_array_length (ctx (), names);
   TEST_ASSERT (array_len == (uint32_t) 5);
 
   for (uint32_t i = 0; i < array_len; i++)
@@ -144,42 +141,43 @@ main (void)
     compare_prop_name (names, prop_names[i], i);
   }
 
-  jjs_value_free (names);
+  jjs_value_free (ctx (), names);
 
   // Test number and string index exclusion
   define_property (test_object, prop_names[5], &prop_desc, false);
-  names = jjs_object_property_names (test_object,
+  names = jjs_object_property_names (ctx (), test_object,
                                        JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_STRINGS
                                          | JJS_PROPERTY_FILTER_INTEGER_INDICES_AS_NUMBER);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 1);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 1);
   compare_prop_name (names, prop_names[5], 0);
-  jjs_value_free (names);
-  names = jjs_object_property_names (test_object,
+  jjs_value_free (ctx (), names);
+  names = jjs_object_property_names (ctx (), test_object,
                                        JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_INTEGER_INDICES);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 5);
-  jjs_value_free (names);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 5);
+  jjs_value_free (ctx (), names);
 
   // Test prototype chain traversion
-  names = jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 6);
-  jjs_value_free (names);
-  names = jjs_object_property_names (test_object,
+  names = jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 6);
+  jjs_value_free (ctx (), names);
+  names = jjs_object_property_names (ctx (), test_object,
                                        JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_TRAVERSE_PROTOTYPE_CHAIN);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 18);
-  jjs_value_free (names);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 18);
+  jjs_value_free (ctx (), names);
 
   // Test symbol exclusion
   define_property (test_object, prop_names[6], &prop_desc, true);
-  names = jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_SYMBOLS);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 6);
-  jjs_value_free (names);
-  names = jjs_object_property_names (test_object, JJS_PROPERTY_FILTER_ALL);
-  TEST_ASSERT (jjs_array_length (names) == (uint32_t) 7);
-  jjs_value_free (names);
+  names = jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL | JJS_PROPERTY_FILTER_EXCLUDE_SYMBOLS);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 6);
+  jjs_value_free (ctx (), names);
+  names = jjs_object_property_names (ctx (), test_object, JJS_PROPERTY_FILTER_ALL);
+  TEST_ASSERT (jjs_array_length (ctx (), names) == (uint32_t) 7);
+  jjs_value_free (ctx (), names);
 
-  jjs_property_descriptor_free (&prop_desc);
-  jjs_value_free (test_object);
-  TEST_CONTEXT_FREE (context_p);
+  jjs_property_descriptor_free (ctx (), &prop_desc);
+  jjs_value_free (ctx (), test_object);
+  
+  ctx_close ();
   
   return 0;
 } /* main */

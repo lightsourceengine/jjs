@@ -13,59 +13,56 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 int
 main (void)
 {
-  TEST_INIT ();
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
-  jjs_value_t undefined_this_arg = jjs_undefined ();
+  jjs_value_t undefined_this_arg = jjs_undefined (ctx ());
   char pattern2[] = "\\u{61}.\\u{62}";
 
   uint16_t flags = JJS_REGEXP_FLAG_DOTALL | JJS_REGEXP_FLAG_UNICODE | JJS_REGEXP_FLAG_STICKY;
-  jjs_value_t regex_obj = jjs_regexp_sz (pattern2, flags);
-  TEST_ASSERT (jjs_value_is_object (regex_obj));
+  jjs_value_t regex_obj = jjs_regexp_sz (ctx (), pattern2, flags);
+  TEST_ASSERT (jjs_value_is_object (ctx (), regex_obj));
 
   const jjs_char_t func_src2[] = "return [regex.exec('a\\nb'), regex.dotAll, regex.sticky, regex.unicode ];";
 
   jjs_parse_options_t parse_options;
   parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz ("regex");
+  parse_options.argument_list = jjs_string_sz (ctx (), "regex");
 
-  jjs_value_t func_val = jjs_parse (func_src2, sizeof (func_src2) - 1, &parse_options);
-  jjs_value_free (parse_options.argument_list);
+  jjs_value_t func_val = jjs_parse (ctx (), func_src2, sizeof (func_src2) - 1, &parse_options);
+  jjs_value_free (ctx (), parse_options.argument_list);
 
-  jjs_value_t res = jjs_call (func_val, undefined_this_arg, &regex_obj, 1);
-  jjs_value_t regex_res = jjs_object_get_index (res, 0);
-  jjs_value_t regex_res_str = jjs_object_get_index (regex_res, 0);
-  jjs_value_t is_dotall = jjs_object_get_index (res, 1);
-  jjs_value_t is_sticky = jjs_object_get_index (res, 2);
-  jjs_value_t is_unicode = jjs_object_get_index (res, 3);
+  jjs_value_t res = jjs_call (ctx (), func_val, undefined_this_arg, &regex_obj, 1);
+  jjs_value_t regex_res = jjs_object_get_index (ctx (), res, 0);
+  jjs_value_t regex_res_str = jjs_object_get_index (ctx (), regex_res, 0);
+  jjs_value_t is_dotall = jjs_object_get_index (ctx (), res, 1);
+  jjs_value_t is_sticky = jjs_object_get_index (ctx (), res, 2);
+  jjs_value_t is_unicode = jjs_object_get_index (ctx (), res, 3);
 
-  jjs_size_t str_size = jjs_string_size (regex_res_str, JJS_ENCODING_CESU8);
+  jjs_size_t str_size = jjs_string_size (ctx (), regex_res_str, JJS_ENCODING_CESU8);
   JJS_VLA (jjs_char_t, res_buff, str_size);
-  jjs_size_t res_size = jjs_string_to_buffer (regex_res_str, JJS_ENCODING_CESU8, res_buff, str_size);
+  jjs_size_t res_size = jjs_string_to_buffer (ctx (), regex_res_str, JJS_ENCODING_CESU8, res_buff, str_size);
 
   const char expected_result[] = "a\nb";
   TEST_ASSERT (res_size == (sizeof (expected_result) - 1));
   TEST_ASSERT (strncmp (expected_result, (const char *) res_buff, res_size) == 0);
-  TEST_ASSERT (jjs_value_is_true (is_dotall));
-  TEST_ASSERT (jjs_value_is_true (is_sticky));
-  TEST_ASSERT (jjs_value_is_true (is_unicode));
+  TEST_ASSERT (jjs_value_is_true (ctx (), is_dotall));
+  TEST_ASSERT (jjs_value_is_true (ctx (), is_sticky));
+  TEST_ASSERT (jjs_value_is_true (ctx (), is_unicode));
 
-  jjs_value_free (regex_obj);
-  jjs_value_free (res);
-  jjs_value_free (func_val);
-  jjs_value_free (regex_res);
-  jjs_value_free (regex_res_str);
-  jjs_value_free (is_dotall);
-  jjs_value_free (is_sticky);
-  jjs_value_free (is_unicode);
+  jjs_value_free (ctx (), regex_obj);
+  jjs_value_free (ctx (), res);
+  jjs_value_free (ctx (), func_val);
+  jjs_value_free (ctx (), regex_res);
+  jjs_value_free (ctx (), regex_res_str);
+  jjs_value_free (ctx (), is_dotall);
+  jjs_value_free (ctx (), is_sticky);
+  jjs_value_free (ctx (), is_unicode);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */

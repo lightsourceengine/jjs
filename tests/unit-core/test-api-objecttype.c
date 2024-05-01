@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 typedef struct
 {
@@ -32,8 +30,8 @@ typedef struct
   {                                              \
     TYPE, VALUE, jjs_feature_enabled (FEATURE) \
   }
-#define EVALUATE(BUFF) (jjs_eval ((BUFF), sizeof ((BUFF)) - 1, JJS_PARSE_NO_OPTS))
-#define PARSE(OPTS)    (jjs_parse ((const jjs_char_t *) "", 0, (OPTS)))
+#define EVALUATE(BUFF) (jjs_eval (ctx (), (BUFF), sizeof ((BUFF)) - 1, JJS_PARSE_NO_OPTS))
+#define PARSE(OPTS)    (jjs_parse (ctx (), (const jjs_char_t *) "", 0, (OPTS)))
 static jjs_value_t
 test_ext_function (const jjs_call_info_t *call_info_p, /**< call information */
                    const jjs_value_t args_p[], /**< array of arguments */
@@ -42,27 +40,27 @@ test_ext_function (const jjs_call_info_t *call_info_p, /**< call information */
   (void) call_info_p;
   (void) args_p;
   (void) args_cnt;
-  return jjs_boolean (true);
+  return jjs_boolean (ctx (), true);
 } /* test_ext_function */
 
 static jjs_object_type_t
 test_namespace (const jjs_parse_options_t module_parse_options) /** module options */
 {
-  jjs_value_t module = jjs_parse ((const jjs_char_t *) "", 0, &module_parse_options);
-  jjs_value_t module_linked = jjs_module_link (module, NULL, NULL);
-  jjs_object_type_t namespace = jjs_module_namespace (module);
-  jjs_value_free (module_linked);
-  jjs_value_free (module);
+  jjs_value_t module = jjs_parse (ctx (), (const jjs_char_t *) "", 0, &module_parse_options);
+  jjs_value_t module_linked = jjs_module_link (ctx (), module, NULL, NULL);
+  jjs_object_type_t namespace = jjs_module_namespace (ctx (), module);
+  jjs_value_free (ctx (), module_linked);
+  jjs_value_free (ctx (), module);
   return namespace;
 } /* test_namespace */
 
 static jjs_value_t
 test_dataview (void)
 {
-  jjs_value_t arraybuffer = jjs_arraybuffer (10);
-  jjs_value_t dataview = jjs_dataview (arraybuffer, 0, 4);
+  jjs_value_t arraybuffer = jjs_arraybuffer (ctx (), 10);
+  jjs_value_t dataview = jjs_dataview (ctx (), arraybuffer, 0, 4);
 
-  jjs_value_free (arraybuffer);
+  jjs_value_free (ctx (), arraybuffer);
 
   return dataview;
 } /* test_dataview */
@@ -70,9 +68,7 @@ test_dataview (void)
 int
 main (void)
 {
-  TEST_INIT ();
-
-  TEST_CONTEXT_NEW (context_p);
+  ctx_open (NULL);
 
   const jjs_char_t proxy_object[] = "new Proxy({}, {})";
   const jjs_char_t typedarray_object[] = "new Uint8Array()";
@@ -107,16 +103,16 @@ main (void)
   module_parse_options.options = JJS_PARSE_MODULE;
 
   test_entry_t entries[] = {
-    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_number (-33.0)),
-    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_boolean (true)),
-    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_undefined ()),
-    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_null ()),
-    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_string_sz ("foo")),
-    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_throw_sz (JJS_ERROR_TYPE, "error")),
+    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_number (ctx (), -33.0)),
+    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_boolean (ctx (), true)),
+    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_undefined (ctx ())),
+    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_null (ctx ())),
+    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_string_sz (ctx (), "foo")),
+    ENTRY (JJS_OBJECT_TYPE_NONE, jjs_throw_sz (ctx (), JJS_ERROR_TYPE, "error")),
 
-    ENTRY (JJS_OBJECT_TYPE_GENERIC, jjs_object ()),
+    ENTRY (JJS_OBJECT_TYPE_GENERIC, jjs_object (ctx ())),
     ENTRY_IF (JJS_OBJECT_TYPE_MODULE_NAMESPACE, test_namespace (module_parse_options), JJS_FEATURE_MODULE),
-    ENTRY (JJS_OBJECT_TYPE_ARRAY, jjs_array (10)),
+    ENTRY (JJS_OBJECT_TYPE_ARRAY, jjs_array (ctx (), 10)),
 
     ENTRY_IF (JJS_OBJECT_TYPE_PROXY, EVALUATE (proxy_object), JJS_FEATURE_PROXY),
     ENTRY_IF (JJS_OBJECT_TYPE_TYPEDARRAY, EVALUATE (typedarray_object), JJS_FEATURE_TYPEDARRAY),
@@ -125,7 +121,7 @@ main (void)
 
     ENTRY (JJS_OBJECT_TYPE_SCRIPT, PARSE (NULL)),
     ENTRY_IF (JJS_OBJECT_TYPE_MODULE, PARSE (&module_parse_options), JJS_FEATURE_MODULE),
-    ENTRY_IF (JJS_OBJECT_TYPE_PROMISE, jjs_promise (), JJS_FEATURE_PROMISE),
+    ENTRY_IF (JJS_OBJECT_TYPE_PROMISE, jjs_promise (ctx ()), JJS_FEATURE_PROMISE),
     ENTRY_IF (JJS_OBJECT_TYPE_DATAVIEW, test_dataview (), JJS_FEATURE_DATAVIEW),
     ENTRY_IF (JJS_OBJECT_TYPE_FUNCTION, EVALUATE (arrow_function), JJS_FEATURE_SYMBOL),
     ENTRY_IF (JJS_OBJECT_TYPE_FUNCTION, EVALUATE (async_arrow_function), JJS_FEATURE_SYMBOL),
@@ -135,11 +131,11 @@ main (void)
     ENTRY (JJS_OBJECT_TYPE_FUNCTION, EVALUATE (builtin_function)),
     ENTRY (JJS_OBJECT_TYPE_FUNCTION, EVALUATE (simple_function)),
     ENTRY (JJS_OBJECT_TYPE_FUNCTION, EVALUATE (bound_function)),
-    ENTRY (JJS_OBJECT_TYPE_FUNCTION, jjs_function_external (test_ext_function)),
+    ENTRY (JJS_OBJECT_TYPE_FUNCTION, jjs_function_external (ctx (), test_ext_function)),
     ENTRY (JJS_OBJECT_TYPE_FUNCTION, EVALUATE (getter_function)),
     ENTRY (JJS_OBJECT_TYPE_FUNCTION, EVALUATE (setter_function)),
     ENTRY_IF (JJS_OBJECT_TYPE_ERROR, EVALUATE (error_object), JJS_FEATURE_ERROR_MESSAGES),
-    ENTRY_IF (JJS_OBJECT_TYPE_ARRAYBUFFER, jjs_arraybuffer (10), JJS_FEATURE_TYPEDARRAY),
+    ENTRY_IF (JJS_OBJECT_TYPE_ARRAYBUFFER, jjs_arraybuffer (ctx (), 10), JJS_FEATURE_TYPEDARRAY),
 
     ENTRY (JJS_OBJECT_TYPE_ARGUMENTS, EVALUATE (mapped_arguments)),
     ENTRY (JJS_OBJECT_TYPE_ARGUMENTS, EVALUATE (unmapped_arguments)),
@@ -156,28 +152,28 @@ main (void)
 
   for (size_t idx = 0; idx < sizeof (entries) / sizeof (entries[0]); idx++)
   {
-    jjs_object_type_t type_info = jjs_object_type (entries[idx].value);
+    jjs_object_type_t type_info = jjs_object_type (ctx (), entries[idx].value);
 
     TEST_ASSERT (!entries[idx].active || type_info == entries[idx].type_info);
-    jjs_value_free (entries[idx].value);
+    jjs_value_free (ctx (), entries[idx].value);
   }
 
   if (jjs_feature_enabled (JJS_FEATURE_REALM))
   {
-    jjs_value_t new_realm = jjs_realm ();
-    jjs_object_type_t new_realm_object_type = jjs_object_type (new_realm);
+    jjs_value_t new_realm = jjs_realm (ctx ());
+    jjs_object_type_t new_realm_object_type = jjs_object_type (ctx (), new_realm);
     TEST_ASSERT (new_realm_object_type == JJS_OBJECT_TYPE_GENERIC);
 
-    jjs_value_t old_realm = jjs_set_realm (new_realm);
-    jjs_object_type_t old_realm_object_type = jjs_object_type (old_realm);
+    jjs_value_t old_realm = jjs_set_realm (ctx (), new_realm);
+    jjs_object_type_t old_realm_object_type = jjs_object_type (ctx (), old_realm);
     TEST_ASSERT (old_realm_object_type == JJS_OBJECT_TYPE_GENERIC);
 
-    jjs_set_realm (old_realm);
+    jjs_set_realm (ctx (), old_realm);
 
-    jjs_value_free (new_realm);
+    jjs_value_free (ctx (), new_realm);
   }
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

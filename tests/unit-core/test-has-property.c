@@ -13,60 +13,55 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "config.h"
-#include "test-common.h"
+#include "jjs-test.h"
 
 static void
 assert_boolean_and_release (jjs_value_t result, bool expected)
 {
-  TEST_ASSERT (jjs_value_is_boolean (result));
-  TEST_ASSERT (jjs_value_is_true (result) == expected);
-  jjs_value_free (result);
+  TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
+  TEST_ASSERT (jjs_value_is_true (ctx (), result) == expected);
+  jjs_value_free (ctx (), result);
 } /* assert_boolean_and_release */
 
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
-  TEST_CONTEXT_NEW (context_p);
-
-  jjs_value_t object = jjs_object ();
-  jjs_value_t prop_name = jjs_string_sz ("something");
-  jjs_value_t prop_value = jjs_boolean (true);
-  jjs_value_t proto_object = jjs_object ();
+  jjs_value_t object = jjs_object (ctx ());
+  jjs_value_t prop_name = jjs_string_sz (ctx (), "something");
+  jjs_value_t prop_value = jjs_boolean (ctx (), true);
+  jjs_value_t proto_object = jjs_object (ctx ());
 
   /* Assert that an empty object does not have the property in question */
-  assert_boolean_and_release (jjs_object_has (object, prop_name), false);
-  assert_boolean_and_release (jjs_object_has_own (object, prop_name), false);
+  assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), false);
+  assert_boolean_and_release (jjs_object_has_own (ctx (), object, prop_name), false);
 
-  assert_boolean_and_release (jjs_object_set_proto (object, proto_object), true);
+  assert_boolean_and_release (jjs_object_set_proto (ctx (), object, proto_object), true);
 
   /* If the object has a prototype, that still means it doesn't have the property */
-  assert_boolean_and_release (jjs_object_has (object, prop_name), false);
-  assert_boolean_and_release (jjs_object_has_own (object, prop_name), false);
+  assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), false);
+  assert_boolean_and_release (jjs_object_has_own (ctx (), object, prop_name), false);
 
-  assert_boolean_and_release (jjs_object_set (proto_object, prop_name, prop_value), true);
+  assert_boolean_and_release (jjs_object_set (ctx (), proto_object, prop_name, prop_value), true);
 
   /* After setting the property on the prototype, it must be there, but not on the object */
-  assert_boolean_and_release (jjs_object_has (object, prop_name), true);
-  assert_boolean_and_release (jjs_object_has_own (object, prop_name), false);
+  assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), true);
+  assert_boolean_and_release (jjs_object_has_own (ctx (), object, prop_name), false);
 
-  TEST_ASSERT (jjs_value_is_true (jjs_object_delete (proto_object, prop_name)));
-  assert_boolean_and_release (jjs_object_set (object, prop_name, prop_value), true);
+  TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_delete (ctx (), proto_object, prop_name)));
+  assert_boolean_and_release (jjs_object_set (ctx (), object, prop_name, prop_value), true);
 
   /* After relocating the property onto the object, it must be there */
-  assert_boolean_and_release (jjs_object_has (object, prop_name), true);
-  assert_boolean_and_release (jjs_object_has_own (object, prop_name), true);
+  assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), true);
+  assert_boolean_and_release (jjs_object_has_own (ctx (), object, prop_name), true);
 
-  jjs_value_free (object);
-  jjs_value_free (prop_name);
-  jjs_value_free (prop_value);
-  jjs_value_free (proto_object);
+  jjs_value_free (ctx (), object);
+  jjs_value_free (ctx (), prop_name);
+  jjs_value_free (ctx (), prop_value);
+  jjs_value_free (ctx (), proto_object);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
 
   return 0;
 } /* main */

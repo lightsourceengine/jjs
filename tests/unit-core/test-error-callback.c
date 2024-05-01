@@ -13,9 +13,7 @@
  * limitations under the License.
  */
 
-#include "jjs.h"
-
-#include "test-common.h"
+#include "jjs-test.h"
 
 static bool error_object_created_callback_is_running = false;
 static int error_object_created_callback_count = 0;
@@ -30,21 +28,21 @@ error_object_created_callback (const jjs_value_t error_object_t, /**< new error 
   error_object_created_callback_is_running = true;
   error_object_created_callback_count++;
 
-  jjs_value_t name = jjs_string_sz ("message");
-  jjs_value_t message = jjs_string_sz ("Replaced message!");
+  jjs_value_t name = jjs_string_sz (ctx (), "message");
+  jjs_value_t message = jjs_string_sz (ctx (), "Replaced message!");
 
-  jjs_value_t result = jjs_object_set (error_object_t, name, message);
-  TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
-  jjs_value_free (result);
+  jjs_value_t result = jjs_object_set (ctx (), error_object_t, name, message);
+  TEST_ASSERT (jjs_value_is_boolean (ctx (), result) && jjs_value_is_true (ctx (), result));
+  jjs_value_free (ctx (), result);
 
   /* This SyntaxError must not trigger a recusrsive call of the this callback. */
   const char *source_p = "Syntax Error in JS!";
-  result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
-  TEST_ASSERT (jjs_value_is_exception (result));
+  result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
 
-  jjs_value_free (result);
-  jjs_value_free (message);
-  jjs_value_free (name);
+  jjs_value_free (ctx (), result);
+  jjs_value_free (ctx (), message);
+  jjs_value_free (ctx (), name);
 
   error_object_created_callback_is_running = false;
 } /* error_object_created_callback */
@@ -55,9 +53,9 @@ run_test (const char *source_p)
   /* Run the code 5 times. */
   for (int i = 0; i < 5; i++)
   {
-    jjs_value_t result = jjs_eval ((const jjs_char_t *) source_p, strlen (source_p), 0);
-    TEST_ASSERT (jjs_value_is_boolean (result) && jjs_value_is_true (result));
-    jjs_value_free (result);
+    jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+    TEST_ASSERT (jjs_value_is_boolean (ctx (), result) && jjs_value_is_true (ctx (), result));
+    jjs_value_free (ctx (), result);
   }
 } /* run_test */
 
@@ -67,11 +65,9 @@ run_test (const char *source_p)
 int
 main (void)
 {
-  TEST_INIT ();
+  ctx_open (NULL);
 
-  TEST_CONTEXT_NEW (context_p);
-
-  jjs_error_on_created (error_object_created_callback, (void *) &error_object_created_callback_count);
+  jjs_error_on_created (ctx (), error_object_created_callback, (void *) &error_object_created_callback_count);
 
   run_test ("var result = false\n"
             "try {\n"
@@ -84,10 +80,10 @@ main (void)
   run_test ("var error = new Error()\n"
             "error.message === 'Replaced message!'\n");
 
-  jjs_value_free (jjs_error_sz (JJS_ERROR_COMMON, "Message", jjs_undefined()));
+  jjs_value_free (ctx (), jjs_error_sz (ctx (), JJS_ERROR_COMMON, "Message", jjs_undefined (ctx ())));
 
   TEST_ASSERT (error_object_created_callback_count == 11);
 
-  TEST_CONTEXT_FREE (context_p);
+  ctx_close ();
   return 0;
 } /* main */
