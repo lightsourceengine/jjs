@@ -59,7 +59,7 @@ extern inline void *JJS_ATTR_HOT JJS_ATTR_ALWAYS_INLINE
 jmem_pools_alloc (jjs_context_t *context_p, size_t size) /**< size of the chunk */
 {
 #if JJS_MEM_GC_BEFORE_EACH_ALLOC
-  ecma_gc_run ();
+  ecma_gc_run (context_p);
 #endif /* JJS_MEM_GC_BEFORE_EACH_ALLOC */
 
 #if JJS_CPOINTER_32_BIT

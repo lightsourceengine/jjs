@@ -31,7 +31,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-api-errortype.c
   test-api-fmt.c
   test-api-functiontype.c
-  test-api-init.c
+  test-api-context.c
   test-api-iteratortype.c
   test-api-object-property-names.c
   test-api-objecttype.c

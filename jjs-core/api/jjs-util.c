@@ -178,8 +178,8 @@ jjs_util_arena_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
  * no more room, the allocation fails. free() does nothing. All memory is "freed" when reset is called
  * to rewind the arena buffer pointer to the beginning.
  */
-static bool
-jjs_util_arena_allocator_init (void* block_p, jjs_size_t block_size, jjs_allocator_t* allocator_p)
+jjs_allocator_t
+jjs_util_arena_allocator (void* block_p, jjs_size_t block_size)
 {
   jjs_util_arena_allocator_header_t* header = block_p;
 
@@ -188,13 +188,11 @@ jjs_util_arena_allocator_init (void* block_p, jjs_size_t block_size, jjs_allocat
   header->size = JJS_ALIGNUP (block_size - ARENA_HEADER_SIZE, JMEM_ALIGNMENT);
   header->remaining = header->size;
 
-  *allocator_p = (jjs_allocator_t){
+  return (jjs_allocator_t){
     .alloc = jjs_util_arena_allocator_alloc,
     .free = jjs_util_arena_allocator_free,
     .internal = { block_p },
   };
-
-  return true;
 }
 
 /**
@@ -262,7 +260,7 @@ jjs_util_compound_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t siz
  * used for the scratch allocator. Right now, the usage is maybe 1-3 allocations before the
  * scratch allocator is reset, so the extra memory is not an issue.
  */
-static jjs_allocator_t
+jjs_allocator_t
 jjs_util_compound_allocator (jjs_allocator_t* arena, jjs_allocator_t* fallback)
 {
   if (arena == NULL)
@@ -409,38 +407,6 @@ jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator)
   }
 
   return ECMA_VALUE_UNDEFINED;
-}
-
-/**
- * Initialize the allocators in the context.
- */
-bool
-jjs_util_context_allocator_init (jjs_context_t* context_p, const jjs_allocator_t* fallback_allocator)
-{
-  jjs_allocator_t* scratch_arena_allocator = NULL;
-
-#if JJS_SCRATCH_ARENA_SIZE > 0
-  if (jjs_util_arena_allocator_init (&context_p->scratch_arena_block,
-                                     JJS_SCRATCH_ARENA_SIZE * 1024,
-                                     &context_p->scratch_arena_allocator))
-  {
-    scratch_arena_allocator = &context_p->scratch_arena_allocator;
-  }
-  else
-  {
-    return false;
-  }
-#endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
-
-  context_p->fallback_scratch_allocator = *fallback_allocator;
-
-  if (scratch_arena_allocator)
-  {
-    context_p->scratch_allocator =
-      jjs_util_compound_allocator (scratch_arena_allocator, &context_p->fallback_scratch_allocator);
-  }
-
-  return true;
 }
 
 /**

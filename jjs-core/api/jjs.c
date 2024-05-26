@@ -1285,10 +1285,10 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
       return true;
     case JJS_FEATURE_VMOD:
       return IS_FEATURE_ENABLED (JJS_ANNEX_VMOD);
-    case JJS_FEATURE_VM_STACK_STATIC:
-      return IS_FEATURE_ENABLED (JJS_VM_STACK_STATIC);
-    case JJS_FEATURE_VM_HEAP_STATIC:
-      return IS_FEATURE_ENABLED (JJS_VM_HEAP_STATIC);
+    case JJS_FEATURE_VM_STACK_LIMIT:
+      return IS_FEATURE_ENABLED (JJS_VM_STACK_LIMIT);
+    case JJS_FEATURE_SCRATCH_ARENA:
+      return IS_FEATURE_ENABLED (JJS_SCRATCH_ARENA);
     default:
       JJS_ASSERT (false);
       return false;
@@ -7636,6 +7636,15 @@ jjs_fmt_join_v (jjs_context_t* context_p, /**< JJS context */
 
   return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_join_v */
+
+jjs_optional_u32_t
+jjs_optional_u32 (uint32_t value)
+{
+  return (jjs_optional_u32_t) {
+    .value = value,
+    .has_value = true,
+  };
+}
 
 /**
  * @}

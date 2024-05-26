@@ -112,6 +112,8 @@ bool JJS_ATTR_CONST jjs_feature_enabled (const jjs_feature_t feature);
 void
 jjs_register_magic_strings (jjs_context_t* context_p, const jjs_char_t *const *ext_strings_p, uint32_t count, const jjs_length_t *str_lengths_p);
 
+jjs_optional_u32_t jjs_optional_u32 (uint32_t value);
+
 /**
  * jjs-api-general-misc @}
  */

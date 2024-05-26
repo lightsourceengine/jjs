@@ -43,7 +43,10 @@ jjs_allocator_t jjs_util_vm_allocator (jjs_context_t* context_p);
 jjs_allocator_t jjs_util_arraybuffer_allocator (jjs_context_t* context_p);
 jjs_value_t jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator);
 
-bool jjs_util_context_allocator_init (jjs_context_t* context_p, const jjs_allocator_t* fallback_allocator);
+
+jjs_allocator_t jjs_util_arena_allocator (void* block_p, jjs_size_t block_size);
+jjs_allocator_t jjs_util_compound_allocator (jjs_allocator_t* arena, jjs_allocator_t* fallback);
+
 
 jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p);
 void jjs_util_context_release_scratch_allocator (jjs_context_t* context_p);

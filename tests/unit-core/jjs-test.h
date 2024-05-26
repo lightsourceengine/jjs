@@ -142,6 +142,7 @@ void ctx_bootstrap_cleanup (jjs_context_t *context_p);
 /* Create values and store them in the current context. */
 
 jjs_value_t ctx_value (jjs_value_t value);
+jjs_value_t ctx_global (void);
 jjs_value_t ctx_cstr (const char *s);
 jjs_value_t ctx_number (double n);
 jjs_value_t ctx_null (void);

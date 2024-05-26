@@ -118,7 +118,6 @@ typedef enum
   JJS_STATUS_BAD_ALLOC, /**< */
   JJS_STATUS_UNSUPPORTED_ENCODING, /**< */
   JJS_STATUS_MALFORMED_CESU8, /**< */
-  JJS_STATUS_CONTEXT_CHAOS, /**< engine is in a horrible state */
 
   /* platform api errors */
   JJS_STATUS_PLATFORM_CWD_ERR, /**< */
@@ -130,15 +129,14 @@ typedef enum
   JJS_STATUS_PLATFORM_FILE_OPEN_ERR, /**< */
 
   /* context initialization errors */
-  JJS_STATUS_CONTEXT_ALREADY_INITIALIZED, /**< context already in an initialized state */
-  JJS_STATUS_CONTEXT_IMMUTABLE_HEAP_SIZE, /**< heap size was configured at compile time and cannot be changed  */
-  JJS_STATUS_CONTEXT_IMMUTABLE_STACK_LIMIT, /**< stack limit was configured at compile time and cannot be changed  */
   JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING, /**< platform.io_stdout was set with an unsupported platform.io_stdout_encoding value */
   JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING, /**< platform.io_stderr was set with an unsupported platform.io_stderr_encoding value */
   JJS_STATUS_CONTEXT_REQUIRES_API_FATAL, /**< platform.fatal function is required by the engine */
   JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP, /**< platform.time_sleep function is required by the engine */
   JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA, /**< platform.time_local_tza function is required by the engine */
   JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS, /**< platform.time_now_ms function is required by the engine */
+  JJS_STATUS_CONTEXT_SCRATCH_ARENA_DISABLED,
+  JJS_STATUS_CONTEXT_VM_STACK_LIMIT_DISABLED,
 } jjs_status_t;
 
 /**
@@ -153,6 +151,15 @@ typedef struct jjs_allocator_s
   void (*free)(struct jjs_allocator_s*, void*, uint32_t); /**< free a block. NULL block is a no-op. */
   void* internal[4]; /**< reserved data for allocator implementations */
 } jjs_allocator_t;
+
+/**
+ * Optional unsigned integer.
+ */
+typedef struct jjs_optional_u32_s
+{
+  uint32_t value; /**< value */
+  bool has_value; /**< boolean indicating whether value has been set */
+} jjs_optional_u32_t;
 
 /**
  * Flags for path conversion.
@@ -172,6 +179,23 @@ typedef enum
   JJS_CONTEXT_FLAG_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
   JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
   JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
+  JJS_CONTEXT_FLAG_SCRATCH_ALLOCATOR_VM = (1u << 3), /**< use vm allocator for temporary allocations. if flag is not set, system allocator is used. */
+  /**
+   * Strict memory layout for context.
+   *
+   * The scratch arena (if present), context struct and vm heap are allocated as one
+   * memory block. The context struct is variable and depends on compile time settings,
+   * so the memory block will be different sizes across platforms and builds.
+   *
+   * If this strict mode is set, the context struct uses the vm heap. The allocation for
+   * the full block will always be scratch arena + vm heap size across all platforms. The
+   * actual working vm heap will be (vm heap size - size of context struct).
+   *
+   * The purpose of this setting is so the context allocator gets a consistent size in
+   * it's alloc. The primary use case is if you want to have a compile time static block
+   * of memory for the context memory block.
+   */
+  JJS_CONTEXT_FLAG_STRICT_MEMORY_LAYOUT = (1u << 4),
 } jjs_context_flag_t;
 
 /**
@@ -284,8 +308,8 @@ typedef enum
   JJS_FEATURE_COMMONJS, /**< CommonJS module support (import from file) */
   JJS_FEATURE_PMAP, /**< Package Map support */
   JJS_FEATURE_VMOD, /**< Virtual Module support */
-  JJS_FEATURE_VM_HEAP_STATIC, /**< VM stack heap size has been set at compile time.  */
-  JJS_FEATURE_VM_STACK_STATIC, /**< VM stack limit size has been set at compile time. */
+  JJS_FEATURE_SCRATCH_ARENA, /**< VM stack heap size has been set at compile time.  */
+  JJS_FEATURE_VM_STACK_LIMIT, /**< VM stack limit size has been set at compile time. */
   JJS_FEATURE__COUNT /**< number of features. NOTE: must be at the end of the list */
 } jjs_feature_t;
 
@@ -1408,13 +1432,11 @@ typedef struct
 
 /**
  * Context initialization settings.
- *
- * Use jjs_context_options_init() to initialize this structure, as that function fills
- * in configured defaults.
  */
 typedef struct
 {
   jjs_allocator_t *allocator;
+
   jjs_platform_t *platform;
 
   /**
@@ -1451,6 +1473,8 @@ typedef struct
    */
   void* unhandled_rejection_user_p;
 
+  jjs_optional_u32_t scratch_size_kb;
+
   /**
    * VM heap size in kilobytes.
    *
@@ -1459,7 +1483,7 @@ typedef struct
    *
    * Default: JJS_DEFAULT_VM_HEAP_SIZE
    */
-  uint32_t vm_heap_size_kb;
+  jjs_optional_u32_t vm_heap_size_kb;
 
   /**
    * VM stack size limit in kilobytes.
@@ -1472,7 +1496,7 @@ typedef struct
    *
    * Default: JJS_DEFAULT_VM_STACK_LIMIT
    */
-  uint32_t vm_stack_limit_kb;
+  jjs_optional_u32_t vm_stack_limit_kb;
 
   /**
    * Allowed heap usage limit until next garbage collection. The value is in kilobytes.
@@ -1481,7 +1505,7 @@ typedef struct
    *
    * Default: JJS_DEFAULT_GC_LIMIT
    */
-  uint32_t gc_limit_kb;
+  jjs_optional_u32_t gc_limit_kb;
 
   /**
    * GC mark depth.
@@ -1490,7 +1514,7 @@ typedef struct
    *
    * Default: JJS_DEFAULT_GC_MARK_LIMIT
    */
-  uint32_t gc_mark_limit;
+  jjs_optional_u32_t gc_mark_limit;
 
   /**
    * Amount of newly allocated objects since the last GC run, represented as
@@ -1500,36 +1524,7 @@ typedef struct
    *
    * Default: JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
    */
-  uint32_t gc_new_objects_fraction;
-
-  /**
-   * Platform object.
-   *
-   * When jjs_context_options or jjs_context_options_init is called, this is filled in with all
-   * the platform specific information and functions JJS will use by default. Depending on
-   * compile time configuration some fields will be filled in and other not.
-   *
-   * As part of context configuration, you can modify anything in platform with your own data
-   * of behavior. When the options are committed to the context through jjs_init, the modified
-   * platform is used by JJS.
-   */
-//  jjs_platform_options_t platform;
-
-  /**
-   * Fallback scratch buffer allocator.
-   *
-   * The engine has an internal arena allocator for temporary allocations for paths, loading
-   * source files or snapshots or json and other optimizations. If the arena buffer is too
-   * small or gets exhausted, this fallback is used. The fallback should be the vm or system
-   * allocator.
-   *
-   * The arena allocator buffer size can be set with JJS_SCRATCH_ARENA_SIZE. If 0, the scratch
-   * arena allocator is disabled and the fallback allocator is used exclusively.
-   *
-   * By default, the system allocator is used. You can set this to the vm heap
-   * allocator or use your own allocator.
-   */
-//  jjs_allocator_t scratch_allocator;
+  jjs_optional_u32_t gc_new_objects_fraction;
 
 } jjs_context_options_t;
 

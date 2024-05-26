@@ -270,93 +270,6 @@ test_platform_date_requirements (void)
 //#endif
 }
 
-static void
-test_jjs_namespace (void)
-{
-  jjs_context_t *context_p;
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
-  TEST_ASSERT (context_p != NULL);
-
-  jjs_value_t global = jjs_current_realm (context_p);
-  jjs_value_t jjs = jjs_object_get_sz (context_p, global, "jjs");
-  jjs_value_t result;
-
-  TEST_ASSERT (jjs_value_is_object (context_p, jjs));
-  TEST_ASSERT (jjs_value_is_string (context_p, result = jjs_object_get_sz (context_p, jjs, "version")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_string (context_p, result = jjs_object_get_sz (context_p, jjs, "os")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_string (context_p, result = jjs_object_get_sz (context_p, jjs, "arch")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_object (context_p, result = jjs_object_get_sz (context_p, jjs, "stdout")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_object (context_p, result = jjs_object_get_sz (context_p, jjs, "stderr")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_function (context_p, result = jjs_object_get_sz (context_p, jjs, "pmap")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_function (context_p, result = jjs_object_get_sz (context_p, jjs, "vmod")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_function (context_p, result = jjs_object_get_sz (context_p, jjs, "readFile")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_function (context_p, result = jjs_object_get_sz (context_p, jjs, "realpath")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_function (context_p, result = jjs_object_get_sz (context_p, jjs, "cwd")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_function (context_p, result = jjs_object_get_sz (context_p, jjs, "gc")));
-  jjs_value_free (context_p, result);
-
-  jjs_value_free (context_p, global);
-  jjs_value_free (context_p, jjs);
-
-  jjs_context_free (context_p);
-}
-
-static void
-check_jjs_namespace_exclusion (jjs_namespace_exclusion_t exclusion, const char* api_name_sz)
-{
-  jjs_context_t *context_p;
-  jjs_context_options_t options = {
-    .jjs_namespace_exclusions = exclusion,
-  };
-
-  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
-  TEST_ASSERT (context_p != NULL);
-
-  jjs_value_t global = jjs_current_realm (context_p);
-  jjs_value_t jjs = jjs_object_get_sz (context_p, global, "jjs");
-  jjs_value_t result;
-
-  /* sanity check that jjs object exists and basics are populated */
-  TEST_ASSERT (jjs_value_is_object (context_p, jjs));
-  TEST_ASSERT (jjs_value_is_string (context_p, result = jjs_object_get_sz (context_p, jjs, "version")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_string (context_p, result = jjs_object_get_sz (context_p, jjs, "os")));
-  jjs_value_free (context_p, result);
-  TEST_ASSERT (jjs_value_is_string (context_p, result = jjs_object_get_sz (context_p, jjs, "arch")));
-  jjs_value_free (context_p, result);
-
-  TEST_ASSERT (jjs_value_is_false (context_p, result = jjs_object_has_sz (context_p, jjs, api_name_sz)));
-  jjs_value_free (context_p, result);
-
-  jjs_value_free (context_p, global);
-  jjs_value_free (context_p, jjs);
-
-  jjs_context_free (context_p);
-}
-
-static void
-test_jjs_namespace_exclusions (void)
-{
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_READ_FILE, "readFile");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_STDOUT, "stdout");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_STDERR, "stderr");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_PMAP, "pmap");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_VMOD, "vmod");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_REALPATH, "realpath");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_CWD, "cwd");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_GC, "gc");
-}
-
 int
 main (void)
 {
@@ -378,9 +291,6 @@ main (void)
   test_platform_date_requirements ();
   test_platform_debugger_requirements ();
   test_platform_stream_requirements ();
-
-  test_jjs_namespace ();
-  test_jjs_namespace_exclusions ();
 
   return 0;
 } /* main */

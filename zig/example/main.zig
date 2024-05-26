@@ -23,27 +23,33 @@ pub fn main() anyerror!void {
 
     // initialize JJS with the default heap size (usually configure to 512KB). Use jjs_init_ex()
     // for more control of memory configuration.
-    _ = jjs.jjs_init_default();
-    defer jjs.jjs_cleanup();
+    var ctx: ?*jjs.jjs_context_t = null;
+    const status = jjs.jjs_context_new(null, &ctx);
+    defer jjs.jjs_context_free(ctx);
+
+    if (status != jjs.JJS_STATUS_OK) {
+      std.log.err("failed to init context", .{});
+      std.process.exit(1);
+    }
 
     // parse the script
-    const compiled = jjs.jjs_parse(script, script.len, null);
-    defer jjs.jjs_value_free(compiled);
+    const compiled = jjs.jjs_parse(ctx, script, script.len, null);
+    defer jjs.jjs_value_free(ctx, compiled);
 
-    if (jjs.jjs_value_is_exception(compiled)) {
+    if (jjs.jjs_value_is_exception(ctx, compiled)) {
         std.log.err("parse error", .{});
         std.process.exit(1);
     }
 
     // run the compiled byte code
-    const result = jjs.jjs_run(compiled);
-    defer jjs.jjs_value_free(result);
+    const result = jjs.jjs_run(ctx, compiled);
+    defer jjs.jjs_value_free(ctx, result);
 
-    if (jjs.jjs_value_is_exception(result)) {
+    if (jjs.jjs_value_is_exception(ctx, result)) {
         std.log.err("eval error", .{});
         std.process.exit(1);
     }
 
     // the result is the last thing on the stack, the result of the multiplication.
-    std.log.info("script result: {}", .{jjs.jjs_value_as_int32(result)});
+    std.log.info("script result: {}", .{jjs.jjs_value_as_int32(ctx, result)});
 }

@@ -20,6 +20,7 @@
 #include "jjs-test.h"
 
 #include "jmem.h"
+#include "ecma-init-finalize.h"
 
 #define JMEM_ALLOCATOR_INTERNAL
 #include "jmem-allocator-internal.h"
@@ -40,6 +41,7 @@ main (void)
   jjs_context_t *context_p = ctx_bootstrap (NULL);
 
   jmem_init (context_p);
+  ecma_init (context_p);
 
   for (uint32_t i = 0; i < test_iters; i++)
   {
@@ -82,6 +84,7 @@ main (void)
   jmem_heap_stats_print (context_p);
 #endif /* JMEM_STATS */
 
+  ecma_finalize (context_p);
   jmem_finalize (context_p);
   ctx_bootstrap_cleanup (context_p);
 

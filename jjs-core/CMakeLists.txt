@@ -48,10 +48,11 @@ set(JJS_SNAPSHOT_SAVE             OFF          CACHE BOOL   "Enable saving snaps
 set(JJS_VALGRIND                  OFF          CACHE BOOL   "Enable Valgrind support?")
 set(JJS_VM_HALT                   OFF          CACHE BOOL   "Enable VM execution stop callback?")
 set(JJS_VM_THROW                  OFF          CACHE BOOL   "Enable VM throw callback?")
-set(JJS_VM_HEAP_STATIC            OFF          CACHE BOOL   "Use a fixed size VM heap size of JJS_DEFAULT_VM_HEAP_SIZE?")
-set(JJS_VM_STACK_STATIC           ON           CACHE BOOL   "Use a fixed VM stack limit of size JJS_DEFAULT_VM_STACK_LIMIT?")
-set(JJS_DEFAULT_VM_HEAP_SIZE      "(1024)"     CACHE STRING "Size of memory heap, in kilobytes")
-set(JJS_DEFAULT_VM_STACK_LIMIT    "(0)"        CACHE STRING "Maximum stack usage size, in kilobytes. WARNING: does not work across all configurations!")
+set(JJS_SCRATCH_ARENA             ON           CACHE BOOL   "Enable scratch arena for internal temporary allocations?")
+set(JJS_DEFAULT_SCRATCH_ARENA_KB  "(32)"       CACHE STRING "Size of scratch arena buffer in kilobytes?")
+set(JJS_VM_STACK_LIMIT            OFF          CACHE BOOL   "Enable vm stack limit checks?")
+set(JJS_DEFAULT_VM_HEAP_SIZE_KB   "(1024)"     CACHE STRING "Size of vm memory heap in kilobytes")
+set(JJS_DEFAULT_VM_STACK_LIMIT_KB "(0)"        CACHE STRING "Default maximum stack usage size, in kilobytes.")
 
 set(JJS_PLATFORM_API_FS_READ_FILE   ON         CACHE BOOL   "Enable default platform.fs.read_file implementation?")
 set(JJS_PLATFORM_API_IO_WRITE       ON         CACHE BOOL   "Enable default platform.io.write implementation?")
@@ -63,7 +64,7 @@ set(JJS_PLATFORM_API_TIME_NOW_MS    ON         CACHE BOOL   "Enable default plat
 set(JJS_PLATFORM_API_TIME_SLEEP     ON         CACHE BOOL   "Enable default platform.time.sleep implementation?")
 
 # Option overrides
-if (JJS_VM_HEAP_SIZE GREATER 512)
+if (JJS_VM_HEAP_SIZE_KB GREATER 512)
   set(JJS_CPOINTER_32_BIT ON)
 
   set(JJS_CPOINTER_32_BIT_MESSAGE " (FORCED BY NOT HEAP STATIC OR HEAP SIZE > 512)")
@@ -113,10 +114,11 @@ message(STATUS "JJS_SNAPSHOT_SAVE               " ${JJS_SNAPSHOT_SAVE} ${JJS_SNA
 message(STATUS "JJS_VALGRIND                    " ${JJS_VALGRIND})
 message(STATUS "JJS_VM_HALT                     " ${JJS_VM_HALT})
 message(STATUS "JJS_VM_THROW                    " ${JJS_VM_THROW})
-message(STATUS "JJS_VM_HEAP_STATIC              " ${JJS_VM_HEAP_STATIC})
-message(STATUS "JJS_VM_STACK_STATIC             " ${JJS_VM_STACK_STATIC})
-message(STATUS "JJS_DEFAULT_VM_HEAP_SIZE        " ${JJS_DEFAULT_VM_HEAP_SIZE})
-message(STATUS "JJS_DEFAULT_VM_STACK_LIMIT      " ${JJS_DEFAULT_VM_STACK_LIMIT})
+message(STATUS "JJS_SCRATCH_ARENA               " ${JJS_SCRATCH_ARENA})
+message(STATUS "JJS_VM_STACK_LIMIT              " ${JJS_VM_STACK_LIMIT})
+message(STATUS "JJS_DEFAULT_SCRATCH_ARENA_KB    " ${JJS_DEFAULT_SCRATCH_ARENA_KB})
+message(STATUS "JJS_DEFAULT_VM_HEAP_SIZE_KB     " ${JJS_DEFAULT_VM_HEAP_SIZE_KB})
+message(STATUS "JJS_DEFAULT_VM_STACK_LIMIT_KB   " ${JJS_DEFAULT_VM_STACK_LIMIT_KB})
 message(STATUS "JJS_PLATFORM_API_FS_READ_FILE   " ${JJS_PLATFORM_API_FS_READ_FILE})
 message(STATUS "JJS_PLATFORM_API_IO_WRITE       " ${JJS_PLATFORM_API_IO_WRITE})
 message(STATUS "JJS_PLATFORM_API_IO_FLUSH       " ${JJS_PLATFORM_API_IO_FLUSH})
@@ -657,17 +659,20 @@ jjs_add_define01(JJS_VM_HALT)
 # Enable VM throw callback
 jjs_add_define01(JJS_VM_THROW)
 
-# Enable VM static heap flag
-jjs_add_define01(JJS_VM_HEAP_STATIC)
+# Enable scratch arena allocator
+jjs_add_define01(JJS_SCRATCH_ARENA)
 
-# Enable VM static stack flag
-jjs_add_define01(JJS_VM_STACK_STATIC)
+# Enable VM static stack usage checks flag
+jjs_add_define01(JJS_VM_STACK_LIMIT)
 
-# Size of heap
-set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_HEAP_SIZE=${JJS_DEFAULT_VM_HEAP_SIZE})
+# Default scratch allocator size
+set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_SCRATCH_ARENA_KB=${JJS_DEFAULT_SCRATCH_ARENA_KB})
 
-# Maximum size of stack memory usage
-set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_STACK_LIMIT=${JJS_DEFAULT_VM_STACK_LIMIT})
+# Default vm heap size
+set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_HEAP_SIZE_KB=${JJS_DEFAULT_VM_HEAP_SIZE_KB})
+
+# Default vm stack limit size
+set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_STACK_LIMIT_KB=${JJS_DEFAULT_VM_STACK_LIMIT_KB})
 
 # platform apis
 jjs_add_define01(JJS_PLATFORM_API_FS_READ_FILE)

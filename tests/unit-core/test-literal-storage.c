@@ -17,6 +17,7 @@
 
 #include "ecma-helpers.h"
 #include "ecma-literal-storage.h"
+#include "ecma-init-finalize.h"
 
 /* Iterations count. */
 #define test_iters 64
@@ -64,6 +65,7 @@ main (void)
   jjs_context_t *context_p = ctx_bootstrap (NULL);
 
   jmem_init (context_p);
+  ecma_init (context_p);
 
   for (uint32_t i = 0; i < test_iters; i++)
   {
@@ -128,7 +130,7 @@ main (void)
     TEST_ASSERT (ecma_find_or_create_literal_string (context_p, NULL, 0, false) != JMEM_CP_NULL);
   }
 
-  ecma_finalize_lit_storage (context_p);
+  ecma_finalize (context_p);
   jmem_finalize (context_p);
   ctx_bootstrap_cleanup (context_p);
 

@@ -275,7 +275,7 @@ jmem_heap_gc_and_alloc_block (jjs_context_t *context_p, /**< JJS context */
     ecma_free_unused_memory (context_p, pressure);
   }
 #else /* !JJS_MEM_GC_BEFORE_EACH_ALLOC */
-  ecma_gc_run ();
+  ecma_gc_run (context_p);
 #endif /* JJS_MEM_GC_BEFORE_EACH_ALLOC */
 
   void *data_space_p = jmem_heap_alloc (context_p, size);
@@ -535,7 +535,7 @@ jmem_heap_realloc_block (jjs_context_t *context_p, /**< JJS context */
     ecma_free_unused_memory (context_p, JMEM_PRESSURE_LOW);
   }
 #else /* !JJS_MEM_GC_BEFORE_EACH_ALLOC */
-  ecma_gc_run ();
+  ecma_gc_run (context_p);
 #endif /* JJS_MEM_GC_BEFORE_EACH_ALLOC */
 
   jmem_heap_free_t *prev_p = jmem_heap_find_prev (context_p, block_p);

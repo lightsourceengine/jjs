@@ -72,16 +72,19 @@ typedef struct jjs_context_data_header
 struct jjs_context_t
 {
   uint32_t context_flags; /**< context flags */
-  uint32_t jjs_namespace_exclusions; /**< javascript jjs namespace exclusions */
-  jjs_log_level_t log_level;
-
-  ecma_global_object_t *global_object_p; /**< current global object */
 
   jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
 
-  jjs_allocator_t *context_allocator;
-  jjs_size_t context_size_b;
-  jjs_platform_t *platform_p;
+  jjs_allocator_t *context_allocator; /**< allocator that created this context, scratch and vm heap. stored for cleanup only. */
+  jjs_size_t context_block_size_b; /**< size of context + scratch + vm heap memory block. stored for cleanup only. */
+
+  ecma_global_object_t *global_object_p; /**< current global object */
+  uint32_t jjs_namespace_exclusions; /**< javascript jjs namespace exclusions */
+
+  jjs_log_level_t log_level; /**< log level. log requests at this level of less will be logged. */
+
+  jjs_platform_t *platform_p; /**< platform api */
+
   jjs_platform_io_stream_t *streams[2]; /**< installed platform io streams. validated at context init.
                                            * indexes at jjs_platform_io_stream_id_t */
 
@@ -175,7 +178,7 @@ struct jjs_context_t
 #if JJS_BUILTIN_TYPEDARRAY
   uint32_t arraybuffer_compact_allocation_limit; /**< maximum size of compact allocation */
   jjs_arraybuffer_allocate_cb_t arraybuffer_allocate_callback; /**< callback for allocating
-                                                                  *   arraybuffer memory */
+                                                                *   arraybuffer memory */
   jjs_arraybuffer_free_cb_t arraybuffer_free_callback; /**< callback for freeing arraybuffer memory */
   void *arraybuffer_allocate_callback_user_p; /**< user pointer passed to arraybuffer_allocate_callback
                                                *   and arraybuffer_free_callback functions */
@@ -237,23 +240,12 @@ struct jjs_context_t
   ecma_object_t *current_new_target_p;
 
   jjs_allocator_t scratch_allocator; /**< scratch allocator the system uses (compound allocator: arena + fallback) */
+
+#if JJS_SCRATCH_ARENA
   jjs_allocator_t fallback_scratch_allocator; /**< fallback scratch allocator from context options. */
-
-#if JJS_SCRATCH_ARENA_SIZE > 0
   jjs_allocator_t scratch_arena_allocator; /**< scratch arena allocator */
-  uint8_t scratch_arena_block[JJS_SCRATCH_ARENA_SIZE * 1024]; /**< memory block for scratch arena allocator */
-#endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
+#endif /* JJS_SCRATCH_ARENA */
 };
-
-/**
- * Provides a reference to a field in the current context.
- */
-#define JJS_CONTEXT(field) (jjs_global_context.field)
-
-/**
- * Provides a reference to a field of the heap.
- */
-#define JJS_HEAP_CONTEXT(field) (jjs_global_context.heap_p->field)
 
 void jcontext_set_exception_flag (jjs_context_t *context_p, bool is_exception);
 

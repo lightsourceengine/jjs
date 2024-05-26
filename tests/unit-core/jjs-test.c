@@ -87,6 +87,12 @@ ctx_value (jjs_value_t value)
 }
 
 jjs_value_t
+ctx_global (void)
+{
+  return ctx_value (jjs_current_realm (ctx ()));
+}
+
+jjs_value_t
 ctx_cstr (const char *s)
 {
   return ctx_value (jjs_string_utf8_sz (ctx (), s));

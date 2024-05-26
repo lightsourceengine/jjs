@@ -574,8 +574,8 @@ ecma_create_named_accessor_property (ecma_context_t *context_p, /**< JJS context
   ECMA_SET_POINTER (context_p, getter_setter_pair_p->setter_cp, set_p);
   ECMA_SET_NON_NULL_POINTER (context_p, value.getter_setter_pair_cp, getter_setter_pair_p);
 #else /* !JJS_CPOINTER_32_BIT */
-  ECMA_SET_POINTER (value.getter_setter_pair.getter_cp, get_p);
-  ECMA_SET_POINTER (value.getter_setter_pair.setter_cp, set_p);
+  ECMA_SET_POINTER (context_p, value.getter_setter_pair.getter_cp, get_p);
+  ECMA_SET_POINTER (context_p, value.getter_setter_pair.setter_cp, set_p);
 #endif /* JJS_CPOINTER_32_BIT */
 
   return ecma_create_property (context_p, object_p, name_p, type_and_flags, value, out_prop_p);

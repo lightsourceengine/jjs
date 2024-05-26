@@ -26,8 +26,7 @@
  *
  * See: JJS_DEFAULT_GC_LIMIT
  */
-#define JJS_COMPUTE_GC_LIMIT(HEAP_SIZE) \
-  JJS_MIN ((HEAP_SIZE) / JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR, JJS_DEFAULT_MAX_GC_LIMIT)
+#define JJS_COMPUTE_GC_LIMIT(HEAP_SIZE) JJS_MIN ((HEAP_SIZE) / JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR, 8192)
 
 /**
  * Default implementation of unhandled rejection callback.
@@ -41,6 +40,36 @@ unhandled_rejection_default (jjs_context_t* context_p, jjs_value_t promise, jjs_
 #endif
 }
 
+static uint32_t
+get_context_option_u32 (const jjs_optional_u32_t * optional, uint32_t default_value)
+{
+  return optional->has_value && optional->value > 0 ? optional->value : default_value;
+}
+
+/**
+ * Initialize the allocators in the context.
+ */
+void
+context_set_scratch_allocator (jjs_context_t* context_p, uint8_t *scratch_block, uint32_t scratch_block_size_b, uint32_t flags)
+{
+  jjs_allocator_t fallback_allocator = (flags & JJS_CONTEXT_FLAG_SCRATCH_ALLOCATOR_VM) ? jjs_util_vm_allocator (context_p) : jjs_util_system_allocator ();
+
+#if JJS_SCRATCH_ARENA
+  if (scratch_block_size_b > 0)
+  {
+    context_p->scratch_arena_allocator = jjs_util_arena_allocator (scratch_block, scratch_block_size_b);
+    context_p->fallback_scratch_allocator = fallback_allocator;
+
+    context_p->scratch_allocator =
+      jjs_util_compound_allocator (&context_p->scratch_arena_allocator, &context_p->fallback_scratch_allocator);
+  }
+  else
+#endif /* JJS_SCRATCH_ARENA */
+  {
+    context_p->scratch_allocator = fallback_allocator;
+  }
+}
+
 /*
  * Setup the global context object.
  *
@@ -51,48 +80,75 @@ unhandled_rejection_default (jjs_context_t* context_p, jjs_value_t promise, jjs_
 jjs_status_t
 jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
 {
+  jjs_status_t status;
   jjs_context_options_t default_options = {0};
+  jjs_platform_t *platform;
 
   if (options_p == NULL)
   {
     options_p = &default_options;
   }
 
-  jjs_allocator_t *allocator = options_p->allocator ? options_p->allocator : jjs_util_system_allocator_ptr ();
-  jjs_platform_t *platform;
-
   if (options_p->platform)
   {
     platform = options_p->platform;
     platform->refs++;
   }
-  else
+  else if ((status = jjs_platform_new (NULL, &platform)) != JJS_STATUS_OK)
   {
-    jjs_platform_new (NULL, &platform);
+    return status;
   }
 
+#if !JJS_SCRATCH_ARENA
+  if (options_p->scratch_size_kb.has_value)
+  {
+    return JJS_STATUS_CONTEXT_SCRATCH_ARENA_DISABLED;
+  }
+#endif /* !JJS_SCRATCH_ARENA */
+
+#if !JJS_VM_STACK_LIMIT
+  if (options_p->vm_stack_limit_kb.has_value)
+  {
+    return JJS_STATUS_CONTEXT_VM_STACK_LIMIT_DISABLED;
+  }
+#endif /* !JJS_VM_STACK_LIMIT */
+
+  jjs_allocator_t *allocator = options_p->allocator ? options_p->allocator : jjs_util_system_allocator_ptr ();
   jjs_size_t context_aligned_size_b = JJS_ALIGNUP (sizeof (jjs_context_t), JMEM_ALIGNMENT);
-  jjs_size_t vm_heap_size_b = (options_p->vm_heap_size_kb > 0 ? options_p->vm_heap_size_kb : JJS_DEFAULT_VM_HEAP_SIZE) * 1024;
-  uint8_t* block_p = allocator->alloc (allocator, context_aligned_size_b + vm_heap_size_b);
+  jjs_size_t vm_heap_size_b = get_context_option_u32 (&options_p->vm_heap_size_kb, JJS_DEFAULT_VM_HEAP_SIZE_KB) * 1024;
+  jjs_size_t scratch_size_b = get_context_option_u32 (&options_p->scratch_size_kb, JJS_DEFAULT_SCRATCH_ARENA_KB) * 1024;
+  uint8_t* block_p;
+  jjs_size_t block_size;
+  uint8_t *scratch_block_p;
+  jjs_context_t *context_p;
+
+  if (options_p->context_flags & JJS_CONTEXT_FLAG_STRICT_MEMORY_LAYOUT)
+  {
+    block_size = vm_heap_size_b + scratch_size_b;
+    vm_heap_size_b = vm_heap_size_b - context_aligned_size_b;
+  }
+  else
+  {
+    block_size = context_aligned_size_b + vm_heap_size_b + scratch_size_b;
+  }
+
+  block_p = allocator->alloc (allocator, block_size);
 
   if (!block_p)
   {
     return JJS_STATUS_BAD_ALLOC;
   }
 
-  jjs_context_t *context_p = (jjs_context_t *) block_p;
+  context_p = (jjs_context_t *) block_p;
 
-  memset (block_p, 0, context_aligned_size_b + vm_heap_size_b);
+  scratch_block_p = block_p + (context_aligned_size_b + vm_heap_size_b);
+
+  memset (block_p, 0, context_aligned_size_b + vm_heap_size_b + scratch_size_b);
 
   /* allocators */
-  if (!jjs_util_context_allocator_init (context_p, jjs_util_system_allocator_ptr ()))
-  {
-    jjs_platform_free (platform);
-    allocator->free (allocator, block_p, context_aligned_size_b + vm_heap_size_b);
-    return JJS_STATUS_CONTEXT_CHAOS;
-  }
+  context_set_scratch_allocator (context_p, scratch_block_p, scratch_size_b, options_p->context_flags);
 
-  context_p->context_size_b = context_aligned_size_b + vm_heap_size_b;
+  context_p->context_block_size_b = context_aligned_size_b + vm_heap_size_b + scratch_size_b;
   context_p->context_allocator = allocator;
   context_p->platform_p = platform;
 
@@ -100,10 +156,15 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
   context_p->jjs_namespace_exclusions = options_p->jjs_namespace_exclusions;
 
   context_p->vm_heap_size = vm_heap_size_b;
-  context_p->vm_stack_limit = (options_p->vm_stack_limit_kb > 0 ? options_p->vm_stack_limit_kb : JJS_DEFAULT_VM_STACK_LIMIT) * 1024;
-  context_p->gc_limit = (options_p->gc_limit_kb == 0) ? JJS_COMPUTE_GC_LIMIT (vm_heap_size_b) : (options_p->gc_limit_kb * 1024);
-  context_p->gc_mark_limit = options_p->gc_mark_limit > 0 ? options_p->gc_mark_limit : JJS_DEFAULT_GC_MARK_LIMIT;
-  context_p->gc_new_objects_fraction = options_p->gc_new_objects_fraction > 0 ? options_p->gc_new_objects_fraction : JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION;
+  context_p->vm_stack_limit = get_context_option_u32 (&options_p->vm_stack_limit_kb, JJS_DEFAULT_VM_STACK_LIMIT) * 1024;
+  context_p->gc_mark_limit = get_context_option_u32 (&options_p->gc_mark_limit, JJS_DEFAULT_GC_MARK_LIMIT);
+  context_p->gc_new_objects_fraction = get_context_option_u32 (&options_p->gc_new_objects_fraction, JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION);
+  context_p->gc_limit = get_context_option_u32 (&options_p->gc_limit_kb, JJS_DEFAULT_MAX_GC_LIMIT) * 1024;
+
+  if (context_p->gc_limit == 0)
+  {
+    context_p->gc_limit = JJS_COMPUTE_GC_LIMIT (vm_heap_size_b);
+  }
 
   if (options_p->unhandled_rejection_cb)
   {
@@ -147,5 +208,5 @@ jjs_context_cleanup (jjs_context_t* context_p)
 
   jjs_allocator_t *allocator = context_p->context_allocator;
 
-  allocator->free (allocator, context_p, context_p->context_size_b);
+  allocator->free (allocator, context_p, context_p->context_block_size_b);
 }

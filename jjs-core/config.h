@@ -190,35 +190,53 @@
 #endif /* !defined (JJS_ERROR_MESSAGES) */
 
 /**
- * Enable a static (immutable size) VM heap size.
+ * Enable an arena allocator for scratch (temporary) allocations.
  *
- * When enabled, the vm heap size cannot be dynamically set through jjs_init. Instead,
- * a heap size of JJS_DEFAULT_VM_HEAP_SIZE is always used. Also, the heap does not
- * get malloc'd(), but resides in a global variable.
- *
- * When disabled, the vm heap can be set through jjs_init. The heap will be malloc'd
- * and free'd on clean up.
- *
- * Default value: 0
+ * Default: 1
  */
-#ifndef JJS_VM_HEAP_STATIC
-#define JJS_VM_HEAP_STATIC 0
-#endif /* JJS_VM_HEAP_STATIC */
+#ifndef JJS_SCRATCH_ARENA
+#define JJS_SCRATCH_ARENA 1
+#endif /* JJS_SCRATCH_ARENA */
+
+/**
+ * Default size, in kilobytes, of the scratch arena buffer.
+ *
+ * If the value is 0, the scratch arena allocator is disabled. The system or vm allocator
+ * will be used for all internal temporary allocators.
+ *
+ * Default: 32
+ */
+#ifndef JJS_DEFAULT_SCRATCH_ARENA_KB
+#define JJS_DEFAULT_SCRATCH_ARENA_KB 32
+#endif /* JJS_DEFAULT_SCRATCH_ARENA_KB */
 
 /**
  * Enable a static VM stack limit.
  *
- * When enabled, the VM stack limit is fixed to JJS_DEFAULT_VM_STACK_LIMIT. The stack
- * cannot be set dynamically through jjs_init(). If JJS_DEFAULT_VM_STACK_LIMIT is 0,
- * this setting will disable all stack limit checks (recommended).
+ * When enabled, the vm will perform stack usage checks against the configured
+ * stack limit usage limit. The default limit is JJS_DEFAULT_VM_STACK_LIMIT, but
+ * the limit can be set in jjs_context_options_t.
  *
- * When disabled, the VM stack limit can be set in jjs_init.
+ * When disabled, no stack usage checks are performed. If the stack limit usage
+ * size is set in jjs_context_options_t, jjs_context_new will return an error
+ * status.
+ *
+ * Default value: 1
+ */
+#ifndef JJS_VM_STACK_LIMIT
+#define JJS_VM_STACK_LIMIT 1
+#endif /* JJS_VM_STACK_LIMIT */
+
+/**
+ * Default value for vm stack limit checks.
+ *
+ * The value is in kilobytes. 32 => 32 * 1024
  *
  * Default value: 0
  */
-#ifndef JJS_VM_STACK_STATIC
-#define JJS_VM_STACK_STATIC 1
-#endif /* JJS_VM_STACK_STATIC */
+#ifndef JJS_DEFAULT_VM_STACK_LIMIT_KB
+#define JJS_DEFAULT_VM_STACK_LIMIT_KB 0
+#endif /* JJS_DEFAULT_VM_STACK_LIMIT_KB */
 
 /**
  * Enable/Disable property lookup cache.
@@ -466,9 +484,9 @@
  *
  * Default value: 1024 KiB
  */
-#ifndef JJS_DEFAULT_VM_HEAP_SIZE
-#define JJS_DEFAULT_VM_HEAP_SIZE (1024)
-#endif /* !defined (JJS_DEFAULT_VM_HEAP_SIZE) */
+#ifndef JJS_DEFAULT_VM_HEAP_SIZE_KB
+#define JJS_DEFAULT_VM_HEAP_SIZE_KB (1024)
+#endif /* !defined (JJS_DEFAULT_VM_HEAP_SIZE_KB) */
 
 /**
  * Allowed heap usage limit until next garbage collection
@@ -783,9 +801,9 @@
 #if (JJS_ERROR_MESSAGES != 0) && (JJS_ERROR_MESSAGES != 1)
 #error "Invalid value for 'JJS_ERROR_MESSAGES' macro."
 #endif /* (JJS_ERROR_MESSAGES != 0) && (JJS_ERROR_MESSAGES != 1) */
-#if JJS_DEFAULT_VM_HEAP_SIZE <= 0
-#error "Invalid value for 'JJS_DEFAULT_VM_HEAP_SIZE' macro."
-#endif /* JJS_DEFAULT_VM_HEAP_SIZE <= 0 */
+#if JJS_DEFAULT_VM_HEAP_SIZE_KB <= 0
+#error "Invalid value for 'JJS_DEFAULT_VM_HEAP_SIZE_KB' macro."
+#endif /* JJS_DEFAULT_VM_HEAP_SIZE_KB <= 0 */
 #if JJS_DEFAULT_GC_LIMIT < 0
 #error "Invalid value for 'JJS_DEFAULT_GC_LIMIT' macro."
 #endif /* JJS_DEFAULT_GC_LIMIT < 0 */
@@ -855,12 +873,12 @@
 #if (JJS_VM_THROW != 0) && (JJS_VM_THROW != 1)
 #error "Invalid value for 'JJS_VM_THROW' macro."
 #endif /* (JJS_VM_THROW != 0) && (JJS_VM_THROW != 1) */
-#if (JJS_VM_HEAP_STATIC != 0) && (JJS_VM_HEAP_STATIC != 1)
-#error "Invalid value for 'JJS_VM_HEAP_STATIC' macro."
-#endif /* (JJS_VM_HEAP_STATIC != 0) && (JJS_VM_HEAP_STATIC != 1) */
-#if (JJS_VM_STACK_STATIC != 0) && (JJS_VM_STACK_STATIC != 1)
-#error "Invalid value for 'JJS_VM_STACK_STATIC' macro."
-#endif /* (JJS_VM_STACK_STATIC != 0) && (JJS_VM_STACK_STATIC != 1) */
+#if (JJS_SCRATCH_ARENA != 0) && (JJS_SCRATCH_ARENA != 1)
+#error "Invalid value for 'JJS_SCRATCH_ARENA' macro."
+#endif /* (JJS_SCRATCH_ARENA != 0) && (JJS_SCRATCH_ARENA != 1) */
+#if (JJS_VM_STACK_LIMIT != 0) && (JJS_VM_STACK_LIMIT != 1)
+#error "Invalid value for 'JJS_VM_STACK_LIMIT' macro."
+#endif /* (JJS_VM_STACK_LIMIT != 0) && (JJS_VM_STACK_LIMIT != 1) */
 #if (JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR <= 0)
 #error "Invalud value for 'JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR' macro."
 #endif /* (JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR <= 0) */

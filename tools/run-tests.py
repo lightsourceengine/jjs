@@ -48,7 +48,7 @@ OPTIONS_COMMON = [
     # stuff the tests need
     '--function-to-string=on',
 ]
-OPTIONS_STACK_LIMIT = ['--default-vm-stack-limit=96']
+OPTIONS_STACK_LIMIT = ['--vm-stack-limit=on', '--default-vm-stack-limit=96']
 OPTIONS_MEM_STRESS = ['--mem-stress-test=on']
 OPTIONS_DEBUG = ['--debug']
 OPTIONS_SNAPSHOT = [
@@ -257,7 +257,8 @@ def create_binary(job, options):
         build_args.extend(OPTIONS_DEBUG)
         build_dir_path = os.path.join(options.outdir, job.name + '-debug')
     if options.buildoptions:
-        for option in options.buildoptions.split(','):
+        # filter out empty buildoptions entries
+        for option in [o for o in options.buildoptions.split(',') if o]:
             if option not in build_args:
                 build_args.append(option)
 
