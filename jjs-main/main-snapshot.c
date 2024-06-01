@@ -281,7 +281,13 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
   jjs_context_options_t options = {
     .context_flags = context_flags,
   };
-  assert (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
+  jjs_status_t status = jjs_context_new (&options, &context_p);
+
+  if (status != JJS_STATUS_OK)
+  {
+    printf ("Failed to create JJS context: %i\n", status);
+    return JJS_STANDALONE_EXIT_CODE_FAIL;
+  }
 
   if (context_flags & JJS_CONTEXT_FLAG_SHOW_OPCODES)
   {
@@ -509,7 +515,13 @@ process_literal_dump (cli_state_t *cli_state_p, /**< cli state */
   }
 
   jjs_context_t *context_p = NULL;
-  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  jjs_status_t status = jjs_context_new (NULL, &context_p);
+
+  if (status != JJS_STATUS_OK)
+  {
+    printf ("Failed to create JJS context: %i\n", status);
+    return JJS_STANDALONE_EXIT_CODE_FAIL;
+  }
 
   size_t lit_buf_sz = 0;
   if (number_of_files == 1)
@@ -673,7 +685,13 @@ process_merge (cli_state_t *cli_state_p, /**< cli state */
   }
 
   jjs_context_t *context_p = NULL;
-  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  jjs_status_t status = jjs_context_new (NULL, &context_p);
+
+  if (status != JJS_STATUS_OK)
+  {
+    printf ("Failed to create JJS context: %i\n", status);
+    return JJS_STANDALONE_EXIT_CODE_FAIL;
+  }
 
   const char *error_p = NULL;
   size_t merged_snapshot_size = jjs_merge_snapshots (context_p,

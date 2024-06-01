@@ -432,7 +432,10 @@ js_queue_async_assert (const jjs_call_info_t *call_info_p, const jjs_value_t arg
   {
     jjs_value_free (context_p, queue);
     queue = jjs_array (context_p, 0);
-    assert (jjs_object_set_internal (context_p, call_info_p->function, key, queue));
+    bool set_result = jjs_object_set_internal (context_p, call_info_p->function, key, queue);
+
+    assert (set_result);
+    (void) set_result;
   }
 
   assert (jjs_value_is_array (context_p, queue));

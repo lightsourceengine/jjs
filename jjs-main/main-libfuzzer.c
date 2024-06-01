@@ -15,6 +15,8 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <assert.h>
+#include <stdio.h>
 
 #include "jjs.h"
 
@@ -24,24 +26,30 @@ LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
   srand ((unsigned) time (NULL));
 
   jjs_context_t *context_p = NULL;
-  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  jjs_status_t status = jjs_context_new (NULL, &context_p);
 
-  if (jjs_validate_string ((jjs_char_t *) data, (jjs_size_t) size, JJS_ENCODING_UTF8))
+  if (status != JJS_STATUS_OK)
+  {
+    printf ("Failed to create JJS context: %i\n", status);
+    return 1;
+  }
+
+  if (jjs_validate_string (context_p, (jjs_char_t *) data, (jjs_size_t) size, JJS_ENCODING_UTF8))
   {
     jjs_parse_options_t parse_options;
     parse_options.options = JJS_PARSE_NO_OPTS;
-    jjs_value_t parse_value = jjs_parse ((jjs_char_t *) data, size, &parse_options);
+    jjs_value_t parse_value = jjs_parse (context_p, (jjs_char_t *) data, size, &parse_options);
 
-    if (!jjs_value_is_exception (parse_value))
+    if (!jjs_value_is_exception (context_p, parse_value))
     {
-      jjs_value_t run_value = jjs_run (parse_value);
-      jjs_value_free (run_value);
+      jjs_value_t run_value = jjs_run (context_p, parse_value);
+      jjs_value_free (context_p, run_value);
 
-      run_value = jjs_run_jobs ();
-      jjs_value_free (run_value);
+      run_value = jjs_run_jobs (context_p);
+      jjs_value_free (context_p, run_value);
     }
 
-    jjs_value_free (parse_value);
+    jjs_value_free (context_p, parse_value);
   }
 
   jjs_context_free (context_p);

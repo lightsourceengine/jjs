@@ -264,7 +264,13 @@ main (int argc, char **argv)
   }
 
   jjs_context_t *context_p = NULL;
-  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  jjs_status_t context_status = jjs_context_new (NULL, &context_p);
+
+  if (context_status != JJS_STATUS_OK)
+  {
+    printf ("Failed to create JJS context: %i\n", context_status);
+    return 1;
+  }
 
   jjs_value_t global = jjs_current_realm (context_p);
 

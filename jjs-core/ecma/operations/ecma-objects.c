@@ -2730,7 +2730,9 @@ ecma_object_check_class_name_is_object (ecma_context_t *context_p, /**< JJS cont
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_AGGREGATE_ERROR_PROTOTYPE)
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_URI_ERROR_PROTOTYPE)
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_ERROR_PROTOTYPE)
+#if JJS_BUILTIN_DATE
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_DATE_PROTOTYPE)
+#endif /* JJS_BUILTIN_DATE */
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_REGEXP_PROTOTYPE)
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_SYMBOL_PROTOTYPE)
           || ecma_builtin_is (obj_p, ECMA_BUILTIN_ID_ASYNC_FUNCTION_PROTOTYPE)

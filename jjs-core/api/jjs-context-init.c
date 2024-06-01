@@ -49,7 +49,7 @@ get_context_option_u32 (const jjs_optional_u32_t * optional, uint32_t default_va
 /**
  * Initialize the allocators in the context.
  */
-void
+static void
 context_set_scratch_allocator (jjs_context_t* context_p, uint8_t *scratch_block, uint32_t scratch_block_size_b, uint32_t flags)
 {
   jjs_allocator_t fallback_allocator = (flags & JJS_CONTEXT_FLAG_SCRATCH_ALLOCATOR_VM) ? jjs_util_vm_allocator (context_p) : jjs_util_system_allocator ();

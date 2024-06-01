@@ -207,7 +207,7 @@
  * Default: 32
  */
 #ifndef JJS_DEFAULT_SCRATCH_ARENA_KB
-#define JJS_DEFAULT_SCRATCH_ARENA_KB 32
+#define JJS_DEFAULT_SCRATCH_ARENA_KB (32)
 #endif /* JJS_DEFAULT_SCRATCH_ARENA_KB */
 
 /**
@@ -221,10 +221,10 @@
  * size is set in jjs_context_options_t, jjs_context_new will return an error
  * status.
  *
- * Default value: 1
+ * Default value: 0
  */
 #ifndef JJS_VM_STACK_LIMIT
-#define JJS_VM_STACK_LIMIT 1
+#define JJS_VM_STACK_LIMIT 0
 #endif /* JJS_VM_STACK_LIMIT */
 
 /**
@@ -235,7 +235,7 @@
  * Default value: 0
  */
 #ifndef JJS_DEFAULT_VM_STACK_LIMIT_KB
-#define JJS_DEFAULT_VM_STACK_LIMIT_KB 0
+#define JJS_DEFAULT_VM_STACK_LIMIT_KB (0)
 #endif /* JJS_DEFAULT_VM_STACK_LIMIT_KB */
 
 /**

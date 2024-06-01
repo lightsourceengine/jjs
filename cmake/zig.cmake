@@ -17,10 +17,6 @@ set(CMAKE_C_COMPILER_RANLIB "${CMAKE_CURRENT_LIST_DIR}/bin/zig-ranlib${ZIG_WRAPP
 set(CMAKE_CXX_COMPILER_RANLIB "${CMAKE_CURRENT_LIST_DIR}/bin/zig-ranlib${ZIG_WRAPPER_EXT}")
 set(ZIG_CROSS_COMPILING ON)
 
-#add_compile_definitions(
-#    _POSIX_C_SOURCE=200112L
-#)
-
 if (CMAKE_HOST_APPLE)
     set(CMAKE_OSX_SYSROOT "")
 endif()

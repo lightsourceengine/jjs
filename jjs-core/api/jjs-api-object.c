@@ -91,6 +91,25 @@ static JJS_HANDLER (jjs_api_read_file_handler)
   }
 } /* jjs_api_read_file_handler */
 
+static jjs_value_t
+jjs_api_object_version (jjs_context_t *context_p)
+{
+  jjs_value_t components [] = {
+    jjs_number_from_int32 (context_p, JJS_API_MAJOR_VERSION),
+    jjs_number_from_int32 (context_p, JJS_API_MINOR_VERSION),
+    jjs_number_from_int32 (context_p, JJS_API_PATCH_VERSION),
+  };
+  const jjs_size_t components_len = sizeof (components) / sizeof (components[0]);
+  jjs_value_t result = jjs_fmt_join_v (context_p, jjs_string_sz(context_p, "."), JJS_MOVE, components, components_len);
+
+  for (jjs_size_t i = 0; i < components_len; i++)
+  {
+    jjs_value_free (context_p, components[i]);
+  }
+
+  return result;
+}
+
 void
 jjs_api_object_init (jjs_context_t* context_p, ecma_value_t realm)
 {
@@ -98,7 +117,7 @@ jjs_api_object_init (jjs_context_t* context_p, ecma_value_t realm)
   ecma_object_t* jjs_p = ecma_get_object_from_value (context_p, jjs);
   uint32_t exclusions = context_p->jjs_namespace_exclusions;
 
-  annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_VERSION, jjs_string_sz (context_p, JJS_API_VERSION_STRING), JJS_MOVE);
+  annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_VERSION, jjs_api_object_version (context_p), JJS_MOVE);
   annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_OS, jjs_platform_os (context_p), JJS_MOVE);
   annex_util_define_ro_value (context_p, jjs_p, LIT_MAGIC_STRING_ARCH, jjs_platform_arch (context_p), JJS_MOVE);
 

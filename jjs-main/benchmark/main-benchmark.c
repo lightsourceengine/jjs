@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <assert.h>
 
 #include "jjs.h"
 
@@ -77,8 +76,13 @@ static JJS_ATTR_NOINLINE int
 run (void)
 {
   jjs_context_t *context_p = NULL;
+  jjs_status_t status = jjs_context_new (NULL, &context_p);
 
-  assert (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  if (status != JJS_STATUS_OK)
+  {
+    printf ("Failed to create JJS context: %i\n", status);
+    return JJS_STANDALONE_EXIT_CODE_FAIL;
+  }
 
   jjs_value_t ret_value = jjs_undefined (context_p);
 
