@@ -13,7 +13,8 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('../lib/test.cjs');
+import { test } from 'jjs:test';
+
 const { assertThrows, assertEquals } = require('../lib/assert.js');
 
 test('check global', () => {
@@ -134,5 +135,3 @@ function encode(...args) {
 function encodeInto(...args) {
   return new TextEncoder().encodeInto(...args);
 }
-
-runAllTests();

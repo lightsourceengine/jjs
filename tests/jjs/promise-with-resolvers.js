@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
+const { test } = require ('jjs:test');
 const { assertEquals } = require('../lib/assert.js');
-const { test, runAllTests } = require('../lib/test.cjs');
 
 test('Promise.withResolvers() should create a new promise', () => {
   const { promise, resolve, reject } = Promise.withResolvers();
@@ -59,5 +59,3 @@ test('Promise.withResolvers() should be called with a Promise subclass', () => {
   assertEquals(instance.promise.constructor, PromiseSubclass);
   assertEquals(instance.promise instanceof PromiseSubclass, true);
 });
-
-runAllTests();

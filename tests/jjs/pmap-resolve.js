@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
+const { test } = require ('jjs:test');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
-const { test, runAllTests } = require('../lib/test.cjs');
 
 const { cwd, realpath, pmap } = jjs;
 
@@ -85,5 +85,3 @@ test ('pmap.resolve() should throw Error for "@test/pkg2" path with undefined', 
 function resolvePmapPath (path) {
   return realpath(cwd() + "/fixtures/pmap/" + path);
 }
-
-runAllTests();

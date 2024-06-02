@@ -13,7 +13,8 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('../lib/test.cjs');
+import { test } from 'jjs:test';
+
 const { assertThrows, assertEquals } = require('../lib/assert.js');
 
 const encodings = ['utf-8', 'utf8', 'unicode-1-1-utf-8'];
@@ -137,5 +138,3 @@ test('decode() should throw an error for invalid buffers', () => {
 function decode(...args) {
   return new TextDecoder().decode(...args);
 }
-
-runAllTests();

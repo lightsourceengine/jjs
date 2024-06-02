@@ -19,7 +19,6 @@
 #include <jjs-pack.h>
 #endif /* defined (JJS_PACK) && JJS_PACK */
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +37,19 @@
 #define EXIT_FAILURE 1
 #define READ_COMMON_OPTION_ERROR (-1)
 #define READ_COMMON_OPTION_NO_ARGS (0)
+#define JJS_TEST_PACKAGE_NAME "jjs:test"
+#define JJS_TEST_PACKAGE_FUNCTION "test"
+#define JJS_TEST_META_PROP_DESCRIPTION "description"
+#define JJS_TEST_META_PROP_TEST "test"
+#define JJS_TEST_META_PROP_OPTIONS "options"
+#define JJS_TEST_META_PROP_OPTIONS_SKIP "skip"
+
+#define main_cli_log(CTX, STREAM, FORMAT, ...)                                                        \
+  do                                                                                                  \
+  {                                                                                                   \
+    jjs_value_t args__[] = { __VA_ARGS__ };                                                           \
+    jjs_fmt_v ((CTX), (STREAM), FORMAT, args__, (jjs_size_t) (sizeof (args__) / sizeof (args__[0]))); \
+  } while (false)
 
 typedef enum
 {
@@ -83,6 +95,32 @@ static jjs_wstream_t stdout_wstream = {
   .write = stdout_wstream_write,
   .encoding = JJS_ENCODING_UTF8,
 };
+
+static void
+stderr_wstream_write (jjs_context_t* context_p, const jjs_wstream_t *stream, const uint8_t *data, jjs_size_t size)
+{
+  (void) context_p;
+  (void) stream;
+  fwrite (data, 1, size, stderr);
+}
+
+static jjs_wstream_t stderr_wstream = {
+  .write = stderr_wstream_write,
+  .encoding = JJS_ENCODING_UTF8,
+};
+
+static void
+main_cli_assert (bool condition, const char* message)
+{
+  if (!condition)
+  {
+    fprintf (stderr, "assertion failed: %s", message ? message : "");
+    fputs ("\n", stderr);
+    fflush (stderr);
+
+    abort ();
+  }
+}
 
 static void
 print_help_common_flags (void)
@@ -148,7 +186,7 @@ print_command_help (const char *name)
   }
   else
   {
-    assert (false);
+    main_cli_assert (false, "unsupported command name");
   }
 
   print_help_common_flags ();
@@ -160,7 +198,7 @@ cli_execution_plan_init (cli_execution_plan_t *plan)
   plan->size = 0;
   plan->capacity = 8;
   plan->executables = malloc (plan->capacity * sizeof (plan->executables[0]));
-  assert (plan->executables);
+  main_cli_assert (plan->executables, "cli_execution_plan_init: bad alloc");
 }
 
 static void
@@ -176,7 +214,7 @@ cli_execution_plan_push (cli_execution_plan_t *plan, const char *filename, cli_j
   {
     plan->capacity += 8;
     plan->executables = realloc (plan->executables, plan->capacity * sizeof (plan->executables[0]));
-    assert (plan->executables);
+    main_cli_assert (plan->executables, "cli_execution_plan_push: bad realloc");
   }
 
   plan->executables[plan->size++] = (cli_executable_t){
@@ -195,7 +233,7 @@ cli_execution_plan_run (cli_execution_plan_t *plan, jjs_context_t* context_p)
 
     if (jjs_value_is_exception (context_p, resolved_filename))
     {
-      jjs_fmt_v (context_p, &stdout_wstream, "realpath: {}\n", &resolved_filename, 1);
+      main_cli_log (context_p, &stdout_wstream, "realpath: {}\n", resolved_filename);
       jjs_value_free (context_p, resolved_filename);
       return false;
     }
@@ -295,7 +333,7 @@ cli_execution_plan_run (cli_execution_plan_t *plan, jjs_context_t* context_p)
 
     if (jjs_value_is_exception (context_p, result))
     {
-      jjs_fmt_v (context_p, &stdout_wstream, "Compile/Run: {}\n", &result, 1);
+      main_cli_log (context_p, &stdout_wstream, "Compile/Run: {}\n", result);
       jjs_value_free (context_p, result);
       return false;
     }
@@ -306,7 +344,7 @@ cli_execution_plan_run (cli_execution_plan_t *plan, jjs_context_t* context_p)
 
     if (jjs_value_is_exception (context_p, result))
     {
-      jjs_fmt_v (context_p, &stdout_wstream, "Unhandled Error: {}\n", &result, 1);
+      main_cli_log (context_p, &stdout_wstream, "Unhandled Error: {}\n", result);
       jjs_value_free (context_p, result);
       return false;
     }
@@ -432,13 +470,11 @@ js_queue_async_assert (const jjs_call_info_t *call_info_p, const jjs_value_t arg
   {
     jjs_value_free (context_p, queue);
     queue = jjs_array (context_p, 0);
-    bool set_result = jjs_object_set_internal (context_p, call_info_p->function, key, queue);
-
-    assert (set_result);
-    (void) set_result;
+    main_cli_assert (jjs_object_set_internal (context_p, call_info_p->function, key, queue),
+                     "error setting internal async assert queue");
   }
 
-  assert (jjs_value_is_array (context_p, queue));
+  main_cli_assert (jjs_value_is_array (context_p, queue), "async assert queue must be an array");
 
   jjs_object_set_index (context_p, queue, jjs_array_length (context_p, queue), callback);
 
@@ -472,12 +508,101 @@ js_assert (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const
   return jjs_throw (context_p, JJS_ERROR_COMMON, message);
 }
 
+static jjs_value_t
+get_internal_tests (jjs_context_t *context_p, jjs_value_t obj)
+{
+  jjs_value_t tests_prop = jjs_string_sz (context_p, "tests");
+  jjs_value_t tests;
+
+  if (jjs_object_has_internal (context_p, obj, tests_prop))
+  {
+    tests = jjs_object_get_internal (context_p, obj, tests_prop);
+  }
+  else
+  {
+    tests = jjs_array (context_p, 0);
+
+    if (!jjs_object_set_internal (context_p, obj, tests_prop, tests))
+    {
+      jjs_value_free (context_p, tests);
+      tests = jjs_undefined (context_p);
+    }
+  }
+
+  jjs_value_free (context_p, tests_prop);
+
+  if (!jjs_value_is_array (context_p, tests))
+  {
+    jjs_value_free (context_p, tests);
+    tests = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Failed to store internal tests array in test function");
+  }
+
+  return tests;
+}
+
+static jjs_value_t
+js_test (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const jjs_length_t args_cnt)
+{
+  jjs_context_t *context_p = call_info_p->context_p;
+  jjs_value_t arg0 = args_cnt > 0 ? args_p[0] : jjs_undefined (context_p);
+  jjs_value_t arg1 = args_cnt > 1 ? args_p[1] : jjs_undefined (context_p);
+  jjs_value_t arg2 = args_cnt > 2 ? args_p[2] : jjs_undefined (context_p);
+  jjs_value_t options;
+  jjs_value_t test_function;
+
+  if (jjs_value_is_function (context_p, arg1))
+  {
+    test_function = arg1;
+    options = jjs_undefined (context_p);
+  }
+  else
+  {
+    test_function = arg2;
+    options = arg1;
+  }
+
+  if (!jjs_value_is_string (context_p, arg0))
+  {
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "test(): expected a string description");
+  }
+
+  if (!jjs_value_is_function (context_p, test_function))
+  {
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "test(): expected a function");
+  }
+
+  if (!jjs_value_is_undefined (context_p, options) && !jjs_value_is_object (context_p, options))
+  {
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "test(): expected undefined or object for options");
+  }
+
+  jjs_value_t tests = get_internal_tests (context_p, call_info_p->function);
+
+  if (jjs_value_is_exception (context_p, tests))
+  {
+    return tests;
+  }
+
+  jjs_value_t test_meta = jjs_object (context_p);
+
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_DESCRIPTION, arg0));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_TEST, test_function));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_OPTIONS, options));
+
+  jjs_value_free (context_p, jjs_object_set_index (context_p, tests, jjs_array_length (context_p, tests), test_meta));
+
+  jjs_value_free (context_p, tests);
+  jjs_value_free (context_p, test_meta);
+
+  return jjs_undefined (context_p);
+}
+
 static void
 unhandled_rejection_cb (jjs_context_t* context_p, jjs_value_t promise, jjs_value_t reason, void *user_p)
 {
   (void) promise;
   (void) user_p;
-  jjs_fmt_v (context_p, &stdout_wstream, "Unhandled promise rejection: {}\n", &reason, 1);
+  main_cli_log (context_p, &stdout_wstream, "Unhandled promise rejection: {}\n", reason);
 }
 
 static void
@@ -518,7 +643,7 @@ init_engine (const cli_common_options_t *options)
 
     if (jjs_value_is_exception (context_p, result))
     {
-      jjs_fmt_v (context_p, &stdout_wstream, "Failed to load pmap: {}\n", &result, 1);
+      main_cli_log (context_p, &stdout_wstream, "Failed to load pmap: {}\n", result);
       jjs_value_free (context_p, result);
       cleanup_engine (context_p);
       return NULL;
@@ -531,7 +656,7 @@ init_engine (const cli_common_options_t *options)
 }
 
 static void
-init_test_lib (jjs_context_t* context_p)
+init_test_realm (jjs_context_t* context_p)
 {
   jjs_value_t queue_async_assert_fn = jjs_function_external (context_p, js_queue_async_assert);
   jjs_value_t assert_fn = jjs_function_external (context_p, js_assert);
@@ -544,7 +669,9 @@ init_test_lib (jjs_context_t* context_p)
   jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "print", print_fn));
   jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "assert", assert_fn));
   jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "createRealm", create_realm_fn));
-  assert (jjs_object_set_internal (context_p, realm, queue_async_assert_key, queue_async_assert_fn));
+  /* store the async function in internal so the queue can be retrieved later */
+  main_cli_assert (jjs_object_set_internal (context_p, realm, queue_async_assert_key, queue_async_assert_fn),
+                   "cannot store queueAsyncAssert in internal global");
 
   jjs_value_free (context_p, realm);
   jjs_value_free (context_p, print_fn);
@@ -552,6 +679,118 @@ init_test_lib (jjs_context_t* context_p)
   jjs_value_free (context_p, create_realm_fn);
   jjs_value_free (context_p, queue_async_assert_fn);
   jjs_value_free (context_p, queue_async_assert_key);
+
+  jjs_value_t test_function = jjs_function_external (context_p, js_test);
+  jjs_value_t exports = jjs_object (context_p);
+
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, exports, JJS_TEST_PACKAGE_FUNCTION, test_function));
+  jjs_value_free (context_p, test_function);
+
+  jjs_value_t pkg = jjs_object (context_p);
+  jjs_value_t format = jjs_string_sz (context_p, "object");
+
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, pkg, "exports", exports));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, pkg, "format", format));
+
+  jjs_value_free (context_p, format);
+  jjs_value_free (context_p, exports);
+
+  jjs_value_t vmod_result = jjs_vmod_sz (context_p, JJS_TEST_PACKAGE_NAME, pkg, JJS_MOVE);
+
+  if (jjs_value_is_exception (context_p, vmod_result))
+  {
+    main_cli_log(context_p, &stderr_wstream, "unhandled exception while loading jjs:test: {}\n", vmod_result);
+  }
+
+  main_cli_assert (!jjs_value_is_exception (context_p, vmod_result), "");
+}
+
+static bool
+should_run_test (jjs_context_t *context_p, jjs_value_t test_obj)
+{
+  if (!jjs_object_has_sz (context_p, test_obj, JJS_TEST_META_PROP_OPTIONS))
+  {
+    return true;
+  }
+
+  jjs_value_t options = jjs_object_get_sz (context_p, test_obj, JJS_TEST_META_PROP_OPTIONS);
+  bool result;
+
+  if (jjs_object_has_sz (context_p, options, JJS_TEST_META_PROP_OPTIONS_SKIP))
+  {
+    jjs_value_t skip = jjs_object_get_sz (context_p, options, JJS_TEST_META_PROP_OPTIONS_SKIP);
+
+    result = !jjs_value_to_boolean (context_p, skip);
+    jjs_value_free (context_p, skip);
+  }
+  else
+  {
+    result = true;
+  }
+
+  jjs_value_free (context_p, options);
+
+  return result;
+}
+
+static bool
+run_all_tests (jjs_context_t* context_p)
+{
+  /* note: this runner assumes run-tests.py will do the reporting. */
+  jjs_value_t pkg = jjs_vmod_resolve_sz (context_p, JJS_TEST_PACKAGE_NAME);
+  jjs_value_t test_function = jjs_object_get_sz (context_p, pkg, JJS_TEST_PACKAGE_FUNCTION);
+  jjs_value_t tests = get_internal_tests (context_p, test_function);
+  jjs_size_t len = jjs_array_length (context_p, tests);
+  jjs_value_t self = jjs_current_realm (context_p);
+  bool result = true;
+
+  for (jjs_size_t i = 0; i < len; i++)
+  {
+    jjs_value_t test_meta = jjs_object_get_index (context_p, tests, i);
+
+    if (should_run_test (context_p, test_meta))
+    {
+      jjs_value_t test = jjs_object_get_sz (context_p, test_meta, JJS_TEST_META_PROP_TEST);
+      jjs_value_t test_result = jjs_call (context_p, test, self, NULL, 0);
+      jjs_value_t description = jjs_object_get_sz (context_p, test_meta, JJS_TEST_META_PROP_DESCRIPTION);
+
+      if (jjs_value_is_exception (context_p, test_result))
+      {
+        main_cli_log (context_p, &stderr_wstream, "unhandled exception in test: {}\n{}\n", description, test_result);
+        result = false;
+      }
+      else if (jjs_value_is_promise (context_p, test_result))
+      {
+        jjs_value_t jobs_result = jjs_run_jobs (context_p);
+
+        if (jjs_value_is_exception (context_p, jobs_result))
+        {
+          main_cli_log (context_p, &stderr_wstream, "unhandled exception running async jobs after test: {}\n{}\n", description, jobs_result);
+          result = false;
+        }
+        else if (jjs_promise_state (context_p, test_result) != JJS_PROMISE_STATE_FULFILLED)
+        {
+          main_cli_log (context_p, &stderr_wstream, "unfulfilled promise after test: {}\n{}\n", description, test_result);
+          result = false;
+        }
+
+        jjs_value_free (context_p, jobs_result);
+      }
+
+      jjs_value_free (context_p, description);
+      jjs_value_free (context_p, test);
+      jjs_value_free (context_p, test_result);
+    }
+
+    jjs_value_free (context_p, test_meta);
+  }
+
+  jjs_value_free (context_p, self);
+  jjs_value_free (context_p, pkg);
+  jjs_value_free (context_p, test_function);
+  jjs_value_free (context_p, tests);
+
+  return result;
 }
 
 static bool
@@ -562,6 +801,7 @@ process_async_asserts (jjs_context_t* context_p)
   jjs_value_t queue_async_assert = jjs_object_get_internal (context_p, realm, internal_key);
   jjs_value_t key = jjs_string_sz (context_p, "queue");
   jjs_value_t queue = jjs_object_get_internal (context_p, queue_async_assert, key);
+  jjs_value_t self = jjs_current_realm (context_p);
   jjs_size_t len = jjs_array_length (context_p, queue);
   bool has_error = false;
 
@@ -572,7 +812,7 @@ process_async_asserts (jjs_context_t* context_p)
 
     if (jjs_value_is_function (context_p, fn))
     {
-      async_assert_result = jjs_call (context_p, fn, jjs_undefined (context_p), NULL, 0);
+      async_assert_result = jjs_call (context_p, fn, self, NULL, 0);
     }
     else
     {
@@ -583,7 +823,7 @@ process_async_asserts (jjs_context_t* context_p)
 
     if (jjs_value_is_exception (context_p, async_assert_result))
     {
-      jjs_fmt_v (context_p, &stdout_wstream, "{}\n", &async_assert_result, 1);
+      main_cli_log (context_p, &stdout_wstream, "{}\n", async_assert_result);
       has_error = true;
       break;
     }
@@ -596,6 +836,7 @@ process_async_asserts (jjs_context_t* context_p)
   jjs_value_free (context_p, realm);
   jjs_value_free (context_p, internal_key);
   jjs_value_free (context_p, queue_async_assert);
+  jjs_value_free (context_p, self);
 
   return !has_error;
 }
@@ -800,7 +1041,7 @@ repl (int argc, char **argv)
       goto exception;
     }
 
-    jjs_fmt_v (context_p, &stdout_wstream, "{}\n", &result, 1);
+    main_cli_log (context_p, &stdout_wstream, "{}\n", result);
 
     jjs_value_free (context_p, result);
     result = jjs_run_jobs (context_p);
@@ -814,7 +1055,7 @@ repl (int argc, char **argv)
     continue;
 
 exception:
-    jjs_fmt_v (context_p, &stdout_wstream, "{}\n", &result, 1);
+    main_cli_log (context_p, &stdout_wstream, "{}\n", result);
     jjs_value_free (context_p, result);
   }
 
@@ -1074,13 +1315,9 @@ test (int argc, char **argv)
   }
 
   vm_cleanup = true;
-  init_test_lib (context_p);
+  init_test_realm (context_p);
 
-  if (cli_execution_plan_run (&plan, context_p) && process_async_asserts (context_p))
-  {
-    exit_code = EXIT_SUCCESS;
-  }
-  else
+  if (!cli_execution_plan_run (&plan, context_p) || !run_all_tests (context_p) || !process_async_asserts (context_p))
   {
     exit_code = EXIT_FAILURE;
   }

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('../lib/test.cjs');
+const { test } = require ('jjs:test');
 const { assertThrows } = require('../lib/assert.js');
 const TEST_FILE = './global-jjs.js';
 
@@ -115,5 +115,3 @@ test('jjs.stderr.write() should be callable', () => {
 test('jjs.stderr.flush() should be callable', () => {
   jjs.stderr.flush();
 });
-
-runAllTests();

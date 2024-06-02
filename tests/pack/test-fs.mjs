@@ -15,9 +15,9 @@
 
 // check that fs is importable
 import { file, write } from 'jjs:fs';
+import { test } from 'jjs:test';
 
 const { assertEquals, assertThrows, arrayEquals } = require('../lib/assert.js');
-const { test, runAllTests } = require('../lib/test.cjs');
 
 test('check require("jjs:fs") exports', () => {
   arrayEquals(Object.keys(require('jjs:fs')).toSorted(), cjsExports);
@@ -157,5 +157,3 @@ function deleteFile(path) {
     // ignore
   }
 }
-
-runAllTests();

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('../lib/test.cjs');
+const { test } = require ('jjs:test');
 
 test('jjs_esm_import() should import module from relative specifier', async () => {
   const { one } = await import('./fixtures/one-export.mjs');
@@ -58,5 +58,3 @@ test('jjs_esm_import() should throw Error on non-string specifier', async () => 
     assert(false, `expected import('${specifier}') to throw`);
   }
 });
-
-runAllTests();

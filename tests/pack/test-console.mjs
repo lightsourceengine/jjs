@@ -13,7 +13,8 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('../lib/test.cjs');
+import { test } from 'jjs:test';
+
 const { assertThrows } = require('../lib/assert.js');
 
 // TODO: use tests from wpt?
@@ -65,5 +66,3 @@ test('console.count() should print a count with label', () => {
 test('console.count() should throw error for invalid label', () => {
   assertThrows(TypeError, () => { console.count(Symbol()); });
 });
-
-runAllTests();

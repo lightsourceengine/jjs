@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
+const { test } = require ('jjs:test');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
-const { test, runAllTests } = require('../lib/test.cjs');
 const { dirname, filename, url, resolve } = import.meta;
 
 test('import.meta.dirname should be a string dirname of this file', () => {
@@ -62,5 +62,3 @@ test('import.meta.resolve should throw Error when package name does not exist', 
 test('import.meta.resolve should throw TypeError given no arguments', () => {
   assertThrows(TypeError, resolve);
 });
-
-runAllTests();

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('../lib/test.cjs');
+const { test } = require ('jjs:test');
 const { assertEquals, assertThrows } = require('../lib/assert.js');
 
 test('vmod is in the global namespace', () => {
@@ -210,5 +210,3 @@ let nextPackageId = 1;
 function genPackageName() {
   return `test:pkg${nextPackageId++}`;
 }
-
-runAllTests();

@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 
+import { test } from 'jjs:test';
+
 const { arrayEquals } = require('../lib/assert.js')
-const { test, runAllTests } = require('../lib/test.cjs');
 
 // TODO: use tests from wpt?
 
@@ -51,5 +52,3 @@ const cjsExports = [
 ].toSorted();
 
 const esmExports = [ ...cjsExports, 'default'].toSorted();
-
-runAllTests();

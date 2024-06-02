@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const { test, runAllTests } = require('../lib/test.cjs');
+import { test } from 'jjs:test';
 
 // TODO: use tests from wpt?
 
@@ -61,5 +61,3 @@ test('timeOrigin + now() should equal Date.now()', { skip: true }, () => {
     `expected ${expected.getTime()} to be within 1000ms of ${actual.getTime()}`,
   );
 });
-
-runAllTests();

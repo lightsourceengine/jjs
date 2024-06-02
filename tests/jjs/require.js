@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
+const { test } = require ('jjs:test');
 assert(require === globalThis.require, 'require !== globalThis.require');
 
-const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows } = require('../lib/assert.js');
 
 test('require() should load require, module, exports, __filename and __dirname into a module scope', () => {
@@ -60,5 +60,3 @@ test('require() should throw Error for non-string specifier', () => {
 
   inputs.forEach(input => assertThrows(TypeError, () => { require(input); }));
 });
-
-runAllTests();

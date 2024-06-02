@@ -16,8 +16,8 @@
 // tests adapted from https://github.com/nodejs/node/test/parallel/test-url-fileurltopath.js
 
 import { fileURLToPath } from 'jjs:url';
+import { test } from 'jjs:test';
 
-const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
 const isWindows = jjs.os === 'win32';
 
@@ -161,5 +161,3 @@ test('fileURLToPath() should convert file path to file url', () => {
     assertEquals(fromURL, path);
   }
 });
-
-runAllTests();

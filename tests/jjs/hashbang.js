@@ -3,8 +3,8 @@
 // Keep first line to test #! is parsed.
 // Tests are basic. test262 does more thorough tests of this feature.
 
+const { test } = require ('jjs:test');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
-const { test, runAllTests } = require('../lib/test.cjs');
 
 const functionConstructors = [
   Function,
@@ -35,5 +35,3 @@ test('eval should accept #! as first line', () => {
 test('eval should throw SyntaxError if #! is not first', () => {
   assertThrows(SyntaxError, () => eval("let x = 1; #!\n"));
 });
-
-runAllTests();

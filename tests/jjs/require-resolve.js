@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
+const { test } = require ('jjs:test');
 const { require:globalRequire } = globalThis;
 const { assertThrows } = require('../lib/assert.js');
-const { test, runAllTests } = require('../lib/test.cjs');
 
 test('resolve() should resolve relative path request', () => {
   const path = globalRequire.resolve('../lib/assert.js');
@@ -38,5 +38,3 @@ test('resolve() should throw error when request does not match a pmap entry', ()
 test('resolve() should throw Error when relative file path does not exist', () => {
   assertThrows(Error, () => { globalRequire.resolve('./invalid-package.js'); });
 });
-
-runAllTests();

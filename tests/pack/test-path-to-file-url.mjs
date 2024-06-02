@@ -16,8 +16,8 @@
 // tests adapted from https://github.com/nodejs/node/test/parallel/test-url-pathtofileurl.js
 
 import { pathToFileURL } from 'jjs:url';
+import { test } from 'jjs:test';
 
-const { test, runAllTests } = require('../lib/test.cjs');
 const { assertThrows, assertEquals } = require('../lib/assert.js');
 const isWindows = jjs.os === 'win32';
 
@@ -166,5 +166,3 @@ test('pathToFileURL() should throw for non-string parameter', () => {
     assertThrows(TypeError, () => pathToFileURL(badPath));
   }
 });
-
-runAllTests();

@@ -31,9 +31,9 @@ import {
   win32,
   posix,
 } from 'jjs:path';
+import { test } from 'jjs:test';
 
 const { arrayEquals } = require('../lib/assert.js');
-const { test, runAllTests } = require('../lib/test.cjs');
 
 // TODO: can we take path tests from node?
 
@@ -54,5 +54,3 @@ const cjsExports = [
 ].toSorted();
 
 const esmExports = [...cjsExports, 'default'].toSorted();
-
-runAllTests();
