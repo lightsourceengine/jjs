@@ -54,7 +54,8 @@ compare_property (jjs_value_t namespace_object, /**< namespace object */
 } /* compare_property */
 
 static jjs_value_t
-create_module (int id) /**< module id */
+create_module (jjs_context_t *context_p, /**< context */
+               int id) /**< module id */
 {
   jjs_parse_options_t module_parse_options;
   module_parse_options.options = JJS_PARSE_MODULE;
@@ -65,7 +66,7 @@ create_module (int id) /**< module id */
   {
     jjs_char_t source[] = "export var a = 7";
 
-    result = jjs_parse (ctx (), source, sizeof (source) - 1, &module_parse_options);
+    result = jjs_parse (context_p, source, sizeof (source) - 1, &module_parse_options);
   }
   else
   {
@@ -76,10 +77,10 @@ create_module (int id) /**< module id */
     source[17] = (jjs_char_t) ((id / 10) + '0');
     source[18] = (jjs_char_t) ((id % 10) + '0');
 
-    result = jjs_parse (ctx (), source, sizeof (source) - 1, &module_parse_options);
+    result = jjs_parse (context_p, source, sizeof (source) - 1, &module_parse_options);
   }
 
-  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+  TEST_ASSERT (!jjs_value_is_exception (context_p, result));
   return result;
 } /* create_module */
 
@@ -110,7 +111,6 @@ resolve_callback2 (jjs_context_t *context_p, /** JJS context */
                    const jjs_value_t referrer, /**< parent module */
                    void *user_p) /**< user data */
 {
-  JJS_UNUSED (context_p);
   TEST_ASSERT (prev_module == referrer);
   TEST_ASSERT (user_p == NULL);
 
@@ -120,13 +120,13 @@ resolve_callback2 (jjs_context_t *context_p, /** JJS context */
   {
     if (terminate_with_error)
     {
-      return jjs_throw_sz (ctx (), JJS_ERROR_RANGE, "Module not found");
+      return jjs_throw_sz (context_p, JJS_ERROR_RANGE, "Module not found");
     }
 
-    return create_module (0);
+    return create_module (context_p, 0);
   }
 
-  prev_module = create_module (counter + 1);
+  prev_module = create_module (context_p, counter + 1);
   return prev_module;
 } /* resolve_callback2 */
 
@@ -136,59 +136,57 @@ resolve_callback3 (jjs_context_t *context_p, /** JJS context */
                    const jjs_value_t referrer, /**< parent module */
                    void *user_p) /**< user data */
 {
-  JJS_UNUSED (context_p);
   JJS_UNUSED (specifier);
   JJS_UNUSED (referrer);
   JJS_UNUSED (user_p);
 
   TEST_ASSERT (false);
 
-  return jjs_undefined (ctx ());
+  return jjs_undefined (context_p);
 } /* resolve_callback3 */
 
 static jjs_value_t
 synthetic_module_evaluate (jjs_context_t *context_p, /** JJS context */
                            const jjs_value_t synthetic_module) /**< synthetic module */
 {
-  JJS_UNUSED (context_p);
   ++counter;
 
-  TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_EVALUATING);
+  TEST_ASSERT (jjs_module_state (context_p, module) == JJS_MODULE_STATE_EVALUATING);
 
-  jjs_value_t exp_val = jjs_string_sz (ctx (), "exp");
-  jjs_value_t other_exp_val = jjs_string_sz (ctx (), "other_exp");
+  jjs_value_t exp_val = jjs_string_sz (context_p, "exp");
+  jjs_value_t other_exp_val = jjs_string_sz (context_p, "other_exp");
   /* The synthetic module has no such export. */
-  jjs_value_t no_exp_val = jjs_string_sz (ctx (), "no_exp");
+  jjs_value_t no_exp_val = jjs_string_sz (context_p, "no_exp");
 
   jjs_value_t result;
-  jjs_value_t export = jjs_number (ctx (), 3.5);
-  result = jjs_synthetic_module_set_export (ctx (), synthetic_module, exp_val, export);
-  TEST_ASSERT (jjs_value_is_boolean (ctx (), result) && jjs_value_is_true (ctx (), result));
-  jjs_value_free (ctx (), result);
-  jjs_value_free (ctx (), export);
+  jjs_value_t export = jjs_number (context_p, 3.5);
+  result = jjs_synthetic_module_set_export (context_p, synthetic_module, exp_val, export);
+  TEST_ASSERT (jjs_value_is_boolean (context_p, result) && jjs_value_is_true (ctx (), result));
+  jjs_value_free (context_p, result);
+  jjs_value_free (context_p, export);
 
-  export = jjs_string_sz (ctx (), "str");
-  result = jjs_synthetic_module_set_export (ctx (), synthetic_module, other_exp_val, export);
-  TEST_ASSERT (jjs_value_is_boolean (ctx (), result) && jjs_value_is_true (ctx (), result));
-  jjs_value_free (ctx (), result);
-  jjs_value_free (ctx (), export);
+  export = jjs_string_sz (context_p, "str");
+  result = jjs_synthetic_module_set_export (context_p, synthetic_module, other_exp_val, export);
+  TEST_ASSERT (jjs_value_is_boolean (context_p, result) && jjs_value_is_true (ctx (), result));
+  jjs_value_free (context_p, result);
+  jjs_value_free (context_p, export);
 
-  result = jjs_synthetic_module_set_export (ctx (), synthetic_module, no_exp_val, no_exp_val);
-  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
-  TEST_ASSERT (jjs_error_type (ctx (), result) == JJS_ERROR_REFERENCE);
-  jjs_value_free (ctx (), result);
+  result = jjs_synthetic_module_set_export (context_p, synthetic_module, no_exp_val, no_exp_val);
+  TEST_ASSERT (jjs_value_is_exception (context_p, result));
+  TEST_ASSERT (jjs_error_type (context_p, result) == JJS_ERROR_REFERENCE);
+  jjs_value_free (context_p, result);
 
-  jjs_value_free (ctx (), exp_val);
-  jjs_value_free (ctx (), other_exp_val);
-  jjs_value_free (ctx (), no_exp_val);
+  jjs_value_free (context_p, exp_val);
+  jjs_value_free (context_p, other_exp_val);
+  jjs_value_free (context_p, no_exp_val);
 
   if (counter == 4)
   {
     ++counter;
-    return jjs_throw_sz (ctx (), JJS_ERROR_COMMON, "Ooops!");
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Ooops!");
   }
 
-  return jjs_undefined (ctx ());
+  return jjs_undefined (context_p);
 } /* synthetic_module_evaluate */
 
 static jjs_value_t
@@ -197,31 +195,31 @@ resolve_callback4 (jjs_context_t *context_p, /** JJS context */
                    const jjs_value_t referrer, /**< parent module */
                    void *user_p) /**< user data */
 {
-  JJS_UNUSED (context_p);
   JJS_UNUSED (specifier);
   JJS_UNUSED (referrer);
 
   ++counter;
 
-  jjs_value_t exports[2] = { jjs_string_sz (ctx (), "exp"), jjs_string_sz (ctx (), "other_exp") };
+  jjs_value_t exports[2] = { jjs_string_sz (context_p, "exp"), jjs_string_sz (context_p, "other_exp") };
 
-  jjs_value_t synthetic_module = jjs_synthetic_module (ctx (), synthetic_module_evaluate, exports, 2);
-  TEST_ASSERT (!jjs_value_is_exception (ctx (), synthetic_module));
+  jjs_value_t synthetic_module = jjs_synthetic_module (context_p, synthetic_module_evaluate, exports, 2);
+  TEST_ASSERT (!jjs_value_is_exception (context_p, synthetic_module));
 
-  jjs_value_free (ctx (), exports[0]);
-  jjs_value_free (ctx (), exports[1]);
+  jjs_value_free (context_p, exports[0]);
+  jjs_value_free (context_p, exports[1]);
 
-  *((jjs_value_t *) user_p) = jjs_value_copy (ctx (), synthetic_module);
+  *((jjs_value_t *) user_p) = jjs_value_copy (context_p, synthetic_module);
   return synthetic_module;
 } /* resolve_callback4 */
 
 static void
-module_state_changed (jjs_module_state_t new_state, /**< new state of the module */
+module_state_changed (jjs_context_t *context_p, /**< context */
+                      jjs_module_state_t new_state, /**< new state of the module */
                       const jjs_value_t module_val, /**< a module whose state is changed */
                       const jjs_value_t value, /**< value argument */
                       void *user_p) /**< user pointer */
 {
-  TEST_ASSERT (jjs_module_state (ctx (), module_val) == new_state);
+  TEST_ASSERT (jjs_module_state (context_p, module_val) == new_state);
   TEST_ASSERT (module_val == module);
   TEST_ASSERT (user_p == (void *) &counter);
 
@@ -233,20 +231,20 @@ module_state_changed (jjs_module_state_t new_state, /**< new state of the module
     case 3:
     {
       TEST_ASSERT (new_state == JJS_MODULE_STATE_LINKED);
-      TEST_ASSERT (jjs_value_is_undefined (ctx (), value));
+      TEST_ASSERT (jjs_value_is_undefined (context_p, value));
       break;
     }
     case 2:
     {
       TEST_ASSERT (new_state == JJS_MODULE_STATE_EVALUATED);
-      TEST_ASSERT (jjs_value_is_number (ctx (), value) && jjs_value_as_number (ctx (), value) == 33.5);
+      TEST_ASSERT (jjs_value_is_number (context_p, value) && jjs_value_as_number (context_p, value) == 33.5);
       break;
     }
     default:
     {
       TEST_ASSERT (counter == 4);
       TEST_ASSERT (new_state == JJS_MODULE_STATE_ERROR);
-      TEST_ASSERT (jjs_value_is_number (ctx (), value) && jjs_value_as_number (ctx (), value) == -5.5);
+      TEST_ASSERT (jjs_value_is_number (context_p, value) && jjs_value_as_number (context_p, value) == -5.5);
       break;
     }
   }
@@ -258,13 +256,12 @@ resolve_callback5 (jjs_context_t *context_p, /** JJS context */
                    const jjs_value_t referrer, /**< parent module */
                    void *user_p) /**< user data */
 {
-  JJS_UNUSED (context_p);
   JJS_UNUSED (specifier);
   JJS_UNUSED (user_p);
 
   /* This circular reference is valid. However, import resolving triggers
    * a SyntaxError, because the module does not export a default binding. */
-  return jjs_value_copy (ctx (), referrer);
+  return jjs_value_copy (context_p, referrer);
 } /* resolve_callback5 */
 
 int
@@ -289,7 +286,7 @@ main (void)
   TEST_ASSERT (jjs_value_is_exception (ctx (), result));
   jjs_value_free (ctx (), result);
 
-  module = create_module (1);
+  module = create_module (ctx (), 1);
 
   /* After an error, module must remain in unlinked mode. */
   result = jjs_module_link (ctx (), module, resolve_callback1, (void *) &module);
@@ -328,7 +325,7 @@ main (void)
 
   jjs_value_free (ctx (), module);
 
-  module = create_module (1);
+  module = create_module (ctx (), 1);
 
   prev_module = module;
   counter = 0;

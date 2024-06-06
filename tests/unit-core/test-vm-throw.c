@@ -19,7 +19,8 @@ static int mode = 0;
 static int counter = 0;
 
 static void
-vm_throw_callback (const jjs_value_t error_value, /**< captured error */
+vm_throw_callback (jjs_context_t *context_p, /**< context */
+                   const jjs_value_t error_value, /**< captured error */
                    void *user_p) /**< user pointer */
 {
   TEST_ASSERT (user_p == (void *) &mode);
@@ -30,14 +31,14 @@ vm_throw_callback (const jjs_value_t error_value, /**< captured error */
     case 0:
     {
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jjs_value_is_number (ctx (), error_value));
-      TEST_ASSERT_DOUBLE_EQUALS (jjs_value_as_number (ctx (), error_value), -5.6);
+      TEST_ASSERT (jjs_value_is_number (context_p, error_value));
+      TEST_ASSERT_DOUBLE_EQUALS (jjs_value_as_number (context_p, error_value), -5.6);
       break;
     }
     case 1:
     {
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jjs_value_is_null (ctx (), error_value));
+      TEST_ASSERT (jjs_value_is_null (context_p, error_value));
       break;
     }
     case 2:
@@ -49,16 +50,16 @@ vm_throw_callback (const jjs_value_t error_value, /**< captured error */
       string_buf[1] = '\0';
 
       TEST_ASSERT (counter >= 1 && counter <= 3);
-      TEST_ASSERT (jjs_value_is_string (ctx (), error_value));
-      TEST_ASSERT (jjs_string_size (ctx (), error_value, JJS_ENCODING_CESU8) == size);
-      TEST_ASSERT (jjs_string_to_buffer (ctx (), error_value, JJS_ENCODING_CESU8, string_buf, size) == size);
+      TEST_ASSERT (jjs_value_is_string (context_p, error_value));
+      TEST_ASSERT (jjs_string_size (context_p, error_value, JJS_ENCODING_CESU8) == size);
+      TEST_ASSERT (jjs_string_to_buffer (context_p, error_value, JJS_ENCODING_CESU8, string_buf, size) == size);
       TEST_ASSERT (string_buf[0] == 'e' && string_buf[1] == (char) ('0' + counter));
       break;
     }
     case 3:
     {
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jjs_error_type (ctx (), error_value) == JJS_ERROR_RANGE);
+      TEST_ASSERT (jjs_error_type (context_p, error_value) == JJS_ERROR_RANGE);
       break;
     }
     case 4:
@@ -67,21 +68,21 @@ vm_throw_callback (const jjs_value_t error_value, /**< captured error */
       TEST_ASSERT (counter >= 1 && counter <= 2);
 
       jjs_error_t error = (counter == 1) ? JJS_ERROR_REFERENCE : JJS_ERROR_TYPE;
-      TEST_ASSERT (jjs_error_type (ctx (), error_value) == error);
+      TEST_ASSERT (jjs_error_type (context_p, error_value) == error);
       break;
     }
     case 5:
     case 6:
     {
       TEST_ASSERT (counter >= 1 && counter <= 2);
-      TEST_ASSERT (jjs_value_is_false (ctx (), error_value));
+      TEST_ASSERT (jjs_value_is_false (context_p, error_value));
       break;
     }
     default:
     {
       TEST_ASSERT (mode == 8 || mode == 9);
       TEST_ASSERT (counter == 1);
-      TEST_ASSERT (jjs_value_is_true (ctx (), error_value));
+      TEST_ASSERT (jjs_value_is_true (context_p, error_value));
       break;
     }
   }
@@ -92,29 +93,29 @@ native_handler (const jjs_call_info_t *call_info_p, /**< call info */
                 const jjs_value_t args_p[], /**< arguments */
                 const jjs_length_t args_count) /**< arguments length */
 {
-  (void) call_info_p;
   (void) args_p;
+  jjs_context_t *context_p = call_info_p->context_p;
   TEST_ASSERT (args_count == 0);
 
   if (mode == 7)
   {
-    jjs_value_t result = jjs_throw_sz (ctx (), JJS_ERROR_COMMON, "Error!");
+    jjs_value_t result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Error!");
 
-    TEST_ASSERT (!jjs_exception_is_captured (ctx (), result));
-    jjs_exception_allow_capture (ctx (), result, false);
-    TEST_ASSERT (jjs_exception_is_captured (ctx (), result));
+    TEST_ASSERT (!jjs_exception_is_captured (context_p, result));
+    jjs_exception_allow_capture (context_p, result, false);
+    TEST_ASSERT (jjs_exception_is_captured (context_p, result));
     return result;
   }
 
   jjs_char_t source[] = TEST_STRING_LITERAL ("throw false");
-  jjs_value_t result = jjs_eval (ctx (), source, sizeof (source) - 1, JJS_PARSE_NO_OPTS);
+  jjs_value_t result = jjs_eval (context_p, source, sizeof (source) - 1, JJS_PARSE_NO_OPTS);
 
-  TEST_ASSERT (jjs_exception_is_captured (ctx (), result));
+  TEST_ASSERT (jjs_exception_is_captured (context_p, result));
 
   if (mode == 6)
   {
-    jjs_exception_allow_capture (ctx (), result, true);
-    TEST_ASSERT (!jjs_exception_is_captured (ctx (), result));
+    jjs_exception_allow_capture (context_p, result, true);
+    TEST_ASSERT (!jjs_exception_is_captured (context_p, result));
   }
   return result;
 } /* native_handler */

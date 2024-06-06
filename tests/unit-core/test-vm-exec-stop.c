@@ -16,7 +16,7 @@
 #include "jjs-test.h"
 
 static jjs_value_t
-vm_exec_stop_callback (void *user_p)
+vm_exec_stop_callback (jjs_context_t *context_p, void *user_p)
 {
   int *int_p = (int *) user_p;
 
@@ -24,10 +24,10 @@ vm_exec_stop_callback (void *user_p)
   {
     (*int_p)--;
 
-    return jjs_undefined (ctx ());
+    return jjs_undefined (context_p);
   }
 
-  return jjs_string_sz (ctx (), "Abort script");
+  return jjs_string_sz (context_p, "Abort script");
 } /* vm_exec_stop_callback */
 
 int

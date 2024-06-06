@@ -16,8 +16,9 @@
 #include "jjs-test.h"
 
 static bool
-count_objects (jjs_value_t object, void *user_arg)
+count_objects (jjs_context_t *context_p, jjs_value_t object, void *user_arg)
 {
+  (void) context_p;
   (void) object;
   TEST_ASSERT (user_arg != NULL);
 
@@ -150,31 +151,31 @@ static const jjs_object_native_info_t test_info = {
 static const jjs_char_t strict_equal_source[] = "var x = function(a, b) {return a === b;}; x";
 
 static bool
-find_test_object_by_data (const jjs_value_t candidate, void *object_data_p, void *context_p)
+find_test_object_by_data (jjs_context_t *context_p, const jjs_value_t candidate, void *object_data_p, void *data_p)
 {
   if (object_data_p == &test_data)
   {
-    *((jjs_value_t *) context_p) = jjs_value_copy (ctx (), candidate);
+    *((jjs_value_t *) data_p) = jjs_value_copy (context_p, candidate);
     return false;
   }
   return true;
 } /* find_test_object_by_data */
 
 static bool
-find_test_object_by_property (const jjs_value_t candidate, void *context_p)
+find_test_object_by_property (jjs_context_t *context_p, const jjs_value_t candidate, void *data_p)
 {
-  jjs_value_t *args_p = (jjs_value_t *) context_p;
-  jjs_value_t result = jjs_object_has (ctx (), candidate, args_p[0]);
+  jjs_value_t *args_p = data_p;
+  jjs_value_t result = jjs_object_has (context_p, candidate, args_p[0]);
 
-  bool has_property = (!jjs_value_is_exception (ctx (), result) && jjs_value_is_true (ctx (), result));
+  bool has_property = (!jjs_value_is_exception (context_p, result) && jjs_value_is_true (context_p, result));
 
   /* If the object has the desired property, store a new reference to it in args_p[1]. */
   if (has_property)
   {
-    args_p[1] = jjs_value_copy (ctx (), candidate);
+    args_p[1] = jjs_value_copy (context_p, candidate);
   }
 
-  jjs_value_free (ctx (), result);
+  jjs_value_free (context_p, result);
 
   /* Stop iterating if we've found our object. */
   return !has_property;

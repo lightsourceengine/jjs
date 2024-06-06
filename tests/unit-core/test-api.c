@@ -206,13 +206,14 @@ const jjs_char_t *magic_string_items[] = {
 #undef JJS_MAGIC_STRING_DEF
 };
 
-static bool foreach (const jjs_value_t name, /**< field name */
+static bool foreach (jjs_context_t *context_p, /**< context */
+                     const jjs_value_t name, /**< field name */
                      const jjs_value_t value, /**< field value */
                      void *user_data) /**< user data */
 {
   char str_buf_p[128];
   jjs_size_t sz =
-    jjs_string_to_buffer (ctx (), name, JJS_ENCODING_CESU8, (jjs_char_t *) str_buf_p, sizeof (str_buf_p) - 1);
+    jjs_string_to_buffer (context_p, name, JJS_ENCODING_CESU8, (jjs_char_t *) str_buf_p, sizeof (str_buf_p) - 1);
   str_buf_p[sz] = '\0';
 
   TEST_ASSERT (!strncmp ((const char *) user_data, "user_data", 9));
@@ -220,33 +221,33 @@ static bool foreach (const jjs_value_t name, /**< field name */
 
   if (!strncmp (str_buf_p, "alpha", (size_t) sz))
   {
-    TEST_ASSERT (jjs_value_is_number (ctx (), value));
-    TEST_ASSERT (jjs_value_as_number (ctx (), value) == 32.0);
+    TEST_ASSERT (jjs_value_is_number (context_p, value));
+    TEST_ASSERT (jjs_value_as_number (context_p, value) == 32.0);
     return true;
   }
   else if (!strncmp (str_buf_p, "bravo", (size_t) sz))
   {
-    TEST_ASSERT (jjs_value_is_boolean (ctx (), value));
-    TEST_ASSERT (jjs_value_is_true (ctx (), value) == false);
-    TEST_ASSERT (jjs_value_is_false (ctx (), value));
+    TEST_ASSERT (jjs_value_is_boolean (context_p, value));
+    TEST_ASSERT (jjs_value_is_true (context_p, value) == false);
+    TEST_ASSERT (jjs_value_is_false (context_p, value));
     return true;
   }
   else if (!strncmp (str_buf_p, "charlie", (size_t) sz))
   {
-    TEST_ASSERT (jjs_value_is_object (ctx (), value));
+    TEST_ASSERT (jjs_value_is_object (context_p, value));
     return true;
   }
   else if (!strncmp (str_buf_p, "delta", (size_t) sz))
   {
-    TEST_ASSERT (jjs_value_is_number (ctx (), value));
-    TEST_ASSERT_DOUBLE_EQUALS (jjs_value_as_number (ctx (), value), 123.45);
+    TEST_ASSERT (jjs_value_is_number (context_p, value));
+    TEST_ASSERT_DOUBLE_EQUALS (jjs_value_as_number (context_p, value), 123.45);
     return true;
   }
   else if (!strncmp (str_buf_p, "echo", (size_t) sz))
   {
-    TEST_ASSERT (jjs_value_is_string (ctx (), value));
+    TEST_ASSERT (jjs_value_is_string (context_p, value));
     jjs_size_t echo_sz =
-      jjs_string_to_buffer (ctx (), value, JJS_ENCODING_CESU8, (jjs_char_t *) str_buf_p, sizeof (str_buf_p) - 1);
+      jjs_string_to_buffer (context_p, value, JJS_ENCODING_CESU8, (jjs_char_t *) str_buf_p, sizeof (str_buf_p) - 1);
     str_buf_p[echo_sz] = '\0';
     TEST_ASSERT (!strncmp (str_buf_p, "foobar", (size_t) echo_sz));
     return true;
@@ -257,7 +258,8 @@ static bool foreach (const jjs_value_t name, /**< field name */
 } /* foreach */
 
 static bool
-foreach_exception (const jjs_value_t name, /**< field name */
+foreach_exception (jjs_context_t *context_p, /**< context */
+                   const jjs_value_t name, /**< field name */
                    const jjs_value_t value, /**< field value */
                    void *user_data) /**< user data */
 {
@@ -265,7 +267,7 @@ foreach_exception (const jjs_value_t name, /**< field name */
   JJS_UNUSED (user_data);
   char str_buf_p[128];
   jjs_size_t sz =
-    jjs_string_to_buffer (ctx (), name, JJS_ENCODING_CESU8, (jjs_char_t *) str_buf_p, sizeof (str_buf_p) - 1);
+    jjs_string_to_buffer (context_p, name, JJS_ENCODING_CESU8, (jjs_char_t *) str_buf_p, sizeof (str_buf_p) - 1);
   str_buf_p[sz] = '\0';
 
   if (!strncmp (str_buf_p, "foxtrot", (size_t) sz))
@@ -277,10 +279,12 @@ foreach_exception (const jjs_value_t name, /**< field name */
 } /* foreach_exception */
 
 static bool
-foreach_subset (const jjs_value_t name, /**< field name */
+foreach_subset (jjs_context_t *context_p, /**< context */
+                const jjs_value_t name, /**< field name */
                 const jjs_value_t value, /**< field value */
                 void *user_data) /**< user data */
 {
+  JJS_UNUSED(context_p);
   JJS_UNUSED (name);
   JJS_UNUSED (value);
   int *count_p = (int *) (user_data);

@@ -164,7 +164,8 @@ ecma_arraybuffer_allocate_buffer (ecma_context_t *context_p, /**< JJS context */
     }
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 
-    buffer_p = arraybuffer_allocate_callback (type,
+    buffer_p = arraybuffer_allocate_callback (context_p,
+                                              type,
                                               arraybuffer_length,
                                               &arraybuffer_pointer_p->arraybuffer_user_p,
                                               context_p->arraybuffer_allocate_callback_user_p);
@@ -236,7 +237,8 @@ ecma_arraybuffer_release_buffer (ecma_context_t *context_p, /**< JJS context */
   }
 #endif /* JJS_BUILTIN_SHAREDARRAYBUFFER */
 
-  free_callback (type,
+  free_callback (context_p,
+                 type,
                  arraybuffer_pointer_p->buffer_p,
                  arraybuffer_length,
                  arraybuffer_pointer_p->arraybuffer_user_p,

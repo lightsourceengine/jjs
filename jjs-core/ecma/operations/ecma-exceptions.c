@@ -158,7 +158,7 @@ ecma_new_standard_error_with_options (ecma_context_t *context_p,
   {
     context_p->status_flags |= ECMA_STATUS_ERROR_UPDATE;
     context_p->error_object_created_callback_p
-    (ecma_make_object_value (context_p, error_object_p), context_p->error_object_created_callback_user_p);
+    (context_p, ecma_make_object_value (context_p, error_object_p), context_p->error_object_created_callback_user_p);
     context_p->status_flags &= (uint32_t) ~ECMA_STATUS_ERROR_UPDATE;
   }
   else

@@ -2826,14 +2826,14 @@ jjs_string_iterate (jjs_context_t* context_p,
 
           for (uint32_t i = 0; i < encoded_size; i++)
           {
-            callback (bytes[i], user_p);
+            callback (context_p, bytes[i], user_p);
           }
 
           current_p += read_size;
           continue;
         }
 
-        callback (*current_p++, user_p);
+        callback (context_p, *current_p++, user_p);
       }
 
       break;
@@ -2842,7 +2842,7 @@ jjs_string_iterate (jjs_context_t* context_p,
     {
       while (current_p < end_p)
       {
-        callback (*current_p++, user_p);
+        callback (context_p, *current_p++, user_p);
       }
 
       break;
@@ -4022,7 +4022,7 @@ jjs_foreach_live_object (jjs_context_t* context_p, /**< JJS context */
   {
     ecma_object_t *iter_p = ECMA_GET_NON_NULL_POINTER (context_p, ecma_object_t, iter_cp);
 
-    if (jjs_object_is_valid_foreach (context_p, iter_p) && !callback (ecma_make_object_value (context_p, iter_p), user_data_p))
+    if (jjs_object_is_valid_foreach (context_p, iter_p) && !callback (context_p, ecma_make_object_value (context_p, iter_p), user_data_p))
     {
       return true;
     }
@@ -4063,7 +4063,7 @@ jjs_foreach_live_object_with_info (jjs_context_t* context_p, /**< JJS context */
     if (jjs_object_is_valid_foreach (context_p, iter_p))
     {
       native_pointer_p = ecma_get_native_pointer_value (context_p, iter_p, (void *) native_info_p);
-      if (native_pointer_p && !callback (ecma_make_object_value (context_p, iter_p), native_pointer_p->native_p, user_data_p))
+      if (native_pointer_p && !callback (context_p, ecma_make_object_value (context_p, iter_p), native_pointer_p->native_p, user_data_p))
       {
         return true;
       }
@@ -4329,7 +4329,7 @@ jjs_object_foreach (jjs_context_t* context_p, /**< JJS context */
       break;
     }
 
-    continuous = foreach_p (buffer_p[i], property_value, user_data_p);
+    continuous = foreach_p (context_p, buffer_p[i], property_value, user_data_p);
     ecma_free_value (context_p, property_value);
   }
 
@@ -5359,7 +5359,7 @@ jjs_backtrace_capture (jjs_context_t* context_p, /**< JJS context */
     frame.context_p = frame_context_p;
     frame.frame_type = JJS_BACKTRACE_FRAME_JS;
 
-    if (!callback (&frame, user_p))
+    if (!callback (context_p, &frame, user_p))
     {
       return;
     }

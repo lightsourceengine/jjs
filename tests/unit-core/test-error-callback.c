@@ -19,7 +19,8 @@ static bool error_object_created_callback_is_running = false;
 static int error_object_created_callback_count = 0;
 
 static void
-error_object_created_callback (const jjs_value_t error_object_t, /**< new error object */
+error_object_created_callback (jjs_context_t *context_p, /**< context */
+                               const jjs_value_t error_object_t, /**< new error object */
                                void *user_p) /**< user pointer */
 {
   TEST_ASSERT (!error_object_created_callback_is_running);
@@ -28,21 +29,21 @@ error_object_created_callback (const jjs_value_t error_object_t, /**< new error 
   error_object_created_callback_is_running = true;
   error_object_created_callback_count++;
 
-  jjs_value_t name = jjs_string_sz (ctx (), "message");
-  jjs_value_t message = jjs_string_sz (ctx (), "Replaced message!");
+  jjs_value_t name = jjs_string_sz (context_p, "message");
+  jjs_value_t message = jjs_string_sz (context_p, "Replaced message!");
 
-  jjs_value_t result = jjs_object_set (ctx (), error_object_t, name, message);
-  TEST_ASSERT (jjs_value_is_boolean (ctx (), result) && jjs_value_is_true (ctx (), result));
-  jjs_value_free (ctx (), result);
+  jjs_value_t result = jjs_object_set (context_p, error_object_t, name, message);
+  TEST_ASSERT (jjs_value_is_boolean (context_p, result) && jjs_value_is_true (context_p, result));
+  jjs_value_free (context_p, result);
 
   /* This SyntaxError must not trigger a recusrsive call of the this callback. */
   const char *source_p = "Syntax Error in JS!";
-  result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
-  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  result = jjs_eval (context_p, (const jjs_char_t *) source_p, strlen (source_p), 0);
+  TEST_ASSERT (jjs_value_is_exception (context_p, result));
 
-  jjs_value_free (ctx (), result);
-  jjs_value_free (ctx (), message);
-  jjs_value_free (ctx (), name);
+  jjs_value_free (context_p, result);
+  jjs_value_free (context_p, message);
+  jjs_value_free (context_p, name);
 
   error_object_created_callback_is_running = false;
 } /* error_object_created_callback */

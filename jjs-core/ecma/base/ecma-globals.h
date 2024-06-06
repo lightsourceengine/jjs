@@ -288,7 +288,7 @@ enum
 /**
  * Callback which tells whether the ECMAScript execution should be stopped.
  */
-typedef ecma_value_t (*ecma_vm_exec_stop_callback_t) (void *user_p);
+typedef ecma_value_t (*ecma_vm_exec_stop_callback_t) (jjs_context_t *context_p, void *user_p);
 
 /**
  * Forward definition of jjs_call_info_t.

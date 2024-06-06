@@ -533,13 +533,13 @@ typedef void (*jjs_object_native_free_cb_t) (jjs_context_t* context_p, void *nat
 /**
  * Free callback for external strings.
  */
-typedef void (*jjs_external_string_free_cb_t) (jjs_char_t *string_p, jjs_size_t string_size, void *user_p);
+typedef void (*jjs_external_string_free_cb_t) (jjs_context_t *context_p, jjs_char_t *string_p, jjs_size_t string_size, void *user_p);
 
 /**
  * Decorator callback for Error objects. The decorator can create
  * or update any properties of the newly created Error object.
  */
-typedef void (*jjs_error_object_created_cb_t) (const jjs_value_t error_object, void *user_p);
+typedef void (*jjs_error_object_created_cb_t) (jjs_context_t *context_p, const jjs_value_t error_object, void *user_p);
 
 /**
  * Callback which tells whether the ECMAScript execution should be stopped.
@@ -551,7 +551,7 @@ typedef void (*jjs_error_object_created_cb_t) (const jjs_value_t error_object, v
  * Note: if the function returns with a non-undefined value it
  *       must return with the same value for future calls.
  */
-typedef jjs_value_t (*jjs_halt_cb_t) (void *user_p);
+typedef jjs_value_t (*jjs_halt_cb_t) (jjs_context_t *context_p, void *user_p);
 
 /**
  * Callback function which is called when an exception is thrown in an ECMAScript code.
@@ -560,31 +560,33 @@ typedef jjs_value_t (*jjs_halt_cb_t) (void *user_p);
  *
  * Note: the engine considers exceptions thrown by external functions as never caught.
  */
-typedef void (*jjs_throw_cb_t) (const jjs_value_t exception_value, void *user_p);
+typedef void (*jjs_throw_cb_t) (jjs_context_t *context_p, const jjs_value_t exception_value, void *user_p);
 
 /**
  * Function type applied to each unit of encoding when iterating over a string.
  */
-typedef void (*jjs_string_iterate_cb_t) (uint32_t value, void *user_p);
+typedef void (*jjs_string_iterate_cb_t) (jjs_context_t *context_p, uint32_t value, void *user_p);
 
 /**
  * Function type applied for each data property of an object.
  */
-typedef bool (*jjs_object_property_foreach_cb_t) (const jjs_value_t property_name,
-                                                    const jjs_value_t property_value,
-                                                    void *user_data_p);
+typedef bool (*jjs_object_property_foreach_cb_t) (jjs_context_t *context_p,
+                                                  const jjs_value_t property_name,
+                                                  const jjs_value_t property_value,
+                                                  void *user_data_p);
 
 /**
  * Function type applied for each object in the engine.
  */
-typedef bool (*jjs_foreach_live_object_cb_t) (const jjs_value_t object, void *user_data_p);
+typedef bool (*jjs_foreach_live_object_cb_t) (jjs_context_t *context_p, const jjs_value_t object, void *user_data_p);
 
 /**
  * Function type applied for each matching object in the engine.
  */
-typedef bool (*jjs_foreach_live_object_with_info_cb_t) (const jjs_value_t object,
-                                                          void *object_data_p,
-                                                          void *user_data_p);
+typedef bool (*jjs_foreach_live_object_with_info_cb_t) (jjs_context_t *context_p,
+                                                        const jjs_value_t object,
+                                                        void *object_data_p,
+                                                        void *user_data_p);
 
 /**
  * User context item manager
@@ -696,7 +698,7 @@ typedef struct jjs_frame_internal_t jjs_frame_t;
 /**
  * Callback function which is called by jjs_backtrace for each stack frame.
  */
-typedef bool (*jjs_backtrace_cb_t) (jjs_frame_t *frame_p, void *user_p);
+typedef bool (*jjs_backtrace_cb_t) (jjs_context_t *context_p, jjs_frame_t *frame_p, void *user_p);
 
 /**
  * Detailed value type related types.
@@ -810,10 +812,11 @@ typedef jjs_value_t (*jjs_module_import_cb_t) (jjs_context_t* context_p, const j
 /**
  * Callback which is called after the module enters into linked, evaluated or error state.
  */
-typedef void (*jjs_module_state_changed_cb_t) (jjs_module_state_t new_state,
-                                                 const jjs_value_t module,
-                                                 const jjs_value_t value,
-                                                 void *user_p);
+typedef void (*jjs_module_state_changed_cb_t) (jjs_context_t *context_p,
+                                               jjs_module_state_t new_state,
+                                               const jjs_value_t module,
+                                               const jjs_value_t value,
+                                               void *user_p);
 
 /**
  * Callback which is called when an import.meta expression of a module is evaluated the first time.
@@ -1100,19 +1103,21 @@ typedef enum
 /**
  * Callback for allocating the backing store of array buffer or shared array buffer objects.
  */
-typedef uint8_t *(*jjs_arraybuffer_allocate_cb_t) (jjs_arraybuffer_type_t buffer_type,
-                                                     uint32_t buffer_size,
-                                                     void **arraybuffer_user_p,
-                                                     void *user_p);
+typedef uint8_t *(*jjs_arraybuffer_allocate_cb_t) (jjs_context_t *context_p,
+                                                   jjs_arraybuffer_type_t buffer_type,
+                                                   uint32_t buffer_size,
+                                                   void **arraybuffer_user_p,
+                                                   void *user_p);
 
 /**
  * Callback for freeing the backing store of array buffer or shared array buffer objects.
  */
-typedef void (*jjs_arraybuffer_free_cb_t) (jjs_arraybuffer_type_t buffer_type,
-                                             uint8_t *buffer_p,
-                                             uint32_t buffer_size,
-                                             void *arraybuffer_user_p,
-                                             void *user_p);
+typedef void (*jjs_arraybuffer_free_cb_t) (jjs_context_t *context_p,
+                                           jjs_arraybuffer_type_t buffer_type,
+                                           uint8_t *buffer_p,
+                                           uint32_t buffer_size,
+                                           void *arraybuffer_user_p,
+                                           void *user_p);
 
 /**
  * Options for jjs_platform_read_file function.

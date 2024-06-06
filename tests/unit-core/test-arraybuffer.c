@@ -148,11 +148,13 @@ static int allocate_count = 0;
 static int free_count = 0;
 
 static uint8_t *
-test_allocate_cb (jjs_arraybuffer_type_t buffer_type, /**< type of the array buffer object */
+test_allocate_cb (jjs_context_t *context_p, /**< context */
+                  jjs_arraybuffer_type_t buffer_type, /**< type of the array buffer object */
                   uint32_t buffer_size, /**< size of the requested buffer */
                   void **buffer_user_p, /**< [in/out] user pointer assigned to the array buffer object */
                   void *user_p) /**< user pointer passed to jjs_arraybuffer_set_allocation_callbacks */
 {
+  JJS_UNUSED (context_p);
   TEST_ASSERT (buffer_type == JJS_ARRAYBUFFER_TYPE_ARRAYBUFFER);
   TEST_ASSERT (user_p == (void *) &allocate_mode);
 
@@ -171,12 +173,14 @@ test_allocate_cb (jjs_arraybuffer_type_t buffer_type, /**< type of the array buf
 } /* test_allocate_cb */
 
 static void
-test_free_cb (jjs_arraybuffer_type_t buffer_type, /**< type of the array buffer object */
+test_free_cb (jjs_context_t *context_p, /**< context */
+              jjs_arraybuffer_type_t buffer_type, /**< type of the array buffer object */
               uint8_t *buffer_p, /**< pointer to the allocated buffer */
               uint32_t buffer_size, /**< size of the allocated buffer */
               void *buffer_user_p, /**< user pointer assigned to the array buffer object */
               void *user_p) /**< user pointer passed to jjs_arraybuffer_set_allocation_callbacks */
 {
+  JJS_UNUSED (context_p);
   TEST_ASSERT (buffer_type == JJS_ARRAYBUFFER_TYPE_ARRAYBUFFER);
   TEST_ASSERT (user_p == (void *) &allocate_mode);
 

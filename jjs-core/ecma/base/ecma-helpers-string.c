@@ -532,7 +532,7 @@ ecma_new_ecma_external_string_from_cesu8 (ecma_context_t *context_p, /**< JJS co
 
     if (free_cb != NULL)
     {
-      free_cb ((lit_utf8_byte_t *) string_p, string_size, user_p);
+      free_cb (context_p, (lit_utf8_byte_t *) string_p, string_size, user_p);
     }
     return string_desc_p;
   }
@@ -545,7 +545,7 @@ ecma_new_ecma_external_string_from_cesu8 (ecma_context_t *context_p, /**< JJS co
 
     if (free_cb != NULL)
     {
-      free_cb ((lit_utf8_byte_t *) string_p, string_size, user_p);
+      free_cb (context_p, (lit_utf8_byte_t *) string_p, string_size, user_p);
     }
     return string_desc_p;
   }
@@ -1023,7 +1023,8 @@ ecma_destroy_ecma_string (ecma_context_t *context_p, /**< JJS context */
 
       if (free_cb != NULL)
       {
-        free_cb ((lit_utf8_byte_t *) external_string_p->header.string_p,
+        free_cb (context_p,
+                 (lit_utf8_byte_t *) external_string_p->header.string_p,
                  external_string_p->header.size,
                  external_string_p->user_p);
       }

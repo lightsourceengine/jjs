@@ -110,7 +110,8 @@ ecma_module_set_error_state (ecma_context_t *context_p, /**< JJS context */
   {
     jjs_value_t exception = jcontext_take_exception (context_p);
 
-    context_p->module_state_changed_callback_p (JJS_MODULE_STATE_ERROR,
+    context_p->module_state_changed_callback_p (context_p,
+                                                JJS_MODULE_STATE_ERROR,
                                                 ecma_make_object_value (context_p, &module_p->header.object),
                                                 exception,
                                                 context_p->module_state_changed_callback_user_p);
@@ -593,7 +594,8 @@ ecma_module_evaluate (ecma_context_t *context_p, /**< JJS context */
 
     if (context_p->module_state_changed_callback_p != NULL)
     {
-      context_p->module_state_changed_callback_p (JJS_MODULE_STATE_EVALUATED,
+      context_p->module_state_changed_callback_p (context_p,
+                                                  JJS_MODULE_STATE_EVALUATED,
                                                   ecma_make_object_value (context_p, &module_p->header.object),
                                                   ret_value,
                                                   context_p->module_state_changed_callback_user_p);
@@ -1339,7 +1341,8 @@ restart:
 
       if (context_p->module_state_changed_callback_p != NULL)
       {
-        context_p->module_state_changed_callback_p (JJS_MODULE_STATE_LINKED,
+        context_p->module_state_changed_callback_p (context_p,
+                                                    JJS_MODULE_STATE_LINKED,
                                                     ecma_make_object_value (context_p, &last_p->module_p->header.object),
                                                     ECMA_VALUE_UNDEFINED,
                                                     context_p->module_state_changed_callback_user_p);

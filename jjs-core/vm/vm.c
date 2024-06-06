@@ -1130,7 +1130,7 @@ vm_loop (vm_frame_ctx_t *frame_ctx_p) /**< frame context */
 #if JJS_VM_HALT
           if (context_p->vm_exec_stop_cb != NULL && --context_p->vm_exec_stop_counter == 0)
           {
-            result = context_p->vm_exec_stop_cb (context_p->vm_exec_stop_user_p);
+            result = context_p->vm_exec_stop_cb (context_p, context_p->vm_exec_stop_user_p);
 
             if (ecma_is_value_undefined (result))
             {
@@ -4850,7 +4850,7 @@ error:
 
         if (vm_throw_callback_p != NULL)
         {
-          vm_throw_callback_p (context_p->error_value, context_p->vm_throw_callback_user_p);
+          vm_throw_callback_p (context_p, context_p->error_value, context_p->vm_throw_callback_user_p);
         }
       }
 #endif /* JJS_VM_THROW */

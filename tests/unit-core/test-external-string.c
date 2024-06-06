@@ -23,10 +23,12 @@ static const char *external_3 = "x!?:s";
 static const char *external_4 = "Object property external string! Object property external string!";
 
 static void
-external_string_free_callback_1 (jjs_char_t *string_p, /**< string pointer */
+external_string_free_callback_1 (jjs_context_t *context_p, /**< context */
+                                 jjs_char_t *string_p, /**< string pointer */
                                  jjs_size_t string_size, /**< size of the string */
                                  void *user_p) /**< user pointer */
 {
+  JJS_UNUSED (context_p);
   TEST_ASSERT ((const char *) string_p == external_1);
   TEST_ASSERT (string_size == strlen (external_1));
   TEST_ASSERT (user_p == NULL);
@@ -34,10 +36,12 @@ external_string_free_callback_1 (jjs_char_t *string_p, /**< string pointer */
 } /* external_string_free_callback_1 */
 
 static void
-external_string_free_callback_2 (jjs_char_t *string_p, /**< string pointer */
+external_string_free_callback_2 (jjs_context_t *context_p, /**< context */
+                                 jjs_char_t *string_p, /**< string pointer */
                                  jjs_size_t string_size, /**< size of the string */
                                  void *user_p) /**< user pointer */
 {
+  JJS_UNUSED (context_p);
   TEST_ASSERT ((const char *) string_p == external_2);
   TEST_ASSERT (string_size == strlen (external_2));
   TEST_ASSERT (user_p == (void *) &free_count);
@@ -45,10 +49,12 @@ external_string_free_callback_2 (jjs_char_t *string_p, /**< string pointer */
 } /* external_string_free_callback_2 */
 
 static void
-external_string_free_callback_3 (jjs_char_t *string_p, /**< string pointer */
+external_string_free_callback_3 (jjs_context_t *context_p, /**< context */
+                                 jjs_char_t *string_p, /**< string pointer */
                                  jjs_size_t string_size, /**< size of the string */
                                  void *user_p) /**< user pointer */
 {
+  JJS_UNUSED (context_p);
   TEST_ASSERT ((const char *) string_p == external_3);
   TEST_ASSERT (string_size == strlen (external_3));
   TEST_ASSERT (user_p == (void *) string_p);
