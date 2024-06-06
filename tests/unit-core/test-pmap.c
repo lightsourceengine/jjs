@@ -136,7 +136,7 @@ test_pmap_type_error (void)
   TRY_INVALID_JSON_ARG (jjs_boolean (ctx (), true));
   TRY_INVALID_JSON_ARG (jjs_object (ctx ()));
   TRY_INVALID_JSON_ARG (jjs_array (ctx (), 0));
-  TRY_INVALID_JSON_ARG (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
+  TRY_INVALID_JSON_ARG (jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
 #define TRY_INVALID_ROOT_ARG(VALUE)                                                                      \
@@ -155,7 +155,7 @@ test_pmap_root_type_error (void)
   TRY_INVALID_ROOT_ARG (jjs_boolean (ctx (), true));
   TRY_INVALID_ROOT_ARG (jjs_object (ctx ()));
   TRY_INVALID_ROOT_ARG (jjs_array (ctx (), 0));
-  TRY_INVALID_ROOT_ARG (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
+  TRY_INVALID_ROOT_ARG (jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
 #define TRY_JJS_PMAP_FROM_FILE(VALUE)                                            \
@@ -183,7 +183,7 @@ test_pmap_from_file_error (void)
   TRY_JJS_PMAP_FROM_FILE (jjs_boolean (ctx (), true));
   TRY_JJS_PMAP_FROM_FILE (jjs_object (ctx ()));
   TRY_JJS_PMAP_FROM_FILE (jjs_array (ctx (), 0));
-  TRY_JJS_PMAP_FROM_FILE (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
+  TRY_JJS_PMAP_FROM_FILE (jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
 #define TRY_JJS_PMAP_RESOLVE(VALUE)                                      \
@@ -213,7 +213,7 @@ test_pmap_resolve_error (void)
   TRY_JJS_PMAP_RESOLVE (jjs_boolean (ctx (), true));
   TRY_JJS_PMAP_RESOLVE (jjs_object (ctx ()));
   TRY_JJS_PMAP_RESOLVE (jjs_array (ctx (), 0));
-  TRY_JJS_PMAP_RESOLVE (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
+  TRY_JJS_PMAP_RESOLVE (jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 
   TRY_JJS_PMAP_RESOLVE (jjs_string_sz (ctx (), ""));
   TRY_JJS_PMAP_RESOLVE (jjs_string_sz (ctx (), "unknown"));

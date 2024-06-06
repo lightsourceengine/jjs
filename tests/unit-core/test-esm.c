@@ -95,7 +95,7 @@ test_esm_import_invalid_args (void)
   check_exception (jjs_esm_import (ctx (), jjs_boolean (ctx (), true), JJS_MOVE));
   check_exception (jjs_esm_import (ctx (), jjs_object (ctx ()), JJS_MOVE));
   check_exception (jjs_esm_import (ctx (), jjs_array (ctx (), 0), JJS_MOVE));
-  check_exception (jjs_esm_import (ctx (), jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG), JJS_MOVE));
+  check_exception (jjs_esm_import (ctx (), jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_TO_STRING_TAG), JJS_MOVE));
 
   check_exception (jjs_esm_import_sz (ctx (), NULL));
   check_exception (jjs_esm_import_sz (ctx (), ""));
@@ -114,7 +114,7 @@ test_invalid_jjs_esm_evaluate_invalid_args (void)
   check_exception (jjs_esm_evaluate (ctx (), jjs_boolean (ctx (), true), JJS_MOVE));
   check_exception (jjs_esm_evaluate (ctx (), jjs_object (ctx ()), JJS_MOVE));
   check_exception (jjs_esm_evaluate (ctx (), jjs_array (ctx (), 0), JJS_MOVE));
-  check_exception (jjs_esm_evaluate (ctx (), jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG), JJS_MOVE));
+  check_exception (jjs_esm_evaluate (ctx (), jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_TO_STRING_TAG), JJS_MOVE));
 
   check_exception (jjs_esm_evaluate_sz (ctx (), NULL));
   check_exception (jjs_esm_evaluate_sz (ctx (), ""));

@@ -58,6 +58,7 @@ ecma_value_t ecma_bigint_get_bigint (ecma_context_t *context_p, ecma_value_t val
 ecma_value_t ecma_bigint_create_from_digits (ecma_context_t *context_p, const uint64_t *digits_p, uint32_t size, bool sign);
 uint32_t ecma_bigint_get_size_in_digits (ecma_context_t *context_p, ecma_value_t value);
 void ecma_bigint_get_digits_and_sign (ecma_context_t *context_p, ecma_value_t value, uint64_t *digits_p, uint32_t size, bool *sign_p);
+bool ecma_bigint_get_sign (ecma_context_t *context_p, ecma_value_t value);
 
 bool ecma_bigint_is_equal_to_bigint (ecma_context_t *context_p, ecma_value_t left_value, ecma_value_t right_value);
 bool ecma_bigint_is_equal_to_number (ecma_context_t *context_p, ecma_value_t left_value, ecma_number_t right_value);

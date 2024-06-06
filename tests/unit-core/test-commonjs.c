@@ -33,7 +33,7 @@ test_invalid_jjs_commonjs_require_arg (void)
   TRY_JJS_COMMONJS_REQUIRE (jjs_boolean (ctx (), true));
   TRY_JJS_COMMONJS_REQUIRE (jjs_object (ctx ()));
   TRY_JJS_COMMONJS_REQUIRE (jjs_array (ctx (), 0));
-  TRY_JJS_COMMONJS_REQUIRE (jjs_symbol (ctx (), JJS_SYMBOL_TO_STRING_TAG));
+  TRY_JJS_COMMONJS_REQUIRE (jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_TO_STRING_TAG));
 }
 
 #define TRY_JJS_COMMONJS_REQUIRE_SZ(VALUE)                        \

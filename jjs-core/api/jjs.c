@@ -2524,6 +2524,19 @@ jjs_string_external (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_string_external_sz_sz */
 
 /**
+ * Create a symbol without a description.
+ *
+ * @return created symbol or thrown exception
+ */
+jjs_value_t
+jjs_symbol (jjs_context_t* context_p) /**< JJS context */
+{
+  jjs_assert_api_enabled (context_p);
+
+  return jjs_return (context_p, ecma_op_create_symbol (context_p, NULL, 0));
+} /* jjs_symbol */
+
+/**
  * Create symbol with a description value
  *
  * Note: The given argument is converted to string. This operation can throw an exception.
@@ -2543,7 +2556,7 @@ jjs_symbol_with_description (jjs_context_t* context_p, /**< JJS context */
   }
 
   return jjs_return (context_p, ecma_op_create_symbol (context_p, &value, 1));
-} /* jjs_create_symbol */
+} /* jjs_symbol_with_description */
 
 /**
  * Create BigInt from a sequence of uint64 digits.
@@ -4698,7 +4711,7 @@ jjs_promise_on_event (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_promise_set_callback */
 
 /**
- * Get the well-knwon symbol represented by the given `symbol` enum value.
+ * Get the well-known symbol represented by the given `symbol` enum value.
  *
  * Note:
  *      returned value must be freed with jjs_value_free, when it is no longer needed.
@@ -4707,7 +4720,7 @@ jjs_promise_on_event (jjs_context_t* context_p, /**< JJS context */
  *         well-known symbol value - otherwise
  */
 jjs_value_t
-jjs_symbol (jjs_context_t* context_p, /**< JJS context */
+jjs_symbol_get_well_known (jjs_context_t* context_p, /**< JJS context */
             jjs_well_known_symbol_t symbol) /**< jjs_well_known_symbol_t enum value */
 {
   jjs_assert_api_enabled (context_p);
@@ -4720,7 +4733,7 @@ jjs_symbol (jjs_context_t* context_p, /**< JJS context */
   }
 
   return ecma_make_symbol_value (context_p, ecma_op_get_global_symbol (context_p, id));
-} /* jjs_get_well_known_symbol */
+} /* jjs_symbol_get_well_known */
 
 /**
  * Returns the description internal property of a symbol.
@@ -4801,32 +4814,33 @@ void
 jjs_bigint_to_digits (jjs_context_t* context_p, /**< JJS context */
                       const jjs_value_t value, /**< BigInt value */
                       uint64_t *digits_p, /**< [out] buffer for digits */
-                      uint32_t digit_count, /**< buffer size in digits */
-                      bool *sign_p) /**< [out] sign of BigInt */
+                      uint32_t digit_count) /**< buffer size in digits */
 {
-  JJS_UNUSED (context_p);
-
 #if JJS_BUILTIN_BIGINT
   if (!ecma_is_value_bigint (value))
   {
-    if (sign_p != NULL)
-    {
-      *sign_p = false;
-    }
     memset (digits_p, 0, digit_count * sizeof (uint64_t));
   }
 
-  ecma_bigint_get_digits_and_sign (context_p, value, digits_p, digit_count, sign_p);
+  ecma_bigint_get_digits_and_sign (context_p, value, digits_p, digit_count, NULL);
 #else /* !JJS_BUILTIN_BIGINT */
+  JJS_UNUSED (context_p);
   JJS_UNUSED (value);
-
-  if (sign_p != NULL)
-  {
-    *sign_p = false;
-  }
   memset (digits_p, 0, digit_count * sizeof (uint64_t));
 #endif /* JJS_BUILTIN_BIGINT */
 } /* jjs_bigint_to_digits */
+
+bool
+jjs_bigint_sign (jjs_context_t* context_p, const jjs_value_t value)
+{
+#if JJS_BUILTIN_BIGINT
+  return ecma_is_value_bigint (value) ? ecma_bigint_get_sign (context_p, value) : false;
+#else /* !JJS_BUILTIN_BIGINT */
+  JJS_UNUSED (context_p);
+  JJS_UNUSED (value);
+  return false;
+#endif /* JJS_BUILTIN_BIGINT */
+} /* jjs_bigint_sign */
 
 /**
  * Get the target object of a Proxy object
@@ -6513,6 +6527,67 @@ jjs_dataview_buffer (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_dataview_buffer */
 
 /**
+ * Get the byte offset of the data view.
+ *
+ * @return the offset in bytes. if value is not a DataView, 0 is returned.
+ */
+jjs_size_t jjs_dataview_offset (jjs_context_t* context_p, /**< JJS context */
+                                const jjs_value_t value) /**< DataView object */
+{
+  jjs_assert_api_enabled (context_p);
+
+#if JJS_BUILTIN_DATAVIEW
+  if (ecma_is_value_exception (value))
+  {
+    jcontext_release_exception (context_p);
+    return 0;
+  }
+
+  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (context_p, value);
+
+  if (JJS_UNLIKELY (dataview_p == NULL))
+  {
+    return 0;
+  }
+
+  return dataview_p->byte_offset;
+#else /* !JJS_BUILTIN_DATAVIEW */
+  JJS_UNUSED_ALL (context_p, value);
+  return 0;
+#endif /* JJS_BUILTIN_DATAVIEW */
+} /* jjs_dataview_offset */
+
+/**
+ * Get the byte length of the data view.
+ * @return the length in bytes. if value is not a DataView, 0 is returned.
+ */
+jjs_size_t jjs_dataview_length (jjs_context_t* context_p, /**< JJS context */
+                                     const jjs_value_t value) /**< DataView object */
+{
+  jjs_assert_api_enabled (context_p);
+
+#if JJS_BUILTIN_DATAVIEW
+  if (ecma_is_value_exception (value))
+  {
+    jcontext_release_exception (context_p);
+    return 0;
+  }
+
+  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (context_p, value);
+
+  if (JJS_UNLIKELY (dataview_p == NULL))
+  {
+    return 0;
+  }
+
+  return dataview_p->header.u.cls.u3.length;
+#else /* !JJS_BUILTIN_DATAVIEW */
+  JJS_UNUSED_ALL (context_p, value);
+  return 0;
+#endif /* JJS_BUILTIN_DATAVIEW */
+} /* jjs_dataview_length */
+
+/**
  * TypedArray related functions
  */
 
@@ -6780,11 +6855,35 @@ jjs_typedarray_length (jjs_context_t* context_p, /**< JJS context */
     return ecma_typedarray_get_length (context_p, array_p);
   }
 #else /* !JJS_BUILTIN_TYPEDARRAY */
-  JJS_UNUSED (value);
+  JJS_UNUSED_ALL (context_p, value);
 #endif /* JJS_BUILTIN_TYPEDARRAY */
 
   return 0;
 } /* jjs_typedarray_length */
+
+/**
+ * Get the offset of the TypedArray.
+ *
+ * @return offset of the TypedArray.
+ */
+jjs_length_t
+jjs_typedarray_offset (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_value_t value) /**< TypedArray to query */
+{
+  jjs_assert_api_enabled (context_p);
+
+#if JJS_BUILTIN_TYPEDARRAY
+  if (ecma_is_typedarray (context_p, value))
+  {
+    ecma_object_t *array_p = ecma_get_object_from_value (context_p, value);
+    return ecma_typedarray_get_offset (context_p, array_p);
+  }
+#else /* !JJS_BUILTIN_TYPEDARRAY */
+  JJS_UNUSED_ALL (context_p, value);
+#endif /* JJS_BUILTIN_TYPEDARRAY */
+
+  return 0;
+} /* jjs_typedarray_offset */
 
 /**
  * Get the underlying ArrayBuffer from a TypedArray.

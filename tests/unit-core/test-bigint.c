@@ -49,46 +49,41 @@ main (void)
   TEST_ASSERT (jjs_bigint_digit_count (ctx (), bigint) == 2);
 
   uint64_t digits_buffer[4];
-  bool sign;
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = true;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 0, &sign);
-  TEST_ASSERT (sign == false);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 0);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == false);
   TEST_ASSERT (digits_buffer[0] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = true;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 1, &sign);
-  TEST_ASSERT (sign == false);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 1);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == false);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = true;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2, &sign);
-  TEST_ASSERT (sign == false);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == false);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == 0xfffffff1ull);
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = true;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 3, &sign);
-  TEST_ASSERT (sign == false);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 3);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == false);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == 0xfffffff1ull);
   TEST_ASSERT (digits_buffer[2] == 0);
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 4, NULL);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 4);
   TEST_ASSERT (digits_buffer[0] == 0xfffffff2fffffff3ull);
   TEST_ASSERT (digits_buffer[1] == 0xfffffff1ull);
   TEST_ASSERT (digits_buffer[2] == 0);
@@ -105,9 +100,9 @@ main (void)
   TEST_ASSERT (jjs_bigint_digit_count (ctx (), bigint) == 0);
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = true;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2, &sign);
-  TEST_ASSERT (sign == false);
+
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == false);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == 0);
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
@@ -124,18 +119,16 @@ main (void)
   TEST_ASSERT (jjs_bigint_digit_count (ctx (), bigint) == 1);
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = false;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 1, &sign);
-  TEST_ASSERT (sign == true);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 1);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == true);
   TEST_ASSERT (digits_buffer[0] == 1);
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = false;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2, &sign);
-  TEST_ASSERT (sign == true);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == true);
   TEST_ASSERT (digits_buffer[0] == 1);
   TEST_ASSERT (digits_buffer[1] == 0);
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
@@ -152,27 +145,24 @@ main (void)
   TEST_ASSERT (jjs_bigint_digit_count (ctx (), bigint) == 2);
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = false;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 1, &sign);
-  TEST_ASSERT (sign == true);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 1);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == true);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = false;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2, &sign);
-  TEST_ASSERT (sign == true);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 2);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == true);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == 1);
   TEST_ASSERT (digits_buffer[2] == ~((uint64_t) 0));
   TEST_ASSERT (digits_buffer[3] == ~((uint64_t) 0));
 
   memset (digits_buffer, 0xff, sizeof (digits_buffer));
-  sign = false;
-  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 3, &sign);
-  TEST_ASSERT (sign == true);
+  jjs_bigint_to_digits (ctx (), bigint, digits_buffer, 3);
+  TEST_ASSERT (jjs_bigint_sign (ctx (), bigint) == true);
   TEST_ASSERT (digits_buffer[0] == 0);
   TEST_ASSERT (digits_buffer[1] == 1);
   TEST_ASSERT (digits_buffer[2] == 0);

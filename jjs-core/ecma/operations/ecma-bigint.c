@@ -814,6 +814,27 @@ ecma_bigint_get_digits_and_sign (ecma_context_t *context_p, /**< JJS context */
 } /* ecma_bigint_get_digits_and_sign */
 
 /**
+ * Get sign of a big int number.
+ *
+ * @return sign of big int number.
+ */
+bool
+ecma_bigint_get_sign (ecma_context_t *context_p, /**< JJS context */
+                      ecma_value_t value) /**< BigInt value */
+{
+  JJS_ASSERT (ecma_is_value_bigint (value));
+
+  if (value == ECMA_BIGINT_ZERO)
+  {
+    return false;
+  }
+
+  ecma_extended_primitive_t *value_p = ecma_get_extended_primitive_from_value (context_p, value);
+
+  return (value_p->u.bigint_sign_and_size & ECMA_BIGINT_SIGN) != 0;
+} /* ecma_bigint_get_sign */
+
+/**
  * Compare two BigInt values
  *
  * @return true if they are the same, false otherwise

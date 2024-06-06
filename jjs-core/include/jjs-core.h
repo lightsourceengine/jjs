@@ -38,6 +38,11 @@ JJS_C_API_BEGIN
 jjs_status_t jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context_p);
 void jjs_context_free (jjs_context_t* context_p);
 
+jjs_status_t jjs_context_create_data (jjs_context_t *context_p, const char *id_p, jjs_size_t* key);
+
+jjs_status_t jjs_context_set_data (jjs_context_t *context_p, const char *id_p, void *data_p);
+jjs_status_t jjs_context_get_data (jjs_context_t *context_p, const char *id_p, void **data_p);
+
 void *jjs_context_data (jjs_context_t* context_p, const jjs_context_data_manager_t *manager_p);
 
 jjs_value_t jjs_current_realm (jjs_context_t* context_p);
@@ -451,6 +456,8 @@ jjs_value_t jjs_bigint (jjs_context_t* context_p, const uint64_t *digits_p, uint
  * @{
  */
 uint32_t jjs_bigint_digit_count (jjs_context_t* context_p, const jjs_value_t value);
+bool jjs_bigint_sign (jjs_context_t* context_p, const jjs_value_t value);
+
 /**
  * jjs-api-bigint-get @}
  */
@@ -459,7 +466,8 @@ uint32_t jjs_bigint_digit_count (jjs_context_t* context_p, const jjs_value_t val
  * @defgroup jjs-api-bigint-op Operations
  * @{
  */
-void jjs_bigint_to_digits (jjs_context_t* context_p, const jjs_value_t value, uint64_t *digits_p, uint32_t digit_count, bool *sign_p);
+void jjs_bigint_to_digits (jjs_context_t* context_p, const jjs_value_t value, uint64_t *digits_p, uint32_t digit_count);
+
 /**
  * jjs-api-bigint-get @}
  */
@@ -539,8 +547,10 @@ void jjs_string_external_on_free (jjs_context_t* context_p, jjs_external_string_
  * @defgroup jjs-api-symbol-ctor Constructors
  * @{
  */
-jjs_value_t jjs_symbol (jjs_context_t* context_p, jjs_well_known_symbol_t symbol);
+jjs_value_t jjs_symbol (jjs_context_t* context_p);
 jjs_value_t jjs_symbol_with_description (jjs_context_t* context_p, const jjs_value_t value);
+
+jjs_value_t jjs_symbol_get_well_known (jjs_context_t* context_p, jjs_well_known_symbol_t symbol);
 /**
  * jjs-api-symbol-ctor @}
  */
@@ -844,8 +854,10 @@ jjs_value_t jjs_dataview (jjs_context_t* context_p, const jjs_value_t value, jjs
  * @defgroup jjs-api-dataview-get Getters
  * @{
  */
-jjs_value_t
-jjs_dataview_buffer (jjs_context_t* context_p, const jjs_value_t dataview, jjs_size_t *byte_offset, jjs_size_t *byte_length);
+jjs_value_t jjs_dataview_buffer (jjs_context_t* context_p, const jjs_value_t dataview, jjs_size_t *byte_offset, jjs_size_t *byte_length);
+jjs_size_t jjs_dataview_offset (jjs_context_t* context_p, const jjs_value_t dataview);
+jjs_size_t jjs_dataview_length (jjs_context_t* context_p, const jjs_value_t dataview);
+
 /**
  * jjs-api-dataview-get @}
  */
@@ -880,6 +892,7 @@ jjs_value_t jjs_typedarray_with_buffer_span (jjs_context_t* context_p,
  */
 jjs_typedarray_type_t jjs_typedarray_type (jjs_context_t* context_p, const jjs_value_t value);
 jjs_length_t jjs_typedarray_length (jjs_context_t* context_p, const jjs_value_t value);
+jjs_length_t jjs_typedarray_offset (jjs_context_t* context_p, const jjs_value_t value);
 jjs_value_t jjs_typedarray_buffer (jjs_context_t* context_p, const jjs_value_t value, jjs_size_t *byte_offset, jjs_size_t *byte_length);
 /**
  * jjs-api-typedarray-get @}

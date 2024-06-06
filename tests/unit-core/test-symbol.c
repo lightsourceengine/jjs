@@ -34,6 +34,15 @@ main (void)
 
   jjs_value_t object = jjs_object (ctx ());
 
+  jjs_value_t empty_symbol_1 = ctx_value (jjs_symbol (ctx ()));
+  jjs_value_t empty_symbol_2 = ctx_value (jjs_symbol (ctx ()));
+
+  TEST_ASSERT (jjs_value_is_symbol (ctx (), empty_symbol_1));
+  TEST_ASSERT (jjs_value_is_symbol (ctx (), empty_symbol_2));
+
+  jjs_value_t empty_symbol_cmp = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, empty_symbol_1, empty_symbol_2);
+  TEST_ASSERT (jjs_value_is_false (ctx (), ctx_value (empty_symbol_cmp)));
+
   /* Test for that each symbol is unique independently from their descriptor strings */
   jjs_value_t symbol_desc_1 = jjs_string_sz (ctx (), STRING_FOO);
   jjs_value_t symbol_desc_2 = jjs_string_sz (ctx (), STRING_FOO);
@@ -240,7 +249,7 @@ main (void)
   for (jjs_well_known_symbol_t id = JJS_SYMBOL_ASYNC_ITERATOR; id <= JJS_SYMBOL_MATCH_ALL;
        id++, expected++, prop_index++)
   {
-    jjs_value_t well_known_symbol = jjs_symbol (ctx (), id);
+    jjs_value_t well_known_symbol = jjs_symbol_get_well_known (ctx (), id);
 
     jjs_value_t prop_str = jjs_string_sz (ctx (), symbols[prop_index]);
     jjs_value_t current_global_symbol = jjs_object_get (ctx (), builtin_symbol, prop_str);
@@ -289,7 +298,7 @@ main (void)
   for (jjs_well_known_symbol_t id = JJS_SYMBOL_ASYNC_ITERATOR; id <= JJS_SYMBOL_MATCH_ALL;
        id++, expected++, prop_index++)
   {
-    jjs_value_t well_known_symbol = jjs_symbol (ctx (), id);
+    jjs_value_t well_known_symbol = jjs_symbol_get_well_known (ctx (), id);
     jjs_value_t prop_result_wn = jjs_object_get (ctx (), obj, well_known_symbol);
 
     TEST_ASSERT (jjs_value_is_number (ctx (), prop_result_wn));
@@ -301,12 +310,12 @@ main (void)
   }
 
   jjs_well_known_symbol_t invalid_symbol = (jjs_well_known_symbol_t) (JJS_SYMBOL_MATCH_ALL + 1);
-  jjs_value_t invalid_well_known_symbol = jjs_symbol (ctx (), invalid_symbol);
+  jjs_value_t invalid_well_known_symbol = jjs_symbol_get_well_known (ctx (), invalid_symbol);
   TEST_ASSERT (jjs_value_is_undefined (ctx (), invalid_well_known_symbol));
   jjs_value_free (ctx (), invalid_well_known_symbol);
 
   invalid_symbol = (jjs_well_known_symbol_t) (JJS_SYMBOL_ASYNC_ITERATOR - 1);
-  invalid_well_known_symbol = jjs_symbol (ctx (), invalid_symbol);
+  invalid_well_known_symbol = jjs_symbol_get_well_known (ctx (), invalid_symbol);
   TEST_ASSERT (jjs_value_is_undefined (ctx (), invalid_well_known_symbol));
   jjs_value_free (ctx (), invalid_well_known_symbol);
 

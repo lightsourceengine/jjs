@@ -408,8 +408,8 @@ test_property_by_index (test_entry_t test_entries[])
           TEST_ASSERT (jjs_value_is_true (ctx (), set_result));
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
           int64_t get_number;
-          bool sign;
-          jjs_bigint_to_digits (ctx (), get_result, (uint64_t *) &get_number, 1, &sign);
+          bool sign = jjs_bigint_sign (ctx (), get_result);
+          jjs_bigint_to_digits (ctx (), get_result, (uint64_t *) &get_number, 1);
 
           TEST_ASSERT (sign ? get_number : -get_number == test_int64_numbers[j]);
 
@@ -421,7 +421,7 @@ test_property_by_index (test_entry_t test_entries[])
       }
       case JJS_TYPEDARRAY_BIGUINT64:
       {
-        for (uint8_t j = 0; j < test_numbers_length; j++)
+        for (uint32_t j = 0; j < test_numbers_length; j++)
         {
           test_number = jjs_bigint (ctx (), &test_uint64_numbers[j], 1, false);
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
@@ -432,8 +432,8 @@ test_property_by_index (test_entry_t test_entries[])
           TEST_ASSERT (jjs_value_is_true (ctx (), set_result));
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
           uint64_t get_number;
-          bool sign;
-          jjs_bigint_to_digits (ctx (), get_result, &get_number, 1, &sign);
+
+          jjs_bigint_to_digits (ctx (), get_result, &get_number, 1);
 
           TEST_ASSERT (get_number == test_uint64_numbers[j]);
 
@@ -649,13 +649,15 @@ main (void)
       jjs_length_t offset;
       jjs_value_t buffer = jjs_typedarray_buffer (ctx (), array, &offset, &byte_length);
       TEST_ASSERT (byte_length == element_count);
+      TEST_ASSERT (byte_length == jjs_typedarray_length (ctx (), array));
+      TEST_ASSERT (offset == jjs_typedarray_offset (ctx (), array));
 
       JJS_VLA (uint8_t, result_data, element_count);
 
       jjs_length_t read_count = jjs_arraybuffer_read (ctx (), buffer, offset, result_data, byte_length);
       TEST_ASSERT (read_count == byte_length);
 
-      for (uint8_t i = 0; i < read_count; i++)
+      for (uint32_t i = 0; i < read_count; i++)
       {
         TEST_ASSERT (result_data[i] == i);
       }
