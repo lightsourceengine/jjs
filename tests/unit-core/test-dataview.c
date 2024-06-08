@@ -41,9 +41,9 @@ main (void)
 
   TEST_ASSERT (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, internal_buffer, arraybuffer));
   TEST_ASSERT (byteOffset == 0);
-  TEST_ASSERT (byteOffset == jjs_dataview_offset (ctx (), view1));
+  TEST_ASSERT (byteOffset == jjs_dataview_byte_offset (ctx (), view1));
   TEST_ASSERT (byteLength == 16);
-  TEST_ASSERT (byteLength == jjs_dataview_length (ctx(), view1));
+  TEST_ASSERT (byteLength == jjs_dataview_byte_length (ctx (), view1));
   jjs_value_free (ctx (), internal_buffer);
 
   jjs_value_t view2 = jjs_dataview (ctx (), arraybuffer, 12, 4);
@@ -53,9 +53,9 @@ main (void)
 
   TEST_ASSERT (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, internal_buffer, arraybuffer));
   TEST_ASSERT (byteOffset == 12);
-  TEST_ASSERT (byteOffset == jjs_dataview_offset (ctx (), view2));
+  TEST_ASSERT (byteOffset == jjs_dataview_byte_offset (ctx (), view2));
   TEST_ASSERT (byteLength == 4);
-  TEST_ASSERT (byteLength == jjs_dataview_length (ctx(), view2));
+  TEST_ASSERT (byteLength == jjs_dataview_byte_length (ctx (), view2));
   jjs_value_free (ctx (), internal_buffer);
 
   /* Test invalid construction */

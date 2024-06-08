@@ -855,8 +855,8 @@ jjs_value_t jjs_dataview (jjs_context_t* context_p, const jjs_value_t value, jjs
  * @{
  */
 jjs_value_t jjs_dataview_buffer (jjs_context_t* context_p, const jjs_value_t dataview, jjs_size_t *byte_offset, jjs_size_t *byte_length);
-jjs_size_t jjs_dataview_offset (jjs_context_t* context_p, const jjs_value_t dataview);
-jjs_size_t jjs_dataview_length (jjs_context_t* context_p, const jjs_value_t dataview);
+jjs_size_t jjs_dataview_byte_offset (jjs_context_t* context_p, const jjs_value_t dataview);
+jjs_size_t jjs_dataview_byte_length (jjs_context_t* context_p, const jjs_value_t dataview);
 
 /**
  * jjs-api-dataview-get @}

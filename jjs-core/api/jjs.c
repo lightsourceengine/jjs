@@ -6531,19 +6531,20 @@ jjs_dataview_buffer (jjs_context_t* context_p, /**< JJS context */
  *
  * @return the offset in bytes. if value is not a DataView, 0 is returned.
  */
-jjs_size_t jjs_dataview_offset (jjs_context_t* context_p, /**< JJS context */
-                                const jjs_value_t value) /**< DataView object */
+jjs_size_t
+jjs_dataview_byte_offset (jjs_context_t* context_p, /**< JJS context */
+                          const jjs_value_t dataview) /**< DataView object */
 {
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_DATAVIEW
-  if (ecma_is_value_exception (value))
+  if (ecma_is_value_exception (dataview))
   {
     jcontext_release_exception (context_p);
     return 0;
   }
 
-  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (context_p, value);
+  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (context_p, dataview);
 
   if (JJS_UNLIKELY (dataview_p == NULL))
   {
@@ -6561,19 +6562,20 @@ jjs_size_t jjs_dataview_offset (jjs_context_t* context_p, /**< JJS context */
  * Get the byte length of the data view.
  * @return the length in bytes. if value is not a DataView, 0 is returned.
  */
-jjs_size_t jjs_dataview_length (jjs_context_t* context_p, /**< JJS context */
-                                     const jjs_value_t value) /**< DataView object */
+jjs_size_t
+jjs_dataview_byte_length (jjs_context_t* context_p, /**< JJS context */
+                          const jjs_value_t dataview) /**< DataView object */
 {
   jjs_assert_api_enabled (context_p);
 
 #if JJS_BUILTIN_DATAVIEW
-  if (ecma_is_value_exception (value))
+  if (ecma_is_value_exception (dataview))
   {
     jcontext_release_exception (context_p);
     return 0;
   }
 
-  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (context_p, value);
+  ecma_dataview_object_t *dataview_p = ecma_op_dataview_get_object (context_p, dataview);
 
   if (JJS_UNLIKELY (dataview_p == NULL))
   {
