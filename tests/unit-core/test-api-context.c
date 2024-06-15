@@ -163,9 +163,9 @@ static jjs_size_t stdlib_alloc_called_with = 0;
 static bool stdlib_free_called = false;
 
 static void*
-stdlib_alloc (jjs_allocator_t* self_p, uint32_t size)
+stdlib_alloc (void *internal_p, uint32_t size)
 {
-  JJS_UNUSED (self_p);
+  JJS_UNUSED (internal_p);
   TEST_ASSERT(stdlib_alloc_called == false);
   stdlib_alloc_called = true;
   stdlib_alloc_called_with = size;
@@ -173,9 +173,9 @@ stdlib_alloc (jjs_allocator_t* self_p, uint32_t size)
 }
 
 static void
-stdlib_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+stdlib_free (void *internal_p, void* p, uint32_t size)
 {
-  JJS_UNUSED (self_p);
+  JJS_UNUSED (internal_p);
   JJS_UNUSED (size);
   TEST_ASSERT (stdlib_alloc_called == true);
   TEST_ASSERT (stdlib_free_called == false);
@@ -183,9 +183,13 @@ stdlib_free (jjs_allocator_t* self_p, void* p, uint32_t size)
   free (p);
 }
 
-static jjs_allocator_t stdlib_allocator = {
+static const jjs_allocator_vtab_t stblib_allocator_vtab = {
   .alloc = stdlib_alloc,
   .free = stdlib_free,
+};
+
+static jjs_allocator_t stdlib_allocator = {
+  .vtab_p = &stblib_allocator_vtab,
 };
 
 static void

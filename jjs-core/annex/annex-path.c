@@ -496,7 +496,7 @@ annex_encode_path (jjs_context_t* context_p,
   /* maximum size if every character in path gets encoded to %XX format */
   const lit_utf8_size_t encoded_capacity = prefix_len + (path_len * 3);
   jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator (context_p);
-  lit_utf8_byte_t* encoded_p = allocator->alloc (allocator, encoded_capacity);
+  lit_utf8_byte_t* encoded_p = jjs_allocator_alloc (allocator, encoded_capacity);
 
   if (encoded_p == NULL)
   {
@@ -594,7 +594,7 @@ annex_encode_path (jjs_context_t* context_p,
     result = ECMA_VALUE_EMPTY;
   }
 
-  allocator->free (allocator, encoded_p, encoded_capacity);
+  jjs_allocator_free (allocator, encoded_p, encoded_capacity);
   jjs_util_context_release_scratch_allocator (context_p);
 
   return result;

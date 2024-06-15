@@ -75,7 +75,7 @@ struct jjs_context_t
 
   jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
 
-  jjs_allocator_t *context_allocator; /**< allocator that created this context, scratch and vm heap. stored for cleanup only. */
+  jjs_allocator_t context_allocator; /**< allocator that created this context, scratch and vm heap. stored for cleanup only. */
   jjs_size_t context_block_size_b; /**< size of context + scratch + vm heap memory block. stored for cleanup only. */
 
   ecma_global_object_t *global_object_p; /**< current global object */
@@ -239,11 +239,11 @@ struct jjs_context_t
    */
   ecma_object_t *current_new_target_p;
 
-  jjs_allocator_t scratch_allocator; /**< scratch allocator the system uses (compound allocator: arena + fallback) */
+  jjs_allocator_t scratch_allocator; /**< allocator for internal temporary allocations */
 
 #if JJS_SCRATCH_ARENA
-  jjs_allocator_t fallback_scratch_allocator; /**< fallback scratch allocator from context options. */
-  jjs_allocator_t scratch_arena_allocator; /**< scratch arena allocator */
+  jjs_allocator_t scratch_arena_allocator; /**< primary allocator for the scratch allocator */
+  jjs_allocator_t scratch_fallback_allocator; /**< fallback scratch allocator from context options. */
 #endif /* JJS_SCRATCH_ARENA */
 };
 

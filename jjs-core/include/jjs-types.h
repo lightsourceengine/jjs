@@ -140,16 +140,25 @@ typedef enum
 } jjs_status_t;
 
 /**
+ * Virtual table for allocator sub classes.
+ */
+typedef struct
+{
+  void* (*alloc)(void*, uint32_t); /**< alloc a new block. returns NULL on failure. */
+  void (*free)(void*, void*, uint32_t); /**< free a block. NULL block is a no-op. */
+  void (*free_self)(void*); /** cleanup/free the allocator itself [optional] */
+} jjs_allocator_vtab_t;
+
+/**
  * Memory allocator interface.
  *
- * The interface supports malloc/free and jjs_heap_alloc/jjs_heap_free, which
- * require the allocated pointer + size.
+ * The interface supports alloc and free apis. To access apis, use jjs_allocator_*()
+ * functions.
  */
 typedef struct jjs_allocator_s
 {
-  void* (*alloc)(struct jjs_allocator_s*, uint32_t); /**< alloc a new block. returns NULL on failure. */
-  void (*free)(struct jjs_allocator_s*, void*, uint32_t); /**< free a block. NULL block is a no-op. */
-  void* internal[4]; /**< reserved data for allocator implementations */
+  const jjs_allocator_vtab_t *vtab_p; /**< allocator api implementation */
+  void* internal_p; /**< allocator instance data */
 } jjs_allocator_t;
 
 /**

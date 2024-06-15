@@ -67,8 +67,8 @@ jjs_platform_new (const jjs_platform_options_t* options_p, jjs_platform_t** plat
     options_p = &platform_options_default;
   }
 
-  jjs_allocator_t *allocator_p = (options_p->allocator != NULL) ? options_p->allocator : jjs_util_system_allocator_ptr ();
-  jjs_platform_t *result_p = allocator_p->alloc (allocator_p, sizeof (jjs_platform_t));
+  jjs_allocator_t allocator = (options_p->allocator != NULL) ? *options_p->allocator : jjs_util_system_allocator ();
+  jjs_platform_t *result_p = jjs_allocator_alloc (&allocator, sizeof (jjs_platform_t));
 
   if (result_p == NULL)
   {
@@ -76,7 +76,7 @@ jjs_platform_new (const jjs_platform_options_t* options_p, jjs_platform_t** plat
   }
 
   *result_p = (jjs_platform_t) {
-    .allocator = allocator_p,
+    .allocator = allocator,
     .refs = 1,
     .fatal = options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_FATAL ? options_p->fatal : jjsp_fatal_impl,
     .io_write = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_WRITE) ? options_p->io_write : default_io_write,
@@ -142,7 +142,7 @@ done:
   }
   else
   {
-    allocator_p->free (allocator_p, result_p, sizeof (jjs_platform_t));
+    jjs_allocator_free (&allocator, result_p, sizeof (jjs_platform_t));
   }
 
   return status;
@@ -160,9 +160,7 @@ jjs_platform_free (jjs_platform_t* platform_p)
   {
     if (--platform_p->refs == 0)
     {
-      jjs_allocator_t *allocator = platform_p->allocator;
-
-      allocator->free (allocator, platform_p, sizeof (*platform_p));
+      jjs_allocator_free (&platform_p->allocator, platform_p, sizeof (*platform_p));
     }
   }
 } /* jjs_platform_free */
@@ -640,7 +638,7 @@ jjs_platform_buffer_free (jjs_platform_buffer_t* buffer_p)
 {
   if (buffer_p && buffer_p->allocator)
   {
-    buffer_p->allocator->free (buffer_p->allocator, buffer_p->data_p, buffer_p->data_size);
+    jjs_allocator_free (buffer_p->allocator, buffer_p->data_p, buffer_p->data_size);
     buffer_p->data_p = NULL;
     buffer_p->data_size = 0;
     buffer_p->allocator = NULL;
@@ -686,7 +684,7 @@ jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p,
 jjs_status_t
 jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, jjs_allocator_t* allocator, jjs_size_t size)
 {
-  void* p = allocator->alloc (allocator, size);
+  void* p = jjs_allocator_alloc (allocator, size);
 
   if (p == NULL)
   {
@@ -762,20 +760,22 @@ jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encod
   if (encoding == JJS_ENCODING_NONE)
   {
     jjs_allocator_t* path_allocator = jjs_util_context_acquire_scratch_allocator (context_p);
-    jjs_allocator_t buffer_allocator = jjs_util_arraybuffer_allocator (context_p);
+    jjs_value_with_context_t buffer_value = { .context_p = context_p, .value = ECMA_VALUE_UNDEFINED };
+    jjs_allocator_t buffer_allocator = jjs_util_arraybuffer_allocator (&buffer_value);
     jjs_platform_buffer_t buffer = jjs_platform_buffer (NULL, 0, &buffer_allocator);
 
     result = jjsp_read_file_buffer (context_p, path, path_allocator, &buffer_allocator, &buffer);
 
     if (jjs_value_is_exception (context_p, result))
     {
+      jjs_util_value_with_context_free (&buffer_value);
       jjs_util_context_release_scratch_allocator (context_p);
       return result;
     }
 
     jjs_value_free (context_p, result);
 
-    result = jjs_util_arraybuffer_allocator_move (&buffer_allocator);
+    result = buffer_value.value;
     jjs_util_context_release_scratch_allocator (context_p);
   }
   else if (encoding == JJS_ENCODING_UTF8 || encoding == JJS_ENCODING_CESU8)

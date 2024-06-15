@@ -25,7 +25,14 @@ typedef struct
   uint32_t value;
 } jjs_util_option_pair_t;
 
+typedef struct
+{
+  jjs_value_t value;
+  jjs_context_t *context_p;
+} jjs_value_with_context_t;
+
 jjs_value_t jjs_return (jjs_context_t *context_p, jjs_value_t value);
+void jjs_util_value_with_context_free (jjs_value_with_context_t* container_p);
 
 bool jjs_util_map_option (jjs_context_t* context_p,
                           jjs_value_t option,
@@ -38,15 +45,13 @@ bool jjs_util_map_option (jjs_context_t* context_p,
                           uint32_t* out_p);
 
 jjs_allocator_t jjs_util_system_allocator (void);
-jjs_allocator_t * jjs_util_system_allocator_ptr (void);
 jjs_allocator_t jjs_util_vm_allocator (jjs_context_t* context_p);
-jjs_allocator_t jjs_util_arraybuffer_allocator (jjs_context_t* context_p);
-jjs_value_t jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator);
+jjs_allocator_t jjs_util_arraybuffer_allocator (jjs_value_with_context_t *value_p);
 
-
+#if JJS_SCRATCH_ARENA
 jjs_allocator_t jjs_util_arena_allocator (void* block_p, jjs_size_t block_size);
-jjs_allocator_t jjs_util_compound_allocator (jjs_allocator_t* arena, jjs_allocator_t* fallback);
-
+jjs_allocator_t jjs_util_scratch_allocator (jjs_context_t *context_p);
+#endif /* JJS_SCRATCH_ARENA */
 
 jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p);
 void jjs_util_context_release_scratch_allocator (jjs_context_t* context_p);

@@ -7748,5 +7748,48 @@ jjs_optional_u32 (uint32_t value)
 }
 
 /**
+ * Allocate a chunk of memory.
+ *
+ * @param allocator_p allocator instance
+ * @param size the size of the memory block to allocate
+ * @return pointer to allocated block or NULL on failure
+ */
+void* jjs_allocator_alloc(const jjs_allocator_t *allocator_p, jjs_size_t size)
+{
+  return allocator_p->vtab_p->alloc(allocator_p->internal_p, size);
+}
+
+/**
+ * Free a chunk of memory.
+ *
+ * The function assumes the passed in pointer was the result of alloc() from this
+ * allocator instance.
+ *
+ * @param allocator_p allocator instance
+ * @param chunk_p pointer of chunk to free
+ * @param size the size of the chunk in bytes (that passed in to alloc)
+ */
+void jjs_allocator_free(const jjs_allocator_t *allocator_p, void *chunk_p, jjs_size_t size)
+{
+  allocator_p->vtab_p->free(allocator_p->internal_p, chunk_p, size);
+}
+
+/**
+ * Destroy the allocator instance.
+ *
+ * The instance is destroyed using vtab->free_self. If the function is NULL, this
+ * call is a no-op.
+ *
+ * @param allocator_p the allocator to destroy.
+ */
+void jjs_allocator_free_self(const jjs_allocator_t *allocator_p)
+{
+  if (allocator_p->vtab_p->free_self)
+  {
+    allocator_p->vtab_p->free_self (allocator_p->internal_p);
+  }
+}
+
+/**
  * @}
  */

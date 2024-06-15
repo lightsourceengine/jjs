@@ -38,6 +38,13 @@ jjs_return (jjs_context_t *context_p, const jjs_value_t value) /**< return value
   return value;
 } /* jjs_return */
 
+
+void
+jjs_util_value_with_context_free (jjs_value_with_context_t* container_p)
+{
+  jjs_value_free (container_p->context_p, container_p->value);
+}
+
 /**
  * Maps a JS string option argument to an enum.
  *
@@ -136,6 +143,8 @@ jjs_util_map_option (jjs_context_t* context_p,
   return false;
 } /* jjs_util_map_option */
 
+#if JJS_SCRATCH_ARENA
+
 typedef struct
 {
   void* start_p;
@@ -147,9 +156,9 @@ typedef struct
 static const jjs_size_t ARENA_HEADER_SIZE = (jjs_size_t) JJS_ALIGNUP (sizeof (jjs_util_arena_allocator_header_t), JMEM_ALIGNMENT);
 
 static void*
-jjs_util_arena_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+jjs_util_arena_allocator_alloc (void *internal_p, uint32_t size)
 {
-  jjs_util_arena_allocator_header_t* header_p = self_p->internal[0];
+  jjs_util_arena_allocator_header_t* header_p = internal_p;
   jjs_size_t aligned_size = JJS_ALIGNUP (size, JMEM_ALIGNMENT);
 
   if (aligned_size == 0 || aligned_size >= header_p->remaining)
@@ -166,21 +175,28 @@ jjs_util_arena_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
 }
 
 static void
-jjs_util_arena_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+jjs_util_arena_allocator_free (void *internal_p, void* p, uint32_t size)
 {
-  JJS_UNUSED_ALL (self_p, size, p);
+  JJS_UNUSED_ALL (internal_p, size, p);
 }
 
 /**
- * Init a new arena allocator.
+ * Create a new arena allocator.
  *
- * The arena implementation is very simple. Allocations follow each other in the buffer. If there is
- * no more room, the allocation fails. free() does nothing. All memory is "freed" when reset is called
- * to rewind the arena buffer pointer to the beginning.
+ * The arena implementation is backed by a single block of memory. Allocation requests use the block until
+ * the available space is exhausted. The allocator has a free api, but it is a no-op. The expected usage
+ * is to make allocations and at the end of the operation, reset the arena. This implementation is not
+ * intended to be a general purpose arena allocator.
  */
 jjs_allocator_t
 jjs_util_arena_allocator (void* block_p, jjs_size_t block_size)
 {
+  static const jjs_allocator_vtab_t vtab = {
+    .alloc = jjs_util_arena_allocator_alloc,
+    .free = jjs_util_arena_allocator_free,
+    .free_self = NULL,
+  };
+
   jjs_util_arena_allocator_header_t* header = block_p;
 
   header->start_p = ((uint8_t*) block_p) + ARENA_HEADER_SIZE;
@@ -189,9 +205,8 @@ jjs_util_arena_allocator (void* block_p, jjs_size_t block_size)
   header->remaining = header->size;
 
   return (jjs_allocator_t){
-    .alloc = jjs_util_arena_allocator_alloc,
-    .free = jjs_util_arena_allocator_free,
-    .internal = { block_p },
+    .vtab_p = &vtab,
+    .internal_p = header,
   };
 }
 
@@ -201,153 +216,163 @@ jjs_util_arena_allocator (void* block_p, jjs_size_t block_size)
 static void
 jjs_util_arena_allocator_reset (jjs_allocator_t* allocator_p)
 {
-  jjs_util_arena_allocator_header_t* header = allocator_p->internal[0];
+  jjs_util_arena_allocator_header_t* header = allocator_p->internal_p;
 
   header->next_p = header->start_p;
   header->remaining = header->size;
 }
 
-static const jjs_size_t COMPOUND_ALLOCATION_HEADER_SIZE = (jjs_size_t) JJS_ALIGNUP (sizeof (jjs_allocator_t*), JMEM_ALIGNMENT);
+static const jjs_size_t SCRATCH_ALLOCATION_HEADER_SIZE = (jjs_size_t) JJS_ALIGNUP (sizeof (jjs_allocator_t*), JMEM_ALIGNMENT);
 
 static void*
-jjs_util_compound_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+jjs_util_scratch_allocator_alloc (void *internal_p, uint32_t size)
 {
   void* block;
-  jjs_allocator_t* arena = self_p->internal[0];
+  jjs_context_t *context_p = internal_p;
+  jjs_allocator_t* arena = &context_p->scratch_arena_allocator;
 
-  block = arena->alloc (arena, COMPOUND_ALLOCATION_HEADER_SIZE + size);
+  block = jjs_allocator_alloc (arena, SCRATCH_ALLOCATION_HEADER_SIZE + size);
 
   if (block)
   {
-    *((jjs_allocator_t**) block) = arena;
-
-    return ((uint8_t*) block) + COMPOUND_ALLOCATION_HEADER_SIZE;
+    *((jjs_allocator_t**) block) = NULL;
+    return ((uint8_t*) block) + SCRATCH_ALLOCATION_HEADER_SIZE;
   }
 
-  jjs_allocator_t* fallback = self_p->internal[1];
+  jjs_allocator_t* fallback = &context_p->scratch_fallback_allocator;
 
-  block = fallback->alloc (fallback, COMPOUND_ALLOCATION_HEADER_SIZE + size);
+  block = jjs_allocator_alloc (fallback, SCRATCH_ALLOCATION_HEADER_SIZE + size);
 
   if (block)
   {
     *((jjs_allocator_t**) block) = fallback;
-    return ((uint8_t*) block) + COMPOUND_ALLOCATION_HEADER_SIZE;
+    return ((uint8_t*) block) + SCRATCH_ALLOCATION_HEADER_SIZE;
   }
 
   return NULL;
 }
 
 static void
-jjs_util_compound_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+jjs_util_scratch_allocator_free (void *internal_p, void* p, uint32_t size)
 {
-  jjs_allocator_t* allocator = *((jjs_allocator_t**) (((uint8_t*) p) - COMPOUND_ALLOCATION_HEADER_SIZE));
+  jjs_allocator_t* allocator_p = *((jjs_allocator_t**) (((uint8_t*) p) - SCRATCH_ALLOCATION_HEADER_SIZE));
 
-  if (self_p->internal[1] == allocator)
+#if !defined (JJS_NDEBUG)
+  jjs_context_t *context_p = internal_p;
+  JJS_ASSERT (allocator_p == NULL || allocator_p == &context_p->scratch_fallback_allocator);
+#else /* defined (JJS_NDEBUG) */
+  JJS_UNUSED (internal_p);
+#endif /* !defined (JJS_NDEBUG) */
+
+  if (allocator_p)
   {
-    allocator->free (allocator, ((uint8_t*) p) - COMPOUND_ALLOCATION_HEADER_SIZE, size + COMPOUND_ALLOCATION_HEADER_SIZE);
+    jjs_allocator_free (allocator_p,
+                        ((uint8_t*) p) - SCRATCH_ALLOCATION_HEADER_SIZE,
+                        size + SCRATCH_ALLOCATION_HEADER_SIZE);
   }
 }
 
 /**
- * Combines an arena allocator with a fallback allocator.
+ * Create a new scratch allocator for internal temporary allocations.
  *
- * The allocator tries to alloc to the arena first. If that fails, the fallback allocator
- * is used. Each allocation has an extra sizeof (uintptr_t) header indicating which
- * allocator was responsible for the alloc. On free, the pointer is adjusted so the
- * freeing allocator can be called.
+ * The scratch allocator multiplexes jjs_context_t.scratch_arena_allocator
+ * and jjs_context_t.scratch_fallback_allocator. For an allocation, the arena allocator will be tried. If that
+ * fails, the fallback allocator is used.
  *
- * The header could probably be represented more compactly, but the compound allocator is
- * used for the scratch allocator. Right now, the usage is maybe 1-3 allocations before the
- * scratch allocator is reset, so the extra memory is not an issue.
+ * Each allocated block has a pointer size header indicating the allocator that made the allocation. The header is
+ * used to determine which allocator gets a free call.
  */
 jjs_allocator_t
-jjs_util_compound_allocator (jjs_allocator_t* arena, jjs_allocator_t* fallback)
+jjs_util_scratch_allocator (jjs_context_t *context_p)
 {
-  if (arena == NULL)
-  {
-    return *fallback;
-  }
+  static const jjs_allocator_vtab_t vtab = {
+    .alloc = jjs_util_scratch_allocator_alloc,
+    .free = jjs_util_scratch_allocator_free,
+    .free_self = NULL,
+  };
 
-  return (jjs_allocator_t){
-    .alloc = jjs_util_compound_allocator_alloc,
-    .free = jjs_util_compound_allocator_free,
-    .internal[0] = arena,
-    .internal[1] = fallback,
+  return (jjs_allocator_t) {
+    .vtab_p = &vtab,
+    .internal_p = context_p,
   };
 }
 
+#endif /* JJS_SCRATCH_ARENA */
+
 static void*
-jjs_util_system_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+jjs_util_system_allocator_alloc (void* internal_p, uint32_t size)
 {
-  JJS_UNUSED_ALL (self_p);
+  JJS_UNUSED_ALL (internal_p);
   return malloc (size);
 }
 
 static void
-jjs_util_system_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+jjs_util_system_allocator_free (void* internal_p, void* p, uint32_t size)
 {
-  JJS_UNUSED_ALL (self_p, size);
+  JJS_UNUSED_ALL (internal_p, size);
   free (p);
 }
 
 jjs_allocator_t
 jjs_util_system_allocator (void)
 {
-  return *jjs_util_system_allocator_ptr ();
-}
-
-jjs_allocator_t *
-jjs_util_system_allocator_ptr (void)
-{
-  static jjs_allocator_t system_allocator = {
+  static const jjs_allocator_vtab_t vtab = {
     .alloc = jjs_util_system_allocator_alloc,
     .free = jjs_util_system_allocator_free,
+    .free_self = NULL,
   };
 
-  return &system_allocator;
+  return (jjs_allocator_t) {
+    .vtab_p = &vtab,
+    .internal_p = NULL,
+  };
 }
 
 static void*
-jjs_util_vm_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+jjs_util_vm_allocator_alloc (void *internal_p, uint32_t size)
 {
-  JJS_ASSERT (self_p->internal[0]);
-  return jjs_heap_alloc (self_p->internal[0], size);
+  JJS_ASSERT (internal_p);
+  return jjs_heap_alloc (internal_p, size);
 }
 
 static void
-jjs_util_vm_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+jjs_util_vm_allocator_free (void *internal_p, void* p, uint32_t size)
 {
-  JJS_ASSERT (self_p->internal[0]);
-  jjs_heap_free (self_p->internal[0], p, size);
+  JJS_ASSERT (internal_p);
+  jjs_heap_free (internal_p, p, size);
 }
 
 jjs_allocator_t
 jjs_util_vm_allocator (jjs_context_t* context_p)
 {
-  return (jjs_allocator_t){
+  static const jjs_allocator_vtab_t vtab = {
     .alloc = jjs_util_vm_allocator_alloc,
     .free = jjs_util_vm_allocator_free,
-    .internal[0] = context_p,
+    .free_self = NULL,
+  };
+
+  return (jjs_allocator_t) {
+    .vtab_p = &vtab,
+    .internal_p = context_p,
   };
 }
 
 static void*
-jjs_util_arraybuffer_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
+jjs_util_arraybuffer_allocator_alloc (void* internal_p, uint32_t size)
 {
-  if (self_p->internal[0] != NULL)
-  {
-    return NULL;
-  }
-
-  jjs_context_t *context_p = self_p->internal[2];
+  jjs_value_with_context_t *buffer_container_p = internal_p;
+  JJS_ASSERT (buffer_container_p->value == 0 || buffer_container_p->value == ECMA_VALUE_UNDEFINED);
+  jjs_context_t *context_p = buffer_container_p->context_p;
+  JJS_ASSERT (context_p);
   jjs_value_t value = jjs_arraybuffer (context_p, size);
+  void* value_data_p;
 
   if (jjs_value_is_exception (context_p, value))
   {
     return false;
   }
 
-  void* value_data_p = jjs_arraybuffer_data (context_p, value);
+  value_data_p = jjs_arraybuffer_data (context_p, value);
 
   if (value_data_p == NULL)
   {
@@ -355,21 +380,25 @@ jjs_util_arraybuffer_allocator_alloc (jjs_allocator_t* self_p, uint32_t size)
     return false;
   }
 
-  self_p->internal[0] = value_data_p;
-  self_p->internal[1] = (void*) (uintptr_t) value;
+  buffer_container_p->value = value;
 
   return value_data_p;
 }
 
 static void
-jjs_util_arraybuffer_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t size)
+jjs_util_arraybuffer_allocator_free (void *internal_p, void* p, uint32_t size)
 {
   JJS_UNUSED_ALL (size);
 
-  if (self_p->internal[0] == p)
+  jjs_value_with_context_t *buffer_container_p = internal_p;
+  jjs_context_t *context_p = buffer_container_p->context_p;
+
+  JJS_ASSERT (context_p);
+
+  if (jjs_arraybuffer_data (context_p, buffer_container_p->value) == p)
   {
-    jjs_value_free (self_p->internal[2], (jjs_value_t) (uintptr_t) self_p->internal[1]);
-    self_p->internal[0] = self_p->internal[1] = NULL;
+    jjs_value_free (context_p, buffer_container_p->value);
+    buffer_container_p->value = ECMA_VALUE_UNDEFINED;
   }
 }
 
@@ -380,33 +409,23 @@ jjs_util_arraybuffer_allocator_free (jjs_allocator_t* self_p, void* p, uint32_t 
  * copying the buffer to a JS ArrayBuffer, this allocator will allocate an ArrayBuffer directly and return
  * its memory pointer. The file contents can be written into this buffer, skipping an extra copy.
  *
- * This allocator assumes that the file will be read in one shot.
- *
- * jjs_util_arraybuffer_allocator_move() exists to extract the ArrayBuffer from the allocator.
+ * The allocator assumes it will get a single alloc() call. On this call, the JS ArrayBuffer is created
+ * and allocated in the VM. A subsequent call to alloc() will fail. The user can retrieve the buffer from
+ * the jjs_value_with_context object.
  */
 jjs_allocator_t
-jjs_util_arraybuffer_allocator (jjs_context_t* context_p)
+jjs_util_arraybuffer_allocator (jjs_value_with_context_t *value_p)
 {
-  return (jjs_allocator_t){
+  static const jjs_allocator_vtab_t vtab = {
     .alloc = jjs_util_arraybuffer_allocator_alloc,
     .free = jjs_util_arraybuffer_allocator_free,
-    .internal = { NULL, NULL, context_p },
+    .free_self = NULL,
   };
-}
 
-jjs_value_t
-jjs_util_arraybuffer_allocator_move (jjs_allocator_t* arraybuffer_allocator)
-{
-  if (arraybuffer_allocator->internal[0] != NULL)
-  {
-    jjs_value_t result = (jjs_value_t) (uintptr_t) arraybuffer_allocator->internal[1];
-
-    arraybuffer_allocator->internal[0] = arraybuffer_allocator->internal[1] = NULL;
-
-    return result;
-  }
-
-  return ECMA_VALUE_UNDEFINED;
+  return (jjs_allocator_t) {
+    .vtab_p = &vtab,
+    .internal_p = value_p,
+  };
 }
 
 /**
@@ -469,7 +488,7 @@ jjs_util_convert (jjs_allocator_t* allocator,
         case JJS_ENCODING_ASCII:
         {
           jjs_size_t allocated_size = (source_size + extra_bytes);
-          uint8_t* utf8 = allocator->alloc (allocator, allocated_size);
+          uint8_t* utf8 = jjs_allocator_alloc (allocator, allocated_size);
 
           if (!utf8)
           {
@@ -490,7 +509,7 @@ jjs_util_convert (jjs_allocator_t* allocator,
         case JJS_ENCODING_UTF16:
         {
           jjs_size_t allocated_size = (source_size + extra_bytes) * sizeof (uint16_t);
-          uint16_t* utf16le = allocator->alloc (allocator, allocated_size);
+          uint16_t* utf16le = jjs_allocator_alloc (allocator, allocated_size);
 
           if (!utf16le)
           {
@@ -532,7 +551,7 @@ jjs_util_convert (jjs_allocator_t* allocator,
           }
 
           lit_utf8_size_t allocated_size = source_size + extra_bytes;
-          lit_utf8_byte_t* utf8_p = allocator->alloc (allocator, allocated_size);
+          lit_utf8_byte_t* utf8_p = jjs_allocator_alloc (allocator, allocated_size);
 
           if (utf8_p == NULL)
           {
@@ -543,7 +562,7 @@ jjs_util_convert (jjs_allocator_t* allocator,
 
           if (written != utf8_size)
           {
-            allocator->free (allocator, utf8_p, allocated_size);
+            jjs_allocator_free (allocator, utf8_p, allocated_size);
             return JJS_STATUS_MALFORMED_CESU8;
           }
 
@@ -574,7 +593,7 @@ jjs_util_convert (jjs_allocator_t* allocator,
 
           jjs_size_t allocated_size = (result_size + extra_bytes) * sizeof (ecma_char_t);
 
-          result = result_cursor = allocator->alloc (allocator, allocated_size);
+          result = result_cursor = jjs_allocator_alloc (allocator, allocated_size);
 
           if (result == NULL)
           {

@@ -21,7 +21,7 @@
 
 struct jjs_platform_s
 {
-  jjs_allocator_t *allocator;
+  jjs_allocator_t allocator;
   int32_t refs;
 
   jjs_platform_fatal_fn_t fatal;

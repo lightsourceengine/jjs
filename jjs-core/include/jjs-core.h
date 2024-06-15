@@ -1443,6 +1443,10 @@ jjs_value_t jjs_realm_set_this (jjs_context_t* context_p, jjs_value_t realm, jjs
  * jjs-api-realm @}
  */
 
+void* jjs_allocator_alloc (const jjs_allocator_t *allocator_p, jjs_size_t size);
+void jjs_allocator_free (const jjs_allocator_t *allocator_p, void *chunk_p, jjs_size_t size);
+void jjs_allocator_free_self (const jjs_allocator_t *allocator_p);
+
 /**
  * jjs-api @}
  */

@@ -52,16 +52,15 @@ get_context_option_u32 (const jjs_optional_u32_t * optional, uint32_t default_va
 static void
 context_set_scratch_allocator (jjs_context_t* context_p, uint8_t *scratch_block, uint32_t scratch_block_size_b, uint32_t flags)
 {
+  /* TODO: support a custom fallback allocator */
   jjs_allocator_t fallback_allocator = (flags & JJS_CONTEXT_FLAG_SCRATCH_ALLOCATOR_VM) ? jjs_util_vm_allocator (context_p) : jjs_util_system_allocator ();
 
 #if JJS_SCRATCH_ARENA
   if (scratch_block_size_b > 0)
   {
     context_p->scratch_arena_allocator = jjs_util_arena_allocator (scratch_block, scratch_block_size_b);
-    context_p->fallback_scratch_allocator = fallback_allocator;
-
-    context_p->scratch_allocator =
-      jjs_util_compound_allocator (&context_p->scratch_arena_allocator, &context_p->fallback_scratch_allocator);
+    context_p->scratch_fallback_allocator = fallback_allocator;
+    context_p->scratch_allocator = jjs_util_scratch_allocator (context_p);
   }
   else
 #endif /* JJS_SCRATCH_ARENA */
@@ -113,7 +112,7 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
   }
 #endif /* !JJS_VM_STACK_LIMIT */
 
-  jjs_allocator_t *allocator = options_p->allocator ? options_p->allocator : jjs_util_system_allocator_ptr ();
+  jjs_allocator_t allocator = options_p->allocator ? *options_p->allocator : jjs_util_system_allocator ();
   jjs_size_t context_aligned_size_b = JJS_ALIGNUP (sizeof (jjs_context_t), JMEM_ALIGNMENT);
   jjs_size_t vm_heap_size_b = get_context_option_u32 (&options_p->vm_heap_size_kb, JJS_DEFAULT_VM_HEAP_SIZE_KB) * 1024;
   jjs_size_t scratch_size_b = get_context_option_u32 (&options_p->scratch_size_kb, JJS_DEFAULT_SCRATCH_ARENA_KB) * 1024;
@@ -132,7 +131,7 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
     block_size = context_aligned_size_b + vm_heap_size_b + scratch_size_b;
   }
 
-  block_p = allocator->alloc (allocator, block_size);
+  block_p = jjs_allocator_alloc (&allocator, block_size);
 
   if (!block_p)
   {
@@ -141,15 +140,9 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
 
   context_p = (jjs_context_t *) block_p;
 
-  scratch_block_p = block_p + (context_aligned_size_b + vm_heap_size_b);
-
   memset (block_p, 0, context_aligned_size_b + vm_heap_size_b + scratch_size_b);
-
-  /* allocators */
-  context_set_scratch_allocator (context_p, scratch_block_p, scratch_size_b, options_p->context_flags);
-
   context_p->context_block_size_b = context_aligned_size_b + vm_heap_size_b + scratch_size_b;
-  context_p->context_allocator = allocator;
+
   context_p->platform_p = platform;
 
   /* javascript jjs namespace exclusions */
@@ -193,6 +186,11 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
     }
   }
 
+  /* allocators */
+  context_p->context_allocator = allocator;
+  scratch_block_p = scratch_size_b > 0 ? block_p + (context_aligned_size_b + vm_heap_size_b) : NULL;
+  context_set_scratch_allocator (context_p, scratch_block_p, scratch_size_b, options_p->context_flags);
+
   *out_p = context_p;
 
   return JJS_STATUS_OK;
@@ -204,9 +202,12 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
 void
 jjs_context_cleanup (jjs_context_t* context_p)
 {
+  jjs_allocator_t allocator = context_p->context_allocator;
+  jjs_allocator_t scratch_allocator = context_p->scratch_allocator;
+
   jjs_platform_free (context_p->platform_p);
+  jjs_allocator_free (&allocator, context_p, context_p->context_block_size_b);
 
-  jjs_allocator_t *allocator = context_p->context_allocator;
-
-  allocator->free (allocator, context_p, context_p->context_block_size_b);
+  jjs_allocator_free_self (&scratch_allocator);
+  jjs_allocator_free_self (&allocator);
 }
