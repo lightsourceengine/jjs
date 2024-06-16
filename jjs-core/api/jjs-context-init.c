@@ -43,17 +43,17 @@ context_set_scratch_allocator (jjs_context_t* context_p, uint8_t *scratch_block,
   /* TODO: support a custom fallback allocator */
   jjs_allocator_t fallback_allocator = (flags & JJS_CONTEXT_FLAG_SCRATCH_ALLOCATOR_VM) ? jjs_util_vm_allocator (context_p) : jjs_util_system_allocator ();
 
-#if JJS_SCRATCH_ARENA
   if (scratch_block_size_b > 0)
   {
     context_p->scratch_arena_allocator = jjs_util_arena_allocator (scratch_block, scratch_block_size_b);
     context_p->scratch_fallback_allocator = fallback_allocator;
     context_p->scratch_allocator = jjs_util_scratch_allocator (context_p);
+    context_p->scratch_arena_allocator_enabled = true;
   }
   else
-#endif /* JJS_SCRATCH_ARENA */
   {
     context_p->scratch_allocator = fallback_allocator;
+    context_p->scratch_arena_allocator_enabled = false;
   }
 }
 
@@ -86,13 +86,6 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
     return status;
   }
 
-#if !JJS_SCRATCH_ARENA
-  if (options_p->scratch_size_kb.has_value)
-  {
-    return JJS_STATUS_CONTEXT_SCRATCH_ARENA_DISABLED;
-  }
-#endif /* !JJS_SCRATCH_ARENA */
-
 #if !JJS_VM_STACK_LIMIT
   if (options_p->vm_stack_limit_kb.has_value)
   {
@@ -103,7 +96,7 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
   jjs_allocator_t allocator = options_p->allocator ? *options_p->allocator : jjs_util_system_allocator ();
   jjs_size_t context_aligned_size_b = JJS_ALIGNUP (sizeof (jjs_context_t), JMEM_ALIGNMENT);
   jjs_size_t vm_heap_size_b = get_context_option_u32 (&options_p->vm_heap_size_kb, JJS_DEFAULT_VM_HEAP_SIZE_KB) * 1024;
-  jjs_size_t scratch_size_b = get_context_option_u32 (&options_p->scratch_size_kb, JJS_DEFAULT_SCRATCH_ARENA_KB) * 1024;
+  jjs_size_t scratch_size_b = get_context_option_u32 (&options_p->scratch_arena_kb, JJS_DEFAULT_SCRATCH_ARENA_KB) * 1024;
   uint8_t* block_p;
   jjs_size_t block_size;
   uint8_t *scratch_block_p;

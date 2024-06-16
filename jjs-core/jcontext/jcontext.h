@@ -67,10 +67,9 @@ typedef struct
  */
 struct jjs_context_t
 {
-  uint32_t context_flags; /**< context flags */
-
   jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
 
+  uint32_t context_flags; /**< context flags */
   jjs_allocator_t context_allocator; /**< allocator that created this context, scratch and vm heap. stored for cleanup only. */
   jjs_size_t context_block_size_b; /**< size of context + scratch + vm heap memory block. stored for cleanup only. */
 
@@ -241,10 +240,9 @@ struct jjs_context_t
 
   jjs_allocator_t scratch_allocator; /**< allocator for internal temporary allocations */
 
-#if JJS_SCRATCH_ARENA
   jjs_allocator_t scratch_arena_allocator; /**< primary allocator for the scratch allocator */
   jjs_allocator_t scratch_fallback_allocator; /**< fallback scratch allocator from context options. */
-#endif /* JJS_SCRATCH_ARENA */
+  bool scratch_arena_allocator_enabled; /**< is scratch_arena_allocator in use? */
 };
 
 void jcontext_set_exception_flag (jjs_context_t *context_p, bool is_exception);

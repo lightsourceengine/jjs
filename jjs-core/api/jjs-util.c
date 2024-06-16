@@ -143,8 +143,6 @@ jjs_util_map_option (jjs_context_t* context_p,
   return false;
 } /* jjs_util_map_option */
 
-#if JJS_SCRATCH_ARENA
-
 typedef struct
 {
   void* start_p;
@@ -297,8 +295,6 @@ jjs_util_scratch_allocator (jjs_context_t *context_p)
   };
 }
 
-#endif /* JJS_SCRATCH_ARENA */
-
 static void*
 jjs_util_system_allocator_alloc (void* internal_p, uint32_t size)
 {
@@ -444,11 +440,10 @@ jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p)
 void
 jjs_util_context_release_scratch_allocator (jjs_context_t* context_p)
 {
-#if JJS_SCRATCH_ARENA_SIZE > 0
-  jjs_util_arena_allocator_reset (&context_p->scratch_arena_allocator);
-#else /* !(JJS_SCRATCH_ARENA_SIZE > 0) */
-  JJS_UNUSED (context_p);
-#endif /* JJS_SCRATCH_ARENA_SIZE > 0 */
+  if (context_p->scratch_arena_allocator_enabled)
+  {
+    jjs_util_arena_allocator_reset (&context_p->scratch_arena_allocator);
+  }
 }
 
 /**

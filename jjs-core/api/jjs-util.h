@@ -48,10 +48,8 @@ jjs_allocator_t jjs_util_system_allocator (void);
 jjs_allocator_t jjs_util_vm_allocator (jjs_context_t* context_p);
 jjs_allocator_t jjs_util_arraybuffer_allocator (jjs_value_with_context_t *value_p);
 
-#if JJS_SCRATCH_ARENA
 jjs_allocator_t jjs_util_arena_allocator (void* block_p, jjs_size_t block_size);
 jjs_allocator_t jjs_util_scratch_allocator (jjs_context_t *context_p);
-#endif /* JJS_SCRATCH_ARENA */
 
 jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p);
 void jjs_util_context_release_scratch_allocator (jjs_context_t* context_p);

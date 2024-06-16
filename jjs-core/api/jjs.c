@@ -1386,8 +1386,6 @@ jjs_feature_enabled (const jjs_feature_t feature) /**< feature to check */
       return IS_FEATURE_ENABLED (JJS_ANNEX_VMOD);
     case JJS_FEATURE_VM_STACK_LIMIT:
       return IS_FEATURE_ENABLED (JJS_VM_STACK_LIMIT);
-    case JJS_FEATURE_SCRATCH_ARENA:
-      return IS_FEATURE_ENABLED (JJS_SCRATCH_ARENA);
     default:
       JJS_ASSERT (false);
       return false;

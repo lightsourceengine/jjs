@@ -17,7 +17,7 @@
 #include "config.h"
 
 static void
-test_context_new_default (void)
+test_context_new_empty_options (void)
 {
   jjs_context_options_t options = {0};
   jjs_context_t *context_p;
@@ -31,6 +31,24 @@ test_context_new_null (void)
   jjs_context_t *context_p;
   TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
   jjs_context_free (context_p);
+}
+
+static void
+test_context_new_no_arena (void)
+{
+  jjs_context_options_t options = {
+    /* size of 0 disables the arena */
+    .scratch_arena_kb = jjs_optional_u32 (0),
+  };
+  jjs_context_t *context_p = ctx_open (&options);
+
+  /* do some vm work */
+  for (jjs_size_t i = 0; i < 5; i++)
+  {
+    ctx_value (jjs_binary_op (context_p, JJS_BIN_OP_ADD, ctx_cstr ("x"), ctx_cstr ("y")));
+  }
+
+  ctx_close ();
 }
 
 static void
@@ -183,7 +201,7 @@ test_context_allocator (void)
   options = (jjs_context_options_t){
     .allocator = &stdlib_allocator,
     .vm_heap_size_kb = jjs_optional_u32 (2048),
-    .scratch_size_kb = jjs_optional_u32 (64),
+    .scratch_arena_kb = jjs_optional_u32 (64),
   };
 
   reset_stdlib_allocator_tracking ();
@@ -295,8 +313,9 @@ test_context_data_set (void)
 int
 main (void)
 {
-  test_context_new_default ();
+  test_context_new_empty_options ();
   test_context_new_null ();
+  test_context_new_no_arena ();
   
   test_context_jjs_namespace ();
   test_context_jjs_namespace_exclusions ();

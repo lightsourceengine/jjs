@@ -190,15 +190,6 @@
 #endif /* !defined (JJS_ERROR_MESSAGES) */
 
 /**
- * Enable an arena allocator for scratch (temporary) allocations.
- *
- * Default: 1
- */
-#ifndef JJS_SCRATCH_ARENA
-#define JJS_SCRATCH_ARENA 1
-#endif /* JJS_SCRATCH_ARENA */
-
-/**
  * Default size, in kilobytes, of the scratch arena buffer.
  *
  * If the value is 0, the scratch arena allocator is disabled. The system or vm allocator
@@ -615,22 +606,6 @@
 #endif /* JJS_DEFAULT_MAX_GC_LIMIT */
 
 /**
- * Scratch arena buffer size in kilobytes.
- *
- * The engine needs to allocate temporary memory for performance algorithms, paths, json
- * & source code file reads and other things. In almost all cases, the temporary memory might
- * live for the scope of a method. With the system and vm allocators, this can contribute
- * to fragmentation. With the vm allocator, the arena will be faster, as it will not hit gc
- * or add gc objects to the vm. The performance of the arena vs malloc/free will be negligible.
- *
- * If JJS_SCRATCH_ARENA_SIZE is 0, the scratch arena is disabled and system or vm allocations
- * are used for temporary memory.
- */
-#ifndef JJS_SCRATCH_ARENA_SIZE
-#define JJS_SCRATCH_ARENA_SIZE 16
-#endif /* JJS_SCRATCH_ARENA_SIZE */
-
-/**
  * Platform API
  *
  * Include or exclude a platform api implementation. Some platform apis are
@@ -891,9 +866,6 @@
 #if (JJS_VM_THROW != 0) && (JJS_VM_THROW != 1)
 #error "Invalid value for 'JJS_VM_THROW' macro."
 #endif /* (JJS_VM_THROW != 0) && (JJS_VM_THROW != 1) */
-#if (JJS_SCRATCH_ARENA != 0) && (JJS_SCRATCH_ARENA != 1)
-#error "Invalid value for 'JJS_SCRATCH_ARENA' macro."
-#endif /* (JJS_SCRATCH_ARENA != 0) && (JJS_SCRATCH_ARENA != 1) */
 #if (JJS_VM_STACK_LIMIT != 0) && (JJS_VM_STACK_LIMIT != 1)
 #error "Invalid value for 'JJS_VM_STACK_LIMIT' macro."
 #endif /* (JJS_VM_STACK_LIMIT != 0) && (JJS_VM_STACK_LIMIT != 1) */

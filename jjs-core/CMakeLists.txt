@@ -48,7 +48,6 @@ set(JJS_SNAPSHOT_SAVE             OFF          CACHE BOOL   "Enable saving snaps
 set(JJS_VALGRIND                  OFF          CACHE BOOL   "Enable Valgrind support?")
 set(JJS_VM_HALT                   OFF          CACHE BOOL   "Enable VM execution stop callback?")
 set(JJS_VM_THROW                  OFF          CACHE BOOL   "Enable VM throw callback?")
-set(JJS_SCRATCH_ARENA             ON           CACHE BOOL   "Enable scratch arena for internal temporary allocations?")
 set(JJS_DEFAULT_SCRATCH_ARENA_KB  "(32)"       CACHE STRING "Size of scratch arena buffer in kilobytes?")
 set(JJS_VM_STACK_LIMIT            OFF          CACHE BOOL   "Enable vm stack limit checks?")
 set(JJS_DEFAULT_VM_HEAP_SIZE_KB   "(1024)"     CACHE STRING "Size of vm memory heap in kilobytes")
@@ -114,7 +113,6 @@ message(STATUS "JJS_SNAPSHOT_SAVE               " ${JJS_SNAPSHOT_SAVE} ${JJS_SNA
 message(STATUS "JJS_VALGRIND                    " ${JJS_VALGRIND})
 message(STATUS "JJS_VM_HALT                     " ${JJS_VM_HALT})
 message(STATUS "JJS_VM_THROW                    " ${JJS_VM_THROW})
-message(STATUS "JJS_SCRATCH_ARENA               " ${JJS_SCRATCH_ARENA})
 message(STATUS "JJS_VM_STACK_LIMIT              " ${JJS_VM_STACK_LIMIT})
 message(STATUS "JJS_DEFAULT_SCRATCH_ARENA_KB    " ${JJS_DEFAULT_SCRATCH_ARENA_KB})
 message(STATUS "JJS_DEFAULT_VM_HEAP_SIZE_KB     " ${JJS_DEFAULT_VM_HEAP_SIZE_KB})
@@ -658,9 +656,6 @@ jjs_add_define01(JJS_VM_HALT)
 
 # Enable VM throw callback
 jjs_add_define01(JJS_VM_THROW)
-
-# Enable scratch arena allocator
-jjs_add_define01(JJS_SCRATCH_ARENA)
 
 # Enable VM static stack usage checks flag
 jjs_add_define01(JJS_VM_STACK_LIMIT)

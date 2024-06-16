@@ -140,7 +140,6 @@ typedef enum
   JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP, /**< platform.time_sleep function is required by the engine */
   JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA, /**< platform.time_local_tza function is required by the engine */
   JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS, /**< platform.time_now_ms function is required by the engine */
-  JJS_STATUS_CONTEXT_SCRATCH_ARENA_DISABLED,
   JJS_STATUS_CONTEXT_VM_STACK_LIMIT_DISABLED,
 } jjs_status_t;
 
@@ -322,7 +321,6 @@ typedef enum
   JJS_FEATURE_COMMONJS, /**< CommonJS module support (import from file) */
   JJS_FEATURE_PMAP, /**< Package Map support */
   JJS_FEATURE_VMOD, /**< Virtual Module support */
-  JJS_FEATURE_SCRATCH_ARENA, /**< VM stack heap size has been set at compile time.  */
   JJS_FEATURE_VM_STACK_LIMIT, /**< VM stack limit size has been set at compile time. */
   JJS_FEATURE__COUNT /**< number of features. NOTE: must be at the end of the list */
 } jjs_feature_t;
@@ -1434,7 +1432,22 @@ typedef struct
    */
   uint32_t jjs_namespace_exclusions;
 
-  jjs_optional_u32_t scratch_size_kb;
+  /**
+   * Size of scratch arena memory block in kilobytes.
+   *
+   * JJS uses a scratch allocator for temporary memory allocations for some VM calls,
+   * module resolution, file paths, etc. The allocations can be done in the VM heap, but
+   * that causes fragmentation and memory churn. The scratch allocator improves performance
+   * of operations that need temporary memory.
+   *
+   * The scratch allocator is composed of an arena-like allocator and a fallback (vm or system)
+   * allocator. If the arena allocation fails, the fallback is used. The arena is a fixed
+   * block of memory that can be configured with this option. If this option is 0, the arena
+   * is disabled and the fallback allocator is used as the scratch.
+   *
+   * Default: JJS_DEFAULT_SCRATCH_ARENA_KB
+   */
+  jjs_optional_u32_t scratch_arena_kb;
 
   /**
    * VM heap size in kilobytes.

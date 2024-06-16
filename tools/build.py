@@ -130,8 +130,6 @@ def get_arguments():
                          help='default size of scratch arena buffer (in kilobytes)')
     coregrp.add_argument('--vm-stack-limit', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable stack usage limit checks')
-    coregrp.add_argument('--scratch-arena', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='enable scratch arena allocator for vm temporary allocations')
     coregrp.add_argument('--mem-stats', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('enable memory statistics (%(choices)s)'))
     coregrp.add_argument('--mem-stress-test', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -238,7 +236,6 @@ def generate_build_options(arguments):
     build_options_append('JJS_VALGRIND', arguments.valgrind)
     build_options_append('JJS_VM_HALT', arguments.vm_exec_stop)
     build_options_append('JJS_VM_THROW', arguments.vm_throw)
-    build_options_append('JJS_SCRATCH_ARENA', arguments.scratch_arena)
     build_options_append('JJS_VM_STACK_LIMIT', arguments.vm_stack_limit)
 
     # platform api options
