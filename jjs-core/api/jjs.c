@@ -163,7 +163,7 @@ jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context
   *context_p = ctx_p;
 
   return status;
-}
+} /* jjs_context_new */
 
 /**
  * Release a JJS engine context object
@@ -184,78 +184,177 @@ jjs_context_free (jjs_context_t* context_p)
   }
 #endif /* JJS_DEBUGGER */
 
-  for (jjs_context_data_header_t *this_p = context_p->context_data_p; this_p != NULL; this_p = this_p->next_p)
-  {
-    if (this_p->manager_p->deinit_cb)
-    {
-      void *data = (this_p->manager_p->bytes_needed > 0) ? JJS_CONTEXT_DATA_HEADER_USER_DATA (this_p) : NULL;
-      this_p->manager_p->deinit_cb (data);
-    }
-  }
-
   ecma_free_all_enqueued_jobs (context_p);
   jjs_annex_finalize (context_p);
   ecma_finalize (context_p);
   jjs_api_disable (context_p);
 
-  for (jjs_context_data_header_t *this_p = context_p->context_data_p, *next_p = NULL; this_p != NULL;
-       this_p = next_p)
+  jjs_context_cleanup (context_p);
+} /* jjs_context_free */
+
+static inline int32_t JJS_ATTR_ALWAYS_INLINE
+jjs_strnlen (const char* str_p, int32_t n)
+{
+  int32_t len = 0;
+  const char *walker_p = str_p;
+
+  while (*walker_p++)
   {
-    next_p = this_p->next_p;
+    len++;
 
-    if (this_p->manager_p->finalize_cb)
+    if (len == n)
     {
-      void *data = (this_p->manager_p->bytes_needed > 0) ? JJS_CONTEXT_DATA_HEADER_USER_DATA (this_p) : NULL;
-      this_p->manager_p->finalize_cb (data);
+      return 0;
     }
-
-    jmem_heap_free_block (context_p, this_p, sizeof (jjs_context_data_header_t) + this_p->manager_p->bytes_needed);
   }
 
-  jjs_context_cleanup (context_p);
-}
+  return len;
+} /* jjs_strnlen */
 
 /**
- * Retrieve a context data item, or create a new one.
+ * Initialize a context data entry.
+ *
+ * The context data id is case sensitive and can only be associated with one context
+ * data entry. This function returns a key that can be used to get or set the context
+ * data entry. jjs_context_data_key() can also be used to look up the key by string id.
+ *
+ * The context data entries are a compile time fixed array of size JJS_CONTEXT_DATA_LIMIT.
+ * If more context data entries are added, an error will be returned.
  *
  * @param context_p JJS context
- * @param manager_p pointer to the manager whose context data item should be returned.
- *
- * @return a pointer to the user-provided context-specific data item for the given manager, creating such a pointer if
- * none was found.
+ * @param id_p id string of 0 > length < JJS_CONTEXT_DATA_ID_LIMIT - 1
+ * @param data_p data to store. can be NULL.
+ * @param key_p [out] key associated with this context data. can be NULL.
+ * @return JJS_STATUS_OK on success;
+ *         JJS_STATUS_CONTEXT_DATA_ID_SIZE if invalid string ID;
+ *         JJS_STATUS_CONTEXT_DATA_FULL if the context cannot store more context data entries
+ *         JJS_STATUS_CONTEXT_DATA_EXISTS if string ID already has been registered
  */
-void *
-jjs_context_data (jjs_context_t* context_p, const jjs_context_data_manager_t *manager_p)
+jjs_status_t
+jjs_context_data_init (jjs_context_t *context_p, const char *id_p, void *data_p, jjs_context_data_key_t* key_p)
 {
-  void *ret = NULL;
-  jjs_context_data_header_t *item_p;
+  /* exclude null terminator */
+  const int32_t len = jjs_strnlen (id_p, JJS_CONTEXT_DATA_ID_LIMIT - 1);
 
-  for (item_p = context_p->context_data_p; item_p != NULL; item_p = item_p->next_p)
+  if (len == 0)
   {
-    if (item_p->manager_p == manager_p)
+    return JJS_STATUS_CONTEXT_DATA_ID_SIZE;
+  }
+
+  if (context_p->data_entries_size >= JJS_CONTEXT_DATA_LIMIT)
+  {
+    return JJS_STATUS_CONTEXT_DATA_FULL;
+  }
+
+  jjs_context_data_entry_t *e;
+
+  for (int32_t i = 0; i < context_p->data_entries_size; i++)
+  {
+    e = &context_p->data_entries[i];
+
+    if (e->id_size == len && memcmp (e->id, id_p, (size_t) len) == 0)
     {
-      return (manager_p->bytes_needed > 0) ? JJS_CONTEXT_DATA_HEADER_USER_DATA (item_p) : NULL;
+      return JJS_STATUS_CONTEXT_DATA_EXISTS;
     }
   }
 
-  item_p = jmem_heap_alloc_block (context_p, sizeof (jjs_context_data_header_t) + manager_p->bytes_needed);
-  item_p->manager_p = manager_p;
-  item_p->next_p = context_p->context_data_p;
-  context_p->context_data_p = item_p;
+  const jjs_context_data_key_t key = context_p->data_entries_size;
+  e = &context_p->data_entries[key];
 
-  if (manager_p->bytes_needed > 0)
+  e->data_p = data_p;
+  e->id_size = len;
+  /* copy null terminator */
+  memcpy (e->id, id_p, (size_t) (len + 1));
+  context_p->data_entries_size++;
+
+  if (key_p)
   {
-    ret = JJS_CONTEXT_DATA_HEADER_USER_DATA (item_p);
-    memset (ret, 0, manager_p->bytes_needed);
+    *key_p = key;
   }
 
-  if (manager_p->init_cb)
+  return JJS_STATUS_OK;
+} /* jjs_context_data_init */
+
+/**
+ * Gets the context data key associated with the context data string id.
+ *
+ * @param context_p JJS context
+ * @param id_p string id to look up
+ * @return -1 on failure, otherwise a key that can be used for get and set
+ */
+jjs_context_data_key_t
+jjs_context_data_key (jjs_context_t *context_p, const char *id_p)
+{
+  jjs_assert_api_enabled (context_p);
+
+  /* exclude null terminator */
+  const int32_t len = jjs_strnlen (id_p, JJS_CONTEXT_DATA_ID_LIMIT - 1);
+
+  if (len > 0)
   {
-    manager_p->init_cb (ret);
+    jjs_context_data_entry_t *e;
+
+    for (jjs_context_data_key_t i = 0; i < context_p->data_entries_size; i++)
+    {
+      e = &context_p->data_entries[i];
+
+      if (e->id_size == len && memcmp (e->id, id_p, (size_t) len) == 0)
+      {
+        return i;
+      }
+    }
   }
 
-  return ret;
-} /* jjs_context_data */
+  return -1;
+} /* jjs_context_data_key */
+
+/**
+ * Set context data by key.
+ *
+ * Key is returned by jjs_context_data_init() or can be looked up by jjs_context_data_key().
+ *
+ * @param context_p JJS context
+ * @param key context data key
+ * @param data_p context data to store
+ * @return JJS_STATUS_OK on success, JJS_STATUS_CONTEXT_DATA_NOT_FOUND if key has not been registered
+ */
+jjs_status_t
+jjs_context_data_set (jjs_context_t *context_p, jjs_context_data_key_t key, void *data_p)
+{
+  jjs_assert_api_enabled (context_p);
+
+  if (key >= 0 && key < context_p->data_entries_size)
+  {
+    context_p->data_entries[key].data_p = data_p;
+    return JJS_STATUS_OK;
+  }
+
+  return JJS_STATUS_CONTEXT_DATA_NOT_FOUND;
+} /* jjs_context_data_set */
+
+/**
+ * Get context data by key.
+ *
+ * Key is returned by jjs_context_data_init() or can be looked up by jjs_context_data_key().
+ *
+ * @param context_p JJS context
+ * @param key context data key
+ * @param data_p [out] context data. set if status is ok
+ * @return JJS_STATUS_OK on success, JJS_STATUS_CONTEXT_DATA_NOT_FOUND if key has not been registered
+ */
+jjs_status_t
+jjs_context_data_get (jjs_context_t *context_p, jjs_context_data_key_t key, void **data_p)
+{
+  jjs_assert_api_enabled (context_p);
+
+  if (key >= 0 && key < context_p->data_entries_size)
+  {
+    *data_p = context_p->data_entries[key].data_p;
+    return JJS_STATUS_OK;
+  }
+
+  return JJS_STATUS_CONTEXT_DATA_NOT_FOUND;
+} /* jjs_context_data_get */
 
 /**
  * Register external magic string array

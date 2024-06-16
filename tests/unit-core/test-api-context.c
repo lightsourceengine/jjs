@@ -234,6 +234,101 @@ test_context_allocator (void)
   TEST_ASSERT (stdlib_free_called == true);
 }
 
+static void
+test_context_data_init (void)
+{
+  jjs_context_t *context_p;
+  jjs_context_data_key_t key;
+  char id[JJS_CONTEXT_DATA_ID_LIMIT + 1];
+  memset(id, 'x', JJS_ARRAY_SIZE (id));
+  id[JJS_CONTEXT_DATA_ID_LIMIT] = '\0';
+
+  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+
+  /* expect successful registration of data */
+  TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, &key) == JJS_STATUS_OK);
+  TEST_ASSERT (key == 0);
+
+  /* expect error if id already registered */
+  TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, NULL) == JJS_STATUS_CONTEXT_DATA_EXISTS);
+
+  /* expect error if id is too long */
+  TEST_ASSERT (jjs_context_data_init (context_p, id, NULL, NULL) == JJS_STATUS_CONTEXT_DATA_ID_SIZE);
+
+  jjs_context_free (context_p);
+
+  /* expect error if all data slots are in use */
+  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+
+  for (int32_t i = 0; i < JJS_CONTEXT_DATA_LIMIT; i++)
+  {
+    sprintf (id, "%i", i);
+    TEST_ASSERT (jjs_context_data_init (context_p, id, NULL, NULL) == JJS_STATUS_OK);
+  }
+
+  TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, NULL) == JJS_STATUS_CONTEXT_DATA_FULL);
+
+  jjs_context_free (context_p);
+}
+
+static void
+test_context_data_key (void)
+{
+  jjs_context_t *context_p;
+  jjs_context_data_key_t key;
+  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, &key) == JJS_STATUS_OK);
+
+  /* expect valid key for test */
+  TEST_ASSERT (jjs_context_data_key (context_p, "test") == key);
+
+  /* expect -1 for unregistered key */
+  TEST_ASSERT (jjs_context_data_key (context_p, "xxx") == -1);
+
+  jjs_context_free (context_p);
+}
+
+static void
+test_context_data_get (void)
+{
+  jjs_context_t *context_p;
+  void* data_p;
+  jjs_context_data_key_t key;
+
+  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_data_init (context_p, "test", context_p, &key) == JJS_STATUS_OK);
+
+  /* expect to retrieve data by key */
+  TEST_ASSERT (jjs_context_data_get (context_p, key, &data_p) == JJS_STATUS_OK);
+  TEST_ASSERT (data_p == context_p);
+
+  /* expect error for invalid key */
+  TEST_ASSERT (jjs_context_data_get (context_p, 1024, &data_p) == JJS_STATUS_CONTEXT_DATA_NOT_FOUND);
+
+  jjs_context_free (context_p);
+}
+
+static void
+test_context_data_set (void)
+{
+  jjs_context_t *context_p;
+  void *data_p;
+  jjs_context_data_key_t key;
+
+  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, &key) == JJS_STATUS_OK);
+
+  /* expect data to be successfully set */
+  TEST_ASSERT (jjs_context_data_set (context_p, key, context_p) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_data_get (context_p, key, &data_p) == JJS_STATUS_OK);
+  TEST_ASSERT (data_p == context_p);
+
+  /* expect error if key not registered */
+  TEST_ASSERT (jjs_context_data_set (context_p, 1024, context_p) == JJS_STATUS_CONTEXT_DATA_NOT_FOUND);
+
+  jjs_context_free (context_p);
+}
+
 int
 main (void)
 {
@@ -249,6 +344,11 @@ main (void)
   test_context_unhandled_rejection_handler ();
 
   test_context_allocator ();
+
+  test_context_data_init ();
+  test_context_data_key ();
+  test_context_data_get ();
+  test_context_data_set ();
 
   return 0;
 } /* main */

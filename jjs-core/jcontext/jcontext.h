@@ -53,16 +53,12 @@ typedef struct
   uint8_t area[]; /**< heap area */
 } jmem_heap_t;
 
-/**
- * User context item
- */
-typedef struct jjs_context_data_header
+typedef struct
 {
-  struct jjs_context_data_header *next_p; /**< pointer to next context item */
-  const jjs_context_data_manager_t *manager_p; /**< manager responsible for deleting this item */
-} jjs_context_data_header_t;
-
-#define JJS_CONTEXT_DATA_HEADER_USER_DATA(item_p) ((uint8_t *) ((item_p) + 1))
+  char id[JJS_CONTEXT_DATA_ID_LIMIT];
+  int32_t id_size;
+  void* data_p;
+} jjs_context_data_entry_t;
 
 /**
  * JJS context
@@ -100,6 +96,10 @@ struct jjs_context_t
   jmem_heap_free_t *jmem_heap_list_skip_p; /**< improves deallocation performance */
   jmem_pools_chunk_t *jmem_free_8_byte_chunk_p; /**< list of free eight byte pool chunks */
   uint8_t* jmem_area_end; /**< precomputed address of end of heap; only for pointer validation */
+
+  jjs_context_data_entry_t data_entries[JJS_CONTEXT_DATA_LIMIT]; /**<  */
+  int32_t data_entries_size; /**< number of data_entries in use */
+
 #if JJS_BUILTIN_REGEXP
   re_compiled_code_t *re_cache[RE_CACHE_SIZE]; /**< regex cache */
 #endif /* JJS_BUILTIN_REGEXP */
@@ -144,7 +144,6 @@ struct jjs_context_t
 #endif /* JJS_ANNEX_COMMONJS */
 
   vm_frame_ctx_t *vm_top_context_p; /**< top (current) interpreter context */
-  jjs_context_data_header_t *context_data_p; /**< linked list of user-provided context-specific pointers */
   jjs_external_string_free_cb_t external_string_free_callback_p; /**< free callback for external strings */
   void *error_object_created_callback_user_p; /**< user pointer for error_object_update_callback_p */
   jjs_error_object_created_cb_t error_object_created_callback_p; /**< decorator callback for Error objects */

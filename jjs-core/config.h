@@ -542,6 +542,24 @@
 #endif /* !defined (JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION) */
 
 /**
+ * The maximum number of context data registrations.
+ *
+ * Default: 8
+ */
+#ifndef JJS_CONTEXT_DATA_LIMIT
+#define JJS_CONTEXT_DATA_LIMIT (8)
+#endif /* !defined (JJS_CONTEXT_DATA_LIMIT) */
+
+/**
+ * The maximum size of a context data id, including the null terminator.
+ *
+ * Default: 16
+ */
+#ifndef JJS_CONTEXT_DATA_ID_LIMIT
+#define JJS_CONTEXT_DATA_ID_LIMIT (16)
+#endif /* !defined (JJS_CONTEXT_DATA_ID_LIMIT) */
+
+/**
  * Advanced section configurations.
  */
 

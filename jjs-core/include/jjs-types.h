@@ -119,6 +119,11 @@ typedef enum
   JJS_STATUS_UNSUPPORTED_ENCODING, /**< */
   JJS_STATUS_MALFORMED_CESU8, /**< */
 
+  JJS_STATUS_CONTEXT_DATA_NOT_FOUND, /**< context data id/key has not been registered */
+  JJS_STATUS_CONTEXT_DATA_EXISTS, /**< context data id/key has already been registered */
+  JJS_STATUS_CONTEXT_DATA_FULL, /**< all context data slots are in use */
+  JJS_STATUS_CONTEXT_DATA_ID_SIZE, /**< invalid size of data id string */
+
   /* platform api errors */
   JJS_STATUS_PLATFORM_CWD_ERR, /**< */
   JJS_STATUS_PLATFORM_TIME_API_ERR, /**< */
@@ -362,6 +367,11 @@ typedef uint32_t jjs_size_t;
 typedef uint32_t jjs_length_t;
 
 /**
+ * Context Data Key type.
+ */
+typedef int32_t jjs_context_data_key_t;
+
+/**
  * Option bits for jjs_parse_options_t.
  */
 typedef enum
@@ -596,51 +606,6 @@ typedef bool (*jjs_foreach_live_object_with_info_cb_t) (jjs_context_t *context_p
                                                         const jjs_value_t object,
                                                         void *object_data_p,
                                                         void *user_data_p);
-
-/**
- * User context item manager
- */
-typedef struct
-{
-  /**
-   * Callback responsible for initializing a context item, or NULL to zero out the memory. This is called lazily, the
-   * first time jjs_context_data () is called with this manager.
-   *
-   * @param [in] data The buffer that JJS allocated for the manager. The buffer is zeroed out. The size is
-   * determined by the bytes_needed field. The buffer is kept alive until jjs_cleanup () is called.
-   */
-  void (*init_cb) (void *data);
-
-  /**
-   * Callback responsible for deinitializing a context item, or NULL. This is called as part of jjs_cleanup (),
-   * right *before* the VM has been cleaned up. This is a good place to release strong references to jjs_value_t's
-   * that the manager may be holding.
-   * Note: because the VM has not been fully cleaned up yet, jjs_object_native_info_t free_cb's can still get called
-   * *after* all deinit_cb's have been run. See finalize_cb for a callback that is guaranteed to run *after* all
-   * free_cb's have been run.
-   *
-   * @param [in] data The buffer that JJS allocated for the manager.
-   */
-  void (*deinit_cb) (void *data);
-
-  /**
-   * Callback responsible for finalizing a context item, or NULL. This is called as part of jjs_cleanup (),
-   * right *after* the VM has been cleaned up and destroyed and jjs_... APIs cannot be called any more. At this point,
-   * all values in the VM have been cleaned up. This is a good place to clean up native state that can only be cleaned
-   * up at the very end when there are no more VM values around that may need to access that state.
-   *
-   * @param [in] data The buffer that JJS allocated for the manager. After returning from this callback,
-   * the data pointer may no longer be used.
-   */
-  void (*finalize_cb) (void *data);
-
-  /**
-   * Number of bytes to allocate for this manager. This is the size of the buffer that JJS will allocate on
-   * behalf of the manager. The pointer to this buffer is passed into init_cb, deinit_cb and finalize_cb. It is also
-   * returned from the jjs_context_data () API.
-   */
-  size_t bytes_needed;
-} jjs_context_data_manager_t;
 
 /**
  * Type information of a native pointer.

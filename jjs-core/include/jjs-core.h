@@ -38,12 +38,11 @@ JJS_C_API_BEGIN
 jjs_status_t jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context_p);
 void jjs_context_free (jjs_context_t* context_p);
 
-jjs_status_t jjs_context_create_data (jjs_context_t *context_p, const char *id_p, jjs_size_t* key);
+jjs_status_t jjs_context_data_init (jjs_context_t *context_p, const char *id_p, void *data_p, jjs_context_data_key_t* key_p);
 
-jjs_status_t jjs_context_set_data (jjs_context_t *context_p, const char *id_p, void *data_p);
-jjs_status_t jjs_context_get_data (jjs_context_t *context_p, const char *id_p, void **data_p);
-
-void *jjs_context_data (jjs_context_t* context_p, const jjs_context_data_manager_t *manager_p);
+jjs_context_data_key_t jjs_context_data_key (jjs_context_t *context_p, const char *id_p);
+jjs_status_t jjs_context_data_set (jjs_context_t *context_p, jjs_context_data_key_t key, void *data_p);
+jjs_status_t jjs_context_data_get (jjs_context_t *context_p, jjs_context_data_key_t key, void **data_p);
 
 jjs_value_t jjs_current_realm (jjs_context_t* context_p);
 jjs_value_t jjs_set_realm (jjs_context_t* context_p, jjs_value_t realm);

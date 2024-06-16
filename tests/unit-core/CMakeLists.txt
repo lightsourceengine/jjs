@@ -49,7 +49,6 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-commonjs.c
   test-container.c
   test-container-operation.c
-  test-context-data.c
   test-dataview.c
   test-date-helpers.c
   test-esm.c
