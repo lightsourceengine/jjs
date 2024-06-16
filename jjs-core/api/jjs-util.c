@@ -631,3 +631,15 @@ jjs_util_convert (jjs_allocator_t* allocator,
 
   return JJS_STATUS_UNSUPPORTED_ENCODING;
 }
+
+void
+jjs_util_promise_unhandled_rejection_default (jjs_context_t* context_p,
+                                              jjs_value_t promise,
+                                              jjs_value_t reason,
+                                              void *user_p)
+{
+  JJS_UNUSED_ALL (context_p, promise, reason, user_p);
+#if JJS_LOGGING
+  jjs_log_fmt (context_p, JJS_LOG_LEVEL_ERROR, "Uncaught:\n{}\n", reason);
+#endif
+}

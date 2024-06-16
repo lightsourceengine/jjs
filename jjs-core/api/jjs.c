@@ -4810,6 +4810,34 @@ jjs_promise_on_event (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_promise_set_callback */
 
 /**
+ * Register callback for an unhandled promise rejection.
+ *
+ * An unhandled rejection can be received via jjs_promise_on_event; however, there are
+ * problems with using that for unhandled rejections:
+ *
+ * - jjs_promise_on_event can be disabled by a compile time switch.
+ * - jjs_promise_on_event sends other promise events as well, which may slightly impact performance.
+ * - jjs_promise_on_event has one listener
+ * - jjs_promise_on_event has no default handler
+ *
+ * Even though this callback appears redundant, it provides a way for consistently handling
+ * unhandled rejections and avoiding the issues with jjs_promise_on_event.
+ *
+ * @param context_p JJS context
+ * @param callback callback function. if NULL, the default callback is registered.
+ * @param user_p token that is passed to the callback function
+ */
+void
+jjs_promise_on_unhandled_rejection (jjs_context_t *context_p,
+                                    jjs_promise_unhandled_rejection_cb_t callback,
+                                    void *user_p)
+{
+  jjs_assert_api_enabled (context_p);
+  context_p->unhandled_rejection_cb = callback ? callback : &jjs_util_promise_unhandled_rejection_default;
+  context_p->unhandled_rejection_user_p = user_p;
+}
+
+/**
  * Get the well-known symbol represented by the given `symbol` enum value.
  *
  * Note:

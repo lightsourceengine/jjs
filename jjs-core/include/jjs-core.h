@@ -1029,6 +1029,10 @@ jjs_value_t jjs_promise_reject (jjs_context_t* context_p, jjs_value_t promise, c
  * @{
  */
 void jjs_promise_on_event (jjs_context_t* context_p, jjs_promise_event_filter_t filters, jjs_promise_event_cb_t callback, void *user_p);
+
+void jjs_promise_on_unhandled_rejection (jjs_context_t *context_p,
+                                         jjs_promise_unhandled_rejection_cb_t callback, void *user_p);
+
 /**
  * jjs-api-promise-cb @}
  */

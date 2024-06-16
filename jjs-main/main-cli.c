@@ -620,13 +620,14 @@ init_engine (const cli_common_options_t *options)
   jjs_context_t *context_p = NULL;
   jjs_context_options_t context_options = {
     .context_flags = options->context_flags,
-    .unhandled_rejection_cb = unhandled_rejection_cb,
   };
 
   if (jjs_context_new (&context_options, &context_p) != JJS_STATUS_OK)
   {
     return NULL;
   }
+
+  jjs_promise_on_unhandled_rejection (context_p, &unhandled_rejection_cb, NULL);
 
 #if defined (JJS_PACK) && JJS_PACK
   jjs_pack_init (context_p, JJS_PACK_INIT_ALL);

@@ -84,7 +84,8 @@ struct jjs_context_t
   jjs_platform_io_stream_t *streams[2]; /**< installed platform io streams. validated at context init.
                                            * indexes at jjs_platform_io_stream_id_t */
 
-  jjs_context_unhandled_rejection_cb_t unhandled_rejection_cb; /**< called when a promise rejection has no handler. cannot be NULL. */
+  jjs_promise_unhandled_rejection_cb_t
+    unhandled_rejection_cb; /**< called when a promise rejection has no handler. cannot be NULL. */
   void *unhandled_rejection_user_p; /**< user defined token passed to unhandled_rejection_cb */
 
   uint32_t vm_heap_size; /**< size of vm heap */

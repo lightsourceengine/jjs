@@ -118,6 +118,41 @@ run_eval (const uint8_t *event_list_p, /**< event list */
   TEST_ASSERT (*next_event_p == UINT8_MAX);
 } /* run_eval */
 
+static bool unhandled_rejection_called = false;
+
+static void unhandled_rejection (jjs_context_t *context_p, jjs_value_t promise, jjs_value_t reason, void *user_p)
+{
+  unhandled_rejection_called = true;
+
+  TEST_ASSERT (jjs_value_is_promise (context_p, promise));
+  TEST_ASSERT (jjs_value_is_error (context_p, reason));
+  TEST_ASSERT (((uintptr_t) user_p) == 1);
+}
+
+static void
+test_context_unhandled_rejection_handler (void)
+{
+  jjs_context_t *context_p = ctx_open (NULL);
+
+  jjs_promise_on_unhandled_rejection (context_p, unhandled_rejection, (void *) (uintptr_t) 1);
+
+  jjs_esm_source_t source = {
+    .source_sz = "import('blah')",
+  };
+
+  jjs_value_t result = jjs_esm_evaluate_source (context_p, &source, JJS_MOVE);
+  TEST_ASSERT (!jjs_value_is_exception (context_p, result));
+  jjs_value_free (ctx (), result);
+
+  result = jjs_run_jobs (context_p);
+  TEST_ASSERT (!jjs_value_is_exception (context_p, result));
+  jjs_value_free (ctx (), result);
+
+  TEST_ASSERT (unhandled_rejection_called);
+
+  ctx_close ();
+}
+
 int
 main (void)
 {
@@ -354,5 +389,8 @@ main (void)
             "f(Promise.resolve(1).then(() => {}))\n");
 
   ctx_close ();
+
+  test_context_unhandled_rejection_handler ();
+
   return 0;
 } /* main */

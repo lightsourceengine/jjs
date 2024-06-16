@@ -215,7 +215,7 @@ typedef enum
 /**
  * Callback for handling an unhandled promise rejection.
  */
-typedef void (*jjs_context_unhandled_rejection_cb_t) (jjs_context_t *context, jjs_value_t promise, jjs_value_t reason, void *user_p);
+typedef void (*jjs_promise_unhandled_rejection_cb_t) (jjs_context_t *context, jjs_value_t promise, jjs_value_t reason, void *user_p);
 
 /**
  * Set of exclusions for the javascript jjs namespace.
@@ -1433,24 +1433,6 @@ typedef struct
    * of the exclusion settings.
    */
   uint32_t jjs_namespace_exclusions;
-
-  /**
-   * Unhandled rejection callback.
-   *
-   * An unhandled rejection can be received via jjs_promise_on_event; however, enabling that
-   * enables all promise events. There is only one on_event listener and that is for
-   * user code. And, the on_event is a compile time switch.
-   *
-   * This function is exclusively for listening to the unhandled rejection event, it's always
-   * built and can be dynamically configured by the user. If not set, the default behavior is
-   * to log the unhandled rejection reason by logging to error.
-   */
-  jjs_context_unhandled_rejection_cb_t unhandled_rejection_cb;
-
-  /**
-   * User defined token passed to unhandled_rejection_cb. Default: NULL
-   */
-  void* unhandled_rejection_user_p;
 
   jjs_optional_u32_t scratch_size_kb;
 

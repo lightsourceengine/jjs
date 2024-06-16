@@ -61,44 +61,6 @@ test_init_options_stack_limit_when_stack_static (void)
 //  }
 }
 
-static bool unhandled_rejection_called = false;
-
-static void unhandled_rejection (jjs_context_t *context_p, jjs_value_t promise, jjs_value_t reason, void *user_p)
-{
-  unhandled_rejection_called = true;
-
-  TEST_ASSERT (jjs_value_is_promise (context_p, promise));
-  TEST_ASSERT (jjs_value_is_error (context_p, reason));
-  TEST_ASSERT (((uintptr_t) user_p) == 1);
-}
-
-static void
-test_context_unhandled_rejection_handler (void)
-{
-  jjs_context_options_t options = {
-    .unhandled_rejection_cb = unhandled_rejection,
-    .unhandled_rejection_user_p = (void *) (uintptr_t) 1,
-  };
-
-  jjs_context_t *context_p = ctx_open (&options);
-
-  jjs_esm_source_t source = {
-    .source_sz = "import('blah')",
-  };
-
-  jjs_value_t result = jjs_esm_evaluate_source (context_p, &source, JJS_MOVE);
-  TEST_ASSERT (!jjs_value_is_exception (context_p, result));
-  jjs_value_free (ctx (), result);
-
-  result = jjs_run_jobs (context_p);
-  TEST_ASSERT (!jjs_value_is_exception (context_p, result));
-  jjs_value_free (ctx (), result);
-
-  TEST_ASSERT (unhandled_rejection_called);
-
-  ctx_close ();
-}
-
 static void
 test_context_jjs_namespace (void)
 {
@@ -243,7 +205,7 @@ test_context_data_init (void)
   memset(id, 'x', JJS_ARRAY_SIZE (id));
   id[JJS_CONTEXT_DATA_ID_LIMIT] = '\0';
 
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  context_p = ctx_open (NULL);
 
   /* expect successful registration of data */
   TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, &key) == JJS_STATUS_OK);
@@ -255,10 +217,10 @@ test_context_data_init (void)
   /* expect error if id is too long */
   TEST_ASSERT (jjs_context_data_init (context_p, id, NULL, NULL) == JJS_STATUS_CONTEXT_DATA_ID_SIZE);
 
-  jjs_context_free (context_p);
+  ctx_close ();
 
   /* expect error if all data slots are in use */
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  context_p = ctx_open (NULL);
 
   for (int32_t i = 0; i < JJS_CONTEXT_DATA_LIMIT; i++)
   {
@@ -268,7 +230,7 @@ test_context_data_init (void)
 
   TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, NULL) == JJS_STATUS_CONTEXT_DATA_FULL);
 
-  jjs_context_free (context_p);
+  ctx_close ();
 }
 
 static void
@@ -276,7 +238,8 @@ test_context_data_key (void)
 {
   jjs_context_t *context_p;
   jjs_context_data_key_t key;
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+
+  context_p = ctx_open (NULL);
   TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, &key) == JJS_STATUS_OK);
 
   /* expect valid key for test */
@@ -285,7 +248,7 @@ test_context_data_key (void)
   /* expect -1 for unregistered key */
   TEST_ASSERT (jjs_context_data_key (context_p, "xxx") == -1);
 
-  jjs_context_free (context_p);
+  ctx_close ();
 }
 
 static void
@@ -295,7 +258,7 @@ test_context_data_get (void)
   void* data_p;
   jjs_context_data_key_t key;
 
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  context_p = ctx_open (NULL);
   TEST_ASSERT (jjs_context_data_init (context_p, "test", context_p, &key) == JJS_STATUS_OK);
 
   /* expect to retrieve data by key */
@@ -305,7 +268,7 @@ test_context_data_get (void)
   /* expect error for invalid key */
   TEST_ASSERT (jjs_context_data_get (context_p, 1024, &data_p) == JJS_STATUS_CONTEXT_DATA_NOT_FOUND);
 
-  jjs_context_free (context_p);
+  ctx_close ();
 }
 
 static void
@@ -315,7 +278,7 @@ test_context_data_set (void)
   void *data_p;
   jjs_context_data_key_t key;
 
-  TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
+  context_p = ctx_open (NULL);
   TEST_ASSERT (jjs_context_data_init (context_p, "test", NULL, &key) == JJS_STATUS_OK);
 
   /* expect data to be successfully set */
@@ -326,7 +289,7 @@ test_context_data_set (void)
   /* expect error if key not registered */
   TEST_ASSERT (jjs_context_data_set (context_p, 1024, context_p) == JJS_STATUS_CONTEXT_DATA_NOT_FOUND);
 
-  jjs_context_free (context_p);
+  ctx_close ();
 }
 
 int
@@ -340,8 +303,6 @@ main (void)
   
   test_init_options_stack_limit ();
   test_init_options_stack_limit_when_stack_static ();
-
-  test_context_unhandled_rejection_handler ();
 
   test_context_allocator ();
 

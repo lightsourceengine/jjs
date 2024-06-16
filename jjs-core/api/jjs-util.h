@@ -67,6 +67,12 @@ jjs_util_convert (jjs_allocator_t* allocator,
                   bool add_null_terminator,
                   bool add_windows_long_filename_prefix);
 
+void
+jjs_util_promise_unhandled_rejection_default (jjs_context_t* context_p,
+                                              jjs_value_t promise,
+                                              jjs_value_t reason,
+                                              void *user_p);
+
 /**
  * Assert that it is correct to call API in current state.
  *

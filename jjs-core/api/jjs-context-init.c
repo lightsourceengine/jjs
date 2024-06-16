@@ -28,18 +28,6 @@
  */
 #define JJS_COMPUTE_GC_LIMIT(HEAP_SIZE) JJS_MIN ((HEAP_SIZE) / JJS_DEFAULT_MAX_GC_LIMIT_DIVISOR, 8192)
 
-/**
- * Default implementation of unhandled rejection callback.
- */
-static void
-unhandled_rejection_default (jjs_context_t* context_p, jjs_value_t promise, jjs_value_t reason, void *user_p)
-{
-  JJS_UNUSED_ALL (context_p, promise, reason, user_p);
-#if JJS_LOGGING
-  jjs_log_fmt (context_p, JJS_LOG_LEVEL_ERROR, "Uncaught:\n{}\n", reason);
-#endif
-}
-
 static uint32_t
 get_context_option_u32 (const jjs_optional_u32_t * optional, uint32_t default_value)
 {
@@ -159,16 +147,7 @@ jjs_context_init (const jjs_context_options_t* options_p, jjs_context_t** out_p)
     context_p->gc_limit = JJS_COMPUTE_GC_LIMIT (vm_heap_size_b);
   }
 
-  if (options_p->unhandled_rejection_cb)
-  {
-    context_p->unhandled_rejection_cb = options_p->unhandled_rejection_cb;
-    context_p->unhandled_rejection_user_p = options_p->unhandled_rejection_user_p;
-  }
-  else
-  {
-    context_p->unhandled_rejection_cb = &unhandled_rejection_default;
-  }
-
+  context_p->unhandled_rejection_cb = &jjs_util_promise_unhandled_rejection_default;
   context_p->heap_p = (jmem_heap_t *) (block_p + context_aligned_size_b);
   context_p->context_flags = options_p->context_flags | ECMA_STATUS_CONTEXT_INITIALIZED;
 
