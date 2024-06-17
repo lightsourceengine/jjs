@@ -126,8 +126,8 @@ def get_arguments():
                          help='default size of memory heap (in kilobytes)')
     coregrp.add_argument('--default-vm-stack-limit-kb', metavar='SIZE', type=int,
                          help='default maximum stack usage (in kilobytes)')
-    coregrp.add_argument('--default-scratch-arena-kb', metavar='SIZE', type=int,
-                         help='default size of scratch arena buffer (in kilobytes)')
+    coregrp.add_argument('--default-scratch-size-kb', metavar='SIZE', type=int,
+                         help='default size of scratch buffer (in kilobytes)')
     coregrp.add_argument('--vm-stack-limit', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='enable stack usage limit checks')
     coregrp.add_argument('--mem-stats', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -223,7 +223,7 @@ def generate_build_options(arguments):
     build_options_append('JJS_LOGGING', arguments.logging)
     build_options_append('JJS_DEFAULT_VM_HEAP_SIZE_KB', arguments.default_vm_heap_size_kb)
     build_options_append('JJS_DEFAULT_VM_STACK_LIMIT_KB', arguments.default_vm_stack_limit_kb)
-    build_options_append('JJS_DEFAULT_SCRATCH_ARENA_KB', arguments.default_scratch_arena_kb)
+    build_options_append('JJS_DEFAULT_SCRATCH_SIZE_KB', arguments.default_scratch_size_kb)
     build_options_append('JJS_MEM_STATS', arguments.mem_stats)
     build_options_append('JJS_MEM_GC_BEFORE_EACH_ALLOC', arguments.mem_stress_test)
     build_options_append('JJS_PROFILE', arguments.profile)

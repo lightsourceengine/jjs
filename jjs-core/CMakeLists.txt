@@ -48,7 +48,7 @@ set(JJS_SNAPSHOT_SAVE             OFF          CACHE BOOL   "Enable saving snaps
 set(JJS_VALGRIND                  OFF          CACHE BOOL   "Enable Valgrind support?")
 set(JJS_VM_HALT                   OFF          CACHE BOOL   "Enable VM execution stop callback?")
 set(JJS_VM_THROW                  OFF          CACHE BOOL   "Enable VM throw callback?")
-set(JJS_DEFAULT_SCRATCH_ARENA_KB  "(32)"       CACHE STRING "Size of scratch arena buffer in kilobytes?")
+set(JJS_DEFAULT_SCRATCH_SIZE_KB   "(32)"       CACHE STRING "Size of scratch buffer in kilobytes?")
 set(JJS_VM_STACK_LIMIT            OFF          CACHE BOOL   "Enable vm stack limit checks?")
 set(JJS_DEFAULT_VM_HEAP_SIZE_KB   "(1024)"     CACHE STRING "Size of vm memory heap in kilobytes")
 set(JJS_DEFAULT_VM_STACK_LIMIT_KB "(0)"        CACHE STRING "Default maximum stack usage size, in kilobytes.")
@@ -114,7 +114,7 @@ message(STATUS "JJS_VALGRIND                    " ${JJS_VALGRIND})
 message(STATUS "JJS_VM_HALT                     " ${JJS_VM_HALT})
 message(STATUS "JJS_VM_THROW                    " ${JJS_VM_THROW})
 message(STATUS "JJS_VM_STACK_LIMIT              " ${JJS_VM_STACK_LIMIT})
-message(STATUS "JJS_DEFAULT_SCRATCH_ARENA_KB    " ${JJS_DEFAULT_SCRATCH_ARENA_KB})
+message(STATUS "JJS_DEFAULT_SCRATCH_SIZE_KB     " ${JJS_DEFAULT_SCRATCH_SIZE_KB})
 message(STATUS "JJS_DEFAULT_VM_HEAP_SIZE_KB     " ${JJS_DEFAULT_VM_HEAP_SIZE_KB})
 message(STATUS "JJS_DEFAULT_VM_STACK_LIMIT_KB   " ${JJS_DEFAULT_VM_STACK_LIMIT_KB})
 message(STATUS "JJS_PLATFORM_API_FS_READ_FILE   " ${JJS_PLATFORM_API_FS_READ_FILE})
@@ -338,6 +338,7 @@ set(SOURCE_CORE_FILES
   jmem/jmem-allocator.c
   jmem/jmem-heap.c
   jmem/jmem-poolman.c
+  jmem/jmem-scratch-allocator.c
   jrt/jrt-fatals.c
   lit/lit-char-helpers.c
   lit/lit-magic-strings.c
@@ -661,7 +662,7 @@ jjs_add_define01(JJS_VM_THROW)
 jjs_add_define01(JJS_VM_STACK_LIMIT)
 
 # Default scratch allocator size
-set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_SCRATCH_ARENA_KB=${JJS_DEFAULT_SCRATCH_ARENA_KB})
+set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_SCRATCH_SIZE_KB=${JJS_DEFAULT_SCRATCH_SIZE_KB})
 
 # Default vm heap size
 set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_HEAP_SIZE_KB=${JJS_DEFAULT_VM_HEAP_SIZE_KB})

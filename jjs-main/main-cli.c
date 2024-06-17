@@ -76,7 +76,7 @@ typedef struct
 
 typedef struct
 {
-  uint32_t context_flags;
+  jjs_context_options_t context_options;
   const char *pmap_filename;
   const char *cwd_filename;
   int32_t log_level;
@@ -618,11 +618,8 @@ static jjs_context_t*
 init_engine (const cli_common_options_t *options)
 {
   jjs_context_t *context_p = NULL;
-  jjs_context_options_t context_options = {
-    .context_flags = options->context_flags,
-  };
 
-  if (jjs_context_new (&context_options, &context_p) != JJS_STATUS_OK)
+  if (jjs_context_new (&options->context_options, &context_p) != JJS_STATUS_OK)
   {
     return NULL;
   }
@@ -867,15 +864,15 @@ read_common_option (cli_common_options_t *options, int index, int argc, char **a
 
   if (strcmp ("--mem-stats", current) == 0)
   {
-    options->context_flags |= JJS_CONTEXT_FLAG_MEM_STATS;
+    options->context_options.enable_mem_stats = true;
   }
   else if (strcmp ("--show-opcodes", current) == 0)
   {
-    options->context_flags |= JJS_CONTEXT_FLAG_SHOW_OPCODES;
+    options->context_options.show_op_codes = true;
   }
   else if (strcmp ("--show-regexp-opcodes", current) == 0)
   {
-    options->context_flags |= JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES;
+    options->context_options.show_regexp_op_codes = true;
   }
   else if (strcmp ("--pmap", current) == 0)
   {

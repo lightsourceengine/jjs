@@ -36,6 +36,18 @@
  */
 
 /**
+ * Context Flags.
+ */
+typedef enum
+{
+  JJS_CONTEXT_FLAG_NONE = (0u), /**< empty flag set */
+  JJS_CONTEXT_FLAG_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
+  JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
+  JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
+  JJS_CONTEXT_FLAG_STRICT_MEMORY_LAYOUT = (1u << 3) /**< enable strict context memory layout */
+} jjs_context_flag_t;
+
+/**
  * Heap structure
  *
  * Memory blocks returned by the allocator must not start from the
@@ -71,10 +83,10 @@ struct jjs_context_t
 
   uint32_t context_flags; /**< context flags */
   jjs_allocator_t context_allocator; /**< allocator that created this context, scratch and vm heap. stored for cleanup only. */
-  jjs_size_t context_block_size_b; /**< size of context + scratch + vm heap memory block. stored for cleanup only. */
+  jjs_size_t context_block_size_b; /**< size of context allocation. used to free context. */
 
   ecma_global_object_t *global_object_p; /**< current global object */
-  uint32_t jjs_namespace_exclusions; /**< javascript jjs namespace exclusions */
+  jjs_namespace_exclusions_t jjs_namespace_exclusions; /**< javascript jjs namespace exclusions */
 
   jjs_log_level_t log_level; /**< log level. log requests at this level of less will be logged. */
 
@@ -97,7 +109,7 @@ struct jjs_context_t
   jmem_pools_chunk_t *jmem_free_8_byte_chunk_p; /**< list of free eight byte pool chunks */
   uint8_t* jmem_area_end; /**< precomputed address of end of heap; only for pointer validation */
 
-  jjs_context_data_entry_t data_entries[JJS_CONTEXT_DATA_LIMIT]; /**<  */
+  jjs_context_data_entry_t data_entries[JJS_CONTEXT_DATA_LIMIT]; /**< context data entries */
   int32_t data_entries_size; /**< number of data_entries in use */
 
 #if JJS_BUILTIN_REGEXP
@@ -238,11 +250,7 @@ struct jjs_context_t
    */
   ecma_object_t *current_new_target_p;
 
-  jjs_allocator_t scratch_allocator; /**< allocator for internal temporary allocations */
-
-  jjs_allocator_t scratch_arena_allocator; /**< primary allocator for the scratch allocator */
-  jjs_allocator_t scratch_fallback_allocator; /**< fallback scratch allocator from context options. */
-  bool scratch_arena_allocator_enabled; /**< is scratch_arena_allocator in use? */
+  jmem_scratch_allocator_t scratch_allocator; /**< allocator for internal temporary allocations */
 };
 
 void jcontext_set_exception_flag (jjs_context_t *context_p, bool is_exception);

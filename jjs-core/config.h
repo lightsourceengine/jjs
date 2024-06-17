@@ -190,16 +190,16 @@
 #endif /* !defined (JJS_ERROR_MESSAGES) */
 
 /**
- * Default size, in kilobytes, of the scratch arena buffer.
+ * Default size, in kilobytes, of the scratch buffer for temporary allocations.
  *
- * If the value is 0, the scratch arena allocator is disabled. The system or vm allocator
- * will be used for all internal temporary allocators.
+ * If the value is 0, temporary allocations will fallback to vm heap or system
+ * allocators.
  *
  * Default: 32
  */
-#ifndef JJS_DEFAULT_SCRATCH_ARENA_KB
-#define JJS_DEFAULT_SCRATCH_ARENA_KB (32)
-#endif /* JJS_DEFAULT_SCRATCH_ARENA_KB */
+#ifndef JJS_DEFAULT_SCRATCH_SIZE_KB
+#define JJS_DEFAULT_SCRATCH_SIZE_KB (32)
+#endif /* JJS_DEFAULT_SCRATCH_SIZE_KB */
 
 /**
  * Enable a static VM stack limit.

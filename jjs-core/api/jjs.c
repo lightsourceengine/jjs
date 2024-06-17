@@ -137,6 +137,8 @@ jjs_api_disable (jjs_context_t* context_p)
 /**
  * Create a new JJS engine context.
  *
+ * Context will be allocated using the system's C stdlib malloc.
+ *
  * @param options_p context options. if NULL, compile time defaults are used
  * @param context_p context object iff return status is JJS_STATUS_OK
  * @return on success: JJS_STATUS_OK; otherwise, a status code indicating an error
@@ -144,7 +146,32 @@ jjs_api_disable (jjs_context_t* context_p)
 jjs_status_t
 jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context_p)
 {
-  jjs_status_t status = jjs_context_init (options_p, context_p);
+  return jjs_context_new_with_allocator (options_p, jjs_util_system_allocator_ptr (), context_p);
+} /* jjs_context_new */
+
+/**
+ * Create a new JJS engine context.
+ *
+ * Context (context object, vm heap and scratch) will be allocated using the given
+ * allocator. The allocator will receive exactly one alloc call to reserve a memory
+ * block for the Context. On context free, the allocator will receive exactly one
+ * call to free the allocator Context block.
+ *
+ * By default, the alloc size is variable by platform and compile time configuration.
+ * Use context_options.strict_memory_layout to force the alloc to be a predictable
+ * context_options.vm_heap_size_kb + context_options.scratch_size_kb.
+ *
+ * @param options_p context options. if NULL, compile time defaults are used
+ * @param allocator_p allocator for the context object itself.
+ * @param context_p context object iff return status is JJS_STATUS_OK
+ * @return on success: JJS_STATUS_OK; otherwise, a status code indicating an error
+ */
+jjs_status_t
+jjs_context_new_with_allocator (const jjs_context_options_t* options_p,
+                                const jjs_allocator_t *allocator_p,
+                                jjs_context_t** context_p)
+{
+  jjs_status_t status = jjs_context_init (options_p, allocator_p, context_p);
 
   if (status != JJS_STATUS_OK)
   {
@@ -163,7 +190,42 @@ jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context
   *context_p = ctx_p;
 
   return status;
-} /* jjs_context_new */
+}
+
+/**
+ * Create a new JJS engine context.
+ *
+ * The passed in buffer must be large enough for the context object, vm heap and
+ * scratch area.
+ *
+ * By default, the Context size is variable by platform and compile time configuration.
+ * Use context_options.strict_memory_layout to force the size to be a predictable
+ * context_options.vm_heap_size_kb + context_options.scratch_size_kb.
+ *
+ * @param options_p context options. if NULL, compile time defaults are used
+ * @param buffer_p memory block
+ * @param buffer_size memory block size
+ * @param context_p context object iff return status is JJS_STATUS_OK
+ * @return on success: JJS_STATUS_OK; otherwise, a status code indicating an error
+ */
+jjs_status_t
+jjs_context_new_with_buffer (const jjs_context_options_t* options_p,
+                             uint8_t *buffer_p,
+                             jjs_size_t buffer_size,
+                             jjs_context_t** context_p)
+{
+  jjs_oneshot_allocator_t oneshot;
+  jjs_status_t status = jjs_util_oneshot_allocator_init (buffer_p, buffer_size, &oneshot);
+
+  if (status != JJS_STATUS_OK)
+  {
+    return status;
+  }
+
+  /* passing oneshot.allocator is ok because allocator is passed by-value and free is a no-op */
+
+  return jjs_context_new_with_allocator (options_p, &oneshot.allocator, context_p);
+}
 
 /**
  * Release a JJS engine context object
@@ -233,6 +295,8 @@ jjs_strnlen (const char* str_p, int32_t n)
 jjs_status_t
 jjs_context_data_init (jjs_context_t *context_p, const char *id_p, void *data_p, jjs_context_data_key_t* key_p)
 {
+  jjs_assert_api_enabled (context_p);
+
   /* exclude null terminator */
   const int32_t len = jjs_strnlen (id_p, JJS_CONTEXT_DATA_ID_LIMIT - 1);
 
@@ -7881,7 +7945,7 @@ jjs_optional_u32 (uint32_t value)
  */
 void* jjs_allocator_alloc(const jjs_allocator_t *allocator_p, jjs_size_t size)
 {
-  return allocator_p->vtab_p->alloc(allocator_p->internal_p, size);
+  return allocator_p->vtab_p->alloc (allocator_p->impl_p, size);
 }
 
 /**
@@ -7896,23 +7960,7 @@ void* jjs_allocator_alloc(const jjs_allocator_t *allocator_p, jjs_size_t size)
  */
 void jjs_allocator_free(const jjs_allocator_t *allocator_p, void *chunk_p, jjs_size_t size)
 {
-  allocator_p->vtab_p->free(allocator_p->internal_p, chunk_p, size);
-}
-
-/**
- * Destroy the allocator instance.
- *
- * The instance is destroyed using vtab->free_self. If the function is NULL, this
- * call is a no-op.
- *
- * @param allocator_p the allocator to destroy.
- */
-void jjs_allocator_free_self(const jjs_allocator_t *allocator_p)
-{
-  if (allocator_p->vtab_p->free_self)
-  {
-    allocator_p->vtab_p->free_self (allocator_p->internal_p);
-  }
+  allocator_p->vtab_p->free (allocator_p->impl_p, chunk_p, size);
 }
 
 /**

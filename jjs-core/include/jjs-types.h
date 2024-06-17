@@ -115,6 +115,8 @@ typedef enum
   JJS_STATUS_OK = 0, /**< */
 
   /* general errors */
+  JJS_STATUS_GENERIC_ERROR, /**< */
+  JJS_STATUS_INVALID_ARGUMENT, /**< */
   JJS_STATUS_BAD_ALLOC, /**< */
   JJS_STATUS_UNSUPPORTED_ENCODING, /**< */
   JJS_STATUS_MALFORMED_CESU8, /**< */
@@ -150,7 +152,6 @@ typedef struct
 {
   void* (*alloc)(void*, uint32_t); /**< alloc a new block. returns NULL on failure. */
   void (*free)(void*, void*, uint32_t); /**< free a block. NULL block is a no-op. */
-  void (*free_self)(void*); /** cleanup/free the allocator itself [optional] */
 } jjs_allocator_vtab_t;
 
 /**
@@ -162,7 +163,7 @@ typedef struct
 typedef struct jjs_allocator_s
 {
   const jjs_allocator_vtab_t *vtab_p; /**< allocator api implementation */
-  void* internal_p; /**< allocator instance data */
+  void*impl_p; /**< allocator instance data */
 } jjs_allocator_t;
 
 /**
@@ -184,52 +185,9 @@ typedef enum
 } jjs_platform_path_flag_t;
 
 /**
- * JJS init flags.
- */
-typedef enum
-{
-  JJS_CONTEXT_FLAG_NONE = (0u), /**< empty flag set */
-  JJS_CONTEXT_FLAG_SHOW_OPCODES = (1u << 0), /**< dump byte-code to log after parse */
-  JJS_CONTEXT_FLAG_SHOW_REGEXP_OPCODES = (1u << 1), /**< dump regexp byte-code to log after compilation */
-  JJS_CONTEXT_FLAG_MEM_STATS = (1u << 2), /**< dump memory statistics */
-  JJS_CONTEXT_FLAG_SCRATCH_ALLOCATOR_VM = (1u << 3), /**< use vm allocator for temporary allocations. if flag is not set, system allocator is used. */
-  /**
-   * Strict memory layout for context.
-   *
-   * The scratch arena (if present), context struct and vm heap are allocated as one
-   * memory block. The context struct is variable and depends on compile time settings,
-   * so the memory block will be different sizes across platforms and builds.
-   *
-   * If this strict mode is set, the context struct uses the vm heap. The allocation for
-   * the full block will always be scratch arena + vm heap size across all platforms. The
-   * actual working vm heap will be (vm heap size - size of context struct).
-   *
-   * The purpose of this setting is so the context allocator gets a consistent size in
-   * it's alloc. The primary use case is if you want to have a compile time static block
-   * of memory for the context memory block.
-   */
-  JJS_CONTEXT_FLAG_STRICT_MEMORY_LAYOUT = (1u << 4),
-} jjs_context_flag_t;
-
-/**
  * Callback for handling an unhandled promise rejection.
  */
 typedef void (*jjs_promise_unhandled_rejection_cb_t) (jjs_context_t *context, jjs_value_t promise, jjs_value_t reason, void *user_p);
-
-/**
- * Set of exclusions for the javascript jjs namespace.
- */
-typedef enum
-{
-  JJS_NAMESPACE_EXCLUSION_READ_FILE = 1 << 0, /**< exclude jjs.readFile() */
-  JJS_NAMESPACE_EXCLUSION_CWD = 1 << 1, /**< exclude jjs.cwd() */
-  JJS_NAMESPACE_EXCLUSION_REALPATH = 1 << 2, /**< exclude jjs.realpath() */
-  JJS_NAMESPACE_EXCLUSION_GC = 1 << 3, /**< exclude jjs.gc() */
-  JJS_NAMESPACE_EXCLUSION_VMOD = 1 << 4, /**< exclude jjs.vmod */
-  JJS_NAMESPACE_EXCLUSION_PMAP = 1 << 5, /**< exclude jjs.pmap */
-  JJS_NAMESPACE_EXCLUSION_STDOUT = 1 << 6, /**< exclude jjs.stdout */
-  JJS_NAMESPACE_EXCLUSION_STDERR = 1 << 7, /**< exclude jjs.stderr */
-} jjs_namespace_exclusion_t;
 
 /**
  * Enum that is associated with a value passed to an api. It indicates how to handle
@@ -1408,18 +1366,67 @@ typedef struct
 } jjs_platform_options_t;
 
 /**
+ * Flags to exclude api from the jjs namespace exposed to javascript.
+ *
+ * If, for example, the vmod feature is disabled at compile time, it will
+ * not appear in the jjs namespace. These exclusions are not the only
+ * reason a JS api will not appear in jjs.
+ *
+ * Other symbols, such as version, platform, arch, etc. cannot be excluded
+ * from the jjs namespace.
+ */
+typedef struct
+{
+  bool exclude_read_file; /**< exclude jjs.readFile() */
+  bool exclude_cwd; /**< exclude jjs.cwd() */
+  bool exclude_realpath; /**< jjs.realpath() */
+  bool exclude_gc; /**< jjs.gc() */
+  bool exclude_vmod; /**< jjs.vmod() */
+  bool exclude_pmap; /**< jjs.pmap() */
+  bool exclude_stdout; /**< jjs.stdout() */
+  bool exclude_stderr; /**< jjs.stderr() */
+} jjs_namespace_exclusions_t;
+
+/**
+ * Scratch fallback allocator type, used in jjs_context_options_t.
+ */
+typedef enum
+{
+  JJS_SCRATCH_ALLOCATOR_SYSTEM = 0, /**< use the system allocator (stdlib malloc and free) */
+  JJS_SCRATCH_ALLOCATOR_VM, /**< use the vm heap allocator (jjs_heap_alloc, jjs_heap_free) */
+  JJS_SCRATCH_ALLOCATOR_CUSTOM, /**< use the custom allocator in jjs_context_options_t */
+} jjs_scratch_allocator_type_t;
+
+/**
  * Context initialization settings.
  */
 typedef struct
 {
-  jjs_allocator_t *allocator;
-
   jjs_platform_t *platform;
 
+  bool show_op_codes; /**< dump byte-code to log after parse */
+  bool show_regexp_op_codes; /**< dump regexp byte-code to log after compilation */
+  bool enable_mem_stats; /**< dump memory statistics */
+
   /**
-   * Context configuration flags. Bits enumerated in jjs_context_flag_t.
+   * Context memory layout.
+   *
+   * By default, the context memory allocation will have the following layout:
+   *
+   * | context meta | vm heap | scratch |
+   *
+   * The context meta size varies by platform and compile time configuration. It can be relatively
+   * large (10s of K) and the value is not available, publicly, at compile time. If you want to
+   * use a fixed buffer for the JJS context, this memory layout is annoying.
+   *
+   * If set to true, the context meta effectively uses the vm heap, giving the following layout:
+   *
+   * | context meta | vm heap - context meta | scratch |
+   *
+   * The allocation will always be a predictable vm heap size + scratch size, but the available
+   * vm heap will be a few K smaller at runtime.
    */
-  uint32_t context_flags;
+  bool strict_memory_layout;
 
   /**
    * Control which apis are exposed to scripts in the javascript jjs object (globalThis.jjs).
@@ -1430,24 +1437,7 @@ typedef struct
    * platform read file function, readFile will not be added to the jjs namespace regardless
    * of the exclusion settings.
    */
-  uint32_t jjs_namespace_exclusions;
-
-  /**
-   * Size of scratch arena memory block in kilobytes.
-   *
-   * JJS uses a scratch allocator for temporary memory allocations for some VM calls,
-   * module resolution, file paths, etc. The allocations can be done in the VM heap, but
-   * that causes fragmentation and memory churn. The scratch allocator improves performance
-   * of operations that need temporary memory.
-   *
-   * The scratch allocator is composed of an arena-like allocator and a fallback (vm or system)
-   * allocator. If the arena allocation fails, the fallback is used. The arena is a fixed
-   * block of memory that can be configured with this option. If this option is 0, the arena
-   * is disabled and the fallback allocator is used as the scratch.
-   *
-   * Default: JJS_DEFAULT_SCRATCH_ARENA_KB
-   */
-  jjs_optional_u32_t scratch_arena_kb;
+  jjs_namespace_exclusions_t jjs_namespace_exclusions;
 
   /**
    * VM heap size in kilobytes.
@@ -1499,6 +1489,31 @@ typedef struct
    * Default: JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION
    */
   jjs_optional_u32_t gc_new_objects_fraction;
+
+  /**
+   * Size of scratch buffer in kilobytes.
+   *
+   * The scratch buffer is a fixed size buffer for temporary allocations. If set to 0 or a
+   * temporary allocation exceeds the scratch buffer, allocations will fallback to the
+   * system allocator (by default). The fallback can be selected via the
+   * scratch_fallback_allocator_type option.
+   *
+   * Default: JJS_DEFAULT_SCRATCH_SIZE_KB
+   */
+  jjs_optional_u32_t scratch_size_kb;
+
+  /**
+   * Type of fallback scratch allocator to use.
+   *
+   * Default Value: JJS_SCRATCH_ALLOCATOR_SYSTEM
+   */
+  jjs_scratch_allocator_type_t scratch_fallback_allocator_type;
+
+  /**
+   * Scratch fallback allocator used when custom_scratch_fallback_allocator is
+   * set to JJS_SCRATCH_ALLOCATOR_CUSTOM.
+   */
+  jjs_allocator_t custom_scratch_fallback_allocator;
 
 } jjs_context_options_t;
 

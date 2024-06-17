@@ -988,7 +988,7 @@ main (void)
   if (jjs_feature_enabled (JJS_FEATURE_ERROR_MESSAGES))
   {
     jjs_context_options_t options = {
-      .context_flags = JJS_CONTEXT_FLAG_SHOW_OPCODES,
+      .show_op_codes = true,
     };
     ctx_open (&options);
 
@@ -1026,7 +1026,7 @@ main (void)
   /* External Magic String */
   {
     jjs_context_options_t options = {
-      .context_flags = JJS_CONTEXT_FLAG_SHOW_OPCODES,
+      .show_op_codes = true,
     };
 
     ctx_open (&options);

@@ -27,12 +27,20 @@ typedef struct
 
 typedef struct
 {
-  jjs_value_t value;
   jjs_context_t *context_p;
-} jjs_value_with_context_t;
+  jjs_value_t buffer;
+  jjs_allocator_t allocator;
+} jjs_arraybuffer_allocator_t;
+
+typedef struct
+{
+  uint8_t *buffer_p;
+  jjs_size_t buffer_size;
+  bool used;
+  jjs_allocator_t allocator;
+} jjs_oneshot_allocator_t;
 
 jjs_value_t jjs_return (jjs_context_t *context_p, jjs_value_t value);
-void jjs_util_value_with_context_free (jjs_value_with_context_t* container_p);
 
 bool jjs_util_map_option (jjs_context_t* context_p,
                           jjs_value_t option,
@@ -44,12 +52,18 @@ bool jjs_util_map_option (jjs_context_t* context_p,
                           uint32_t default_mapped_value,
                           uint32_t* out_p);
 
-jjs_allocator_t jjs_util_system_allocator (void);
-jjs_allocator_t jjs_util_vm_allocator (jjs_context_t* context_p);
-jjs_allocator_t jjs_util_arraybuffer_allocator (jjs_value_with_context_t *value_p);
+jjs_status_t jjs_util_oneshot_allocator_init (uint8_t *buffer_p,
+                                              jjs_size_t buffer_size,
+                                              jjs_oneshot_allocator_t* dest_p);
 
-jjs_allocator_t jjs_util_arena_allocator (void* block_p, jjs_size_t block_size);
-jjs_allocator_t jjs_util_scratch_allocator (jjs_context_t *context_p);
+jjs_status_t jjs_util_arraybuffer_allocator_init (jjs_context_t *context_p,
+                                                  jjs_arraybuffer_allocator_t* dest_p);
+void jjs_util_arraybuffer_allocator_deinit (jjs_arraybuffer_allocator_t* allocator_p);
+jjs_value_t jjs_util_arraybuffer_allocator_move (jjs_arraybuffer_allocator_t* allocator_p);
+
+jjs_allocator_t jjs_util_system_allocator (void);
+const jjs_allocator_t* jjs_util_system_allocator_ptr (void);
+jjs_allocator_t jjs_util_vm_allocator (jjs_context_t* context_p);
 
 jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p);
 void jjs_util_context_release_scratch_allocator (jjs_context_t* context_p);

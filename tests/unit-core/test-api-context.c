@@ -38,7 +38,7 @@ test_context_new_no_arena (void)
 {
   jjs_context_options_t options = {
     /* size of 0 disables the arena */
-    .scratch_arena_kb = jjs_optional_u32 (0),
+    .scratch_size_kb = jjs_optional_u32 (0),
   };
   jjs_context_t *context_p = ctx_open (&options);
 
@@ -104,10 +104,10 @@ test_context_jjs_namespace (void)
 }
 
 static void
-check_jjs_namespace_exclusion (jjs_namespace_exclusion_t exclusion, const char* api_name_sz)
+check_jjs_namespace_exclusion (jjs_namespace_exclusions_t exclusions, const char* api_name_sz)
 {
   jjs_context_options_t options = {
-    .jjs_namespace_exclusions = exclusion,
+    .jjs_namespace_exclusions = exclusions,
   };
 
   ctx_open (&options);
@@ -128,14 +128,14 @@ check_jjs_namespace_exclusion (jjs_namespace_exclusion_t exclusion, const char* 
 static void
 test_context_jjs_namespace_exclusions (void)
 {
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_READ_FILE, "readFile");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_STDOUT, "stdout");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_STDERR, "stderr");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_PMAP, "pmap");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_VMOD, "vmod");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_REALPATH, "realpath");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_CWD, "cwd");
-  check_jjs_namespace_exclusion (JJS_NAMESPACE_EXCLUSION_GC, "gc");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_read_file = true }, "readFile");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_stdout = true }, "stdout");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_stderr = true }, "stderr");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_pmap = true }, "pmap");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_vmod = true }, "vmod");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_realpath = true }, "realpath");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_cwd = true }, "cwd");
+  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_gc = true }, "gc");
 }
 
 static bool stdlib_alloc_called = false;
@@ -183,30 +183,25 @@ reset_stdlib_allocator_tracking (void)
 static void
 test_context_allocator (void)
 {
-  jjs_context_options_t options = {
-    .allocator = &stdlib_allocator,
-  };
-
   jjs_context_t *context_p;
 
   reset_stdlib_allocator_tracking ();
 
-  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_new_with_allocator (NULL, &stdlib_allocator, &context_p) == JJS_STATUS_OK);
   TEST_ASSERT (stdlib_alloc_called == true);
-  TEST_ASSERT (stdlib_alloc_called_with > JJS_DEFAULT_VM_HEAP_SIZE_KB + JJS_DEFAULT_SCRATCH_ARENA_KB);
+  TEST_ASSERT (stdlib_alloc_called_with > JJS_DEFAULT_VM_HEAP_SIZE_KB + JJS_DEFAULT_SCRATCH_SIZE_KB);
   TEST_ASSERT (stdlib_free_called == false);
   jjs_context_free (context_p);
   TEST_ASSERT (stdlib_free_called == true);
 
-  options = (jjs_context_options_t){
-    .allocator = &stdlib_allocator,
+  jjs_context_options_t options = {
     .vm_heap_size_kb = jjs_optional_u32 (2048),
-    .scratch_arena_kb = jjs_optional_u32 (64),
+    .scratch_size_kb = jjs_optional_u32 (64),
   };
 
   reset_stdlib_allocator_tracking ();
 
-  TEST_ASSERT (jjs_context_new (&options, &context_p) == JJS_STATUS_OK);
+  TEST_ASSERT (jjs_context_new_with_allocator (&options, &stdlib_allocator, &context_p) == JJS_STATUS_OK);
   TEST_ASSERT (stdlib_alloc_called == true);
   TEST_ASSERT (stdlib_alloc_called_with > (2048 + 64) * 1024);
   TEST_ASSERT (stdlib_free_called == false);

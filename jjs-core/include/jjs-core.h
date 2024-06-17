@@ -36,6 +36,9 @@ JJS_C_API_BEGIN
  */
 
 jjs_status_t jjs_context_new (const jjs_context_options_t* options_p, jjs_context_t** context_p);
+jjs_status_t jjs_context_new_with_allocator (const jjs_context_options_t* options_p, const jjs_allocator_t *allocator_p, jjs_context_t** context_p);
+jjs_status_t jjs_context_new_with_buffer (const jjs_context_options_t* options_p, uint8_t *buffer_p, jjs_size_t buffer_size, jjs_context_t** context_p);
+
 void jjs_context_free (jjs_context_t* context_p);
 
 jjs_status_t jjs_context_data_init (jjs_context_t *context_p, const char *id_p, void *data_p, jjs_context_data_key_t* key_p);
@@ -1446,7 +1449,6 @@ jjs_value_t jjs_realm_set_this (jjs_context_t* context_p, jjs_value_t realm, jjs
 
 void* jjs_allocator_alloc (const jjs_allocator_t *allocator_p, jjs_size_t size);
 void jjs_allocator_free (const jjs_allocator_t *allocator_p, void *chunk_p, jjs_size_t size);
-void jjs_allocator_free_self (const jjs_allocator_t *allocator_p);
 
 /**
  * jjs-api @}

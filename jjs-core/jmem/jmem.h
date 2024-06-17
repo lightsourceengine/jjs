@@ -318,4 +318,30 @@ void jmem_pools_collect_empty (jjs_context_t *context_p);
  * @}
  */
 
+typedef struct jmem_fallback_allocation_s
+{
+  jjs_size_t size;
+  struct jmem_fallback_allocation_s *next_p;
+} jmem_fallback_allocation_t;
+
+typedef struct
+{
+  uint8_t *fixed_buffer_p;
+  jjs_size_t fixed_buffer_size;
+  uint8_t *fixed_buffer_next_p;
+  jjs_size_t fixed_buffer_remaining_size;
+
+  jjs_allocator_t fallback_allocator;
+  jmem_fallback_allocation_t *fallback_allocations;
+
+  jjs_allocator_t allocator;
+} jmem_scratch_allocator_t;
+
+jjs_status_t jmem_scratch_allocator_init (uint8_t *fixed_buffer_p,
+                                          jjs_size_t fixed_buffer_size,
+                                          jjs_allocator_t fallback_allocator,
+                                          jmem_scratch_allocator_t *dest_p);
+void jmem_scratch_allocator_reset (jmem_scratch_allocator_t *allocator_p);
+void jmem_scratch_allocator_deinit (jmem_scratch_allocator_t *allocator_p);
+
 #endif /* !JMEM_H */

@@ -188,7 +188,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 {
   (void) argc;
 
-  uint32_t context_flags = JJS_CONTEXT_FLAG_NONE;
+  jjs_context_options_t options = {0};
   uint32_t snapshot_flags = 0;
 
   const char *file_name_p = NULL;
@@ -227,7 +227,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
       {
         if (check_feature (JJS_FEATURE_PARSER_DUMP, cli_state_p->arg))
         {
-          context_flags |= JJS_CONTEXT_FLAG_SHOW_OPCODES;
+          options.show_op_codes = true;
         }
         break;
       }
@@ -278,9 +278,6 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
   }
 
   jjs_context_t *context_p = NULL;
-  jjs_context_options_t options = {
-    .context_flags = context_flags,
-  };
   jjs_status_t status = jjs_context_new (&options, &context_p);
 
   if (status != JJS_STATUS_OK)
@@ -289,7 +286,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
     return JJS_STANDALONE_EXIT_CODE_FAIL;
   }
 
-  if (context_flags & JJS_CONTEXT_FLAG_SHOW_OPCODES)
+  if (options.show_op_codes)
   {
     jjs_log_set_level (context_p, JJS_LOG_LEVEL_DEBUG);
   }

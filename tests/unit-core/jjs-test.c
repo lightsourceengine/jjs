@@ -16,6 +16,7 @@
 #include "jjs-test.h"
 
 #include "jjs-context-init.h"
+#include "jjs-util.h"
 
 #include "ecma-objects.h"
 
@@ -144,7 +145,8 @@ jjs_context_t *
 ctx_bootstrap (const jjs_context_options_t *options)
 {
   jjs_context_t *context_p;
-  TEST_ASSERT (jjs_context_init (options, &context_p) == JJS_STATUS_OK);
+
+  TEST_ASSERT (jjs_context_init (options, jjs_util_system_allocator_ptr (), &context_p) == JJS_STATUS_OK);
 
   return context_p;
 }

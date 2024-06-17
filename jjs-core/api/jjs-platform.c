@@ -199,11 +199,14 @@ jjs_platform_cwd (jjs_context_t* context_p) /**< JJS context */
 
     if (jjs_value_is_string (context_p, result))
     {
+      jjs_util_context_release_scratch_allocator (context_p);
       return result;
     }
 
     ecma_free_value (context_p, result);
   }
+
+  jjs_util_context_release_scratch_allocator (context_p);
 
   return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "platform failed to get cwd");
 } /* jjs_platform_cwd */
@@ -759,23 +762,29 @@ jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encod
 
   if (encoding == JJS_ENCODING_NONE)
   {
-    jjs_allocator_t* path_allocator = jjs_util_context_acquire_scratch_allocator (context_p);
-    jjs_value_with_context_t buffer_value = { .context_p = context_p, .value = ECMA_VALUE_UNDEFINED };
-    jjs_allocator_t buffer_allocator = jjs_util_arraybuffer_allocator (&buffer_value);
-    jjs_platform_buffer_t buffer = jjs_platform_buffer (NULL, 0, &buffer_allocator);
+    jjs_arraybuffer_allocator_t buffer_allocator;
 
-    result = jjsp_read_file_buffer (context_p, path, path_allocator, &buffer_allocator, &buffer);
+    if (jjs_util_arraybuffer_allocator_init (context_p, &buffer_allocator) != JJS_STATUS_OK)
+    {
+      return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "platform read file arraybuffer init failed");
+    }
+
+    jjs_allocator_t* path_allocator = jjs_util_context_acquire_scratch_allocator (context_p);
+    jjs_platform_buffer_t buffer = jjs_platform_buffer (NULL, 0, &buffer_allocator.allocator);
+
+    result = jjsp_read_file_buffer (context_p, path, path_allocator, &buffer_allocator.allocator, &buffer);
 
     if (jjs_value_is_exception (context_p, result))
     {
-      jjs_util_value_with_context_free (&buffer_value);
+      jjs_util_arraybuffer_allocator_deinit (&buffer_allocator);
       jjs_util_context_release_scratch_allocator (context_p);
       return result;
     }
 
     jjs_value_free (context_p, result);
 
-    result = buffer_value.value;
+    result = jjs_util_arraybuffer_allocator_move (&buffer_allocator);;
+    jjs_util_arraybuffer_allocator_deinit (&buffer_allocator);
     jjs_util_context_release_scratch_allocator (context_p);
   }
   else if (encoding == JJS_ENCODING_UTF8 || encoding == JJS_ENCODING_CESU8)

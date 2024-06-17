@@ -39,7 +39,7 @@ jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_vi
 
     /* |t| is the size of the buffer _including_ nul. */
     allocated_size = (jjs_size_t) (t * sizeof (*p));
-    p = allocator->alloc (allocator, allocated_size);
+    p = allocator->vtab_p->alloc (allocator->impl_p, allocated_size);
 
     if (p == NULL)
     {
@@ -60,7 +60,7 @@ jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_vi
       }
     }
 
-    allocator->free (allocator, p, allocated_size);
+    allocator->vtab_p->free (allocator->impl_p, p, allocated_size);
     t = n;
   }
 
@@ -257,11 +257,11 @@ jjsp_path_realpath_impl (jjs_allocator_t* allocator,
 
   // length includes null terminator
   jjs_size_t allocated_size = ((size_t) length) * sizeof (ecma_char_t);
-  ecma_char_t* data_p = allocator->alloc (allocator, allocated_size);
+  ecma_char_t* data_p = allocator->vtab_p->alloc (allocator->impl_p, allocated_size);
 
   if (GetFinalPathNameByHandleW (file, data_p, length, VOLUME_NAME_DOS) <= 0)
   {
-    allocator->free (allocator, data_p, allocated_size);
+    allocator->vtab_p->free (allocator->impl_p, data_p, allocated_size);
     CloseHandle(file);
     return JJS_STATUS_PLATFORM_REALPATH_ERR;
   }
@@ -275,14 +275,14 @@ jjsp_path_realpath_impl (jjs_allocator_t* allocator,
   ecma_char_t* p = (ecma_char_t*) buffer_view_p->data_p;
 
   /* convert UNC path to long path */
-  if (wcsncmp(buffer_view_p->data_p,
+  if (wcsncmp (buffer_view_p->data_p,
                UNC_PATH_PREFIX,
                UNC_PATH_PREFIX_LEN) == 0) {
     p += 6;
     *p = L'\\';
     buffer_view_p->data_p = p;
     buffer_view_p->data_size -= (6 * sizeof (ecma_char_t));
-  } else if (wcsncmp(buffer_view_p->data_p,
+  } else if (wcsncmp (buffer_view_p->data_p,
                     LONG_PATH_PREFIX,
                     LONG_PATH_PREFIX_LEN) == 0) {
     p += 4;

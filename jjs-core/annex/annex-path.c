@@ -594,7 +594,6 @@ annex_encode_path (jjs_context_t* context_p,
     result = ECMA_VALUE_EMPTY;
   }
 
-  jjs_allocator_free (allocator, encoded_p, encoded_capacity);
   jjs_util_context_release_scratch_allocator (context_p);
 
   return result;
