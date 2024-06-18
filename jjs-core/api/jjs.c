@@ -1950,7 +1950,7 @@ jjs_value_as_integer (jjs_context_t* context_p, /**< JJS context */
     return 0;
   }
 
-  double number = ecma_get_number_from_value (context_p, value);
+  ecma_number_t number = ecma_get_number_from_value (context_p, value);
 
   if (ecma_number_is_nan (number))
   {

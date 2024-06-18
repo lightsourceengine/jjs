@@ -310,6 +310,8 @@
 #endif /* !defined (JJS_MEM_STATS) */
 
 /**
+ * WARNING: 32-bit floats do not compile!
+ *
  * Use 32-bit/64-bit float for ecma-numbers
  * This option is for expert use only!
  *
@@ -570,16 +572,6 @@
 #ifndef JJS_ATTR_CONST_DATA
 #define JJS_ATTR_CONST_DATA
 #endif /* !defined (JJS_ATTR_CONST_DATA) */
-
-/**
- * The JJS_ATTR_STATIC_HEAP allows adding extra attributes for the JJS global heap.
- *
- * Example on how to move the global heap into it's own section:
- *   #define JJS_ATTR_STATIC_HEAP __attribute__((section(".text.globalheap")))
- */
-#ifndef JJS_ATTR_STATIC_HEAP
-#define JJS_ATTR_STATIC_HEAP
-#endif /* !defined (JJS_ATTR_STATIC_HEAP) */
 
 /**
  * Component of the equation that calculates gc limit, the threshold, in bytes, before

@@ -87,16 +87,16 @@ test_platform_realpath (void)
   TEST_ASSERT (jjs_platform_has_realpath (ctx ()));
 
   path = jjs_platform_realpath (ctx (), ctx_cstr ("."), JJS_KEEP);
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (path)));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (path)));
 
   path = jjs_platform_realpath (ctx (), ctx_cstr (TEST_FILE), JJS_KEEP);
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (path)));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (path)));
 
   path = jjs_platform_realpath (ctx (), ctx_cstr ("does not exist"), JJS_KEEP);
-  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_value (path)));
+  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_defer_free (path)));
 
   path = jjs_platform_realpath (ctx (), ctx_null (), JJS_KEEP);
-  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_value (path)));
+  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_defer_free (path)));
 
   ctx_close ();
 }
@@ -113,23 +113,23 @@ test_platform_read_file (void)
 
   options.encoding = JJS_ENCODING_UTF8;
   contents = jjs_platform_read_file (ctx (), jjs_string_utf8_sz (ctx (), TEST_FILE), JJS_MOVE, &options);
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (contents)));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (contents)));
 
   options.encoding = JJS_ENCODING_CESU8;
   contents = jjs_platform_read_file (ctx (), jjs_string_utf8_sz (ctx (), TEST_FILE), JJS_MOVE, &options);
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (contents)));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (contents)));
 
   options.encoding = JJS_ENCODING_NONE;
   contents = jjs_platform_read_file (ctx (), jjs_string_utf8_sz (ctx (), TEST_FILE), JJS_MOVE, &options);
-  TEST_ASSERT (jjs_value_is_arraybuffer (ctx (), ctx_value (contents)));
+  TEST_ASSERT (jjs_value_is_arraybuffer (ctx (), ctx_defer_free (contents)));
 
   options.encoding = JJS_ENCODING_NONE;
   contents = jjs_platform_read_file (ctx (), jjs_string_utf8_sz (ctx (), "file not found"), JJS_MOVE, &options);
-  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_value (contents)));
+  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_defer_free (contents)));
 
   options.encoding = JJS_ENCODING_NONE;
   contents = jjs_platform_read_file (ctx (), jjs_null (ctx ()), JJS_MOVE, &options);
-  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_value (contents)));
+  TEST_ASSERT (jjs_value_is_exception (ctx (), ctx_defer_free (contents)));
 
   ctx_close ();
 }

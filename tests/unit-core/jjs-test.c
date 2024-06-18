@@ -75,7 +75,7 @@ ctx (void)
 }
 
 jjs_value_t
-ctx_value (jjs_value_t value)
+ctx_defer_free (jjs_value_t value)
 {
   TEST_ASSERT (context_stack_index >= 0);
 
@@ -90,19 +90,19 @@ ctx_value (jjs_value_t value)
 jjs_value_t
 ctx_global (void)
 {
-  return ctx_value (jjs_current_realm (ctx ()));
+  return ctx_defer_free (jjs_current_realm (ctx ()));
 }
 
 jjs_value_t
 ctx_cstr (const char *s)
 {
-  return ctx_value (jjs_string_utf8_sz (ctx (), s));
+  return ctx_defer_free (jjs_string_utf8_sz (ctx (), s));
 }
 
 jjs_value_t
 ctx_number (double n)
 {
-  return ctx_value (jjs_number (ctx (), n));
+  return ctx_defer_free (jjs_number (ctx (), n));
 }
 
 jjs_value_t
@@ -120,13 +120,13 @@ ctx_undefined (void)
 jjs_value_t
 ctx_object (void)
 {
-  return ctx_value (jjs_object (ctx ()));
+  return ctx_defer_free (jjs_object (ctx ()));
 }
 
 jjs_value_t
 ctx_array (jjs_length_t len)
 {
-  return ctx_value (jjs_array (ctx (), len));
+  return ctx_defer_free (jjs_array (ctx (), len));
 }
 
 jjs_value_t
@@ -138,7 +138,7 @@ ctx_boolean (bool value)
 jjs_value_t
 ctx_symbol (const char *description)
 {
-  return ctx_value (jjs_symbol_with_description (ctx (), ctx_cstr (description)));
+  return ctx_defer_free (jjs_symbol_with_description (ctx (), ctx_cstr (description)));
 }
 
 jjs_context_t *
@@ -178,7 +178,7 @@ ctx_assert_strict_equals (jjs_value_t actual, jjs_value_t expected)
     return;
   }
 
-  jjs_value_t op_result = ctx_value (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, expected, actual));
+  jjs_value_t op_result = ctx_defer_free (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, expected, actual));
 
   if (jjs_value_is_exception (ctx (), op_result))
   {

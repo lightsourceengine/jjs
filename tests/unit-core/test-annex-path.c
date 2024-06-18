@@ -20,13 +20,13 @@
 static void
 check_annex_path_basename (jjs_value_t input, jjs_value_t expected)
 {
-  ctx_assert_strict_equals (ctx_value (annex_path_basename (ctx (), input)), expected);
+  ctx_assert_strict_equals (ctx_defer_free (annex_path_basename (ctx (), input)), expected);
 }
 
 static void
 check_annex_path_dirname (jjs_value_t input, jjs_value_t expected)
 {
-  ctx_assert_strict_equals (ctx_value (annex_path_dirname (ctx (), input)), expected);
+  ctx_assert_strict_equals (ctx_defer_free (annex_path_dirname (ctx (), input)), expected);
 }
 
 static void

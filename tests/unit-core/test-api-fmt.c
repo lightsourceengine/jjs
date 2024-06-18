@@ -18,7 +18,7 @@
 static void
 check_fmt_to_string (const char* format_p, jjs_value_t value, const char* expected)
 {
-  ctx_assert_strict_equals (ctx_value (jjs_fmt_to_string_v (ctx (), format_p, &value, 1)), ctx_cstr (expected));
+  ctx_assert_strict_equals (ctx_defer_free (jjs_fmt_to_string_v (ctx (), format_p, &value, 1)), ctx_cstr (expected));
 }
 
 static void
@@ -39,8 +39,8 @@ test_fmt_to_function (void (*check) (const char*, jjs_value_t, const char*))
 {
   jjs_value_t array = ctx_array (2);
 
-  ctx_value (jjs_object_set_index (ctx (), array, 0, ctx_number (1)));
-  ctx_value (jjs_object_set_index (ctx (), array, 1, ctx_number (2)));
+  ctx_defer_free (jjs_object_set_index (ctx (), array, 0, ctx_number (1)));
+  ctx_defer_free (jjs_object_set_index (ctx (), array, 1, ctx_number (2)));
 
   check ("{}", ctx_null (), "null");
   check ("{}", ctx_undefined (), "undefined");
@@ -69,7 +69,7 @@ test_fmt_to_string (void)
 
   jjs_value_t formatted = jjs_fmt_to_string_v (ctx (), "{}{}{}", values, JJS_ARRAY_SIZE (values));
 
-  ctx_assert_strict_equals (ctx_value (formatted), ctx_cstr ("123"));
+  ctx_assert_strict_equals (ctx_defer_free (formatted), ctx_cstr ("123"));
 }
 
 static void
@@ -108,7 +108,7 @@ test_fmt_join (void)
 
   jjs_value_t joined = jjs_fmt_join_v (ctx (), jjs_string_sz (ctx (), ", "), JJS_MOVE, values, JJS_ARRAY_SIZE (values));
 
-  ctx_assert_strict_equals (ctx_value (joined), ctx_cstr ("1, 2, 3"));
+  ctx_assert_strict_equals (ctx_defer_free (joined), ctx_cstr ("1, 2, 3"));
 }
 
 static void

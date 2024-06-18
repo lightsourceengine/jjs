@@ -586,11 +586,6 @@ set(INCLUDE_THIRD_PARTY_VALGRIND "${PROJECT_SOURCE_DIR}/third-party/valgrind")
 # build mode specific compile/link flags
 set(DEFINES_JJS ${DEFINES_JJS} $<$<NOT:$<CONFIG:Debug>>:JJS_NDEBUG>)
 
-# JJS heap-section
-if(DEFINED JJS_ATTR_STATIC_HEAP)
-  set(DEFINES_JJS ${DEFINES_JJS} JJS_ATTR_STATIC_HEAP=${JJS_ATTR_STATIC_HEAP})
-endif()
-
 # Helper macro to set 0/1 switch as JJS Defines
 macro(jjs_add_define01 NAME)
   if(${NAME})

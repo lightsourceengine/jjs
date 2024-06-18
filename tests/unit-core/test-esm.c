@@ -28,23 +28,23 @@ static const char* TEST_SOURCE_EVALUATE_ERROR = "throw Error('you can't catch me
 static void
 check_namespace_sz (jjs_value_t ns, const char* key, const char* expected)
 {
-  ctx_value (ns);
+  ctx_defer_free (ns);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), ns));
-  TEST_ASSERT (strict_equals_cstr (ctx (), ctx_value (jjs_object_get_sz (ctx (), ns, key)), expected));
+  TEST_ASSERT (strict_equals_cstr (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), ns, key)), expected));
 } /* check_namespace_sz */
 
 static void
 check_namespace_int32 (jjs_value_t ns, const char* key, int32_t expected)
 {
-  ctx_value (ns);
+  ctx_defer_free (ns);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), ns));
-  TEST_ASSERT (strict_equals_int32 (ctx (), ctx_value (jjs_object_get_sz (ctx (), ns, key)), expected));
+  TEST_ASSERT (strict_equals_int32 (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), ns, key)), expected));
 } /* check_namespace_int32 */
 
 static void
 check_evaluate_int32 (jjs_value_t value, int32_t expected)
 {
-  ctx_value (value);
+  ctx_defer_free (value);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), value));
   TEST_ASSERT (strict_equals_int32 (ctx (), value, expected));
 } /* check_evaluate_int32 */
@@ -52,15 +52,15 @@ check_evaluate_int32 (jjs_value_t value, int32_t expected)
 static void
 check_ok (jjs_value_t value)
 {
-  ctx_value (value);
+  ctx_defer_free (value);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), value));
-  TEST_ASSERT (!jjs_value_is_exception (ctx (), ctx_value (jjs_run_jobs (ctx ()))));
+  TEST_ASSERT (!jjs_value_is_exception (ctx (), ctx_defer_free (jjs_run_jobs (ctx ()))));
 } /* check_ok */
 
 static void
 check_exception (jjs_value_t value)
 {
-  ctx_value (value);
+  ctx_defer_free (value);
   TEST_ASSERT (jjs_value_is_exception (ctx (), value));
 } /* check_exception */
 

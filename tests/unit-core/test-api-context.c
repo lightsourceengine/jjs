@@ -45,7 +45,7 @@ test_context_new_no_arena (void)
   /* do some vm work */
   for (jjs_size_t i = 0; i < 5; i++)
   {
-    ctx_value (jjs_binary_op (context_p, JJS_BIN_OP_ADD, ctx_cstr ("x"), ctx_cstr ("y")));
+    ctx_defer_free (jjs_binary_op (context_p, JJS_BIN_OP_ADD, ctx_cstr ("x"), ctx_cstr ("y")));
   }
 
   ctx_close ();
@@ -85,20 +85,20 @@ test_context_jjs_namespace (void)
   ctx_open (NULL);
   
   jjs_value_t global = ctx_global ();
-  jjs_value_t jjs = ctx_value (jjs_object_get_sz (ctx (), global, "jjs"));
+  jjs_value_t jjs = ctx_defer_free (jjs_object_get_sz (ctx (), global, "jjs"));
 
   TEST_ASSERT (jjs_value_is_object (ctx (), jjs));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "version"))));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "os"))));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "arch"))));
-  TEST_ASSERT (jjs_value_is_object (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "stdout"))));
-  TEST_ASSERT (jjs_value_is_object (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "stderr"))));
-  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "pmap"))));
-  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "vmod"))));
-  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "readFile"))));
-  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "realpath"))));
-  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "cwd"))));
-  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "gc"))));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "version"))));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "os"))));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "arch"))));
+  TEST_ASSERT (jjs_value_is_object (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "stdout"))));
+  TEST_ASSERT (jjs_value_is_object (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "stderr"))));
+  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "pmap"))));
+  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "vmod"))));
+  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "readFile"))));
+  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "realpath"))));
+  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "cwd"))));
+  TEST_ASSERT (jjs_value_is_function (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "gc"))));
 
   ctx_close ();
 }
@@ -113,14 +113,14 @@ check_jjs_namespace_exclusion (jjs_namespace_exclusions_t exclusions, const char
   ctx_open (&options);
 
   jjs_value_t global = ctx_global();
-  jjs_value_t jjs = ctx_value (jjs_object_get_sz (ctx (), global, "jjs"));
+  jjs_value_t jjs = ctx_defer_free (jjs_object_get_sz (ctx (), global, "jjs"));
 
   /* sanity check that jjs object exists and basics are populated */
   TEST_ASSERT (jjs_value_is_object (ctx (), jjs));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "version"))));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "os"))));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_value (jjs_object_get_sz (ctx (), jjs, "arch"))));
-  TEST_ASSERT (jjs_value_is_false (ctx (), ctx_value (jjs_object_has_sz (ctx (), jjs, api_name_sz))));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "version"))));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "os"))));
+  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "arch"))));
+  TEST_ASSERT (jjs_value_is_false (ctx (), ctx_defer_free (jjs_object_has_sz (ctx (), jjs, api_name_sz))));
 
   ctx_close ();
 }

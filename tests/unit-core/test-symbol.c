@@ -34,14 +34,14 @@ main (void)
 
   jjs_value_t object = jjs_object (ctx ());
 
-  jjs_value_t empty_symbol_1 = ctx_value (jjs_symbol (ctx ()));
-  jjs_value_t empty_symbol_2 = ctx_value (jjs_symbol (ctx ()));
+  jjs_value_t empty_symbol_1 = ctx_defer_free (jjs_symbol (ctx ()));
+  jjs_value_t empty_symbol_2 = ctx_defer_free (jjs_symbol (ctx ()));
 
   TEST_ASSERT (jjs_value_is_symbol (ctx (), empty_symbol_1));
   TEST_ASSERT (jjs_value_is_symbol (ctx (), empty_symbol_2));
 
   jjs_value_t empty_symbol_cmp = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, empty_symbol_1, empty_symbol_2);
-  TEST_ASSERT (jjs_value_is_false (ctx (), ctx_value (empty_symbol_cmp)));
+  TEST_ASSERT (jjs_value_is_false (ctx (), ctx_defer_free (empty_symbol_cmp)));
 
   /* Test for that each symbol is unique independently from their descriptor strings */
   jjs_value_t symbol_desc_1 = jjs_string_sz (ctx (), STRING_FOO);

@@ -20,7 +20,7 @@
 static void
 check_annex_path_to_file_url (jjs_value_t input, jjs_value_t expected)
 {
-  ctx_assert_strict_equals (ctx_value (annex_path_to_file_url (ctx (), input)), expected);
+  ctx_assert_strict_equals (ctx_defer_free (annex_path_to_file_url (ctx (), input)), expected);
 }
 
 static void

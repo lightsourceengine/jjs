@@ -71,10 +71,10 @@
 #define JJS_EXPECT_UNDEFINED(EXPR)     TEST_ASSERT (jjs_value_is_undefined (ctx (), EXPR))
 #define JJS_EXPECT_PROMISE(EXPR)       TEST_ASSERT (jjs_value_is_promise (ctx (), EXPR))
 
-#define JJS_EXPECT_EXCEPTION_MOVE(EXPR) JJS_EXPECT_EXCEPTION (ctx_value (EXPR))
-#define JJS_EXPECT_TRUE_MOVE(EXPR)      JJS_EXPECT_TRUE (ctx_value (EXPR))
-#define JJS_EXPECT_UNDEFINED_MOVE(EXPR) JJS_EXPECT_UNDEFINED (ctx_value (EXPR))
-#define JJS_EXPECT_PROMISE_MOVE(EXPR)   JJS_EXPECT_PROMISE (ctx_value (EXPR))
+#define JJS_EXPECT_EXCEPTION_MOVE(EXPR) JJS_EXPECT_EXCEPTION (ctx_defer_free (EXPR))
+#define JJS_EXPECT_TRUE_MOVE(EXPR)      JJS_EXPECT_TRUE (ctx_defer_free (EXPR))
+#define JJS_EXPECT_UNDEFINED_MOVE(EXPR) JJS_EXPECT_UNDEFINED (ctx_defer_free (EXPR))
+#define JJS_EXPECT_PROMISE_MOVE(EXPR)   JJS_EXPECT_PROMISE (ctx_defer_free (EXPR))
 
 #define JJS_ARRAY_SIZE(ARRAY) (sizeof (ARRAY) / sizeof (ARRAY[0]))
 
@@ -139,9 +139,12 @@ jjs_context_t *ctx_bootstrap (const jjs_context_options_t *options);
  */
 void ctx_bootstrap_cleanup (jjs_context_t *context_p);
 
-/* Create values and store them in the current context. */
+/*
+ * Create values and store their reference in the current test context. Values
+ * will be cleaned up when the text context is destroyed.
+ */
 
-jjs_value_t ctx_value (jjs_value_t value);
+jjs_value_t ctx_defer_free (jjs_value_t value);
 jjs_value_t ctx_global (void);
 jjs_value_t ctx_cstr (const char *s);
 jjs_value_t ctx_number (double n);
