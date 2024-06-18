@@ -581,3 +581,15 @@ jjs_util_promise_unhandled_rejection_default (jjs_context_t* context_p,
   jjs_log_fmt (context_p, JJS_LOG_LEVEL_ERROR, "Uncaught:\n{}\n", reason);
 #endif
 }
+
+jjs_value_t
+jjs_optional_value_or_undefined (const jjs_optional_value_t* optional_p)
+{
+  return optional_p->has_value ? optional_p->value : ECMA_VALUE_UNDEFINED;
+}
+
+uint32_t
+jjs_optional_u32_or (const jjs_optional_u32_t* optional_p, uint32_t value)
+{
+  return optional_p->has_value ? optional_p->value : value;
+}

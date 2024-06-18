@@ -136,9 +136,7 @@ test_context_unhandled_rejection_handler (void)
 
   jjs_promise_on_unhandled_rejection (context_p, unhandled_rejection, (void *) (uintptr_t) 1);
 
-  jjs_esm_source_t source = {
-    .source_sz = "import('blah')",
-  };
+  jjs_esm_source_t source = jjs_esm_source_of_sz ("import('blah')");
 
   jjs_value_t result = jjs_esm_evaluate_source (context_p, &source, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (context_p, result));

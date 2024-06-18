@@ -185,6 +185,15 @@ typedef struct
 } jjs_optional_encoding_t;
 
 /**
+ * Optional JJS value.
+ */
+typedef struct
+{
+  jjs_value_t value; /**< value */
+  bool has_value; /**< boolean indicating whether value has been set */
+} jjs_optional_value_t;
+
+/**
  * Flags for path conversion.
  */
 typedef enum
@@ -371,10 +380,9 @@ typedef struct
 /**
  * Source code and configuration data of an in-memory ES module.
  *
- * The source code is can be specified as a null-terminated c-string (source_sz),
- * a JS string value (source_value) or a character buffer of a specified size
- * (source_buffer_p + source_buffer_size). Exactly one of these source code sources
- * can be set or this object will fail validation.
+ * The source code is can be specified as a JS string value (source_value) or
+ * a character buffer of a specified size (source_buffer_p + source_buffer_size).
+ * Exactly one of these source code sources can be set or this object will fail validation.
  *
  * The in-memory module is a module, so it needs a referrer path to support imports and
  * requires. dirname is used to specify this path. The path MUST exist on disk. If dirname
@@ -394,20 +402,17 @@ typedef struct
  */
 typedef struct
 {
-  const char* source_sz; /**< source code in null-terminated c-string; UTF8 encoded */
-
-  jjs_value_t source_value; /**< source code as a JS value */
-
   const jjs_char_t* source_buffer_p; /**< source code buffer; UTF8 encoded */
   jjs_size_t source_buffer_size; /**< size, in bytes, of source_buffer_p */
 
-  jjs_value_t filename; /**< simple filename of module. if not set, <anonymous>.mjs */
-  jjs_value_t dirname; /**< fs dirname of the module. if not set, cwd. */
+  jjs_optional_value_t source_value; /**< source code as a JS value */
 
-  jjs_value_t meta_extension; /**< value of import.meta.extension. if not set, undefined */
+  jjs_optional_value_t filename; /**< simple filename of module. if not set, <anonymous>.mjs */
+  jjs_optional_value_t dirname; /**< fs dirname of the module. if not set, cwd. */
+  jjs_optional_value_t meta_extension; /**< value of import.meta.extension. if not set, undefined */
 
-  uint32_t start_line; /**< start line of the source code. if not set, 0. */
-  uint32_t start_column; /**< start column of the source code. if not set, 0. */
+  jjs_optional_u32_t start_line; /**< start line of the source code. if not set, 0. */
+  jjs_optional_u32_t start_column; /**< start column of the source code. if not set, 0. */
 
   bool cache; /**< if true, the module will be put in the esm cache using resolved dirname + filename as the key. default is false.*/
 } jjs_esm_source_t;

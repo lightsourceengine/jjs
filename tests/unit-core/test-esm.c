@@ -37,6 +37,10 @@ static void
 check_namespace_int32 (jjs_value_t ns, const char* key, int32_t expected)
 {
   ctx_defer_free (ns);
+  if (jjs_value_is_exception (ctx (), ns))
+  {
+    ;
+  }
   TEST_ASSERT (!jjs_value_is_exception (ctx (), ns));
   TEST_ASSERT (strict_equals_int32 (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), ns, key)), expected));
 } /* check_namespace_int32 */
@@ -66,18 +70,12 @@ check_exception (jjs_value_t value)
 
 /** common exception tests for jjs_esm_*_source() functions. */
 static void
-source_exceptions_impl (jjs_context_t *context_p, jjs_value_t fn (jjs_context_t *, jjs_esm_source_t*, jjs_value_ownership_t))
+source_exceptions_impl (jjs_context_t *context_p, jjs_value_t fn (jjs_context_t *, const jjs_esm_source_t*, jjs_value_ownership_t))
 {
   jjs_esm_source_t sources [] = {
-    {
-      .source_sz = TEST_SOURCE_PARSE_ERROR,
-    },
-    {
-      .source_sz = TEST_SOURCE_LINK_ERROR,
-    },
-    {
-      .source_sz = TEST_SOURCE_EVALUATE_ERROR,
-    },
+    jjs_esm_source_of_sz (TEST_SOURCE_PARSE_ERROR),
+    jjs_esm_source_of_sz (TEST_SOURCE_LINK_ERROR),
+    jjs_esm_source_of_sz (TEST_SOURCE_EVALUATE_ERROR),
   };
 
   for (size_t i = 0; i < JJS_ARRAY_SIZE (sources); i++)
@@ -165,15 +163,10 @@ test_esm_import_source (void)
 {
   const char* source_p = "export default 5;";
   jjs_esm_source_t sources [] = {
+    jjs_esm_source_of ((const jjs_char_t*) source_p, (jjs_size_t) strlen (source_p)),
+    jjs_esm_source_of_sz (source_p),
     {
-      .source_sz = source_p,
-    },
-    {
-      .source_value = jjs_string_utf8_sz (ctx (), source_p),
-    },
-    {
-      .source_buffer_p = (const jjs_char_t*) source_p,
-      .source_buffer_size = (jjs_size_t) strlen (source_p),
+      .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
     },
   };
 
@@ -182,16 +175,7 @@ test_esm_import_source (void)
 
   for (i = 0; i < sources_size; i++)
   {
-    jjs_esm_source_t source = sources[i];
-
-    if (source.source_value != 0)
-    {
-      source.source_value = jjs_value_copy (ctx (), source.source_value);
-    }
-
     check_namespace_int32 (jjs_esm_import_source (ctx (), &sources[i], JJS_KEEP), "default", 5);
-
-    jjs_esm_source_free_values (ctx (), &source);
   }
 
   for (i = 0; i < sources_size; i++)
@@ -206,15 +190,10 @@ test_esm_evaluate_source (void)
   const char* source_p = "5";
 
   jjs_esm_source_t sources [] = {
+    jjs_esm_source_of_sz (source_p),
+    jjs_esm_source_of ((const jjs_char_t*) source_p, (jjs_size_t) strlen (source_p)),
     {
-      .source_sz = source_p,
-    },
-    {
-      .source_value = jjs_string_utf8_sz (ctx (), source_p),
-    },
-    {
-      .source_buffer_p = (const jjs_char_t*) source_p,
-      .source_buffer_size = (jjs_size_t) strlen (source_p),
+      .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
     },
   };
 
@@ -223,16 +202,7 @@ test_esm_evaluate_source (void)
 
   for (i = 0; i < sources_size; i++)
   {
-    jjs_esm_source_t source = sources[i];
-
-    if (source.source_value != 0)
-    {
-      source.source_value = jjs_value_copy (ctx (), source.source_value);
-    }
-
     check_evaluate_int32 (jjs_esm_evaluate_source (ctx (), &sources[i], JJS_KEEP), 5);
-
-    jjs_esm_source_free_values (ctx (), &source);
   }
 
   for (i = 0; i < sources_size; i++)
@@ -260,55 +230,37 @@ test_esm_source_validation (void)
 
   jjs_esm_source_t sources [] = {
     // Empty
-    {
-      .cache = false,
-    },
+    jjs_esm_source (),
     // source_value is not a string
     {
-      .source_value = jjs_object (ctx ()),
-    },
-    // source_value and source_sz set
-    {
-      .source_value = jjs_string_utf8_sz (ctx (), source_p),
-      .source_sz = source_p,
-    },
-    // source_buffer and source_sz set
-    {
-      .source_sz = source_p,
-      .source_buffer_p = (const jjs_char_t*) source_p,
-      .source_buffer_size = (jjs_size_t) strlen (source_p),
+      .source_value = jjs_optional_value (jjs_object (ctx ())),
     },
     // source_value and source_buffer set
     {
-      .source_value = jjs_string_utf8_sz (ctx (), source_p),
-      .source_buffer_p = (const jjs_char_t*) source_p,
-      .source_buffer_size = (jjs_size_t) strlen (source_p),
-    },
-    // all sources set
-    {
-      .source_sz = source_p,
-      .source_value = jjs_string_utf8_sz (ctx (), source_p),
+      .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
       .source_buffer_p = (const jjs_char_t*) source_p,
       .source_buffer_size = (jjs_size_t) strlen (source_p),
     },
     // invalid filename
     {
-      .source_sz = source_p,
-      .filename = jjs_number (ctx (), 1),
+      .source_buffer_p = (const jjs_char_t*) source_p,
+      .source_buffer_size = (jjs_size_t) strlen (source_p),
+      .filename = jjs_optional_value (jjs_number (ctx (), 1)),
     },
     // invalid dirname
     {
-      .source_sz = source_p,
-      .dirname = jjs_number (ctx (), 1),
+      .source_buffer_p = (const jjs_char_t*) source_p,
+      .source_buffer_size = (jjs_size_t) strlen (source_p),
+      .dirname = jjs_optional_value (jjs_number (ctx (), 1)),
     },
   };
 
-  size_t sources_size = JJS_ARRAY_SIZE (sources);
+  const size_t sources_size = JJS_ARRAY_SIZE (sources);
   size_t i;
 
   for (i = 0; i < sources_size; i++)
   {
-    jjs_esm_import_source (ctx (), &sources[i], JJS_MOVE);
+    jjs_esm_import_source (ctx (), &sources[i], JJS_KEEP);
   }
 
   for (i = 0; i < sources_size; i++)
@@ -320,11 +272,21 @@ test_esm_source_validation (void)
 static void
 test_esm_source (void)
 {
-  jjs_esm_source_t source = jjs_esm_source(ctx ());
+  jjs_esm_source_t source;
+
+  source = jjs_esm_source ();
   jjs_esm_source_free_values (ctx (), &source);
 
-  jjs_esm_source_t source2;
-  jjs_esm_source_free_values (ctx (), jjs_esm_source_init (ctx (), &source2));
+  source = jjs_esm_source_of_sz (TEST_SOURCE_PARSE_ERROR);
+  TEST_ASSERT (source.source_buffer_p != NULL);
+  TEST_ASSERT (source.source_buffer_size > 0);
+  jjs_esm_source_free_values (ctx (), &source);
+
+  source =
+    jjs_esm_source_of ((const jjs_char_t*) TEST_SOURCE_PARSE_ERROR, (jjs_size_t) strlen (TEST_SOURCE_PARSE_ERROR));
+  TEST_ASSERT (source.source_buffer_p != NULL);
+  TEST_ASSERT (source.source_buffer_size > 0);
+  jjs_esm_source_free_values (ctx (), &source);
 } /* test_esm_source */
 
 static void
@@ -334,37 +296,31 @@ test_esm_source_free_values (void)
   jjs_esm_source_t source;
 
   source = (jjs_esm_source_t) {
-    .source_value = jjs_string_utf8_sz (ctx (), source_p),
+    .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
   };
 
   jjs_esm_source_free_values (ctx (), &source);
 
-  source = (jjs_esm_source_t) {
-    .source_sz = source_p,
-    .filename = jjs_string_utf8_sz (ctx (), "filename"),
-  };
+  source = jjs_esm_source_of_sz (source_p);
+  source.filename = jjs_optional_value (jjs_string_utf8_sz (ctx (), "filename"));
+
+  jjs_esm_source_free_values (ctx (), &source);
+
+  source = jjs_esm_source_of_sz (source_p);
+  source.dirname = jjs_optional_value (jjs_string_utf8_sz (ctx (), "dirname"));
+
+  jjs_esm_source_free_values (ctx (), &source);
+
+  source = jjs_esm_source_of_sz (source_p);
+  source.meta_extension = jjs_optional_value (jjs_object (ctx ()));
 
   jjs_esm_source_free_values (ctx (), &source);
 
   source = (jjs_esm_source_t) {
-    .source_sz = source_p,
-    .dirname = jjs_string_utf8_sz (ctx (), "dirname"),
-  };
-
-  jjs_esm_source_free_values (ctx (), &source);
-
-  source = (jjs_esm_source_t) {
-    .source_sz = source_p,
-    .meta_extension = jjs_object (ctx ()),
-  };
-
-  jjs_esm_source_free_values (ctx (), &source);
-
-  source = (jjs_esm_source_t) {
-    .source_value = jjs_string_utf8_sz (ctx (), source_p),
-    .filename = jjs_string_utf8_sz (ctx (), "filename"),
-    .dirname = jjs_string_utf8_sz (ctx (), "dirname"),
-    .meta_extension = jjs_object (ctx ()),
+    .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
+    .filename = jjs_optional_value (jjs_string_utf8_sz (ctx (), "filename")),
+    .dirname = jjs_optional_value (jjs_string_utf8_sz (ctx (), "dirname")),
+    .meta_extension = jjs_optional_value (jjs_object (ctx ())),
   };
 
   jjs_esm_source_free_values (ctx (), &source);

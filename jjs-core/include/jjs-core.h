@@ -121,6 +121,7 @@ jjs_register_magic_strings (jjs_context_t* context_p, const jjs_char_t *const *e
 
 jjs_optional_u32_t jjs_optional_u32 (uint32_t value);
 jjs_optional_encoding_t jjs_optional_encoding (jjs_encoding_t encoding);
+jjs_optional_value_t jjs_optional_value (jjs_value_t value);
 
 /**
  * jjs-api-general-misc @}
@@ -1352,17 +1353,18 @@ jjs_value_t jjs_commonjs_require_sz (jjs_context_t* context_p, const char* speci
  * @{
  */
 
-jjs_esm_source_t jjs_esm_source (jjs_context_t* context_p);
-jjs_esm_source_t* jjs_esm_source_init (jjs_context_t* context_p, jjs_esm_source_t* source_p);
-void jjs_esm_source_free_values (jjs_context_t* context_p, jjs_esm_source_t* esm_source_p);
-
 jjs_value_t jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
 jjs_value_t jjs_esm_import_sz (jjs_context_t* context_p, const char* specifier_p);
-jjs_value_t jjs_esm_import_source (jjs_context_t* context_p, jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
+jjs_value_t jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
 
 jjs_value_t jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
 jjs_value_t jjs_esm_evaluate_sz (jjs_context_t* context_p, const char* specifier_p);
-jjs_value_t jjs_esm_evaluate_source (jjs_context_t* context_p, jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
+jjs_value_t jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
+
+jjs_esm_source_t jjs_esm_source (void);
+jjs_esm_source_t jjs_esm_source_of (const jjs_char_t *code_p, jjs_size_t len);
+jjs_esm_source_t jjs_esm_source_of_sz (const char* code_p);
+void jjs_esm_source_free_values (jjs_context_t* context_p, const jjs_esm_source_t* esm_source_p);
 
 void jjs_esm_on_load (jjs_context_t* context_p, jjs_esm_load_cb_t callback_p, void *user_p);
 void jjs_esm_on_resolve (jjs_context_t* context_p, jjs_esm_resolve_cb_t callback_p, void *user_p);

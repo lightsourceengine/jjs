@@ -7955,6 +7955,15 @@ jjs_optional_encoding (jjs_encoding_t encoding)
   };
 }
 
+jjs_optional_value_t
+jjs_optional_value (jjs_value_t value)
+{
+  return (jjs_optional_value_t) {
+    .value = value,
+    .has_value = true,
+  };
+}
+
 /**
  * Allocate a chunk of memory.
  *

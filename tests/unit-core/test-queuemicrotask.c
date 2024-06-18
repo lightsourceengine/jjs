@@ -77,9 +77,7 @@ main (void)
   TEST_ASSERT (!jjs_has_pending_jobs (ctx ()));
 
   // ensure we get an uncaught error via jjs_run_jobs () if callback throws error
-  jjs_esm_source_t source = {
-    .source_sz = "queueMicrotask(() => { throw new Error(); });",
-  };
+  jjs_esm_source_t source = jjs_esm_source_of_sz ("queueMicrotask(() => { throw new Error(); });");
 
   result = jjs_esm_evaluate_source (ctx (), &source, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
