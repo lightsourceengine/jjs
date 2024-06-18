@@ -43,8 +43,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-api-value-type.c
   test-api.c
   test-arraybuffer.c
-#  TODO: broken
-#  test-backtrace.c
+  test-backtrace.c
   test-bigint.c
   test-commonjs.c
   test-container.c

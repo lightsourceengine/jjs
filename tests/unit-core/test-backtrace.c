@@ -51,15 +51,16 @@ static const jjs_value_t *handler_args_p;
 static int frame_index;
 
 static bool
-backtrace_callback (jjs_frame_t *frame_p, /* frame information */
+backtrace_callback (jjs_context_t *context_p, /* JJS context */
+                    jjs_frame_t *frame_p, /* frame information */
                     void *user_p) /* user data */
 {
   TEST_ASSERT ((void *) handler_args_p == user_p);
-  TEST_ASSERT (jjs_frame_type (ctx (), frame_p) == JJS_BACKTRACE_FRAME_JS);
+  TEST_ASSERT (jjs_frame_type (context_p, frame_p) == JJS_BACKTRACE_FRAME_JS);
 
-  const jjs_frame_location_t *location_p = jjs_frame_location (ctx (), frame_p);
-  const jjs_value_t *function_p = jjs_frame_callee (ctx (), frame_p);
-  const jjs_value_t *this_p = jjs_frame_this (ctx (), frame_p);
+  const jjs_frame_location_t *location_p = jjs_frame_location (context_p, frame_p);
+  const jjs_value_t *function_p = jjs_frame_callee (context_p, frame_p);
+  const jjs_value_t *this_p = jjs_frame_this (context_p, frame_p);
 
   TEST_ASSERT (location_p != NULL);
   TEST_ASSERT (function_p != NULL);
@@ -71,7 +72,7 @@ backtrace_callback (jjs_frame_t *frame_p, /* frame information */
 
   if (frame_index == 1)
   {
-    TEST_ASSERT (!jjs_frame_is_strict (ctx (), frame_p));
+    TEST_ASSERT (!jjs_frame_is_strict (context_p, frame_p));
     TEST_ASSERT (location_p->line == 2);
     TEST_ASSERT (location_p->column == 3);
     TEST_ASSERT (handler_args_p[0] == *function_p);
@@ -81,36 +82,37 @@ backtrace_callback (jjs_frame_t *frame_p, /* frame information */
 
   if (frame_index == 2)
   {
-    TEST_ASSERT (jjs_frame_is_strict (ctx (), frame_p));
+    TEST_ASSERT (jjs_frame_is_strict (context_p, frame_p));
     TEST_ASSERT (location_p->line == 7);
     TEST_ASSERT (location_p->column == 6);
     TEST_ASSERT (handler_args_p[2] == *function_p);
-    TEST_ASSERT (jjs_value_is_undefined (ctx (), *this_p));
+    TEST_ASSERT (jjs_value_is_undefined (context_p, *this_p));
     return true;
   }
 
-  jjs_value_t global = jjs_current_realm (ctx ());
+  jjs_value_t global = jjs_current_realm (context_p);
 
   TEST_ASSERT (frame_index == 3);
-  TEST_ASSERT (!jjs_frame_is_strict (ctx (), frame_p));
+  TEST_ASSERT (!jjs_frame_is_strict (context_p, frame_p));
   TEST_ASSERT (location_p->line == 11);
   TEST_ASSERT (location_p->column == 3);
   TEST_ASSERT (handler_args_p[3] == *function_p);
   TEST_ASSERT (global == *this_p);
 
-  jjs_value_free (ctx (), global);
+  jjs_value_free (context_p, global);
   return false;
 } /* backtrace_callback */
 
 static bool
-async_backtrace_callback (jjs_frame_t *frame_p, /* frame information */
+async_backtrace_callback (jjs_context_t *context_p, /* JJS context */
+                          jjs_frame_t *frame_p, /* frame information */
                           void *user_p) /* user data */
 {
   TEST_ASSERT ((void *) handler_args_p == user_p);
-  TEST_ASSERT (jjs_frame_type (ctx (), frame_p) == JJS_BACKTRACE_FRAME_JS);
+  TEST_ASSERT (jjs_frame_type (context_p, frame_p) == JJS_BACKTRACE_FRAME_JS);
 
-  const jjs_frame_location_t *location_p = jjs_frame_location (ctx (), frame_p);
-  const jjs_value_t *function_p = jjs_frame_callee (ctx (), frame_p);
+  const jjs_frame_location_t *location_p = jjs_frame_location (context_p, frame_p);
+  const jjs_value_t *function_p = jjs_frame_callee (context_p, frame_p);
 
   TEST_ASSERT (location_p != NULL);
   TEST_ASSERT (function_p != NULL);
@@ -121,7 +123,7 @@ async_backtrace_callback (jjs_frame_t *frame_p, /* frame information */
 
   if (frame_index == 1)
   {
-    TEST_ASSERT (jjs_frame_is_strict (ctx (), frame_p));
+    TEST_ASSERT (jjs_frame_is_strict (context_p, frame_p));
     TEST_ASSERT (location_p->line == 3);
     TEST_ASSERT (location_p->column == 3);
     TEST_ASSERT (handler_args_p[0] == *function_p);
@@ -129,7 +131,7 @@ async_backtrace_callback (jjs_frame_t *frame_p, /* frame information */
   }
 
   TEST_ASSERT (frame_index == 2);
-  TEST_ASSERT (!jjs_frame_is_strict (ctx (), frame_p));
+  TEST_ASSERT (!jjs_frame_is_strict (context_p, frame_p));
   TEST_ASSERT (location_p->line == 8);
   TEST_ASSERT (location_p->column == 3);
   TEST_ASSERT (handler_args_p[1] == *function_p);
@@ -137,14 +139,15 @@ async_backtrace_callback (jjs_frame_t *frame_p, /* frame information */
 } /* async_backtrace_callback */
 
 static bool
-class_backtrace_callback (jjs_frame_t *frame_p, /* frame information */
+class_backtrace_callback (jjs_context_t *context_p, /* JJS context */
+                          jjs_frame_t *frame_p, /* frame information */
                           void *user_p) /* user data */
 {
   TEST_ASSERT ((void *) handler_args_p == user_p);
-  TEST_ASSERT (jjs_frame_type (ctx (), frame_p) == JJS_BACKTRACE_FRAME_JS);
+  TEST_ASSERT (jjs_frame_type (context_p, frame_p) == JJS_BACKTRACE_FRAME_JS);
 
-  const jjs_frame_location_t *location_p = jjs_frame_location (ctx (), frame_p);
-  const jjs_value_t *function_p = jjs_frame_callee (ctx (), frame_p);
+  const jjs_frame_location_t *location_p = jjs_frame_location (context_p, frame_p);
+  const jjs_value_t *function_p = jjs_frame_callee (context_p, frame_p);
 
   TEST_ASSERT (location_p != NULL);
   TEST_ASSERT (function_p != NULL);
@@ -155,14 +158,14 @@ class_backtrace_callback (jjs_frame_t *frame_p, /* frame information */
 
   if (frame_index == 1)
   {
-    TEST_ASSERT (jjs_frame_is_strict (ctx (), frame_p));
+    TEST_ASSERT (jjs_frame_is_strict (context_p, frame_p));
     TEST_ASSERT (location_p->line == 3);
     TEST_ASSERT (location_p->column == 14);
     return false;
   }
 
   TEST_ASSERT (frame_index == 2);
-  TEST_ASSERT (jjs_frame_is_strict (ctx (), frame_p));
+  TEST_ASSERT (jjs_frame_is_strict (context_p, frame_p));
   TEST_ASSERT (location_p->line == 2);
   TEST_ASSERT (location_p->column == 7);
   return false;
@@ -173,11 +176,10 @@ capture_handler (const jjs_call_info_t *call_info_p, /**< call information */
                  const jjs_value_t args_p[], /**< argument list */
                  const jjs_length_t args_count) /**< argument count */
 {
-  JJS_UNUSED (call_info_p);
-
   TEST_ASSERT (args_count == 0 || args_count == 2 || args_count == 4);
   TEST_ASSERT (args_count == 0 || frame_index == 0);
 
+  jjs_context_t *context_p = call_info_p->context_p;
   jjs_backtrace_cb_t callback = backtrace_callback;
 
   if (args_count == 0)
@@ -190,26 +192,27 @@ capture_handler (const jjs_call_info_t *call_info_p, /**< call information */
   }
 
   handler_args_p = args_p;
-  jjs_backtrace_capture (ctx (), callback, (void *) args_p);
+  jjs_backtrace_capture (context_p, callback, (void *) args_p);
 
   TEST_ASSERT (args_count == 0 || frame_index == (args_count == 4 ? 3 : 2));
 
-  return jjs_undefined (ctx ());
+  return jjs_undefined (context_p);
 } /* capture_handler */
 
 static bool
-global_backtrace_callback (jjs_frame_t *frame_p, /* frame information */
+global_backtrace_callback (jjs_context_t *context_p, /* JJS context */
+                           jjs_frame_t *frame_p, /* frame information */
                            void *user_p) /* user data */
 {
   TEST_ASSERT (user_p != NULL && frame_index == 0);
   frame_index++;
 
-  const jjs_value_t *function_p = jjs_frame_callee (ctx (), frame_p);
+  const jjs_value_t *function_p = jjs_frame_callee (context_p, frame_p);
   jjs_value_t *result_p = ((jjs_value_t *) user_p);
 
   TEST_ASSERT (function_p != NULL);
-  jjs_value_free (ctx (), *result_p);
-  *result_p = jjs_value_copy (ctx (), *function_p);
+  jjs_value_free (context_p, *result_p);
+  *result_p = jjs_value_copy (context_p, *function_p);
   return true;
 } /* global_backtrace_callback */
 
@@ -218,14 +221,14 @@ global_capture_handler (const jjs_call_info_t *call_info_p, /**< call informatio
                         const jjs_value_t args_p[], /**< argument list */
                         const jjs_length_t args_count) /**< argument count */
 {
-  JJS_UNUSED (call_info_p);
   JJS_UNUSED (args_p);
   JJS_UNUSED (args_count);
 
-  jjs_value_t result = jjs_undefined (ctx ());
-  jjs_backtrace_capture (ctx (), global_backtrace_callback, &result);
+  jjs_context_t *context_p = call_info_p->context_p;
+  jjs_value_t result = jjs_undefined (context_p);
+  jjs_backtrace_capture (context_p, global_backtrace_callback, &result);
 
-  TEST_ASSERT (jjs_value_is_object (ctx (), result));
+  TEST_ASSERT (jjs_value_is_object (context_p, result));
   return result;
 } /* global_capture_handler */
 

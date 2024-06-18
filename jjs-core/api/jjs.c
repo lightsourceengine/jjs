@@ -5557,7 +5557,7 @@ jjs_backtrace_capture (jjs_context_t* context_p, /**< JJS context */
   jjs_frame_t frame;
   vm_frame_ctx_t *frame_context_p = context_p->vm_top_context_p;
 
-  while (context_p != NULL)
+  while (frame_context_p != NULL)
   {
     frame.context_p = frame_context_p;
     frame.frame_type = JJS_BACKTRACE_FRAME_JS;
