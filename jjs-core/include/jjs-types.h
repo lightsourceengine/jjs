@@ -169,11 +169,20 @@ typedef struct jjs_allocator_s
 /**
  * Optional unsigned integer.
  */
-typedef struct jjs_optional_u32_s
+typedef struct
 {
   uint32_t value; /**< value */
   bool has_value; /**< boolean indicating whether value has been set */
 } jjs_optional_u32_t;
+
+/**
+ * Optional text encoding value.
+ */
+typedef struct
+{
+  jjs_encoding_t value; /**< value */
+  bool has_value; /**< boolean indicating whether value has been set */
+} jjs_optional_encoding_t;
 
 /**
  * Flags for path conversion.
@@ -1089,8 +1098,6 @@ typedef struct jjs_wstream_s
   jjs_encoding_t encoding;
 } jjs_wstream_t;
 
-typedef struct jjs_platform_s jjs_platform_t;
-
 /**
  * Buffer object used by platform api functions.
  *
@@ -1174,24 +1181,6 @@ typedef jjs_status_t (*jjs_platform_time_now_ms_fn_t) (double*);
 typedef jjs_status_t (*jjs_platform_path_cwd_fn_t) (jjs_allocator_t* allocator, jjs_platform_buffer_view_t*);
 typedef jjs_status_t (*jjs_platform_path_realpath_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_view_t*);
 
-typedef enum
-{
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_FATAL = 1 << 0,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_PATH_CWD = 1 << 1,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_PATH_REALPATH = 1 << 2,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_WRITE = 1 << 3,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_FLUSH = 1 << 4,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDOUT = 1 << 5,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDERR = 1 << 6,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDOUT_ENCODING = 1 << 7,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDERR_ENCODING = 1 << 8,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_LOCAL_TZA = 1 << 9,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_NOW_MS = 1 << 10,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_SLEEP = 1 << 11,
-  JJS_PLATFORM_OPTIONS_FLAG_HAS_FS_READ_FILE = 1 << 12,
-  JJS_PLATFORM_OPTIONS_FLAG_ALL = INT32_MAX,
-} jjs_platform_options_flag_t;
-
 /**
  * Contains platform specific data and functions used internally by JJS. The
  * structure is exposed publicly so that the embedding application can inject
@@ -1202,10 +1191,6 @@ typedef enum
  */
 typedef struct
 {
-  uint32_t flags;
-
-  jjs_allocator_t* allocator;
-
   /**
    * Engine calls this platform function when the process experiences a fatal failure
    * which it cannot recover.
@@ -1226,6 +1211,7 @@ typedef struct
    * On success, JJS_STATUS_OK should be returned.
    */
   jjs_platform_path_cwd_fn_t path_cwd;
+  bool exclude_path_cwd; /**< do not use the default implementation if path_cwd is NULL */
 
   /**
    * Writes bytes to an output stream.
@@ -1240,6 +1226,7 @@ typedef struct
    * type of the stream.
    */
   jjs_platform_io_write_fn_t io_write;
+  bool exclude_io_write; /**< do not use the default implementation if io_write is NULL */
 
   /**
    * Flush a stream.
@@ -1252,16 +1239,16 @@ typedef struct
    * be compatible FILE* (stdout and stderr by default).
    */
   jjs_platform_io_flush_fn_t io_flush;
+  bool exclude_io_flush; /**< do not use the default implementation if io_flush is NULL */
 
   /**
    * Stream the engine uses when it wants to write to stdout.
    *
    * The value is opaque, but must be compatible with the io_write function. With the
-   * default io_write, this value can be set to a FILE*. If you wanted this stream to
-   * go to a file and you want to use the default io_write, it can be replaced with a
-   * pointer from fopen.
+   * default io_write, this value can be set to a FILE*.
    */
   jjs_platform_io_stream_t io_stdout;
+  bool exclude_io_stdout; /**< do not use stdout if io_stdout is NULL */
 
   /**
    * Default encoding to use when writing a JS string to the stdout stream.
@@ -1273,17 +1260,16 @@ typedef struct
    * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
    * ASCII (non-ASCII codepoints will be converted to ?).
    */
-  jjs_encoding_t io_stdout_encoding;
+  jjs_optional_encoding_t io_stdout_encoding;
 
   /**
    * Stream the engine uses when it wants to write to stderr.
    *
    * The value is opaque, but must be compatible with the io_write function. With the
-   * default io_write, this value can be set to a FILE*. If you wanted this stream to
-   * go to a file and you want to use the default io_write, it can be replaced with a
-   * pointer from fopen.
+   * default io_write, this value can be set to a FILE*.
    */
   jjs_platform_io_stream_t io_stderr;
+  bool exclude_io_stderr; /**< do not use stderr if io_stderr is NULL */
 
   /**
    * Default encoding to use when writing a JS string to the stderr stream.
@@ -1295,7 +1281,7 @@ typedef struct
    * By default, strings will be written to the stream in UTF8. You can choose CESU8 or
    * ASCII (non-ASCII codepoints will be converted to ?).
    */
-  jjs_encoding_t io_stderr_encoding;
+  jjs_optional_encoding_t io_stderr_encoding;
 
   /**
    * Get local time zone adjustment in milliseconds for the given input time.
@@ -1308,6 +1294,7 @@ typedef struct
    * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
    */
   jjs_platform_time_local_tza_fn_t time_local_tza;
+  bool exclude_time_local_tza; /**< do not use the default implementation if time_local_tza is NULL */
 
   /**
    * Get the current system time in UTC time or milliseconds since the unix epoch.
@@ -1315,6 +1302,7 @@ typedef struct
    * This platform function is required by jjs-core when JJS_BUILTIN_DATE is enabled.
    */
   jjs_platform_time_now_ms_fn_t time_now_ms;
+  bool exclude_time_now_ms; /**< do not use the default implementation if time_now_ms is NULL */
 
   /**
    * Put the current thread to sleep for the given number of milliseconds.
@@ -1322,6 +1310,7 @@ typedef struct
    * This platform function is required by jjs-core when JJS_DEBUGGER is enabled.
    */
   jjs_platform_time_sleep_fn_t time_sleep;
+  bool exclude_time_sleep; /**< do not use the default implementation if time_sleep is NULL */
 
   /**
    * Returns an absolute path with symlinks resolved to their real path names.
@@ -1342,6 +1331,7 @@ typedef struct
    * be consistent cache keys, preventing modules from being reloaded.
    */
   jjs_platform_path_realpath_fn_t path_realpath;
+  bool exclude_path_realpath; /**< do not use the default implementation if path_realpath is NULL */
 
   /**
    * Reads the entire contents of a file.
@@ -1363,6 +1353,8 @@ typedef struct
    * it can set jjs_platform_buffer_t free and allocator appropriately.
    */
   jjs_platform_fs_read_file_fn_t fs_read_file;
+  bool exclude_fs_read_file; /**< do not use the default implementation if fs_read_file is NULL */
+
 } jjs_platform_options_t;
 
 /**
@@ -1402,8 +1394,6 @@ typedef enum
  */
 typedef struct
 {
-  jjs_platform_t *platform;
-
   bool show_op_codes; /**< dump byte-code to log after parse */
   bool show_regexp_op_codes; /**< dump regexp byte-code to log after compilation */
   bool enable_mem_stats; /**< dump memory statistics */
@@ -1427,6 +1417,8 @@ typedef struct
    * vm heap will be a few K smaller at runtime.
    */
   bool strict_memory_layout;
+
+  jjs_platform_options_t platform;
 
   /**
    * Control which apis are exposed to scripts in the javascript jjs object (globalThis.jjs).

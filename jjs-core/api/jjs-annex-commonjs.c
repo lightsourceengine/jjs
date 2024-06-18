@@ -103,7 +103,7 @@ jjs_value_t jjs_annex_create_require (jjs_context_t* context_p, jjs_value_t refe
 
   if (jjs_value_is_undefined (context_p, referrer))
   {
-    if (context_p->platform_p->path_cwd != NULL)
+    if (context_p->platform.path_cwd != NULL)
     {
       path = annex_path_cwd (context_p);
     }

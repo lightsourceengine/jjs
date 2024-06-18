@@ -120,6 +120,7 @@ void
 jjs_register_magic_strings (jjs_context_t* context_p, const jjs_char_t *const *ext_strings_p, uint32_t count, const jjs_length_t *str_lengths_p);
 
 jjs_optional_u32_t jjs_optional_u32 (uint32_t value);
+jjs_optional_encoding_t jjs_optional_encoding (jjs_encoding_t encoding);
 
 /**
  * jjs-api-general-misc @}
@@ -1284,9 +1285,6 @@ jjs_value_t jjs_pmap_resolve_sz (jjs_context_t* context_p, const char* specifier
  * @defgroup jjs-platform-ops Operations
  * @{
  */
-
-jjs_status_t jjs_platform_new (const jjs_platform_options_t* options_p, jjs_platform_t** platform_p);
-void jjs_platform_free (jjs_platform_t* platform_p);
 
 jjs_value_t jjs_platform_cwd (jjs_context_t* context_p);
 bool jjs_platform_has_cwd (jjs_context_t* context_p);

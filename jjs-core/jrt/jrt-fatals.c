@@ -30,6 +30,7 @@
 void JJS_ATTR_NORETURN
 jjs_fatal (jjs_fatal_code_t code) /**< status code */
 {
+  // TODO: fix?
 //#ifndef JJS_NDEBUG
 //  switch (code)
 //  {

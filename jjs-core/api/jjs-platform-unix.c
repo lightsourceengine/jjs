@@ -50,7 +50,7 @@ jjsp_buffer_view_from_stdlib_alloc (void* buffer,
 #include <unistd.h>
 
 jjs_status_t
-jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
+jjsp_path_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
 {
   JJS_UNUSED (allocator);
   char* path_p = getcwd (NULL, 0);

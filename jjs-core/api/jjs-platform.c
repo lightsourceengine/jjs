@@ -35,136 +35,6 @@ jjs_platform_create_path (jjs_allocator_t* allocator, const uint8_t* path_p, jjs
 static ecma_value_t jjsp_buffer_view_to_string_value (jjs_context_t *context_p, jjs_platform_buffer_view_t* buffer_p, bool move);
 static void jjs_platform_buffer_view_free (jjs_platform_buffer_view_t* self_p);
 
-static const jjs_platform_io_write_fn_t default_io_write = JJS_PLATFORM_API_IO_WRITE ? jjsp_io_write_impl : NULL;
-static const jjs_platform_io_flush_fn_t default_io_flush = JJS_PLATFORM_API_IO_FLUSH ? jjsp_io_flush_impl : NULL;
-static const jjs_platform_fs_read_file_fn_t default_fs_read_file = JJS_PLATFORM_API_FS_READ_FILE ? jjsp_fs_read_file_impl : NULL;
-static const jjs_platform_path_cwd_fn_t default_path_cwd = JJS_PLATFORM_API_PATH_CWD ? jjsp_cwd_impl : NULL;
-static const jjs_platform_path_realpath_fn_t default_path_realpath = JJS_PLATFORM_API_PATH_REALPATH ? jjsp_path_realpath_impl : NULL;
-static const jjs_platform_time_local_tza_fn_t default_time_local_tza = JJS_PLATFORM_API_TIME_LOCAL_TZA ? jjsp_time_local_tza_impl : NULL;
-static const jjs_platform_time_now_ms_fn_t default_time_now_ms = JJS_PLATFORM_API_TIME_NOW_MS ? jjsp_time_now_ms_impl : NULL;
-static const jjs_platform_time_sleep_fn_t default_time_sleep = JJS_PLATFORM_API_TIME_SLEEP ? jjsp_time_sleep_impl : NULL;
-
-static bool
-check_stream_encoding (void* stream_p, jjs_encoding_t default_encoding)
-{
-  return (stream_p != NULL) && (default_encoding == JJS_ENCODING_ASCII || default_encoding == JJS_ENCODING_UTF8 || default_encoding == JJS_ENCODING_CESU8);
-}
-
-/**
- * Create a new platform object.
- *
- * @param options_p platform options. if NULL, compile time defaults are used.
- * @param platform_p new platform object iff return status is JJS_STATUS_OK. must be cleaned up with jjs_platform_free()
- * @return JJS_STATUS_OK on success; otherwise, a failure status is returned.
- */
-jjs_status_t
-jjs_platform_new (const jjs_platform_options_t* options_p, jjs_platform_t** platform_p)
-{
-  static const jjs_platform_options_t platform_options_default = {0};
-
-  if (!options_p)
-  {
-    options_p = &platform_options_default;
-  }
-
-  jjs_allocator_t allocator = (options_p->allocator != NULL) ? *options_p->allocator : jjs_util_system_allocator ();
-  jjs_platform_t *result_p = jjs_allocator_alloc (&allocator, sizeof (jjs_platform_t));
-
-  if (result_p == NULL)
-  {
-    return JJS_STATUS_BAD_ALLOC;
-  }
-
-  *result_p = (jjs_platform_t) {
-    .allocator = allocator,
-    .refs = 1,
-    .fatal = options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_FATAL ? options_p->fatal : jjsp_fatal_impl,
-    .io_write = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_WRITE) ? options_p->io_write : default_io_write,
-    .io_flush = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_FLUSH) ? options_p->io_flush : default_io_flush,
-    .io_stdout = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDOUT) ? options_p->io_stdout : stdout,
-    .io_stdout_encoding = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDOUT_ENCODING) ? options_p->io_stdout_encoding : JJS_ENCODING_UTF8,
-    .io_stderr = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDERR) ? options_p->io_stderr : stderr,
-    .io_stderr_encoding = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_IO_STDERR_ENCODING) ? options_p->io_stdout_encoding : JJS_ENCODING_UTF8,
-    .fs_read_file = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_FS_READ_FILE) ? options_p->fs_read_file : default_fs_read_file,
-    .path_cwd = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_PATH_CWD) ? options_p->path_cwd : default_path_cwd,
-    .path_realpath = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_PATH_REALPATH) ? options_p->path_realpath : default_path_realpath,
-    .time_local_tza = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_LOCAL_TZA) ? options_p->time_local_tza : default_time_local_tza,
-    .time_now_ms = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_NOW_MS) ? options_p->time_now_ms : default_time_now_ms,
-    .time_sleep = (options_p->flags & JJS_PLATFORM_OPTIONS_FLAG_HAS_TIME_SLEEP) ? options_p->time_sleep : default_time_sleep,
-  };
-
-  jjs_status_t status = JJS_STATUS_OK;
-
-  if (result_p->fatal == NULL)
-  {
-    status = JJS_STATUS_CONTEXT_REQUIRES_API_FATAL;
-    goto done;
-  }
-
-  if (!check_stream_encoding (result_p->io_stdout, result_p->io_stdout_encoding))
-  {
-    status = JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING;
-    goto done;
-  }
-
-  if (!check_stream_encoding (result_p->io_stderr, result_p->io_stderr_encoding))
-  {
-    status = JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING;
-    goto done;
-  }
-
-#if JJS_DEBUGGER
-  if (result_p->time_sleep == NULL)
-  {
-    status = JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP;
-    goto done;
-  }
-#endif
-
-#if JJS_BUILTIN_DATE
-  if (result_p->time_local_tza == NULL)
-  {
-    status = JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA;
-    goto done;
-  }
-
-  if (result_p->time_now_ms == NULL)
-  {
-    status = JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS;
-    goto done;
-  }
-#endif
-
-done:
-  if (status == JJS_STATUS_OK)
-  {
-    *platform_p = result_p;
-  }
-  else
-  {
-    jjs_allocator_free (&allocator, result_p, sizeof (jjs_platform_t));
-  }
-
-  return status;
-} /* jjs_platform_new */
-
-/**
- * Release a platform object created with jjs_platform_new().
- *
- * @param platform_p platform object to free
- */
-void
-jjs_platform_free (jjs_platform_t* platform_p)
-{
-  if (platform_p && platform_p->refs > 0)
-  {
-    if (--platform_p->refs == 0)
-    {
-      jjs_allocator_free (&platform_p->allocator, platform_p, sizeof (*platform_p));
-    }
-  }
-} /* jjs_platform_free */
-
 /**
  * Gets the current working directory.
  *
@@ -179,7 +49,7 @@ jjs_value_t
 jjs_platform_cwd (jjs_context_t* context_p) /**< JJS context */
 {
   jjs_assert_api_enabled(context_p);
-  jjs_platform_path_cwd_fn_t cwd = context_p->platform_p->path_cwd;
+  jjs_platform_path_cwd_fn_t cwd = context_p->platform.path_cwd;
 
   if (cwd == NULL)
   {
@@ -230,7 +100,7 @@ jjs_value_t
 jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_value_ownership_t path_o)
 {
   jjs_assert_api_enabled (context_p);
-  jjs_platform_path_realpath_fn_t realpath_fn = context_p->platform_p->path_realpath;
+  jjs_platform_path_realpath_fn_t realpath_fn = context_p->platform.path_realpath;
 
   if (realpath_fn == NULL)
   {
@@ -343,7 +213,7 @@ jjs_platform_read_file_sz (jjs_context_t* context_p, const char* path_p, const j
 bool jjs_platform_has_cwd (jjs_context_t* context_p)
 {
   jjs_assert_api_enabled (context_p);
-  return (context_p->platform_p->path_cwd != NULL);
+  return (context_p->platform.path_cwd != NULL);
 } /* jjs_platform_has_cwd */
 
 /**
@@ -357,7 +227,7 @@ bool jjs_platform_has_cwd (jjs_context_t* context_p)
 bool jjs_platform_has_realpath (jjs_context_t* context_p)
 {
   jjs_assert_api_enabled (context_p);
-  return (context_p->platform_p->path_realpath != NULL);
+  return (context_p->platform.path_realpath != NULL);
 } /* jjs_platform_has_realpath */
 
 /**
@@ -371,7 +241,7 @@ bool jjs_platform_has_realpath (jjs_context_t* context_p)
 bool jjs_platform_has_read_file (jjs_context_t* context_p)
 {
   jjs_assert_api_enabled (context_p);
-  return (context_p->platform_p->fs_read_file != NULL);
+  return (context_p->platform.fs_read_file != NULL);
 } /* jjs_platform_has_read_file */
 
 /**
@@ -617,7 +487,7 @@ jjs_platform_arch_type (void)
 void
 jjs_platform_fatal (jjs_context_t* context_p, jjs_fatal_code_t code)
 {
-  jjs_platform_fatal_fn_t fatal_fn = context_p ? context_p->platform_p->fatal : NULL;
+  jjs_platform_fatal_fn_t fatal_fn = context_p ? context_p->platform.fatal : NULL;
 
   if (!fatal_fn)
   {
@@ -722,7 +592,7 @@ jjsp_read_file_buffer (jjs_context_t* context_p,
                        jjs_allocator_t* buffer_allocator,
                        jjs_platform_buffer_t* buffer_p)
 {
-  jjs_platform_fs_read_file_fn_t read_file = context_p->platform_p->fs_read_file;
+  jjs_platform_fs_read_file_fn_t read_file = context_p->platform.fs_read_file;
 
   if (!read_file)
   {

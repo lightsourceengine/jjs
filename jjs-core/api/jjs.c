@@ -5173,10 +5173,10 @@ jjs_log_string (jjs_context_t* context_p, /**< JJS context */
                 jjs_size_t size) /**< message size */
 {
   /* TODO: logging does not specify encoding. use stderr encoding for now. */
-  if (context_p->platform_p && context_p->platform_p->io_write && context_p->platform_p->io_stderr) {
-    context_p->platform_p->io_write (context_p->platform_p->io_stderr,
+  if (context_p->platform.io_write && context_p->platform.io_stderr) {
+    context_p->platform.io_write (context_p->platform.io_stderr,
                                      (const uint8_t *) str_p, size,
-                                     context_p->platform_p->io_stderr_encoding);
+                                     context_p->platform.io_stderr_encoding);
   }
 
 #if JJS_DEBUGGER
@@ -7932,6 +7932,15 @@ jjs_optional_u32 (uint32_t value)
 {
   return (jjs_optional_u32_t) {
     .value = value,
+    .has_value = true,
+  };
+}
+
+jjs_optional_encoding_t
+jjs_optional_encoding (jjs_encoding_t encoding)
+{
+  return (jjs_optional_encoding_t) {
+    .value = encoding,
     .has_value = true,
   };
 }

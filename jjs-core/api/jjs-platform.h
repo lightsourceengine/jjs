@@ -19,31 +19,6 @@
 #include "jjs-core.h"
 #include "ecma-globals.h"
 
-struct jjs_platform_s
-{
-  jjs_allocator_t allocator;
-  int32_t refs;
-
-  jjs_platform_fatal_fn_t fatal;
-
-  jjs_platform_io_write_fn_t io_write;
-  jjs_platform_io_flush_fn_t io_flush;
-  jjs_platform_io_stream_t io_stdout;
-
-  jjs_encoding_t io_stdout_encoding;
-  jjs_platform_io_stream_t io_stderr;
-  jjs_encoding_t io_stderr_encoding;
-
-  jjs_platform_time_local_tza_fn_t time_local_tza;
-  jjs_platform_time_now_ms_fn_t time_now_ms;
-  jjs_platform_time_sleep_fn_t time_sleep;
-
-  jjs_platform_path_cwd_fn_t path_cwd;
-  jjs_platform_path_realpath_fn_t path_realpath;
-
-  jjs_platform_fs_read_file_fn_t fs_read_file;
-};
-
 /* platform api implementation helpers */
 
 bool jjsp_path_is_relative (const lit_utf8_byte_t* path_p, lit_utf8_size_t size);
@@ -69,7 +44,7 @@ jjs_status_t jjsp_time_sleep_impl (uint32_t sleep_time_ms);
 jjs_status_t jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p);
 jjs_status_t jjsp_time_now_ms_impl (double* out_p);
 
-jjs_status_t jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p);
+jjs_status_t jjsp_path_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p);
 jjs_status_t jjsp_path_realpath_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_view_t* buffer_view_p);
 
 jjs_status_t

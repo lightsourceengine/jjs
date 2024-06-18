@@ -24,7 +24,7 @@
 #include <windows.h>
 
 jjs_status_t
-jjsp_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
+jjsp_path_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
 {
   WCHAR* p;
   DWORD n;
