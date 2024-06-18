@@ -226,19 +226,14 @@ static jjs_value_t
 join_with_cwd (const char *base)
 {
   jjs_value_t components[] = {
-    jjs_platform_cwd (ctx ()),
-    jjs_string_sz (ctx (), base),
+    ctx_defer_free (jjs_platform_cwd (ctx ())),
+    ctx_cstr (base),
   };
 
   jjs_value_t raw = jjs_fmt_join_v (ctx (), jjs_string_sz (ctx (), "/"), JJS_MOVE, components, JJS_ARRAY_SIZE (components));
   jjs_value_t result = jjs_platform_realpath (ctx (), raw, JJS_MOVE);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
-
-  for (size_t i = 0; i < JJS_ARRAY_SIZE (components); i++)
-  {
-    jjs_value_free (ctx (), components[i]);
-  }
 
   return result;
 }

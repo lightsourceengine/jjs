@@ -24,7 +24,7 @@ typedef struct
 {
   jjs_context_t *context_p;
   jjs_value_t stored_values[1024];
-  size_t stored_values_index;
+  jjs_size_t stored_values_index;
 } ctx_stack_entry;
 
 static ctx_stack_entry context_stack[3] = { 0 };
@@ -58,10 +58,7 @@ ctx_close (void)
 
   ctx_stack_entry *e = &context_stack[context_stack_index];
 
-  for (size_t i = 0; i < e->stored_values_index; i++)
-  {
-    jjs_value_free (e->context_p, e->stored_values[i]);
-  }
+  jjs_value_free_array (e->context_p, e->stored_values, e->stored_values_index);
 
   jjs_context_free (e->context_p);
   context_stack_index--;
@@ -81,7 +78,7 @@ ctx_defer_free (jjs_value_t value)
 
   ctx_stack_entry *e = &context_stack[context_stack_index];
 
-  TEST_ASSERT (e->stored_values_index < JJS_ARRAY_SIZE (context_stack->stored_values));
+  TEST_ASSERT (e->stored_values_index < (jjs_size_t) JJS_ARRAY_SIZE (context_stack->stored_values));
   e->stored_values[e->stored_values_index++] = value;
 
   return value;

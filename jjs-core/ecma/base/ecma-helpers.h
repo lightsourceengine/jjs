@@ -270,6 +270,7 @@ void ecma_value_assign_value (ecma_context_t *context_p, ecma_value_t *value_p, 
 void ecma_free_value (ecma_context_t *context_p, ecma_value_t value);
 void ecma_fast_free_value (ecma_context_t *context_p, ecma_value_t value);
 void ecma_free_value_if_not_object (ecma_context_t *context_p, ecma_value_t value);
+void ecma_free_value_all (ecma_context_t *context_p, ecma_value_t value);
 void ecma_free_object (ecma_context_t *context_p, ecma_value_t value);
 void ecma_free_number (ecma_context_t *context_p, ecma_value_t value);
 lit_magic_string_id_t ecma_get_typeof_lit_id (ecma_context_t *context_p, ecma_value_t value);

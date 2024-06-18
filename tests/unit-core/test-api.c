@@ -750,6 +750,26 @@ main (void)
       jjs_value_free (ctx (), target_proto);
     }
 
+    /* Test: jjs_value_free_array */
+    {
+      uint64_t digit64 = 1;
+      jjs_value_t value_array[] = {
+        jjs_null (ctx ()),
+        jjs_undefined (ctx ()),
+        jjs_boolean (ctx (), true),
+        jjs_number_from_int32 (ctx (), 1),
+        jjs_number_from_double (ctx (), 2000000.123),
+        jjs_object (ctx ()),
+        jjs_symbol_get_well_known (ctx (), JJS_SYMBOL_ASYNC_ITERATOR),
+        jjs_string_sz (ctx (), "test"),
+        jjs_bigint (ctx (), &digit64, 1, false),
+        jjs_throw_sz (ctx (), JJS_ERROR_COMMON, "message"),
+      };
+
+      jjs_value_free_array (ctx (), value_array, JJS_ARRAY_SIZE (value_array));
+      jjs_value_free_array (ctx (), NULL, 0);
+    }
+
     /* Test: eval */
     const jjs_char_t eval_code_src1[] = "(function () { return 123; })";
     val_t = jjs_eval (ctx (), eval_code_src1, sizeof (eval_code_src1) - 1, JJS_PARSE_STRICT_MODE);

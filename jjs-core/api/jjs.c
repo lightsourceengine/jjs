@@ -2088,14 +2088,24 @@ jjs_value_free (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  if (JJS_UNLIKELY (ecma_is_value_exception (value)))
-  {
-    ecma_deref_exception (context_p, ecma_get_extended_primitive_from_value (context_p, value));
-    return;
-  }
-
-  ecma_free_value (context_p, value);
+  ecma_free_value_all (context_p, value);
 } /* jjs_value_free */
+
+/**
+ * Release ownership of each value element of the given array.
+ */
+void
+jjs_value_free_array (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t *values_p, /**< array of values. can be NULL if count is 0.*/
+                      jjs_size_t count) /**< number of items in values_p array */
+{
+  jjs_assert_api_enabled (context_p);
+
+  for (jjs_size_t i = 0; i < count; i++)
+  {
+    ecma_free_value_all (context_p, values_p[i]);
+  }
+} /* jjs_value_free_array */
 
 /**
  * Release ownership of the argument value, unless the condition function
@@ -2104,7 +2114,7 @@ jjs_value_free (jjs_context_t* context_p, /**< JJS context */
  * This function is for a common pattern of api usage. The value should be
  * released unless the value satisfies a condition, like jjs_value_is_exception. If
  * the condition is satisfied, you may want to take additional steps like
- * logging or chaning control flow before releasing the value.
+ * logging or changing control flow before releasing the value.
  *
  * @param context_p JJS context
  * @param value the value to release

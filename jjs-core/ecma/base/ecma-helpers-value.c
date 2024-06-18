@@ -1123,6 +1123,62 @@ ecma_fast_free_value (ecma_context_t *context_p, /**< JJS context */
 } /* ecma_fast_free_value */
 
 /**
+ * Free value, including the error/exception type.
+ *
+ * Note: this is a helper for the api layer. ecma layer code should not call this function
+ */
+void
+ecma_free_value_all (ecma_context_t *context_p, /**< JJS context */
+                     ecma_value_t value) /**< value to free */
+{
+  switch (ecma_get_value_type_field (value))
+  {
+    case ECMA_TYPE_FLOAT:
+    {
+      ecma_number_t *number_p = (ecma_number_t *) ecma_get_pointer_from_ecma_value (context_p, value);
+      ecma_dealloc_number (context_p, number_p);
+      break;
+    }
+    case ECMA_TYPE_SYMBOL:
+    case ECMA_TYPE_STRING:
+    {
+      ecma_string_t *string_p = (ecma_string_t *) ecma_get_pointer_from_ecma_value (context_p, value);
+      ecma_deref_ecma_string_non_direct (context_p, string_p);
+      break;
+    }
+    case ECMA_TYPE_OBJECT:
+    {
+      ecma_deref_object (ecma_get_object_from_value (context_p, value));
+      break;
+    }
+#if JJS_BUILTIN_BIGINT
+    case ECMA_TYPE_BIGINT:
+    {
+      if (value != ECMA_BIGINT_ZERO)
+      {
+        ecma_deref_bigint (context_p, ecma_get_extended_primitive_from_value (context_p, value));
+      }
+
+      break;
+    }
+#endif /* JJS_BUILTIN_BIGINT */
+    case ECMA_TYPE_ERROR:
+    {
+      ecma_deref_exception (context_p, ecma_get_extended_primitive_from_value (context_p, value));
+      break;
+    }
+    default:
+    {
+      JJS_ASSERT (ecma_get_value_type_field (value) == ECMA_TYPE_DIRECT
+                  || ecma_get_value_type_field (value) == ECMA_TYPE_DIRECT_STRING);
+
+      /* no memory is allocated */
+      break;
+    }
+  }
+}
+
+/**
  * Free the ecma value if not an object
  */
 void

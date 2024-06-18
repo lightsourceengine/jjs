@@ -223,6 +223,7 @@ bool jjs_frame_is_strict (jjs_context_t* context_p, jjs_frame_t *frame_p);
 /* Reference management */
 jjs_value_t JJS_ATTR_WARN_UNUSED_RESULT jjs_value_copy (jjs_context_t* context_p, const jjs_value_t value);
 void jjs_value_free (jjs_context_t* context_p, jjs_value_t value);
+void jjs_value_free_array (jjs_context_t* context_p, const jjs_value_t *values_p, jjs_size_t count);
 bool jjs_value_free_unless (jjs_context_t* context_p, jjs_value_t value, jjs_value_condition_fn_t condition_fn);
 
 /**
