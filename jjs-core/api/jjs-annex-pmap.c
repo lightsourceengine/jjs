@@ -93,7 +93,7 @@ static jjs_value_t expect_path_like_string (jjs_context_t* context_p, ecma_value
  * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t root, jjs_value_ownership_t root_o)
+jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_own_t pmap_o, jjs_value_t root, jjs_own_t root_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_PMAP
@@ -104,7 +104,7 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
     if (jjs_value_is_exception (context_p, resolved_filename))
     {
-      JJS_DISOWN (context_p, root, root_o);
+      jjs_disown_value (context_p, root, root_o);
       return resolved_filename;
     }
 
@@ -118,7 +118,7 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
         dirname = ecma_string_ascii_sz (context_p, ".");
       }
 
-      JJS_DISOWN (context_p, root, root_o);
+      jjs_disown_value (context_p, root, root_o);
 
       if (jjs_value_is_exception (context_p, dirname))
       {
@@ -134,7 +134,7 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
     if (jjs_value_is_exception (context_p, pmap))
     {
-      JJS_DISOWN (context_p, root, root_o);
+      jjs_disown_value (context_p, root, root_o);
       return pmap;
     }
 
@@ -145,8 +145,8 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
   if (jjs_value_is_exception (context_p, result))
   {
-    JJS_DISOWN (context_p, pmap, pmap_o);
-    JJS_DISOWN (context_p, root, root_o);
+    jjs_disown_value (context_p, pmap, pmap_o);
+    jjs_disown_value (context_p, root, root_o);
     return result;
   }
 
@@ -156,13 +156,13 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
   if (jjs_value_is_undefined (context_p, root))
   {
-    JJS_DISOWN (context_p, root, root_o);
+    jjs_disown_value (context_p, root, root_o);
     resolved_root = jjs_platform_cwd (context_p);
   }
   else if (!jjs_value_is_string (context_p, root))
   {
-    JJS_DISOWN (context_p, pmap, pmap_o);
-    JJS_DISOWN (context_p, root, root_o);
+    jjs_disown_value (context_p, pmap, pmap_o);
+    jjs_disown_value (context_p, root, root_o);
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "");
   }
   else
@@ -172,7 +172,7 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
   if (jjs_value_is_exception (context_p, resolved_root))
   {
-    JJS_DISOWN (context_p, pmap, pmap_o);
+    jjs_disown_value (context_p, pmap, pmap_o);
     return resolved_root;
   }
 
@@ -185,8 +185,8 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
 
   return jjs_undefined (context_p);
 #else /* !JJS_ANNEX_PMAP */
-  JJS_DISOWN (context_p, pmap, pmap_o);
-  JJS_DISOWN (context_p, root, root_o);
+  jjs_disown_value (context_p, pmap, pmap_o);
+  jjs_disown_value (context_p, root, root_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap */
@@ -217,16 +217,16 @@ jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap
  * @return absolute file path to the module. on error, an exception will be
  * thrown. return value must be freed with jjs_value_free().
  */
-jjs_value_t jjs_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type)
+jjs_value_t jjs_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o, jjs_module_type_t module_type)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_PMAP
   jjs_value_t result = jjs_annex_pmap_resolve (context_p, specifier, module_type);
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
   return result;
 #else /* !JJS_ANNEX_PMAP */
   JJS_UNUSED_ALL (module_type);
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_PMAP_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_PMAP */
 } /* jjs_pmap_resolve */

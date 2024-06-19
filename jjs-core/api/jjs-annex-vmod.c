@@ -77,19 +77,19 @@ static jjs_value_t annex_vmod_get_exports_from_config (jjs_context_t* context_p,
  * with jj_value_free.
  */
 jjs_value_t
-jjs_vmod (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o, jjs_value_t value, jjs_value_ownership_t value_o)
+jjs_vmod (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o, jjs_value_t value, jjs_own_t value_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_VMOD
   jjs_value_t result = annex_vmod_new (context_p, name, value);
 
-  JJS_DISOWN (context_p, name, name_o);
-  JJS_DISOWN (context_p, value, value_o);
+  jjs_disown_value (context_p, name, name_o);
+  jjs_disown_value (context_p, value, value_o);
 
   return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_DISOWN (context_p, name, name_o);
-  JJS_DISOWN (context_p, value, value_o);
+  jjs_disown_value (context_p, name, name_o);
+  jjs_disown_value (context_p, value, value_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod */
@@ -98,7 +98,7 @@ jjs_vmod (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name
  * @see jjs_vmod
  */
 jjs_value_t
-jjs_vmod_sz (jjs_context_t* context_p, const char *name, jjs_value_t value, jjs_value_ownership_t value_o)
+jjs_vmod_sz (jjs_context_t* context_p, const char *name, jjs_value_t value, jjs_own_t value_o)
 {
   jjs_assert_api_enabled (context_p);
   return jjs_vmod (context_p, annex_util_create_string_utf8_sz (context_p, name), JJS_MOVE, value, value_o);
@@ -120,17 +120,17 @@ jjs_vmod_sz (jjs_context_t* context_p, const char *name, jjs_value_t value, jjs_
  * @return on success, package exports; otherwise, an exception is thrown
  */
 jjs_value_t
-jjs_vmod_resolve (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o)
+jjs_vmod_resolve (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_VMOD
   jjs_value_t result = jjs_annex_vmod_resolve (context_p, name);
 
-  JJS_DISOWN (context_p, name, name_o);
+  jjs_disown_value (context_p, name, name_o);
 
   return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_DISOWN (context_p, name, name_o);
+  jjs_disown_value (context_p, name, name_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VMOD_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_resolve */
@@ -162,17 +162,17 @@ jjs_vmod_resolve_sz (jjs_context_t* context_p, const char *name)
  * @return true if package is registered; otherwise, false
  */
 bool
-jjs_vmod_exists (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o)
+jjs_vmod_exists (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_VMOD
   jjs_value_t result = jjs_annex_vmod_exists (context_p, name);
 
-  JJS_DISOWN(context_p, name, name_o);
+  jjs_disown_value (context_p, name, name_o);
 
   return result;
 #else /* !JJS_ANNEX_VMOD */
-  JJS_DISOWN (context_p, name, name_o);
+  jjs_disown_value (context_p, name, name_o);
   return false;
 #endif /* JJS_ANNEX_VMOD */
 } /* jjs_vmod_exists */
@@ -198,16 +198,15 @@ jjs_vmod_exists_sz (jjs_context_t* context_p, const char *name)
  * @param name_o name reference ownership
  */
 void
-jjs_vmod_remove (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o)
+jjs_vmod_remove (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o)
 {
   jjs_assert_api_enabled (context_p);
+
 #if JJS_ANNEX_VMOD
   annex_vmod_remove (context_p, name);
-
-  JJS_DISOWN (context_p, name, name_o);
-#else /* !JJS_ANNEX_VMOD */
-  JJS_DISOWN (context_p, name, name_o);
 #endif /* JJS_ANNEX_VMOD */
+
+  jjs_disown_value (context_p, name, name_o);
 } /* jjs_vmod_remove */
 
 /**

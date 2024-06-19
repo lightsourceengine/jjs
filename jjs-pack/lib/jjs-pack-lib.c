@@ -61,7 +61,7 @@ jjs_pack_cleanup (jjs_context_t *context_p)
 } /* jjs_pack_cleanup */
 
 jjs_value_t
-jjs_pack_lib_main (jjs_context_t *context_p, uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, jjs_value_ownership_t bindings_o)
+jjs_pack_lib_main (jjs_context_t *context_p, uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, jjs_own_t bindings_o)
 {
   jjs_value_t exports =
     jjs_pack_lib_read_exports (context_p, source, source_size, bindings, bindings_o, JJS_PACK_LIB_EXPORTS_FORMAT_OBJECT);
@@ -87,7 +87,7 @@ jjs_pack_lib_read_exports (jjs_context_t *context_p,
                            uint8_t* source,
                            jjs_size_t source_size,
                            jjs_value_t bindings,
-                           jjs_value_ownership_t bindings_o,
+                           jjs_own_t bindings_o,
                            jjs_pack_lib_exports_format_t exports_format)
 {
   jjs_value_t fn =
@@ -141,7 +141,7 @@ jjs_bindings_function (jjs_context_t *context_p, jjs_value_t bindings, const cha
 } /* jjs_bindings_function */
 
 void
-jjs_bindings_value (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_value_t value, jjs_value_ownership_t value_o)
+jjs_bindings_value (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_value_t value, jjs_own_t value_o)
 {
   jjs_value_free (context_p, jjs_object_set_sz (context_p, bindings, name, value));
 

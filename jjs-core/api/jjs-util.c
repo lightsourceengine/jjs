@@ -48,9 +48,9 @@ jjs_return (jjs_context_t *context_p, const jjs_value_t value) /**< return value
 bool
 jjs_util_map_option (jjs_context_t* context_p,
                      jjs_value_t option,
-                     jjs_value_ownership_t option_o,
+                     jjs_own_t option_o,
                      jjs_value_t key,
-                     jjs_value_ownership_t key_o,
+                     jjs_own_t key_o,
                      const jjs_util_option_pair_t* option_mappings_p,
                      jjs_size_t len,
                      uint32_t default_mapped_value,
@@ -58,8 +58,8 @@ jjs_util_map_option (jjs_context_t* context_p,
 {
   if (jjs_value_is_undefined (context_p, option))
   {
-    JJS_DISOWN (context_p, option, option_o);
-    JJS_DISOWN (context_p, key, key_o);
+    jjs_disown_value (context_p, option, option_o);
+    jjs_disown_value (context_p, key, key_o);
     *out_p = default_mapped_value;
     return true;
   }
@@ -77,8 +77,8 @@ jjs_util_map_option (jjs_context_t* context_p,
 
     if (jjs_value_is_undefined (context_p, option_value))
     {
-      JJS_DISOWN (context_p, option, option_o);
-      JJS_DISOWN (context_p, key, key_o);
+      jjs_disown_value (context_p, option, option_o);
+      jjs_disown_value (context_p, key, key_o);
       jjs_value_free (context_p, option_value);
       *out_p = default_mapped_value;
       return true;
@@ -89,8 +89,8 @@ jjs_util_map_option (jjs_context_t* context_p,
     option_value = ECMA_VALUE_EMPTY;
   }
 
-  JJS_DISOWN (context_p, option, option_o);
-  JJS_DISOWN (context_p, key, key_o);
+  jjs_disown_value (context_p, option, option_o);
+  jjs_disown_value (context_p, key, key_o);
 
   if (!jjs_value_is_string (context_p, option_value))
   {

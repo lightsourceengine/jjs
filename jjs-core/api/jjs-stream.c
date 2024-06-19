@@ -361,7 +361,7 @@ jjs_wstream_write_string (jjs_context_t* context_p,const jjs_wstream_t* wstream_
 done:
   ECMA_FINALIZE_UTF8_STRING (context_p, string_bytes_p, string_bytes_len);
 
-  JJS_DISOWN (context_p, value, value_o);
+  jjs_disown_value (context_p, value, value_o);
 } /* jjs_wstream_write_string */
 
 /**
@@ -411,6 +411,6 @@ jjs_stream_write_string (jjs_context_t* context_p, jjs_platform_io_stream_id_t i
   }
   else
   {
-    JJS_DISOWN (context_p, value, value_o);
+    jjs_disown_value (context_p, value, value_o);
   }
 }

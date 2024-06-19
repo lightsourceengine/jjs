@@ -41,7 +41,7 @@
 * value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o)
+jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_COMMONJS
@@ -50,11 +50,11 @@ jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value
 
   jjs_value_free (context_p, referrer_path);
 
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
 
   return result;
 #else /* !JJS_ANNEX_COMMONJS */
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_COMMONJS_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_COMMONJS */
 } /* jjs_commonjs_require */

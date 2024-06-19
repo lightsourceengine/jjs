@@ -32,7 +32,7 @@ jjs_value_t jjs_pack_performance_init (jjs_context_t *context_p);
 jjs_value_t jjs_pack_text_init (jjs_context_t *context_p);
 jjs_value_t jjs_pack_url_init (jjs_context_t *context_p);
 
-jjs_value_t jjs_pack_lib_main (jjs_context_t *context_p, uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, jjs_value_ownership_t bindings_o);
+jjs_value_t jjs_pack_lib_main (jjs_context_t *context_p, uint8_t* source, jjs_size_t source_size, jjs_value_t bindings, jjs_own_t bindings_o);
 
 jjs_value_t jjs_pack_lib_main_vmod (jjs_context_t *context_p, const char* package_name, jjs_external_handler_t vmod_callback);
 
@@ -40,12 +40,12 @@ jjs_value_t jjs_pack_lib_read_exports (jjs_context_t *context_p,
                                        uint8_t* source,
                                        jjs_size_t source_size,
                                        jjs_value_t bindings,
-                                       jjs_value_ownership_t bindings_o,
+                                       jjs_own_t bindings_o,
                                        jjs_pack_lib_exports_format_t exports_format);
 
 #define jjs_bindings(CTX) jjs_object (CTX)
 void jjs_bindings_function (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_external_handler_t function_p);
-void jjs_bindings_value (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
+void jjs_bindings_value (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_value_t value, jjs_own_t value_o);
 
 uint64_t jjs_pack_platform_hrtime (void);
 double jjs_pack_platform_date_now (void);

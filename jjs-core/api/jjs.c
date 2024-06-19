@@ -7188,7 +7188,7 @@ jjs_json_parse_sz (jjs_context_t* context_p, /**< JJS context */
  * @return object value, or exception
  */
 jjs_value_t
-jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_value_ownership_t filename_o)
+jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_own_t filename_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_BUILTIN_JSON
@@ -7208,7 +7208,7 @@ jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_value_o
 
   return result;
 #else /* !JJS_BUILTIN_JSON */
-  JJS_DISOWN (filename, filename_o);
+  jjs_disown_value (filename, filename_o);
   return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_JSON */
 } /* jjs_json_parse_file */
@@ -7640,7 +7640,7 @@ jjs_container_op (jjs_context_t* context_p, /**< JJS context */
  * Write a JS string to a fmt stream.
  */
 static void
-fmt_write_string (jjs_context_t* context_p, const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_value_ownership_t value_o)
+fmt_write_string (jjs_context_t* context_p, const jjs_wstream_t *wstream_p, jjs_value_t value, jjs_own_t value_o)
 {
   if (ecma_is_value_string (value))
   {
@@ -7648,7 +7648,7 @@ fmt_write_string (jjs_context_t* context_p, const jjs_wstream_t *wstream_p, jjs_
   }
   else
   {
-    JJS_DISOWN (context_p, value, value_o);
+    jjs_disown_value (context_p, value, value_o);
     wstream_p->write (context_p, wstream_p, (const jjs_char_t *) "undefined", 9);
   }
 } /* fmt_write_string */
@@ -7659,8 +7659,7 @@ fmt_write_string (jjs_context_t* context_p, const jjs_wstream_t *wstream_p, jjs_
 static void
 fmt_write_value (jjs_context_t* context_p,
                  const jjs_wstream_t *wstream_p,
-                 jjs_value_t value,
-                 jjs_value_ownership_t value_o)
+                 jjs_value_t value, jjs_own_t value_o)
 {
   if (jjs_value_is_exception (context_p, value))
   {
@@ -7728,7 +7727,7 @@ fmt_write_value (jjs_context_t* context_p,
   }
 
 done:
-  JJS_DISOWN (context_p, value, value_o);
+  jjs_disown_value (context_p, value, value_o);
 } /* fmt_write_value */
 
 /**
@@ -7904,7 +7903,7 @@ jjs_fmt_to_buffer_v (jjs_context_t* context_p, /**< JJS context */
 jjs_value_t
 jjs_fmt_join_v (jjs_context_t* context_p, /**< JJS context */
                 jjs_value_t delimiter, /**< string delimiter */
-                jjs_value_ownership_t delimiter_o, /**< delimiter reference ownership */
+                jjs_own_t delimiter_o, /**< delimiter reference ownership */
                 const jjs_value_t *values_p, /**< substitution values */
                 jjs_size_t values_length) /**< number of substitution values */
 {
@@ -7932,7 +7931,7 @@ jjs_fmt_join_v (jjs_context_t* context_p, /**< JJS context */
     }
   }
 
-  JJS_DISOWN (context_p, delimiter, delimiter_o);
+  jjs_disown_value (context_p, delimiter, delimiter_o);
 
   return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_join_v */

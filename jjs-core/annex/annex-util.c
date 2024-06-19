@@ -63,7 +63,7 @@ annex_util_define_value (jjs_context_t* context_p,
                          ecma_object_t* object_p,
                          lit_magic_string_id_t name_id,
                          ecma_value_t value,
-                         jjs_value_ownership_t value_o)
+                         jjs_own_t value_o)
 {
   ecma_property_descriptor_t prop_desc = {
     .flags = JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE,
@@ -78,7 +78,7 @@ annex_util_define_value (jjs_context_t* context_p,
 
   ecma_free_value (context_p, result);
 
-  JJS_DISOWN (context_p, value, value_o);
+  jjs_disown_value (context_p, value, value_o);
 } /* annex_util_define_value */
 
 /**
@@ -95,7 +95,7 @@ annex_util_define_ro_value (jjs_context_t* context_p,
                             ecma_object_t* object_p,
                             lit_magic_string_id_t name_id,
                             ecma_value_t value,
-                            jjs_value_ownership_t value_o)
+                            jjs_own_t value_o)
 {
   ecma_property_descriptor_t prop_desc = {
     .flags = JJS_CONFIGURABLE_ENUMERABLE_READONLY_VALUE,
@@ -110,7 +110,7 @@ annex_util_define_ro_value (jjs_context_t* context_p,
 
   ecma_free_value (context_p, result);
 
-  JJS_DISOWN (context_p, value, value_o);
+  jjs_disown_value (context_p, value, value_o);
 } /* annex_util_define_value_ro */
 
 /**

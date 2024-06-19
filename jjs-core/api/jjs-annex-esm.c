@@ -50,7 +50,7 @@ static jjs_value_t esm_link_and_evaluate (jjs_context_t* context_p, jjs_value_t 
 static jjs_value_t user_value_to_path (jjs_context_t* context_p, jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer, void *user_p);
 static jjs_value_t
-esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type);
+esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o, esm_result_type_t result_type);
 static void set_module_properties (jjs_context_t* context_p, jjs_value_t module, jjs_value_t filename, jjs_value_t url);
 #if JJS_ANNEX_COMMONJS
 static jjs_value_t commonjs_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module);
@@ -303,7 +303,7 @@ jjs_esm_source_free_values (jjs_context_t* context_p, const jjs_esm_source_t *es
  * returned. return value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o)
+jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
@@ -311,7 +311,7 @@ jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_owner
 
   if (!jjs_value_is_string (context_p, referrer_path))
   {
-    JJS_DISOWN (context_p, specifier, specifier_o);
+    jjs_disown_value (context_p, specifier, specifier_o);
     return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
@@ -319,7 +319,7 @@ jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_owner
 
   jjs_value_free (context_p, referrer_path);
 
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
 
   if (jjs_value_is_exception (context_p, module))
   {
@@ -332,7 +332,7 @@ jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_owner
 
   return namespace;
 #else /* !JJS_ANNEX_ESM */
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif
 } /* jjs_esm_import */
@@ -365,16 +365,13 @@ jjs_esm_import_sz (jjs_context_t* context_p, const char *specifier_p)
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
+jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
   return esm_run_source (context_p, source_p, source_values_o, ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_ANNEX_ESM */
-  if (source_values_o == JJS_MOVE)
-  {
-    jjs_esm_source_free_values (context_p, source_p);
-  }
+  jjs_disown_source (context_p, source_p, source_values_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_import_source */
@@ -403,7 +400,7 @@ jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t *source_
  * returned. return value must be freed with jjs_value_free.
  */
 jjs_value_t
-jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o)
+jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
@@ -411,7 +408,7 @@ jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_own
 
   if (!jjs_value_is_string (context_p, referrer_path))
   {
-    JJS_DISOWN (context_p, specifier, specifier_o);
+    jjs_disown_value (context_p, specifier, specifier_o);
     return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Failed to get current working directory");
   }
 
@@ -419,11 +416,11 @@ jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_own
 
   jjs_value_free (context_p, referrer_path);
 
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
 
   return esm_link_and_evaluate (context_p, module, true, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
-  JJS_DISOWN (context_p, specifier, specifier_o);
+  jjs_disown_value (context_p, specifier, specifier_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_evaluate */
@@ -456,16 +453,13 @@ jjs_esm_evaluate_sz (jjs_context_t* context_p, const char *specifier_p)
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o)
+jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o)
 {
   jjs_assert_api_enabled (context_p);
 #if JJS_ANNEX_ESM
   return esm_run_source (context_p, source_p, source_values_o, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
-  if (source_values_o == JJS_MOVE)
-  {
-    jjs_esm_source_free_values (context_p, source_p);
-  }
+  jjs_disown_source (context_p, source_p, source_values_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
 } /* jjs_esm_evaluate_source */
@@ -705,7 +699,7 @@ done:
 } /* esm_link_and_evaluate */
 
 static jjs_value_t
-esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_value_ownership_t source_values_o, esm_result_type_t result_type)
+esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o, esm_result_type_t result_type)
 {
   if (source_p == NULL)
   {
@@ -735,11 +729,7 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
 
   if (jjs_value_is_exception (context_p, validation))
   {
-    if (source_values_o == JJS_MOVE)
-    {
-      jjs_esm_source_free_values (context_p, source_p);
-    }
-
+    jjs_disown_source (context_p, source_p, source_values_o);
     return validation;
   }
 
@@ -832,10 +822,7 @@ after_parse:
   jjs_value_free (context_p, basename_value);
   jjs_value_free (context_p, dirname_value);
 
-  if (source_values_o == JJS_MOVE)
-  {
-    jjs_esm_source_free_values (context_p, source_p);
-  }
+  jjs_disown_source (context_p, source_p, source_values_o);
 
   return esm_link_and_evaluate (context_p, module, true, result_type);
 } /* esm_run_source */

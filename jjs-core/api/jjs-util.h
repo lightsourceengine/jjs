@@ -44,9 +44,9 @@ jjs_value_t jjs_return (jjs_context_t *context_p, jjs_value_t value);
 
 bool jjs_util_map_option (jjs_context_t* context_p,
                           jjs_value_t option,
-                          jjs_value_ownership_t option_o,
+                          jjs_own_t option_o,
                           jjs_value_t key,
-                          jjs_value_ownership_t key_o,
+                          jjs_own_t key_o,
                           const jjs_util_option_pair_t* option_mappings_p,
                           jjs_size_t len,
                           uint32_t default_mapped_value,
@@ -108,6 +108,7 @@ uint32_t jjs_optional_u32_or (const jjs_optional_u32_t* optional_p, uint32_t val
 // TODO: NDEBUG version
 #define jjs_assert_api_enabled(CTX) JJS_ASSERT ((CTX) != NULL && ((CTX)->status_flags & ECMA_STATUS_API_ENABLED))
 
-#define JJS_DISOWN(CTX, VALUE, VALUE_OWNERSHIP) if ((VALUE_OWNERSHIP) == JJS_MOVE) jjs_value_free ((CTX), VALUE)
+#define jjs_disown_value(CTX, VALUE, OWN) if ((OWN) == JJS_MOVE) jjs_value_free ((CTX), VALUE)
+#define jjs_disown_source(CTX, SOURCE, OWN) if ((OWN) == JJS_MOVE) jjs_esm_source_free_values ((CTX), SOURCE)
 
 #endif /* JJS_UTIL_H */

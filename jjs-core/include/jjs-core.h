@@ -95,7 +95,7 @@ jjs_size_t jjs_fmt_to_buffer_v (jjs_context_t* context_p,
                                 jjs_size_t values_length);
 jjs_value_t jjs_fmt_join_v (jjs_context_t* context_p,
                             jjs_value_t delimiter,
-                            jjs_value_ownership_t delimiter_o,
+                            jjs_own_t delimiter_o,
                             const jjs_value_t *values_p,
                             jjs_size_t values_length);
 
@@ -1180,7 +1180,7 @@ jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t 
 
 jjs_value_t jjs_json_parse (jjs_context_t* context_p, const jjs_char_t *string_p, jjs_size_t string_size);
 jjs_value_t jjs_json_parse_sz (jjs_context_t* context_p, const char* string_p);
-jjs_value_t jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_value_ownership_t filename_o);
+jjs_value_t jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_own_t filename_o);
 jjs_value_t jjs_json_stringify (jjs_context_t* context_p, const jjs_value_t object);
 
 /**
@@ -1265,9 +1265,9 @@ void jjs_module_on_import (jjs_context_t* context_p, jjs_module_import_cb_t call
  * @{
  */
 
-jjs_value_t jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_value_ownership_t pmap_o, jjs_value_t root, jjs_value_ownership_t root_o);
+jjs_value_t jjs_pmap (jjs_context_t* context_p, jjs_value_t pmap, jjs_own_t pmap_o, jjs_value_t root, jjs_own_t root_o);
 
-jjs_value_t jjs_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o, jjs_module_type_t module_type);
+jjs_value_t jjs_pmap_resolve (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o, jjs_module_type_t module_type);
 jjs_value_t jjs_pmap_resolve_sz (jjs_context_t* context_p, const char* specifier_p, jjs_module_type_t module_type);
 
 /**
@@ -1291,19 +1291,19 @@ jjs_value_t jjs_pmap_resolve_sz (jjs_context_t* context_p, const char* specifier
 jjs_value_t jjs_platform_cwd (jjs_context_t* context_p);
 bool jjs_platform_has_cwd (jjs_context_t* context_p);
 
-jjs_value_t jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_value_ownership_t path_o);
+jjs_value_t jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_own_t path_o);
 jjs_value_t jjs_platform_realpath_sz (jjs_context_t* context_p, const char* path_p);
 bool jjs_platform_has_realpath (jjs_context_t* context_p);
 
-jjs_value_t jjs_platform_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts);
+jjs_value_t jjs_platform_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_own_t path_o, const jjs_platform_read_file_options_t* opts);
 jjs_value_t jjs_platform_read_file_sz (jjs_context_t* context_p, const char* path_p, const jjs_platform_read_file_options_t* opts);
 bool jjs_platform_has_read_file (jjs_context_t* context_p);
 
-void jjs_platform_stdout_write (jjs_context_t* context_p, jjs_value_t value, jjs_value_ownership_t value_o);
+void jjs_platform_stdout_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o);
 void jjs_platform_stdout_flush (jjs_context_t* context_p);
 bool jjs_platform_has_stdout (jjs_context_t* context_p);
 
-void jjs_platform_stderr_write (jjs_context_t* context_p, jjs_value_t value, jjs_value_ownership_t value_o);
+void jjs_platform_stderr_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o);
 void jjs_platform_stderr_flush (jjs_context_t* context_p);
 bool jjs_platform_has_stderr (jjs_context_t* context_p);
 
@@ -1332,7 +1332,7 @@ void jjs_platform_fatal (jjs_context_t* context_p, jjs_fatal_code_t code);
  * @{
  */
 
-jjs_value_t jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
+jjs_value_t jjs_commonjs_require (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o);
 jjs_value_t jjs_commonjs_require_sz (jjs_context_t* context_p, const char* specifier_p);
 
 /**
@@ -1353,13 +1353,13 @@ jjs_value_t jjs_commonjs_require_sz (jjs_context_t* context_p, const char* speci
  * @{
  */
 
-jjs_value_t jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
+jjs_value_t jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o);
 jjs_value_t jjs_esm_import_sz (jjs_context_t* context_p, const char* specifier_p);
-jjs_value_t jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
+jjs_value_t jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_own_t source_values_o);
 
-jjs_value_t jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_ownership_t specifier_o);
+jjs_value_t jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o);
 jjs_value_t jjs_esm_evaluate_sz (jjs_context_t* context_p, const char* specifier_p);
-jjs_value_t jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_value_ownership_t source_values_o);
+jjs_value_t jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_own_t source_values_o);
 
 jjs_esm_source_t jjs_esm_source (void);
 jjs_esm_source_t jjs_esm_source_of (const jjs_char_t *code_p, jjs_size_t len);
@@ -1392,16 +1392,16 @@ void jjs_esm_default_on_import_meta_cb (jjs_context_t* context_p, jjs_value_t mo
  * @{
  */
 
-jjs_value_t jjs_vmod (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o, jjs_value_t value, jjs_value_ownership_t value_o);
-jjs_value_t jjs_vmod_sz (jjs_context_t* context_p, const char* name, jjs_value_t value, jjs_value_ownership_t value_o);
+jjs_value_t jjs_vmod (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o, jjs_value_t value, jjs_own_t value_o);
+jjs_value_t jjs_vmod_sz (jjs_context_t* context_p, const char* name, jjs_value_t value, jjs_own_t value_o);
 
-jjs_value_t jjs_vmod_resolve (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o);
+jjs_value_t jjs_vmod_resolve (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o);
 jjs_value_t jjs_vmod_resolve_sz (jjs_context_t* context_p, const char* name);
 
-bool jjs_vmod_exists (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o);
+bool jjs_vmod_exists (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o);
 bool jjs_vmod_exists_sz (jjs_context_t* context_p, const char* name);
 
-void jjs_vmod_remove (jjs_context_t* context_p, jjs_value_t name, jjs_value_ownership_t name_o);
+void jjs_vmod_remove (jjs_context_t* context_p, jjs_value_t name, jjs_own_t name_o);
 void jjs_vmod_remove_sz (jjs_context_t* context_p, const char* name);
 
 /**

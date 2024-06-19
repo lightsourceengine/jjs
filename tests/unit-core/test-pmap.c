@@ -239,7 +239,7 @@ join_with_cwd (const char *base)
 }
 
 static void
-expect_filename (jjs_value_t actual, jjs_value_ownership_t actual_o, const char *expected_base)
+expect_filename (jjs_value_t actual, jjs_own_t actual_o, const char *expected_base)
 {
   jjs_value_t expected = join_with_cwd (expected_base);
 

@@ -97,20 +97,20 @@ jjs_platform_cwd (jjs_context_t* context_p) /**< JJS context */
  * be cleaned up with jjs_value_free.
  */
 jjs_value_t
-jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_value_ownership_t path_o)
+jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_own_t path_o)
 {
   jjs_assert_api_enabled (context_p);
   jjs_platform_path_realpath_fn_t realpath_fn = context_p->platform.path_realpath;
 
   if (realpath_fn == NULL)
   {
-    JJS_DISOWN (context_p, path, path_o);
+    jjs_disown_value (context_p, path, path_o);
     return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "platform api 'path_realpath' not installed");
   }
 
   if (!jjs_value_is_string (context_p, path))
   {
-    JJS_DISOWN (context_p, path, path_o);
+    jjs_disown_value (context_p, path, path_o);
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "expected path to be a string");
   }
 
@@ -140,7 +140,7 @@ jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_value_own
   ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_bytes_len);
 
   jjs_util_context_release_scratch_allocator (context_p);
-  JJS_DISOWN (context_p, path, path_o);
+  jjs_disown_value (context_p, path, path_o);
 
   return result;
 } /* jjs_platform_realpath */
@@ -177,15 +177,13 @@ jjs_platform_realpath_sz (jjs_context_t* context_p, const char* path_p)
  * must be cleaned up with jjs_value_free
  */
 jjs_value_t
-jjs_platform_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_value_ownership_t path_o, const jjs_platform_read_file_options_t* opts)
+jjs_platform_read_file (jjs_context_t* context_p, jjs_value_t path,
+                        jjs_own_t path_o, const jjs_platform_read_file_options_t* opts)
 {
   jjs_assert_api_enabled (context_p);
   jjs_value_t result = jjsp_read_file (context_p, path, opts ? opts->encoding : JJS_ENCODING_NONE);
 
-  if (path_o == JJS_MOVE)
-  {
-    jjs_value_free (context_p, path);
-  }
+  jjs_disown_value (context_p, path, path_o);
 
   return result;
 } /* jjs_platform_read_file */
@@ -254,7 +252,7 @@ bool jjs_platform_has_read_file (jjs_context_t* context_p)
  * @param value JS string value
  * @param value_o value reference ownership
  */
-void jjs_platform_stdout_write (jjs_context_t* context_p, jjs_value_t value, jjs_value_ownership_t value_o)
+void jjs_platform_stdout_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o)
 {
   jjs_assert_api_enabled (context_p);
   jjs_stream_write_string (context_p, JJS_STDOUT, value, value_o);
@@ -297,7 +295,7 @@ jjs_platform_has_stdout (jjs_context_t* context_p)
  * @param value_o value reference ownership
  */
 void
-jjs_platform_stderr_write (jjs_context_t* context_p, jjs_value_t value, jjs_value_ownership_t value_o)
+jjs_platform_stderr_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o)
 {
   jjs_assert_api_enabled (context_p);
   jjs_stream_write_string (context_p, JJS_STDERR, value, value_o);

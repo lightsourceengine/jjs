@@ -70,7 +70,7 @@ check_exception (jjs_value_t value)
 
 /** common exception tests for jjs_esm_*_source() functions. */
 static void
-source_exceptions_impl (jjs_context_t *context_p, jjs_value_t fn (jjs_context_t *, const jjs_esm_source_t*, jjs_value_ownership_t))
+source_exceptions_impl (jjs_context_t *context_p, jjs_value_t fn (jjs_context_t *, const jjs_esm_source_t*, jjs_own_t))
 {
   jjs_esm_source_t sources [] = {
     jjs_esm_source_of_sz (TEST_SOURCE_PARSE_ERROR),

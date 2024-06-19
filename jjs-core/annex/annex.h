@@ -67,12 +67,12 @@ void annex_util_define_value (jjs_context_t* context_p,
                               ecma_object_t* object_p,
                               lit_magic_string_id_t name_id,
                               ecma_value_t value,
-                              jjs_value_ownership_t value_o);
+                              jjs_own_t value_o);
 void annex_util_define_ro_value (jjs_context_t* context_p,
                                  ecma_object_t* object_p,
                                  lit_magic_string_id_t name_id,
                                  ecma_value_t value,
-                                 jjs_value_ownership_t value_o);
+                                 jjs_own_t value_o);
 
 bool annex_util_is_valid_package_name (jjs_context_t *context_p, ecma_value_t name);
 jjs_value_t annex_util_create_string_utf8_sz (jjs_context_t* context_p, const char* str_p);

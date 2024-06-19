@@ -208,23 +208,31 @@ typedef enum
 typedef void (*jjs_promise_unhandled_rejection_cb_t) (jjs_context_t *context, jjs_value_t promise, jjs_value_t reason, void *user_p);
 
 /**
- * Enum that is associated with a value passed to an api. It indicates how to handle
- * the lifetime of the JJS value.
+ * Resource ownership.
+ *
+ * When calling a public JJS api, the caller can choose to transfer ownership of a resource,
+ * such as a JJS value, to the api. If the ownership is JJS_MOVE, the api must take ownership
+ * or free the resource before returning, even in an error condition. If the ownership is
+ * JJS_KEEP, the caller retains the ownership of the resource.
+ *
+ * The purpose of resource ownership is to declutter user land code from have to call
+ * jjs_value_free everywhere.
+ *
+ * With JJS_KEEP:
+ *
+ * jjs_value_t code = jjs_string_sz (context, "...");
+ * jjs_parse_value (context, code, JJS_KEEP);
+ * jjs_value_free (context, code);
+ *
+ * With JJS_MOVE:
+ *
+ * jjs_parse_value (context, jjs_string_sz (context, "..."), JJS_MOVE);
  */
 typedef enum
 {
-  /**
-   * Caller owns the lifetime of the JJS value. If an api needs its own reference, it
-   * must use jjs_value_copy.
-   */
-  JJS_KEEP,
-  /**
-   * Caller is transferring ownership of the JJS value to an api. The api is responsible
-   * for free'ing the reference. The transfer is absolute. If the api has an error, it
-   * is still responsible for the JS value reference.
-   */
-  JJS_MOVE,
-} jjs_value_ownership_t;
+  JJS_KEEP = 0, /**< caller retains ownership of the resource. */
+  JJS_MOVE = 1, /**< caller must unconditionally take ownership of the resource */
+} jjs_own_t;
 
 /**
  * JJS log levels. The levels are in severity order
