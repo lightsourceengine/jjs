@@ -237,7 +237,7 @@ test_context_data_init (void)
 
   for (int32_t i = 0; i < JJS_CONTEXT_DATA_LIMIT; i++)
   {
-    sprintf (id, "%i", i);
+    snprintf (id, JJS_ARRAY_SIZE (id), "%i", i);
     TEST_ASSERT (jjs_context_data_init (context_p, id, NULL, NULL) == JJS_STATUS_OK);
   }
 
