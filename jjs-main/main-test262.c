@@ -61,7 +61,7 @@ js_print (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const 
 }
 
 static void
-object_set_value (jjs_context_t* context_p, jjs_value_t object, const char *key, jjs_value_t value, jjs_value_ownership_t value_o)
+object_set_value (jjs_context_t* context_p, jjs_value_t object, const char *key, jjs_value_t value, jjs_own_t value_o)
 {
   jjs_value_t result = jjs_object_set_sz (context_p, object, key, value);
 
@@ -164,7 +164,7 @@ create_262 (jjs_context_t* context_p, jjs_value_t realm)
 }
 
 static bool
-resolve_result_value (jjs_context_t* context_p, jjs_value_t result, jjs_value_ownership_t result_o)
+resolve_result_value (jjs_context_t* context_p, jjs_value_t result, jjs_own_t result_o)
 {
   bool status = !jjs_value_is_exception (context_p, result);
 
@@ -284,11 +284,9 @@ main (int argc, char **argv)
   if (as_module)
   {
     /* need to set up filename, dirname (uses cwd) and ensure cache is on. some tests import themselves. */
-    jjs_esm_source_t options = jjs_esm_source (context_p);
+    jjs_esm_source_t options = jjs_esm_source_of (source_buffer, (jjs_size_t) bytes_read);
 
-    options.source_buffer_p = source_buffer;
-    options.source_buffer_size = (jjs_size_t) bytes_read;
-    options.filename = jjs_string_sz (context_p, test_filename);
+    options.filename = jjs_optional_value (jjs_string_sz (context_p, test_filename));
     options.cache = true;
 
     status = resolve_result_value (context_p, jjs_esm_evaluate_source (context_p, &options, JJS_MOVE), JJS_MOVE);
