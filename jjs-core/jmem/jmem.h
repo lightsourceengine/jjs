@@ -343,7 +343,10 @@ jjs_status_t jmem_scratch_allocator_init (uint8_t *fixed_buffer_p,
                                           jjs_size_t fixed_buffer_size,
                                           jjs_allocator_t fallback_allocator,
                                           jmem_scratch_allocator_t *dest_p);
-void jmem_scratch_allocator_reset (jmem_scratch_allocator_t *allocator_p);
 void jmem_scratch_allocator_deinit (jmem_scratch_allocator_t *allocator_p);
+
+void jmem_scratch_allocator_reset (jmem_scratch_allocator_t *allocator_p);
+jjs_allocator_t *jmem_scratch_allocator_acquire (jjs_context_t* context_p);
+void jmem_scratch_allocator_release (jjs_context_t* context_p);
 
 #endif /* !JMEM_H */

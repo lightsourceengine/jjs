@@ -485,9 +485,9 @@ ecma_op_create_dynamic_function (ecma_context_t *context_p, /**< JJS context */
 
   parse_opts |= ECMA_PARSE_HAS_SOURCE_VALUE | ECMA_PARSE_HAS_ARGUMENT_LIST_VALUE;
 
-  jcontext_scratch_allocator_acquire (context_p);
+  jmem_scratch_allocator_acquire (context_p);
   ecma_compiled_code_t *bytecode_p = parser_parse_script (context_p, (void *) source, parse_opts, NULL);
-  jcontext_scratch_allocator_release (context_p);
+  jmem_scratch_allocator_release (context_p);
 
   ecma_deref_ecma_string (context_p, arguments_str_p);
   ecma_deref_ecma_string (context_p, function_body_str_p);

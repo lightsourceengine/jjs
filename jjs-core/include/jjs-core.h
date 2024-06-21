@@ -153,7 +153,7 @@ jjs_value_t jjs_parse_value (jjs_context_t* context_p, const jjs_value_t source,
 jjs_value_t jjs_eval (jjs_context_t* context_p, const jjs_char_t *source_p, size_t source_size, uint32_t flags);
 jjs_value_t jjs_run (jjs_context_t* context_p, const jjs_value_t script);
 jjs_value_t jjs_run_jobs (jjs_context_t* context_p);
-jjs_value_t jjs_queue_microtask(jjs_context_t* context_p, const jjs_value_t callback);
+jjs_value_t jjs_queue_microtask (jjs_context_t* context_p, const jjs_value_t callback);
 bool jjs_has_pending_jobs (jjs_context_t* context_p);
 /**
  * jjs-api-code-exec @}
@@ -516,7 +516,7 @@ void *jjs_string_user_ptr (jjs_context_t* context_p, const jjs_value_t value, bo
  * @defgroup jjs-api-string-op Operations
  * @{
  */
-jjs_size_t jjs_string_substr (jjs_context_t* context_p, const jjs_value_t value, jjs_length_t start, jjs_length_t end);
+jjs_value_t jjs_string_substr (jjs_context_t* context_p, const jjs_value_t value, jjs_length_t start, jjs_length_t end);
 jjs_size_t jjs_string_to_buffer (jjs_context_t* context_p, const jjs_value_t value,
                                  jjs_encoding_t encoding,
                                  jjs_char_t *buffer_p,

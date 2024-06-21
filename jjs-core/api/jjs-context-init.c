@@ -274,6 +274,7 @@ jjs_context_init (const jjs_context_options_t* options_p, const jjs_allocator_t 
 void
 jjs_context_cleanup (jjs_context_t* context_p)
 {
+  JJS_ASSERT (context_p->scratch_allocator.refs == 0);
   jmem_scratch_allocator_deinit (&context_p->scratch_allocator);
   jjs_allocator_free (&context_p->context_allocator, context_p, context_p->context_block_size_b);
 }

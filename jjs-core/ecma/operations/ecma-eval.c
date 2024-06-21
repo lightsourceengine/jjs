@@ -85,9 +85,9 @@ ecma_op_eval_chars_buffer (ecma_context_t *context_p, /**< JJS context */
 
   ECMA_CLEAR_LOCAL_PARSE_OPTS (context_p);
 
-  jcontext_scratch_allocator_acquire (context_p);
+  jmem_scratch_allocator_acquire (context_p);
   ecma_compiled_code_t *bytecode_p = parser_parse_script (context_p, source_p, parse_opts, NULL);
-  jcontext_scratch_allocator_release (context_p);
+  jmem_scratch_allocator_release (context_p);
 
   if (JJS_UNLIKELY (bytecode_p == NULL))
   {

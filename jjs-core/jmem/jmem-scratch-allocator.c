@@ -15,6 +15,8 @@
 
 #include "jmem.h"
 
+#include "jcontext.h"
+
 static const jjs_size_t
 JMEM_FALLBACK_ALLOCATION_SIZE = (jjs_size_t) JJS_ALIGNUP (sizeof (jmem_fallback_allocation_t), JMEM_ALIGNMENT);
 
@@ -164,3 +166,28 @@ jmem_scratch_allocator_deinit (jmem_scratch_allocator_t *allocator_p) /**< scrat
   allocator_p->fixed_buffer_size = 0;
   jmem_scratch_allocator_free_allocations (allocator_p);
 } /* jmem_scratch_allocator_deinit */
+
+/**
+ * Acquire exclusive access to the scratch allocator.
+ */
+jjs_allocator_t*
+jmem_scratch_allocator_acquire (jjs_context_t* context_p)
+{
+  JJS_ASSERT (context_p->scratch_allocator.refs == 0);
+  context_p->scratch_allocator.refs++;
+  return &context_p->scratch_allocator.allocator;
+} /* jmem_scratch_allocator_acquire */
+
+/**
+ * Release the scratch allocator. If the scratch arena allocator is enabled, all
+ * of its allocations are dropped.
+ */
+void
+jmem_scratch_allocator_release (jjs_context_t* context_p)
+{
+  JJS_ASSERT (context_p->scratch_allocator.refs > 0);
+  if (--context_p->scratch_allocator.refs == 0)
+  {
+    jmem_scratch_allocator_reset (&context_p->scratch_allocator);
+  }
+} /* jmem_scratch_allocator_release */

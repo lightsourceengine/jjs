@@ -496,12 +496,12 @@ annex_encode_path (jjs_context_t* context_p,
 {
   /* maximum size if every character in path gets encoded to %XX format */
   const lit_utf8_size_t encoded_capacity = prefix_len + (path_len * 3);
-  jjs_allocator_t* allocator = jcontext_scratch_allocator_acquire (context_p);
+  jjs_allocator_t* allocator = jmem_scratch_allocator_acquire (context_p);
   lit_utf8_byte_t* encoded_p = jjs_allocator_alloc (allocator, encoded_capacity);
 
   if (encoded_p == NULL)
   {
-    jcontext_scratch_allocator_release (context_p);
+    jmem_scratch_allocator_release (context_p);
     return ECMA_VALUE_EMPTY;
   }
 
@@ -595,7 +595,7 @@ annex_encode_path (jjs_context_t* context_p,
     result = ECMA_VALUE_EMPTY;
   }
 
-  jcontext_scratch_allocator_release (context_p);
+  jmem_scratch_allocator_release (context_p);
 
   return result;
 } /* annex_encode_path */
