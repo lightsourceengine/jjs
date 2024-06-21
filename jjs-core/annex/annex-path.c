@@ -20,6 +20,7 @@
 #include "jjs-util.h"
 
 #include "annex.h"
+#include "jcontext.h"
 
 #define JJS_CONFIGURABLE_ENUMERABLE_WRITABLE_VALUE                                                  \
   (JJS_PROP_IS_CONFIGURABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED \
@@ -495,12 +496,12 @@ annex_encode_path (jjs_context_t* context_p,
 {
   /* maximum size if every character in path gets encoded to %XX format */
   const lit_utf8_size_t encoded_capacity = prefix_len + (path_len * 3);
-  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator (context_p);
+  jjs_allocator_t* allocator = jcontext_scratch_allocator_acquire (context_p);
   lit_utf8_byte_t* encoded_p = jjs_allocator_alloc (allocator, encoded_capacity);
 
   if (encoded_p == NULL)
   {
-    jjs_util_context_release_scratch_allocator (context_p);
+    jcontext_scratch_allocator_release (context_p);
     return ECMA_VALUE_EMPTY;
   }
 
@@ -594,7 +595,7 @@ annex_encode_path (jjs_context_t* context_p,
     result = ECMA_VALUE_EMPTY;
   }
 
-  jjs_util_context_release_scratch_allocator (context_p);
+  jcontext_scratch_allocator_release (context_p);
 
   return result;
 } /* annex_encode_path */

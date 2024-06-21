@@ -172,7 +172,7 @@ parser_module_add_names_to_node (parser_context_t *parser_context_p, /**< parser
                                  ecma_string_t *imex_name_p, /**< import/export name */
                                  ecma_string_t *local_name_p) /**< local name */
 {
-  ecma_module_names_t *new_name_p = (ecma_module_names_t *) parser_malloc (parser_context_p, sizeof (ecma_module_names_t));
+  ecma_module_names_t *new_name_p = (ecma_module_names_t *) parser_malloc_vm (parser_context_p, sizeof (ecma_module_names_t));
 
   new_name_p->next_p = parser_context_p->module_names_p;
   parser_context_p->module_names_p = new_name_p;
@@ -535,7 +535,7 @@ parser_module_handle_module_specifier (parser_context_t *parser_context_p, /**< 
     node_p = node_p->next_p;
   }
 
-  node_p = (ecma_module_node_t *) parser_malloc (parser_context_p, sizeof (ecma_module_node_t));
+  node_p = (ecma_module_node_t *) parser_malloc_vm (parser_context_p, sizeof (ecma_module_node_t));
 
   if (last_node_p == NULL)
   {

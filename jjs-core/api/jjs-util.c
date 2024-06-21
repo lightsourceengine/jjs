@@ -371,25 +371,6 @@ jjs_util_oneshot_allocator_init (uint8_t *buffer_p,
 }
 
 /**
- * Acquire exclusive access to the scratch allocator.
- */
-jjs_allocator_t*
-jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p)
-{
-  return &context_p->scratch_allocator.allocator;
-}
-
-/**
- * Release the scratch allocator. If the scratch arena allocator is enabled, all
- * of its allocations are dropped.
- */
-void
-jjs_util_context_release_scratch_allocator (jjs_context_t* context_p)
-{
-  jmem_scratch_allocator_reset (&context_p->scratch_allocator);
-}
-
-/**
  * Convert from one text encoding to another.
  */
 jjs_status_t

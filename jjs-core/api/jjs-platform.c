@@ -56,7 +56,7 @@ jjs_platform_cwd (jjs_context_t* context_p) /**< JJS context */
     return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "platform cwd api not installed");
   }
 
-  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator (context_p);
+  jjs_allocator_t* allocator = jcontext_scratch_allocator_acquire (context_p);
 
   jjs_platform_buffer_view_t buffer = {
     .free = jjs_platform_buffer_view_free,
@@ -69,14 +69,14 @@ jjs_platform_cwd (jjs_context_t* context_p) /**< JJS context */
 
     if (jjs_value_is_string (context_p, result))
     {
-      jjs_util_context_release_scratch_allocator (context_p);
+      jcontext_scratch_allocator_release (context_p);
       return result;
     }
 
     ecma_free_value (context_p, result);
   }
 
-  jjs_util_context_release_scratch_allocator (context_p);
+  jcontext_scratch_allocator_release (context_p);
 
   return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "platform failed to get cwd");
 } /* jjs_platform_cwd */
@@ -114,7 +114,7 @@ jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_own_t pat
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "expected path to be a string");
   }
 
-  jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator (context_p);
+  jjs_allocator_t* allocator = jcontext_scratch_allocator_acquire (context_p);
 
   ECMA_STRING_TO_UTF8_STRING (context_p, ecma_get_string_from_value (context_p, path), path_bytes_p, path_bytes_len);
 
@@ -139,7 +139,7 @@ jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_own_t pat
 
   ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_bytes_len);
 
-  jjs_util_context_release_scratch_allocator (context_p);
+  jcontext_scratch_allocator_release (context_p);
   jjs_disown_value (context_p, path, path_o);
 
   return result;
@@ -637,7 +637,7 @@ jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encod
       return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "platform read file arraybuffer init failed");
     }
 
-    jjs_allocator_t* path_allocator = jjs_util_context_acquire_scratch_allocator (context_p);
+    jjs_allocator_t* path_allocator = jcontext_scratch_allocator_acquire (context_p);
     jjs_platform_buffer_t buffer = jjs_platform_buffer (NULL, 0, &buffer_allocator.allocator);
 
     result = jjsp_read_file_buffer (context_p, path, path_allocator, &buffer_allocator.allocator, &buffer);
@@ -645,7 +645,7 @@ jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encod
     if (jjs_value_is_exception (context_p, result))
     {
       jjs_util_arraybuffer_allocator_deinit (&buffer_allocator);
-      jjs_util_context_release_scratch_allocator (context_p);
+      jcontext_scratch_allocator_release (context_p);
       return result;
     }
 
@@ -653,11 +653,11 @@ jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encod
 
     result = jjs_util_arraybuffer_allocator_move (&buffer_allocator);;
     jjs_util_arraybuffer_allocator_deinit (&buffer_allocator);
-    jjs_util_context_release_scratch_allocator (context_p);
+    jcontext_scratch_allocator_release (context_p);
   }
   else if (encoding == JJS_ENCODING_UTF8 || encoding == JJS_ENCODING_CESU8)
   {
-    jjs_allocator_t* allocator = jjs_util_context_acquire_scratch_allocator (context_p);
+    jjs_allocator_t* allocator = jcontext_scratch_allocator_acquire (context_p);
     jjs_platform_buffer_t buffer = jjs_platform_buffer (NULL, 0, allocator);
 
     result = jjsp_read_file_buffer (context_p, path, allocator, allocator, &buffer);
@@ -675,7 +675,7 @@ jjsp_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_encoding_t encod
     }
 
     jjs_platform_buffer_free (&buffer);
-    jjs_util_context_release_scratch_allocator (context_p);
+    jcontext_scratch_allocator_release (context_p);
   }
   else
   {

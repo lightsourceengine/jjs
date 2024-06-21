@@ -81,7 +81,7 @@ parser_compute_indicies (parser_context_t *context_p, /**< parser context */
         }
         else if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
         {
-          jmem_heap_free_block (context_p->context_p, (void *) literal_p->u.char_p, literal_p->prop.length);
+          parser_free_scratch (context_p, (void *) literal_p->u.char_p, literal_p->prop.length);
           /* This literal should not be freed even if an error is encountered later. */
           literal_p->status_flags |= LEXER_FLAG_SOURCE_PTR;
         }
@@ -135,7 +135,7 @@ parser_compute_indicies (parser_context_t *context_p, /**< parser context */
 
       if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
       {
-        jmem_heap_free_block (context_p->context_p, (void *) char_p, literal_p->prop.length);
+        parser_free_scratch (context_p, (void *) char_p, literal_p->prop.length);
         /* This literal should not be freed even if an error is encountered later. */
         literal_p->status_flags |= LEXER_FLAG_SOURCE_PTR;
       }
@@ -945,7 +945,7 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
   }
 
   total_size = JJS_ALIGNUP (total_size, JMEM_ALIGNMENT);
-  compiled_code_p = (ecma_compiled_code_t *) parser_malloc (parser_context_p, total_size);
+  compiled_code_p = (ecma_compiled_code_t *) parser_malloc_vm (parser_context_p, (jjs_size_t) total_size);
 
 #if JJS_SNAPSHOT_SAVE || JJS_PARSER_DUMP_BYTE_CODE
   // Avoid getting junk bytes
@@ -1409,7 +1409,7 @@ parser_resolve_private_identifier_eval (parser_context_t *parser_context_p) /**<
 {
   ecma_context_t *context_p = parser_context_p->context_p;
   ecma_string_t *search_key_p;
-  uint8_t *destination_p = (uint8_t *) parser_malloc (parser_context_p, parser_context_p->token.lit_location.length);
+  uint8_t *destination_p = (uint8_t *) parser_malloc_scratch (parser_context_p, parser_context_p->token.lit_location.length);
 
   lexer_convert_ident_to_cesu8 (destination_p,
                                 parser_context_p->token.lit_location.char_p,
@@ -1417,7 +1417,7 @@ parser_resolve_private_identifier_eval (parser_context_t *parser_context_p) /**<
 
   search_key_p = ecma_new_ecma_string_from_utf8 (context_p, destination_p, parser_context_p->token.lit_location.length);
 
-  parser_free (parser_context_p, destination_p, parser_context_p->token.lit_location.length);
+  parser_free_scratch (parser_context_p, destination_p, parser_context_p->token.lit_location.length);
 
   ecma_object_t *lex_env_p = context_p->vm_top_context_p->lex_env_p;
 
@@ -1934,7 +1934,7 @@ JJS_STATIC_ASSERT (PARSER_SCANNING_SUCCESSFUL == PARSER_HAS_LATE_LIT_INIT,
 /**
  * Parser script size
  */
-static size_t
+static jjs_size_t
 parser_script_size (parser_context_t *context_p) /**< parser context */
 {
   size_t script_size = sizeof (cbc_script_t);
@@ -1957,7 +1957,7 @@ parser_script_size (parser_context_t *context_p) /**< parser context */
     script_size += sizeof (ecma_value_t);
   }
 #endif /* JJS_MODULE_SYSTEM */
-  return script_size;
+  return (jjs_size_t) script_size;
 } /* parser_script_size */
 
 #if JJS_SOURCE_NAME
@@ -2222,7 +2222,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
   PARSER_TRY (context.try_buffer)
   {
-    context.script_p = parser_malloc (&context, parser_script_size (&context));
+    context.script_p = parser_malloc_vm (&context, parser_script_size (&context));
 
     CBC_SCRIPT_SET_TYPE (context.script_p, context.user_value, CBC_SCRIPT_REF_ONE);
 
@@ -2416,14 +2416,14 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
     if (context.script_p != NULL)
     {
       JJS_ASSERT (context.script_p->refs_and_type >= CBC_SCRIPT_REF_ONE);
-      jmem_heap_free_block (context_p, context.script_p, parser_script_size (&context));
+      parser_free_vm (&context, context.script_p, parser_script_size (&context));
     }
   }
   PARSER_TRY_END
 
   if (context.scope_stack_p != NULL)
   {
-    parser_free (&context, context.scope_stack_p, context.scope_stack_size * sizeof (parser_scope_stack_t));
+    parser_free_scratch (&context, context.scope_stack_p, context.scope_stack_size * sizeof (parser_scope_stack_t));
   }
 
 #if JJS_LINE_INFO
@@ -2628,7 +2628,9 @@ parser_restore_context (parser_context_t *parser_context_p, /**< parser context 
 
   if (parser_context_p->scope_stack_p != NULL)
   {
-    parser_free (parser_context_p, parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
+    parser_free_scratch (parser_context_p,
+                         parser_context_p->scope_stack_p,
+                         parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
   }
 
 #if JJS_LINE_INFO
@@ -3218,7 +3220,7 @@ parser_add_function_name_prefix (parser_context_t *parser_context_p, /**< parser
                                  lexer_literal_t *name_lit_p) /**< function name literal */
 {
   *name_length_p += prefix_size;
-  uint8_t *name_buffer_p = (uint8_t *) parser_malloc (parser_context_p, *name_length_p * sizeof (uint8_t));
+  uint8_t *name_buffer_p = (uint8_t *) parser_malloc_vm (parser_context_p, *name_length_p * sizeof (uint8_t));
   memcpy (name_buffer_p, prefix_p, prefix_size);
   memcpy (name_buffer_p + prefix_size, name_lit_p->u.char_p, name_lit_p->prop.length);
 
@@ -3285,7 +3287,7 @@ parser_compiled_code_set_function_name (parser_context_t *parser_context_p, /**<
 
   if (name_buffer_p != name_lit_p->u.char_p)
   {
-    parser_free (parser_context_p, name_buffer_p, name_length);
+    parser_free_vm (parser_context_p, name_buffer_p, name_length);
   }
 } /* parser_compiled_code_set_function_name */
 
@@ -3315,7 +3317,9 @@ parser_raise_error (parser_context_t *parser_context_p, /**< parser context */
 
     if (parser_context_p->scope_stack_p != NULL)
     {
-      parser_free (parser_context_p, parser_context_p->scope_stack_p, parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
+      parser_free_scratch (parser_context_p,
+                           parser_context_p->scope_stack_p,
+                           parser_context_p->scope_stack_size * sizeof (parser_scope_stack_t));
     }
     parser_context_p->scope_stack_p = saved_context_p->scope_stack_p;
     parser_context_p->scope_stack_size = saved_context_p->scope_stack_size;

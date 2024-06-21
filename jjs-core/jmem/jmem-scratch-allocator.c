@@ -160,6 +160,7 @@ jmem_scratch_allocator_reset (jmem_scratch_allocator_t *allocator_p) /**< scratc
 void
 jmem_scratch_allocator_deinit (jmem_scratch_allocator_t *allocator_p) /**< scratch allocator */
 {
+  JJS_ASSERT (allocator_p->refs == 0);
   allocator_p->fixed_buffer_size = 0;
   jmem_scratch_allocator_free_allocations (allocator_p);
 } /* jmem_scratch_allocator_deinit */

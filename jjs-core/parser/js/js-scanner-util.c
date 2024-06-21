@@ -90,7 +90,7 @@ scanner_malloc (parser_context_t *parser_context_p, /**< context */
   void *result;
 
   JJS_ASSERT (size > 0);
-  result = jmem_heap_alloc_block_null_on_error (parser_context_p->context_p, size);
+  result = parser_malloc_scratch (parser_context_p, (jjs_size_t) size);
 
   if (result == NULL)
   {
@@ -111,7 +111,8 @@ scanner_free (parser_context_t *parser_context_p, /**< parser context */
               void *ptr, /**< pointer to free */
               size_t size) /**< size of the memory block */
 {
-  jmem_heap_free_block (parser_context_p->context_p, ptr, size);
+  /* memory will be freed when scratch allocator is reset */
+  JJS_UNUSED_ALL (parser_context_p, ptr, size);
 } /* scanner_free */
 
 /**
@@ -256,11 +257,11 @@ scanner_insert_info_before (parser_context_t *context_p, /**< context */
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
 scanner_release_next (parser_context_t *parser_context_p, /**< context */
-                      size_t size) /**< size of the memory block */
+                      jjs_size_t size) /**< size of the memory block */
 {
   scanner_info_t *next_p = parser_context_p->next_scanner_info_p->next_p;
 
-  jmem_heap_free_block (parser_context_p->context_p, parser_context_p->next_scanner_info_p, size);
+  parser_free_scratch (parser_context_p, parser_context_p->next_scanner_info_p, size);
   parser_context_p->next_scanner_info_p = next_p;
 } /* scanner_release_next */
 
@@ -295,11 +296,11 @@ scanner_revert_active (parser_context_t *parser_context_p) /**< context */
  */
 extern inline void JJS_ATTR_ALWAYS_INLINE
 scanner_release_active (parser_context_t *parser_context_p, /**< context */
-                        size_t size) /**< size of the memory block */
+                        jjs_size_t size) /**< size of the memory block */
 {
   scanner_info_t *next_p = parser_context_p->active_scanner_info_p->next_p;
 
-  jmem_heap_free_block (parser_context_p->context_p, parser_context_p->active_scanner_info_p, size);
+  parser_free_scratch (parser_context_p, parser_context_p->active_scanner_info_p, size);
   parser_context_p->active_scanner_info_p = next_p;
 } /* scanner_release_active */
 
@@ -314,7 +315,7 @@ scanner_release_switch_cases (parser_context_t *parser_context_p, /**< parser co
   {
     scanner_case_info_t *next_p = case_p->next_p;
 
-    jmem_heap_free_block (parser_context_p->context_p, case_p, sizeof (scanner_case_info_t));
+    parser_free_scratch (parser_context_p, case_p, sizeof (scanner_case_info_t));
     case_p = next_p;
   }
 } /* scanner_release_switch_cases */
@@ -330,7 +331,7 @@ scanner_release_private_fields (parser_context_t *parser_context_p, /**< parser 
   {
     scanner_class_private_member_t *prev_p = member_p->prev_p;
 
-    jmem_heap_free_block (parser_context_p->context_p, member_p, sizeof (scanner_class_private_member_t));
+    parser_free_scratch (parser_context_p, member_p, sizeof (scanner_class_private_member_t));
     member_p = prev_p;
   }
 } /* scanner_release_private_fields */
@@ -472,10 +473,10 @@ scanner_find_duplicated_arg (parser_context_t *parser_context_p, lexer_lit_locat
     }
 
     ecma_string_t *arg_string = ecma_get_string_from_value (context_p, literal_start_p[literal_index]);
-    uint8_t *destination_p = (uint8_t *) parser_malloc (parser_context_p, lit_loc_p->length);
+    uint8_t *destination_p = (uint8_t *) parser_malloc_scratch (parser_context_p, lit_loc_p->length);
     lexer_convert_ident_to_cesu8 (destination_p, lit_loc_p->char_p, lit_loc_p->length);
     ecma_string_t *search_key_p = ecma_new_ecma_string_from_utf8 (context_p, destination_p, lit_loc_p->length);
-    scanner_free (parser_context_p, destination_p, lit_loc_p->length);
+    parser_free_scratch (parser_context_p, destination_p, lit_loc_p->length);
 
     found_duplicate = ecma_compare_ecma_strings (arg_string, search_key_p);
     ecma_deref_ecma_string (context_p, search_key_p);
@@ -2336,14 +2337,14 @@ scanner_create_variables (parser_context_t *parser_context_p, /**< context */
   {
     JJS_ASSERT (parser_context_p->scope_stack_p == NULL);
 
-    size_t stack_size = info_p->u16_arg * sizeof (parser_scope_stack_t);
+    jjs_size_t stack_size = info_p->u16_arg * (jjs_size_t) sizeof (parser_scope_stack_t);
     parser_context_p->scope_stack_size = info_p->u16_arg;
 
     scope_stack_p = NULL;
 
     if (stack_size > 0)
     {
-      scope_stack_p = (parser_scope_stack_t *) parser_malloc (parser_context_p, stack_size);
+      scope_stack_p = (parser_scope_stack_t *) parser_malloc_scratch (parser_context_p, stack_size);
     }
 
     parser_context_p->scope_stack_p = scope_stack_p;
@@ -2803,7 +2804,7 @@ scanner_create_variables (parser_context_t *parser_context_p, /**< context */
 
   if (!(option_flags & SCANNER_CREATE_VARS_IS_FUNCTION_ARGS))
   {
-    scanner_release_next (parser_context_p, (size_t) (next_data_p + 1 - ((const uint8_t *) info_p)));
+    scanner_release_next (parser_context_p, (jjs_size_t) (next_data_p + 1 - ((const uint8_t *) info_p)));
   }
   parser_flush_cbc (parser_context_p);
 } /* scanner_create_variables */

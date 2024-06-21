@@ -546,7 +546,7 @@ parser_emit_cbc_forward_branch_item (parser_context_t *parser_context_p, /**< co
    * the branch is constructed locally, and copied later. */
   parser_emit_cbc_forward_branch (parser_context_p, opcode, &branch);
 
-  new_item = (parser_branch_node_t *) parser_malloc (parser_context_p, sizeof (parser_branch_node_t));
+  new_item = (parser_branch_node_t *) parser_malloc_vm (parser_context_p, sizeof (parser_branch_node_t));
   new_item->branch = branch;
   new_item->next_p = next_p;
   return new_item;
@@ -737,7 +737,7 @@ parser_set_breaks_to_current_position (parser_context_t *parser_context_p, /**< 
     {
       parser_set_branch_to_current_position (parser_context_p, &current_p->branch);
     }
-    parser_free (parser_context_p, current_p, sizeof (parser_branch_node_t));
+    parser_free_vm (parser_context_p, current_p, sizeof (parser_branch_node_t));
     current_p = next_p;
   }
 } /* parser_set_breaks_to_current_position */
@@ -785,9 +785,9 @@ parser_get_class_field_info_size (uint8_t class_field_type) /**< class field typ
  */
 void
 parser_reverse_class_fields (parser_context_t *parser_context_p, /**< context */
-                             size_t fields_size) /**< size of consumed memory */
+                             jjs_size_t fields_size) /**< size of consumed memory */
 {
-  uint8_t *data_p = (uint8_t *) parser_malloc (parser_context_p, fields_size);
+  uint8_t *data_p = (uint8_t *) parser_malloc_vm (parser_context_p, fields_size);
   uint8_t *data_end_p = data_p + fields_size;
   uint8_t *current_p = data_p;
   bool has_fields = false;
@@ -869,7 +869,7 @@ parser_reverse_class_fields (parser_context_t *parser_context_p, /**< context */
     } while (current_p > data_p);
   }
 
-  parser_free (parser_context_p, data_p, fields_size);
+  parser_free_vm (parser_context_p, data_p, fields_size);
 } /* parser_reverse_class_fields */
 
 /**

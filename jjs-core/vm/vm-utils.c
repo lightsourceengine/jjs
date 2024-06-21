@@ -132,6 +132,6 @@ vm_get_backtrace (jjs_context_t* context_p, /**< JJS context */
 #else /* !JJS_LINE_INFO */
   JJS_UNUSED_ALL (context_p, max_depth);
 
-  return ecma_make_object_value (ecma_op_new_array_object (0));
+  return ecma_make_object_value (context_p, ecma_op_new_array_object (context_p, 0));
 #endif /* JJS_LINE_INFO */
 } /* vm_get_backtrace */

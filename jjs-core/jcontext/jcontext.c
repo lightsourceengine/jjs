@@ -125,5 +125,30 @@ jcontext_take_exception (jjs_context_t *context_p)
 } /* jcontext_take_exception */
 
 /**
+ * Acquire exclusive access to the scratch allocator.
+ */
+jjs_allocator_t*
+jcontext_scratch_allocator_acquire (jjs_context_t* context_p)
+{
+  JJS_ASSERT (context_p->scratch_allocator.refs == 0);
+  context_p->scratch_allocator.refs++;
+  return &context_p->scratch_allocator.allocator;
+} /* jcontext_scratch_allocator_acquire */
+
+/**
+ * Release the scratch allocator. If the scratch arena allocator is enabled, all
+ * of its allocations are dropped.
+ */
+void
+jcontext_scratch_allocator_release (jjs_context_t* context_p)
+{
+  JJS_ASSERT (context_p->scratch_allocator.refs > 0);
+  if (--context_p->scratch_allocator.refs == 0)
+  {
+    jmem_scratch_allocator_reset (&context_p->scratch_allocator);
+  }
+} /* jcontext_scratch_allocator_release */
+
+/**
  * @}
  */

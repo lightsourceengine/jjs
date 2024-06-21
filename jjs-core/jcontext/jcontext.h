@@ -288,6 +288,10 @@ void jcontext_release_exception (jjs_context_t *context_p);
 
 ecma_value_t jcontext_take_exception (jjs_context_t *context_p);
 
+jjs_allocator_t*jcontext_scratch_allocator_acquire (jjs_context_t* context_p);
+
+void jcontext_scratch_allocator_release (jjs_context_t* context_p);
+
 /**
  * @}
  */

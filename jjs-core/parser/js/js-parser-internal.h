@@ -634,10 +634,10 @@ typedef struct
 
 /* Memory management.
  * Note: throws an error if unsuccessful. */
-void *parser_malloc (parser_context_t *parser_context_p, size_t size);
-void parser_free (parser_context_t *parser_context_p, void *ptr, size_t size);
-void *parser_malloc_local (parser_context_t *parser_context_p, size_t size);
-void parser_free_local (parser_context_t *parser_context_p, void *ptr, size_t size);
+void *parser_malloc_vm (parser_context_t *parser_context_p, jjs_size_t size);
+void parser_free_vm (parser_context_t *parser_context_p, void *ptr, jjs_size_t size);
+void *parser_malloc_scratch (parser_context_t *parser_context_p, jjs_size_t size);
+void parser_free_scratch (parser_context_t *parser_context_p, void *ptr, jjs_size_t size);
 void parser_free_allocated_buffer (parser_context_t *context_p);
 
 /* Parser byte stream. */
@@ -707,7 +707,7 @@ ecma_string_t *parser_new_ecma_string_from_literal (parser_context_t *parser_con
 void parser_set_branch_to_current_position (parser_context_t *parser_context_p, parser_branch_t *branch_p);
 void parser_set_breaks_to_current_position (parser_context_t *parser_context_p, parser_branch_node_t *current_p);
 void parser_set_continues_to_current_position (parser_context_t *parser_context_p, parser_branch_node_t *current_p);
-void parser_reverse_class_fields (parser_context_t *parser_context_p, size_t fields_size);
+void parser_reverse_class_fields (parser_context_t *parser_context_p, jjs_size_t fields_size);
 
 /* Convenience macros. */
 #define parser_emit_cbc_ext(parser_context_p, opcode) parser_emit_cbc ((parser_context_p), PARSER_TO_EXT_OPCODE (opcode))
@@ -809,10 +809,10 @@ void parser_parse_initializer_by_next_char (parser_context_t *parser_context_p, 
  * @{
  */
 
-void scanner_release_next (parser_context_t *parser_context_p, size_t size);
+void scanner_release_next (parser_context_t *parser_context_p, jjs_size_t size);
 void scanner_set_active (parser_context_t *parser_context_p);
 void scanner_revert_active (parser_context_t *parser_context_p);
-void scanner_release_active (parser_context_t *parser_context_p, size_t size);
+void scanner_release_active (parser_context_t *parser_context_p, jjs_size_t size);
 void scanner_release_switch_cases (parser_context_t *parser_context_p, scanner_case_info_t *case_p);
 void scanner_release_private_fields (parser_context_t *parser_context_p, scanner_class_private_member_t *member_p);
 void scanner_seek (parser_context_t *parser_context_p);

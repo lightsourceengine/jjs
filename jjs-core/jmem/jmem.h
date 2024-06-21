@@ -326,6 +326,8 @@ typedef struct jmem_fallback_allocation_s
 
 typedef struct
 {
+  int32_t refs;
+
   uint8_t *fixed_buffer_p;
   jjs_size_t fixed_buffer_size;
   uint8_t *fixed_buffer_next_p;

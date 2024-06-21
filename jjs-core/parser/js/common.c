@@ -22,6 +22,7 @@
 
 #include "js-parser-internal.h"
 #include "lit-char-helpers.h"
+#include "jcontext.h"
 
 /** \addtogroup parser Parser
  * @{
@@ -46,7 +47,7 @@ util_free_literal (ecma_context_t *context_p, /**< JJS context */
   {
     if (!(literal_p->status_flags & LEXER_FLAG_SOURCE_PTR))
     {
-      jmem_heap_free_block (context_p, (void *) literal_p->u.char_p, literal_p->prop.length);
+      /* allocated with parser_malloc_scratch. will be freed on scratch allocator reset */
     }
   }
   else if ((literal_p->type == LEXER_FUNCTION_LITERAL) || (literal_p->type == LEXER_REGEXP_LITERAL))

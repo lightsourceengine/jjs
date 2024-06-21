@@ -65,9 +65,6 @@ jjs_allocator_t jjs_util_system_allocator (void);
 const jjs_allocator_t* jjs_util_system_allocator_ptr (void);
 jjs_allocator_t jjs_util_vm_allocator (jjs_context_t* context_p);
 
-jjs_allocator_t* jjs_util_context_acquire_scratch_allocator (jjs_context_t* context_p);
-void jjs_util_context_release_scratch_allocator (jjs_context_t* context_p);
-
 jjs_status_t
 jjs_util_convert (jjs_allocator_t* allocator,
                   const uint8_t* source_p,

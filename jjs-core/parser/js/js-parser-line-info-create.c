@@ -16,6 +16,7 @@
 #include "ecma-line-info.h"
 
 #include "js-parser-internal.h"
+#include "jcontext.h"
 
 #if JJS_PARSER
 
@@ -125,13 +126,14 @@ parser_line_info_free (parser_context_t *parser_context_p, parser_line_info_data
   }
 
   parser_mem_page_t *current_page_p = PARSER_LINE_INFO_GET_FIRST_PAGE (line_info_p)->next_p;
-  parser_free (parser_context_p, line_info_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
+
+  parser_free_vm (parser_context_p, line_info_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
 
   while (current_page_p != NULL)
   {
     parser_mem_page_t *next_p = current_page_p->next_p;
 
-    parser_free (parser_context_p, current_page_p, PARSER_LINE_INFO_PAGE_SIZE);
+    parser_free_vm (parser_context_p, current_page_p, PARSER_LINE_INFO_PAGE_SIZE);
     current_page_p = next_p;
   }
 } /* parser_line_info_free */
@@ -221,10 +223,10 @@ parser_line_info_difference_get (uint32_t current_value, /**< current value */
  * Appends a value at the end of the line info stream.
  */
 static void
-parser_line_info_append_number (parser_context_t *context_p, /**< context */
+parser_line_info_append_number (parser_context_t *parser_context_p, /**< context */
                                 uint32_t value) /**< value to be encoded */
 {
-  parser_line_info_data_t *line_info_p = context_p->line_info_p;
+  parser_line_info_data_t *line_info_p = parser_context_p->line_info_p;
   uint8_t buffer[PARSER_LINE_INFO_BUFFER_MAX_SIZE];
 
   JJS_ASSERT (line_info_p != NULL);
@@ -240,8 +242,7 @@ parser_line_info_append_number (parser_context_t *context_p, /**< context */
     return;
   }
 
-  parser_mem_page_t *new_page_p;
-  new_page_p = (parser_mem_page_t *) parser_malloc (context_p, PARSER_LINE_INFO_PAGE_SIZE);
+  parser_mem_page_t *new_page_p = (parser_mem_page_t *) parser_malloc_vm (parser_context_p, PARSER_LINE_INFO_PAGE_SIZE);
 
   new_page_p->next_p = NULL;
 
@@ -276,7 +277,7 @@ parser_line_info_append (parser_context_t *parser_context_p, /**< context */
   }
   else
   {
-    line_info_p = (parser_line_info_data_t *) parser_malloc (parser_context_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
+    line_info_p = (parser_line_info_data_t *) parser_malloc_vm (parser_context_p, PARSER_LINE_INFO_FIRST_PAGE_SIZE);
     parser_context_p->line_info_p = line_info_p;
 
     parser_mem_page_t *page_p = PARSER_LINE_INFO_GET_FIRST_PAGE (line_info_p);
@@ -565,7 +566,7 @@ parser_line_info_generate (parser_context_t *parser_context_p) /**< context */
     total_length_size = parser_line_info_encode_vlq (block_buffer, total_length);
 
     /* TODO: Support allocation fail. */
-    line_info_p = (uint8_t *) jmem_heap_alloc_block (parser_context_p->context_p, total_length + total_length_size);
+    line_info_p = (uint8_t *) parser_malloc_vm (parser_context_p, total_length + total_length_size);
     dst_p = line_info_p + parser_line_info_encode_vlq (line_info_p, total_length);
   }
 

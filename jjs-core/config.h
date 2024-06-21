@@ -195,10 +195,10 @@
  * If the value is 0, temporary allocations will fallback to vm heap or system
  * allocators.
  *
- * Default: 32
+ * Default: 64
  */
 #ifndef JJS_DEFAULT_SCRATCH_SIZE_KB
-#define JJS_DEFAULT_SCRATCH_SIZE_KB (32)
+#define JJS_DEFAULT_SCRATCH_SIZE_KB (64)
 #endif /* JJS_DEFAULT_SCRATCH_SIZE_KB */
 
 /**

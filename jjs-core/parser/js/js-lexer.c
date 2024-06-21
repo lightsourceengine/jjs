@@ -2178,7 +2178,7 @@ lexer_convert_literal_to_chars (parser_context_t *parser_context_p, /**< context
   uint8_t *destination_start_p;
   if (literal_p->length > LEXER_MAX_LITERAL_LOCAL_BUFFER_SIZE)
   {
-    parser_context_p->u.allocated_buffer_p = (uint8_t *) parser_malloc_local (parser_context_p, literal_p->length);
+    parser_context_p->u.allocated_buffer_p = (uint8_t *) parser_malloc_scratch (parser_context_p, literal_p->length);
     parser_context_p->allocated_buffer_size = literal_p->length;
     destination_start_p = parser_context_p->u.allocated_buffer_p;
   }
@@ -2421,11 +2421,11 @@ lexer_construct_literal_object (parser_context_t *parser_context_p, /**< context
                                 uint8_t literal_type) /**< final literal type */
 {
   uint8_t local_byte_array[LEXER_MAX_LITERAL_LOCAL_BUFFER_SIZE];
-  ecma_context_t *context_p = parser_context_p->context_p;
+//  ecma_context_t *context_p = parser_context_p->context_p;
   const uint8_t *char_p =
     lexer_convert_literal_to_chars (parser_context_p, lit_location_p, local_byte_array, LEXER_STRING_NO_OPTS);
 
-  size_t length = lit_location_p->length;
+  prop_length_t length = lit_location_p->length;
   parser_list_iterator_t literal_iterator;
   lexer_literal_t *literal_p;
   uint32_t literal_index = 0;
@@ -2488,14 +2488,14 @@ lexer_construct_literal_object (parser_context_t *parser_context_p, /**< context
   }
 
   literal_p = (lexer_literal_t *) parser_list_append (parser_context_p, &parser_context_p->literal_pool);
-  literal_p->prop.length = (prop_length_t) length;
+  literal_p->prop.length = length;
   literal_p->type = literal_type;
 
   uint8_t status_flags = LEXER_FLAG_SOURCE_PTR;
 
   if (length > 0 && char_p == local_byte_array)
   {
-    literal_p->u.char_p = (uint8_t *) jmem_heap_alloc_block (context_p, length);
+    literal_p->u.char_p = (uint8_t *) parser_malloc_scratch (parser_context_p, length);
     memcpy ((uint8_t *) literal_p->u.char_p, char_p, length);
     status_flags = 0;
   }
@@ -3466,11 +3466,11 @@ lexer_compare_identifiers (parser_context_t *parser_context_p, /**< context */
     return lexer_compare_identifier_to_chars (right_p->char_p, buf_p, length);
   }
 
-  uint8_t *dynamic_buf_p = parser_malloc (parser_context_p, length);
+  uint8_t *dynamic_buf_p = parser_malloc_scratch (parser_context_p, length);
 
   lexer_convert_ident_to_cesu8 (dynamic_buf_p, left_p->char_p, length);
   bool result = lexer_compare_identifier_to_chars (right_p->char_p, dynamic_buf_p, length);
-  parser_free (parser_context_p, dynamic_buf_p, length);
+  parser_free_scratch (parser_context_p, dynamic_buf_p, length);
 
   return result;
 } /* lexer_compare_identifiers */

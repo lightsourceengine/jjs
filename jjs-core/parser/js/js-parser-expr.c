@@ -977,7 +977,7 @@ parser_parse_class_body (parser_context_t *context_p, /**< context */
     return false;
   }
 
-  parser_reverse_class_fields (context_p, fields_size);
+  parser_reverse_class_fields (context_p, (jjs_size_t) fields_size);
 
   /* Since PARSER_IS_ARROW_FUNCTION and PARSER_CLASS_CONSTRUCTOR bits cannot
    * be set at the same time, this bit combination triggers class field parsing. */
