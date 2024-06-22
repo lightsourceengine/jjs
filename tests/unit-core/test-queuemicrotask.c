@@ -37,6 +37,14 @@ throw_error_callback (const jjs_call_info_t *call_info_p, const jjs_value_t args
   return jjs_throw_sz (ctx (), JJS_ERROR_COMMON, "throw_error_callback");
 }
 
+static void
+run_pending_jobs (jjs_value_condition_fn_t expected_result_fn)
+{
+  TEST_ASSERT (jjs_has_pending_jobs (ctx ()));
+  jjs_value_t result = ctx_defer_free (jjs_run_jobs (ctx ()));
+  TEST_ASSERT (expected_result_fn (ctx (), result));
+}
+
 int
 main (void)
 {
@@ -45,47 +53,53 @@ main (void)
 
   ctx_open (NULL);
 
-  callback = jjs_function_external (ctx (), simple_callback);
-  result = jjs_queue_microtask (ctx (), callback);
-  jjs_value_free (ctx (), callback);
+  {
+    simple_callback_called = false;
+    callback = jjs_function_external (ctx (), simple_callback);
+    result = ctx_defer_free (jjs_queue_microtask (ctx (), callback, JJS_MOVE));
+    TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
 
-  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
-  jjs_value_free (ctx (), result);
-  TEST_ASSERT (jjs_has_pending_jobs (ctx ()));
+    run_pending_jobs (jjs_value_is_undefined);
+    TEST_ASSERT (simple_callback_called);
+  }
 
-  result = jjs_run_jobs (ctx ());
-  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
-  TEST_ASSERT (simple_callback_called);
-  jjs_value_free (ctx (), result);
+  {
+    simple_callback_called = false;
+    result = ctx_defer_free (jjs_queue_microtask_fn (ctx (), simple_callback));
+    TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
 
-  callback = jjs_function_external (ctx (), throw_error_callback);
-  result = jjs_queue_microtask (ctx (), callback);
-  jjs_value_free (ctx (), callback);
+    run_pending_jobs (jjs_value_is_undefined);
+    TEST_ASSERT (simple_callback_called);
+  }
 
-  TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
-  jjs_value_free (ctx (), result);
-  TEST_ASSERT (jjs_has_pending_jobs (ctx ()));
+  {
+    result = ctx_defer_free (jjs_queue_microtask_fn (ctx (), NULL));
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+  }
 
-  result = jjs_run_jobs (ctx ());
-  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
-  jjs_value_free (ctx (), result);
-  TEST_ASSERT (!jjs_has_pending_jobs (ctx ()));
+  {
+    result = ctx_defer_free (jjs_queue_microtask_fn (ctx (), throw_error_callback));
 
-  result = jjs_queue_microtask (ctx (), jjs_undefined (ctx ()));
-  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
-  jjs_value_free (ctx (), result);
-  TEST_ASSERT (!jjs_has_pending_jobs (ctx ()));
+    TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
 
-  // ensure we get an uncaught error via jjs_run_jobs () if callback throws error
-  jjs_esm_source_t source = jjs_esm_source_of_sz ("queueMicrotask(() => { throw new Error(); });");
+    run_pending_jobs (jjs_value_is_exception);
+  }
 
-  result = jjs_esm_evaluate_source (ctx (), &source, JJS_MOVE);
-  TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
-  jjs_value_free (ctx (), result);
+  {
+    result = ctx_defer_free (jjs_queue_microtask (ctx (), ctx_undefined (), JJS_KEEP));
+    TEST_ASSERT (jjs_value_is_exception (ctx (), result));
+    TEST_ASSERT (!jjs_has_pending_jobs (ctx ()));
+  }
 
-  result = jjs_run_jobs (ctx ());
-  TEST_ASSERT (jjs_value_is_exception (ctx (), result));
-  jjs_value_free (ctx (), result);
+  {
+    /* ensure we get an uncaught error via jjs_run_jobs () if callback throws error */
+    jjs_esm_source_t source = jjs_esm_source_of_sz ("queueMicrotask(() => { throw new Error(); });");
+
+    result = ctx_defer_free (jjs_esm_evaluate_source (ctx (), &source, JJS_MOVE));
+    TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
+
+    run_pending_jobs (jjs_value_is_exception);
+  }
 
   ctx_close ();
 

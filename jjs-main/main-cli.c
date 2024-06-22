@@ -1044,12 +1044,11 @@ repl (int argc, char **argv)
     jjs_value_free (context_p, result);
     result = jjs_run_jobs (context_p);
 
-    if (jjs_value_is_exception (context_p, result))
+    if (jjs_value_free_unless (context_p, result, jjs_value_is_exception))
     {
       goto exception;
     }
 
-    jjs_value_free (context_p, result);
     continue;
 
 exception:

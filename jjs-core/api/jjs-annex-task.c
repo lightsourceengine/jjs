@@ -28,22 +28,40 @@ static jjs_value_t queue_microtask_impl (jjs_context_t* context_p, jjs_value_t c
  *
  * The callback function will be called the next time jjs_run_jobs() is called.
  *
- * @param context_p JJS context
- * @param callback callback function
  * @return on success, undefined; if callback is not callable, throws a TypeError exception
  */
 jjs_value_t
-jjs_queue_microtask(jjs_context_t* context_p, const jjs_value_t callback)
+jjs_queue_microtask (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t callback, /**< callback function */
+                     jjs_own_t callback_o) /**< callback resource ownership */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
 
 #if JJS_ANNEX_QUEUE_MICROTASK
-  return queue_microtask_impl (context_p, callback);
+  result = queue_microtask_impl (context_p, callback);
 #else /* !JJS_ANNEX_QUEUE_MICROTASK */
-  JJS_UNUSED (callback);
-  return jjs_throw_sz(context_p, JJS_ERROR_TYPE, ecma_get_error_msg(ECMA_ERR_QUEUE_MICROTASK_NOT_SUPPORTED));
+  result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_QUEUE_MICROTASK_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_QUEUE_MICROTASK */
+
+  jjs_disown_value (context_p, callback, callback_o);
+  return result;
 } /* jjs_queue_microtask */
+
+/**
+ * Add a callback function to the microtask queue.
+ *
+ * The callback function will be called the next time jjs_run_jobs() is called.
+ *
+ * @return on success, undefined; if callback is NULL, throws a TypeError exception
+ */
+jjs_value_t
+jjs_queue_microtask_fn (jjs_context_t* context_p, /**< JJS context */
+                        jjs_external_handler_t callback) /**< JS callback function */
+{
+  jjs_assert_api_enabled (context_p);
+  return jjs_queue_microtask (context_p, callback ? jjs_function_external (context_p, callback) : jjs_null (context_p), JJS_MOVE);
+} /* jjs_queue_microtask_fn */
 
 #if JJS_ANNEX_QUEUE_MICROTASK
 

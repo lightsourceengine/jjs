@@ -153,7 +153,8 @@ jjs_value_t jjs_parse_value (jjs_context_t* context_p, const jjs_value_t source,
 jjs_value_t jjs_eval (jjs_context_t* context_p, const jjs_char_t *source_p, size_t source_size, uint32_t flags);
 jjs_value_t jjs_run (jjs_context_t* context_p, const jjs_value_t script);
 jjs_value_t jjs_run_jobs (jjs_context_t* context_p);
-jjs_value_t jjs_queue_microtask (jjs_context_t* context_p, const jjs_value_t callback);
+jjs_value_t jjs_queue_microtask (jjs_context_t* context_p, const jjs_value_t callback, jjs_own_t callback_o);
+jjs_value_t jjs_queue_microtask_fn (jjs_context_t* context_p, jjs_external_handler_t callback);
 bool jjs_has_pending_jobs (jjs_context_t* context_p);
 /**
  * jjs-api-code-exec @}
