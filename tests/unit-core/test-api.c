@@ -331,8 +331,7 @@ test_syntax_error (const char *script_p, /**< source code to run */
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result_val));
     jjs_value_t script_val = result_val;
 
-    result_val = jjs_run (ctx (), script_val);
-    jjs_value_free (ctx (), script_val);
+    result_val = jjs_run (ctx (), script_val, JJS_MOVE);
   }
 
   TEST_ASSERT (jjs_value_is_exception (ctx (), result_val));
@@ -375,10 +374,9 @@ main (void)
     parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    res = jjs_run (ctx (), parsed_code_val);
+    res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     jjs_value_free (ctx (), res);
-    jjs_value_free (ctx (), parsed_code_val);
 
     global_obj_val = jjs_current_realm (ctx ());
 
@@ -885,15 +883,14 @@ main (void)
     parse_result = jjs_parse (ctx (), scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
-    jjs_value_t run_result = jjs_run (ctx (), parse_result);
+    jjs_value_t run_result = jjs_run (ctx (), parse_result, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), run_result));
     jjs_value_free (ctx (), run_result);
 
     /* Should be a syntax error due to redeclaration. */
-    run_result = jjs_run (ctx (), parse_result);
+    run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
     jjs_value_free (ctx (), run_result);
-    jjs_value_free (ctx (), parse_result);
 
     /* The variable should have no effect on parsing. */
     parse_result = jjs_parse (ctx (), scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
@@ -904,21 +901,19 @@ main (void)
     const jjs_char_t scoped_src2_p[] = "let b = 6; this.b + b";
     parse_result = jjs_parse (ctx (), scoped_src2_p, sizeof (scoped_src2_p) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
-    run_result = jjs_run (ctx (), parse_result);
+    run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_number (ctx (), run_result));
     TEST_ASSERT (jjs_value_as_number (ctx (), run_result) == 11);
     jjs_value_free (ctx (), run_result);
-    jjs_value_free (ctx (), parse_result);
 
     /* Check restricted global property */
     const jjs_char_t scoped_src3_p[] = "let undefined;";
     parse_result = jjs_parse (ctx (), scoped_src3_p, sizeof (scoped_src3_p) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
-    run_result = jjs_run (ctx (), parse_result);
+    run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
     TEST_ASSERT (jjs_error_type (ctx (), run_result) == JJS_ERROR_SYNTAX);
     jjs_value_free (ctx (), run_result);
-    jjs_value_free (ctx (), parse_result);
 
     jjs_value_t global_obj = jjs_current_realm (ctx ());
     jjs_value_t prop_name = jjs_string_sz (ctx (), "foo");
@@ -938,11 +933,10 @@ main (void)
     const jjs_char_t scoped_src4_p[] = "let foo;";
     parse_result = jjs_parse (ctx (), scoped_src4_p, sizeof (scoped_src4_p) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
-    run_result = jjs_run (ctx (), parse_result);
+    run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
     TEST_ASSERT (jjs_error_type (ctx (), run_result) == JJS_ERROR_SYNTAX);
     jjs_value_free (ctx (), run_result);
-    jjs_value_free (ctx (), parse_result);
 
     if (jjs_feature_enabled (JJS_FEATURE_REALM))
     {
@@ -960,14 +954,13 @@ main (void)
       const jjs_char_t scoped_src5_p[] = "let a;";
       parse_result = jjs_parse (ctx (), scoped_src5_p, sizeof (scoped_src5_p) - 1, NULL);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
-      run_result = jjs_run (ctx (), parse_result);
+      run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
       TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
       jjs_value_t error_value = jjs_exception_value (ctx (), run_result, false);
       TEST_ASSERT (jjs_value_is_number (ctx (), error_value));
       TEST_ASSERT_DOUBLE_EQUALS(jjs_value_as_number (ctx (), error_value), 42.1);
       jjs_value_free (ctx (), error_value);
       jjs_value_free (ctx (), run_result);
-      jjs_value_free (ctx (), parse_result);
 
       jjs_set_realm (ctx (), old_realm);
 
@@ -988,12 +981,11 @@ main (void)
       const jjs_char_t scoped_src6_p[] = "let b;";
       parse_result = jjs_parse (ctx (), scoped_src6_p, sizeof (scoped_src6_p) - 1, NULL);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
-      run_result = jjs_run (ctx (), parse_result);
+      run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
       TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
       TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
       TEST_ASSERT (jjs_error_type (ctx (), run_result) == JJS_ERROR_SYNTAX);
       jjs_value_free (ctx (), run_result);
-      jjs_value_free (ctx (), parse_result);
 
       jjs_set_realm (ctx (), old_realm);
 
@@ -1058,10 +1050,9 @@ main (void)
     parsed_code_val = jjs_parse (ctx (), ms_code_src, sizeof (ms_code_src) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    res = jjs_run (ctx (), parsed_code_val);
+    res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     jjs_value_free (ctx (), res);
-    jjs_value_free (ctx (), parsed_code_val);
 
     /* call jjs_string_sz functions which will returns with the registered external magic strings */
     args[0] = jjs_string_sz (ctx (), "console");

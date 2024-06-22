@@ -262,10 +262,7 @@ run (const char *source_name_p, /**< source name */
   jjs_value_free (ctx (), parse_options.source_name);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), code));
 
-  jjs_value_t result = jjs_run (ctx (), code);
-  jjs_value_free (ctx (), code);
-
-  return result;
+  return jjs_run (ctx (), code, JJS_MOVE);
 } /* run */
 
 static void
@@ -456,7 +453,7 @@ test_get_backtrace_api_call (void)
   jjs_value_t code = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), code));
 
-  result = jjs_run (ctx (), code);
+  result = jjs_run (ctx (), code, JJS_KEEP);
 
   jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, result, code);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_value));

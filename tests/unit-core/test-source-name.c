@@ -70,7 +70,7 @@ main (void)
   jjs_value_t program = jjs_parse (ctx (), (const jjs_char_t *) source_1, strlen (source_1), &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
-  jjs_value_t run_result = jjs_run (ctx (), program);
+  jjs_value_t run_result = jjs_run (ctx (), program, JJS_KEEP);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), run_result));
   TEST_ASSERT (jjs_value_is_object (ctx (), run_result));
 
@@ -101,7 +101,7 @@ main (void)
   program = jjs_parse (ctx (), (const jjs_char_t *) source_2, strlen (source_2), &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
-  run_result = jjs_run (ctx (), program);
+  run_result = jjs_run (ctx (), program, JJS_KEEP);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), run_result));
   TEST_ASSERT (jjs_value_is_object (ctx (), run_result));
 
@@ -166,7 +166,7 @@ main (void)
   program = jjs_parse (ctx (), (const jjs_char_t *) source_4, strlen (source_4), &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
-  run_result = jjs_run (ctx (), program);
+  run_result = jjs_run (ctx (), program, JJS_KEEP);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), run_result));
   TEST_ASSERT (jjs_value_is_object (ctx (), run_result));
 

@@ -33,9 +33,7 @@ test_parse (const char *source_p, /**< source code */
 
     if (run_code)
     {
-      jjs_value_t parse_result = result;
-      result = jjs_run (ctx (), result);
-      jjs_value_free (ctx (), parse_result);
+      result = jjs_run (ctx (), result, JJS_MOVE);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
     }
 

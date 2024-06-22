@@ -238,13 +238,12 @@ main (void)
 
   /* Script is compiled in another realm. */
   create_number_property (realm_value, "global1", 7.5);
-  result_value = jjs_run (ctx (), script_value);
+  result_value = jjs_run (ctx (), script_value, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result_value));
 
   check_array_prototype (realm_value, result_value);
 
   jjs_value_free (ctx (), result_value);
-  jjs_value_free (ctx (), script_value);
 
   TEST_ASSERT (get_number_property (realm_value, "global2") == 6.5);
 

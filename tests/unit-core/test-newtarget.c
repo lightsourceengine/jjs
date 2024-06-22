@@ -143,11 +143,10 @@ main (void)
     jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
     jjs_value_free (ctx (), res);
-    jjs_value_free (ctx (), parsed_code_val);
   }
 
   {
@@ -156,11 +155,10 @@ main (void)
     jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
     jjs_value_free (ctx (), res);
-    jjs_value_free (ctx (), parsed_code_val);
   }
 
   {
@@ -172,11 +170,10 @@ main (void)
     jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-    jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
     jjs_value_free (ctx (), res);
-    jjs_value_free (ctx (), parsed_code_val);
   }
 
   jjs_value_free (ctx (), demo_func);

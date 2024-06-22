@@ -53,12 +53,11 @@ TEST_MAIN(
   jjs_value_t parsed_code_val = jjs_parse (ctx (), inf_loop_code_src1, sizeof (inf_loop_code_src1) - 1, NULL);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
-  res = jjs_run (ctx (), parsed_code_val);
+  res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
 
   TEST_ASSERT (jjs_value_is_abort (ctx (), res));
 
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), parsed_code_val);
 
   const jjs_char_t inf_loop_code_src2[] = TEST_STRING_LITERAL ("function f() {"
                                                                  "  while(true) {\n"
@@ -82,12 +81,11 @@ TEST_MAIN(
   parsed_code_val = jjs_parse (ctx (), inf_loop_code_src2, sizeof (inf_loop_code_src2) - 1, NULL);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
-  res = jjs_run (ctx (), parsed_code_val);
+  res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
 
   TEST_ASSERT (jjs_value_is_abort (ctx (), res));
 
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), parsed_code_val);
 
   /* Test flag overwrites. */
   jjs_value_t value = jjs_string_sz (ctx (), "Error description");

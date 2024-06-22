@@ -156,7 +156,7 @@ test_promise_from_js (void)
   jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
-  jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+  jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_promise (ctx (), res));
 
   TEST_ASSERT (jjs_promise_state (ctx (), res) == JJS_PROMISE_STATE_PENDING);
@@ -172,7 +172,6 @@ test_promise_from_js (void)
 
   jjs_value_free (ctx (), promise_result);
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), parsed_code_val);
 } /* test_promise_from_js */
 
 TEST_MAIN({

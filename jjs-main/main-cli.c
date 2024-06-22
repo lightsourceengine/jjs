@@ -312,10 +312,7 @@ cli_execution_plan_run (cli_execution_plan_t *plan, jjs_context_t* context_p)
 
           if (!jjs_value_is_exception (context_p, result))
           {
-            jjs_value_t run_result = jjs_run (context_p, result);
-
-            jjs_value_free (context_p, result);
-            result = run_result;
+            result = jjs_run (context_p, result, JJS_MOVE);
           }
 
           jjs_value_free (context_p, resolved_filename);
@@ -1030,9 +1027,7 @@ repl (int argc, char **argv)
       goto exception;
     }
 
-    jjs_value_t script = result;
-    result = jjs_run (context_p, script);
-    jjs_value_free (context_p, script);
+    result = jjs_run (context_p, result, JJS_MOVE);
 
     if (jjs_value_is_exception (context_p, result))
     {

@@ -246,7 +246,7 @@ main (void)
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_get_code_val));
 
   {
-    jjs_value_t res = jjs_run (ctx (), parsed_get_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_get_code_val, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_number (ctx (), res));
     TEST_ASSERT (jjs_value_as_number (ctx (), res) == 1.0);
     jjs_value_free (ctx (), res);
@@ -260,7 +260,7 @@ main (void)
   }
 
   {
-    jjs_value_t res = jjs_run (ctx (), parsed_get_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_get_code_val, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_number (ctx (), res));
     TEST_ASSERT (jjs_value_as_number (ctx (), res) == 3.0);
     jjs_value_free (ctx (), res);
@@ -271,14 +271,14 @@ main (void)
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_set_code_val));
 
   {
-    jjs_value_t res = jjs_run (ctx (), parsed_set_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_set_code_val, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_number (ctx (), res));
     TEST_ASSERT (jjs_value_as_number (ctx (), res) == 55);
     jjs_value_free (ctx (), res);
   }
 
   {
-    jjs_value_t res = jjs_run (ctx (), parsed_get_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_get_code_val, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_number (ctx (), res));
     TEST_ASSERT (jjs_value_as_number (ctx (), res) == 56);
     jjs_value_free (ctx (), res);
@@ -310,8 +310,7 @@ main (void)
     jjs_value_t parsed_has_code_val = jjs_parse (ctx (), has_value_src, sizeof (has_value_src) - 1, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_has_code_val));
 
-    jjs_value_t res = jjs_run (ctx (), parsed_has_code_val);
-    jjs_value_free (ctx (), parsed_has_code_val);
+    jjs_value_t res = jjs_run (ctx (), parsed_has_code_val, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_proxy (ctx (), res));
 
     jjs_value_t name = jjs_string_sz (ctx (), "key");

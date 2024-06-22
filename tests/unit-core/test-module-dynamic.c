@@ -170,7 +170,7 @@ run_script (const char *source_p, /* source code */
   }
   else
   {
-    result_value = jjs_run (ctx (), parse_result_value);
+    result_value = jjs_run (ctx (), parse_result_value, JJS_KEEP);
   }
 
   jjs_value_free (ctx (), parse_result_value);

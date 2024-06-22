@@ -51,7 +51,7 @@ test_parse (const char *source_p, /**< source code */
   }
   else
   {
-    result = jjs_run (ctx (), parse_result);
+    result = jjs_run (ctx (), parse_result, JJS_KEEP);
   }
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));

@@ -48,13 +48,12 @@ main (void)
   jjs_value_t parsed_code_val = jjs_parse (ctx (), inf_loop_code_src1, sizeof (inf_loop_code_src1) - 1, NULL);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
-  jjs_value_t res = jjs_run (ctx (), parsed_code_val);
+  jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
   TEST_ASSERT (countdown == 0);
 
   TEST_ASSERT (jjs_value_is_exception (ctx (), res));
 
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), parsed_code_val);
 
   /* A more complex example. Although the callback error is captured
    * by the catch block, it is automatically thrown again. */
@@ -68,7 +67,7 @@ main (void)
   parsed_code_val = jjs_parse (ctx (), inf_loop_code_src2, sizeof (inf_loop_code_src2) - 1, NULL);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
-  res = jjs_run (ctx (), parsed_code_val);
+  res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
   TEST_ASSERT (countdown == 0);
 
   /* The result must have an error flag which proves that
@@ -76,7 +75,6 @@ main (void)
   TEST_ASSERT (jjs_value_is_exception (ctx (), res));
 
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), parsed_code_val);
 
   ctx_close ();
   return 0;

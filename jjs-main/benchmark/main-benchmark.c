@@ -104,9 +104,7 @@ run (void)
 
       if (!jjs_value_is_exception (context_p, ret_value))
       {
-        jjs_value_t func_val = ret_value;
-        ret_value = jjs_run (context_p, func_val);
-        jjs_value_free (context_p, func_val);
+        ret_value = jjs_run (context_p, ret_value, JJS_MOVE);
       }
     }
 

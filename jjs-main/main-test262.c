@@ -108,9 +108,7 @@ js_262_eval_script (const jjs_call_info_t *call_info_p, const jjs_value_t args_p
 
   if (!jjs_value_is_exception (context_p, ret_value))
   {
-    jjs_value_t func_val = ret_value;
-    ret_value = jjs_run (context_p, func_val);
-    jjs_value_free (context_p, func_val);
+    ret_value = jjs_run (context_p, ret_value, JJS_MOVE);
   }
 
   return ret_value;
@@ -303,7 +301,7 @@ main (int argc, char **argv)
 
     if (resolve_result_value (context_p, parsed, JJS_KEEP))
     {
-      status = resolve_result_value (context_p, jjs_run (context_p, parsed), JJS_MOVE);
+      status = resolve_result_value (context_p, jjs_run (context_p, parsed, JJS_KEEP), JJS_MOVE);
     }
     else
     {

@@ -192,9 +192,8 @@ main (void)
   /* Render strict-equal as a function. */
   jjs_value_t parse_result = jjs_parse (ctx (), strict_equal_source, sizeof (strict_equal_source) - 1, &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
-  jjs_value_t strict_equal = jjs_run (ctx (), parse_result);
+  jjs_value_t strict_equal = jjs_run (ctx (), parse_result, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), strict_equal));
-  jjs_value_free (ctx (), parse_result);
 
   /* Create an object and associate some native data with it. */
   jjs_value_t object = jjs_object (ctx ());

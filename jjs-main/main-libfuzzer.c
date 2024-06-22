@@ -42,7 +42,7 @@ LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 
     if (!jjs_value_is_exception (context_p, parse_value))
     {
-      jjs_value_t run_value = jjs_run (context_p, parse_value);
+      jjs_value_t run_value = jjs_run (context_p, parse_value, JJS_KEEP);
       jjs_value_free (context_p, run_value);
 
       run_value = jjs_run_jobs (context_p);

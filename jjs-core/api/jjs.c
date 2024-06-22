@@ -668,30 +668,32 @@ jjs_parse_value (jjs_context_t* context_p, /**< JJS context */
  */
 jjs_value_t
 jjs_run (jjs_context_t* context_p, /**< JJS context */
-         const jjs_value_t script) /**< script or module to run */
+         const jjs_value_t script, /**< compiled script to run */
+         jjs_own_t script_o) /**< script resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
-  if (!ecma_is_value_object (script))
+  jjs_value_t result;
+  ecma_object_t *object_p = ecma_is_value_object (script) ? ecma_get_object_from_value (context_p, script) : NULL;
+
+  if (!object_p || !ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SCRIPT))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+  }
+  else
+  {
+    ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
+
+    const ecma_compiled_code_t *bytecode_data_p;
+    bytecode_data_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
+
+    JJS_ASSERT (CBC_FUNCTION_GET_TYPE (bytecode_data_p->status_flags) == CBC_FUNCTION_SCRIPT);
+
+    result = jjs_return (context_p, vm_run_global (context_p, bytecode_data_p, object_p));
   }
 
-  ecma_object_t *object_p = ecma_get_object_from_value (context_p, script);
-
-  if (!ecma_object_class_is (object_p, ECMA_OBJECT_CLASS_SCRIPT))
-  {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
-  }
-
-  ecma_extended_object_t *ext_object_p = (ecma_extended_object_t *) object_p;
-
-  const ecma_compiled_code_t *bytecode_data_p;
-  bytecode_data_p = ECMA_GET_INTERNAL_VALUE_POINTER (context_p, ecma_compiled_code_t, ext_object_p->u.cls.u3.value);
-
-  JJS_ASSERT (CBC_FUNCTION_GET_TYPE (bytecode_data_p->status_flags) == CBC_FUNCTION_SCRIPT);
-
-  return jjs_return (context_p, vm_run_global (context_p, bytecode_data_p, object_p));
+  jjs_disown_value(context_p, script, script_o);
+  return result;
 } /* jjs_run */
 
 /**
