@@ -1122,7 +1122,7 @@ typedef struct jjs_platform_buffer_s
   void* data_p; /**< pointer to allocated data */
   uint32_t data_size; /**< size of buffer in bytes */
   void (*free)(struct jjs_platform_buffer_s*); /**< free the contents (allocation) of this buffer */
-  jjs_allocator_t* allocator; /**< allocator responsible for freeing data_p */
+  const jjs_allocator_t* allocator; /**< allocator responsible for freeing data_p */
 } jjs_platform_buffer_t;
 
 /**
@@ -1170,7 +1170,7 @@ typedef struct jjs_platform_path_s
   jjs_status_t (*convert)(struct jjs_platform_path_s*, jjs_encoding_t, uint32_t, jjs_platform_buffer_view_t* out_p); /**< converts path to a new encoding and/or format. jjs_platform_path owns the returned buffer. */
 
   /* private fields */
-  jjs_allocator_t* allocator; /**< allocator used by convert */
+  const jjs_allocator_t* allocator; /**< allocator used by convert */
 } jjs_platform_path_t;
 
 /* Platform API Signatures */
@@ -1183,7 +1183,7 @@ typedef void (*jjs_platform_io_write_fn_t) (void*, const uint8_t*, uint32_t, jjs
 typedef void (*jjs_platform_io_flush_fn_t) (void*);
 
 /* fs */
-typedef jjs_status_t (*jjs_platform_fs_read_file_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_t*);
+typedef jjs_status_t (*jjs_platform_fs_read_file_fn_t) (const jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_t*);
 
 /* time */
 typedef jjs_status_t (*jjs_platform_time_sleep_fn_t) (uint32_t);
@@ -1191,8 +1191,8 @@ typedef jjs_status_t (*jjs_platform_time_local_tza_fn_t) (double, int32_t*);
 typedef jjs_status_t (*jjs_platform_time_now_ms_fn_t) (double*);
 
 /* path */
-typedef jjs_status_t (*jjs_platform_path_cwd_fn_t) (jjs_allocator_t* allocator, jjs_platform_buffer_view_t*);
-typedef jjs_status_t (*jjs_platform_path_realpath_fn_t) (jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_view_t*);
+typedef jjs_status_t (*jjs_platform_path_cwd_fn_t) (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t*);
+typedef jjs_status_t (*jjs_platform_path_realpath_fn_t) (const jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_view_t*);
 
 /**
  * Contains platform specific data and functions used internally by JJS. The

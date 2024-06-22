@@ -528,7 +528,7 @@ jjs_platform_buffer_view_from_buffer (jjs_platform_buffer_view_t* self_p, jjs_pl
 
 jjs_status_t
 jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p,
-                                jjs_allocator_t* allocator,
+                                const jjs_allocator_t* allocator,
                                 jjs_size_t size,
                                 jjs_encoding_t encoding)
 {
@@ -553,7 +553,7 @@ jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p,
 }
 
 jjs_status_t
-jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, jjs_allocator_t* allocator, jjs_size_t size)
+jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, const jjs_allocator_t* allocator, jjs_size_t size)
 {
   void* p = jjs_allocator_alloc (allocator, size);
 
@@ -573,7 +573,7 @@ jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, jjs_allocator_t* allocat
 }
 
 jjs_platform_buffer_t
-jjs_platform_buffer (void* data_p, jjs_size_t data_size, jjs_allocator_t* allocator)
+jjs_platform_buffer (void* data_p, jjs_size_t data_size, const jjs_allocator_t* allocator)
 {
   return (jjs_platform_buffer_t) {
     .data_p = data_p,

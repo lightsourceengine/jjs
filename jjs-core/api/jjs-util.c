@@ -374,7 +374,7 @@ jjs_util_oneshot_allocator_init (uint8_t *buffer_p,
  * Convert from one text encoding to another.
  */
 jjs_status_t
-jjs_util_convert (jjs_allocator_t* allocator,
+jjs_util_convert (const jjs_allocator_t* allocator,
                   const uint8_t* source_p,
                   jjs_size_t source_size,
                   jjs_encoding_t source_encoding,

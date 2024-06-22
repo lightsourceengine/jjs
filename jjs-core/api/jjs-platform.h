@@ -27,11 +27,11 @@ bool jjsp_path_is_absolute (const lit_utf8_byte_t* path_p, lit_utf8_size_t size)
 bool jjsp_find_root_end_index (const lit_utf8_byte_t* str_p, lit_utf8_size_t size, lit_utf8_size_t* index);
 bool jjsp_path_is_separator (lit_utf8_byte_t ch);
 
-jjs_status_t jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, jjs_allocator_t* allocator, jjs_size_t size);
+jjs_status_t jjs_platform_buffer_new (jjs_platform_buffer_t* self_p, const jjs_allocator_t* allocator, jjs_size_t size);
 jjs_platform_buffer_t
-jjs_platform_buffer (void* data_p, jjs_size_t data_size, jjs_allocator_t* allocator);
+jjs_platform_buffer (void* data_p, jjs_size_t data_size, const jjs_allocator_t* allocator);
 void jjs_platform_buffer_view_from_buffer (jjs_platform_buffer_view_t* self_p, jjs_platform_buffer_t* source_p, jjs_encoding_t encoding);
-jjs_status_t jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p, jjs_allocator_t* allocator, jjs_size_t size, jjs_encoding_t encoding);
+jjs_status_t jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p, const jjs_allocator_t* allocator, jjs_size_t size, jjs_encoding_t encoding);
 
 /* platform api implementations */
 
@@ -44,10 +44,10 @@ jjs_status_t jjsp_time_sleep_impl (uint32_t sleep_time_ms);
 jjs_status_t jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p);
 jjs_status_t jjsp_time_now_ms_impl (double* out_p);
 
-jjs_status_t jjsp_path_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p);
-jjs_status_t jjsp_path_realpath_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_view_t* buffer_view_p);
+jjs_status_t jjsp_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p);
+jjs_status_t jjsp_path_realpath_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_view_t* buffer_view_p);
 
 jjs_status_t
-jjsp_fs_read_file_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p);
+jjsp_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p);
 
 #endif /* JJS_PLATFORM_H */

@@ -24,7 +24,7 @@
 #include <windows.h>
 
 jjs_status_t
-jjsp_path_cwd_impl (jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
+jjsp_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
 {
   WCHAR* p;
   DWORD n;
@@ -222,7 +222,7 @@ static const WCHAR UNC_PATH_PREFIX[] = L"\\\\?\\UNC\\";
 static const WCHAR UNC_PATH_PREFIX_LEN = 8;
 
 jjs_status_t
-jjsp_path_realpath_impl (jjs_allocator_t* allocator,
+jjsp_path_realpath_impl (const jjs_allocator_t* allocator,
                          jjs_platform_path_t* path_p,
                          jjs_platform_buffer_view_t* buffer_view_p)
 {
@@ -305,7 +305,7 @@ jjsp_path_realpath_impl (jjs_allocator_t* allocator,
 #include <windows.h>
 
 jjs_status_t
-jjsp_fs_read_file_impl (jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
+jjsp_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
 {
   jjs_status_t status;
   jjs_platform_buffer_view_t path_view;
