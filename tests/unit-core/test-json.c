@@ -89,9 +89,7 @@ main (void)
     jjs_value_t char_utf8 = jjs_object_get (ctx (), parsed_utf8, key);
     jjs_value_free (ctx (), key);
 
-    TEST_ASSERT (jjs_value_to_boolean (ctx (), jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, char_cesu8, char_utf8)));
-    jjs_value_free (ctx (), char_cesu8);
-    jjs_value_free (ctx (), char_utf8);
+    TEST_ASSERT (jjs_value_to_boolean (ctx (), jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, char_cesu8, JJS_MOVE, char_utf8, JJS_MOVE)));
     jjs_value_free (ctx (), parsed_cesu8);
     jjs_value_free (ctx (), parsed_utf8);
   }

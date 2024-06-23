@@ -61,7 +61,7 @@ define_property (const jjs_value_t object,
   jjs_value_t ret_val;
   if (is_symbol)
   {
-    jjs_value_t symbol = jjs_symbol_with_description (ctx (), jname);
+    jjs_value_t symbol = jjs_symbol_with_description (ctx (), jname, JJS_KEEP);
     ret_val = jjs_object_define_own_prop (ctx (), object, symbol, prop_desc_p);
     jjs_value_free (ctx (), symbol);
   }

@@ -78,7 +78,7 @@ module_import_callback (jjs_context_t *context_p, /** JJS context */
 
   if (mode != 3)
   {
-    jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, global_user_value);
+    jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, JJS_KEEP, global_user_value, JJS_KEEP);
 
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_value));
     jjs_value_free (ctx (), compare_value);
@@ -102,9 +102,7 @@ module_import_callback (jjs_context_t *context_p, /** JJS context */
 
       jjs_value_t promise_value = jjs_promise (ctx ());
       /* Normally this should be a namespace object. */
-      jjs_value_t object_value = jjs_object (ctx ());
-      jjs_promise_resolve (ctx (), promise_value, object_value);
-      jjs_value_free (ctx (), object_value);
+      jjs_promise_resolve (ctx (), promise_value, jjs_object (ctx ()), JJS_MOVE);
       return promise_value;
     }
     case 3:

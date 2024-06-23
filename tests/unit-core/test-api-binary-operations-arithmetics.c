@@ -99,7 +99,7 @@ main (void)
 
   for (uint32_t idx = 0; idx < sizeof (test_nans) / sizeof (test_nan_entry_t); idx++)
   {
-    jjs_value_t result = jjs_binary_op (ctx (), test_nans[idx].op, test_nans[idx].lhs, test_nans[idx].rhs);
+    jjs_value_t result = jjs_binary_op (ctx (), test_nans[idx].op, test_nans[idx].lhs, JJS_KEEP, test_nans[idx].rhs, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_number (ctx (), result));
 
     double num = jjs_value_as_number (ctx (), result);
@@ -185,10 +185,10 @@ main (void)
 
   for (uint32_t idx = 0; idx < sizeof (tests) / sizeof (test_entry_t); idx++)
   {
-    jjs_value_t result = jjs_binary_op (ctx (), tests[idx].op, tests[idx].lhs, tests[idx].rhs);
+    jjs_value_t result = jjs_binary_op (ctx (), tests[idx].op, tests[idx].lhs, JJS_KEEP, tests[idx].rhs, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
-    jjs_value_t equals = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, result, tests[idx].expected);
+    jjs_value_t equals = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, result, JJS_KEEP, tests[idx].expected, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_boolean (ctx (), equals) && jjs_value_is_true (ctx (), equals));
     jjs_value_free (ctx (), equals);
 
@@ -230,7 +230,7 @@ main (void)
 
   for (uint32_t idx = 0; idx < sizeof (error_tests) / sizeof (test_error_entry_t); idx++)
   {
-    jjs_value_t result = jjs_binary_op (ctx (), tests[idx].op, error_tests[idx].lhs, error_tests[idx].rhs);
+    jjs_value_t result = jjs_binary_op (ctx (), tests[idx].op, error_tests[idx].lhs, JJS_KEEP, error_tests[idx].rhs, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_exception (ctx (), result));
     jjs_value_free (ctx (), error_tests[idx].lhs);
     jjs_value_free (ctx (), error_tests[idx].rhs);

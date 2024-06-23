@@ -456,12 +456,10 @@ test_get_backtrace_api_call (void)
 
   result = jjs_run (ctx (), code, JJS_KEEP);
 
-  jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, result, code);
+  jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, result, JJS_MOVE, code, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_value));
 
   jjs_value_free (ctx (), compare_value);
-  jjs_value_free (ctx (), result);
-  jjs_value_free (ctx (), code);
 
   ctx_close ();
 } /* test_get_backtrace_api_call */

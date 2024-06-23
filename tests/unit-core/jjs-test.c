@@ -135,7 +135,7 @@ ctx_boolean (bool value)
 jjs_value_t
 ctx_symbol (const char *description)
 {
-  return ctx_defer_free (jjs_symbol_with_description (ctx (), ctx_cstr (description)));
+  return ctx_defer_free (jjs_symbol_with_description_sz (ctx (), description));
 }
 
 jjs_context_t *
@@ -175,7 +175,7 @@ ctx_assert_strict_equals (jjs_value_t actual, jjs_value_t expected)
     return;
   }
 
-  jjs_value_t op_result = ctx_defer_free (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, expected, actual));
+  jjs_value_t op_result = ctx_defer_free (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, expected, JJS_KEEP, actual, JJS_KEEP));
 
   if (jjs_value_is_exception (ctx (), op_result))
   {
@@ -197,7 +197,7 @@ ctx_assert_strict_equals (jjs_value_t actual, jjs_value_t expected)
 bool
 strict_equals (jjs_context_t *context_p, jjs_value_t a, jjs_value_t b)
 {
-  jjs_value_t op_result = jjs_binary_op (context_p, JJS_BIN_OP_STRICT_EQUAL, a, b);
+  jjs_value_t op_result = jjs_binary_op (context_p, JJS_BIN_OP_STRICT_EQUAL, a, JJS_KEEP, b, JJS_KEEP);
   bool result = jjs_value_is_true (context_p, op_result);
 
   jjs_value_free (context_p, op_result);

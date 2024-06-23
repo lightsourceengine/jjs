@@ -76,12 +76,8 @@ main (void)
   if (jjs_feature_enabled (JJS_FEATURE_PROXY))
   {
     /* Note: update this test when the internal method is implemented */
-    jjs_value_t target = jjs_object (ctx ());
-    jjs_value_t handler = jjs_object (ctx ());
-    jjs_value_t proxy = jjs_proxy (ctx (), target, handler);
+    jjs_value_t proxy = jjs_proxy (ctx (), jjs_object (ctx ()), JJS_MOVE, jjs_object (ctx ()), JJS_MOVE);
 
-    jjs_value_free (ctx (), target);
-    jjs_value_free (ctx (), handler);
     is_ok = jjs_object_get_own_prop (ctx (), proxy, prop_name, &prop_desc);
     TEST_ASSERT (jjs_value_is_boolean (ctx (), is_ok) && !jjs_value_is_true (ctx (), is_ok));
     jjs_value_free (ctx (), is_ok);

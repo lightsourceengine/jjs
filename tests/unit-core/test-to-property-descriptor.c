@@ -37,7 +37,7 @@ check_attribute (jjs_value_t attribute, /**< attribute to be checked */
   }
   else
   {
-    jjs_value_t result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, attribute, value);
+    jjs_value_t result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, attribute, JJS_KEEP, value, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_true (ctx (), result));
     jjs_value_free (ctx (), result);
   }

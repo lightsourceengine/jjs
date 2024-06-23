@@ -58,7 +58,7 @@ synthetic_module_link_cb (jjs_context_t *context_p, const jjs_value_t specifier,
 {
   JJS_UNUSED (context_p);
   JJS_UNUSED (referrer);
-  JJS_EXPECT_TRUE_MOVE (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, specifier, ctx_cstr ("synthetic")));
+  JJS_EXPECT_TRUE_MOVE (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, specifier, JJS_KEEP, ctx_cstr ("synthetic"), JJS_KEEP));
 
   return jjs_value_copy (ctx (), (jjs_value_t) (uintptr_t) user_p);
 } /* synthetic_module_link_cb */

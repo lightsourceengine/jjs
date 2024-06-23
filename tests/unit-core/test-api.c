@@ -695,13 +695,9 @@ main (void)
 
     if (jjs_feature_enabled (JJS_FEATURE_PROXY))
     {
-      jjs_value_t target = jjs_object (ctx ()) ;
-      jjs_value_t handler = jjs_object (ctx ()) ;
-      jjs_value_t proxy = jjs_proxy (ctx (), target, handler);
+      jjs_value_t proxy = jjs_proxy (ctx (), jjs_object (ctx ()), JJS_MOVE, jjs_object (ctx ()), JJS_MOVE);
       jjs_value_t obj_proto = jjs_eval_sz (ctx (), "Object.prototype", JJS_PARSE_NO_OPTS);
 
-      jjs_value_free (ctx (), target);
-      jjs_value_free (ctx (), handler);
       proto_val = jjs_object_proto (ctx (), proxy);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), proto_val));
       TEST_ASSERT (proto_val == obj_proto);
@@ -732,8 +728,7 @@ main (void)
     if (jjs_feature_enabled (JJS_FEATURE_PROXY))
     {
       jjs_value_t target = jjs_object (ctx ()) ;
-      jjs_value_t handler = jjs_object (ctx ()) ;
-      jjs_value_t proxy = jjs_proxy (ctx (), target, handler);
+      jjs_value_t proxy = jjs_proxy (ctx (), target, JJS_KEEP, jjs_object (ctx ()), JJS_MOVE);
       new_proto = jjs_eval_sz (ctx (), "Function.prototype", JJS_PARSE_NO_OPTS);
 
       res = jjs_object_set_proto (ctx (), proxy, new_proto);
@@ -742,7 +737,6 @@ main (void)
       TEST_ASSERT (target_proto == new_proto);
 
       jjs_value_free (ctx (), target);
-      jjs_value_free (ctx (), handler);
       jjs_value_free (ctx (), proxy);
       jjs_value_free (ctx (), new_proto);
       jjs_value_free (ctx (), target_proto);
@@ -943,7 +937,7 @@ main (void)
       TEST_ASSERT (jjs_value_is_object (ctx (), proxy));
       jjs_value_t new_realm_value = jjs_realm (ctx ());
 
-      jjs_value_t set_realm_this_result = jjs_realm_set_this (ctx (), new_realm_value, proxy);
+      jjs_value_t set_realm_this_result = jjs_realm_set_this (ctx (), new_realm_value, proxy, JJS_KEEP);
       TEST_ASSERT (jjs_value_is_boolean (ctx (), set_realm_this_result) && jjs_value_is_true (ctx (), set_realm_this_result));
       jjs_value_free (ctx (), set_realm_this_result);
 
@@ -970,7 +964,7 @@ main (void)
       TEST_ASSERT (jjs_value_is_object (ctx (), proxy));
       new_realm_value = jjs_realm (ctx ());
 
-      set_realm_this_result = jjs_realm_set_this (ctx (), new_realm_value, proxy);
+      set_realm_this_result = jjs_realm_set_this (ctx (), new_realm_value, proxy, JJS_KEEP);
       TEST_ASSERT (jjs_value_is_boolean (ctx (), set_realm_this_result) && jjs_value_is_true (ctx (), set_realm_this_result));
       jjs_value_free (ctx (), set_realm_this_result);
 
@@ -1088,26 +1082,26 @@ main (void)
     jjs_value_free (ctx (), args[1]);
 
     {
-      jjs_parse_options_t parse_options = jjs_parse_options ();
+      jjs_parse_options_t parse_options_disown = jjs_parse_options ();
 
       /* empty */
-      jjs_parse_options_disown (ctx (), &parse_options);
+      jjs_parse_options_disown (ctx (), &parse_options_disown);
 
-      parse_options = (jjs_parse_options_t) {
+      parse_options_disown = (jjs_parse_options_t) {
         .source_name = jjs_optional_value (jjs_string_sz (ctx (), "xxx")),
       };
 
       /* expect source name not to be freed on not defined or keep */
-      jjs_parse_options_disown (ctx (), &parse_options);
-      jjs_value_free (ctx (), parse_options.source_name.value);
+      jjs_parse_options_disown (ctx (), &parse_options_disown);
+      jjs_value_free (ctx (), parse_options_disown.source_name.value);
 
       /* expect source name to be freed */
-      parse_options = (jjs_parse_options_t) {
+      parse_options_disown = (jjs_parse_options_t) {
         .source_name = jjs_optional_value (jjs_string_sz (ctx (), "xxx")),
         .source_name_o = JJS_MOVE,
       };
 
-      jjs_parse_options_disown (ctx (), &parse_options);
+      jjs_parse_options_disown (ctx (), &parse_options_disown);
     }
 
     ctx_close ();

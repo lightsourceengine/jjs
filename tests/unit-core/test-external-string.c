@@ -124,12 +124,12 @@ main (void)
   external_string = jjs_string_external_sz (ctx (), external_1, NULL);
   jjs_value_t other_string = jjs_string_sz (ctx (), external_1);
 
-  jjs_value_t result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, external_string, other_string);
+  jjs_value_t result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, external_string, JJS_KEEP, other_string, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
   TEST_ASSERT (jjs_value_is_true (ctx (), result));
   jjs_value_free (ctx (), result);
 
-  result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, external_string, external_string);
+  result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, external_string, JJS_KEEP, external_string, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
   TEST_ASSERT (jjs_value_is_true (ctx (), result));
   jjs_value_free (ctx (), result);
@@ -170,7 +170,7 @@ main (void)
   jjs_value_t get_result = jjs_object_get (ctx (), obj, other_string);
   TEST_ASSERT (jjs_value_is_string (ctx (), get_result));
 
-  result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, get_result, external_string);
+  result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, get_result, JJS_KEEP, external_string, JJS_KEEP);
   jjs_value_free (ctx (), get_result);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
   TEST_ASSERT (jjs_value_is_true (ctx (), result));
@@ -184,7 +184,7 @@ main (void)
   get_result = jjs_object_get (ctx (), obj, external_string);
   TEST_ASSERT (jjs_value_is_string (ctx (), get_result));
 
-  result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, get_result, other_string);
+  result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, get_result, JJS_KEEP, other_string, JJS_KEEP);
   jjs_value_free (ctx (), get_result);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
   TEST_ASSERT (jjs_value_is_true (ctx (), result));

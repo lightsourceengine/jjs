@@ -116,7 +116,7 @@ main (void)
   jjs_value_free (ctx (), error_val);
   TEST_ASSERT (number == 0);
 
-  error_val = jjs_symbol_with_description (ctx (), error_val);
+  error_val = jjs_symbol_with_description (ctx (), error_val, JJS_KEEP);
   number = jjs_value_as_integer (ctx (), error_val);
   TEST_ASSERT (number == 0);
   jjs_value_free (ctx (), error_val);

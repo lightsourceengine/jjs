@@ -227,7 +227,7 @@ test_snapshot_with_user (void)
       jjs_value_t user_value = jjs_source_user_value (ctx (), result);
       jjs_value_free (ctx (), result);
 
-      result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, snapshot_exec_options.user_value);
+      result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, JJS_KEEP, snapshot_exec_options.user_value, JJS_KEEP);
 
       TEST_ASSERT (jjs_value_is_true (ctx (), result));
 

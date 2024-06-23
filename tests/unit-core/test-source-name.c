@@ -75,7 +75,7 @@ main (void)
 
   jjs_value_t source_name_value = jjs_source_name (ctx (), run_result);
   jjs_value_t compare_result =
-    jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
+    jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, parse_options.source_name.value, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
   jjs_value_free (ctx (), compare_result);
@@ -105,7 +105,7 @@ main (void)
   TEST_ASSERT (jjs_value_is_object (ctx (), run_result));
 
   source_name_value = jjs_source_name (ctx (), run_result);
-  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
+  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, parse_options.source_name.value, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
   jjs_value_free (ctx (), compare_result);
@@ -128,7 +128,7 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
     source_name_value = jjs_source_name (ctx (), program);
-    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
+    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, parse_options.source_name.value, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
     jjs_value_free (ctx (), compare_result);
@@ -138,7 +138,7 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (ctx (), run_result));
 
     source_name_value = jjs_source_name (ctx (), run_result);
-    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, anon);
+    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, anon, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
     jjs_value_free (ctx (), compare_result);
@@ -149,7 +149,7 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (ctx (), run_result));
 
     source_name_value = jjs_source_name (ctx (), run_result);
-    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, anon);
+    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, anon, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
     jjs_value_free (ctx (), compare_result);
@@ -173,7 +173,7 @@ main (void)
   TEST_ASSERT (jjs_value_is_object (ctx (), run_result));
 
   source_name_value = jjs_source_name (ctx (), run_result);
-  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
+  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, parse_options.source_name.value, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
   jjs_value_free (ctx (), compare_result);
 
@@ -193,7 +193,7 @@ main (void)
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
   source_name_value = jjs_source_name (ctx (), program);
-  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
+  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, parse_options.source_name.value, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
   jjs_value_free (ctx (), source_name_value);
@@ -212,7 +212,7 @@ main (void)
   if (!jjs_value_is_exception (ctx (), program))
   {
     source_name_value = jjs_source_name (ctx (), program);
-    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
+    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, JJS_KEEP, parse_options.source_name.value, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
     jjs_value_free (ctx (), source_name_value);

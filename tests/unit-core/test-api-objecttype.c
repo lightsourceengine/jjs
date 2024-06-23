@@ -57,12 +57,7 @@ test_namespace (const jjs_parse_options_t module_parse_options) /** module optio
 static jjs_value_t
 test_dataview (void)
 {
-  jjs_value_t arraybuffer = jjs_arraybuffer (ctx (), 10);
-  jjs_value_t dataview = jjs_dataview (ctx (), arraybuffer, 0, 4);
-
-  jjs_value_free (ctx (), arraybuffer);
-
-  return dataview;
+  return jjs_dataview (ctx (), jjs_arraybuffer (ctx (), 10), JJS_MOVE, 0, 4);
 } /* test_dataview */
 
 int

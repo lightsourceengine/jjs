@@ -38,7 +38,7 @@ test_parse (const char *source_p, /**< source code */
     }
 
     jjs_value_t user_value = jjs_source_user_value (ctx (), result);
-    jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, user_values[i]);
+    jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, JJS_KEEP, user_values[i], JJS_KEEP);
 
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_value));
 
@@ -73,7 +73,7 @@ test_parse_function (const char *source_p, /**< source code */
     }
 
     jjs_value_t user_value = jjs_source_user_value (ctx (), result);
-    jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, user_values[i]);
+    jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, user_value, JJS_KEEP, user_values[i], JJS_KEEP);
 
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_value));
 

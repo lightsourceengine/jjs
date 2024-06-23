@@ -126,12 +126,12 @@ main (void)
   jjs_value_t str_resolve = jjs_string_sz (ctx (), s1);
   jjs_value_t str_reject = jjs_string_sz (ctx (), s2);
 
-  jjs_promise_resolve (ctx (), my_promise1, str_resolve);
-  jjs_promise_reject (ctx (), my_promise2, str_reject);
+  jjs_promise_resolve (ctx (), my_promise1, str_resolve, JJS_KEEP);
+  jjs_promise_reject (ctx (), my_promise2, str_reject, JJS_KEEP);
 
   /* The resolve/reject function should be invalid after the promise has the result. */
-  jjs_promise_resolve (ctx (), my_promise2, str_resolve);
-  jjs_promise_reject (ctx (), my_promise1, str_reject);
+  jjs_promise_resolve (ctx (), my_promise2, str_resolve, JJS_KEEP);
+  jjs_promise_reject (ctx (), my_promise1, str_reject, JJS_KEEP);
 
   /* Run the jobqueue. */
   res = jjs_run_jobs (ctx ());

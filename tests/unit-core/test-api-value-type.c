@@ -80,15 +80,13 @@ main (void)
     jjs_value_free (ctx (), entries[idx].value);
   }
 
-  jjs_value_t symbol_desc_value = jjs_string_sz (ctx (), "foo");
-  jjs_value_t symbol_value = jjs_symbol_with_description (ctx (), symbol_desc_value);
+  jjs_value_t symbol_value = jjs_symbol_with_description_sz (ctx (), "foo");
   jjs_type_t type_info = jjs_value_type (ctx (), symbol_value);
 
   TEST_ASSERT (type_info != JJS_TYPE_NONE);
   TEST_ASSERT (type_info == JJS_TYPE_SYMBOL);
 
   jjs_value_free (ctx (), symbol_value);
-  jjs_value_free (ctx (), symbol_desc_value);
 
   if (jjs_feature_enabled (JJS_FEATURE_BIGINT))
   {

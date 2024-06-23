@@ -306,7 +306,12 @@ double jjs_value_as_double (jjs_context_t* context_p, const jjs_value_t value);
  * @defgroup jjs-api-value-op Operations
  * @{
  */
-jjs_value_t jjs_binary_op (jjs_context_t* context_p, jjs_binary_op_t operation, const jjs_value_t lhs, const jjs_value_t rhs);
+jjs_value_t jjs_binary_op (jjs_context_t* context_p,
+                           jjs_binary_op_t operation,
+                           const jjs_value_t lhs,
+                           jjs_own_t lhs_o,
+                           const jjs_value_t rhs,
+                           jjs_own_t rhs_o);
 
 /**
  * jjs-api-value-op @}
@@ -568,7 +573,8 @@ void jjs_string_external_on_free (jjs_context_t* context_p, jjs_external_string_
  * @{
  */
 jjs_value_t jjs_symbol (jjs_context_t* context_p);
-jjs_value_t jjs_symbol_with_description (jjs_context_t* context_p, const jjs_value_t value);
+jjs_value_t jjs_symbol_with_description (jjs_context_t* context_p, const jjs_value_t value, jjs_own_t value_o);
+jjs_value_t jjs_symbol_with_description_sz (jjs_context_t* context_p, const char *value_p);
 
 jjs_value_t jjs_symbol_get_well_known (jjs_context_t* context_p, jjs_well_known_symbol_t symbol);
 /**
@@ -865,7 +871,11 @@ jjs_value_t jjs_shared_arraybuffer_external (jjs_context_t* context_p, uint8_t *
  * @defgroup jjs-api-dataview-ctor Constructors
  * @{
  */
-jjs_value_t jjs_dataview (jjs_context_t* context_p, const jjs_value_t value, jjs_size_t byte_offset, jjs_size_t byte_length);
+jjs_value_t jjs_dataview (jjs_context_t* context_p,
+                          const jjs_value_t array_buffer,
+                          jjs_own_t array_buffer_o,
+                          jjs_size_t byte_offset,
+                          jjs_size_t byte_length);
 /**
  * jjs-api-dataview-ctr @}
  */
@@ -896,10 +906,14 @@ jjs_size_t jjs_dataview_byte_length (jjs_context_t* context_p, const jjs_value_t
  * @{
  */
 jjs_value_t jjs_typedarray (jjs_context_t* context_p, jjs_typedarray_type_t type, jjs_length_t length);
-jjs_value_t jjs_typedarray_with_buffer (jjs_context_t* context_p, jjs_typedarray_type_t type, const jjs_value_t arraybuffer);
+jjs_value_t jjs_typedarray_with_buffer (jjs_context_t* context_p,
+                                        jjs_typedarray_type_t type,
+                                        const jjs_value_t arraybuffer,
+                                        jjs_own_t arraybuffer_o);
 jjs_value_t jjs_typedarray_with_buffer_span (jjs_context_t* context_p,
                                              jjs_typedarray_type_t type,
                                              const jjs_value_t arraybuffer,
+                                             jjs_own_t arraybuffer_o,
                                              jjs_size_t byte_offset,
                                              jjs_size_t byte_length);
 /**
@@ -991,8 +1005,17 @@ jjs_value_t jjs_construct (jjs_context_t* context_p, const jjs_value_t function,
  * @defgroup jjs-api-proxy-ctor Constructors
  * @{
  */
-jjs_value_t jjs_proxy (jjs_context_t* context_p, const jjs_value_t target, const jjs_value_t handler);
-jjs_value_t jjs_proxy_custom (jjs_context_t* context_p, const jjs_value_t target, const jjs_value_t handler, uint32_t flags);
+jjs_value_t jjs_proxy (jjs_context_t* context_p,
+                       const jjs_value_t target,
+                       jjs_own_t target_o,
+                       const jjs_value_t handler,
+                       jjs_own_t handler_o);
+jjs_value_t jjs_proxy_custom (jjs_context_t* context_p,
+                              const jjs_value_t target,
+                              jjs_own_t target_o,
+                              const jjs_value_t handler,
+                              jjs_own_t handler_o,
+                              uint32_t flags);
 /**
  * jjs-api-function-proxy-ctor @}
  */
@@ -1039,8 +1062,8 @@ jjs_promise_state_t jjs_promise_state (jjs_context_t* context_p, const jjs_value
  * @defgroup jjs-api-promise-op Operations
  * @{
  */
-jjs_value_t jjs_promise_resolve (jjs_context_t* context_p, jjs_value_t promise, const jjs_value_t argument);
-jjs_value_t jjs_promise_reject (jjs_context_t* context_p, jjs_value_t promise, const jjs_value_t argument);
+jjs_value_t jjs_promise_resolve (jjs_context_t* context_p, jjs_value_t promise, const jjs_value_t argument, jjs_own_t argument_o);
+jjs_value_t jjs_promise_reject (jjs_context_t* context_p, jjs_value_t promise, const jjs_value_t argument, jjs_own_t argument_o);
 /**
  * jjs-api-promise-op @}
  */
@@ -1454,7 +1477,7 @@ jjs_value_t jjs_realm_this (jjs_context_t* context_p, jjs_value_t realm);
  * @defgroup jjs-api-realm-op Operation
  * @{
  */
-jjs_value_t jjs_realm_set_this (jjs_context_t* context_p, jjs_value_t realm, jjs_value_t this_value);
+jjs_value_t jjs_realm_set_this (jjs_context_t* context_p, jjs_value_t realm, jjs_value_t this_value, jjs_own_t this_value_o);
 /**
  * jjs-api-realm-op @}
  */

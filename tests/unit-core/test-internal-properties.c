@@ -26,17 +26,13 @@ main (void)
   jjs_value_t prop_name_2 = jjs_string_sz (ctx (), "non_hidden_prop");
   jjs_value_t prop_name_3;
 
-  jjs_value_t prop_name_3_desc = jjs_string_sz (ctx (), "bar");
-  prop_name_3 = jjs_symbol_with_description (ctx (), prop_name_3_desc);
-  jjs_value_free (ctx (), prop_name_3_desc);
+  prop_name_3 = jjs_symbol_with_description_sz (ctx (), "bar");
 
   jjs_value_t internal_prop_name_1 = jjs_string_sz (ctx (), "hidden_foo");
   jjs_value_t internal_prop_name_2 = jjs_string_sz (ctx (), "hidden_prop");
   jjs_value_t internal_prop_name_3;
 
-  jjs_value_t internal_prop_name_3_desc = jjs_string_sz (ctx (), "bar");
-  internal_prop_name_3 = jjs_symbol_with_description (ctx (), internal_prop_name_3_desc);
-  jjs_value_free (ctx (), internal_prop_name_3_desc);
+  internal_prop_name_3 = jjs_symbol_with_description_sz (ctx (), "bar");
 
   jjs_value_t prop_value_1 = jjs_number (ctx (), 5.5);
   jjs_value_t prop_value_2 = jjs_number (ctx (), 6.5);

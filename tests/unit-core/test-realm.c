@@ -81,7 +81,7 @@ check_array_prototype (jjs_value_t realm_value, jjs_value_t result_value)
   jjs_value_free (ctx (), name_value);
   jjs_value_free (ctx (), array_value);
 
-  jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, result_value, prototype_value);
+  jjs_value_t compare_value = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, result_value, JJS_KEEP, prototype_value, JJS_KEEP);
   jjs_value_free (ctx (), prototype_value);
 
   TEST_ASSERT (jjs_value_is_boolean (ctx (), compare_value) && jjs_value_is_true (ctx (), compare_value));
@@ -158,11 +158,11 @@ main (void)
   jjs_set_realm (ctx (), result_value);
 
   number_value = jjs_number (ctx (), 7);
-  check_type_error (jjs_realm_set_this (ctx (), realm_value, number_value));
-  check_type_error (jjs_realm_set_this (ctx (), number_value, object_value));
+  check_type_error (jjs_realm_set_this (ctx (), realm_value, number_value, JJS_MOVE));
+  check_type_error (jjs_realm_set_this (ctx (), number_value, object_value, JJS_KEEP));
   jjs_value_free (ctx (), number_value);
 
-  result_value = jjs_realm_set_this (ctx (), realm_value, object_value);
+  result_value = jjs_realm_set_this (ctx (), realm_value, object_value, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result_value) && jjs_value_is_true (ctx (), result_value));
   jjs_value_free (ctx (), result_value);
 
@@ -188,9 +188,9 @@ main (void)
     /* Check property creation. */
     jjs_value_t handler_value = jjs_object (ctx ());
     jjs_value_t target_value = jjs_realm (ctx ());
-    jjs_value_t proxy_value = jjs_proxy (ctx (), target_value, handler_value);
+    jjs_value_t proxy_value = jjs_proxy (ctx (), target_value, JJS_KEEP, handler_value, JJS_KEEP);
 
-    jjs_realm_set_this (ctx (), target_value, proxy_value);
+    jjs_realm_set_this (ctx (), target_value, proxy_value, JJS_KEEP);
     jjs_value_free (ctx (), proxy_value);
     jjs_value_free (ctx (), handler_value);
 
@@ -209,7 +209,7 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (ctx (), proxy_value) && jjs_value_is_object (ctx (), proxy_value));
 
     target_value = jjs_realm (ctx ());
-    jjs_realm_set_this (ctx (), target_value, proxy_value);
+    jjs_realm_set_this (ctx (), target_value, proxy_value, JJS_KEEP);
     jjs_value_free (ctx (), proxy_value);
 
     old_realm_value = jjs_set_realm (ctx (), target_value);

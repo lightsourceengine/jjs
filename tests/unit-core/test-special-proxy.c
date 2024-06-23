@@ -27,7 +27,7 @@ create_special_proxy_handler (const jjs_call_info_t *call_info_p, /**< call info
     return jjs_undefined (ctx ());
   }
 
-  return jjs_proxy_custom (ctx (), args_p[0], args_p[1], JJS_PROXY_SKIP_RESULT_VALIDATION);
+  return jjs_proxy_custom (ctx (), args_p[0], JJS_KEEP, args_p[1], JJS_KEEP, JJS_PROXY_SKIP_RESULT_VALIDATION);
 } /* create_special_proxy_handler */
 
 static void

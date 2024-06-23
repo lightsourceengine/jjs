@@ -45,7 +45,7 @@ test_context_new_no_arena (void)
   /* do some vm work */
   for (jjs_size_t i = 0; i < 5; i++)
   {
-    ctx_defer_free (jjs_binary_op (context_p, JJS_BIN_OP_ADD, ctx_cstr ("x"), ctx_cstr ("y")));
+    ctx_defer_free (jjs_binary_op (context_p, JJS_BIN_OP_ADD, jjs_string_sz(ctx (), "x"), JJS_MOVE, jjs_string_sz(ctx (), "y"), JJS_MOVE));
   }
 
   ctx_close ();

@@ -168,11 +168,9 @@ main (void)
 
   for (uint32_t idx = 0; idx < sizeof (tests) / sizeof (test_entry_t); idx++)
   {
-    jjs_value_t result = jjs_binary_op (ctx(), tests[idx].op, tests[idx].lhs, tests[idx].rhs);
+    jjs_value_t result = jjs_binary_op (ctx(), tests[idx].op, tests[idx].lhs, JJS_MOVE, tests[idx].rhs, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx(), result));
     TEST_ASSERT (jjs_value_is_true (ctx(), result) == tests[idx].expected);
-    jjs_value_free (ctx (), tests[idx].lhs);
-    jjs_value_free (ctx (), tests[idx].rhs);
     jjs_value_free (ctx (), result);
   }
 
@@ -184,10 +182,8 @@ main (void)
 
   for (uint32_t idx = 0; idx < sizeof (error_tests) / sizeof (test_entry_t); idx++)
   {
-    jjs_value_t result = jjs_binary_op (ctx(), tests[idx].op, error_tests[idx].lhs, error_tests[idx].rhs);
+    jjs_value_t result = jjs_binary_op (ctx(), tests[idx].op, error_tests[idx].lhs, JJS_MOVE, error_tests[idx].rhs, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx(), result) == error_tests[idx].expected);
-    jjs_value_free (ctx (), error_tests[idx].lhs);
-    jjs_value_free (ctx (), error_tests[idx].rhs);
     jjs_value_free (ctx (), result);
   }
 

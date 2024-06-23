@@ -194,7 +194,7 @@ test_proxy_native (void)
   set_function (handler, "get", proxy_native_handler_get);
 
   jjs_value_t target = jjs_object (ctx ());
-  jjs_value_t proxy = jjs_proxy (ctx (), target, handler);
+  jjs_value_t proxy = jjs_proxy (ctx (), target, JJS_MOVE, handler, JJS_MOVE);
 
   struct test_data *data = (struct test_data *) malloc (sizeof (struct test_data));
   data->value = 2;
@@ -211,8 +211,6 @@ test_proxy_native (void)
   TEST_ASSERT (jjs_value_is_number (ctx (), result_for_5));
   TEST_ASSERT (jjs_value_as_number (ctx (), result_for_5) == 16.0);
 
-  jjs_value_free (ctx (), handler);
-  jjs_value_free (ctx (), target);
   jjs_value_free (ctx (), proxy);
 } /* test_proxy_native */
 
@@ -234,7 +232,7 @@ main (void)
   }
 
   jjs_value_t target = jjs_object (ctx ());
-  jjs_value_t proxy = jjs_proxy (ctx (), target, handler);
+  jjs_value_t proxy = jjs_proxy (ctx (), target, JJS_KEEP, handler, JJS_KEEP);
   {
     jjs_value_t global = jjs_current_realm (ctx ());
     set_property (global, "pdemo", proxy);
@@ -327,7 +325,7 @@ main (void)
 
   target = jjs_object (ctx ());
   handler = jjs_object (ctx ());
-  proxy = jjs_proxy (ctx (), target, handler);
+  proxy = jjs_proxy (ctx (), target, JJS_KEEP, handler, JJS_KEEP);
 
   {
     jjs_value_t res = jjs_proxy_target (ctx (), proxy);

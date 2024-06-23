@@ -40,24 +40,17 @@ main (void)
   TEST_ASSERT (jjs_value_is_symbol (ctx (), empty_symbol_1));
   TEST_ASSERT (jjs_value_is_symbol (ctx (), empty_symbol_2));
 
-  jjs_value_t empty_symbol_cmp = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, empty_symbol_1, empty_symbol_2);
+  jjs_value_t empty_symbol_cmp = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, empty_symbol_1, JJS_KEEP, empty_symbol_2, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_false (ctx (), ctx_defer_free (empty_symbol_cmp)));
 
   /* Test for that each symbol is unique independently from their descriptor strings */
-  jjs_value_t symbol_desc_1 = jjs_string_sz (ctx (), STRING_FOO);
-  jjs_value_t symbol_desc_2 = jjs_string_sz (ctx (), STRING_FOO);
-
-  jjs_value_t symbol_1 = jjs_symbol_with_description (ctx (), symbol_desc_1);
+  jjs_value_t symbol_1 = jjs_symbol_with_description_sz (ctx (), STRING_FOO);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), symbol_1));
   TEST_ASSERT (jjs_value_is_symbol (ctx (), symbol_1));
 
-  jjs_value_t symbol_2 = jjs_symbol_with_description (ctx (), symbol_desc_2);
+  jjs_value_t symbol_2 = jjs_symbol_with_description_sz (ctx (), STRING_FOO);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), symbol_2));
   TEST_ASSERT (jjs_value_is_symbol (ctx (), symbol_2));
-
-  /* The descriptor strings are no longer needed */
-  jjs_value_free (ctx (), symbol_desc_1);
-  jjs_value_free (ctx (), symbol_desc_2);
 
   jjs_value_t value_1 = jjs_number (ctx (), 1);
   jjs_value_t value_2 = jjs_number (ctx (), 2);
@@ -136,15 +129,12 @@ main (void)
   jjs_value_free (ctx (), object);
 
   /* Test creating symbol with a symbol description */
-  jjs_value_t empty_symbol_desc = jjs_string_sz (ctx (), "");
 
-  jjs_value_t empty_symbol = jjs_symbol_with_description (ctx (), empty_symbol_desc);
+  jjs_value_t empty_symbol = jjs_symbol_with_description_sz (ctx (), "");
   TEST_ASSERT (!jjs_value_is_exception (ctx (), empty_symbol));
   TEST_ASSERT (jjs_value_is_symbol (ctx (), empty_symbol));
 
-  jjs_value_free (ctx (), empty_symbol_desc);
-
-  jjs_value_t symbol_symbol = jjs_symbol_with_description (ctx (), empty_symbol);
+  jjs_value_t symbol_symbol = jjs_symbol_with_description (ctx (), empty_symbol, JJS_KEEP);
   TEST_ASSERT (!jjs_value_is_symbol (ctx (), symbol_symbol));
   TEST_ASSERT (jjs_value_is_exception (ctx (), symbol_symbol));
 
@@ -156,13 +146,10 @@ main (void)
   jjs_value_free (ctx (), empty_symbol);
 
   /* Test symbol to string operation with symbol argument */
-  jjs_value_t bar_symbol_desc = jjs_string_sz (ctx (), STRING_BAR);
 
-  jjs_value_t bar_symbol = jjs_symbol_with_description (ctx (), bar_symbol_desc);
+  jjs_value_t bar_symbol = jjs_symbol_with_description_sz (ctx (), STRING_BAR);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), bar_symbol));
   TEST_ASSERT (jjs_value_is_symbol (ctx (), bar_symbol));
-
-  jjs_value_free (ctx (), bar_symbol_desc);
 
   jjs_value_t bar_symbol_string = jjs_symbol_descriptive_string (ctx (), bar_symbol);
   TEST_ASSERT (jjs_value_is_string (ctx (), bar_symbol_string));
@@ -190,16 +177,13 @@ main (void)
   jjs_value_free (ctx (), bar_symbol);
 
   /* Test symbol get description operation with undefined description */
-  jjs_value_t undefined_value = jjs_undefined (ctx ());
-  jjs_value_t undefined_symbol = jjs_symbol_with_description (ctx (), undefined_value);
-  jjs_value_free (ctx (), undefined_value);
+  jjs_value_t undefined_symbol = jjs_symbol_with_description (ctx (), jjs_undefined (ctx ()), JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), bar_symbol));
   TEST_ASSERT (jjs_value_is_symbol (ctx (), bar_symbol));
 
-  undefined_value = jjs_symbol_description (ctx (), undefined_symbol);
-  TEST_ASSERT (jjs_value_is_undefined (ctx (), undefined_value));
-  jjs_value_free (ctx (), undefined_value);
-  jjs_value_free (ctx (), undefined_symbol);
+  jjs_value_t undefined_description = jjs_symbol_description (ctx (), undefined_symbol);
+  TEST_ASSERT (jjs_value_is_undefined (ctx (), undefined_description));
+  jjs_value_free (ctx (), undefined_description);
 
   /* Test symbol to string operation with non-symbol argument */
   jjs_value_t null_value = jjs_null (ctx ());
@@ -255,7 +239,7 @@ main (void)
     jjs_value_t current_global_symbol = jjs_object_get (ctx (), builtin_symbol, prop_str);
     jjs_value_free (ctx (), prop_str);
 
-    jjs_value_t relation = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, well_known_symbol, current_global_symbol);
+    jjs_value_t relation = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, well_known_symbol, JJS_KEEP, current_global_symbol, JJS_KEEP);
 
     TEST_ASSERT (jjs_value_is_boolean (ctx (), relation) && jjs_value_is_true (ctx (), relation));
 

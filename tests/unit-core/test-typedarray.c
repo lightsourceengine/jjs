@@ -250,12 +250,11 @@ test_typedarray_complex_creation (test_entry_t test_entries[], /**< test cases *
       register_js_value ("expected_length", js_element_count);
 
       typedarray =
-        jjs_typedarray_with_buffer_span (ctx (), test_entries[i].typedarray_type, arraybuffer, offset, element_count);
+        jjs_typedarray_with_buffer_span (ctx (), test_entries[i].typedarray_type, arraybuffer, JJS_MOVE, offset, element_count);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), typedarray));
 
       jjs_value_free (ctx (), js_offset);
       jjs_value_free (ctx (), js_element_count);
-      jjs_value_free (ctx (), arraybuffer);
     }
 
     register_js_value ("array", typedarray);
@@ -522,7 +521,7 @@ test_detached_arraybuffer (void)
 
     for (size_t idx = 0; idx < (sizeof (types) / sizeof (types[0])); idx++)
     {
-      jjs_value_t typedarray = jjs_typedarray_with_buffer_span (ctx (), types[idx], arraybuffer, 0, 4);
+      jjs_value_t typedarray = jjs_typedarray_with_buffer_span (ctx (), types[idx], arraybuffer, JJS_KEEP, 0, 4);
       TEST_ASSERT (jjs_value_is_exception (ctx (), typedarray));
       TEST_ASSERT (jjs_error_type (ctx (), typedarray) == JJS_ERROR_TYPE);
       jjs_value_free (ctx (), typedarray);
@@ -550,7 +549,7 @@ test_detached_arraybuffer (void)
 
     for (size_t idx = 0; idx < (sizeof (types) / sizeof (types[0])); idx++)
     {
-      jjs_value_t typedarray = jjs_typedarray_with_buffer (ctx (), types[idx], arraybuffer);
+      jjs_value_t typedarray = jjs_typedarray_with_buffer (ctx (), types[idx], arraybuffer, JJS_KEEP);
       TEST_ASSERT (jjs_value_is_exception (ctx (), typedarray));
       TEST_ASSERT (jjs_error_type (ctx (), typedarray) == JJS_ERROR_TYPE);
       jjs_value_free (ctx (), typedarray);
@@ -720,7 +719,7 @@ main (void)
        */
       if (!jjs_value_is_arraybuffer (ctx (), values[idx]))
       {
-        jjs_value_t error = jjs_typedarray_with_buffer (ctx (), JJS_TYPEDARRAY_UINT8, values[idx]);
+        jjs_value_t error = jjs_typedarray_with_buffer (ctx (), JJS_TYPEDARRAY_UINT8, values[idx], JJS_KEEP);
         TEST_ASSERT (jjs_value_is_exception (ctx (), error));
         jjs_value_free (ctx (), error);
       }

@@ -31,7 +31,7 @@ main (void)
 
   /* Test accessors */
   jjs_value_t arraybuffer = jjs_arraybuffer (ctx (), 16);
-  jjs_value_t view1 = jjs_dataview (ctx (), arraybuffer, 0, 16);
+  jjs_value_t view1 = jjs_dataview (ctx (), arraybuffer, JJS_KEEP, 0, 16);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), view1));
   TEST_ASSERT (jjs_value_is_dataview (ctx (), view1));
 
@@ -39,35 +39,31 @@ main (void)
   jjs_length_t byteLength;
   jjs_value_t internal_buffer = jjs_dataview_buffer (ctx (), view1, &byteOffset, &byteLength);
 
-  TEST_ASSERT (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, internal_buffer, arraybuffer));
+  TEST_ASSERT (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, internal_buffer, JJS_MOVE, arraybuffer, JJS_KEEP));
   TEST_ASSERT (byteOffset == 0);
   TEST_ASSERT (byteOffset == jjs_dataview_byte_offset (ctx (), view1));
   TEST_ASSERT (byteLength == 16);
   TEST_ASSERT (byteLength == jjs_dataview_byte_length (ctx (), view1));
-  jjs_value_free (ctx (), internal_buffer);
 
-  jjs_value_t view2 = jjs_dataview (ctx (), arraybuffer, 12, 4);
+  jjs_value_t view2 = jjs_dataview (ctx (), arraybuffer, JJS_KEEP, 12, 4);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), view1));
   TEST_ASSERT (jjs_value_is_dataview (ctx (), view2));
   internal_buffer = jjs_dataview_buffer (ctx (), view2, &byteOffset, &byteLength);
 
-  TEST_ASSERT (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, internal_buffer, arraybuffer));
+  TEST_ASSERT (jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, internal_buffer, JJS_MOVE, arraybuffer, JJS_KEEP));
   TEST_ASSERT (byteOffset == 12);
   TEST_ASSERT (byteOffset == jjs_dataview_byte_offset (ctx (), view2));
   TEST_ASSERT (byteLength == 4);
   TEST_ASSERT (byteLength == jjs_dataview_byte_length (ctx (), view2));
-  jjs_value_free (ctx (), internal_buffer);
 
   /* Test invalid construction */
-  jjs_value_t empty_object = jjs_object (ctx ());
-  jjs_value_t view3 = jjs_dataview (ctx (), empty_object, 20, 10);
+  jjs_value_t view3 = jjs_dataview (ctx (), jjs_object (ctx ()), JJS_MOVE, 20, 10);
   TEST_ASSERT (jjs_value_is_exception (ctx (), view3));
   jjs_value_t error_obj = jjs_exception_value (ctx (), view3, true);
   TEST_ASSERT (jjs_error_type (ctx (), error_obj) == JJS_ERROR_TYPE);
   jjs_value_free (ctx (), error_obj);
-  jjs_value_free (ctx (), empty_object);
 
-  jjs_value_t view4 = jjs_dataview (ctx (), arraybuffer, 20, 10);
+  jjs_value_t view4 = jjs_dataview (ctx (), arraybuffer, JJS_KEEP, 20, 10);
   TEST_ASSERT (jjs_value_is_exception (ctx (), view3));
   error_obj = jjs_exception_value (ctx (), view4, true);
   TEST_ASSERT (jjs_error_type (ctx (), error_obj) == JJS_ERROR_RANGE);

@@ -42,10 +42,7 @@ test_promise_resolve_success (void)
 
   // A resolved promise should have the result of from the resolve call and a fulfilled state
   {
-    jjs_value_t resolve_result = jjs_promise_resolve (ctx (), my_promise, resolve_value);
-
-    // Release "old" value of resolve.
-    jjs_value_free (ctx (), resolve_value);
+    jjs_value_t resolve_result = jjs_promise_resolve (ctx (), my_promise, resolve_value, JJS_MOVE);
 
     jjs_value_t promise_result = jjs_promise_result (ctx (), my_promise);
     {
@@ -69,7 +66,7 @@ test_promise_resolve_success (void)
 
   // Resolvind a promise again does not change the result/state
   {
-    jjs_value_t resolve_result = jjs_promise_reject (ctx (), my_promise, jjs_number (ctx (), 50));
+    jjs_value_t resolve_result = jjs_promise_reject (ctx (), my_promise, jjs_number (ctx (), 50), JJS_MOVE);
 
     jjs_value_t promise_result = jjs_promise_result (ctx (), my_promise);
     {
@@ -113,8 +110,7 @@ test_promise_resolve_fail (void)
   // A resolved promise should have the result of from the resolve call and a fulfilled state
   {
     jjs_value_t error_obj = jjs_error_sz (ctx (), JJS_ERROR_TYPE, "resolve_fail", jjs_undefined (ctx ()));
-    jjs_value_t resolve_result = jjs_promise_reject (ctx (), my_promise, error_obj);
-    jjs_value_free (ctx (), error_obj);
+    jjs_value_t resolve_result = jjs_promise_reject (ctx (), my_promise, error_obj, JJS_MOVE);
 
     jjs_value_t promise_result = jjs_promise_result (ctx (), my_promise);
     // The error is not throw that's why it is only an error object.
@@ -131,7 +127,7 @@ test_promise_resolve_fail (void)
 
   // Resolvind a promise again does not change the result/state
   {
-    jjs_value_t resolve_result = jjs_promise_resolve (ctx (), my_promise, jjs_number (ctx (), 50));
+    jjs_value_t resolve_result = jjs_promise_resolve (ctx (), my_promise, jjs_number (ctx (), 50), JJS_MOVE);
 
     jjs_value_t promise_result = jjs_promise_result (ctx (), my_promise);
     TEST_ASSERT (jjs_value_is_object (ctx (), promise_result));
