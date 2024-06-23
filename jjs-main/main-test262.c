@@ -104,7 +104,7 @@ js_262_eval_script (const jjs_call_info_t *call_info_p, const jjs_value_t args_p
     return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "Expected a string");
   }
 
-  jjs_value_t ret_value = jjs_parse_value (context_p, args_p[0], NULL);
+  jjs_value_t ret_value = jjs_parse_value (context_p, args_p[0], JJS_KEEP, NULL);
 
   if (!jjs_value_is_exception (context_p, ret_value))
   {
@@ -294,8 +294,8 @@ main (int argc, char **argv)
     /* parse in sloppy mode. harness will add use strict, as necessary. add user value for import() to work. */
     jjs_value_t user_value = jjs_platform_realpath (context_p, jjs_string_sz (context_p, test_filename), JJS_MOVE);
     jjs_parse_options_t options = {
-      .options = JJS_PARSE_HAS_USER_VALUE,
-      .user_value = user_value,
+      .user_value = jjs_optional_value (user_value),
+      .user_value_o = JJS_MOVE,
     };
     jjs_value_t parsed = jjs_parse (context_p, source_buffer, (jjs_size_t) bytes_read, &options);
 
@@ -308,7 +308,6 @@ main (int argc, char **argv)
       status = false;
     }
 
-    jjs_value_free (context_p, user_value);
     jjs_value_free (context_p, parsed);
   }
 

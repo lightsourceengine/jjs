@@ -18,7 +18,7 @@
 static jjs_value_t
 create_object (const char *source_p) /**< source script */
 {
-  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_t result = jjs_eval_sz (ctx (), source_p, 0);
   TEST_ASSERT (jjs_value_is_object (ctx (), result));
   return result;
 } /* create_object */

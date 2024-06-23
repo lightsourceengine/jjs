@@ -22,13 +22,13 @@ main (void)
   {
     return 0;
   }
-  const jjs_char_t test_source[] = TEST_STRING_LITERAL ("var a = 'hello';"
+  const char test_source[] = TEST_STRING_LITERAL ("var a = 'hello';"
                                                           "var b = 'world';"
                                                           "var c = a + ' ' + b;");
 
   ctx_open (NULL);
 
-  jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+  jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
   jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);

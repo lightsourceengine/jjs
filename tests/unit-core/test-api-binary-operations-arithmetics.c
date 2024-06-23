@@ -53,8 +53,8 @@ main (void)
 {
   ctx_open (NULL);
 
-  jjs_value_t obj1 = jjs_eval (ctx (), (jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
-  jjs_value_t obj2 = jjs_eval (ctx (), (jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
+  jjs_value_t obj1 = jjs_eval_sz (ctx (), "o={x:1};o", JJS_PARSE_NO_OPTS);
+  jjs_value_t obj2 = jjs_eval_sz (ctx (), "o={x:1};o", JJS_PARSE_NO_OPTS);
   jjs_value_t err1 = jjs_throw_sz (ctx (), JJS_ERROR_SYNTAX, "error");
 
   test_nan_entry_t test_nans[] = {
@@ -198,7 +198,7 @@ main (void)
     jjs_value_free (ctx (), result);
   }
 
-  jjs_value_t obj3 = jjs_eval (ctx (), (jjs_char_t *) "o={valueOf:function(){throw 5}};o", 33, JJS_PARSE_NO_OPTS);
+  jjs_value_t obj3 = jjs_eval_sz (ctx (), "o={valueOf:function(){throw 5}};o", JJS_PARSE_NO_OPTS);
 
   test_error_entry_t error_tests[] = {
     /* Testing addition (+) */

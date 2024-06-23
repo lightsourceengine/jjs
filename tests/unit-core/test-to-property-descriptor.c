@@ -18,7 +18,7 @@
 static jjs_value_t
 create_property_descriptor (const char *script_p) /**< source code */
 {
-  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) script_p, strlen (script_p), 0);
+  jjs_value_t result = jjs_eval_sz (ctx (), script_p, 0);
   TEST_ASSERT (jjs_value_is_object (ctx (), result));
   return result;
 } /* create_property_descriptor */

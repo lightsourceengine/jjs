@@ -505,28 +505,22 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
 {
   jjs_assert_api_enabled (context_p);
 
-  if (options_p != NULL)
-  {
-    const uint32_t allowed_options =
-      (JJS_PARSE_STRICT_MODE | JJS_PARSE_MODULE | JJS_PARSE_HAS_ARGUMENT_LIST | JJS_PARSE_HAS_SOURCE_NAME
-       | JJS_PARSE_HAS_START | JJS_PARSE_HAS_USER_VALUE);
-    uint32_t options = options_p->options;
+  const bool has_argument_list = options_p ? options_p->argument_list.has_value : false;
+  const bool has_source_name = options_p ? options_p->source_name.has_value : false;
 
-    if ((options & ~allowed_options) != 0
-        || ((options_p->options & JJS_PARSE_HAS_ARGUMENT_LIST)
-            && ((options_p->options & JJS_PARSE_MODULE) || !ecma_is_value_string (options_p->argument_list)))
-        || ((options_p->options & JJS_PARSE_HAS_SOURCE_NAME) && !ecma_is_value_string (options_p->source_name)))
+    if ((has_argument_list && !jjs_value_is_string (context_p, options_p->argument_list.value))
+       || (has_source_name && !jjs_value_is_string (context_p, options_p->source_name.value)))
     {
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
     }
-  }
 
 #if JJS_DEBUGGER
-  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED) && options_p != NULL
-      && (options_p->options & JJS_PARSE_HAS_SOURCE_NAME) && ecma_is_value_string (options_p->source_name))
+  if ((context_p->debugger_flags & JJS_DEBUGGER_CONNECTED)
+      && has_source_name
+      && ecma_is_value_string (options_p->source_name.value))
   {
     ECMA_STRING_TO_UTF8_STRING (context_p,
-                                ecma_get_string_from_value (context_p, options_p->source_name),
+                                ecma_get_string_from_value (context_p, options_p->source_name.value),
                                 source_name_start_p,
                                 source_name_size);
     jjs_debugger_send_string (context_p,
@@ -540,7 +534,15 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
 
   if (options_p != NULL)
   {
-    parse_opts |= options_p->options & (JJS_PARSE_STRICT_MODE | JJS_PARSE_MODULE);
+    if (options_p->parse_module)
+    {
+      parse_opts |= JJS_PARSE_MODULE;
+    }
+
+    if (options_p->is_strict_mode)
+    {
+      parse_opts |= JJS_PARSE_STRICT_MODE;
+    }
   }
 
   if ((parse_opts & JJS_PARSE_MODULE) != 0)
@@ -581,7 +583,7 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
   }
 #endif /* JJS_MODULE_SYSTEM */
 
-  if (JJS_UNLIKELY (options_p != NULL && (options_p->options & JJS_PARSE_HAS_ARGUMENT_LIST)))
+  if (JJS_UNLIKELY (has_argument_list))
   {
     ecma_object_t *global_object_p = ecma_builtin_get_global (context_p);
 
@@ -607,8 +609,30 @@ jjs_parse_common (jjs_context_t* context_p, /**< JJS context */
 
 #endif /* JJS_PARSER */
 
+static void
+parse_options_disown (jjs_context_t* context_p,
+                           const jjs_parse_options_t *options_p)
+{
+  if (options_p->argument_list_o == JJS_MOVE && options_p->argument_list.has_value)
+  {
+    jjs_value_free (context_p, options_p->argument_list.value);
+  }
+
+  if (options_p->source_name_o == JJS_MOVE && options_p->source_name.has_value)
+  {
+    jjs_value_free (context_p, options_p->source_name.value);
+  }
+
+  if (options_p->user_value_o == JJS_MOVE && options_p->user_value.has_value)
+  {
+    jjs_value_free (context_p, options_p->user_value.value);
+  }
+}
+
 /**
  * Parse a script, module, or function and create a compiled code using a character string
+ *
+ * Note: jjs_parse_options_disown () will be called on options_p, on success or failure
  *
  * @return function object value - if script was parsed successfully,
  *         thrown error - otherwise
@@ -619,20 +643,45 @@ jjs_parse (jjs_context_t* context_p, /**< JJS context */
            size_t source_size, /**< script source size */
            const jjs_parse_options_t *options_p) /**< parsing options, can be NULL if not used */
 {
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+
 #if JJS_PARSER
   parser_source_char_t source_char;
   source_char.source_p = source_p;
   source_char.source_size = source_size;
 
-  return jjs_parse_common (context_p, (void *) &source_char, options_p, JJS_PARSE_NO_OPTS);
+  result = jjs_parse_common (context_p, (void *) &source_char, options_p, JJS_PARSE_NO_OPTS);
 #else /* !JJS_PARSER */
   JJS_UNUSED_ALL (source_p, source_size, options_p);
-  return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_PARSER_NOT_SUPPORTED));
+  result = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_PARSER_NOT_SUPPORTED));
 #endif /* JJS_PARSER */
+
+  if (options_p)
+    parse_options_disown (context_p, options_p);
+
+  return result;
 } /* jjs_parse */
 
 /**
+ * Parse a script, module, or function and create a compiled code using a character string
+ *
+ * Note: jjs_parse_options_disown () will be called on options_p, on success or failure
+ *
+ * @return function object value - if script was parsed successfully,
+ *         thrown error - otherwise
+ */
+jjs_value_t jjs_parse_sz (jjs_context_t *context_p, /**< JJS context */
+                          const char *source_p, /**< script source as a null-terminated string */
+                          const jjs_parse_options_t *options_p) /**< parsing options, can be NULL if not used */
+{
+  return jjs_parse (context_p, (const jjs_char_t *) source_p, (jjs_size_t) strlen (source_p), options_p);
+} /* jjs_parse_sz */
+
+/**
  * Parse a script, module, or function and create a compiled code using a string value
+ *
+ * Note: jjs_parse_options_disown () will be called on options_p, on success or failure
  *
  * @return function object value - if script was parsed successfully,
  *         thrown error - otherwise
@@ -640,22 +689,65 @@ jjs_parse (jjs_context_t* context_p, /**< JJS context */
 jjs_value_t
 jjs_parse_value (jjs_context_t* context_p, /**< JJS context */
                  const jjs_value_t source, /**< script source */
+                 jjs_own_t source_o, /**< source value resource ownership */
                  const jjs_parse_options_t *options_p) /**< parsing options, can be NULL if not used */
 {
+  jjs_assert_api_enabled (context_p);
+
+  jjs_value_t result;
+
 #if JJS_PARSER
-  if (!ecma_is_value_string (source))
+  if (ecma_is_value_string (source))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_parse_common (context_p, (void *) &source, options_p, ECMA_PARSE_HAS_SOURCE_VALUE);
   }
-
-  return jjs_parse_common (context_p, (void *) &source, options_p, ECMA_PARSE_HAS_SOURCE_VALUE);
+  else
+  {
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+  }
 #else /* !JJS_PARSER */
-  JJS_UNUSED (source);
-  JJS_UNUSED (options_p);
-
-  return jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_PARSER_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (source, (options_p);
+  result = jjs_throw_sz (JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_PARSER_NOT_SUPPORTED));
 #endif /* JJS_PARSER */
+
+  jjs_disown_value (context_p, source, source_o);
+  if (options_p)
+    parse_options_disown (context_p, options_p);
+
+  return result;
 } /* jjs_parse_value */
+
+/**
+ * Initialize a new jjs_parse_options_t object.
+ *
+ * Note: This function is for convenience. jjs_parse_options_t is set up to work
+ *       with standard C default initialization or memset'd to zero.
+ *
+ * @return an empty jjs_parse_options_t
+ */
+jjs_parse_options_t
+jjs_parse_options (void)
+{
+  return (jjs_parse_options_t) {0};
+} /* jjs_parse_options */
+
+/**
+ * Free all JS values in jjs_parse_options_t whose jjs_own_t is set to JJS_MOVE.
+ *
+ * This method is available for a narrow set of use cases. The common case is
+ * that jjs_parse calls this method on the passed in jjs_parse_options_t.
+ */
+void
+jjs_parse_options_disown (jjs_context_t* context_p, /**< JJS context */
+                          const jjs_parse_options_t *options_p) /**< parsing options, can be NULL */
+{
+  jjs_assert_api_enabled (context_p);
+
+  if (options_p)
+  {
+    parse_options_disown (context_p, options_p);
+  }
+} /* jjs_parse_options_free_values */
 
 /**
  * Run a Script or Module created by jjs_parse.
@@ -726,6 +818,22 @@ jjs_eval (jjs_context_t* context_p, /**< JJS context */
 
   return jjs_return (context_p, ecma_op_eval_chars_buffer (context_p, (void *) &source_char, flags));
 } /* jjs_eval */
+
+/**
+ * Perform eval
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *
+ * @return result of eval, may be error value.
+ */
+jjs_value_t
+jjs_eval_sz (jjs_context_t* context_p, /**< JJS context */
+             const char *source_p, /**< source code as a null terminated string */
+             uint32_t flags) /**< jjs_parse_opts_t flags */
+{
+  return jjs_eval (context_p, (const jjs_char_t*) source_p, source_p ? (jjs_size_t) strlen (source_p) : 0, flags);
+} /* jjs_eval_sz */
 
 /**
  * Run enqueued microtasks created by Promise or AsyncFunction objects.

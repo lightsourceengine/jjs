@@ -1967,13 +1967,14 @@ parser_script_size (parser_context_t *context_p) /**< parser context */
 static ecma_value_t
 parser_source_name (parser_context_t *parser_context_p) /**< parser context */
 {
-  if (parser_context_p->options_p != NULL && (parser_context_p->options_p->options & JJS_PARSE_HAS_SOURCE_NAME))
+  if (parser_context_p->options_p != NULL && (parser_context_p->options_p->source_name.has_value))
   {
-    JJS_ASSERT (ecma_is_value_string (parser_context_p->options_p->source_name));
-    ecma_context_t *context_p = parser_context_p->context_p;
+    jjs_value_t source_name = parser_context_p->options_p->source_name.value;
 
-    ecma_ref_ecma_string (ecma_get_string_from_value (context_p, parser_context_p->options_p->source_name));
-    return parser_context_p->options_p->source_name;
+    JJS_ASSERT (ecma_is_value_string (source_name));
+    ecma_ref_ecma_string (ecma_get_string_from_value (parser_context_p->context_p, source_name));
+
+    return source_name;
   }
 
   if (parser_context_p->global_status_flags & ECMA_PARSE_EVAL)
@@ -2026,9 +2027,9 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 
   context.argument_list = ECMA_VALUE_EMPTY;
 
-  if (context.options_p != NULL && (context.options_p->options & JJS_PARSE_HAS_ARGUMENT_LIST))
+  if (context.options_p != NULL && (context.options_p->argument_list.has_value))
   {
-    context.argument_list = context.options_p->argument_list;
+    context.argument_list = context.options_p->argument_list.value;
   }
   else if (context.global_status_flags & ECMA_PARSE_HAS_ARGUMENT_LIST_VALUE)
   {
@@ -2117,9 +2118,9 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
     }
 #endif /* JJS_SNAPSHOT_EXEC */
   }
-  else if (context.options_p != NULL && (context.options_p->options & JJS_PARSE_HAS_USER_VALUE))
+  else if (context.options_p != NULL && (context.options_p->user_value.has_value))
   {
-    context.user_value = context.options_p->user_value;
+    context.user_value = context.options_p->user_value.value;
   }
 
   context.last_context_p = NULL;

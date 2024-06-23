@@ -18,7 +18,7 @@
 static bool
 test_syntax_error (char *script_p) /**< script */
 {
-  jjs_value_t parse_result = jjs_parse (ctx (), (const jjs_char_t *) script_p, strlen (script_p), NULL);
+  jjs_value_t parse_result = jjs_parse_sz (ctx (), script_p, NULL);
 
   bool result = false;
 

@@ -57,27 +57,28 @@ static jjs_value_t
 create_module (jjs_context_t *context_p, /**< context */
                int id) /**< module id */
 {
-  jjs_parse_options_t module_parse_options;
-  module_parse_options.options = JJS_PARSE_MODULE;
+  jjs_parse_options_t module_parse_options = {
+    .parse_module = true,
+  };
 
   jjs_value_t result;
 
   if (id == 0)
   {
-    jjs_char_t source[] = "export var a = 7";
+    const char source[] = "export var a = 7";
 
-    result = jjs_parse (context_p, source, sizeof (source) - 1, &module_parse_options);
+    result = jjs_parse_sz (context_p, source, &module_parse_options);
   }
   else
   {
-    jjs_char_t source[] = "export {a} from 'XX_module.mjs'";
+    char source[] = "export {a} from 'XX_module.mjs'";
 
     TEST_ASSERT (id >= 1 && id <= 99 && source[17] == 'X' && source[18] == 'X');
 
-    source[17] = (jjs_char_t) ((id / 10) + '0');
-    source[18] = (jjs_char_t) ((id % 10) + '0');
+    source[17] = (char) ((id / 10) + '0');
+    source[18] = (char) ((id % 10) + '0');
 
-    result = jjs_parse (context_p, source, sizeof (source) - 1, &module_parse_options);
+    result = jjs_parse_sz (context_p, source, &module_parse_options);
   }
 
   TEST_ASSERT (!jjs_value_is_exception (context_p, result));
@@ -338,14 +339,15 @@ main (void)
 
   TEST_ASSERT (jjs_module_state (ctx (), number) == JJS_MODULE_STATE_INVALID);
 
-  jjs_parse_options_t module_parse_options;
-  module_parse_options.options = JJS_PARSE_MODULE;
+  jjs_parse_options_t module_parse_options = {
+    .parse_module = true,
+  };
 
-  jjs_char_t source1[] = TEST_STRING_LITERAL ("import a from '16_module.mjs'\n"
+  const char source1[] = TEST_STRING_LITERAL ("import a from '16_module.mjs'\n"
                                                 "export * from '07_module.mjs'\n"
                                                 "export * from '44_module.mjs'\n"
                                                 "import * as b from '36_module.mjs'\n");
-  module = jjs_parse (ctx (), source1, sizeof (source1) - 1, &module_parse_options);
+  module = jjs_parse_sz (ctx (), source1, &module_parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), module));
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);
 
@@ -382,9 +384,9 @@ main (void)
   TEST_ASSERT (jjs_value_is_exception (ctx (), result));
   jjs_value_free (ctx (), result);
 
-  jjs_char_t source2[] = TEST_STRING_LITERAL ("export let a = 6\n"
+  const char source2[] = TEST_STRING_LITERAL ("export let a = 6\n"
                                                 "export let b = 8.5\n");
-  module = jjs_parse (ctx (), source2, sizeof (source2) - 1, &module_parse_options);
+  module = jjs_parse_sz (ctx (), source2, &module_parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), module));
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);
 
@@ -457,12 +459,12 @@ main (void)
 
   for (int i = 0; i < 2; i++)
   {
-    jjs_char_t source3[] = TEST_STRING_LITERAL (
+    const char source3[] = TEST_STRING_LITERAL (
       "import {exp, other_exp as other} from 'native.js'\n"
       "import * as namespace from 'native.js'\n"
       "if (exp !== 3.5 || other !== 'str') { throw 'Assertion failed!' }\n"
       "if (namespace.exp !== 3.5 || namespace.other_exp !== 'str') { throw 'Assertion failed!' }\n");
-    module = jjs_parse (ctx (), source3, sizeof (source3) - 1, &module_parse_options);
+    module = jjs_parse_sz (ctx (), source3, &module_parse_options);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), module));
     TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);
 
@@ -504,8 +506,8 @@ main (void)
   counter = 0;
   jjs_module_on_state_changed (ctx (), module_state_changed, (void *) &counter);
 
-  jjs_char_t source4[] = TEST_STRING_LITERAL ("33.5\n");
-  module = jjs_parse (ctx (), source4, sizeof (source4) - 1, &module_parse_options);
+  const char source4[] = TEST_STRING_LITERAL ("33.5\n");
+  module = jjs_parse_sz (ctx (), source4, &module_parse_options);
 
   result = jjs_module_link (ctx (), module, NULL, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
@@ -517,8 +519,8 @@ main (void)
 
   jjs_value_free (ctx (), module);
 
-  jjs_char_t source5[] = TEST_STRING_LITERAL ("throw -5.5\n");
-  module = jjs_parse (ctx (), source5, sizeof (source5) - 1, &module_parse_options);
+  const char source5[] = TEST_STRING_LITERAL ("throw -5.5\n");
+  module = jjs_parse_sz (ctx (), source5, &module_parse_options);
 
   result = jjs_module_link (ctx (), module, NULL, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
@@ -534,8 +536,8 @@ main (void)
 
   TEST_ASSERT (counter == 4);
 
-  jjs_char_t source6[] = TEST_STRING_LITERAL ("import a from 'self'\n");
-  module = jjs_parse (ctx (), source6, sizeof (source6) - 1, &module_parse_options);
+  const char source6[] = TEST_STRING_LITERAL ("import a from 'self'\n");
+  module = jjs_parse_sz (ctx (), source6, &module_parse_options);
 
   result = jjs_module_link (ctx (), module, resolve_callback5, NULL);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result) && jjs_error_type (ctx (), result) == JJS_ERROR_SYNTAX);

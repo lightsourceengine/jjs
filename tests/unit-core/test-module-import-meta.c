@@ -68,16 +68,16 @@ static void
 test_syntax_error (const char *source_p, /**< source code */
                    const jjs_parse_options_t *options_p) /**< parse options */
 {
-  jjs_value_t result_value = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), options_p);
+  jjs_value_t result_value = jjs_parse_sz (ctx (), source_p, options_p);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result_value) && jjs_error_type (ctx (), result_value) == JJS_ERROR_SYNTAX);
   jjs_value_free (ctx (), result_value);
 } /* test_syntax_error */
 
 static void
 run_module (const char *source_p, /* source code */
-            jjs_parse_options_t *parse_options_p) /* parse options */
+            const jjs_parse_options_t *parse_options_p) /* parse options */
 {
-  global_module_value = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), parse_options_p);
+  global_module_value = jjs_parse_sz (ctx (), source_p, parse_options_p);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), global_module_value));
 
   jjs_value_t result_value = jjs_module_link (ctx (), global_module_value, NULL, NULL);
@@ -110,8 +110,9 @@ main (void)
   test_syntax_error ("import.meta", NULL);
   test_syntax_error ("var a = import.meta", NULL);
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_MODULE;
+  jjs_parse_options_t parse_options = {
+    .parse_module = true,
+  };
 
   test_syntax_error ("import.m\\u0065ta", &parse_options);
   test_syntax_error ("import.invalid", &parse_options);

@@ -329,20 +329,21 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
     }
   }
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_SOURCE_NAME;
-  /* To avoid cppcheck warning. */
-  parse_options.argument_list = 0;
-  parse_options.source_name =
-    jjs_string (context_p, (const jjs_char_t *) file_name_p, (jjs_size_t) strlen (file_name_p), JJS_ENCODING_UTF8);
+  jjs_value_t source_name = jjs_string (context_p, (const jjs_char_t *) file_name_p, (jjs_size_t) strlen (file_name_p), JJS_ENCODING_UTF8);
+
+  jjs_parse_options_t parse_options = {
+    .source_name = jjs_optional_value (source_name),
+  };
 
   if (function_args_p != NULL)
   {
-    parse_options.options |= JJS_PARSE_HAS_ARGUMENT_LIST;
-    parse_options.argument_list = jjs_string (context_p,
-                                              (const jjs_char_t *) function_args_p,
-                                              (jjs_size_t) strlen (function_args_p),
-                                              JJS_ENCODING_UTF8);
+    jjs_value_t argument_list = jjs_string (context_p,
+                                            (const jjs_char_t *) function_args_p,
+                                            (jjs_size_t) strlen (function_args_p),
+                                            JJS_ENCODING_UTF8);
+
+    parse_options.argument_list = jjs_optional_value (argument_list);
+    parse_options.argument_list_o = JJS_MOVE;
   }
 
   jjs_value_t snapshot_result = jjs_parse (context_p, (jjs_char_t *) source_p, source_length, &parse_options);
@@ -354,13 +355,6 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
       jjs_generate_snapshot (context_p, parse_result, snapshot_flags, output_buffer, sizeof (output_buffer) / sizeof (uint32_t));
     jjs_value_free (context_p, parse_result);
   }
-
-  if (parse_options.options & JJS_PARSE_HAS_ARGUMENT_LIST)
-  {
-    jjs_value_free (context_p, parse_options.argument_list);
-  }
-
-  jjs_value_free (context_p, parse_options.source_name);
 
   if (jjs_value_is_exception (context_p, snapshot_result))
   {

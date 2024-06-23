@@ -254,12 +254,13 @@ static jjs_value_t
 run (const char *source_name_p, /**< source name */
      const char *source_p) /**< source code */
 {
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_SOURCE_NAME;
-  parse_options.source_name = jjs_string_sz (ctx (), source_name_p);
+  jjs_parse_options_t parse_options = {
+    .source_name = jjs_optional_value (jjs_string_sz (ctx (), source_name_p)),
+    .source_name_o = JJS_MOVE,
+  };
 
-  jjs_value_t code = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), &parse_options);
-  jjs_value_free (ctx (), parse_options.source_name);
+  jjs_value_t code = jjs_parse_sz (ctx (), source_p, &parse_options);
+
   TEST_ASSERT (!jjs_value_is_exception (ctx (), code));
 
   return jjs_run (ctx (), code, JJS_MOVE);
@@ -379,7 +380,7 @@ test_get_backtrace_api_call (void)
 
   /* Test async frame capturing. */
   source_p = "async function f() {}";
-  result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), JJS_PARSE_NO_OPTS);
+  result = jjs_eval_sz (ctx (), source_p, JJS_PARSE_NO_OPTS);
 
   if (!jjs_value_is_exception (ctx (), result))
   {
@@ -419,7 +420,7 @@ test_get_backtrace_api_call (void)
 
   /* Test class initializer frame capturing. */
   source_p = "class C {}";
-  result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), JJS_PARSE_NO_OPTS);
+  result = jjs_eval_sz (ctx (), source_p, JJS_PARSE_NO_OPTS);
 
   if (!jjs_value_is_exception (ctx (), result))
   {
@@ -450,7 +451,7 @@ test_get_backtrace_api_call (void)
 
   source_p = "global_capture()";
 
-  jjs_value_t code = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), NULL);
+  jjs_value_t code = jjs_parse_sz (ctx (), source_p, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), code));
 
   result = jjs_run (ctx (), code, JJS_KEEP);

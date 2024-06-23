@@ -298,17 +298,13 @@ cli_execution_plan_run (cli_execution_plan_t *plan, jjs_context_t* context_p)
         }
         else
         {
-          jjs_parse_options_t options = { .source_name = resolved_filename,
-                                          .user_value = resolved_filename,
-                                          .options = JJS_PARSE_HAS_SOURCE_NAME | JJS_PARSE_HAS_USER_VALUE };
+          jjs_parse_options_t options = {
+            .is_strict_mode = (plan->executables[i].loader == CLI_JS_LOADER_STRICT),
+            .source_name = jjs_optional_value (resolved_filename),
+            .user_value = jjs_optional_value (resolved_filename),
+          };
 
-          if (plan->executables[i].loader == CLI_JS_LOADER_STRICT)
-          {
-            options.options |= JJS_PARSE_STRICT_MODE;
-          }
-
-          result = jjs_parse_value (context_p, source, &options);
-          jjs_value_free (context_p, source);
+          result = jjs_parse_value (context_p, source, JJS_MOVE, &options);
 
           if (!jjs_value_is_exception (context_p, result))
           {
@@ -1014,8 +1010,7 @@ repl (int argc, char **argv)
     }
 
     jjs_parse_options_t opts = {
-      .options = JJS_PARSE_HAS_SOURCE_NAME,
-      .source_name = source_name,
+      .source_name = jjs_optional_value (source_name),
     };
 
     result = jjs_parse (context_p, line_p, length, &opts);

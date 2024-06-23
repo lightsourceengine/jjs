@@ -121,8 +121,7 @@ main (void)
   TEST_ASSERT (number == 0);
   jjs_value_free (ctx (), error_val);
 
-  error_val =
-    jjs_eval (ctx (), (const jjs_char_t *) "({ valueOf() { throw new TypeError('foo')}})", 44, JJS_PARSE_NO_OPTS);
+  error_val = jjs_eval_sz (ctx (), "({ valueOf() { throw new TypeError('foo')}})", JJS_PARSE_NO_OPTS);
   number = jjs_value_as_integer (ctx (), error_val);
   TEST_ASSERT (number == 0);
   jjs_value_free (ctx (), error_val);

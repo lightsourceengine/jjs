@@ -46,7 +46,7 @@ test_ext_function (const jjs_call_info_t *call_info_p, /**< call information */
 static jjs_object_type_t
 test_namespace (const jjs_parse_options_t module_parse_options) /** module options */
 {
-  jjs_value_t module = jjs_parse (ctx (), (const jjs_char_t *) "", 0, &module_parse_options);
+  jjs_value_t module = jjs_parse_sz (ctx (), "", &module_parse_options);
   jjs_value_t module_linked = jjs_module_link (ctx (), module, NULL, NULL);
   jjs_object_type_t namespace = jjs_module_namespace (ctx (), module);
   jjs_value_free (ctx (), module_linked);
@@ -99,8 +99,9 @@ main (void)
   const jjs_char_t weak_ref_object[] = "new WeakRef({})";
   const jjs_char_t error_object[] = "new Error()";
 
-  jjs_parse_options_t module_parse_options;
-  module_parse_options.options = JJS_PARSE_MODULE;
+  jjs_parse_options_t module_parse_options = {
+    .parse_module = true,
+  };
 
   test_entry_t entries[] = {
     ENTRY (JJS_OBJECT_TYPE_NONE, jjs_number (ctx (), -33.0)),

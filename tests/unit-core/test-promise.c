@@ -15,7 +15,7 @@
 
 #include "jjs-test.h"
 
-static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("var p1 = create_promise1();"
+static const char test_source[] = TEST_STRING_LITERAL ("var p1 = create_promise1();"
                                                                "var p2 = create_promise2();"
                                                                "p1.then(function(x) { "
                                                                "  assert(x==='resolved'); "
@@ -108,7 +108,7 @@ main (void)
   register_js_function ("create_promise2", create_promise2_handler);
   register_js_function ("assert", assert_handler);
 
-  jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+  jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
   jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);

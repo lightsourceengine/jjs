@@ -50,7 +50,7 @@ static double
 eval_and_get_number (char *script_p) /**< script source */
 {
   jjs_value_t result_value;
-  result_value = jjs_eval (ctx (), (const jjs_char_t *) script_p, strlen (script_p), JJS_PARSE_NO_OPTS);
+  result_value = jjs_eval_sz (ctx (), script_p, JJS_PARSE_NO_OPTS);
 
   TEST_ASSERT (jjs_value_is_number (ctx (), result_value));
   double result = jjs_value_as_number (ctx (), result_value);
@@ -205,7 +205,7 @@ main (void)
     /* Check isExtensible error. */
 
     const char *script_p = "new Proxy({}, { isExtensible: function() { throw 42.5 } })";
-    proxy_value = jjs_eval (ctx (), (const jjs_char_t *) script_p, strlen (script_p), JJS_PARSE_NO_OPTS);
+    proxy_value = jjs_eval_sz (ctx (), script_p, JJS_PARSE_NO_OPTS);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), proxy_value) && jjs_value_is_object (ctx (), proxy_value));
 
     target_value = jjs_realm (ctx ());
@@ -215,7 +215,7 @@ main (void)
     old_realm_value = jjs_set_realm (ctx (), target_value);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), old_realm_value));
     script_p = "var z = 1.5";
-    result_value = jjs_eval (ctx (), (const jjs_char_t *) script_p, strlen (script_p), JJS_PARSE_NO_OPTS);
+    result_value = jjs_eval_sz (ctx (), script_p, JJS_PARSE_NO_OPTS);
     jjs_set_realm (ctx (), old_realm_value);
     jjs_value_free (ctx (), target_value);
 
@@ -231,7 +231,7 @@ main (void)
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result_value));
 
   const char *script_p = "global2 = global1 - 1; Object.getPrototypeOf([])";
-  jjs_value_t script_value = jjs_parse (ctx (), (const jjs_char_t *) script_p, strlen (script_p), NULL);
+  jjs_value_t script_value = jjs_parse_sz (ctx (), script_p, NULL);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), script_value));
   jjs_set_realm (ctx (), result_value);

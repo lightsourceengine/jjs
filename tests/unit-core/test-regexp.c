@@ -27,14 +27,14 @@ main (void)
   jjs_value_t regex_obj = jjs_regexp_sz (ctx (), pattern, flags);
   TEST_ASSERT (jjs_value_is_object (ctx (), regex_obj));
 
-  const jjs_char_t func_src[] = "return [regex.exec('something.domain.com'), regex.multiline, regex.global];";
+  const char *func_src = "return [regex.exec('something.domain.com'), regex.multiline, regex.global];";
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz (ctx (), "regex");
+  jjs_parse_options_t parse_options = {
+    .argument_list = jjs_optional_value (jjs_string_sz (ctx (), "regex")),
+    .argument_list_o = JJS_MOVE,
+  };
 
-  jjs_value_t func_val = jjs_parse (ctx (), func_src, sizeof (func_src) - 1, &parse_options);
-  jjs_value_free (ctx (), parse_options.argument_list);
+  jjs_value_t func_val = jjs_parse_sz (ctx (), func_src, &parse_options);
 
   jjs_value_t res = jjs_call (ctx (), func_val, global_obj_val, &regex_obj, 1);
   jjs_value_t regex_res = jjs_object_get_index (ctx (), res, 0);

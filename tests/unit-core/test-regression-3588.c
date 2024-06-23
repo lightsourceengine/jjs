@@ -51,11 +51,11 @@ main (void)
   }
 
   {
-    static const jjs_char_t test_source[] =
+    static const char *test_source =
       TEST_STRING_LITERAL ("class Sub1 extends Demo { constructor () { super (1); } };"
                            "new Sub1 ()");
 
-    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
     jjs_value_t result = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
@@ -65,10 +65,10 @@ main (void)
   }
 
   {
-    static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("class Sub2 extends Demo { };"
+    static const char *test_source = TEST_STRING_LITERAL ("class Sub2 extends Demo { };"
                                                                    "new Sub2 (1)");
 
-    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
     jjs_value_t result = jjs_run (ctx (), parsed_code_val, JJS_MOVE);

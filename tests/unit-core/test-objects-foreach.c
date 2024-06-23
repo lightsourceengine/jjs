@@ -49,17 +49,17 @@ test_container (void)
 
   {
     /* Create a "DEMO" array which will be used for the Map below. */
-    const char array_str[] = "var DEMO = [[1, 2], [3, 4]]; DEMO";
-    jjs_value_t array = jjs_eval (ctx (), (const jjs_char_t *) array_str, sizeof (array_str) - 1, 0);
+    const char *array_str = "var DEMO = [[1, 2], [3, 4]]; DEMO";
+    jjs_value_t array = jjs_eval_sz (ctx (), array_str, 0);
     TEST_ASSERT (jjs_value_is_object (ctx (), array));
     TEST_ASSERT (!jjs_value_is_exception (ctx (), array));
     jjs_value_free (ctx (), array);
   }
 
-  const char eval_str[] = "new Map (DEMO)";
+  const char *eval_str = "new Map (DEMO)";
   {
     /* Make sure that the Map and it's prototype object/function is initialized. */
-    jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) eval_str, sizeof (eval_str) - 1, 0);
+    jjs_value_t result = jjs_eval_sz (ctx (), eval_str, 0);
     TEST_ASSERT (jjs_value_is_object (ctx (), result));
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
     jjs_value_free (ctx (), result);
@@ -73,7 +73,7 @@ test_container (void)
   jjs_foreach_live_object (ctx (), count_objects, &start_count);
 
   /* Create another map. */
-  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) eval_str, sizeof (eval_str) - 1, 0);
+  jjs_value_t result = jjs_eval_sz (ctx (), eval_str, 0);
 
   /* Remove any old/unused objects. */
   jjs_heap_gc (ctx (), JJS_GC_PRESSURE_LOW);
@@ -148,7 +148,7 @@ static const jjs_object_native_info_t test_info = {
   .offset_of_references = 0,
 };
 
-static const jjs_char_t strict_equal_source[] = "var x = function(a, b) {return a === b;}; x";
+static const char strict_equal_source[] = "var x = function(a, b) {return a === b;}; x";
 
 static bool
 find_test_object_by_data (jjs_context_t *context_p, const jjs_value_t candidate, void *object_data_p, void *data_p)
@@ -186,11 +186,12 @@ main (void)
 {
   ctx_open (NULL);
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_STRICT_MODE;
+  jjs_parse_options_t parse_options = {
+    .is_strict_mode = true,
+  };
 
   /* Render strict-equal as a function. */
-  jjs_value_t parse_result = jjs_parse (ctx (), strict_equal_source, sizeof (strict_equal_source) - 1, &parse_options);
+  jjs_value_t parse_result = jjs_parse_sz (ctx (), strict_equal_source, &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
   jjs_value_t strict_equal = jjs_run (ctx (), parse_result, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), strict_equal));

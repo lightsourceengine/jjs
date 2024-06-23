@@ -33,7 +33,7 @@ create_special_proxy_handler (const jjs_call_info_t *call_info_p, /**< call info
 static void
 run_eval (const char *source_p)
 {
-  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  jjs_value_t result = jjs_eval_sz (ctx (), source_p, 0);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
   jjs_value_free (ctx (), result);

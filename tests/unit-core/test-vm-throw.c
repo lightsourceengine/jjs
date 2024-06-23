@@ -124,7 +124,7 @@ static void
 do_eval (const char *script_p, /**< script to evaluate */
          bool should_throw) /**< script throws an error */
 {
-  jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) script_p, strlen (script_p), JJS_PARSE_NO_OPTS);
+  jjs_value_t result = jjs_eval_sz (ctx (), script_p, JJS_PARSE_NO_OPTS);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result) == should_throw);
   jjs_value_free (ctx (), result);
 } /* do_eval */

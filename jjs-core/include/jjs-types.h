@@ -354,35 +354,39 @@ typedef uint32_t jjs_length_t;
 typedef int32_t jjs_context_data_key_t;
 
 /**
- * Option bits for jjs_parse_options_t.
+ * Option bits for jjs_eval family of functions.
  */
 typedef enum
 {
   JJS_PARSE_NO_OPTS = 0, /**< no options passed */
   JJS_PARSE_STRICT_MODE = (1 << 0), /**< enable strict mode */
   JJS_PARSE_MODULE = (1 << 1), /**< parse source as an ECMAScript module */
-  JJS_PARSE_HAS_ARGUMENT_LIST = (1 << 2), /**< argument_list field is valid,
-                                             * this also means that function parsing will be done */
-  JJS_PARSE_HAS_SOURCE_NAME = (1 << 3), /**< source_name field is valid */
-  JJS_PARSE_HAS_START = (1 << 4), /**< start_line and start_column fields are valid */
-  JJS_PARSE_HAS_USER_VALUE = (1 << 5), /**< user_value field is valid */
-} jjs_parse_option_enable_feature_t;
+} jjs_parse_flag_t;
 
 /**
- * Various configuration options for parsing functions such as jjs_parse or jjs_parse_function.
+ * Parsing options for jjs_parse family of functions.
  */
 typedef struct
 {
-  uint32_t options; /**< combination of jjs_parse_option_enable_feature_t values */
-  jjs_value_t argument_list; /**< function argument list if JJS_PARSE_HAS_ARGUMENT_LIST is set in options
-                                *   Note: must be string value */
-  jjs_value_t source_name; /**< source name string (usually a file name)
-                              *   if JJS_PARSE_HAS_SOURCE_NAME is set in options
-                              *   Note: must be string value */
-  uint32_t start_line; /**< start line of the source code if JJS_PARSE_HAS_START is set in options */
-  uint32_t start_column; /**< start column of the source code if JJS_PARSE_HAS_START is set in options */
-  jjs_value_t user_value; /**< user value assigned to all functions created by this script including eval
-                             *   calls executed by the script if JJS_PARSE_HAS_USER_VALUE is set in options */
+  bool is_strict_mode; /**< enable strict mode */
+  bool parse_module; /**< parse source as an ECMAScript module */
+
+  jjs_optional_value_t argument_list; /**< function argument list if JJS_PARSE_HAS_ARGUMENT_LIST is set in options
+                                       *   Note: must be string value */
+  jjs_own_t argument_list_o; /**< resource ownership of argument_list.
+                              *   if set to JJS_MOVE, jjs_parse will free argument_list (if set) */
+  jjs_optional_value_t source_name; /**< source name string (usually a file name)
+                                     *   if JJS_PARSE_HAS_SOURCE_NAME is set in options
+                                     *   Note: must be string value */
+  jjs_own_t source_name_o;/**< resource ownership of source_name.
+                           *   if set to JJS_MOVE, jjs_parse will free source_name (if set) */
+  jjs_optional_value_t user_value; /**< user value assigned to all functions created by this script including eval
+                                    *   calls executed by the script if JJS_PARSE_HAS_USER_VALUE is set in options */
+  jjs_own_t user_value_o; /**< resource ownership of user_value.
+                           *   if set to JJS_MOVE, jjs_parse will free user_value (if set) */
+
+  jjs_optional_u32_t start_line; /**< start line of the source code if JJS_PARSE_HAS_START is set in options */
+  jjs_optional_u32_t start_column; /**< start column of the source code if JJS_PARSE_HAS_START is set in options */
 } jjs_parse_options_t;
 
 /**

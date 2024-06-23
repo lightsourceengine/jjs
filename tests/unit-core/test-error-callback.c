@@ -38,7 +38,7 @@ error_object_created_callback (jjs_context_t *context_p, /**< context */
 
   /* This SyntaxError must not trigger a recusrsive call of the this callback. */
   const char *source_p = "Syntax Error in JS!";
-  result = jjs_eval (context_p, (const jjs_char_t *) source_p, strlen (source_p), 0);
+  result = jjs_eval_sz (context_p, source_p, 0);
   TEST_ASSERT (jjs_value_is_exception (context_p, result));
 
   jjs_value_free (context_p, result);
@@ -54,7 +54,7 @@ run_test (const char *source_p)
   /* Run the code 5 times. */
   for (int i = 0; i < 5; i++)
   {
-    jjs_value_t result = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+    jjs_value_t result = jjs_eval_sz (ctx (), source_p, 0);
     TEST_ASSERT (jjs_value_is_boolean (ctx (), result) && jjs_value_is_true (ctx (), result));
     jjs_value_free (ctx (), result);
   }

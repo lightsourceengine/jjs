@@ -27,14 +27,14 @@ main (void)
   jjs_value_t regex_obj = jjs_regexp_sz (ctx (), pattern2, flags);
   TEST_ASSERT (jjs_value_is_object (ctx (), regex_obj));
 
-  const jjs_char_t func_src2[] = "return [regex.exec('a\\nb'), regex.dotAll, regex.sticky, regex.unicode ];";
+  const char* func_src2 = "return [regex.exec('a\\nb'), regex.dotAll, regex.sticky, regex.unicode ];";
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz (ctx (), "regex");
+  jjs_parse_options_t parse_options = {
+    .argument_list = jjs_optional_value (jjs_string_sz (ctx (), "regex")),
+    .argument_list_o = JJS_MOVE,
+  };
 
-  jjs_value_t func_val = jjs_parse (ctx (), func_src2, sizeof (func_src2) - 1, &parse_options);
-  jjs_value_free (ctx (), parse_options.argument_list);
+  jjs_value_t func_val = jjs_parse_sz (ctx (), func_src2, &parse_options);
 
   jjs_value_t res = jjs_call (ctx (), func_val, undefined_this_arg, &regex_obj, 1);
   jjs_value_t regex_res = jjs_object_get_index (ctx (), res, 0);

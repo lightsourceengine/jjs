@@ -151,9 +151,9 @@ test_promise_resolve_fail (void)
 static void
 test_promise_from_js (void)
 {
-  const jjs_char_t test_source[] = "(new Promise(function(rs, rj) { rs(30); })).then(function(v) { return v + 1; })";
+  const char test_source[] = "(new Promise(function(rs, rj) { rs(30); })).then(function(v) { return v + 1; })";
 
-  jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+  jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
   jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);

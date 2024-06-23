@@ -53,9 +53,10 @@ test_function_snapshot (void)
 
   ctx_open (NULL);
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz (ctx (), "a, b");
+  jjs_parse_options_t parse_options = {
+    .argument_list = jjs_optional_value (jjs_string_sz (ctx (), "a, b")),
+    .argument_list_o = JJS_MOVE,
+  };
 
   jjs_value_t parse_result = jjs_parse (ctx (), code_to_snapshot, sizeof (code_to_snapshot) - 1, &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
@@ -63,7 +64,6 @@ test_function_snapshot (void)
   jjs_value_t generate_result =
     jjs_generate_snapshot (ctx (), parse_result, 0, function_snapshot_buffer, SNAPSHOT_BUFFER_SIZE);
   jjs_value_free (ctx (), parse_result);
-  jjs_value_free (ctx (), parse_options.argument_list);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), generate_result) && jjs_value_is_number (ctx (), generate_result));
 

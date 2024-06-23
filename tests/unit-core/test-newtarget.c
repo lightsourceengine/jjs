@@ -138,9 +138,9 @@ main (void)
   }
 
   {
-    static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("new Demo (1)");
+    static const char test_source[] = TEST_STRING_LITERAL ("new Demo (1)");
 
-    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
     jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
@@ -150,9 +150,9 @@ main (void)
   }
 
   {
-    static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("Demo (2)");
+    static const char test_source[] = TEST_STRING_LITERAL ("Demo (2)");
 
-    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
     jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
@@ -162,12 +162,12 @@ main (void)
   }
 
   {
-    static const jjs_char_t test_source[] = TEST_STRING_LITERAL ("function base(arg) { new Demo (arg); };"
+    static const char test_source[] = TEST_STRING_LITERAL ("function base(arg) { new Demo (arg); };"
                                                                    "base (1);"
                                                                    "new base(1);"
                                                                    "new base(3);");
 
-    jjs_value_t parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
     jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);

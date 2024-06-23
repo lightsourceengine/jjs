@@ -140,8 +140,21 @@ jjs_optional_value_t jjs_optional_value (jjs_value_t value);
  * @defgroup jjs-api-code-parse Parsing
  * @{
  */
-jjs_value_t jjs_parse (jjs_context_t* context_p, const jjs_char_t *source_p, size_t source_size, const jjs_parse_options_t *options_p);
-jjs_value_t jjs_parse_value (jjs_context_t* context_p, const jjs_value_t source, const jjs_parse_options_t *options_p);
+jjs_value_t jjs_parse (jjs_context_t *context_p,
+                       const jjs_char_t *source_p,
+                       size_t source_size,
+                       const jjs_parse_options_t *options_p);
+jjs_value_t jjs_parse_sz (jjs_context_t *context_p,
+                          const char *source_p,
+                          const jjs_parse_options_t *options_p);
+jjs_value_t jjs_parse_value (jjs_context_t *context_p,
+                             const jjs_value_t source,
+                             jjs_own_t source_o,
+                             const jjs_parse_options_t *options_p);
+
+jjs_parse_options_t jjs_parse_options (void);
+void jjs_parse_options_disown (jjs_context_t *context_p, const jjs_parse_options_t *options_p);
+
 /**
  * jjs-api-code-parse @}
  */
@@ -151,6 +164,7 @@ jjs_value_t jjs_parse_value (jjs_context_t* context_p, const jjs_value_t source,
  * @{
  */
 jjs_value_t jjs_eval (jjs_context_t* context_p, const jjs_char_t *source_p, size_t source_size, uint32_t flags);
+jjs_value_t jjs_eval_sz (jjs_context_t* context_p, const char *source_p, uint32_t flags);
 jjs_value_t jjs_run (jjs_context_t* context_p, const jjs_value_t script, jjs_own_t script_o);
 jjs_value_t jjs_run_jobs (jjs_context_t* context_p);
 jjs_value_t jjs_queue_microtask (jjs_context_t* context_p, const jjs_value_t callback, jjs_own_t callback_o);

@@ -30,19 +30,19 @@ static void
 test_parse (const char *source_p, /**< source code */
             jjs_parse_options_t *options_p) /**< options passed to jjs_parse */
 {
-  jjs_value_t parse_result = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), options_p);
+  jjs_value_t parse_result = jjs_parse_sz (ctx (), source_p, options_p);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
   TEST_ASSERT (!jjs_function_is_dynamic (ctx (), parse_result));
 
   jjs_value_t result;
 
-  if (options_p->options & JJS_PARSE_HAS_ARGUMENT_LIST)
+  if (options_p->argument_list.has_value)
   {
     jjs_value_t this_value = jjs_undefined (ctx ());
     result = jjs_call (ctx (), parse_result, this_value, NULL, 0);
     jjs_value_free (ctx (), this_value);
   }
-  else if (options_p->options & JJS_PARSE_MODULE)
+  else if (options_p->parse_module)
   {
     result = jjs_module_link (ctx (), parse_result, NULL, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
@@ -75,30 +75,33 @@ main (void)
   jjs_value_free (ctx (), function_value);
   jjs_value_free (ctx (), global_object_value);
 
-  jjs_parse_options_t parse_options;
+  jjs_parse_options_t parse_options = jjs_parse_options ();
   const char *source_p = TEST_STRING_LITERAL ("eval('check_eval(function() {}, true)')\n"
                                               "check_eval(function() {}, false)");
 
-  parse_options.options = JJS_PARSE_NO_OPTS;
   test_parse (source_p, &parse_options);
 
   if (jjs_feature_enabled (JJS_FEATURE_MODULE))
   {
-    parse_options.options = JJS_PARSE_MODULE;
+    parse_options = (jjs_parse_options_t) {
+      .parse_module = true,
+    };
     test_parse (source_p, &parse_options);
   }
 
-  parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-  parse_options.argument_list = jjs_string_sz (ctx (), "");
-  test_parse (source_p, &parse_options);
-  jjs_value_free (ctx (), parse_options.argument_list);
+  parse_options = (jjs_parse_options_t) {
+    .argument_list = jjs_optional_value (jjs_string_sz (ctx (), "")),
+  };
 
-  parse_options.options = JJS_PARSE_NO_OPTS;
+  test_parse (source_p, &parse_options);
+  jjs_value_free (ctx (), parse_options.argument_list.value);
+
+  parse_options = jjs_parse_options ();
   source_p = TEST_STRING_LITERAL ("check_eval(new Function('a', 'return a'), true)");
   test_parse (source_p, &parse_options);
 
   source_p = TEST_STRING_LITERAL ("check_eval(function() {}, true)");
-  jjs_value_free (ctx (), jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), JJS_PARSE_NO_OPTS));
+  jjs_value_free (ctx (), jjs_eval_sz (ctx (), source_p, JJS_PARSE_NO_OPTS));
 
   ctx_close ();
   return 0;

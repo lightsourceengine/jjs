@@ -44,8 +44,8 @@ main (void)
   int countdown = 6;
   jjs_halt_handler (ctx (), 16, vm_exec_stop_callback, &countdown);
 
-  const jjs_char_t inf_loop_code_src1[] = "while(true) {}";
-  jjs_value_t parsed_code_val = jjs_parse (ctx (), inf_loop_code_src1, sizeof (inf_loop_code_src1) - 1, NULL);
+  const char *inf_loop_code_src1 = "while(true) {}";
+  jjs_value_t parsed_code_val = jjs_parse_sz (ctx (), inf_loop_code_src1, NULL);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
   jjs_value_t res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
@@ -61,10 +61,10 @@ main (void)
   /* We keep the callback function, only the countdown is reset. */
   countdown = 6;
 
-  const jjs_char_t inf_loop_code_src2[] = TEST_STRING_LITERAL ("function f() { while (true) ; }\n"
+  const char *inf_loop_code_src2 = TEST_STRING_LITERAL ("function f() { while (true) ; }\n"
                                                                  "try { f(); } catch(e) {}");
 
-  parsed_code_val = jjs_parse (ctx (), inf_loop_code_src2, sizeof (inf_loop_code_src2) - 1, NULL);
+  parsed_code_val = jjs_parse_sz (ctx (), inf_loop_code_src2, NULL);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
   res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);

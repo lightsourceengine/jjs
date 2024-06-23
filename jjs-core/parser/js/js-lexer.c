@@ -3620,22 +3620,17 @@ lexer_compare_literal_to_string (parser_context_t *parser_context_p, /**< contex
 void
 lexer_init_line_info (parser_context_t *parser_context_p) /**< context */
 {
-  parser_context_p->line = 1;
-  parser_context_p->column = 1;
-
   const jjs_parse_options_t *options_p = parser_context_p->options_p;
 
-  if (options_p != NULL && (options_p->options & JJS_PARSE_HAS_START))
+  if (options_p != NULL)
   {
-    if (options_p->start_line > 0)
-    {
-      parser_context_p->line = options_p->start_line;
-    }
-
-    if (options_p->start_column > 0)
-    {
-      parser_context_p->column = options_p->start_column;
-    }
+    parser_context_p->line = options_p->start_line.has_value ? options_p->start_line.value : 1;
+    parser_context_p->column = options_p->start_column.has_value ? options_p->start_column.value : 1;
+  }
+  else
+  {
+    parser_context_p->line = 1;
+    parser_context_p->column = 1;
   }
 } /* lexer_init_line_info */
 

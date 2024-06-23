@@ -36,9 +36,7 @@ LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 
   if (jjs_validate_string (context_p, (jjs_char_t *) data, (jjs_size_t) size, JJS_ENCODING_UTF8))
   {
-    jjs_parse_options_t parse_options;
-    parse_options.options = JJS_PARSE_NO_OPTS;
-    jjs_value_t parse_value = jjs_parse (context_p, (jjs_char_t *) data, size, &parse_options);
+    jjs_value_t parse_value = jjs_parse (context_p, (jjs_char_t *) data, size, NULL);
 
     if (!jjs_value_is_exception (context_p, parse_value))
     {

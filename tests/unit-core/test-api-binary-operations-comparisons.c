@@ -33,8 +33,8 @@ main (void)
 {
   ctx_open (NULL);
 
-  jjs_value_t obj1 = jjs_eval (ctx (), (const jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
-  jjs_value_t obj2 = jjs_eval (ctx (), (const jjs_char_t *) "o={x:1};o", 9, JJS_PARSE_NO_OPTS);
+  jjs_value_t obj1 = jjs_eval_sz (ctx (), "o={x:1};o", JJS_PARSE_NO_OPTS);
+  jjs_value_t obj2 = jjs_eval_sz (ctx (), "o={x:1};o", JJS_PARSE_NO_OPTS);
   jjs_value_t err1 = jjs_throw_sz (ctx (), JJS_ERROR_SYNTAX, "error");
 
   test_entry_t tests[] = {

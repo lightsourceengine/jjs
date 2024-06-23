@@ -26,9 +26,9 @@ test_parse (const char *source_p, /**< source code */
 {
   for (size_t i = 0; i < USER_VALUES_SIZE; i++)
   {
-    options_p->user_value = user_values[i];
+    options_p->user_value = jjs_optional_value (user_values[i]);
 
-    jjs_value_t result = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), options_p);
+    jjs_value_t result = jjs_parse_sz (ctx (), source_p, options_p);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
     if (run_code)
@@ -53,12 +53,11 @@ test_parse_function (const char *source_p, /**< source code */
                      jjs_parse_options_t *options_p, /**< options passed to jjs_parse */
                      bool run_code) /**< run the code after parsing */
 {
-  options_p->options |= JJS_PARSE_HAS_ARGUMENT_LIST;
-  options_p->argument_list = jjs_string_sz (ctx (), "");
+  options_p->argument_list = jjs_optional_value (jjs_string_sz (ctx (), ""));
 
   for (size_t i = 0; i < USER_VALUES_SIZE; i++)
   {
-    options_p->user_value = user_values[i];
+    options_p->user_value = jjs_optional_value(user_values[i]);
 
     jjs_value_t result = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), options_p);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
@@ -83,7 +82,7 @@ test_parse_function (const char *source_p, /**< source code */
     jjs_value_free (ctx (), result);
   }
 
-  jjs_value_free (ctx (), options_p->argument_list);
+  jjs_value_free (ctx (), options_p->argument_list.value);
 } /* test_parse_function */
 
 int
@@ -96,75 +95,76 @@ main (void)
   user_values[2] = jjs_number (ctx (), 5.5);
   user_values[3] = jjs_string_sz (ctx (), "AnyString...");
 
-  jjs_parse_options_t parse_options;
+  jjs_parse_options_t parse_options = jjs_parse_options ();
   const char *source_p = TEST_STRING_LITERAL ("");
 
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
   test_parse (source_p, &parse_options, false);
   test_parse_function (source_p, &parse_options, false);
 
   if (jjs_feature_enabled (JJS_FEATURE_MODULE))
   {
-    parse_options.options = JJS_PARSE_MODULE | JJS_PARSE_HAS_USER_VALUE;
+    parse_options = (jjs_parse_options_t) {
+      .parse_module = true,
+    };
     test_parse (source_p, &parse_options, false);
   }
 
   source_p = TEST_STRING_LITERAL ("function f() { }\n"
                                   "f");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("function f() { return function() {} }\n"
                                   "f()");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("return function() {}");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse_function (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("(class {})");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("eval('function f() {}')\n"
                                   "f");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("eval('function f() { return eval(\\'(function () {})\\') }')\n"
                                   "f()");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("eval('function f() {}')\n"
                                   "return f");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse_function (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("eval('function f() { return eval(\\'(function () {})\\') }')\n"
                                   "return f()");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse_function (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("function f() {}\n"
                                   "f.bind(1)");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("function f() {}\n"
                                   "f.bind(1).bind(2, 3)");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("function f() {}\n"
                                   "return f.bind(1)");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse_function (source_p, &parse_options, true);
 
   source_p = TEST_STRING_LITERAL ("function f() {}\n"
                                   "return f.bind(1).bind(2, 3)");
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
+  parse_options = jjs_parse_options ();
   test_parse_function (source_p, &parse_options, true);
 
   for (size_t i = 0; i < USER_VALUES_SIZE; i++)

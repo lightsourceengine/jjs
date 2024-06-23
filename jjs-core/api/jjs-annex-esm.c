@@ -742,7 +742,7 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
   jjs_value_t filename_value = ECMA_VALUE_UNDEFINED;
   jjs_value_t dirname_value;
 
-  dirname_value = esm_realpath_dirname (context_p, jjs_optional_value_or_undefined(&source_p->dirname));
+  dirname_value = esm_realpath_dirname (context_p, jjs_optional_value_or_undefined (&source_p->dirname));
 
   if (!jjs_value_is_string (context_p, dirname_value))
   {
@@ -750,7 +750,7 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
     goto after_parse;
   }
 
-  basename_value = esm_basename_or_default (context_p, jjs_optional_value_or_undefined(&source_p->filename));
+  basename_value = esm_basename_or_default (context_p, jjs_optional_value_or_undefined (&source_p->filename));
 
   if (!jjs_value_is_string (context_p, basename_value))
   {
@@ -773,11 +773,11 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
   }
 
   parse_options = (jjs_parse_options_t){
-    .options = JJS_PARSE_MODULE | JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME | JJS_PARSE_HAS_START,
-    .start_column = jjs_optional_u32_or (&source_p->start_column, 0),
-    .start_line = jjs_optional_u32_or (&source_p->start_line, 0),
-    .user_value = filename_value,
-    .source_name = basename_value,
+    .parse_module = true,
+    .start_column = source_p->start_column,
+    .start_line = source_p->start_line,
+    .user_value = jjs_optional_value (filename_value),
+    .source_name = jjs_optional_value (basename_value),
   };
 
   if (has_source_buffer)
@@ -786,7 +786,7 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
   }
   else
   {
-    module = jjs_parse_value (context_p, source_p->source_value.value, &parse_options);
+    module = jjs_parse_value (context_p, source_p->source_value.value, JJS_KEEP, &parse_options);
   }
 
   if (!jjs_value_is_exception (context_p, module))
@@ -875,12 +875,12 @@ esm_read (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_
       || ecma_compare_ecma_string_to_magic_id (format_p, LIT_MAGIC_STRING_MODULE))
   {
     jjs_parse_options_t opts = {
-      .options = JJS_PARSE_MODULE | JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME,
-      .user_value = resolved.path,
-      .source_name = resolved.path,
+      .parse_module = true,
+      .user_value = jjs_optional_value (resolved.path),
+      .source_name = jjs_optional_value (resolved.path),
     };
 
-    module = jjs_parse_value (context_p, loaded.source, &opts);
+    module = jjs_parse_value (context_p, loaded.source, JJS_KEEP, &opts);
 
     if (!jjs_value_is_exception (context_p, module))
     {

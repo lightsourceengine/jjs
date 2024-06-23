@@ -15,7 +15,7 @@
 
 #include "jjs-test.h"
 
-const jjs_char_t test_source[] =
+const char test_source[] =
   TEST_STRING_LITERAL ("function assert (arg) { "
                        "  if (!arg) { "
                        "    throw Error('Assert failed');"
@@ -324,7 +324,7 @@ test_syntax_error (const char *script_p, /**< source code to run */
                    const char *error_message_p, /**< error message */
                    bool run_script) /**< run script before checking the error message */
 {
-  jjs_value_t result_val = jjs_parse (ctx (), (const jjs_char_t *) script_p, strlen (script_p), options_p);
+  jjs_value_t result_val = jjs_parse_sz (ctx (), script_p, options_p);
 
   if (run_script)
   {
@@ -371,7 +371,7 @@ main (void)
   {
     ctx_open (NULL);
 
-    parsed_code_val = jjs_parse (ctx (), test_source, sizeof (test_source) - 1, NULL);
+    parsed_code_val = jjs_parse_sz (ctx (), test_source, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
     res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
@@ -671,7 +671,7 @@ main (void)
     jjs_value_free (ctx (), res);
 
     /* Test: jjs_value_to_primitive */
-    obj_val = jjs_eval (ctx (), (jjs_char_t *) "new String ('hello')", 20, JJS_PARSE_NO_OPTS);
+    obj_val = jjs_eval_sz (ctx (), "new String ('hello')", JJS_PARSE_NO_OPTS);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), obj_val));
     TEST_ASSERT (jjs_value_is_object (ctx (), obj_val));
     TEST_ASSERT (!jjs_value_is_string (ctx (), obj_val));
@@ -698,7 +698,7 @@ main (void)
       jjs_value_t target = jjs_object (ctx ()) ;
       jjs_value_t handler = jjs_object (ctx ()) ;
       jjs_value_t proxy = jjs_proxy (ctx (), target, handler);
-      jjs_value_t obj_proto = jjs_eval (ctx (), (jjs_char_t *) "Object.prototype", 16, JJS_PARSE_NO_OPTS);
+      jjs_value_t obj_proto = jjs_eval_sz (ctx (), "Object.prototype", JJS_PARSE_NO_OPTS);
 
       jjs_value_free (ctx (), target);
       jjs_value_free (ctx (), handler);
@@ -734,7 +734,7 @@ main (void)
       jjs_value_t target = jjs_object (ctx ()) ;
       jjs_value_t handler = jjs_object (ctx ()) ;
       jjs_value_t proxy = jjs_proxy (ctx (), target, handler);
-      new_proto = jjs_eval (ctx (), (jjs_char_t *) "Function.prototype", 18, JJS_PARSE_NO_OPTS);
+      new_proto = jjs_eval_sz (ctx (), "Function.prototype", JJS_PARSE_NO_OPTS);
 
       res = jjs_object_set_proto (ctx (), proxy, new_proto);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
@@ -814,15 +814,14 @@ main (void)
     /* Test: create function */
     jjs_value_t script_source = jjs_string_sz (ctx (), "  return 5 +  a+\nb+c");
 
-    parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-    parse_options.argument_list = jjs_string_sz (ctx (), "a , b,c");
+    parse_options = (jjs_parse_options_t) {
+      .argument_list = jjs_optional_value (jjs_string_sz (ctx (), "a , b,c")),
+      .argument_list_o = JJS_MOVE,
+    };
 
-    jjs_value_t func_val = jjs_parse_value (ctx (), script_source, &parse_options);
+    jjs_value_t func_val = jjs_parse_value (ctx (), script_source, JJS_MOVE, &parse_options);
 
     TEST_ASSERT (!jjs_value_is_exception (ctx (), func_val));
-
-    jjs_value_free (ctx (), parse_options.argument_list);
-    jjs_value_free (ctx (), script_source);
 
     jjs_value_t func_args[3] = { jjs_number (ctx (), 4), jjs_number (ctx (), 6), jjs_number (ctx (), -2) };
 
@@ -833,18 +832,17 @@ main (void)
     jjs_value_free (ctx (), val_t);
     jjs_value_free (ctx (), func_val);
 
-    parse_options.options = JJS_PARSE_HAS_ARGUMENT_LIST;
-    parse_options.argument_list = jjs_null (ctx ());
+    parse_options = (jjs_parse_options_t) {
+      .argument_list = jjs_optional_value (jjs_null (ctx ())),
+    };
 
     func_val = jjs_parse (ctx (), (const jjs_char_t *) "", 0, &parse_options);
-    jjs_value_free (ctx (), parse_options.argument_list);
 
     TEST_ASSERT (jjs_value_is_exception (ctx (), func_val) && jjs_error_type (ctx (), func_val) == JJS_ERROR_TYPE);
     jjs_value_free (ctx (), func_val);
 
     script_source = jjs_number (ctx (), 4.5);
-    func_val = jjs_parse_value (ctx (), script_source, NULL);
-    jjs_value_free (ctx (), script_source);
+    func_val = jjs_parse_value (ctx (), script_source, JJS_MOVE, NULL);
 
     TEST_ASSERT (jjs_value_is_exception (ctx (), func_val) && jjs_error_type (ctx (), func_val) == JJS_ERROR_TYPE);
     jjs_value_free (ctx (), func_val);
@@ -875,12 +873,12 @@ main (void)
 
   {
     ctx_open (NULL);
-    const jjs_char_t scoped_src_p[] = "let a; this.b = 5";
-    jjs_value_t parse_result = jjs_parse (ctx (), scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
+    const char scoped_src_p[] = "let a; this.b = 5";
+    jjs_value_t parse_result = jjs_parse_sz (ctx (), scoped_src_p, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
     jjs_value_free (ctx (), parse_result);
 
-    parse_result = jjs_parse (ctx (), scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
+    parse_result = jjs_parse_sz (ctx (), scoped_src_p, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
 
     jjs_value_t run_result = jjs_run (ctx (), parse_result, JJS_KEEP);
@@ -893,13 +891,13 @@ main (void)
     jjs_value_free (ctx (), run_result);
 
     /* The variable should have no effect on parsing. */
-    parse_result = jjs_parse (ctx (), scoped_src_p, sizeof (scoped_src_p) - 1, NULL);
+    parse_result = jjs_parse_sz (ctx (), scoped_src_p, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
     jjs_value_free (ctx (), parse_result);
 
     /* The already existing global binding should not affect a new lexical binding */
-    const jjs_char_t scoped_src2_p[] = "let b = 6; this.b + b";
-    parse_result = jjs_parse (ctx (), scoped_src2_p, sizeof (scoped_src2_p) - 1, NULL);
+    const char scoped_src2_p[] = "let b = 6; this.b + b";
+    parse_result = jjs_parse_sz (ctx (), scoped_src2_p, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
     run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_number (ctx (), run_result));
@@ -907,8 +905,8 @@ main (void)
     jjs_value_free (ctx (), run_result);
 
     /* Check restricted global property */
-    const jjs_char_t scoped_src3_p[] = "let undefined;";
-    parse_result = jjs_parse (ctx (), scoped_src3_p, sizeof (scoped_src3_p) - 1, NULL);
+    const char scoped_src3_p[] = "let undefined;";
+    parse_result = jjs_parse_sz (ctx (), scoped_src3_p, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
     run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
@@ -930,8 +928,8 @@ main (void)
     jjs_value_free (ctx (), prop_name);
     jjs_value_free (ctx (), global_obj);
 
-    const jjs_char_t scoped_src4_p[] = "let foo;";
-    parse_result = jjs_parse (ctx (), scoped_src4_p, sizeof (scoped_src4_p) - 1, NULL);
+    const char scoped_src4_p[] = "let foo;";
+    parse_result = jjs_parse_sz (ctx (), scoped_src4_p, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
     run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
@@ -951,8 +949,8 @@ main (void)
 
       jjs_value_t old_realm = jjs_set_realm (ctx (), new_realm_value);
 
-      const jjs_char_t scoped_src5_p[] = "let a;";
-      parse_result = jjs_parse (ctx (), scoped_src5_p, sizeof (scoped_src5_p) - 1, NULL);
+      const char scoped_src5_p[] = "let a;";
+      parse_result = jjs_parse_sz (ctx (), scoped_src5_p, NULL);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
       run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
       TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
@@ -978,8 +976,8 @@ main (void)
 
       old_realm = jjs_set_realm (ctx (), new_realm_value);
 
-      const jjs_char_t scoped_src6_p[] = "let b;";
-      parse_result = jjs_parse (ctx (), scoped_src6_p, sizeof (scoped_src6_p) - 1, NULL);
+      const char scoped_src6_p[] = "let b;";
+      parse_result = jjs_parse_sz (ctx (), scoped_src6_p, NULL);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
       run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
       TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
@@ -1009,8 +1007,9 @@ main (void)
                        "SyntaxError: Unexpected end of input [<anonymous>:2:10]",
                        false);
 
-    parse_options.options = JJS_PARSE_HAS_SOURCE_NAME;
-    parse_options.source_name = jjs_string_sz (ctx (), "filename.js");
+    parse_options = (jjs_parse_options_t) {
+      .source_name = jjs_optional_value (jjs_string_sz (ctx (), "filename.js")),
+    };
 
     test_syntax_error ("b = 'hello';\nvar a = (;",
                        &parse_options,
@@ -1022,16 +1021,15 @@ main (void)
                        "SyntaxError: Unexpected end of input [<eval>:2:6]",
                        true);
 
-    parse_options.options |= JJS_PARSE_HAS_START;
-    parse_options.start_line = 10;
-    parse_options.start_column = 20;
+    parse_options.start_line = jjs_optional_u32 (10);
+    parse_options.start_column = jjs_optional_u32 (20);
 
     test_syntax_error ("for (var a in []",
                        &parse_options,
                        "SyntaxError: Expected ')' token [filename.js:10:36]",
                        false);
 
-    jjs_value_free (ctx (), parse_options.source_name);
+    jjs_value_free (ctx (), parse_options.source_name.value);
     ctx_close ();
   }
 
@@ -1046,8 +1044,8 @@ main (void)
     uint32_t num_magic_string_items = (uint32_t) (sizeof (magic_string_items) / sizeof (jjs_char_t *));
     jjs_register_magic_strings (ctx (), magic_string_items, num_magic_string_items, magic_string_lengths);
 
-    const jjs_char_t ms_code_src[] = "var global = {}; var console = [1]; var process = 1;";
-    parsed_code_val = jjs_parse (ctx (), ms_code_src, sizeof (ms_code_src) - 1, NULL);
+    const char ms_code_src[] = "var global = {}; var console = [1]; var process = 1;";
+    parsed_code_val = jjs_parse_sz (ctx (), ms_code_src, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_code_val));
 
     res = jjs_run (ctx (), parsed_code_val, JJS_MOVE);
@@ -1088,6 +1086,29 @@ main (void)
     TEST_ASSERT (cesu8_sz == 6);
 
     jjs_value_free (ctx (), args[1]);
+
+    {
+      jjs_parse_options_t parse_options = jjs_parse_options ();
+
+      /* empty */
+      jjs_parse_options_disown (ctx (), &parse_options);
+
+      parse_options = (jjs_parse_options_t) {
+        .source_name = jjs_optional_value (jjs_string_sz (ctx (), "xxx")),
+      };
+
+      /* expect source name not to be freed on not defined or keep */
+      jjs_parse_options_disown (ctx (), &parse_options);
+      jjs_value_free (ctx (), parse_options.source_name.value);
+
+      /* expect source name to be freed */
+      parse_options = (jjs_parse_options_t) {
+        .source_name = jjs_optional_value (jjs_string_sz (ctx (), "xxx")),
+        .source_name_o = JJS_MOVE,
+      };
+
+      jjs_parse_options_disown (ctx (), &parse_options);
+    }
 
     ctx_close ();
   }

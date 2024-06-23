@@ -54,8 +54,9 @@ main (void)
 
   jjs_value_free (ctx (), global);
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_HAS_SOURCE_NAME;
+  jjs_parse_options_t parse_options = {
+    .source_name = jjs_optional_value (jjs_string_sz (ctx (), "demo1.js")),
+  };
 
   const char *source_1 = ("function f1 () {\n"
                           "  if (sourceName() !== 'demo1.js') return false; \n"
@@ -65,9 +66,7 @@ main (void)
                           "} \n"
                           "f1();");
 
-  parse_options.source_name = jjs_string_sz (ctx (), "demo1.js");
-
-  jjs_value_t program = jjs_parse (ctx (), (const jjs_char_t *) source_1, strlen (source_1), &parse_options);
+  jjs_value_t program = jjs_parse_sz (ctx (), source_1, &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
   jjs_value_t run_result = jjs_run (ctx (), program, JJS_KEEP);
@@ -76,12 +75,12 @@ main (void)
 
   jjs_value_t source_name_value = jjs_source_name (ctx (), run_result);
   jjs_value_t compare_result =
-    jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name);
+    jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
   jjs_value_free (ctx (), compare_result);
   jjs_value_free (ctx (), source_name_value);
-  jjs_value_free (ctx (), parse_options.source_name);
+  jjs_value_free (ctx (), parse_options.source_name.value);
 
   jjs_value_free (ctx (), run_result);
   jjs_value_free (ctx (), program);
@@ -96,9 +95,9 @@ main (void)
                           "} \n"
                           "f2(); \n");
 
-  parse_options.source_name = jjs_string_sz (ctx (), "demo2.js");
+  parse_options.source_name = jjs_optional_value (jjs_string_sz (ctx (), "demo2.js"));
 
-  program = jjs_parse (ctx (), (const jjs_char_t *) source_2, strlen (source_2), &parse_options);
+  program = jjs_parse_sz (ctx (), source_2, &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
   run_result = jjs_run (ctx (), program, JJS_KEEP);
@@ -106,12 +105,12 @@ main (void)
   TEST_ASSERT (jjs_value_is_object (ctx (), run_result));
 
   source_name_value = jjs_source_name (ctx (), run_result);
-  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name);
+  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
   jjs_value_free (ctx (), compare_result);
   jjs_value_free (ctx (), source_name_value);
-  jjs_value_free (ctx (), parse_options.source_name);
+  jjs_value_free (ctx (), parse_options.source_name.value);
 
   jjs_value_free (ctx (), run_result);
   jjs_value_free (ctx (), program);
@@ -120,14 +119,16 @@ main (void)
     jjs_value_t anon = jjs_string_sz (ctx (), "<anonymous>");
     const char *source_3 = "";
 
-    parse_options.options = JJS_PARSE_MODULE | JJS_PARSE_HAS_SOURCE_NAME;
-    parse_options.source_name = jjs_string_sz (ctx (), "demo3.js");
+    parse_options = (jjs_parse_options_t) {
+      .parse_module = true,
+      .source_name = jjs_optional_value (jjs_string_sz (ctx (), "demo3.js")),
+    };
 
-    program = jjs_parse (ctx (), (const jjs_char_t *) source_3, strlen (source_3), &parse_options);
+    program = jjs_parse_sz (ctx (), source_3, &parse_options);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
     source_name_value = jjs_source_name (ctx (), program);
-    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name);
+    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
     jjs_value_free (ctx (), compare_result);
@@ -155,15 +156,16 @@ main (void)
     jjs_value_free (ctx (), source_name_value);
     jjs_value_free (ctx (), run_result);
     jjs_value_free (ctx (), program);
-    jjs_value_free (ctx (), parse_options.source_name);
+    jjs_value_free (ctx (), parse_options.source_name.value);
   }
   const char *source_4 = ("function f(){} \n"
                           "f.bind().bind();");
 
-  parse_options.options = JJS_PARSE_HAS_SOURCE_NAME;
-  parse_options.source_name = jjs_string_sz (ctx (), "demo4.js");
+  parse_options = (jjs_parse_options_t) {
+    .source_name = jjs_optional_value (jjs_string_sz (ctx (), "demo4.js")),
+  };
 
-  program = jjs_parse (ctx (), (const jjs_char_t *) source_4, strlen (source_4), &parse_options);
+  program = jjs_parse_sz (ctx (), source_4, &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
   run_result = jjs_run (ctx (), program, JJS_KEEP);
@@ -171,51 +173,53 @@ main (void)
   TEST_ASSERT (jjs_value_is_object (ctx (), run_result));
 
   source_name_value = jjs_source_name (ctx (), run_result);
-  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name);
+  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
   jjs_value_free (ctx (), compare_result);
 
   jjs_value_free (ctx (), source_name_value);
-  jjs_value_free (ctx (), parse_options.source_name);
+  jjs_value_free (ctx (), parse_options.source_name.value);
   jjs_value_free (ctx (), run_result);
   jjs_value_free (ctx (), program);
 
   const char *source_5 = "";
 
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_HAS_SOURCE_NAME;
-  parse_options.user_value = jjs_object (ctx ());
-  parse_options.source_name = jjs_string_sz (ctx (), "demo5.js");
+  parse_options = (jjs_parse_options_t) {
+    .source_name = jjs_optional_value (jjs_string_sz (ctx (), "demo5.js")),
+    .user_value = jjs_optional_value (jjs_object (ctx ())),
+  };
 
-  program = jjs_parse (ctx (), (const jjs_char_t *) source_5, strlen (source_5), &parse_options);
+  program = jjs_parse_sz (ctx (), source_5, &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), program));
 
   source_name_value = jjs_source_name (ctx (), program);
-  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name);
+  compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
   TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
   jjs_value_free (ctx (), source_name_value);
   jjs_value_free (ctx (), compare_result);
-  jjs_value_free (ctx (), parse_options.user_value);
-  jjs_value_free (ctx (), parse_options.source_name);
+  jjs_value_free (ctx (), parse_options.user_value.value);
+  jjs_value_free (ctx (), parse_options.source_name.value);
   jjs_value_free (ctx (), program);
 
   const char *source_6 = "(class {})";
 
-  parse_options.options = JJS_PARSE_HAS_SOURCE_NAME;
-  parse_options.source_name = jjs_string_sz (ctx (), "demo6.js");
+  parse_options = (jjs_parse_options_t) {
+    .source_name = jjs_optional_value (jjs_string_sz (ctx (), "demo6.js")),
+  };
 
-  program = jjs_parse (ctx (), (const jjs_char_t *) source_6, strlen (source_6), &parse_options);
+  program = jjs_parse_sz (ctx (), source_6, &parse_options);
   if (!jjs_value_is_exception (ctx (), program))
   {
     source_name_value = jjs_source_name (ctx (), program);
-    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name);
+    compare_result = jjs_binary_op (ctx (), JJS_BIN_OP_STRICT_EQUAL, source_name_value, parse_options.source_name.value);
     TEST_ASSERT (jjs_value_is_true (ctx (), compare_result));
 
     jjs_value_free (ctx (), source_name_value);
     jjs_value_free (ctx (), compare_result);
   }
 
-  jjs_value_free (ctx (), parse_options.source_name);
+  jjs_value_free (ctx (), parse_options.source_name.value);
   jjs_value_free (ctx (), program);
 
   ctx_close ();

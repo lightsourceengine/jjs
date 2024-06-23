@@ -52,7 +52,7 @@ main (void)
 
   char test_source[] = "\xF0\x9D\x84\x9E";
 
-  jjs_value_t result = jjs_parse (ctx (), (const jjs_char_t *) test_source, sizeof (test_source) - 1, NULL);
+  jjs_value_t result = jjs_parse_sz (ctx (), test_source, NULL);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result));
   TEST_ASSERT (jjs_error_type (ctx (), result) == JJS_ERROR_SYNTAX);
 

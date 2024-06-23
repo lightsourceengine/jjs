@@ -241,8 +241,8 @@ main (void)
     jjs_value_free (ctx (), global);
   }
 
-  const jjs_char_t get_value_src[] = TEST_STRING_LITERAL ("pdemo.value");
-  jjs_value_t parsed_get_code_val = jjs_parse (ctx (), get_value_src, sizeof (get_value_src) - 1, NULL);
+  const char get_value_src[] = TEST_STRING_LITERAL ("pdemo.value");
+  jjs_value_t parsed_get_code_val = jjs_parse_sz (ctx (), get_value_src, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_get_code_val));
 
   {
@@ -266,8 +266,8 @@ main (void)
     jjs_value_free (ctx (), res);
   }
 
-  const jjs_char_t set_value_src[] = TEST_STRING_LITERAL ("pdemo.value = 55");
-  jjs_value_t parsed_set_code_val = jjs_parse (ctx (), set_value_src, sizeof (set_value_src) - 1, NULL);
+  const char set_value_src[] = TEST_STRING_LITERAL ("pdemo.value = 55");
+  jjs_value_t parsed_set_code_val = jjs_parse_sz (ctx (), set_value_src, NULL);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_set_code_val));
 
   {
@@ -304,10 +304,10 @@ main (void)
   jjs_value_free (ctx (), handler);
 
   {
-    const jjs_char_t has_value_src[] = TEST_STRING_LITERAL ("new Proxy({}, {\n"
+    const char has_value_src[] = TEST_STRING_LITERAL ("new Proxy({}, {\n"
                                                               "  has: function(target, key) { throw 33 }\n"
                                                               "})");
-    jjs_value_t parsed_has_code_val = jjs_parse (ctx (), has_value_src, sizeof (has_value_src) - 1, NULL);
+    jjs_value_t parsed_has_code_val = jjs_parse_sz (ctx (), has_value_src, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), parsed_has_code_val));
 
     jjs_value_t res = jjs_run (ctx (), parsed_has_code_val, JJS_MOVE);

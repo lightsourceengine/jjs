@@ -68,10 +68,10 @@ static jjs_value_t
 run_with_synthetic_module (const jjs_value_t synthetic_module, const char* code)
 {
   jjs_parse_options_t opts = {
-    .options = JJS_PARSE_MODULE,
+    .parse_module = true,
   };
 
-  jjs_value_t module = jjs_parse (ctx (), (const jjs_char_t*) code, (jjs_size_t) strlen (code), &opts);
+  jjs_value_t module = jjs_parse_sz (ctx (), code, &opts);
 
   JJS_EXPECT_NOT_EXCEPTION (module);
   JJS_EXPECT_TRUE_MOVE (jjs_module_link (ctx (), module, synthetic_module_link_cb, (void*) (uintptr_t) synthetic_module));

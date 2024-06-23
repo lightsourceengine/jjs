@@ -55,7 +55,7 @@ main (void)
   jjs_parse_options_t parse_options;
   const char *source_p = TEST_STRING_LITERAL ("var a = 6");
 
-  value = jjs_parse (ctx (), (jjs_char_t *) source_p, strlen (source_p), NULL);
+  value = jjs_parse_sz (ctx (), source_p, NULL);
   source_info_p = jjs_source_info (ctx (), value);
   TEST_ASSERT (source_info_p != NULL);
   TEST_ASSERT (source_info_p->enabled_fields == JJS_SOURCE_INFO_HAS_SOURCE_CODE);
@@ -68,9 +68,11 @@ main (void)
 
   if (jjs_feature_enabled (JJS_FEATURE_MODULE))
   {
-    parse_options.options = JJS_PARSE_MODULE;
+    parse_options = (jjs_parse_options_t) {
+      .parse_module = true,
+    };
 
-    value = jjs_parse (ctx (), (jjs_char_t *) source_p, strlen (source_p), &parse_options);
+    value = jjs_parse_sz (ctx (), source_p, &parse_options);
 
     jjs_value_t result = jjs_module_link (ctx (), value, NULL, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
@@ -98,7 +100,7 @@ main (void)
 
   source_p = TEST_STRING_LITERAL ("( function f() {} )");
 
-  value = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  value = jjs_eval_sz (ctx (), source_p, 0);
   source_info_p = jjs_source_info (ctx (), value);
   TEST_ASSERT (source_info_p != NULL);
   TEST_ASSERT (source_info_p->enabled_fields
@@ -112,7 +114,7 @@ main (void)
 
   source_p = TEST_STRING_LITERAL ("new Function('a', 'b', 'return 0;')");
 
-  value = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  value = jjs_eval_sz (ctx (), source_p, 0);
   source_info_p = jjs_source_info (ctx (), value);
   TEST_ASSERT (source_info_p != NULL);
   TEST_ASSERT (source_info_p->enabled_fields
@@ -126,7 +128,7 @@ main (void)
 
   source_p = TEST_STRING_LITERAL ("(new Function('a = ( function() { } )', 'return a;'))()");
 
-  value = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  value = jjs_eval_sz (ctx (), source_p, 0);
   source_info_p = jjs_source_info (ctx (), value);
   TEST_ASSERT (source_info_p != NULL);
   TEST_ASSERT (source_info_p->enabled_fields
@@ -140,7 +142,7 @@ main (void)
 
   source_p = TEST_STRING_LITERAL ("(function f(a) { return 7 }).bind({})");
 
-  value = jjs_eval (ctx (), (const jjs_char_t *) source_p, strlen (source_p), 0);
+  value = jjs_eval_sz (ctx (), source_p, 0);
   source_info_p = jjs_source_info (ctx (), value);
   TEST_ASSERT (source_info_p != NULL);
   TEST_ASSERT (source_info_p->enabled_fields

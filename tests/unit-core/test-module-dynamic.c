@@ -123,10 +123,11 @@ module_import_callback (jjs_context_t *context_p, /** JJS context */
 
   TEST_ASSERT (mode == 4 || mode == 5);
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_MODULE;
+  jjs_parse_options_t parse_options = {
+    .parse_module = true,
+  };
 
-  jjs_value_t parse_result_value = jjs_parse (ctx (), (const jjs_char_t *) "", 0, &parse_options);
+  jjs_value_t parse_result_value = jjs_parse_sz (ctx (), "", &parse_options);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result_value));
 
   jjs_value_t result_value = jjs_module_link (ctx (), parse_result_value, NULL, NULL);
@@ -150,17 +151,17 @@ run_script (const char *source_p, /* source code */
 {
   jjs_value_t parse_result_value;
 
-  parse_result_value = jjs_parse (ctx (), (const jjs_char_t *) source_p, strlen (source_p), parse_options_p);
+  parse_result_value = jjs_parse_sz (ctx (), source_p, parse_options_p);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result_value));
 
   if (release_user_value)
   {
-    jjs_value_free (ctx (), parse_options_p->user_value);
+    jjs_value_free (ctx (), parse_options_p->user_value.value);
     jjs_heap_gc (ctx (), JJS_GC_PRESSURE_HIGH);
   }
 
   jjs_value_t result_value;
-  if (parse_options_p->options & JJS_PARSE_MODULE)
+  if (parse_options_p->parse_module)
   {
     result_value = jjs_module_link (ctx (), parse_result_value, NULL, NULL);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result_value));
@@ -197,8 +198,7 @@ main (void)
   register_assert ();
   jjs_module_on_import (ctx (), module_import_callback, (void *) &mode);
 
-  jjs_parse_options_t parse_options;
-  parse_options.options = JJS_PARSE_NO_OPTS;
+  jjs_parse_options_t parse_options = jjs_parse_options ();
 
   if (jjs_feature_enabled (JJS_FEATURE_ERROR_MESSAGES))
   {
@@ -219,8 +219,10 @@ main (void)
                                               ")");
 
   mode = 0;
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
-  parse_options.user_value = global_user_value;
+  parse_options = (jjs_parse_options_t) {
+    .user_value = jjs_optional_value (global_user_value),
+  };
+
   run_script (source_p, &parse_options, false);
   jjs_value_free (ctx (), global_user_value);
 
@@ -235,8 +237,9 @@ main (void)
                                   "eval('eval(src)')");
 
   mode = 1;
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
-  parse_options.user_value = global_user_value;
+  parse_options = (jjs_parse_options_t) {
+    .user_value = jjs_optional_value (global_user_value),
+  };
   run_script (source_p, &parse_options, false);
   jjs_value_free (ctx (), global_user_value);
 
@@ -252,8 +255,10 @@ main (void)
                                   ")");
 
   mode = 2;
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_MODULE;
-  parse_options.user_value = global_user_value;
+  parse_options = (jjs_parse_options_t) {
+    .parse_module = true,
+    .user_value = jjs_optional_value (global_user_value),
+  };
   run_script (source_p, &parse_options, false);
   jjs_value_free (ctx (), global_user_value);
 
@@ -270,11 +275,14 @@ main (void)
   for (int i = 0; i < 2; i++)
   {
     mode = 3;
-    parse_options.options = JJS_PARSE_HAS_USER_VALUE | (i == 1 ? JJS_PARSE_MODULE : 0);
-    parse_options.user_value = jjs_object (ctx ());
+    parse_options = (jjs_parse_options_t) {
+      .parse_module = (i == 1),
+      .user_value = jjs_optional_value (jjs_object (ctx ())),
+    };
+
     jjs_value_t property_name = jjs_string_sz (ctx (), "MyProp1");
     jjs_value_t property_value = jjs_number (ctx (), 3.5);
-    jjs_value_t result = jjs_object_set (ctx (), parse_options.user_value, property_name, property_value);
+    jjs_value_t result = jjs_object_set (ctx (), parse_options.user_value.value, property_name, property_value);
     TEST_ASSERT (jjs_value_is_true (ctx (), result));
     jjs_value_free (ctx (), result);
     jjs_value_free (ctx (), property_value);
@@ -285,8 +293,9 @@ main (void)
   }
 
   mode = 4;
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE;
-  parse_options.user_value = global_user_value;
+  parse_options = (jjs_parse_options_t) {
+    .user_value = jjs_optional_value (global_user_value),
+  };
   run_script (source_p, &parse_options, false);
   jjs_value_free (ctx (), global_user_value);
 
@@ -304,8 +313,10 @@ main (void)
                                   "f()\n");
 
   mode = 5;
-  parse_options.options = JJS_PARSE_HAS_USER_VALUE | JJS_PARSE_MODULE;
-  parse_options.user_value = global_user_value;
+  parse_options = (jjs_parse_options_t) {
+    .parse_module = true,
+    .user_value = jjs_optional_value (global_user_value),
+  };
   run_script (source_p, &parse_options, false);
   jjs_value_free (ctx (), global_user_value);
 
