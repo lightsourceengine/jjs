@@ -28,7 +28,7 @@ main (void)
   ctx_open (NULL);
 
   // Map container tests
-  jjs_value_t map = jjs_container (ctx (), JJS_CONTAINER_TYPE_MAP, NULL, 0);
+  jjs_value_t map = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_MAP);
   TEST_ASSERT (jjs_container_type (ctx (), map) == JJS_CONTAINER_TYPE_MAP);
 
   jjs_value_t key_str = jjs_string_sz (ctx (), "number");
@@ -78,7 +78,7 @@ main (void)
 
   // Set container tests
   number = jjs_number (ctx (), 10);
-  jjs_value_t set = jjs_container (ctx (), JJS_CONTAINER_TYPE_SET, NULL, 0);
+  jjs_value_t set = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_SET);
   TEST_ASSERT (jjs_container_type (ctx (), set) == JJS_CONTAINER_TYPE_SET);
   result = jjs_container_op (ctx (), JJS_CONTAINER_OP_ADD, set, &number, 1);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
@@ -119,7 +119,7 @@ main (void)
 
   // WeakMap contanier tests
   number = jjs_number (ctx (), 10);
-  jjs_value_t weak_map = jjs_container (ctx (), JJS_CONTAINER_TYPE_WEAKMAP, NULL, 0);
+  jjs_value_t weak_map = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_WEAKMAP);
   TEST_ASSERT (jjs_container_type (ctx (), weak_map) == JJS_CONTAINER_TYPE_WEAKMAP);
 
   jjs_value_t obj = jjs_object (ctx ());
@@ -139,7 +139,7 @@ main (void)
   jjs_value_free (ctx (), weak_map);
 
   // WeakSet contanier tests,
-  jjs_value_t weak_set = jjs_container (ctx (), JJS_CONTAINER_TYPE_WEAKSET, NULL, 0);
+  jjs_value_t weak_set = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_WEAKSET);
   TEST_ASSERT (jjs_container_type (ctx (), weak_set) == JJS_CONTAINER_TYPE_WEAKSET);
 
   result = jjs_container_op (ctx (), JJS_CONTAINER_OP_ADD, weak_set, &obj, 1);

@@ -35,11 +35,8 @@ register_assert (void)
   jjs_value_t global_object_value = jjs_current_realm (ctx ());
 
   jjs_value_t function_value = jjs_function_external (ctx (), global_assert);
-  jjs_value_t function_name_value = jjs_string_sz (ctx (), "assert");
-  jjs_value_t result_value = jjs_object_set (ctx (), global_object_value, function_name_value, function_value);
+  jjs_value_t result_value = jjs_object_set_sz (ctx (), global_object_value, "assert", function_value, JJS_MOVE);
 
-  jjs_value_free (ctx (), function_name_value);
-  jjs_value_free (ctx (), function_value);
   jjs_value_free (ctx (), global_object_value);
 
   TEST_ASSERT (jjs_value_is_true (ctx (), result_value));
@@ -278,13 +275,10 @@ main (void)
       .user_value = jjs_optional_value (jjs_object (ctx ())),
     };
 
-    jjs_value_t property_name = jjs_string_sz (ctx (), "MyProp1");
     jjs_value_t property_value = jjs_number (ctx (), 3.5);
-    jjs_value_t result = jjs_object_set (ctx (), parse_options.user_value.value, property_name, property_value);
+    jjs_value_t result = jjs_object_set_sz (ctx (), parse_options.user_value.value, "MyProp1", property_value, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_true (ctx (), result));
     jjs_value_free (ctx (), result);
-    jjs_value_free (ctx (), property_value);
-    jjs_value_free (ctx (), property_name);
 
     source_p = TEST_STRING_LITERAL ("import('28_module.mjs')");
     run_script (source_p, &parse_options, true);

@@ -327,16 +327,12 @@ static jjs_value_t throw_file_error (jjs_context_t *context_p, const char* messa
   jjs_value_t errno_message = jjs_string_sz (context_p, fs_errno_message(err));
   jjs_value_t path_value = jjs_string_sz (context_p, path);
 
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "code", code));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "errno", errno_value));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "errnoMessage", errno_message));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "path", path_value));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "code", code, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "errno", errno_value, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "errnoMessage", errno_message, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, error, "path", path_value, JJS_MOVE));
 
   jjs_value_free (context_p, error);
-  jjs_value_free (context_p, code);
-  jjs_value_free (context_p, errno_value);
-  jjs_value_free (context_p, errno_message);
-  jjs_value_free (context_p, path_value);
 
   return ex;
 } /* throw_file_error */

@@ -97,10 +97,8 @@ static JJS_HANDLER (jjs_pack_text_encode_into)
   jjs_value_t read_value = jjs_number (context_p, (double) read);
   jjs_value_t written_value = jjs_number (context_p, (double) written);
 
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, result, "read", read_value));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, result, "written", written_value));
-  jjs_value_free (context_p, read_value);
-  jjs_value_free (context_p, written_value);
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, result, "read", read_value, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, result, "written", written_value, JJS_MOVE));
 
   return result;
 } /* jjs_pack_text_encode_into */

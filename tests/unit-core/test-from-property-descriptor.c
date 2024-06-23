@@ -22,9 +22,9 @@ main (void)
 
   jjs_value_t object = jjs_object (ctx ());
   jjs_value_t prop_name = jjs_string_sz (ctx (), "length");
-  jjs_value_t value = jjs_boolean (ctx (), true);
+  jjs_value_t value;
 
-  TEST_ASSERT (jjs_object_set (ctx (), object, prop_name, prop_name));
+  TEST_ASSERT (jjs_object_set (ctx (), object, prop_name, prop_name, JJS_KEEP));
   TEST_ASSERT (jjs_object_has (ctx (), object, prop_name));
   TEST_ASSERT (jjs_object_has_own (ctx (), object, prop_name));
 

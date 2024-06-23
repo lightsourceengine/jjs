@@ -3263,16 +3263,21 @@ jjs_object_has (jjs_context_t* context_p, /**< JJS context */
                 const jjs_value_t key) /**< property name (string value) */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
-    return ECMA_VALUE_FALSE;
+    result = ECMA_VALUE_FALSE;
+  }
+  else
+  {
+    ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
+    ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (context_p, key);
+
+    result = jjs_return (context_p, ecma_op_object_has_property (context_p, obj_p, prop_name_p));
   }
 
-  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
-  ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (context_p, key);
-
-  return jjs_return (context_p, ecma_op_object_has_property (context_p, obj_p, prop_name_p));
+  return result;
 } /* jjs_object_has */
 
 /**
@@ -3287,12 +3292,8 @@ jjs_object_has_sz (jjs_context_t* context_p, /**< JJS context */
                    const char *key_p) /**< property key */
 {
   jjs_assert_api_enabled (context_p);
-
-  jjs_value_t key_str = jjs_string_sz (context_p, key_p);
-  jjs_value_t result = jjs_object_has (context_p, object, key_str);
-  ecma_free_value (context_p, key_str);
-
-  return result;
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape (context_p, jjs_object_has (context_p, object, key), key);
 } /* jjs_object_has_sz */
 
 /**
@@ -3304,7 +3305,7 @@ jjs_object_has_sz (jjs_context_t* context_p, /**< JJS context */
 jjs_value_t
 jjs_object_has_own (jjs_context_t* context_p, /**< JJS context */
                     const jjs_value_t object, /**< object value */
-                    const jjs_value_t key) /**< property name (string value) */
+                    const jjs_value_t key) /**< property key */
 {
   jjs_assert_api_enabled (context_p);
 
@@ -3317,7 +3318,23 @@ jjs_object_has_own (jjs_context_t* context_p, /**< JJS context */
   ecma_string_t *prop_name_p = ecma_get_prop_name_from_value (context_p, key);
 
   return jjs_return (context_p, ecma_op_object_has_own_property (context_p, obj_p, prop_name_p));
-} /* jjs_has_own_property */
+} /* jjs_object_has_own */
+
+/**
+ * Checks whether the object has the given property.
+ *
+ * @return ECMA_VALUE_ERROR - if the operation raises error
+ *         ECMA_VALUE_{TRUE, FALSE} - based on whether the property exists
+ */
+jjs_value_t
+jjs_object_has_own_sz (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_value_t object, /**< object value */
+                       const char *key_p) /**< property key (null-terminated string value) */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape (context_p, jjs_object_has_own (context_p, object, key), key);
+} /* jjs_object_has_own_sz */
 
 /**
  * Checks whether the object has the given internal property.
@@ -3358,6 +3375,22 @@ jjs_object_has_internal (jjs_context_t* context_p, /**< JJS context */
 
   return property_p != NULL;
 } /* jjs_object_has_internal */
+
+/**
+ * Checks whether the object has the given internal property.
+ *
+ * @return true  - if the internal property exists
+ *         false - otherwise
+ */
+bool
+jjs_object_has_internal_sz (jjs_context_t* context_p, /**< JJS context */
+                            const jjs_value_t object, /**< object value */
+                            const char *key_p) /**< property name value */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape (context_p, jjs_object_has_internal (context_p, object, key), key);
+} /* jjs_object_has_internal_sz */
 
 /**
  * Delete a property from an object.
@@ -3473,6 +3506,22 @@ jjs_object_delete_internal (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_object_delete_internal */
 
 /**
+ * Delete an internal property from an object.
+ *
+ * @return true  - if property was deleted successfully
+ *         false - otherwise
+ */
+bool
+jjs_object_delete_internal_sz (jjs_context_t* context_p, /**< JJS context */
+                               jjs_value_t object, /**< object value */
+                               const char *key_p) /**< null-terminated property name value */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape (context_p, jjs_object_delete_internal (context_p, object, key), key);
+} /* jjs_object_delete_internal_sz */
+
+/**
  * Get value of a property to the specified object with the given name.
  *
  * Note:
@@ -3561,10 +3610,13 @@ jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
                      const jjs_value_t object, /**< object value */
                      const jjs_value_t key, /**< property name (string value) */
                      const jjs_value_t receiver, /**< receiver object value */
+                     jjs_own_t receiver_o, /**< receiver value resource ownership */
                      bool *found_p) /**< [out] true, if the property is found
                                      *   or object is a Proxy object, false otherwise */
 {
   jjs_assert_api_enabled (context_p);
+
+  jjs_value_t result;
 
   if (found_p != NULL)
   {
@@ -3573,7 +3625,8 @@ jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
 
   if (!ecma_is_value_object (object) || !ecma_is_value_prop_name (key) || !ecma_is_value_object (receiver))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    goto done;
   }
 
   ecma_object_t *object_p = ecma_get_object_from_value (context_p, object);
@@ -3587,7 +3640,8 @@ jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
       *found_p = true;
     }
 
-    return jjs_return (context_p, ecma_proxy_object_get (context_p, object_p, property_name_p, receiver));
+    result = jjs_return (context_p, ecma_proxy_object_get (context_p, object_p, property_name_p, receiver));
+    goto done;
   }
 #endif /* JJS_BUILTIN_PROXY */
 
@@ -3600,11 +3654,40 @@ jjs_object_find_own (jjs_context_t* context_p, /**< JJS context */
       *found_p = true;
     }
 
-    return jjs_return (context_p, ret_value);
+    result = jjs_return (context_p, ret_value);
+  }
+  else
+  {
+    result = ECMA_VALUE_UNDEFINED;
   }
 
-  return ECMA_VALUE_UNDEFINED;
+done:
+  jjs_disown_value (context_p, receiver, receiver_o);
+  return result;
 } /* jjs_object_find_own */
+
+/**
+ * Get the own property value of an object with the given name.
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *
+ * @return value of the property - if success
+ *         value marked with error flag - otherwise
+ */
+jjs_value_t
+jjs_object_find_own_sz (jjs_context_t* context_p, /**< JJS context */
+                        const jjs_value_t object, /**< object value */
+                        const char *key_p, /**< null-terminated property name (string value) */
+                        const jjs_value_t receiver, /**< receiver object value */
+                        jjs_own_t receiver_o, /**< receiver value resource ownership */
+                        bool *found_p) /**< [out] true, if the property is found
+                                        *   or object is a Proxy object, false otherwise */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape (context_p, jjs_object_find_own (context_p, object, key, receiver, receiver_o, found_p), key);
+} /* jjs_object_find_own_sz */
 
 /**
  * Get value of an internal property to the specified object with the given name.
@@ -3656,6 +3739,26 @@ jjs_object_get_internal (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_object_get_internal */
 
 /**
+ * Get value of an internal property to the specified object with the given name.
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *
+ * @return value of the internal property - if the internal property exists
+ *         undefined value - if the internal does not property exists
+ *         value marked with error flag - otherwise
+ */
+jjs_value_t
+jjs_object_get_internal_sz (jjs_context_t* context_p, /**< JJS context */
+                            const jjs_value_t object, /**< object value */
+                            const char *key_p) /**< null-terminated property name value */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape (context_p, jjs_object_get_internal (context_p, object, key), key);
+} /* jjs_object_get_internal_sz */
+
+/**
  * Set a property to the specified object with the given name.
  *
  * Note:
@@ -3668,17 +3771,25 @@ jjs_value_t
 jjs_object_set (jjs_context_t* context_p, /**< JJS context */
                 jjs_value_t object, /**< object value */
                 const jjs_value_t key, /**< property name (string value) */
-                const jjs_value_t value) /**< value to set */
+                const jjs_value_t value, /**< value to set */
+                jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
 
   if (ecma_is_value_exception (value) || !ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+  }
+  else
+  {
+    result = jjs_return (context_p,
+                         ecma_op_object_put (context_p, ecma_get_object_from_value (context_p, object), ecma_get_prop_name_from_value (context_p, key), value, true));
+
   }
 
-  return jjs_return (context_p, 
-    ecma_op_object_put (context_p, ecma_get_object_from_value (context_p, object), ecma_get_prop_name_from_value (context_p, key), value, true));
+  jjs_disown_value (context_p, value, value_o);
+  return result;
 } /* jjs_object_set */
 
 /**
@@ -3694,15 +3805,12 @@ jjs_value_t
 jjs_object_set_sz (jjs_context_t* context_p, /**< JJS context */
                    jjs_value_t object, /**< object value */
                    const char *key_p, /**< property key */
-                   const jjs_value_t value) /**< value to set */
+                   const jjs_value_t value, /**< value to set */
+                   jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
-
-  jjs_value_t key_str = jjs_string_sz (context_p, key_p);
-  jjs_value_t result = jjs_object_set (context_p, object, key_str, value);
-  ecma_free_value (context_p, key_str);
-
-  return result;
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape(context_p, jjs_object_set (context_p, object, key, value, value_o), key);
 } /* jjs_object_set_sz */
 
 /**
@@ -3718,18 +3826,26 @@ jjs_value_t
 jjs_object_set_index (jjs_context_t* context_p, /**< JJS context */
                       jjs_value_t object, /**< object value */
                       uint32_t index, /**< index to be written */
-                      const jjs_value_t value) /**< value to set */
+                      const jjs_value_t value, /**< value to set */
+                      jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
 
   if (ecma_is_value_exception (value) || !ecma_is_value_object (object))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+  }
+  else
+  {
+    ecma_value_t ret_value =
+      ecma_op_object_put_by_index (context_p, ecma_get_object_from_value (context_p, object), index, value, true);
+
+    result = jjs_return (context_p, ret_value);
   }
 
-  ecma_value_t ret_value = ecma_op_object_put_by_index (context_p, ecma_get_object_from_value (context_p, object), index, value, true);
-
-  return jjs_return (context_p, ret_value);
+  jjs_disown_value (context_p, value, value_o);
+  return result;
 } /* jjs_object_set_index */
 
 /**
@@ -3746,13 +3862,17 @@ bool
 jjs_object_set_internal (jjs_context_t* context_p, /**< JJS context */
                          jjs_value_t object, /**< object value */
                          const jjs_value_t key, /**< property name value */
-                         const jjs_value_t value) /**< value to set */
+                         const jjs_value_t value, /**< value to set */
+                         jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
+  bool result;
+
   if (ecma_is_value_exception (value) || !ecma_is_value_object (object) || !ecma_is_value_prop_name (key))
   {
-    return false;
+    result = false;
+    goto done;
   }
 
   ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
@@ -3804,8 +3924,23 @@ jjs_object_set_internal (jjs_context_t* context_p, /**< JJS context */
     ecma_named_data_property_assign_value (context_p, internal_object_p, ECMA_PROPERTY_VALUE_PTR (property_p), value);
   }
 
-  return true;
+  result = true;
+
+done:
+  jjs_disown_value (context_p, value, value_o);
+  return result;
 } /* jjs_object_set_internal */
+
+bool jjs_object_set_internal_sz (jjs_context_t* context_p,
+                                 jjs_value_t object,
+                                 const char *key_p,
+                                 const jjs_value_t value,
+                                 jjs_own_t value_o)
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t key = jjs_string_utf8_sz (context_p, key_p);
+  return jjs_util_escape(context_p, jjs_object_set_internal (context_p, object, key, value, value_o), key);
+}
 
 /**
  * Construct empty property descriptor, i.e.:
@@ -4280,25 +4415,36 @@ jjs_object_proto (jjs_context_t* context_p, /**< JJS context */
 jjs_value_t
 jjs_object_set_proto (jjs_context_t* context_p, /**< JJS context */
                       jjs_value_t object, /**< object value */
-                      const jjs_value_t proto) /**< prototype object value */
+                      const jjs_value_t proto, /**< prototype object value */
+                      jjs_own_t proto_o) /**< proto value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+  ecma_object_t *obj_p;
 
   if (!ecma_is_value_object (object) || ecma_is_value_exception (proto)
       || (!ecma_is_value_object (proto) && !ecma_is_value_null (proto)))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    goto done;
   }
-  ecma_object_t *obj_p = ecma_get_object_from_value (context_p, object);
+
+  obj_p = ecma_get_object_from_value (context_p, object);
 
 #if JJS_BUILTIN_PROXY
   if (ECMA_OBJECT_IS_PROXY (obj_p))
   {
-    return jjs_return (context_p, ecma_proxy_object_set_prototype_of (context_p, obj_p, proto));
+    result = jjs_return (context_p, ecma_proxy_object_set_prototype_of (context_p, obj_p, proto));
   }
+  else
 #endif /* JJS_BUILTIN_PROXY */
+  {
+    result = ecma_op_ordinary_object_set_prototype_of (context_p, obj_p, proto);
+  }
 
-  return ecma_op_ordinary_object_set_prototype_of (context_p, obj_p, proto);
+done:
+  jjs_disown_value (context_p, proto, proto_o);
+  return result;
 } /* jjs_object_set_proto */
 
 /**
@@ -7463,7 +7609,9 @@ jjs_value_t
 jjs_container (jjs_context_t* context_p, /**< JJS context */
                jjs_container_type_t container_type, /**< Type of the container */
                const jjs_value_t *arguments_list_p, /**< arguments list */
-               jjs_length_t arguments_list_len) /**< Length of arguments list */
+               jjs_length_t arguments_list_len, /**< Length of arguments list */
+               jjs_own_t arguments_list_o) /**< arguments_list ownership
+                                            * (if JJS_MOVE, jjs_value_free_array is called on arguments_list_p) */
 {
   jjs_assert_api_enabled (context_p);
 
@@ -7472,6 +7620,7 @@ jjs_container (jjs_context_t* context_p, /**< JJS context */
   {
     if (ecma_is_value_exception (arguments_list_p[i]))
     {
+      jjs_disown_value_array (context_p, arguments_list_p, arguments_list_len, arguments_list_o);
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
     }
   }
@@ -7512,6 +7661,7 @@ jjs_container (jjs_context_t* context_p, /**< JJS context */
     }
     default:
     {
+      jjs_disown_value_array (context_p, arguments_list_p, arguments_list_len, arguments_list_o);
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_INVALID_CONTAINER_TYPE));
     }
   }
@@ -7525,12 +7675,29 @@ jjs_container (jjs_context_t* context_p, /**< JJS context */
   ecma_value_t container_value = ecma_op_container_create (context_p, arguments_list_p, arguments_list_len, lit_id, proto_id);
 
   context_p->current_new_target_p = old_new_target_p;
+
+  jjs_disown_value_array (context_p, arguments_list_p, arguments_list_len, arguments_list_o);
   return jjs_return (context_p, container_value);
 #else /* !JJS_BUILTIN_CONTAINER */
-  JJS_UNUSED_ALL (arguments_list_p, arguments_list_len, container_type);
+  JJS_UNUSED_ALL (container_type);
+  jjs_disown_value_array (context_p, arguments_list_p, arguments_list_len, arguments_list_o);
   return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_CONTAINER_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_CONTAINER */
 } /* jjs_container */
+
+/**
+ * Create a container using it's default constructor.
+ *
+ * Note:
+ *      The returned value must be freed with jjs_value_free
+ * @return jjs_value_t representing a container with the given type.
+ */
+jjs_value_t
+jjs_container_noargs (jjs_context_t* context_p, /**< JJS context */
+                      jjs_container_type_t container_type) /**< container type */
+{
+  return jjs_container (context_p, container_type, NULL, 0, JJS_KEEP);
+}
 
 /**
  * Get the type of the given container object.

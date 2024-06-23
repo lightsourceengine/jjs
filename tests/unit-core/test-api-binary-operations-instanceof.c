@@ -48,9 +48,8 @@ main (void)
 
   jjs_value_t no_proto_instance_val = jjs_construct (ctx (), constructor, NULL, 0);
 
-  jjs_value_t prototype_str = jjs_string_sz (ctx (), "prototype");
-  jjs_value_t res = jjs_object_set (ctx (), constructor, prototype_str, base_obj);
-  jjs_value_free (ctx (), prototype_str);
+  jjs_value_t res = jjs_object_set_sz (ctx (), constructor, "prototype", base_obj, JJS_KEEP);
+
   TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
   jjs_value_free (ctx (), res);
 

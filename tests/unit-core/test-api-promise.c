@@ -33,11 +33,9 @@ test_promise_resolve_success (void)
 
   jjs_value_t resolve_value = jjs_object (ctx ());
   {
-    jjs_value_t obj_key = jjs_string_sz (ctx (), "key_one");
-    jjs_value_t set_result = jjs_object_set (ctx (), resolve_value, obj_key, jjs_number (ctx (), 3));
+    jjs_value_t set_result = jjs_object_set_sz (ctx (), resolve_value, "key_one", jjs_number (ctx (), 3), JJS_MOVE);
     TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result) && (jjs_value_is_true (ctx (), set_result)));
     jjs_value_free (ctx (), set_result);
-    jjs_value_free (ctx (), obj_key);
   }
 
   // A resolved promise should have the result of from the resolve call and a fulfilled state

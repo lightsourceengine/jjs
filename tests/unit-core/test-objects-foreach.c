@@ -110,12 +110,9 @@ test_internal_prop (void)
     TEST_ASSERT ((after_object_count - before_object_count) == 1);
   }
 
-  jjs_value_t internal_prop_name = jjs_string_sz (ctx (), "hidden_foo");
   jjs_value_t internal_prop_object = jjs_object (ctx ());
-  bool internal_result = jjs_object_set_internal (ctx (), object, internal_prop_name, internal_prop_object);
+  bool internal_result = jjs_object_set_internal_sz (ctx (), object, "hidden_foo", internal_prop_object, JJS_MOVE);
   TEST_ASSERT (internal_result == true);
-  jjs_value_free (ctx (), internal_prop_name);
-  jjs_value_free (ctx (), internal_prop_object);
 
   /* After adding an internal property object, the number of object is incremented by one. */
   {
@@ -224,8 +221,7 @@ main (void)
   object = jjs_object (ctx ());
   jjs_value_t property_name = jjs_string_sz (ctx (), "xyzzy");
   jjs_value_t property_value = jjs_number (ctx (), 42);
-  jjs_value_free (ctx (), jjs_object_set (ctx (), object, property_name, property_value));
-  jjs_value_free (ctx (), property_value);
+  jjs_value_free (ctx (), jjs_object_set (ctx (), object, property_name, property_value, JJS_MOVE));
 
   /* Retrieve the object by the presence of its property, placing it at args[1]. */
   args[0] = property_name;

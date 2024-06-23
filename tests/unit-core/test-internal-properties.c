@@ -43,18 +43,18 @@ main (void)
   jjs_value_t internal_prop_value_3 = jjs_number (ctx (), 10.5);
 
   /* Test the normal [[Set]] method */
-  bool set_result_1 = jjs_object_set (ctx (), object, prop_name_1, prop_value_1);
-  bool set_result_2 = jjs_object_set (ctx (), object, prop_name_2, prop_value_2);
-  bool set_result_3 = jjs_object_set (ctx (), object, prop_name_3, prop_value_3);
+  bool set_result_1 = jjs_object_set (ctx (), object, prop_name_1, prop_value_1, JJS_KEEP);
+  bool set_result_2 = jjs_object_set (ctx (), object, prop_name_2, prop_value_2, JJS_KEEP);
+  bool set_result_3 = jjs_object_set (ctx (), object, prop_name_3, prop_value_3, JJS_KEEP);
 
   TEST_ASSERT (set_result_1);
   TEST_ASSERT (set_result_2);
   TEST_ASSERT (set_result_3);
 
   /* Test the internal [[Set]] method */
-  bool set_internal_result_1 = jjs_object_set_internal (ctx (), object, internal_prop_name_1, internal_prop_value_1);
-  bool set_internal_result_2 = jjs_object_set_internal (ctx (), object, internal_prop_name_2, internal_prop_value_2);
-  bool set_internal_result_3 = jjs_object_set_internal (ctx (), object, internal_prop_name_3, internal_prop_value_3);
+  bool set_internal_result_1 = jjs_object_set_internal (ctx (), object, internal_prop_name_1, internal_prop_value_1, JJS_KEEP);
+  bool set_internal_result_2 = jjs_object_set_internal (ctx (), object, internal_prop_name_2, internal_prop_value_2, JJS_KEEP);
+  bool set_internal_result_3 = jjs_object_set_internal (ctx (), object, internal_prop_name_3, internal_prop_value_3, JJS_KEEP);
 
   TEST_ASSERT (set_internal_result_1);
   TEST_ASSERT (set_internal_result_2);

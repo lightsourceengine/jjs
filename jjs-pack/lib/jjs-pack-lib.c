@@ -122,11 +122,8 @@ jjs_pack_lib_read_exports (jjs_context_t *context_p,
     jjs_value_t vmod_config = jjs_object (context_p);
     jjs_value_t format_value = jjs_string_sz (context_p, "object");
 
-    jjs_value_free (context_p, jjs_object_set_sz (context_p, vmod_config, "exports", exports));
-    jjs_value_free (context_p, jjs_object_set_sz (context_p, vmod_config, "format", format_value));
-
-    jjs_value_free (context_p, format_value);
-    jjs_value_free (context_p, exports);
+    jjs_value_free (context_p, jjs_object_set_sz (context_p, vmod_config, "exports", exports, JJS_MOVE));
+    jjs_value_free (context_p, jjs_object_set_sz (context_p, vmod_config, "format", format_value, JJS_MOVE));
 
     return vmod_config;
   }
@@ -143,12 +140,7 @@ jjs_bindings_function (jjs_context_t *context_p, jjs_value_t bindings, const cha
 void
 jjs_bindings_value (jjs_context_t *context_p, jjs_value_t bindings, const char* name, jjs_value_t value, jjs_own_t value_o)
 {
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, bindings, name, value));
-
-  if (value_o == JJS_MOVE)
-  {
-    jjs_value_free (context_p, value);
-  }
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, bindings, name, value, value_o));
 } /* jjs_bindings_value */
 
 // note: the packs should never use the commonjs require or esm import(). if they need to depend on another
@@ -170,9 +162,9 @@ jjs_pack_lib_run_module (jjs_context_t *context_p, jjs_value_t fn, jjs_value_t b
   jjs_value_t require = jjs_function_external (context_p, jjs_pack_lib_require);
   jjs_value_t argv[] = { module, exports, require };
 
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "exports", exports));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "bindings", bindings));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "require", require));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "exports", exports, JJS_KEEP));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "bindings", bindings, JJS_KEEP));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "require", require, JJS_KEEP));
 
   jjs_value_t result = jjs_call (context_p, fn, jjs_undefined (context_p), argv, sizeof (argv) / sizeof (jjs_value_t));
 
@@ -207,10 +199,8 @@ JJS_HANDLER (jjs_pack_hrtime_handler)
   jjs_value_t high_part = jjs_number (context_p, (double) seconds);
   jjs_value_t low_part = jjs_number (context_p, (double) (t % NANOS_PER_SEC));
 
-  jjs_value_free (context_p, jjs_object_set_index (context_p, result, 0, high_part));
-  jjs_value_free (context_p, jjs_object_set_index (context_p, result, 1, low_part));
-  jjs_value_free (context_p, high_part);
-  jjs_value_free (context_p, low_part);
+  jjs_value_free (context_p, jjs_object_set_index (context_p, result, 0, high_part, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_index (context_p, result, 1, low_part, JJS_MOVE));
 
   return result;
 } /* jjs_pack_hrtime_handler */

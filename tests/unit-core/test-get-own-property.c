@@ -44,39 +44,39 @@ main (void)
 {
   ctx_open (NULL);
 
-  jjs_value_t pp_string = jjs_string_sz (ctx (), "pp");
-  jjs_value_t qq_string = jjs_string_sz (ctx (), "qq");
-  jjs_value_t rr_string = jjs_string_sz (ctx (), "rr");
+  const char *pp_string = "pp";
+  const char *qq_string = "qq";
+  const char *rr_string = "rr";
 
   jjs_value_t object = create_object ("'use strict';\n"
                                         "({ pp:'A', get qq() { return 'B' } })");
 
-  jjs_value_t result = jjs_object_find_own (ctx (), object, pp_string, object, NULL);
+  jjs_value_t result = jjs_object_find_own_sz (ctx (), object, pp_string, object, JJS_KEEP, NULL);
   compare_string (result, "A");
   jjs_value_free (ctx (), result);
 
   bool found = false;
-  result = jjs_object_find_own (ctx (), object, pp_string, object, &found);
+  result = jjs_object_find_own_sz (ctx (), object, pp_string, object, JJS_KEEP, &found);
   compare_string (result, "A");
   TEST_ASSERT (found);
   jjs_value_free (ctx (), result);
 
-  result = jjs_object_find_own (ctx (), object, qq_string, object, NULL);
+  result = jjs_object_find_own_sz (ctx (), object, qq_string, object, JJS_KEEP, NULL);
   compare_string (result, "B");
   jjs_value_free (ctx (), result);
 
   found = false;
-  result = jjs_object_find_own (ctx (), object, qq_string, object, &found);
+  result = jjs_object_find_own_sz (ctx (), object, qq_string, object, JJS_KEEP, &found);
   compare_string (result, "B");
   TEST_ASSERT (found);
   jjs_value_free (ctx (), result);
 
-  result = jjs_object_find_own (ctx (), object, rr_string, object, NULL);
+  result = jjs_object_find_own_sz (ctx (), object, rr_string, object, JJS_KEEP, NULL);
   TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
   jjs_value_free (ctx (), result);
 
   found = true;
-  result = jjs_object_find_own (ctx (), object, rr_string, object, &found);
+  result = jjs_object_find_own_sz (ctx (), object, rr_string, object, JJS_KEEP, &found);
   TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
   TEST_ASSERT (!found);
   jjs_value_free (ctx (), result);
@@ -88,7 +88,7 @@ main (void)
 
   found = true;
   /* Does not check prototype. */
-  result = jjs_object_find_own (ctx (), object, pp_string, object, &found);
+  result = jjs_object_find_own_sz (ctx (), object, pp_string, object, JJS_KEEP, &found);
   TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
   TEST_ASSERT (!found);
   jjs_value_free (ctx (), result);
@@ -103,7 +103,7 @@ main (void)
 
   TEST_ASSERT (jjs_value_is_object (ctx (), prototype));
   found = false;
-  result = jjs_object_find_own (ctx (), prototype, pp_string, object, &found);
+  result = jjs_object_find_own_sz (ctx (), prototype, pp_string, object, JJS_KEEP, &found);
   compare_string (result, "Prop");
   TEST_ASSERT (found);
   jjs_value_free (ctx (), result);
@@ -116,17 +116,17 @@ main (void)
   object = jjs_object (ctx ());
 
   found = true;
-  result = jjs_object_find_own (ctx (), invalid_arg, pp_string, object, &found);
+  result = jjs_object_find_own_sz (ctx (), invalid_arg, pp_string, object, JJS_KEEP, &found);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result));
   TEST_ASSERT (!found);
   jjs_value_free (ctx (), result);
 
-  result = jjs_object_find_own (ctx (), object, pp_string, invalid_arg, NULL);
+  result = jjs_object_find_own_sz (ctx (), object, pp_string, invalid_arg, JJS_KEEP, NULL);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result));
   jjs_value_free (ctx (), result);
 
   found = true;
-  result = jjs_object_find_own (ctx (), object, invalid_arg, object, &found);
+  result = jjs_object_find_own (ctx (), object, invalid_arg, object, JJS_KEEP, &found);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result));
   TEST_ASSERT (!found);
   jjs_value_free (ctx (), result);
@@ -149,13 +149,13 @@ main (void)
 
     prototype = jjs_object_proto (ctx (), object);
     found = false;
-    result = jjs_object_find_own (ctx (), prototype, pp_string, object, &found);
+    result = jjs_object_find_own_sz (ctx (), prototype, pp_string, object, JJS_KEEP, &found);
     compare_string (result, "Prop");
     TEST_ASSERT (found);
     jjs_value_free (ctx (), result);
 
     found = false;
-    result = jjs_object_find_own (ctx (), prototype, qq_string, object, &found);
+    result = jjs_object_find_own_sz (ctx (), prototype, qq_string, object, JJS_KEEP, &found);
     TEST_ASSERT (jjs_value_is_undefined (ctx (), result));
     TEST_ASSERT (found);
     jjs_value_free (ctx (), result);
@@ -171,7 +171,7 @@ main (void)
                             "}))\n");
 
     found = false;
-    result = jjs_object_find_own (ctx (), object, qq_string, object, &found);
+    result = jjs_object_find_own_sz (ctx (), object, qq_string, object, JJS_KEEP, &found);
     TEST_ASSERT (jjs_value_is_exception (ctx (), result));
     TEST_ASSERT (found);
     jjs_value_free (ctx (), result);
@@ -184,22 +184,18 @@ main (void)
                           "({ pp:sym, [sym]:'Prop' })");
 
   found = false;
-  jjs_value_t symbol = jjs_object_find_own (ctx (), object, pp_string, object, &found);
+  jjs_value_t symbol = jjs_object_find_own_sz (ctx (), object, pp_string, object, JJS_KEEP, &found);
   TEST_ASSERT (jjs_value_is_symbol (ctx (), symbol));
   TEST_ASSERT (found);
 
   found = false;
-  result = jjs_object_find_own (ctx (), object, symbol, object, &found);
+  result = jjs_object_find_own (ctx (), object, symbol, object, JJS_KEEP, &found);
   compare_string (result, "Prop");
   TEST_ASSERT (found);
   jjs_value_free (ctx (), result);
 
   jjs_value_free (ctx (), symbol);
   jjs_value_free (ctx (), object);
-
-  jjs_value_free (ctx (), pp_string);
-  jjs_value_free (ctx (), qq_string);
-  jjs_value_free (ctx (), rr_string);
 
   ctx_close ();
   return 0;

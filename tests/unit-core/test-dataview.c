@@ -71,13 +71,9 @@ main (void)
 
   /* Test getting/setting values */
   jjs_value_t global_obj = jjs_current_realm (ctx ());
-  jjs_value_t view1_str = jjs_string_sz (ctx (), "view1");
-  jjs_value_t view2_str = jjs_string_sz (ctx (), "view2");
-  TEST_ASSERT (jjs_object_set (ctx (), global_obj, view1_str, view1));
-  TEST_ASSERT (jjs_object_set (ctx (), global_obj, view2_str, view2));
+  TEST_ASSERT (jjs_object_set_sz (ctx (), global_obj, "view1", view1, JJS_KEEP));
+  TEST_ASSERT (jjs_object_set_sz (ctx (), global_obj, "view2", view2, JJS_KEEP));
 
-  jjs_value_free (ctx (), view1_str);
-  jjs_value_free (ctx (), view2_str);
   jjs_value_free (ctx (), global_obj);
 
   const jjs_char_t set_src[] = "view1.setInt16 (12, 255)";

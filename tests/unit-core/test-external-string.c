@@ -162,7 +162,7 @@ main (void)
   other_string = jjs_string_sz (ctx (), external_4);
 
   jjs_value_t obj = jjs_object (ctx ());
-  result = jjs_object_set (ctx (), obj, external_string, other_string);
+  result = jjs_object_set (ctx (), obj, external_string, other_string, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
   TEST_ASSERT (jjs_value_is_true (ctx (), result));
   jjs_value_free (ctx (), result);
@@ -176,7 +176,7 @@ main (void)
   TEST_ASSERT (jjs_value_is_true (ctx (), result));
   jjs_value_free (ctx (), result);
 
-  result = jjs_object_set (ctx (), obj, other_string, external_string);
+  result = jjs_object_set (ctx (), obj, other_string, external_string, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result));
   TEST_ASSERT (jjs_value_is_true (ctx (), result));
   jjs_value_free (ctx (), result);

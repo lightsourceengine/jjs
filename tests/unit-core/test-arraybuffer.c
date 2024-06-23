@@ -24,11 +24,9 @@ register_js_value (const char *name_p, /**< name of the function */
 {
   jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
-  jjs_value_t name_val = jjs_string_sz (ctx (), name_p);
-  jjs_value_t result_val = jjs_object_set (ctx (), global_obj_val, name_val, value);
+  jjs_value_t result_val = jjs_object_set_sz (ctx (), global_obj_val, name_p, value, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result_val));
 
-  jjs_value_free (ctx (), name_val);
   jjs_value_free (ctx (), global_obj_val);
 
   jjs_value_free (ctx (), result_val);

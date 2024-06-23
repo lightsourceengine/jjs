@@ -182,11 +182,8 @@ main (void)
   /* Native functions may trigger the call twice: */
   jjs_value_t global_object_value = jjs_current_realm (ctx ());
   jjs_value_t function_value = jjs_function_external (ctx (), native_handler);
-  jjs_value_t function_name_value = jjs_string_sz (ctx (), "native");
 
-  jjs_value_free (ctx (), jjs_object_set (ctx (), global_object_value, function_name_value, function_value));
-  jjs_value_free (ctx (), function_name_value);
-  jjs_value_free (ctx (), function_value);
+  jjs_value_free (ctx (), jjs_object_set_sz (ctx (), global_object_value, "native", function_value, JJS_MOVE));
   jjs_value_free (ctx (), global_object_value);
 
   mode = 5;

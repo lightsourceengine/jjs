@@ -45,11 +45,8 @@ main (void)
   /* Register the "sourceName" method. */
   {
     jjs_value_t func = jjs_function_external (ctx (), source_name_handler);
-    jjs_value_t name = jjs_string_sz (ctx (), "sourceName");
-    jjs_value_t result = jjs_object_set (ctx (), global, name, func);
+    jjs_value_t result = jjs_object_set_sz (ctx (), global, "sourceName", func, JJS_MOVE);
     jjs_value_free (ctx (), result);
-    jjs_value_free (ctx (), name);
-    jjs_value_free (ctx (), func);
   }
 
   jjs_value_free (ctx (), global);

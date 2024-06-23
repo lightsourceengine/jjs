@@ -39,8 +39,8 @@ test_fmt_to_function (void (*check) (const char*, jjs_value_t, const char*))
 {
   jjs_value_t array = ctx_array (2);
 
-  ctx_defer_free (jjs_object_set_index (ctx (), array, 0, ctx_number (1)));
-  ctx_defer_free (jjs_object_set_index (ctx (), array, 1, ctx_number (2)));
+  ctx_defer_free (jjs_object_set_index (ctx (), array, 0, ctx_number (1), JJS_KEEP));
+  ctx_defer_free (jjs_object_set_index (ctx (), array, 1, ctx_number (2), JJS_KEEP));
 
   check ("{}", ctx_null (), "null");
   check ("{}", ctx_undefined (), "undefined");

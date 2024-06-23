@@ -23,7 +23,7 @@ create_config (void)
 {
   jjs_value_t config = jjs_object (ctx ());
 
-  ctx_defer_free (jjs_object_set_sz (ctx (), config, "exports", ctx_cstr (TEST_EXPORT)));
+  ctx_defer_free (jjs_object_set_sz (ctx (), config, "exports", ctx_cstr (TEST_EXPORT), JJS_KEEP));
 
   return config;
 }

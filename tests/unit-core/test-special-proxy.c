@@ -57,13 +57,10 @@ main (void)
   jjs_value_t global = jjs_current_realm (ctx ());
 
   jjs_value_t function = jjs_function_external (ctx (), create_special_proxy_handler);
-  jjs_value_t name = jjs_string_sz (ctx (), "create_special_proxy");
-  jjs_value_t result = jjs_object_set (ctx (), global, name, function);
+  jjs_value_t result = jjs_object_set_sz (ctx (), global, "create_special_proxy", function, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
   jjs_value_free (ctx (), result);
-  jjs_value_free (ctx (), name);
-  jjs_value_free (ctx (), function);
 
   jjs_value_free (ctx (), global);
 

@@ -36,7 +36,7 @@ register_assert (void)
 
   jjs_value_t function_value = jjs_function_external (ctx (), global_assert);
   jjs_value_t function_name_value = jjs_string_sz (ctx (), "assert");
-  jjs_value_t result_value = jjs_object_set (ctx (), global_object_value, function_name_value, function_value);
+  jjs_value_t result_value = jjs_object_set (ctx (), global_object_value, function_name_value, function_value, JJS_KEEP);
 
   jjs_value_free (ctx (), function_name_value);
   jjs_value_free (ctx (), function_value);
@@ -57,7 +57,7 @@ module_import_meta_callback (jjs_context_t *context_p, /** JJS context */
   TEST_ASSERT (module == global_module_value);
 
   jjs_value_t property_name_value = jjs_string_sz (ctx (), "prop");
-  jjs_value_t result_value = jjs_object_set (ctx (), meta_object, property_name_value, property_name_value);
+  jjs_value_t result_value = jjs_object_set (ctx (), meta_object, property_name_value, property_name_value, JJS_KEEP);
   jjs_value_free (ctx (), result_value);
   jjs_value_free (ctx (), property_name_value);
 

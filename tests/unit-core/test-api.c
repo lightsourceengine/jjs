@@ -146,12 +146,10 @@ handler_construct (const jjs_call_info_t *call_info_p, /**< call information */
   TEST_ASSERT (jjs_value_is_true (ctx (), args_p[0]));
 
   jjs_value_t this_value = call_info_p->this_value;
-  jjs_value_t field_name = jjs_string_sz (ctx (), "value_field");
-  jjs_value_t res = jjs_object_set (ctx (), this_value, field_name, args_p[0]);
+  jjs_value_t res = jjs_object_set_sz (ctx (), this_value, "value_field", args_p[0], JJS_KEEP);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
   TEST_ASSERT (jjs_value_is_true (ctx (), res));
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), field_name);
 
   /* Set a native pointer. */
   jjs_object_set_native_ptr (ctx (), this_value, &JJS_NATIVE_HANDLE_INFO_FOR_CTYPE (bind1), NULL);
@@ -312,10 +310,7 @@ set_property (const jjs_value_t obj_val, /**< object value */
               const char *str_p, /**< property name */
               const jjs_value_t val) /**< value to set */
 {
-  jjs_value_t prop_name_val = jjs_string_sz (ctx (), str_p);
-  jjs_value_t ret_val = jjs_object_set (ctx (), obj_val, prop_name_val, val);
-  jjs_value_free (ctx (), prop_name_val);
-  return ret_val;
+  return jjs_object_set_sz (ctx (), obj_val, str_p, val, JJS_KEEP);
 } /* set_property */
 
 static void
@@ -645,7 +640,7 @@ main (void)
     TEST_ASSERT (jjs_array_length (ctx (), array_obj_val) == 10);
 
     jjs_value_t v_in = jjs_number (ctx (), 10.5);
-    res = jjs_object_set_index (ctx (), array_obj_val, 5, v_in);
+    res = jjs_object_set_index (ctx (), array_obj_val, 5, v_in, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_boolean (ctx (), res) && jjs_value_is_true (ctx (), res));
     jjs_value_free (ctx (), res);
@@ -658,7 +653,6 @@ main (void)
 
     TEST_ASSERT (jjs_value_is_undefined (ctx (), v_und));
 
-    jjs_value_free (ctx (), v_in);
     jjs_value_free (ctx (), v_out);
     jjs_value_free (ctx (), v_und);
     jjs_value_free (ctx (), array_obj_val);
@@ -708,14 +702,12 @@ main (void)
 
     /* Test: jjs_object_set_proto */
     obj_val = jjs_object (ctx ()) ;
-    res = jjs_object_set_proto (ctx (), obj_val, jjs_null (ctx ()));
+    res = jjs_object_set_proto (ctx (), obj_val, jjs_null (ctx ()), JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_boolean (ctx (), res));
     TEST_ASSERT (jjs_value_is_true (ctx (), res));
 
-    jjs_value_t new_proto = jjs_object (ctx ()) ;
-    res = jjs_object_set_proto (ctx (), obj_val, new_proto);
-    jjs_value_free (ctx (), new_proto);
+    res = jjs_object_set_proto (ctx (), obj_val, jjs_object (ctx ()), JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_boolean (ctx (), res));
     TEST_ASSERT (jjs_value_is_true (ctx (), res));
@@ -729,9 +721,9 @@ main (void)
     {
       jjs_value_t target = jjs_object (ctx ()) ;
       jjs_value_t proxy = jjs_proxy (ctx (), target, JJS_KEEP, jjs_object (ctx ()), JJS_MOVE);
-      new_proto = jjs_eval_sz (ctx (), "Function.prototype", JJS_PARSE_NO_OPTS);
+      jjs_value_t new_proto = jjs_eval_sz (ctx (), "Function.prototype", JJS_PARSE_NO_OPTS);
 
-      res = jjs_object_set_proto (ctx (), proxy, new_proto);
+      res = jjs_object_set_proto (ctx (), proxy, new_proto, JJS_KEEP);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
       jjs_value_t target_proto = jjs_object_proto (ctx (), target);
       TEST_ASSERT (target_proto == new_proto);

@@ -93,13 +93,10 @@ main (void)
   jjs_value_t global_weakset = jjs_object_get (ctx (), global, weakset_str);
 
   jjs_value_t function = jjs_function_external (ctx (), create_array_from_container_handler);
-  jjs_value_t name = jjs_string_sz (ctx (), "create_array_from_container");
-  jjs_value_t res = jjs_object_set (ctx (), global, name, function);
+  jjs_value_t res = jjs_object_set_sz (ctx (), global, "create_array_from_container", function, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), name);
-  jjs_value_free (ctx (), function);
 
   jjs_value_free (ctx (), global);
 
@@ -108,25 +105,25 @@ main (void)
   jjs_value_free (ctx (), weakmap_str);
   jjs_value_free (ctx (), weakset_str);
 
-  jjs_value_t empty_map = jjs_container (ctx (), JJS_CONTAINER_TYPE_MAP, NULL, 0);
+  jjs_value_t empty_map = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_MAP);
   TEST_ASSERT (jjs_container_type (ctx (), empty_map) == JJS_CONTAINER_TYPE_MAP);
   instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_map, JJS_MOVE, global_map, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));
   jjs_value_free (ctx (), instance_check);
 
-  jjs_value_t empty_set = jjs_container (ctx (), JJS_CONTAINER_TYPE_SET, NULL, 0);
+  jjs_value_t empty_set = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_SET);
   TEST_ASSERT (jjs_container_type (ctx (), empty_set) == JJS_CONTAINER_TYPE_SET);
   instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_set, JJS_MOVE, global_set, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));
   jjs_value_free (ctx (), instance_check);
 
-  jjs_value_t empty_weakmap = jjs_container (ctx (), JJS_CONTAINER_TYPE_WEAKMAP, NULL, 0);
+  jjs_value_t empty_weakmap = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_WEAKMAP);
   TEST_ASSERT (jjs_container_type (ctx (), empty_weakmap) == JJS_CONTAINER_TYPE_WEAKMAP);
   instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_weakmap, JJS_MOVE, global_weakmap, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));
   jjs_value_free (ctx (), instance_check);
 
-  jjs_value_t empty_weakset = jjs_container (ctx (), JJS_CONTAINER_TYPE_WEAKSET, NULL, 0);
+  jjs_value_t empty_weakset = jjs_container_noargs (ctx (), JJS_CONTAINER_TYPE_WEAKSET);
   TEST_ASSERT (jjs_container_type (ctx (), empty_weakset) == JJS_CONTAINER_TYPE_WEAKSET);
   instance_check = jjs_binary_op (ctx (), JJS_BIN_OP_INSTANCEOF, empty_weakset, JJS_MOVE, global_weakset, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_true (ctx (), instance_check));

@@ -20,14 +20,11 @@ create_number_property (jjs_value_t object_value, /**< object value */
                         char *name_p, /**< name */
                         double number) /**< value */
 {
-  jjs_value_t name_value = jjs_string_sz (ctx (), name_p);
   jjs_value_t number_value = jjs_number (ctx (), number);
-  jjs_value_t result_value = jjs_object_set (ctx (), object_value, name_value, number_value);
+  jjs_value_t result_value = jjs_object_set_sz (ctx (), object_value, name_p, number_value, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result_value));
 
   jjs_value_free (ctx (), result_value);
-  jjs_value_free (ctx (), number_value);
-  jjs_value_free (ctx (), name_value);
 } /* create_number_property */
 
 static double

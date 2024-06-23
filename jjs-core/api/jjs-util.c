@@ -39,6 +39,34 @@ jjs_return (jjs_context_t *context_p, const jjs_value_t value) /**< return value
 } /* jjs_return */
 
 /**
+ * Free before return.
+ *
+ * With the JJS api, a common code pattern is allocate an argument, pass the argument
+ * to a function and return the result of the function. It is a couple of lines of
+ * boiler plate code to do this. This function facilitates allows the argument to
+ * be freed before return in one line.
+ *
+ * Pattern:
+ *
+ * jjs_value_t a = jjs_string_sz(ctx, ...);
+ * jjs_value_t r = fn (a);
+ * jjs_value_free (ctx, a)
+ * return r;
+ *
+ * With this function:
+ *
+ * return jjs_util_escape (ctx, fn (a), a);
+ *
+ * @return ret
+ */
+extern inline jjs_value_t JJS_ATTR_ALWAYS_INLINE
+jjs_util_escape (jjs_context_t *context_p, jjs_value_t ret, jjs_value_t to_free)
+{
+  jjs_value_free (context_p, to_free);
+  return ret;
+} /* jjs_util_escape */
+
+/**
  * Maps a JS string option argument to an enum.
  *
  * The pattern in JS is fn('option') or fn({ key: 'option') or fn(). The string is

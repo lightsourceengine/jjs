@@ -25,13 +25,10 @@ register_js_function (const char *name_p, /**< name of the function */
   jjs_value_t global_obj_val = jjs_current_realm (ctx ());
 
   jjs_value_t function_val = jjs_function_external (ctx (), handler_p);
-  jjs_value_t function_name_val = jjs_string_sz (ctx (), name_p);
-  jjs_value_t result_val = jjs_object_set (ctx (), global_obj_val, function_name_val, function_val);
-
-  jjs_value_free (ctx (), function_name_val);
-  jjs_value_free (ctx (), global_obj_val);
+  jjs_value_t result_val = jjs_object_set_sz (ctx (), global_obj_val, name_p, function_val, JJS_KEEP);
 
   jjs_value_free (ctx (), result_val);
+  jjs_value_free (ctx (), global_obj_val);
 
   return function_val;
 } /* register_js_function */

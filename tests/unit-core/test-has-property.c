@@ -37,20 +37,20 @@ main (void)
   assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), false);
   assert_boolean_and_release (jjs_object_has_own (ctx (), object, prop_name), false);
 
-  assert_boolean_and_release (jjs_object_set_proto (ctx (), object, proto_object), true);
+  assert_boolean_and_release (jjs_object_set_proto (ctx (), object, proto_object, JJS_KEEP), true);
 
   /* If the object has a prototype, that still means it doesn't have the property */
   assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), false);
   assert_boolean_and_release (jjs_object_has_own (ctx (), object, prop_name), false);
 
-  assert_boolean_and_release (jjs_object_set (ctx (), proto_object, prop_name, prop_value), true);
+  assert_boolean_and_release (jjs_object_set (ctx (), proto_object, prop_name, prop_value, JJS_KEEP), true);
 
   /* After setting the property on the prototype, it must be there, but not on the object */
   assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), true);
   assert_boolean_and_release (jjs_object_has_own (ctx (), object, prop_name), false);
 
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_delete (ctx (), proto_object, prop_name)));
-  assert_boolean_and_release (jjs_object_set (ctx (), object, prop_name, prop_value), true);
+  assert_boolean_and_release (jjs_object_set (ctx (), object, prop_name, prop_value, JJS_KEEP), true);
 
   /* After relocating the property onto the object, it must be there */
   assert_boolean_and_release (jjs_object_has (ctx (), object, prop_name), true);

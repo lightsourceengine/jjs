@@ -63,14 +63,7 @@ js_print (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const 
 static void
 object_set_value (jjs_context_t* context_p, jjs_value_t object, const char *key, jjs_value_t value, jjs_own_t value_o)
 {
-  jjs_value_t result = jjs_object_set_sz (context_p, object, key, value);
-
-  if (value_o == JJS_MOVE)
-  {
-    jjs_value_free (context_p, value);
-  }
-
-  jjs_value_free (context_p, result);
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, object, key, value, value_o));
 }
 
 static void
@@ -154,7 +147,7 @@ create_262 (jjs_context_t* context_p, jjs_value_t realm)
   object_set_function (context_p, value, "createRealm", js_262_create_realm);
   object_set_function (context_p, value, "gc", js_262_gc);
 
-  jjs_value_t result = jjs_object_set_sz (context_p, value, "global", realm);
+  jjs_value_t result = jjs_object_set_sz (context_p, value, "global", realm, JJS_KEEP);
   assert (!jjs_value_is_exception (context_p, result));
   jjs_value_free (context_p, result);
 

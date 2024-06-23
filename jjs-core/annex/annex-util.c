@@ -270,7 +270,7 @@ ecma_has_own_v (ecma_context_t* context_p, ecma_value_t object, ecma_value_t key
  */
 void annex_util_set_internal_m (jjs_context_t* context_p, jjs_value_t object, lit_magic_string_id_t key, jjs_value_t value)
 {
-  jjs_object_set_internal (context_p, object, ecma_make_magic_string_value (key), value);
+  jjs_object_set_internal (context_p, object, ecma_make_magic_string_value (key), value, JJS_KEEP);
 }
 
 /**

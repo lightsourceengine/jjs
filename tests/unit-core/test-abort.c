@@ -30,14 +30,11 @@ callback_func (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], c
 TEST_MAIN(
 {
   jjs_value_t global = jjs_current_realm (ctx ());
-  jjs_value_t callback_name = jjs_string_sz (ctx (), "callback");
   jjs_value_t func = jjs_function_external (ctx (), callback_func);
-  jjs_value_t res = jjs_object_set (ctx (), global, callback_name, func);
+  jjs_value_t res = jjs_object_set_sz (ctx (), global, "callback", func, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
 
   jjs_value_free (ctx (), res);
-  jjs_value_free (ctx (), func);
-  jjs_value_free (ctx (), callback_name);
   jjs_value_free (ctx (), global);
 
   const jjs_char_t inf_loop_code_src1[] = TEST_STRING_LITERAL ("while(true) {\n"

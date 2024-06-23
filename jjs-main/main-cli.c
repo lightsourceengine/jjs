@@ -463,13 +463,13 @@ js_queue_async_assert (const jjs_call_info_t *call_info_p, const jjs_value_t arg
   {
     jjs_value_free (context_p, queue);
     queue = jjs_array (context_p, 0);
-    main_cli_assert (jjs_object_set_internal (context_p, call_info_p->function, key, queue),
+    main_cli_assert (jjs_object_set_internal (context_p, call_info_p->function, key, queue, JJS_KEEP),
                      "error setting internal async assert queue");
   }
 
   main_cli_assert (jjs_value_is_array (context_p, queue), "async assert queue must be an array");
 
-  jjs_object_set_index (context_p, queue, jjs_array_length (context_p, queue), callback);
+  jjs_object_set_index (context_p, queue, jjs_array_length (context_p, queue), callback, JJS_KEEP);
 
   jjs_value_free (context_p, queue);
   jjs_value_free (context_p, key);
@@ -515,7 +515,7 @@ get_internal_tests (jjs_context_t *context_p, jjs_value_t obj)
   {
     tests = jjs_array (context_p, 0);
 
-    if (!jjs_object_set_internal (context_p, obj, tests_prop, tests))
+    if (!jjs_object_set_internal (context_p, obj, tests_prop, tests, JJS_KEEP))
     {
       jjs_value_free (context_p, tests);
       tests = jjs_undefined (context_p);
@@ -578,14 +578,13 @@ js_test (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const j
 
   jjs_value_t test_meta = jjs_object (context_p);
 
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_DESCRIPTION, arg0));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_TEST, test_function));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_OPTIONS, options));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_DESCRIPTION, arg0, JJS_KEEP));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_TEST, test_function, JJS_KEEP));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, test_meta, JJS_TEST_META_PROP_OPTIONS, options, JJS_KEEP));
 
-  jjs_value_free (context_p, jjs_object_set_index (context_p, tests, jjs_array_length (context_p, tests), test_meta));
+  jjs_value_free (context_p, jjs_object_set_index (context_p, tests, jjs_array_length (context_p, tests), test_meta, JJS_MOVE));
 
   jjs_value_free (context_p, tests);
-  jjs_value_free (context_p, test_meta);
 
   return jjs_undefined (context_p);
 }
@@ -656,35 +655,28 @@ init_test_realm (jjs_context_t* context_p)
   jjs_value_t queue_async_assert_key = jjs_string_sz (context_p, "queueAsyncAssert");
   jjs_value_t realm = jjs_current_realm (context_p);
 
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "queueAsyncAssert", queue_async_assert_fn));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "print", print_fn));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "assert", assert_fn));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "createRealm", create_realm_fn));
   /* store the async function in internal so the queue can be retrieved later */
-  main_cli_assert (jjs_object_set_internal (context_p, realm, queue_async_assert_key, queue_async_assert_fn),
+  main_cli_assert (jjs_object_set_internal (context_p, realm, queue_async_assert_key, queue_async_assert_fn, JJS_KEEP),
                    "cannot store queueAsyncAssert in internal global");
 
-  jjs_value_free (context_p, realm);
-  jjs_value_free (context_p, print_fn);
-  jjs_value_free (context_p, assert_fn);
-  jjs_value_free (context_p, create_realm_fn);
-  jjs_value_free (context_p, queue_async_assert_fn);
+  jjs_value_free (context_p, jjs_object_set (context_p, realm, queue_async_assert_key, queue_async_assert_fn, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "print", print_fn, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "assert", assert_fn, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "createRealm", create_realm_fn, JJS_MOVE));
+
   jjs_value_free (context_p, queue_async_assert_key);
+  jjs_value_free (context_p, realm);
 
   jjs_value_t test_function = jjs_function_external (context_p, js_test);
   jjs_value_t exports = jjs_object (context_p);
 
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, exports, JJS_TEST_PACKAGE_FUNCTION, test_function));
-  jjs_value_free (context_p, test_function);
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, exports, JJS_TEST_PACKAGE_FUNCTION, test_function, JJS_MOVE));
 
   jjs_value_t pkg = jjs_object (context_p);
   jjs_value_t format = jjs_string_sz (context_p, "object");
 
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, pkg, "exports", exports));
-  jjs_value_free (context_p, jjs_object_set_sz (context_p, pkg, "format", format));
-
-  jjs_value_free (context_p, format);
-  jjs_value_free (context_p, exports);
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, pkg, "exports", exports, JJS_MOVE));
+  jjs_value_free (context_p, jjs_object_set_sz (context_p, pkg, "format", format, JJS_MOVE));
 
   jjs_value_t vmod_result = jjs_vmod_sz (context_p, JJS_TEST_PACKAGE_NAME, pkg, JJS_MOVE);
 

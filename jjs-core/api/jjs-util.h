@@ -42,6 +42,8 @@ typedef struct
 
 jjs_value_t jjs_return (jjs_context_t *context_p, jjs_value_t value);
 
+jjs_value_t jjs_util_escape (jjs_context_t *context_p, jjs_value_t ret, jjs_value_t to_free);
+
 bool jjs_util_map_option (jjs_context_t* context_p,
                           jjs_value_t option,
                           jjs_own_t option_o,
@@ -107,5 +109,6 @@ uint32_t jjs_optional_u32_or (const jjs_optional_u32_t* optional_p, uint32_t val
 
 #define jjs_disown_value(CTX, VALUE, OWN) if ((OWN) == JJS_MOVE) jjs_value_free ((CTX), VALUE)
 #define jjs_disown_source(CTX, SOURCE, OWN) if ((OWN) == JJS_MOVE) jjs_esm_source_free_values ((CTX), SOURCE)
+#define jjs_disown_value_array(CTX, ARRAY, LENGTH, OWN) if (LENGTH && (OWN) == JJS_MOVE) jjs_value_free_array ((CTX), (ARRAY), (LENGTH))
 
 #endif /* JJS_UTIL_H */

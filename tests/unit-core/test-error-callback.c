@@ -29,10 +29,9 @@ error_object_created_callback (jjs_context_t *context_p, /**< context */
   error_object_created_callback_is_running = true;
   error_object_created_callback_count++;
 
-  jjs_value_t name = jjs_string_sz (context_p, "message");
   jjs_value_t message = jjs_string_sz (context_p, "Replaced message!");
 
-  jjs_value_t result = jjs_object_set (context_p, error_object_t, name, message);
+  jjs_value_t result = jjs_object_set_sz (context_p, error_object_t, "message", message, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_boolean (context_p, result) && jjs_value_is_true (context_p, result));
   jjs_value_free (context_p, result);
 
@@ -42,8 +41,6 @@ error_object_created_callback (jjs_context_t *context_p, /**< context */
   TEST_ASSERT (jjs_value_is_exception (context_p, result));
 
   jjs_value_free (context_p, result);
-  jjs_value_free (context_p, message);
-  jjs_value_free (context_p, name);
 
   error_object_created_callback_is_running = false;
 } /* error_object_created_callback */

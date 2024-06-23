@@ -55,12 +55,12 @@ main (void)
   jjs_value_t value_1 = jjs_number (ctx (), 1);
   jjs_value_t value_2 = jjs_number (ctx (), 2);
 
-  jjs_value_t result_val = jjs_object_set (ctx (), object, symbol_1, value_1);
+  jjs_value_t result_val = jjs_object_set (ctx (), object, symbol_1, value_1, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result_val));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has (ctx (), object, symbol_1)));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has_own (ctx (), object, symbol_1)));
 
-  result_val = jjs_object_set (ctx (), object, symbol_2, value_2);
+  result_val = jjs_object_set (ctx (), object, symbol_2, value_2, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result_val));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has (ctx (), object, symbol_2)));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has_own (ctx (), object, symbol_2)));

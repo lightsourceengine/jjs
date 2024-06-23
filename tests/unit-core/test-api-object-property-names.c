@@ -22,11 +22,7 @@ static jjs_char_t buffer[256] = { 0 };
 static void
 create_and_set_property (const jjs_value_t object, const char *prop_name)
 {
-  jjs_value_t jprop_name = jjs_string_sz (ctx (), prop_name);
-  jjs_value_t ret_val = jjs_object_set (ctx (), object, jprop_name, jjs_undefined (ctx ()));
-
-  jjs_value_free (ctx (), jprop_name);
-  jjs_value_free (ctx (), ret_val);
+  jjs_value_free (ctx (), jjs_object_set_sz (ctx (), object, prop_name, jjs_undefined (ctx ()), JJS_MOVE));
 } /* create_and_set_property */
 
 static void

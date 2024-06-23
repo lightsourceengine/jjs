@@ -114,25 +114,19 @@ main (void)
     jjs_value_t obj = jjs_object (ctx ());
     /* Fill "obj" with data */
     {
-      jjs_value_t name_key = jjs_string_sz (ctx (), "name");
       jjs_value_t name_value = jjs_string_sz (ctx (), "John");
-      jjs_value_t name_set = jjs_object_set (ctx (), obj, name_key, name_value);
+      jjs_value_t name_set = jjs_object_set_sz (ctx (), obj, "name", name_value, JJS_MOVE);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), name_set));
       TEST_ASSERT (jjs_value_is_boolean (ctx (), name_set));
       TEST_ASSERT (jjs_value_is_true (ctx (), name_set));
-      jjs_value_free (ctx (), name_key);
-      jjs_value_free (ctx (), name_value);
       jjs_value_free (ctx (), name_set);
     }
     {
-      jjs_value_t age_key = jjs_string_sz (ctx (), "age");
       jjs_value_t age_value = jjs_number (ctx (), 32);
-      jjs_value_t age_set = jjs_object_set (ctx (), obj, age_key, age_value);
+      jjs_value_t age_set = jjs_object_set_sz (ctx (), obj, "age", age_value, JJS_MOVE);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), age_set));
       TEST_ASSERT (jjs_value_is_boolean (ctx (), age_set));
       TEST_ASSERT (jjs_value_is_true (ctx (), age_set));
-      jjs_value_free (ctx (), age_key);
-      jjs_value_free (ctx (), age_value);
       jjs_value_free (ctx (), age_set);
     }
 
@@ -158,14 +152,11 @@ main (void)
     jjs_value_t obj = jjs_object (ctx ());
     /* Fill "obj" with data */
     {
-      jjs_value_t name_key = jjs_string_sz (ctx (), "toJSON");
       jjs_value_t name_value = jjs_function_external (ctx (), custom_to_json);
-      jjs_value_t name_set = jjs_object_set (ctx (), obj, name_key, name_value);
+      jjs_value_t name_set = jjs_object_set_sz (ctx (), obj, "toJSON", name_value, JJS_MOVE);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), name_set));
       TEST_ASSERT (jjs_value_is_boolean (ctx (), name_set));
       TEST_ASSERT (jjs_value_is_true (ctx (), name_set));
-      jjs_value_free (ctx (), name_key);
-      jjs_value_free (ctx (), name_value);
       jjs_value_free (ctx (), name_set);
     }
 

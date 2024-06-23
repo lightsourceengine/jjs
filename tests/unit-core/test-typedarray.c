@@ -36,11 +36,8 @@ register_js_value (const char *name_p, /**< name of the function */
                    jjs_value_t value) /**< function callback */
 {
   jjs_value_t global_obj_val = jjs_current_realm (ctx ());
+  jjs_value_t result_val = jjs_object_set_sz (ctx (), global_obj_val, name_p, value, JJS_KEEP);
 
-  jjs_value_t name_val = jjs_string_sz (ctx (), name_p);
-  jjs_value_t result_val = jjs_object_set (ctx (), global_obj_val, name_val, value);
-
-  jjs_value_free (ctx (), name_val);
   jjs_value_free (ctx (), global_obj_val);
 
   jjs_value_free (ctx (), result_val);
@@ -341,7 +338,7 @@ test_property_by_index (test_entry_t test_entries[])
         {
           test_number = jjs_number (ctx (), test_int_numbers[j]);
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
-          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number, JJS_MOVE);
           get_result = jjs_object_get_index (ctx (), typedarray, j);
 
           TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
@@ -349,7 +346,6 @@ test_property_by_index (test_entry_t test_entries[])
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
           TEST_ASSERT (jjs_value_as_number (ctx (), get_result) == test_int_numbers[j]);
 
-          jjs_value_free (ctx (), test_number);
           jjs_value_free (ctx (), set_result);
           jjs_value_free (ctx (), get_result);
         }
@@ -362,7 +358,7 @@ test_property_by_index (test_entry_t test_entries[])
         {
           test_number = jjs_number (ctx (), test_double_numbers[j]);
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
-          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number, JJS_MOVE);
           get_result = jjs_object_get_index (ctx (), typedarray, j);
 
           TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
@@ -373,21 +369,18 @@ test_property_by_index (test_entry_t test_entries[])
           double get_abs = fabs (jjs_value_as_number (ctx (), get_result) - test_double_numbers[j]);
           TEST_ASSERT (get_abs < epsilon);
 
-          jjs_value_free (ctx (), test_number);
           jjs_value_free (ctx (), set_result);
           jjs_value_free (ctx (), get_result);
 
           /* Testing positive and negative infinity */
           for (uint8_t k = 0; k < 2; k++)
           {
-            jjs_value_t inf = jjs_infinity (ctx (), k);
-            jjs_value_t set_inf = jjs_object_set_index (ctx (), typedarray, 0, inf);
+            jjs_value_t set_inf = jjs_object_set_index (ctx (), typedarray, 0, jjs_infinity (ctx (), k), JJS_MOVE);
             TEST_ASSERT (jjs_value_is_boolean (ctx (), set_inf));
             TEST_ASSERT (jjs_value_is_true (ctx (), set_inf));
             jjs_value_t get_inf = jjs_object_get_index (ctx (), typedarray, 0);
             TEST_ASSERT (isinf (jjs_value_as_number (ctx (), get_inf)));
 
-            jjs_value_free (ctx (), inf);
             jjs_value_free (ctx (), set_inf);
             jjs_value_free (ctx (), get_inf);
           }
@@ -400,7 +393,7 @@ test_property_by_index (test_entry_t test_entries[])
         {
           test_number = jjs_bigint (ctx (), (uint64_t *) &test_int64_numbers[j], 1, true);
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
-          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number, JJS_MOVE);
           get_result = jjs_object_get_index (ctx (), typedarray, j);
 
           TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
@@ -412,7 +405,6 @@ test_property_by_index (test_entry_t test_entries[])
 
           TEST_ASSERT (sign ? get_number : -get_number == test_int64_numbers[j]);
 
-          jjs_value_free (ctx (), test_number);
           jjs_value_free (ctx (), set_result);
           jjs_value_free (ctx (), get_result);
         }
@@ -424,7 +416,7 @@ test_property_by_index (test_entry_t test_entries[])
         {
           test_number = jjs_bigint (ctx (), &test_uint64_numbers[j], 1, false);
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
-          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number, JJS_MOVE);
           get_result = jjs_object_get_index (ctx (), typedarray, j);
 
           TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
@@ -436,7 +428,6 @@ test_property_by_index (test_entry_t test_entries[])
 
           TEST_ASSERT (get_number == test_uint64_numbers[j]);
 
-          jjs_value_free (ctx (), test_number);
           jjs_value_free (ctx (), set_result);
           jjs_value_free (ctx (), get_result);
         }
@@ -448,7 +439,7 @@ test_property_by_index (test_entry_t test_entries[])
         {
           test_number = jjs_number (ctx (), test_uint_numbers[j]);
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
-          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number);
+          set_result = jjs_object_set_index (ctx (), typedarray, j, test_number, JJS_MOVE);
           get_result = jjs_object_get_index (ctx (), typedarray, j);
 
           TEST_ASSERT (jjs_value_is_boolean (ctx (), set_result));
@@ -456,7 +447,6 @@ test_property_by_index (test_entry_t test_entries[])
           TEST_ASSERT (jjs_value_is_false (ctx (), jjs_object_delete_index (ctx (), typedarray, j)));
           TEST_ASSERT (jjs_value_as_number (ctx (), get_result) == test_uint_numbers[j]);
 
-          jjs_value_free (ctx (), test_number);
           jjs_value_free (ctx (), set_result);
           jjs_value_free (ctx (), get_result);
         }
@@ -464,7 +454,7 @@ test_property_by_index (test_entry_t test_entries[])
       }
     }
 
-    jjs_value_t set_undefined = jjs_object_set_index (ctx (), typedarray, 100, jjs_number (ctx (), 50));
+    jjs_value_t set_undefined = jjs_object_set_index (ctx (), typedarray, 100, jjs_number (ctx (), 50), JJS_MOVE);
 
     if (type == JJS_TYPEDARRAY_BIGINT64 || type == JJS_TYPEDARRAY_BIGUINT64)
     {

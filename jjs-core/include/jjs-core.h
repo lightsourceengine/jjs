@@ -632,21 +632,30 @@ jjs_value_t jjs_object_property_names (jjs_context_t* context_p, const jjs_value
  * @{
  */
 
-jjs_value_t jjs_object_set_proto (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t proto);
+jjs_value_t jjs_object_set_proto (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t proto, jjs_own_t proto_o);
 bool jjs_object_foreach (jjs_context_t* context_p, const jjs_value_t object, jjs_object_property_foreach_cb_t foreach_p, void *user_data_p);
 
 /**
  * @defgroup jjs-api-object-op-set Set
  * @{
  */
-jjs_value_t jjs_object_set (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key, const jjs_value_t value);
-jjs_value_t jjs_object_set_sz (jjs_context_t* context_p, jjs_value_t object, const char *key_p, const jjs_value_t value);
-jjs_value_t jjs_object_set_index (jjs_context_t* context_p, jjs_value_t object, uint32_t index, const jjs_value_t value);
+jjs_value_t jjs_object_set (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key, const jjs_value_t value, jjs_own_t value_o);
+jjs_value_t jjs_object_set_sz (jjs_context_t* context_p, jjs_value_t object, const char *key_p, const jjs_value_t value, jjs_own_t value_o);
+jjs_value_t jjs_object_set_index (jjs_context_t* context_p, jjs_value_t object, uint32_t index, const jjs_value_t value, jjs_own_t value_o);
 jjs_value_t jjs_object_define_own_prop (jjs_context_t* context_p,
                                         jjs_value_t object,
                                         const jjs_value_t key,
                                         const jjs_property_descriptor_t *prop_desc_p);
-bool jjs_object_set_internal (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key, const jjs_value_t value);
+bool jjs_object_set_internal (jjs_context_t* context_p,
+                              jjs_value_t object,
+                              const jjs_value_t key,
+                              const jjs_value_t value,
+                              jjs_own_t value_o);
+bool jjs_object_set_internal_sz (jjs_context_t* context_p,
+                                 jjs_value_t object,
+                                 const char *key_p,
+                                 const jjs_value_t value,
+                                 jjs_own_t value_o);
 void jjs_object_set_native_ptr (jjs_context_t* context_p,
                                 jjs_value_t object,
                                 const jjs_object_native_info_t *native_info_p,
@@ -662,7 +671,11 @@ void jjs_object_set_native_ptr (jjs_context_t* context_p,
 jjs_value_t jjs_object_has (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
 jjs_value_t jjs_object_has_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
 jjs_value_t jjs_object_has_own (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+jjs_value_t jjs_object_has_own_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
+
 bool jjs_object_has_internal (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+bool jjs_object_has_internal_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
+
 bool jjs_object_has_native_ptr (jjs_context_t* context_p, const jjs_value_t object, const jjs_object_native_info_t *native_info_p);
 /**
  * jjs-api-object-op-has @}
@@ -675,18 +688,29 @@ bool jjs_object_has_native_ptr (jjs_context_t* context_p, const jjs_value_t obje
 jjs_value_t jjs_object_get (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
 jjs_value_t jjs_object_get_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
 jjs_value_t jjs_object_get_index (jjs_context_t* context_p, const jjs_value_t object, uint32_t index);
+
 jjs_value_t jjs_object_get_own_prop (jjs_context_t* context_p,
                                      const jjs_value_t object,
                                      const jjs_value_t key,
                                      jjs_property_descriptor_t *prop_desc_p);
+
 jjs_value_t jjs_object_get_internal (jjs_context_t* context_p, const jjs_value_t object, const jjs_value_t key);
+jjs_value_t jjs_object_get_internal_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
+
 void *jjs_object_get_native_ptr (jjs_context_t* context_p, const jjs_value_t object, const jjs_object_native_info_t *native_info_p);
 
 jjs_value_t jjs_object_find_own (jjs_context_t* context_p,
                                  const jjs_value_t object,
                                  const jjs_value_t key,
                                  const jjs_value_t receiver,
+                                 jjs_own_t receiver_o,
                                  bool *found_p);
+jjs_value_t jjs_object_find_own_sz (jjs_context_t* context_p,
+                                    const jjs_value_t object,
+                                    const char *key_p,
+                                    const jjs_value_t receiver,
+                                    jjs_own_t receiver_o,
+                                    bool *found_p);
 /**
  * jjs-api-object-op-get @}
  */
@@ -698,7 +722,10 @@ jjs_value_t jjs_object_find_own (jjs_context_t* context_p,
 jjs_value_t jjs_object_delete (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key);
 jjs_value_t jjs_object_delete_sz (jjs_context_t* context_p, const jjs_value_t object, const char *key_p);
 jjs_value_t jjs_object_delete_index (jjs_context_t* context_p, jjs_value_t object, uint32_t index);
+
 bool jjs_object_delete_internal (jjs_context_t* context_p, jjs_value_t object, const jjs_value_t key);
+bool jjs_object_delete_internal_sz (jjs_context_t* context_p, jjs_value_t object, const char *key_p);
+
 bool jjs_object_delete_native_ptr (jjs_context_t* context_p, jjs_value_t object, const jjs_object_native_info_t *native_info_p);
 /**
  * jjs-api-object-op-del @}
@@ -1095,7 +1122,10 @@ void jjs_promise_on_unhandled_rejection (jjs_context_t *context_p, jjs_promise_u
 jjs_value_t jjs_container (jjs_context_t* context_p,
                            jjs_container_type_t container_type,
                            const jjs_value_t *arguments_p,
-                           jjs_length_t argument_count);
+                           jjs_length_t argument_count,
+                           jjs_own_t arguments_list_o);
+jjs_value_t jjs_container_noargs (jjs_context_t* context_p, jjs_container_type_t container_type);
+
 /**
  * jjs-api-promise-ctor @}
  */

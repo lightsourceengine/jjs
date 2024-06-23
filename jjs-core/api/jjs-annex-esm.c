@@ -501,13 +501,12 @@ jjs_esm_default_on_import_meta_cb (jjs_context_t* context_p, jjs_value_t module,
 
   jjs_value_t resolve = jjs_function_external (context_p, esm_resolve_handler);
   jjs_value_t dirname = ecma_find_own_m (context_p, module, LIT_MAGIC_STRING_DIRNAME);
-  jjs_value_t path = ecma_make_magic_string_value(LIT_MAGIC_STRING_PATH);
+  jjs_value_t path = ecma_make_magic_string_value (LIT_MAGIC_STRING_PATH);
 
-  jjs_object_set_internal (context_p, resolve, path, dirname);
+  jjs_object_set_internal (context_p, resolve, path, dirname, JJS_MOVE);
   ecma_set_m (context_p, meta_object, LIT_MAGIC_STRING_RESOLVE, resolve);
 
   jjs_value_free (context_p, path);
-  jjs_value_free (context_p, dirname);
   jjs_value_free (context_p, resolve);
 
   ecma_value_t extension = ecma_find_own_m (context_p, module, LIT_MAGIC_STRING_EXTENSION);

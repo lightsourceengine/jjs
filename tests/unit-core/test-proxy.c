@@ -111,12 +111,10 @@ set_property (jjs_value_t target, /**< target object */
               const char *name_p, /**< name of the property */
               jjs_value_t value) /**< value of the property */
 {
-  jjs_value_t name_val = jjs_string_sz (ctx (), name_p);
-  jjs_value_t result_val = jjs_object_set (ctx (), target, name_val, value);
+  jjs_value_t result_val = jjs_object_set_sz (ctx (), target, name_p, value, JJS_KEEP);
 
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result_val));
   TEST_ASSERT (jjs_value_is_true (ctx (), result_val));
-  jjs_value_free (ctx (), name_val);
 } /* set_property */
 
 static jjs_value_t

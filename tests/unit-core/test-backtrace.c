@@ -237,16 +237,11 @@ register_callback (jjs_external_handler_t handler_p, /**< callback function */
                    char *name_p) /**< name of the function */
 {
   jjs_value_t global = jjs_current_realm (ctx ());
-
   jjs_value_t func = jjs_function_external (ctx (), handler_p);
-  jjs_value_t name = jjs_string_sz (ctx (), name_p);
-  jjs_value_t result = jjs_object_set (ctx (), global, name, func);
+  jjs_value_t result = jjs_object_set_sz (ctx (), global, name_p, func, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
   jjs_value_free (ctx (), result);
-  jjs_value_free (ctx (), name);
-  jjs_value_free (ctx (), func);
-
   jjs_value_free (ctx (), global);
 } /* register_callback */
 
