@@ -321,7 +321,7 @@ fs_utf8_has_bom (const uint8_t* buffer, uint32_t length)
 static jjs_value_t throw_file_error (jjs_context_t *context_p, const char* message, const char* path, int err)
 {
   jjs_value_t ex = jjs_throw_sz (context_p, JJS_ERROR_COMMON, message);
-  jjs_value_t error = jjs_exception_value (context_p, ex, false);
+  jjs_value_t error = jjs_exception_value (context_p, ex, JJS_KEEP);
   jjs_value_t code = jjs_string_sz (context_p, fs_errno_to_string (err));
   jjs_value_t errno_value = jjs_number (context_p, (double) err);
   jjs_value_t errno_message = jjs_string_sz (context_p, fs_errno_message(err));

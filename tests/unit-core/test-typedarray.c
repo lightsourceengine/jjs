@@ -112,11 +112,10 @@ test_typedarray_queries (test_entry_t test_entries[]) /**< test cases */
       TEST_ASSERT (!jjs_value_is_exception (ctx (), prop_value));
       jjs_value_t length_arg = jjs_number (ctx (), test_entries[i].element_count);
 
-      jjs_value_t typedarray = jjs_construct (ctx (), prop_value, &length_arg, 1);
+      jjs_value_t typedarray = jjs_construct (ctx (), prop_value, &length_arg, 1, JJS_MOVE);
 
       jjs_value_free (ctx (), prop_name);
       jjs_value_free (ctx (), prop_value);
-      jjs_value_free (ctx (), length_arg);
 
       test_typedarray_info (typedarray,
                             test_entries[i].typedarray_type,
@@ -671,7 +670,7 @@ main (void)
       jjs_object (ctx ()),
       jjs_null (ctx ()),
       jjs_arraybuffer (ctx (), 16),
-      jjs_error_sz (ctx (), JJS_ERROR_TYPE, "error", jjs_undefined (ctx ())),
+      jjs_error_sz (ctx (), JJS_ERROR_TYPE, "error", jjs_undefined (ctx ()), JJS_MOVE),
       jjs_undefined (ctx ()),
       jjs_promise (ctx ()),
     };

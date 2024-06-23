@@ -316,7 +316,7 @@ main (void)
     jjs_value_free (ctx (), res);
 
     TEST_ASSERT (jjs_value_is_exception (ctx (), property));
-    property = jjs_exception_value (ctx (), property, true);
+    property = jjs_exception_value (ctx (), property, JJS_MOVE);
     TEST_ASSERT (jjs_value_as_number (ctx (), property) == 33);
     jjs_value_free (ctx (), property);
   }
@@ -336,13 +336,13 @@ main (void)
 
     res = jjs_proxy_target (ctx (), target);
     TEST_ASSERT (jjs_value_is_exception (ctx (), res));
-    res = jjs_exception_value (ctx (), res, true);
+    res = jjs_exception_value (ctx (), res, JJS_MOVE);
     TEST_ASSERT (jjs_error_type (ctx (), res) == JJS_ERROR_TYPE);
     jjs_value_free (ctx (), res);
 
     res = jjs_proxy_handler (ctx (), handler);
     TEST_ASSERT (jjs_value_is_exception (ctx (), res));
-    res = jjs_exception_value (ctx (), res, true);
+    res = jjs_exception_value (ctx (), res, JJS_MOVE);
     TEST_ASSERT (jjs_error_type (ctx (), res) == JJS_ERROR_TYPE);
     jjs_value_free (ctx (), res);
   }

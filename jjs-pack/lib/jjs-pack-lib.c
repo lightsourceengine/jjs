@@ -166,7 +166,7 @@ jjs_pack_lib_run_module (jjs_context_t *context_p, jjs_value_t fn, jjs_value_t b
   jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "bindings", bindings, JJS_KEEP));
   jjs_value_free (context_p, jjs_object_set_sz (context_p, module, "require", require, JJS_KEEP));
 
-  jjs_value_t result = jjs_call (context_p, fn, jjs_undefined (context_p), argv, sizeof (argv) / sizeof (jjs_value_t));
+  jjs_value_t result = jjs_call (context_p, fn, argv, sizeof (argv) / sizeof (*argv), JJS_KEEP);
 
   if (!jjs_value_is_exception (context_p, result))
   {

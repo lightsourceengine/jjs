@@ -30,12 +30,10 @@ external_function (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[
 static void
 test_instanceof (jjs_value_t instanceof, jjs_value_t constructor)
 {
-  jjs_value_t instance = jjs_construct (ctx (), constructor, NULL, 0);
+  jjs_value_t instance = jjs_construct_noargs (ctx (), constructor);
   jjs_value_t args[2] = { instance, constructor };
 
-  jjs_value_t undefined = jjs_undefined (ctx ());
-  jjs_value_t result = jjs_call (ctx (), instanceof, undefined, args, 2);
-  jjs_value_free (ctx (), undefined);
+  jjs_value_t result = jjs_call (ctx (), instanceof, args, 2, JJS_KEEP);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result));

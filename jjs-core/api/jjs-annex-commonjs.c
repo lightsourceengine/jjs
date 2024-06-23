@@ -520,7 +520,7 @@ static ecma_value_t run_module (jjs_context_t* context_p, ecma_value_t module, e
     module, exports, require, filename, module_dirname,
   };
 
-  jjs_value_t result = jjs_call (context_p, fn, ECMA_VALUE_UNDEFINED, argv, sizeof (argv) / sizeof (ecma_value_t));
+  jjs_value_t result = jjs_call (context_p, fn, argv, sizeof (argv) / sizeof (*argv), JJS_KEEP);
 
   ecma_free_value (context_p, module_dirname);
   ecma_free_value (context_p, exports);

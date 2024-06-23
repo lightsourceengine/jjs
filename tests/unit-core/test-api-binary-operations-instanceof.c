@@ -46,16 +46,16 @@ main (void)
   jjs_value_t base_obj = jjs_object (ctx ());
   jjs_value_t constructor = jjs_function_external (ctx (), my_constructor);
 
-  jjs_value_t no_proto_instance_val = jjs_construct (ctx (), constructor, NULL, 0);
+  jjs_value_t no_proto_instance_val = jjs_construct_noargs (ctx (), constructor);
 
   jjs_value_t res = jjs_object_set_sz (ctx (), constructor, "prototype", base_obj, JJS_KEEP);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
   jjs_value_free (ctx (), res);
 
-  jjs_value_t instance_val = jjs_construct (ctx (), constructor, NULL, 0);
+  jjs_value_t instance_val = jjs_construct_noargs (ctx (), constructor);
 
-  jjs_value_t error = jjs_throw_value (ctx (), base_obj, false);
+  jjs_value_t error = jjs_throw_value (ctx (), base_obj, JJS_KEEP);
 
   test_entry_t bool_tests[] = { T (jjs_value_copy (ctx (), instance_val), jjs_value_copy (ctx (), constructor), true),
                                 T (jjs_value_copy (ctx (), no_proto_instance_val), jjs_value_copy (ctx (), constructor), false),

@@ -161,18 +161,16 @@ synthetic_module_evaluate (jjs_context_t *context_p, /** JJS context */
 
   jjs_value_t result;
   jjs_value_t export = jjs_number (context_p, 3.5);
-  result = jjs_synthetic_module_set_export (context_p, synthetic_module, exp_val, export);
+  result = jjs_synthetic_module_set_export (context_p, synthetic_module, exp_val, export, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_boolean (context_p, result) && jjs_value_is_true (ctx (), result));
   jjs_value_free (context_p, result);
-  jjs_value_free (context_p, export);
 
   export = jjs_string_sz (context_p, "str");
-  result = jjs_synthetic_module_set_export (context_p, synthetic_module, other_exp_val, export);
+  result = jjs_synthetic_module_set_export (context_p, synthetic_module, other_exp_val, export, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_boolean (context_p, result) && jjs_value_is_true (ctx (), result));
   jjs_value_free (context_p, result);
-  jjs_value_free (context_p, export);
 
-  result = jjs_synthetic_module_set_export (context_p, synthetic_module, no_exp_val, no_exp_val);
+  result = jjs_synthetic_module_set_export (context_p, synthetic_module, no_exp_val, no_exp_val, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_exception (context_p, result));
   TEST_ASSERT (jjs_error_type (context_p, result) == JJS_ERROR_REFERENCE);
   jjs_value_free (context_p, result);
@@ -203,11 +201,8 @@ resolve_callback4 (jjs_context_t *context_p, /** JJS context */
 
   jjs_value_t exports[2] = { jjs_string_sz (context_p, "exp"), jjs_string_sz (context_p, "other_exp") };
 
-  jjs_value_t synthetic_module = jjs_synthetic_module (context_p, synthetic_module_evaluate, exports, 2);
+  jjs_value_t synthetic_module = jjs_synthetic_module (context_p, synthetic_module_evaluate, exports, 2, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_exception (context_p, synthetic_module));
-
-  jjs_value_free (context_p, exports[0]);
-  jjs_value_free (context_p, exports[1]);
 
   *((jjs_value_t *) user_p) = jjs_value_copy (context_p, synthetic_module);
   return synthetic_module;
@@ -410,15 +405,15 @@ main (void)
 
   jjs_value_free (ctx (), module);
 
-  module = jjs_synthetic_module (ctx (), NULL, &object, 1);
+  module = jjs_synthetic_module (ctx (), NULL, &object, 1, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_exception (ctx (), module));
   jjs_value_free (ctx (), module);
 
-  module = jjs_synthetic_module (ctx (), NULL, NULL, 0);
+  module = jjs_synthetic_module (ctx (), NULL, NULL, 0, JJS_KEEP);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), module));
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);
 
-  result = jjs_synthetic_module_set_export (ctx (), module, number, number);
+  result = jjs_synthetic_module_set_export (ctx (), module, number, number, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result));
   jjs_value_free (ctx (), result);
 
@@ -427,7 +422,7 @@ main (void)
   /* Valid identifier. */
   jjs_value_t export = jjs_string_sz (ctx (), "\xed\xa0\x83\xed\xb2\x80");
 
-  module = jjs_synthetic_module (ctx (), NULL, &export, 1);
+  module = jjs_synthetic_module (ctx (), NULL, &export, 1, JJS_KEEP);
   TEST_ASSERT (!jjs_value_is_exception (ctx (), module));
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);
 
@@ -444,16 +439,14 @@ main (void)
 
   /* Invalid identifiers. */
   export = jjs_string_sz (ctx (), "a+");
-  module = jjs_synthetic_module (ctx (), NULL, &export, 1);
+  module = jjs_synthetic_module (ctx (), NULL, &export, 1, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_exception (ctx (), module));
   jjs_value_free (ctx (), module);
-  jjs_value_free (ctx (), export);
 
   export = jjs_string_sz (ctx (), "\xed\xa0\x80");
-  module = jjs_synthetic_module (ctx (), NULL, &export, 1);
+  module = jjs_synthetic_module (ctx (), NULL, &export, 1, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_exception (ctx (), module));
   jjs_value_free (ctx (), module);
-  jjs_value_free (ctx (), export);
 
   counter = 0;
 
@@ -462,8 +455,8 @@ main (void)
     const char source3[] = TEST_STRING_LITERAL (
       "import {exp, other_exp as other} from 'native.js'\n"
       "import * as namespace from 'native.js'\n"
-      "if (exp !== 3.5 || other !== 'str') { throw 'Assertion failed!' }\n"
-      "if (namespace.exp !== 3.5 || namespace.other_exp !== 'str') { throw 'Assertion failed!' }\n");
+      "if (exp !== 3.5 || other !== 'str') { throw `Assertion failed: exp = ${exp}, other = ${other}` }\n"
+      "if (namespace.exp !== 3.5 || namespace.other_exp !== 'str') { throw `Assertion failed: namespace.exp = ${namespace.exp}, namespace.other_exp = ${namespace.other_exp}` }\n");
     module = jjs_parse_sz (ctx (), source3, &module_parse_options);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), module));
     TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);

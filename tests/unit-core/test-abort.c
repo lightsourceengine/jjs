@@ -23,7 +23,7 @@ callback_func (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], c
   JJS_UNUSED (args_count);
 
   jjs_value_t value = jjs_string_sz (ctx (), "Abort run!");
-  value = jjs_throw_abort (ctx (), value, true);
+  value = jjs_throw_abort (ctx (), value, JJS_MOVE);
   return value;
 } /* callback_func */
 
@@ -89,15 +89,15 @@ TEST_MAIN(
   TEST_ASSERT (!jjs_value_is_abort (ctx (), value));
   TEST_ASSERT (!jjs_value_is_exception (ctx (), value));
 
-  value = jjs_throw_abort (ctx (), value, true);
+  value = jjs_throw_abort (ctx (), value, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_abort (ctx (), value));
   TEST_ASSERT (jjs_value_is_exception (ctx (), value));
 
-  value = jjs_throw_value (ctx (), value, true);
+  value = jjs_throw_value (ctx (), value, JJS_MOVE);
   TEST_ASSERT (!jjs_value_is_abort (ctx (), value));
   TEST_ASSERT (jjs_value_is_exception (ctx (), value));
 
-  value = jjs_throw_abort (ctx (), value, true);
+  value = jjs_throw_abort (ctx (), value, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_abort (ctx (), value));
   TEST_ASSERT (jjs_value_is_exception (ctx (), value));
 

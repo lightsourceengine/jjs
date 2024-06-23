@@ -38,9 +38,7 @@ test_parse (const char *source_p, /**< source code */
 
   if (options_p->argument_list.has_value)
   {
-    jjs_value_t this_value = jjs_undefined (ctx ());
-    result = jjs_call (ctx (), parse_result, this_value, NULL, 0);
-    jjs_value_free (ctx (), this_value);
+    result = jjs_call_noargs (ctx (), parse_result);
   }
   else if (options_p->parse_module)
   {

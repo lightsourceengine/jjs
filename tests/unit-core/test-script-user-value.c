@@ -65,10 +65,8 @@ test_parse_function (const char *source_p, /**< source code */
     if (run_code)
     {
       jjs_value_t parse_result = result;
-      jjs_value_t this_value = jjs_undefined (ctx ());
-      result = jjs_call (ctx (), result, this_value, NULL, 0);
+      result = jjs_call_noargs (ctx (), result);
       jjs_value_free (ctx (), parse_result);
-      jjs_value_free (ctx (), this_value);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
     }
 

@@ -478,7 +478,7 @@ test_exception_backtrace (void)
 
   TEST_ASSERT (jjs_value_is_exception (ctx (), error));
 
-  error = jjs_exception_value (ctx (), error, true);
+  error = jjs_exception_value (ctx (), error, JJS_MOVE);
 
   TEST_ASSERT (jjs_value_is_object (ctx (), error));
 
@@ -524,7 +524,7 @@ test_large_line_count (void)
 
   TEST_ASSERT (jjs_value_is_exception (ctx (), error));
 
-  error = jjs_exception_value (ctx (), error, true);
+  error = jjs_exception_value (ctx (), error, JJS_MOVE);
 
   TEST_ASSERT (jjs_value_is_object (ctx (), error));
 

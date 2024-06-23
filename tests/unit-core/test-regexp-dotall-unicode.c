@@ -20,7 +20,6 @@ main (void)
 {
   ctx_open (NULL);
 
-  jjs_value_t undefined_this_arg = jjs_undefined (ctx ());
   char pattern2[] = "\\u{61}.\\u{62}";
 
   uint16_t flags = JJS_REGEXP_FLAG_DOTALL | JJS_REGEXP_FLAG_UNICODE | JJS_REGEXP_FLAG_STICKY;
@@ -36,7 +35,7 @@ main (void)
 
   jjs_value_t func_val = jjs_parse_sz (ctx (), func_src2, &parse_options);
 
-  jjs_value_t res = jjs_call (ctx (), func_val, undefined_this_arg, &regex_obj, 1);
+  jjs_value_t res = jjs_call (ctx (), func_val, &regex_obj, 1, JJS_KEEP);
   jjs_value_t regex_res = jjs_object_get_index (ctx (), res, 0);
   jjs_value_t regex_res_str = jjs_object_get_index (ctx (), regex_res, 0);
   jjs_value_t is_dotall = jjs_object_get_index (ctx (), res, 1);

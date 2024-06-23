@@ -59,7 +59,7 @@ static void
 check_type_error (jjs_value_t result_value) /**< result value */
 {
   TEST_ASSERT (jjs_value_is_exception (ctx (), result_value));
-  result_value = jjs_exception_value (ctx (), result_value, true);
+  result_value = jjs_exception_value (ctx (), result_value, JJS_MOVE);
   TEST_ASSERT (jjs_error_type (ctx (), result_value) == JJS_ERROR_TYPE);
   jjs_value_free (ctx (), result_value);
 } /* check_type_error */
@@ -217,7 +217,7 @@ main (void)
     jjs_value_free (ctx (), target_value);
 
     TEST_ASSERT (jjs_value_is_exception (ctx (), result_value));
-    result_value = jjs_exception_value (ctx (), result_value, true);
+    result_value = jjs_exception_value (ctx (), result_value, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_number (ctx (), result_value) && jjs_value_as_number (ctx (), result_value) == 42.5);
     jjs_value_free (ctx (), result_value);
   }

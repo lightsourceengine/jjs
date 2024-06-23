@@ -259,7 +259,7 @@ jjs_annex_vmod_resolve (jjs_context_t* context_p, jjs_value_t name)
   jjs_value_t realm = ecma_make_object_value (context_p, ecma_builtin_get_global (context_p));
   jjs_value_t function = annex_vmod_entry_exports (context_p, entry);
   JJS_ASSERT (jjs_value_is_function (context_p, function));
-  jjs_value_t config = jjs_call (context_p, function, realm, NULL, 0);
+  jjs_value_t config = jjs_call_this_noargs (context_p, function, realm, JJS_KEEP);
   jjs_value_t exports = annex_vmod_get_exports_from_config (context_p, config);
 
   if (!jjs_value_is_exception (context_p, exports))

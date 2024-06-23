@@ -204,8 +204,7 @@ main (void)
   jjs_value_t args[2] = { object, found_object };
 
   /* Assert that the correct object was retrieved. */
-  jjs_value_t undefined = jjs_undefined (ctx ());
-  jjs_value_t strict_equal_result = jjs_call (ctx (), strict_equal, undefined, args, 2);
+  jjs_value_t strict_equal_result = jjs_call (ctx (), strict_equal, args, 2, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), strict_equal_result) && jjs_value_is_true (ctx (), strict_equal_result));
   jjs_value_free (ctx (), strict_equal_result);
   jjs_value_free (ctx (), found_object);
@@ -229,7 +228,7 @@ main (void)
 
   /* Assert that the right object was retrieved and release both the original reference to it and the retrieved one. */
   args[0] = object;
-  strict_equal_result = jjs_call (ctx (), strict_equal, undefined, args, 2);
+  strict_equal_result = jjs_call (ctx (), strict_equal, args, 2, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), strict_equal_result) && jjs_value_is_true (ctx (), strict_equal_result));
   jjs_value_free (ctx (), strict_equal_result);
   jjs_value_free (ctx (), args[0]);
@@ -243,7 +242,6 @@ main (void)
   TEST_ASSERT (!jjs_foreach_live_object (ctx (), find_test_object_by_property, args));
 
   jjs_value_free (ctx (), property_name);
-  jjs_value_free (ctx (), undefined);
   jjs_value_free (ctx (), strict_equal);
 
   test_container ();

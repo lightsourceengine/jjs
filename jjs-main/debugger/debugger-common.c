@@ -57,7 +57,7 @@ jjsx_debugger_is_reset (jjs_context_t* context_p, /**< JJS context */
     return false;
   }
 
-  jjs_value_t abort_value = jjs_exception_value (context_p, value, false);
+  jjs_value_t abort_value = jjs_exception_value (context_p, value, JJS_KEEP);
 
   if (!jjs_value_is_string (context_p, abort_value))
   {

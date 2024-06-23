@@ -29,7 +29,7 @@ main (void)
     TEST_ASSERT (jjs_value_is_exception (ctx (), error_obj));
     TEST_ASSERT (jjs_error_type (ctx (), error_obj) == errors[idx]);
 
-    error_obj = jjs_exception_value (ctx (), error_obj, true);
+    error_obj = jjs_exception_value (ctx (), error_obj, JJS_MOVE);
 
     TEST_ASSERT (jjs_error_type (ctx (), error_obj) == errors[idx]);
 

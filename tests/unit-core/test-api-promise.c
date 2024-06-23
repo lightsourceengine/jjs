@@ -107,7 +107,7 @@ test_promise_resolve_fail (void)
 
   // A resolved promise should have the result of from the resolve call and a fulfilled state
   {
-    jjs_value_t error_obj = jjs_error_sz (ctx (), JJS_ERROR_TYPE, "resolve_fail", jjs_undefined (ctx ()));
+    jjs_value_t error_obj = jjs_error_sz (ctx (), JJS_ERROR_TYPE, "resolve_fail", jjs_undefined (ctx ()), JJS_MOVE);
     jjs_value_t resolve_result = jjs_promise_reject (ctx (), my_promise, error_obj, JJS_MOVE);
 
     jjs_value_t promise_result = jjs_promise_result (ctx (), my_promise);

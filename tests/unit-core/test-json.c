@@ -130,10 +130,8 @@ main (void)
       jjs_value_free (ctx (), age_set);
     }
 
-    jjs_value_t json_string = jjs_json_stringify (ctx (), obj);
+    jjs_value_t json_string = jjs_json_stringify (ctx (), obj, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_string (ctx (), json_string));
-
-    jjs_value_free (ctx (), obj);
 
     const char check_value[] = "{\"name\":\"John\",\"age\":32}";
     jjs_size_t json_size = jjs_string_size (ctx (), json_string, JJS_ENCODING_CESU8);
@@ -160,12 +158,11 @@ main (void)
       jjs_value_free (ctx (), name_set);
     }
 
-    jjs_value_t json_string = jjs_json_stringify (ctx (), obj);
+    jjs_value_t json_string = jjs_json_stringify (ctx (), obj, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx (), json_string));
     TEST_ASSERT (jjs_error_type (ctx (), json_string) == JJS_ERROR_URI);
 
     jjs_value_free (ctx (), json_string);
-    jjs_value_free (ctx (), obj);
   }
 
   ctx_close ();

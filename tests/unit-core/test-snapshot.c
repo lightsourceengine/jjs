@@ -83,12 +83,11 @@ test_function_snapshot (void)
   TEST_ASSERT (!jjs_value_is_exception (ctx (), function_obj));
   TEST_ASSERT (jjs_value_is_function (ctx (), function_obj));
 
-  jjs_value_t this_val = jjs_undefined (ctx ());
   jjs_value_t args[2];
   args[0] = jjs_number (ctx (), 1.0);
   args[1] = jjs_number (ctx (), 2.0);
 
-  jjs_value_t res = jjs_call (ctx (), function_obj, this_val, args, 2);
+  jjs_value_t res = jjs_call (ctx (), function_obj, args, 2, JJS_KEEP);
 
   TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
   TEST_ASSERT (jjs_value_is_number (ctx (), res));

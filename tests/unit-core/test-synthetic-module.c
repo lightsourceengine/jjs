@@ -21,9 +21,9 @@ static const char* SYNTHETIC_MODULE_EVALUATE_RESULT = "test_result";
 static jjs_value_t
 create_synthetic_module_linked (jjs_synthetic_module_evaluate_cb_t callback,
                                 const jjs_value_t* const exports_p,
-                                size_t export_count)
+                                jjs_size_t export_count)
 {
-  jjs_value_t module = jjs_synthetic_module (ctx (), callback, exports_p, export_count);
+  jjs_value_t module = jjs_synthetic_module (ctx (), callback, exports_p, export_count, JJS_KEEP);
 
   JJS_EXPECT_NOT_EXCEPTION (module);
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);
@@ -124,7 +124,7 @@ test_synthetic_module_set_exports (void)
     ctx_cstr ("five"),
   };
   jjs_value_t module = ctx_defer_free (
-    jjs_synthetic_module (ctx (), NULL, export_names, sizeof (export_names) / sizeof (export_names[0])));
+    jjs_synthetic_module (ctx (), NULL, export_names, sizeof (export_names) / sizeof (export_names[0]), JJS_KEEP));
 
   JJS_EXPECT_NOT_EXCEPTION (module);
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_UNLINKED);
@@ -133,7 +133,7 @@ test_synthetic_module_set_exports (void)
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_LINKED);
 
   JJS_EXPECT_TRUE_MOVE (jjs_synthetic_module_set_export (ctx (), module, export_names[0],
-                                                         ctx_defer_free (jjs_number_from_int32 (ctx (), 5))));
+                                                         jjs_number_from_int32 (ctx (), 5), JJS_MOVE));
 
   JJS_EXPECT_UNDEFINED_MOVE (jjs_module_evaluate (ctx (), module));
   TEST_ASSERT (jjs_module_state (ctx (), module) == JJS_MODULE_STATE_EVALUATED);
@@ -155,23 +155,23 @@ test_synthetic_module_set_exports_invalid_args (void)
   jjs_value_t module = ctx_defer_free (create_synthetic_module_linked (NULL, &export_name, 1));
 
   // export name not in export list
-  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module, ctx_cstr ("xxx"), jjs_undefined (ctx ())));
+  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export_sz (ctx (), module, "xxx", jjs_undefined (ctx ()), JJS_MOVE));
   // export name is empty string
-  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module, ctx_cstr (""), jjs_undefined (ctx ())));
+  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export_sz (ctx (), module, "", jjs_undefined (ctx ()), JJS_MOVE));
   // export name is not a string
-  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module, ctx_defer_free (jjs_object (ctx ())), jjs_undefined (ctx ())));
+  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module, ctx_defer_free (jjs_object (ctx ())), jjs_undefined (ctx ()), JJS_MOVE));
 
   // cannot set export on evaluated module
-  JJS_EXPECT_TRUE_MOVE (jjs_synthetic_module_set_export (ctx (), module, export_name, jjs_undefined (ctx ())));
+  JJS_EXPECT_TRUE_MOVE (jjs_synthetic_module_set_export (ctx (), module, export_name, jjs_undefined (ctx ()), JJS_MOVE));
   JJS_EXPECT_UNDEFINED_MOVE (jjs_module_evaluate (ctx (), module));
-  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module, export_name, jjs_undefined (ctx ())));
+  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module, export_name, jjs_undefined (ctx ()), JJS_MOVE));
 
   jjs_value_t module_no_exports = ctx_defer_free (create_synthetic_module_linked (NULL, NULL, 0));
 
   // invalid module
-  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), jjs_null (ctx ()), export_name, jjs_undefined (ctx ())));
+  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), jjs_null (ctx ()), export_name, jjs_undefined (ctx ()), JJS_MOVE));
   // not exports declared
-  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module_no_exports, export_name, jjs_undefined (ctx ())));
+  JJS_EXPECT_EXCEPTION_MOVE (jjs_synthetic_module_set_export (ctx (), module_no_exports, export_name, jjs_undefined (ctx ()), JJS_MOVE));
 } /* test_synthetic_module_set_exports_invalid_args */
 
 TEST_MAIN({

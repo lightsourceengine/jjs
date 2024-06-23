@@ -59,13 +59,13 @@ main (void)
   /* Test invalid construction */
   jjs_value_t view3 = jjs_dataview (ctx (), jjs_object (ctx ()), JJS_MOVE, 20, 10);
   TEST_ASSERT (jjs_value_is_exception (ctx (), view3));
-  jjs_value_t error_obj = jjs_exception_value (ctx (), view3, true);
+  jjs_value_t error_obj = jjs_exception_value (ctx (), view3, JJS_MOVE);
   TEST_ASSERT (jjs_error_type (ctx (), error_obj) == JJS_ERROR_TYPE);
   jjs_value_free (ctx (), error_obj);
 
   jjs_value_t view4 = jjs_dataview (ctx (), arraybuffer, JJS_KEEP, 20, 10);
   TEST_ASSERT (jjs_value_is_exception (ctx (), view3));
-  error_obj = jjs_exception_value (ctx (), view4, true);
+  error_obj = jjs_exception_value (ctx (), view4, JJS_MOVE);
   TEST_ASSERT (jjs_error_type (ctx (), error_obj) == JJS_ERROR_RANGE);
   jjs_value_free (ctx (), error_obj);
 

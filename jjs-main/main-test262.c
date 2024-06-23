@@ -161,7 +161,7 @@ resolve_result_value (jjs_context_t* context_p, jjs_value_t result, jjs_own_t re
 
   if (!status)
   {
-    jjs_value_t value = jjs_exception_value (context_p, result, false);
+    jjs_value_t value = jjs_exception_value (context_p, result, JJS_KEEP);
     jjs_value_t value_as_string =
       jjs_value_is_symbol (context_p, value) ? jjs_symbol_description (context_p, value) : jjs_value_to_string (context_p, value);
 

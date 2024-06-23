@@ -1665,15 +1665,17 @@ done:
 } /* jjs_binary_op */
 
 /**
- * Create an abort value containing the argument value. If the second argument is true
- * the function will take ownership ofthe input value, otherwise the value will be copied.
+ * Create an abort value containing the argument value.
+ *
+ * If the second argument is JJS_MOVE the function will take ownership of
+ * the input value, otherwise the value will be copied.
  *
  * @return api abort value
  */
 jjs_value_t
 jjs_throw_abort (jjs_context_t* context_p, /**< JJS context */
                  jjs_value_t value, /**< api value */
-                 bool take_ownership) /**< release api value */
+                 jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
@@ -1683,14 +1685,14 @@ jjs_throw_abort (jjs_context_t* context_p, /**< JJS context */
      * binary size rather than performance. */
     if (jjs_value_is_abort (context_p, value))
     {
-      return take_ownership ? value : jjs_value_copy (context_p, value);
+      return value_o == JJS_MOVE ? value : jjs_value_copy (context_p, value);
     }
 
-    value = jjs_exception_value (context_p, value, take_ownership);
-    take_ownership = true;
+    value = jjs_exception_value (context_p, value, value_o);
+    value_o = JJS_MOVE;
   }
 
-  if (!take_ownership)
+  if (value_o == JJS_KEEP)
   {
     value = ecma_copy_value (context_p, value);
   }
@@ -1699,15 +1701,17 @@ jjs_throw_abort (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_throw_abort */
 
 /**
- * Create an exception value containing the argument value. If the second argument is true
- * the function will take ownership ofthe input value, otherwise the value will be copied.
+ * Create an exception value containing the argument value.
+ *
+ * If the second argument is JJS_MOVE the function will take ownership of
+ * the input value, otherwise the value will be copied.
  *
  * @return exception value
  */
 jjs_value_t
 jjs_throw_value (jjs_context_t* context_p, /**< JJS context */
                  jjs_value_t value, /**< value */
-                 bool take_ownership) /**< take ownership of the value */
+                 jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
@@ -1717,14 +1721,14 @@ jjs_throw_value (jjs_context_t* context_p, /**< JJS context */
      * binary size rather than performance. */
     if (!jjs_value_is_abort (context_p, value))
     {
-      return take_ownership ? value : jjs_value_copy (context_p, value);
+      return value == JJS_MOVE ? value : jjs_value_copy (context_p, value);
     }
 
-    value = jjs_exception_value (context_p, value, take_ownership);
-    take_ownership = true;
+    value = jjs_exception_value (context_p, value, value_o);
+    value_o = JJS_MOVE;
   }
 
-  if (!take_ownership)
+  if (value_o == JJS_KEEP)
   {
     value = ecma_copy_value (context_p, value);
   }
@@ -1733,29 +1737,26 @@ jjs_throw_value (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_throw_value */
 
 /**
- * Get the value contained in an exception. If the second argument is true
- * it will release the argument exception value in the process.
+ * Get the value contained in an exception.
  *
  * @return value in exception
  */
 jjs_value_t
 jjs_exception_value (jjs_context_t* context_p, /**< JJS context */
                      jjs_value_t value, /**< api value */
-                     bool free_exception) /**< release api value */
+                     jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
   if (!ecma_is_value_exception (value))
   {
-    return free_exception ? value : ecma_copy_value (context_p, value);
+    return value_o == JJS_MOVE ? value : ecma_copy_value (context_p, value);
   }
 
   jjs_value_t ret_val = jjs_value_copy (context_p, ecma_get_extended_primitive_from_value (context_p, value)->u.value);
 
-  if (free_exception)
-  {
-    jjs_value_free (context_p, value);
-  }
+  jjs_disown_value (context_p, value, value_o);
+
   return ret_val;
 } /* jjs_exception_value */
 
@@ -2312,7 +2313,9 @@ jjs_value_t
 jjs_error (jjs_context_t* context_p, /**< JJS context */
            jjs_error_t error_type, /**< type of error */
            const jjs_value_t message, /**< message of the error */
-           const jjs_value_t options)  /**< options */
+           jjs_own_t message_o, /**< message value resource ownership */
+           const jjs_value_t options,  /**< options */
+           jjs_own_t options_o) /**< options value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
@@ -2323,6 +2326,9 @@ jjs_error (jjs_context_t* context_p, /**< JJS context */
   }
 
   ecma_object_t *error_object_p = ecma_new_standard_error_with_options(context_p, (jjs_error_t) error_type, message_p, options);
+
+  jjs_disown_value (context_p, message, message_o);
+  jjs_disown_value (context_p, options, options_o);
 
   return ecma_make_object_value (context_p, error_object_p);
 } /* jjs_error */
@@ -2337,19 +2343,16 @@ jjs_value_t
 jjs_error_sz (jjs_context_t* context_p, /**< JJS context */
               jjs_error_t error_type, /**< type of error */
               const char *message_p, /**< message of the error */
-              const jjs_value_t options)  /**< options */
+              const jjs_value_t options,  /**< options */
+              jjs_own_t options_o) /**< options value resource ownership */
 {
-  jjs_value_t message = ECMA_VALUE_UNDEFINED;
-
-  if (message_p != NULL)
-  {
-    message = jjs_string_sz (context_p, message_p);
-  }
-
-  ecma_value_t error = jjs_error (context_p, error_type, message, options);
-  ecma_free_value (context_p, message);
-
-  return error;
+  jjs_assert_api_enabled (context_p);
+  return jjs_error (context_p,
+                    error_type,
+                    message_p ? jjs_string_utf8_sz (context_p, message_p) : ECMA_VALUE_UNDEFINED,
+                    JJS_MOVE,
+                    options,
+                    options_o);
 } /* jjs_error_sz */
 
 /**
@@ -2413,9 +2416,10 @@ jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t 
 jjs_value_t
 jjs_throw (jjs_context_t* context_p, /**< JJS context */
            jjs_error_t error_type, /**< type of error */
-           const jjs_value_t message) /**< message value */
+           const jjs_value_t message, /**< message value */
+           jjs_own_t message_o) /**< message value resource ownership */
 {
-  return jjs_throw_value (context_p, jjs_error (context_p, error_type, message, ECMA_VALUE_UNDEFINED), true);
+  return jjs_throw_value (context_p, jjs_error (context_p, error_type, message, message_o, ECMA_VALUE_UNDEFINED, JJS_KEEP), JJS_MOVE);
 } /* jjs_throw */
 
 /**
@@ -2430,7 +2434,7 @@ jjs_throw_sz (jjs_context_t* context_p, /**< JJS context */
               const char *message_p) /**< value of 'message' property
                                         *   of constructed error object */
 {
-  return jjs_throw_value (context_p, jjs_error_sz (context_p, error_type, message_p, ECMA_VALUE_UNDEFINED), true);
+  return jjs_throw (context_p, error_type, jjs_string_utf8_sz (context_p, message_p), JJS_MOVE);
 } /* jjs_throw_sz */
 
 /**
@@ -2910,6 +2914,47 @@ jjs_bigint (jjs_context_t* context_p, /**< JJS context */
 } /* jjs_bigint */
 
 /**
+ * Creates a RegExp object with the given pattern and flags.
+ *
+ * @return value of the constructed RegExp object.
+ */
+jjs_value_t
+jjs_regexp (jjs_context_t* context_p, /**< JJS context */
+            const jjs_value_t pattern, /**< pattern string */
+            jjs_own_t pattern_o, /**< pattern value resource ownership */
+            uint16_t flags) /**< RegExp flags */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+
+#if JJS_BUILTIN_REGEXP
+  if (!ecma_is_value_string (pattern))
+  {
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+  }
+  else
+  {
+    ecma_object_t *regexp_obj_p = ecma_op_regexp_alloc (context_p, NULL);
+
+    if (JJS_UNLIKELY (regexp_obj_p == NULL))
+    {
+      result = ecma_create_exception_from_context (context_p);
+    }
+    else
+    {
+      result = jjs_return (context_p, ecma_op_create_regexp_with_flags (context_p, regexp_obj_p, pattern, flags));
+    }
+  }
+#else /* !JJS_BUILTIN_REGEXP */
+  JJS_UNUSED_ALL (pattern, flags);
+  result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_REGEXP_IS_NOT_SUPPORTED));
+#endif /* JJS_BUILTIN_REGEXP */
+
+  jjs_disown_value (context_p, pattern, pattern_o);
+  return result;
+} /* jjs_regexp */
+
+/**
  * Creates a RegExp object with the given ASCII pattern and flags.
  *
  * @return value of the constructed RegExp object.
@@ -2920,48 +2965,8 @@ jjs_regexp_sz (jjs_context_t* context_p, /**< JJS context */
                uint16_t flags) /**< RegExp flags */
 {
   jjs_assert_api_enabled (context_p);
-
-  jjs_value_t pattern = jjs_string_sz (context_p, pattern_p);
-  jjs_value_t result = jjs_regexp (context_p, pattern, flags);
-
-  jjs_value_free (context_p, pattern);
-  return jjs_return (context_p, result);
+  return jjs_regexp (context_p, jjs_string_sz (context_p, pattern_p), JJS_MOVE, flags);
 } /* jjs_regexp_sz */
-
-/**
- * Creates a RegExp object with the given pattern and flags.
- *
- * @return value of the constructed RegExp object.
- */
-jjs_value_t
-jjs_regexp (jjs_context_t* context_p, /**< JJS context */
-            const jjs_value_t pattern, /**< pattern string */
-            uint16_t flags) /**< RegExp flags */
-{
-  jjs_assert_api_enabled (context_p);
-
-#if JJS_BUILTIN_REGEXP
-  if (!ecma_is_value_string (pattern))
-  {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
-  }
-
-  ecma_object_t *regexp_obj_p = ecma_op_regexp_alloc (context_p, NULL);
-
-  if (JJS_UNLIKELY (regexp_obj_p == NULL))
-  {
-    return ecma_create_exception_from_context (context_p);
-  }
-
-  jjs_value_t result = ecma_op_create_regexp_with_flags (context_p, regexp_obj_p, pattern, flags);
-
-  return jjs_return (context_p, result);
-
-#else /* !JJS_BUILTIN_REGEXP */
-  JJS_UNUSED_ALL (pattern, flags);
-  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_REGEXP_IS_NOT_SUPPORTED));
-#endif /* JJS_BUILTIN_REGEXP */
-} /* jjs_regexp */
 
 /**
  * Creates a new realm (global object).
@@ -4271,29 +4276,95 @@ jjs_property_descriptor_free (jjs_context_t* context_p, /**< JJS context */
  * @return returned JJS value of the called function
  */
 jjs_value_t
-jjs_call (jjs_context_t* context_p, /**< JJS context */
-          const jjs_value_t func_object, /**< function object to call */
-          const jjs_value_t this_value, /**< object for 'this' binding */
-          const jjs_value_t *args_p, /**< function's call arguments */
-          jjs_size_t args_count) /**< number of the arguments */
+jjs_call_this (jjs_context_t* context_p, /**< JJS context */
+               const jjs_value_t func_object, /**< function object to call */
+               const jjs_value_t this_value, /**< object for 'this' binding */
+               jjs_own_t this_value_o, /**< this_value resource ownership */
+               const jjs_value_t *args_p, /**< function's call arguments */
+               jjs_size_t args_count, /**< number of the arguments */
+               jjs_own_t args_o) /**< args value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
+  jjs_value_t result;
+
   if (ecma_is_value_exception (this_value))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    goto done;
   }
 
   for (jjs_size_t i = 0; i < args_count; i++)
   {
     if (ecma_is_value_exception (args_p[i]))
     {
-      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+      result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+      goto done;
     }
   }
 
-  return jjs_return (context_p, ecma_op_function_validated_call (context_p, func_object, this_value, args_p, args_count));
+  result = jjs_return (context_p, ecma_op_function_validated_call (context_p, func_object, this_value, args_p, args_count));
+
+done:
+  jjs_disown_value_array (context_p, args_p, args_count, args_o);
+  jjs_disown_value (context_p, this_value, this_value_o);
+  return result;
+} /* jjs_call_this */
+
+/**
+ * Call function specified by a function value
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *      error flag must not be set for any arguments of this function.
+ *
+ * @return returned JJS value of the called function
+ */
+jjs_value_t
+jjs_call (jjs_context_t* context_p, /**< JJS context */
+          const jjs_value_t func_object, /**< function object to call */
+          const jjs_value_t *args_p, /**< function's call arguments */
+          jjs_size_t args_count, /**< number of the arguments */
+          jjs_own_t args_o) /**< args value resource ownership */
+{
+  jjs_assert_api_enabled (context_p);
+
+  return jjs_call_this (context_p, func_object, ECMA_VALUE_UNDEFINED, JJS_KEEP, args_p, args_count, args_o);
 } /* jjs_call */
+
+/**
+ * Call function specified by a function value
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *      error flag must not be set for any arguments of this function.
+ *
+ * @return returned JJS value of the called function
+ */
+jjs_value_t
+jjs_call_noargs (jjs_context_t* context_p, /**< JJS context */
+                      const jjs_value_t function) /**< function object to call */
+{
+  return jjs_return (context_p, ecma_op_function_validated_call (context_p, function, ECMA_VALUE_UNDEFINED, NULL, 0));
+} /* jjs_call_this_noargs */
+
+/**
+ * Call function specified by a function value
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *      error flag must not be set for any arguments of this function.
+ *
+ * @return returned JJS value of the called function
+ */
+jjs_value_t
+jjs_call_this_noargs (jjs_context_t* context_p, /**< JJS context */
+                 const jjs_value_t function, /**< function object to call */
+                 const jjs_value_t this_value, /**< object for 'this' binding */
+                 jjs_own_t this_value_o) /**< this_value resource ownership */
+{
+  return jjs_call_this (context_p, function, this_value, this_value_o, NULL, 0, JJS_KEEP);
+} /* jjs_call_this_noargs */
 
 /**
  * Construct object value invoking specified function value as a constructor
@@ -4309,29 +4380,52 @@ jjs_construct (jjs_context_t* context_p, /**< JJS context */
                const jjs_value_t func_object, /**< function object to call */
                const jjs_value_t *args_p, /**< function's call arguments
                                            *   (NULL if arguments number is zero) */
-               jjs_size_t args_count) /**< number of the arguments */
+               jjs_size_t args_count, /**< number of the arguments */
+               jjs_own_t args_o) /**< args value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
 
+  jjs_value_t result;
+
   if (!jjs_value_is_constructor (context_p, func_object))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_WRONG_ARGS_MSG));
+    goto done;
   }
 
   for (jjs_size_t i = 0; i < args_count; i++)
   {
     if (ecma_is_value_exception (args_p[i]))
     {
-      return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+      result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+      goto done;
     }
   }
 
-  return jjs_return (context_p, ecma_op_function_construct (context_p,
-                                                            ecma_get_object_from_value (context_p, func_object),
-                                                            ecma_get_object_from_value (context_p, func_object),
-                                                            args_p,
-                                                            args_count));
+  result = jjs_return (context_p, ecma_op_function_construct (context_p,
+                                                              ecma_get_object_from_value (context_p, func_object),
+                                                              ecma_get_object_from_value (context_p, func_object),
+                                                              args_p,
+                                                              args_count));
+done:
+  jjs_disown_value_array (context_p, args_p, args_count, args_o);
+  return result;
 } /* jjs_construct */
+
+/**
+ * Construct object value invoking specified function value as a constructor
+ *
+ * Note:
+ *      returned value must be freed with jjs_value_free, when it is no longer needed.
+ *      error flag must not be set for any arguments of this function.
+ *
+ * @return returned JJS value of the invoked constructor
+ */
+jjs_value_t
+jjs_construct_noargs (jjs_context_t* context_p, const jjs_value_t function)
+{
+  return jjs_construct (context_p, function, NULL, 0, JJS_KEEP);
+} /* jjs_construct_noargs */
 
 /**
  * Get keys of the specified object value
@@ -7572,28 +7666,34 @@ jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_own_t f
  */
 jjs_value_t
 jjs_json_stringify (jjs_context_t* context_p, /**< JJS context */
-                    const jjs_value_t input_value) /**< a value to stringify */
+                    const jjs_value_t value, /**< a value to stringify */
+                    jjs_own_t value_o) /**< value resource ownership */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+
 #if JJS_BUILTIN_JSON
-  if (ecma_is_value_exception (input_value))
+  if (ecma_is_value_exception (value))
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
+    result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_VALUE_MSG));
   }
-
-  ecma_value_t ret_value = ecma_builtin_json_stringify_no_opts (context_p, input_value);
-
-  if (ecma_is_value_undefined (ret_value))
+  else
   {
-    ret_value = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRINGIFY_ERROR));
-  }
+    result = ecma_builtin_json_stringify_no_opts (context_p, value);
 
-  return jjs_return (context_p, ret_value);
+    if (ecma_is_value_undefined (result))
+    {
+      result = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_STRINGIFY_ERROR));
+    }
+
+    result = jjs_return (context_p, result);
+  }
 #else /* JJS_BUILTIN_JSON */
-  JJS_UNUSED (input_value);
-
-  return jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
+  result = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, ecma_get_error_msg (ECMA_ERR_JSON_NOT_SUPPORTED));
 #endif /* JJS_BUILTIN_JSON */
+
+  jjs_disown_value (context_p, value, value_o);
+  return result;
 } /* jjs_json_stringify */
 
 /**
@@ -8156,7 +8256,7 @@ jjs_fmt_v (jjs_context_t* context_p, /**< JJS context */
 
       if (jjs_value_is_exception (context_p, value))
       {
-        fmt_write_value (context_p, wstream_p, jjs_exception_value (context_p, value, false), JJS_MOVE);
+        fmt_write_value (context_p, wstream_p, jjs_exception_value (context_p, value, JJS_KEEP), JJS_MOVE);
       }
       else
       {
@@ -8302,6 +8402,32 @@ jjs_fmt_join_v (jjs_context_t* context_p, /**< JJS context */
 
   return ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&builder));
 } /* jjs_fmt_join_v */
+
+/**
+ * Create an Error exception with a formatted message.
+ *
+ * @return exception object
+ */
+jjs_value_t
+jjs_fmt_throw (jjs_context_t *context_p, /**< JJS context */
+               jjs_error_t error_type, /**< JS Error class */
+               const char *format_p, /**< format string */
+               const jjs_value_t *values_p, /**< substitution values */
+               jjs_size_t values_length, /**< number of substitution values */
+               jjs_own_t values_o) /**< values resource ownership */
+{
+  jjs_value_t message = jjs_fmt_to_string_v (context_p, format_p, values_p, values_length);
+
+  jjs_disown_value_array (context_p, values_p, values_length, values_o);
+
+  if (jjs_value_is_exception (context_p, message))
+  {
+    /* better way to handle to_string failing? */
+    return message;
+  }
+
+  return jjs_throw (context_p, error_type, message, JJS_MOVE);
+} /* jjs_fmt_throw */
 
 jjs_optional_u32_t
 jjs_optional_u32 (uint32_t value)

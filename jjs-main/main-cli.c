@@ -487,18 +487,12 @@ js_assert (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const
     return jjs_undefined (context_p);
   }
 
-  jjs_value_t message;
-
   if (args_cnt > 1 && jjs_value_is_string (context_p, args_p[1]))
   {
-    message = jjs_fmt_to_string_v (context_p, "assertion failed: {}\n", &args_p[1], 1);
-  }
-  else
-  {
-    message = jjs_fmt_to_string_v (context_p, "assertion failed\n", NULL, 0);
+    return jjs_fmt_throw (context_p, JJS_ERROR_COMMON, "assertion failed: {}\n", &args_p[1], 1, JJS_KEEP);
   }
 
-  return jjs_throw (context_p, JJS_ERROR_COMMON, message);
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "assertion failed");
 }
 
 static jjs_value_t
@@ -734,7 +728,7 @@ run_all_tests (jjs_context_t* context_p)
     if (should_run_test (context_p, test_meta))
     {
       jjs_value_t test = jjs_object_get_sz (context_p, test_meta, JJS_TEST_META_PROP_TEST);
-      jjs_value_t test_result = jjs_call (context_p, test, self, NULL, 0);
+      jjs_value_t test_result = jjs_call_this_noargs (context_p, test, self, JJS_KEEP);
       jjs_value_t description = jjs_object_get_sz (context_p, test_meta, JJS_TEST_META_PROP_DESCRIPTION);
 
       if (jjs_value_is_exception (context_p, test_result))
@@ -795,7 +789,7 @@ process_async_asserts (jjs_context_t* context_p)
 
     if (jjs_value_is_function (context_p, fn))
     {
-      async_assert_result = jjs_call (context_p, fn, self, NULL, 0);
+      async_assert_result = jjs_call_this_noargs (context_p, fn, self, JJS_KEEP);
     }
     else
     {

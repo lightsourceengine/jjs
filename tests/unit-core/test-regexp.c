@@ -36,7 +36,7 @@ main (void)
 
   jjs_value_t func_val = jjs_parse_sz (ctx (), func_src, &parse_options);
 
-  jjs_value_t res = jjs_call (ctx (), func_val, global_obj_val, &regex_obj, 1);
+  jjs_value_t res = jjs_call_this (ctx (), func_val, global_obj_val, JJS_KEEP, &regex_obj, 1, JJS_KEEP);
   jjs_value_t regex_res = jjs_object_get_index (ctx (), res, 0);
   jjs_value_t regex_res_str = jjs_object_get_index (ctx (), regex_res, 0);
   jjs_value_t is_multiline = jjs_object_get_index (ctx (), res, 1);

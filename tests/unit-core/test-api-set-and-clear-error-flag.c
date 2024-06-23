@@ -31,10 +31,10 @@ main (void)
   ctx_open (NULL);
 
   jjs_value_t obj_val = jjs_object (ctx ());
-  obj_val = jjs_throw_value (ctx (), obj_val, true);
+  obj_val = jjs_throw_value (ctx (), obj_val, JJS_MOVE);
   jjs_value_t err_val = jjs_value_copy (ctx (), obj_val);
 
-  obj_val = jjs_exception_value (ctx (), err_val, true);
+  obj_val = jjs_exception_value (ctx (), err_val, JJS_MOVE);
 
   TEST_ASSERT (obj_val != err_val);
   jjs_value_free (ctx (), err_val);
@@ -44,158 +44,158 @@ main (void)
   const size_t pterodactylus_size = sizeof (pterodactylus) - 1;
 
   jjs_value_t str = jjs_string_sz (ctx (), pterodactylus);
-  jjs_value_t error = jjs_throw_value (ctx (), str, true);
-  str = jjs_exception_value (ctx (), error, true);
+  jjs_value_t error = jjs_throw_value (ctx (), str, JJS_MOVE);
+  str = jjs_exception_value (ctx (), error, JJS_MOVE);
 
   compare_str (str, pterodactylus, pterodactylus_size);
   jjs_value_free (ctx (), str);
 
   str = jjs_string_sz (ctx (), pterodactylus);
-  error = jjs_throw_value (ctx (), str, false);
+  error = jjs_throw_value (ctx (), str, JJS_KEEP);
   jjs_value_free (ctx (), str);
-  str = jjs_exception_value (ctx (), error, true);
+  str = jjs_exception_value (ctx (), error, JJS_MOVE);
 
   compare_str (str, pterodactylus, pterodactylus_size);
   jjs_value_free (ctx (), str);
 
   str = jjs_string_sz (ctx (), pterodactylus);
-  error = jjs_throw_abort (ctx (), str, true);
-  str = jjs_exception_value (ctx (), error, true);
+  error = jjs_throw_abort (ctx (), str, JJS_MOVE);
+  str = jjs_exception_value (ctx (), error, JJS_MOVE);
 
   compare_str (str, pterodactylus, pterodactylus_size);
   jjs_value_free (ctx (), str);
 
   str = jjs_string_sz (ctx (), pterodactylus);
-  error = jjs_throw_abort (ctx (), str, false);
+  error = jjs_throw_abort (ctx (), str, JJS_KEEP);
   jjs_value_free (ctx (), str);
-  str = jjs_exception_value (ctx (), error, true);
+  str = jjs_exception_value (ctx (), error, JJS_MOVE);
 
   compare_str (str, pterodactylus, pterodactylus_size);
   jjs_value_free (ctx (), str);
 
   str = jjs_string_sz (ctx (), pterodactylus);
-  error = jjs_throw_value (ctx (), str, true);
-  error = jjs_throw_abort (ctx (), error, true);
+  error = jjs_throw_value (ctx (), str, JJS_MOVE);
+  error = jjs_throw_abort (ctx (), error, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_abort (ctx (), error));
-  str = jjs_exception_value (ctx (), error, true);
+  str = jjs_exception_value (ctx (), error, JJS_MOVE);
 
   compare_str (str, pterodactylus, pterodactylus_size);
   jjs_value_free (ctx (), str);
 
   str = jjs_string_sz (ctx (), pterodactylus);
-  error = jjs_throw_value (ctx (), str, true);
-  jjs_value_t error2 = jjs_throw_abort (ctx (), error, false);
+  error = jjs_throw_value (ctx (), str, JJS_MOVE);
+  jjs_value_t error2 = jjs_throw_abort (ctx (), error, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_abort (ctx (), error2));
   jjs_value_free (ctx (), error);
-  str = jjs_exception_value (ctx (), error2, true);
+  str = jjs_exception_value (ctx (), error2, JJS_MOVE);
 
   compare_str (str, pterodactylus, pterodactylus_size);
   jjs_value_free (ctx (), str);
 
   double test_num = 3.1415926;
   jjs_value_t num = jjs_number (ctx (), test_num);
-  jjs_value_t num2 = jjs_throw_value (ctx (), num, false);
+  jjs_value_t num2 = jjs_throw_value (ctx (), num, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
   jjs_value_free (ctx (), num);
-  num2 = jjs_exception_value (ctx (), num2, true);
+  num2 = jjs_exception_value (ctx (), num2, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num2) == test_num);
   jjs_value_free (ctx (), num2);
 
   num = jjs_number (ctx (), test_num);
-  num2 = jjs_throw_value (ctx (), num, true);
+  num2 = jjs_throw_value (ctx (), num, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
-  num2 = jjs_exception_value (ctx (), num2, true);
+  num2 = jjs_exception_value (ctx (), num2, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num2) == test_num);
   jjs_value_free (ctx (), num2);
 
   num = jjs_number (ctx (), test_num);
-  num2 = jjs_throw_value (ctx (), num, false);
+  num2 = jjs_throw_value (ctx (), num, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
   jjs_value_free (ctx (), num);
-  jjs_value_t num3 = jjs_throw_value (ctx (), num2, false);
+  jjs_value_t num3 = jjs_throw_value (ctx (), num2, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num3));
   jjs_value_free (ctx (), num2);
-  num2 = jjs_exception_value (ctx (), num3, true);
+  num2 = jjs_exception_value (ctx (), num3, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num2) == test_num);
   jjs_value_free (ctx (), num2);
 
   num = jjs_number (ctx (), test_num);
-  num2 = jjs_throw_value (ctx (), num, true);
+  num2 = jjs_throw_value (ctx (), num, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
-  num3 = jjs_throw_value (ctx (), num2, true);
+  num3 = jjs_throw_value (ctx (), num2, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num3));
-  num2 = jjs_exception_value (ctx (), num3, true);
+  num2 = jjs_exception_value (ctx (), num3, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num2) == test_num);
   jjs_value_free (ctx (), num2);
 
   num = jjs_number (ctx (), test_num);
-  error = jjs_throw_abort (ctx (), num, true);
+  error = jjs_throw_abort (ctx (), num, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_abort (ctx (), error));
-  num2 = jjs_throw_value (ctx (), error, true);
+  num2 = jjs_throw_value (ctx (), error, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
-  num = jjs_exception_value (ctx (), num2, true);
+  num = jjs_exception_value (ctx (), num2, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num) == test_num);
   jjs_value_free (ctx (), num);
 
   num = jjs_number (ctx (), test_num);
-  error = jjs_throw_abort (ctx (), num, false);
+  error = jjs_throw_abort (ctx (), num, JJS_KEEP);
   jjs_value_free (ctx (), num);
   TEST_ASSERT (jjs_value_is_abort (ctx (), error));
-  num2 = jjs_throw_value (ctx (), error, true);
+  num2 = jjs_throw_value (ctx (), error, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
-  num = jjs_exception_value (ctx (), num2, true);
+  num = jjs_exception_value (ctx (), num2, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num) == test_num);
   jjs_value_free (ctx (), num);
 
   num = jjs_number (ctx (), test_num);
-  error = jjs_throw_abort (ctx (), num, true);
+  error = jjs_throw_abort (ctx (), num, JJS_MOVE);
   TEST_ASSERT (jjs_value_is_abort (ctx (), error));
-  num2 = jjs_throw_value (ctx (), error, false);
+  num2 = jjs_throw_value (ctx (), error, JJS_KEEP);
   jjs_value_free (ctx (), error);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
-  num = jjs_exception_value (ctx (), num2, true);
+  num = jjs_exception_value (ctx (), num2, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num) == test_num);
   jjs_value_free (ctx (), num);
 
   num = jjs_number (ctx (), test_num);
-  error = jjs_throw_abort (ctx (), num, false);
+  error = jjs_throw_abort (ctx (), num, JJS_KEEP);
   jjs_value_free (ctx (), num);
   TEST_ASSERT (jjs_value_is_abort (ctx (), error));
-  num2 = jjs_throw_value (ctx (), error, false);
+  num2 = jjs_throw_value (ctx (), error, JJS_KEEP);
   jjs_value_free (ctx (), error);
   TEST_ASSERT (jjs_value_is_exception (ctx (), num2));
-  num = jjs_exception_value (ctx (), num2, true);
+  num = jjs_exception_value (ctx (), num2, JJS_MOVE);
   TEST_ASSERT (jjs_value_as_number (ctx (), num) == test_num);
   jjs_value_free (ctx (), num);
 
   jjs_value_t value = jjs_number (ctx (), 42);
-  value = jjs_exception_value (ctx (), value, true);
+  value = jjs_exception_value (ctx (), value, JJS_MOVE);
   jjs_value_free (ctx (), value);
 
   value = jjs_number (ctx (), 42);
-  jjs_value_t value2 = jjs_exception_value (ctx (), value, false);
+  jjs_value_t value2 = jjs_exception_value (ctx (), value, JJS_KEEP);
   jjs_value_free (ctx (), value);
   jjs_value_free (ctx (), value2);
 
   value = jjs_number (ctx (), 42);
-  error = jjs_throw_value (ctx (), value, true);
-  error = jjs_throw_value (ctx (), error, true);
+  error = jjs_throw_value (ctx (), value, JJS_MOVE);
+  error = jjs_throw_value (ctx (), error, JJS_MOVE);
   jjs_value_free (ctx (), error);
 
   value = jjs_number (ctx (), 42);
-  error = jjs_throw_abort (ctx (), value, true);
-  error = jjs_throw_abort (ctx (), error, true);
+  error = jjs_throw_abort (ctx (), value, JJS_MOVE);
+  error = jjs_throw_abort (ctx (), error, JJS_MOVE);
   jjs_value_free (ctx (), error);
 
   value = jjs_number (ctx (), 42);
-  error = jjs_throw_value (ctx (), value, true);
-  error2 = jjs_throw_value (ctx (), error, false);
+  error = jjs_throw_value (ctx (), value, JJS_MOVE);
+  error2 = jjs_throw_value (ctx (), error, JJS_KEEP);
   jjs_value_free (ctx (), error);
   jjs_value_free (ctx (), error2);
 
   value = jjs_number (ctx (), 42);
-  error = jjs_throw_abort (ctx (), value, true);
-  error2 = jjs_throw_abort (ctx (), error, false);
+  error = jjs_throw_abort (ctx (), value, JJS_MOVE);
+  error2 = jjs_throw_abort (ctx (), error, JJS_KEEP);
   jjs_value_free (ctx (), error);
   jjs_value_free (ctx (), error2);
 

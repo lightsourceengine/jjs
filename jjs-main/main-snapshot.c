@@ -360,7 +360,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
   {
     jjs_log (context_p, JJS_LOG_LEVEL_ERROR, "Error: Generating snapshot failed!\n");
 
-    snapshot_result = jjs_exception_value (context_p, snapshot_result, true);
+    snapshot_result = jjs_exception_value (context_p, snapshot_result, JJS_MOVE);
 
     print_unhandled_exception (context_p, snapshot_result);
 

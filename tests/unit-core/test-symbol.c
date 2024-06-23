@@ -138,7 +138,7 @@ main (void)
   TEST_ASSERT (!jjs_value_is_symbol (ctx (), symbol_symbol));
   TEST_ASSERT (jjs_value_is_exception (ctx (), symbol_symbol));
 
-  jjs_value_t error_obj = jjs_exception_value (ctx (), symbol_symbol, true);
+  jjs_value_t error_obj = jjs_exception_value (ctx (), symbol_symbol, JJS_MOVE);
 
   TEST_ASSERT (jjs_error_type (ctx (), error_obj) == JJS_ERROR_TYPE);
 
@@ -190,7 +190,7 @@ main (void)
   jjs_value_t to_string_value = jjs_symbol_descriptive_string (ctx (), null_value);
   TEST_ASSERT (jjs_value_is_exception (ctx (), to_string_value));
 
-  error_obj = jjs_exception_value (ctx (), to_string_value, true);
+  error_obj = jjs_exception_value (ctx (), to_string_value, JJS_MOVE);
 
   TEST_ASSERT (jjs_error_type (ctx (), error_obj) == JJS_ERROR_TYPE);
 

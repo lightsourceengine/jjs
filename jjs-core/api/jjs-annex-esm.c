@@ -913,10 +913,9 @@ esm_read (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer_
       file_url = ECMA_VALUE_UNDEFINED;
     }
 
-    module = jjs_synthetic_module (context_p, commonjs_module_evaluate_cb, &default_name, 1);
+    module = jjs_synthetic_module (context_p, commonjs_module_evaluate_cb, &default_name, 1, JJS_MOVE);
     set_module_properties (context_p, module, resolved.path, file_url);
 
-    jjs_value_free (context_p, default_name);
     jjs_value_free (context_p, file_url);
   }
 #endif /* JJS_ANNEX_COMMONJS */
@@ -971,7 +970,8 @@ module_native_set_default (jjs_context_t* context_p, jjs_value_t native_module, 
   jjs_value_t result = jjs_synthetic_module_set_export (context_p,
                                                         native_module,
                                                         default_name,
-                                                        ecma_is_value_found (default_value) ? default_value : exports);
+                                                        ecma_is_value_found (default_value) ? default_value : exports,
+                                                        JJS_KEEP);
 
   jjs_value_free (context_p, default_name);
   ecma_free_value (context_p, default_value);
@@ -1054,9 +1054,7 @@ vmod_link (jjs_context_t* context_p, jjs_value_t module, jjs_value_t exports, ec
       return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "failed to get export value while linking vmod module");
     }
 
-    jjs_value_t result = jjs_synthetic_module_set_export (context_p, module, keys_p->buffer_p[i], value);
-
-    ecma_free_value (context_p, value);
+    jjs_value_t result = jjs_synthetic_module_set_export (context_p, module, keys_p->buffer_p[i], value, JJS_MOVE);
 
     if (jjs_value_is_exception (context_p, result))
     {
@@ -1069,7 +1067,7 @@ vmod_link (jjs_context_t* context_p, jjs_value_t module, jjs_value_t exports, ec
   if (was_default_appended)
   {
     ecma_value_t default_key = ecma_make_magic_string_value (LIT_MAGIC_STRING_DEFAULT);
-    jjs_value_t result = jjs_synthetic_module_set_export (context_p, module, default_key, exports);
+    jjs_value_t result = jjs_synthetic_module_set_export (context_p, module, default_key, exports, JJS_KEEP);
 
     ecma_free_value (context_p, default_key);
 
@@ -1140,7 +1138,7 @@ vmod_get_or_load_module (jjs_context_t* context_p, jjs_value_t specifier, ecma_v
     was_default_appended = false;
   }
 
-  jjs_value_t native_module = jjs_synthetic_module (context_p, vmod_module_evaluate_cb, keys_p->buffer_p, keys_p->item_count);
+  jjs_value_t native_module = jjs_synthetic_module (context_p, vmod_module_evaluate_cb, keys_p->buffer_p, keys_p->item_count, JJS_KEEP);
 
   if (!jjs_value_is_exception (context_p, native_module))
   {

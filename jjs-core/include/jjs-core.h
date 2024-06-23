@@ -77,27 +77,34 @@ bool jjs_foreach_live_object_with_info (jjs_context_t* context_p,
  * @{
  */
 
-void jjs_fmt_v (jjs_context_t* context_p,
+void jjs_fmt_v (jjs_context_t *context_p,
                 const jjs_wstream_t *wstream_p,
                 const char *format_p,
                 const jjs_value_t *values_p,
                 jjs_size_t values_length);
-jjs_value_t jjs_fmt_to_string_v (jjs_context_t* context_p,
+jjs_value_t jjs_fmt_to_string_v (jjs_context_t *context_p,
                                  const char *format_p,
                                  const jjs_value_t *values_p,
                                  jjs_size_t values_length);
-jjs_size_t jjs_fmt_to_buffer_v (jjs_context_t* context_p,
+jjs_size_t jjs_fmt_to_buffer_v (jjs_context_t *context_p,
                                 jjs_char_t *buffer_p,
                                 jjs_size_t buffer_size,
                                 jjs_encoding_t encoding,
                                 const char *format_p,
                                 const jjs_value_t *values_p,
                                 jjs_size_t values_length);
-jjs_value_t jjs_fmt_join_v (jjs_context_t* context_p,
+jjs_value_t jjs_fmt_join_v (jjs_context_t *context_p,
                             jjs_value_t delimiter,
                             jjs_own_t delimiter_o,
                             const jjs_value_t *values_p,
                             jjs_size_t values_length);
+
+jjs_value_t jjs_fmt_throw (jjs_context_t *context_p,
+                           jjs_error_t error_type,
+                           const char *format_p,
+                           const jjs_value_t *values_p,
+                           jjs_size_t values_length,
+                           jjs_own_t values_o);
 
 /**
  * jjs-api-general-fmt @}
@@ -330,10 +337,10 @@ jjs_value_t jjs_binary_op (jjs_context_t* context_p,
  * @defgroup jjs-api-exception-ctor Constructors
  * @{
  */
-jjs_value_t jjs_throw (jjs_context_t* context_p, jjs_error_t type, const jjs_value_t message);
+jjs_value_t jjs_throw (jjs_context_t* context_p, jjs_error_t type, const jjs_value_t message, jjs_own_t message_o);
 jjs_value_t jjs_throw_sz (jjs_context_t* context_p, jjs_error_t type, const char *message_p);
-jjs_value_t jjs_throw_value (jjs_context_t* context_p, jjs_value_t value, bool take_ownership);
-jjs_value_t jjs_throw_abort (jjs_context_t* context_p, jjs_value_t value, bool take_ownership);
+jjs_value_t jjs_throw_value (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o);
+jjs_value_t jjs_throw_abort (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o);
 /**
  * jjs-api-exception-ctor @}
  */
@@ -351,7 +358,7 @@ void jjs_exception_allow_capture (jjs_context_t* context_p, jjs_value_t value, b
  * @defgroup jjs-api-exception-get Getters
  * @{
  */
-jjs_value_t jjs_exception_value (jjs_context_t* context_p, jjs_value_t value, bool free_exception);
+jjs_value_t jjs_exception_value (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o);
 bool jjs_exception_is_captured (jjs_context_t* context_p, const jjs_value_t value);
 /**
  * jjs-api-exception-get @}
@@ -1011,10 +1018,30 @@ bool jjs_function_is_dynamic (jjs_context_t* context_p, const jjs_value_t value)
  */
 jjs_value_t jjs_call (jjs_context_t* context_p,
                       const jjs_value_t function,
-                      const jjs_value_t this_value,
                       const jjs_value_t *args_p,
-                      jjs_size_t args_count);
-jjs_value_t jjs_construct (jjs_context_t* context_p, const jjs_value_t function, const jjs_value_t *args_p, jjs_size_t args_count);
+                      jjs_size_t args_count,
+                      jjs_own_t args_o);
+jjs_value_t jjs_call_noargs (jjs_context_t* context_p,
+                             const jjs_value_t function);
+jjs_value_t jjs_call_this (jjs_context_t* context_p,
+                           const jjs_value_t function,
+                           const jjs_value_t this_value,
+                           jjs_own_t this_value_o,
+                           const jjs_value_t *args_p,
+                           jjs_size_t args_count,
+                           jjs_own_t args_o);
+jjs_value_t jjs_call_this_noargs (jjs_context_t* context_p,
+                                  const jjs_value_t function,
+                                  const jjs_value_t this_value,
+                                  jjs_own_t this_value_o);
+
+jjs_value_t jjs_construct (jjs_context_t* context_p,
+                           const jjs_value_t function,
+                           const jjs_value_t *args_p,
+                           jjs_size_t args_count,
+                           jjs_own_t args_o);
+jjs_value_t jjs_construct_noargs (jjs_context_t* context_p, const jjs_value_t function);
+
 /**
  * jjs-api-function-op @}
  */
@@ -1166,7 +1193,7 @@ jjs_value_t jjs_container_op (jjs_context_t* context_p,
  * @defgroup jjs-api-regexp-ctor Constructors
  * @{
  */
-jjs_value_t jjs_regexp (jjs_context_t* context_p, const jjs_value_t pattern, uint16_t flags);
+jjs_value_t jjs_regexp (jjs_context_t* context_p, const jjs_value_t pattern, jjs_own_t pattern_o, uint16_t flags);
 jjs_value_t jjs_regexp_sz (jjs_context_t* context_p, const char *pattern_p, uint16_t flags);
 /**
  * jjs-api-regexp-ctor @}
@@ -1185,8 +1212,17 @@ jjs_value_t jjs_regexp_sz (jjs_context_t* context_p, const char *pattern_p, uint
  * @defgroup jjs-api-error-ctor Constructors
  * @{
  */
-jjs_value_t jjs_error (jjs_context_t* context_p, jjs_error_t type, const jjs_value_t message, const jjs_value_t options);
-jjs_value_t jjs_error_sz (jjs_context_t* context_p, jjs_error_t type, const char *message_p, const jjs_value_t options);
+jjs_value_t jjs_error (jjs_context_t* context_p,
+                       jjs_error_t type,
+                       const jjs_value_t message,
+                       jjs_own_t message_o,
+                       const jjs_value_t options,
+                       jjs_own_t options_o);
+jjs_value_t jjs_error_sz (jjs_context_t* context_p,
+                          jjs_error_t type,
+                          const char *message_p,
+                          const jjs_value_t options,
+                          jjs_own_t options_o);
 /**
  * jjs-api-error-ctor @}
  */
@@ -1249,7 +1285,7 @@ jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t 
 jjs_value_t jjs_json_parse (jjs_context_t* context_p, const jjs_char_t *string_p, jjs_size_t string_size);
 jjs_value_t jjs_json_parse_sz (jjs_context_t* context_p, const char* string_p);
 jjs_value_t jjs_json_parse_file (jjs_context_t* context_p, jjs_value_t filename, jjs_own_t filename_o);
-jjs_value_t jjs_json_stringify (jjs_context_t* context_p, const jjs_value_t object);
+jjs_value_t jjs_json_stringify (jjs_context_t* context_p, const jjs_value_t value, jjs_own_t value_o);
 
 /**
  * jjs-api-json-op @}
@@ -1296,12 +1332,20 @@ jjs_value_t jjs_module_evaluate (jjs_context_t* context_p, const jjs_value_t mod
 jjs_value_t jjs_synthetic_module (jjs_context_t* context_p,
                                   jjs_synthetic_module_evaluate_cb_t callback,
                                   const jjs_value_t *const exports_p,
-                                  size_t export_count);
+                                  jjs_size_t export_count,
+                                  jjs_own_t exports_o);
 jjs_value_t
 jjs_synthetic_module_set_export (jjs_context_t* context_p,
                                  jjs_value_t module,
                                  const jjs_value_t export_name,
-                                 const jjs_value_t value);
+                                 const jjs_value_t value,
+                                 jjs_own_t value_o);
+jjs_value_t
+jjs_synthetic_module_set_export_sz (jjs_context_t* context_p,
+                                    jjs_value_t module,
+                                    const char *export_name,
+                                    const jjs_value_t value,
+                                    jjs_own_t value_o);
 
 /**
  * jjs-api-synthetic-module @}

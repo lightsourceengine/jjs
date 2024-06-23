@@ -83,7 +83,7 @@ construct_handler (const jjs_call_info_t *call_info_p, /**< call information */
       jjs_value_t sub_arg = jjs_number (ctx (), TEST_ID_SIMPLE_CALL);
       jjs_value_t func_call_result;
 
-      func_call_result = jjs_call (ctx (), call_info_p->function, call_info_p->this_value, &sub_arg, 1);
+      func_call_result = jjs_call_this (ctx (), call_info_p->function, call_info_p->this_value, JJS_KEEP, &sub_arg, 1, JJS_KEEP);
       TEST_ASSERT (!jjs_value_is_exception (ctx (), func_call_result));
       TEST_ASSERT (jjs_value_is_undefined (ctx (), func_call_result));
       break;
@@ -108,17 +108,15 @@ main (void)
 
   {
     jjs_value_t test_arg = jjs_number (ctx (), TEST_ID_SIMPLE_CONSTRUCT);
-    jjs_value_t constructed = jjs_construct (ctx (), demo_func, &test_arg, 1);
+    jjs_value_t constructed = jjs_construct (ctx (), demo_func, &test_arg, 1, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), constructed));
     TEST_ASSERT (jjs_value_is_object (ctx (), constructed));
-    jjs_value_free (ctx (), test_arg);
     jjs_value_free (ctx (), constructed);
   }
 
   {
     jjs_value_t test_arg = jjs_number (ctx (), TEST_ID_SIMPLE_CALL);
-    jjs_value_t this_arg = jjs_undefined (ctx ());
-    jjs_value_t constructed = jjs_call (ctx (), demo_func, this_arg, &test_arg, 1);
+    jjs_value_t constructed = jjs_call (ctx (), demo_func, &test_arg, 1, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_undefined (ctx (), constructed));
     jjs_value_free (ctx (), constructed);
     jjs_value_free (ctx (), constructed);
@@ -127,10 +125,9 @@ main (void)
 
   {
     jjs_value_t test_arg = jjs_number (ctx (), TEST_ID_CONSTRUCT_AND_CALL_SUB);
-    jjs_value_t constructed = jjs_construct (ctx (), demo_func, &test_arg, 1);
+    jjs_value_t constructed = jjs_construct (ctx (), demo_func, &test_arg, 1, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), constructed));
     TEST_ASSERT (jjs_value_is_object (ctx (), constructed));
-    jjs_value_free (ctx (), test_arg);
     jjs_value_free (ctx (), constructed);
   }
 

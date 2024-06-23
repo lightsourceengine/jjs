@@ -330,7 +330,7 @@ test_syntax_error (const char *script_p, /**< source code to run */
   }
 
   TEST_ASSERT (jjs_value_is_exception (ctx (), result_val));
-  result_val = jjs_exception_value (ctx (), result_val, true);
+  result_val = jjs_exception_value (ctx (), result_val, JJS_MOVE);
 
   jjs_value_t err_str_val = jjs_value_to_string (ctx (), result_val);
   jjs_size_t err_str_size = jjs_string_size (ctx (), err_str_val, JJS_ENCODING_CESU8);
@@ -394,7 +394,7 @@ main (void)
     /* Call foo (4, 2) */
     args[0] = jjs_number (ctx (), 4);
     args[1] = jjs_number (ctx (), 2);
-    res = jjs_call (ctx (), val_foo, jjs_undefined (ctx ()), args, 2);
+    res = jjs_call (ctx (), val_foo, args, 2, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_number (ctx (), res) && jjs_value_as_number (ctx (), res) == 1.0);
     jjs_value_free (ctx (), res);
@@ -405,7 +405,7 @@ main (void)
     TEST_ASSERT (jjs_value_is_object (ctx (), val_bar));
 
     /* Call bar (4, 2) */
-    res = jjs_call (ctx (), val_bar, jjs_undefined (ctx ()), args, 2);
+    res = jjs_call (ctx (), val_bar, args, 2, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_number (ctx (), res) && jjs_value_as_number (ctx (), res) == 5.0);
     jjs_value_free (ctx (), res);
@@ -420,7 +420,7 @@ main (void)
     jjs_value_free (ctx (), res);
 
     /* Call foo (4, 2) */
-    res = jjs_call (ctx (), val_foo, jjs_undefined (ctx ()), args, 2);
+    res = jjs_call (ctx (), val_foo, args, 2, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_string (ctx (), res));
     sz = jjs_string_size (ctx (), res, JJS_ENCODING_CESU8);
@@ -488,7 +488,7 @@ main (void)
     TEST_ASSERT (jjs_value_is_object (ctx (), val_a_foo));
 
     /* Call a.foo () */
-    res = jjs_call (ctx (), val_a_foo, val_a, NULL, 0);
+    res = jjs_call_this_noargs (ctx (), val_a_foo, val_a, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_number (ctx (), res) && jjs_value_as_number (ctx (), res) == 12.0);
     jjs_value_free (ctx (), res);
@@ -509,7 +509,7 @@ main (void)
     val_call_external = get_property (global_obj_val, "call_external");
     TEST_ASSERT (!jjs_value_is_exception (ctx (), val_call_external));
     TEST_ASSERT (jjs_value_is_object (ctx (), val_call_external));
-    res = jjs_call (ctx (), val_call_external, global_obj_val, NULL, 0);
+    res = jjs_call_this_noargs (ctx (), val_call_external, global_obj_val, JJS_KEEP);
     jjs_value_free (ctx (), val_call_external);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_string (ctx (), res));
@@ -531,7 +531,7 @@ main (void)
 
     /* Call external function created above, as constructor */
     args[0] = jjs_boolean (ctx (), true);
-    res = jjs_construct (ctx (), external_construct_val, args, 1);
+    res = jjs_construct (ctx (), external_construct_val, args, 1, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_object (ctx (), res));
     val_value_field = get_property (res, "value_field");
@@ -576,7 +576,7 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (ctx (), val_t));
     TEST_ASSERT (jjs_value_is_object (ctx (), val_t));
 
-    res = jjs_call (ctx (), val_t, global_obj_val, NULL, 0);
+    res = jjs_call_this_noargs (ctx (), val_t, global_obj_val, JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     jjs_value_free (ctx (), val_t);
     jjs_value_free (ctx (), res);
@@ -586,23 +586,23 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (ctx (), val_t));
     TEST_ASSERT (jjs_value_is_object (ctx (), val_t));
 
-    res = jjs_call (ctx (), val_t, global_obj_val, NULL, 0);
+    res = jjs_call_this_noargs (ctx (), val_t, global_obj_val, JJS_KEEP);
 
     TEST_ASSERT (jjs_value_is_exception (ctx (), res));
     jjs_value_free (ctx (), val_t);
 
     /* 'res' should contain exception object */
-    res = jjs_exception_value (ctx (), res, true);
+    res = jjs_exception_value (ctx (), res, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_object (ctx (), res));
     jjs_value_free (ctx (), res);
 
     /* Test: Call of non-function */
     obj_val = jjs_object (ctx ()) ;
-    res = jjs_call (ctx (), obj_val, global_obj_val, NULL, 0);
+    res = jjs_call_this_noargs (ctx (), obj_val, global_obj_val, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_exception (ctx (), res));
 
     /* 'res' should contain exception object */
-    res = jjs_exception_value (ctx (), res, true);
+    res = jjs_exception_value (ctx (), res, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_object (ctx (), res));
     jjs_value_free (ctx (), res);
 
@@ -613,22 +613,22 @@ main (void)
     TEST_ASSERT (!jjs_value_is_exception (ctx (), val_t));
     TEST_ASSERT (jjs_value_is_object (ctx (), val_t));
 
-    res = jjs_construct (ctx (), val_t, NULL, 0);
+    res = jjs_construct_noargs (ctx (), val_t);
     TEST_ASSERT (jjs_value_is_exception (ctx (), res));
     jjs_value_free (ctx (), val_t);
 
     /* 'res' should contain exception object */
-    res = jjs_exception_value (ctx (), res, true);
+    res = jjs_exception_value (ctx (), res, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_object (ctx (), res));
     jjs_value_free (ctx (), res);
 
     /* Test: Call of non-function as constructor */
     obj_val = jjs_object (ctx ()) ;
-    res = jjs_construct (ctx (), obj_val, NULL, 0);
+    res = jjs_construct_noargs (ctx (), obj_val);
     TEST_ASSERT (jjs_value_is_exception (ctx (), res));
 
     /* 'res' should contain exception object */
-    res = jjs_exception_value (ctx (), res, true);
+    res = jjs_exception_value (ctx (), res, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_object (ctx (), res));
     jjs_value_free (ctx (), res);
 
@@ -677,7 +677,7 @@ main (void)
     /* Test: jjs_object_proto */
     proto_val = jjs_object_proto (ctx (), jjs_undefined (ctx ()));
     TEST_ASSERT (jjs_value_is_exception (ctx (), proto_val));
-    jjs_value_t error = jjs_exception_value (ctx (), proto_val, true);
+    jjs_value_t error = jjs_exception_value (ctx (), proto_val, JJS_MOVE);
     TEST_ASSERT (jjs_error_type (ctx (), error) == JJS_ERROR_TYPE);
     jjs_value_free (ctx (), error);
 
@@ -761,7 +761,7 @@ main (void)
     TEST_ASSERT (jjs_value_is_object (ctx (), val_t));
     TEST_ASSERT (jjs_value_is_function (ctx (), val_t));
 
-    res = jjs_call (ctx (), val_t, jjs_undefined (ctx ()), NULL, 0);
+    res = jjs_call_this_noargs (ctx (), val_t, jjs_undefined (ctx ()), JJS_KEEP);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), res));
     TEST_ASSERT (jjs_value_is_number (ctx (), res) && jjs_value_as_number (ctx (), res) == 123.0);
     jjs_value_free (ctx (), res);
@@ -811,7 +811,7 @@ main (void)
 
     jjs_value_t func_args[3] = { jjs_number (ctx (), 4), jjs_number (ctx (), 6), jjs_number (ctx (), -2) };
 
-    val_t = jjs_call (ctx (), func_val, func_args[0], func_args, 3);
+    val_t = jjs_call_this (ctx (), func_val, func_args[0], JJS_KEEP, func_args, 3, JJS_KEEP);
     number_val = jjs_value_as_number (ctx (), val_t);
     TEST_ASSERT (number_val == 13.0);
 
@@ -842,14 +842,14 @@ main (void)
   {
     ctx_open (NULL);
     jjs_value_t num_val = jjs_number (ctx (), 123);
-    num_val = jjs_throw_value (ctx (), num_val, true);
+    num_val = jjs_throw_value (ctx (), num_val, JJS_MOVE);
     TEST_ASSERT (jjs_value_is_exception (ctx (), num_val));
-    jjs_value_t num2_val = jjs_exception_value (ctx (), num_val, false);
+    jjs_value_t num2_val = jjs_exception_value (ctx (), num_val, JJS_KEEP);
     TEST_ASSERT (jjs_value_is_exception (ctx (), num_val));
     TEST_ASSERT (!jjs_value_is_exception (ctx (), num2_val));
     double num = jjs_value_as_number (ctx (), num2_val);
     TEST_ASSERT (num == 123);
-    num2_val = jjs_exception_value (ctx (), num_val, true);
+    num2_val = jjs_exception_value (ctx (), num_val, JJS_MOVE);
     TEST_ASSERT (!jjs_value_is_exception (ctx (), num2_val));
     num = jjs_value_as_number (ctx (), num2_val);
     TEST_ASSERT (num == 123);
@@ -940,7 +940,7 @@ main (void)
       TEST_ASSERT (!jjs_value_is_exception (ctx (), parse_result));
       run_result = jjs_run (ctx (), parse_result, JJS_MOVE);
       TEST_ASSERT (jjs_value_is_exception (ctx (), run_result));
-      jjs_value_t error_value = jjs_exception_value (ctx (), run_result, false);
+      jjs_value_t error_value = jjs_exception_value (ctx (), run_result, JJS_KEEP);
       TEST_ASSERT (jjs_value_is_number (ctx (), error_value));
       TEST_ASSERT_DOUBLE_EQUALS(jjs_value_as_number (ctx (), error_value), 42.1);
       jjs_value_free (ctx (), error_value);

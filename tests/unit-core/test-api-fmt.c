@@ -129,10 +129,53 @@ test_fmt_logging (void)
   jjs_log_fmt (ctx (), JJS_LOG_LEVEL_TRACE, "{}{}{}{}\n", logging_values[0], logging_values[1], logging_values[2]);
 }
 
+static void
+test_fmt_throw (void)
+{
+  jjs_value_t expected_message = ctx_cstr ("test");
+
+  /* format and move values */
+  {
+    jjs_value_t hot_values[] = {
+      jjs_string_utf8_sz (ctx (), "t"),
+      jjs_string_utf8_sz (ctx (), "e"),
+      jjs_string_utf8_sz (ctx (), "s"),
+      jjs_string_utf8_sz (ctx (), "t"),
+    };
+
+    jjs_value_t ex =
+      jjs_fmt_throw (ctx (), JJS_ERROR_RANGE, "{}{}{}{}", hot_values, JJS_ARRAY_SIZE (hot_values), JJS_MOVE);
+    TEST_ASSERT (jjs_value_is_exception (ctx (), ex));
+    jjs_value_t ex_value = ctx_defer_free (jjs_exception_value (ctx (), ex, JJS_MOVE));
+    TEST_ASSERT (jjs_error_type (ctx (), ex_value) == JJS_ERROR_RANGE);
+    jjs_value_t message = ctx_defer_free (jjs_object_get_sz (ctx (), ex_value, "message"));
+    ctx_assert_strict_equals (message, expected_message);
+  }
+
+  /* format and retain values */
+  {
+    jjs_value_t values[] = {
+      ctx_cstr ("t"),
+      ctx_cstr ("e"),
+      ctx_cstr ("s"),
+      ctx_cstr ("t"),
+    };
+
+    jjs_value_t ex =
+      jjs_fmt_throw (ctx (), JJS_ERROR_RANGE, "{}{}{}{}", values, JJS_ARRAY_SIZE (values), JJS_KEEP);
+    TEST_ASSERT (jjs_value_is_exception (ctx (), ex));
+    jjs_value_t ex_value = ctx_defer_free (jjs_exception_value (ctx (), ex, JJS_MOVE));
+    TEST_ASSERT (jjs_error_type (ctx (), ex_value) == JJS_ERROR_RANGE);
+    jjs_value_t message = ctx_defer_free (jjs_object_get_sz (ctx (), ex_value, "message"));
+    ctx_assert_strict_equals (message, expected_message);
+  }
+}
+
 TEST_MAIN ({
   test_fmt_to_string ();
   test_fmt_to_buffer ();
   test_fmt_join ();
+  test_fmt_throw ();
 
   test_fmt_logging ();
 })
