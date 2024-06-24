@@ -39,7 +39,7 @@ check_namespace_int32 (jjs_value_t ns, const char* key, int32_t expected)
   ctx_defer_free (ns);
   if (jjs_value_is_exception (ctx (), ns))
   {
-    ;
+    jjs_log_fmt (ctx (), JJS_LOG_LEVEL_ERROR, "{}\n", ns);
   }
   TEST_ASSERT (!jjs_value_is_exception (ctx (), ns));
   TEST_ASSERT (strict_equals_int32 (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), ns, key)), expected));
@@ -68,21 +68,27 @@ check_exception (jjs_value_t value)
   TEST_ASSERT (jjs_value_is_exception (ctx (), value));
 } /* check_exception */
 
-/** common exception tests for jjs_esm_*_source() functions. */
-static void
-source_exceptions_impl (jjs_context_t *context_p, jjs_value_t fn (jjs_context_t *, const jjs_esm_source_t*, jjs_own_t))
+static jjs_value_t
+copy_to_buffer (jjs_value_t target, const jjs_char_t *data_p, jjs_size_t length)
 {
-  jjs_esm_source_t sources [] = {
-    jjs_esm_source_of_sz (TEST_SOURCE_PARSE_ERROR),
-    jjs_esm_source_of_sz (TEST_SOURCE_LINK_ERROR),
-    jjs_esm_source_of_sz (TEST_SOURCE_EVALUATE_ERROR),
-  };
-
-  for (size_t i = 0; i < JJS_ARRAY_SIZE (sources); i++)
+  if (jjs_value_is_typedarray (ctx (), target))
   {
-    check_exception (fn (context_p, &sources[i], JJS_MOVE));
+    jjs_size_t offset;
+    jjs_size_t buffer_length;
+    jjs_value_t buffer = jjs_typedarray_buffer (ctx (), target, &offset, &buffer_length);
+
+    TEST_ASSERT (buffer_length == length);
+    memcpy (jjs_arraybuffer_data (ctx (), buffer) + offset, data_p, length);
+    jjs_value_free (ctx (), buffer);
   }
-} /* source_exceptions_impl */
+  else
+  {
+    TEST_ASSERT (jjs_arraybuffer_size (ctx (), target) == length);
+    memcpy (jjs_arraybuffer_data (ctx (), target), data_p, length);
+  }
+
+  return target;
+} /* copy_to_buffer */
 
 static void
 test_esm_import_invalid_args (void)
@@ -161,179 +167,230 @@ test_esm_evaluate_absolute_path (void)
 static void
 test_esm_import_source (void)
 {
-  const char* source_p = "export default 5;";
-  jjs_esm_source_t sources [] = {
-    jjs_esm_source_of ((const jjs_char_t*) source_p, (jjs_size_t) strlen (source_p)),
-    jjs_esm_source_of_sz (source_p),
-    {
-      .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
-    },
-  };
+  const char *source_p = "export default 5;";
+  const jjs_char_t *source_bytes_p = (const jjs_char_t *) source_p;
+  jjs_size_t source_bytes_len = (jjs_size_t) strlen (source_p);
+  jjs_esm_source_options_t options;
 
-  size_t sources_size = JJS_ARRAY_SIZE (sources);
-  size_t i;
+  /* import source from buffer */
+  check_namespace_int32 (jjs_esm_import_source (ctx (), source_bytes_p, source_bytes_len, NULL), "default", 5);
+  options = jjs_esm_source_options ();
+  check_namespace_int32 (jjs_esm_import_source (ctx (), source_bytes_p, source_bytes_len, &options), "default", 5);
 
-  for (i = 0; i < sources_size; i++)
-  {
-    check_namespace_int32 (jjs_esm_import_source (ctx (), &sources[i], JJS_KEEP), "default", 5);
-  }
+  /* import source from C string */
+  check_namespace_int32 (jjs_esm_import_source_sz (ctx (), source_p, NULL), "default", 5);
+  options = jjs_esm_source_options ();
+  check_namespace_int32 (jjs_esm_import_source_sz (ctx (), source_p, &options), "default", 5);
 
-  for (i = 0; i < sources_size; i++)
-  {
-    check_namespace_int32 (jjs_esm_import_source (ctx (), &sources[i], JJS_MOVE), "default", 5);
-  }
+  /* import source from JS string value (JJS_MOVE) */
+  check_namespace_int32 (jjs_esm_import_source_value (ctx (), jjs_string_utf8_sz (ctx (), source_p), JJS_MOVE, NULL), "default", 5);
+  options = jjs_esm_source_options ();
+  check_namespace_int32 (jjs_esm_import_source_value (ctx (), jjs_string_utf8_sz (ctx (), source_p), JJS_MOVE, &options), "default", 5);
+
+  /* import source from JS string value (JJS_KEEP) */
+  check_namespace_int32 (jjs_esm_import_source_value (ctx (), ctx_cstr (source_p), JJS_KEEP, NULL), "default", 5);
+  options = jjs_esm_source_options ();
+  check_namespace_int32 (jjs_esm_import_source_value (ctx (), ctx_cstr(source_p), JJS_KEEP, &options), "default", 5);
+
+  /* import source from ArrayBuffer */
+  jjs_value_t arraybuffer = copy_to_buffer (jjs_arraybuffer (ctx (), source_bytes_len), source_bytes_p, source_bytes_len);
+  check_namespace_int32 (jjs_esm_import_source_value (ctx (), arraybuffer, JJS_MOVE, NULL), "default", 5);
+
+  /* import source from SharedArrayBuffer */
+  jjs_value_t shared_arraybuffer = copy_to_buffer (jjs_shared_arraybuffer (ctx (), source_bytes_len), source_bytes_p, source_bytes_len);
+  check_namespace_int32 (jjs_esm_import_source_value (ctx (), shared_arraybuffer, JJS_MOVE, NULL), "default", 5);
+
+  /* import source from TypedArray */
+  jjs_value_t typedarray = copy_to_buffer (jjs_typedarray(ctx (), JJS_TYPEDARRAY_UINT8, source_bytes_len), source_bytes_p, source_bytes_len);
+  check_namespace_int32 (jjs_esm_import_source_value (ctx (), typedarray, JJS_MOVE, NULL), "default", 5);
 } /* test_esm_import_source */
 
 static void
 test_esm_evaluate_source (void)
 {
   const char* source_p = "5";
+  const jjs_char_t *source_bytes_p = (const jjs_char_t *) source_p;
+  jjs_size_t source_bytes_len = (jjs_size_t) strlen (source_p);
+  jjs_esm_source_options_t options;
 
-  jjs_esm_source_t sources [] = {
-    jjs_esm_source_of_sz (source_p),
-    jjs_esm_source_of ((const jjs_char_t*) source_p, (jjs_size_t) strlen (source_p)),
-    {
-      .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
-    },
-  };
+  /* import source from buffer */
+  check_evaluate_int32 (jjs_esm_evaluate_source (ctx (), source_bytes_p, source_bytes_len, NULL), 5);
+  options = jjs_esm_source_options ();
+  check_evaluate_int32 (jjs_esm_evaluate_source (ctx (), source_bytes_p, source_bytes_len, &options), 5);
 
-  size_t sources_size = JJS_ARRAY_SIZE (sources);
-  size_t i;
+  /* import source from C string */
+  check_evaluate_int32 (jjs_esm_evaluate_source_sz (ctx (), source_p, NULL), 5);
+  options = jjs_esm_source_options ();
+  check_evaluate_int32 (jjs_esm_evaluate_source_sz (ctx (), source_p, &options), 5);
 
-  for (i = 0; i < sources_size; i++)
-  {
-    check_evaluate_int32 (jjs_esm_evaluate_source (ctx (), &sources[i], JJS_KEEP), 5);
-  }
+  /* import source from JS string value (JJS_MOVE) */
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (ctx (), jjs_string_utf8_sz (ctx (), source_p), JJS_MOVE, NULL), 5);
+  options = jjs_esm_source_options ();
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (ctx (), jjs_string_utf8_sz (ctx (), source_p), JJS_MOVE, &options), 5);
 
-  for (i = 0; i < sources_size; i++)
-  {
-    check_evaluate_int32 (jjs_esm_evaluate_source (ctx (), &sources[i], JJS_MOVE), 5);
-  }
+  /* import source from JS string value (JJS_KEEP) */
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (ctx (), ctx_cstr (source_p), JJS_KEEP, NULL), 5);
+  options = jjs_esm_source_options ();
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (ctx (), ctx_cstr(source_p), JJS_KEEP, &options), 5);
+
+  /* import source from ArrayBuffer */
+  jjs_value_t arraybuffer = copy_to_buffer (jjs_arraybuffer (ctx (), source_bytes_len), source_bytes_p, source_bytes_len);
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (ctx (), arraybuffer, JJS_MOVE, NULL), 5);
+
+  /* import source from SharedArrayBuffer */
+  jjs_value_t shared_arraybuffer = copy_to_buffer (jjs_shared_arraybuffer (ctx (), source_bytes_len), source_bytes_p, source_bytes_len);
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (ctx (), shared_arraybuffer, JJS_MOVE, NULL), 5);
+
+  /* import source from TypedArray */
+  jjs_value_t typedarray = copy_to_buffer (jjs_typedarray(ctx (), JJS_TYPEDARRAY_UINT8, source_bytes_len), source_bytes_p, source_bytes_len);
+  check_evaluate_int32 (jjs_esm_evaluate_source_value (ctx (), typedarray, JJS_MOVE, NULL), 5);
 } /* test_esm_evaluate_source */
 
 static void
-test_esm_import_source_exceptions (void)
+test_esm_source_parse_exceptions (void)
 {
-  source_exceptions_impl (ctx (), &jjs_esm_import_source);
-} /* test_esm_import_source_exceptions */
+  const char *bad_sources [] = {
+    TEST_SOURCE_PARSE_ERROR,
+    TEST_SOURCE_LINK_ERROR,
+    TEST_SOURCE_EVALUATE_ERROR,
+  };
+
+  for (size_t i = 0; i < JJS_ARRAY_SIZE (bad_sources); i++)
+  {
+    check_exception (jjs_esm_import_source_sz (ctx (), bad_sources[i], NULL));
+    check_exception (jjs_esm_import_source_value (ctx (), jjs_string_utf8_sz (ctx (), bad_sources[i]), JJS_MOVE, NULL));
+    check_exception (jjs_esm_import_source_value (ctx (), ctx_cstr (bad_sources[i]), JJS_KEEP, NULL));
+
+    check_exception (jjs_esm_evaluate_source_sz (ctx (), bad_sources[i], NULL));
+    check_exception (jjs_esm_evaluate_source_value (ctx (), jjs_string_utf8_sz (ctx (), bad_sources[i]), JJS_MOVE, NULL));
+    check_exception (jjs_esm_evaluate_source_value (ctx (), ctx_cstr (bad_sources[i]), JJS_KEEP, NULL));
+  }
+} /* test_esm_source_parse_exceptions */
 
 static void
-test_esm_evaluate_source_exceptions (void)
+test_esm_source_cache (void)
 {
-  source_exceptions_impl (ctx (), &jjs_esm_evaluate_source);
-} /* test_esm_evaluate_source_exceptions */
+  const char *source_p = "typeof globalThis;";
+  jjs_esm_source_options_t options;
+
+  /* open new context per test to clear the esm cache */
+
+  /* expect first source import to be cached */
+  ctx_open (NULL);
+
+  options = (jjs_esm_source_options_t) {
+    .cache = true,
+  };
+
+  check_ok (jjs_esm_import_source_sz (ctx (), source_p, &options));
+  check_exception (jjs_esm_import_source_sz (ctx (), source_p, &options));
+
+  ctx_close ();
+
+  /* expect first source import NOT to be cached */
+  ctx_open (NULL);
+
+  options = (jjs_esm_source_options_t) {
+    .cache = false,
+  };
+
+  check_ok (jjs_esm_import_source_sz (ctx (), source_p, &options));
+  check_ok (jjs_esm_import_source_sz (ctx (), source_p, &options));
+
+  ctx_close ();
+} /* test_esm_source_cache */
+
+static void
+test_esm_source_filename (void)
+{
+  const char *source_p = "import.meta.filename.substr(import.meta.dirname.length + 1 /* leading sep */)";
+
+  /* expect import.meta.filename to be <source> */
+  jjs_value_t filename = ctx_defer_free (jjs_esm_evaluate_source_sz (ctx (), source_p, NULL));
+  jjs_value_t expected_filename = ctx_cstr ("<source>");
+
+  ctx_assert_strict_equals (expected_filename, filename);
+
+  /* expect import.meta.filename to be overridden */
+  jjs_value_t test_filename = ctx_cstr ("test.js");
+  jjs_esm_source_options_t options = {
+    .filename = jjs_optional_value (test_filename),
+  };
+
+  filename = ctx_defer_free (jjs_esm_evaluate_source_sz (ctx (), source_p, &options));
+  ctx_assert_strict_equals (test_filename, filename);
+} /* test_esm_source_filename */
+
+static void
+test_esm_source_meta_extension (void)
+{
+  const char *source_p = "import.meta.extension";
+  jjs_value_t extension_value = ctx_cstr ("test");
+  jjs_esm_source_options_t options = {
+    .meta_extension = jjs_optional_value (extension_value),
+  };
+  jjs_value_t result = ctx_defer_free (jjs_esm_evaluate_source_sz (ctx (), source_p, &options));
+
+  ctx_assert_strict_equals (extension_value, result);
+} /* test_esm_source_filename */
 
 static void
 test_esm_source_validation (void)
 {
-  const char* source_p = "export default 10;";
+  check_exception (jjs_esm_import_source (ctx (), NULL, 0, NULL));
+  check_exception (jjs_esm_import_source (ctx (), NULL, 1, NULL));
+  check_exception (jjs_esm_import_source (ctx (), (const jjs_char_t *)"", 0, NULL));
 
-  jjs_esm_source_t sources [] = {
-    // Empty
-    jjs_esm_source (),
-    // source_value is not a string
-    {
-      .source_value = jjs_optional_value (jjs_object (ctx ())),
-    },
-    // source_value and source_buffer set
-    {
-      .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
-      .source_buffer_p = (const jjs_char_t*) source_p,
-      .source_buffer_size = (jjs_size_t) strlen (source_p),
-    },
-    // invalid filename
-    {
-      .source_buffer_p = (const jjs_char_t*) source_p,
-      .source_buffer_size = (jjs_size_t) strlen (source_p),
-      .filename = jjs_optional_value (jjs_number (ctx (), 1)),
-    },
-    // invalid dirname
-    {
-      .source_buffer_p = (const jjs_char_t*) source_p,
-      .source_buffer_size = (jjs_size_t) strlen (source_p),
-      .dirname = jjs_optional_value (jjs_number (ctx (), 1)),
-    },
-  };
-
-  const size_t sources_size = JJS_ARRAY_SIZE (sources);
-  size_t i;
-
-  for (i = 0; i < sources_size; i++)
-  {
-    jjs_esm_import_source (ctx (), &sources[i], JJS_KEEP);
-  }
-
-  for (i = 0; i < sources_size; i++)
-  {
-    jjs_esm_evaluate_source (ctx (), &sources[i], JJS_MOVE);
-  }
+  check_exception (jjs_esm_evaluate_source (ctx (), NULL, 0, NULL));
+  check_exception (jjs_esm_evaluate_source (ctx (), NULL, 1, NULL));
+  check_exception (jjs_esm_evaluate_source (ctx (), (const jjs_char_t *)"", 0, NULL));
 } /* test_esm_source_validation */
 
 static void
-test_esm_source (void)
+test_esm_source_options_disown (void)
 {
-  jjs_esm_source_t source;
+  jjs_esm_source_options_t options = jjs_esm_source_options ();
 
-  source = jjs_esm_source ();
-  jjs_esm_source_free_values (ctx (), &source);
+  /* expect NULL options are tolerated */
+  jjs_esm_source_options_disown (ctx (), NULL);
 
-  source = jjs_esm_source_of_sz (TEST_SOURCE_PARSE_ERROR);
-  TEST_ASSERT (source.source_buffer_p != NULL);
-  TEST_ASSERT (source.source_buffer_size > 0);
-  jjs_esm_source_free_values (ctx (), &source);
+  /* expect empty options are tolerated */
+  jjs_esm_source_options_disown (ctx (), &options);
 
-  source =
-    jjs_esm_source_of ((const jjs_char_t*) TEST_SOURCE_PARSE_ERROR, (jjs_size_t) strlen (TEST_SOURCE_PARSE_ERROR));
-  TEST_ASSERT (source.source_buffer_p != NULL);
-  TEST_ASSERT (source.source_buffer_size > 0);
-  jjs_esm_source_free_values (ctx (), &source);
-} /* test_esm_source */
-
-static void
-test_esm_source_free_values (void)
-{
-  const char* source_p = "export default 10;";
-  jjs_esm_source_t source;
-
-  source = (jjs_esm_source_t) {
-    .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
+  /* expect values to be freed */
+  options = (jjs_esm_source_options_t) {
+    .dirname = jjs_optional_value (jjs_string_utf8_sz (ctx (), "test")),
+    .dirname_o = JJS_MOVE,
+    .filename = jjs_optional_value (jjs_string_utf8_sz (ctx (), "test")),
+    .filename_o = JJS_MOVE,
+    .meta_extension = jjs_optional_value (jjs_string_utf8_sz (ctx (), "test")),
+    .meta_extension_o = JJS_MOVE,
   };
 
-  jjs_esm_source_free_values (ctx (), &source);
+  /* expect values NOT to be freed */
+  jjs_esm_source_options_disown (ctx (), &options);
 
-  source = jjs_esm_source_of_sz (source_p);
-  source.filename = jjs_optional_value (jjs_string_utf8_sz (ctx (), "filename"));
-
-  jjs_esm_source_free_values (ctx (), &source);
-
-  source = jjs_esm_source_of_sz (source_p);
-  source.dirname = jjs_optional_value (jjs_string_utf8_sz (ctx (), "dirname"));
-
-  jjs_esm_source_free_values (ctx (), &source);
-
-  source = jjs_esm_source_of_sz (source_p);
-  source.meta_extension = jjs_optional_value (jjs_object (ctx ()));
-
-  jjs_esm_source_free_values (ctx (), &source);
-
-  source = (jjs_esm_source_t) {
-    .source_value = jjs_optional_value (jjs_string_utf8_sz (ctx (), source_p)),
-    .filename = jjs_optional_value (jjs_string_utf8_sz (ctx (), "filename")),
-    .dirname = jjs_optional_value (jjs_string_utf8_sz (ctx (), "dirname")),
-    .meta_extension = jjs_optional_value (jjs_object (ctx ())),
+  options = (jjs_esm_source_options_t) {
+    .dirname = jjs_optional_value (ctx_cstr ("test")),
+    .filename = jjs_optional_value (ctx_cstr ("test")),
+    .meta_extension = jjs_optional_value (ctx_cstr ("test")),
   };
 
-  jjs_esm_source_free_values (ctx (), &source);
-} /* test_esm_source_free_values */
+  jjs_esm_source_options_disown (ctx (), &options);
+
+} /* test_esm_source_options_disown */
 
 int
 main (void)
 {
   ctx_open (NULL);
 
-  test_esm_source ();
-  test_esm_source_free_values ();
+  test_esm_source_options_disown ();
   test_esm_source_validation ();
+  test_esm_source_parse_exceptions ();
+  test_esm_source_cache ();
+  test_esm_source_filename ();
+  test_esm_source_meta_extension ();
 
   // jjs_esm_import*()
   test_esm_import_relative_path ();
@@ -347,11 +404,9 @@ main (void)
 
   // jjs_esm_import_source()
   test_esm_import_source ();
-  test_esm_import_source_exceptions ();
 
   // jjs_esm_evaluate_source()
   test_esm_evaluate_source ();
-  test_esm_evaluate_source_exceptions ();
 
   ctx_close ();
   return 0;

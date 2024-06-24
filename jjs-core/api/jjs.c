@@ -647,9 +647,10 @@ jjs_parse (jjs_context_t* context_p, /**< JJS context */
   jjs_value_t result;
 
 #if JJS_PARSER
-  parser_source_char_t source_char;
-  source_char.source_p = source_p;
-  source_char.source_size = source_size;
+  parser_source_char_t source_char = {
+    .source_p = source_p,
+    .source_size = source_size,
+  };
 
   result = jjs_parse_common (context_p, (void *) &source_char, options_p, JJS_PARSE_NO_OPTS);
 #else /* !JJS_PARSER */
@@ -700,6 +701,39 @@ jjs_parse_value (jjs_context_t* context_p, /**< JJS context */
   if (ecma_is_value_string (source))
   {
     result = jjs_parse_common (context_p, (void *) &source, options_p, ECMA_PARSE_HAS_SOURCE_VALUE);
+  }
+  else if (ecma_is_arraybuffer (context_p, source) || ecma_is_shared_arraybuffer (context_p, source))
+  {
+    parser_source_char_t source_char = {
+      .source_p = jjs_arraybuffer_data (context_p, source),
+      .source_size = jjs_arraybuffer_size (context_p, source),
+    };
+
+    /* arraybuffer pointers persist across gc runs, so passing the pointer to parse is ok */
+    result = jjs_parse_common (context_p, (void *) &source_char, options_p, JJS_PARSE_NO_OPTS);
+  }
+  else if (ecma_is_typedarray (context_p, source))
+  {
+    jjs_size_t offset;
+    jjs_size_t length;
+    jjs_value_t buffer = jjs_typedarray_buffer (context_p, source, &offset, &length);
+
+    if (jjs_value_is_exception (context_p, buffer))
+    {
+      result = buffer;
+    }
+    else
+    {
+      parser_source_char_t source_char = {
+        .source_p = jjs_arraybuffer_data (context_p, buffer) + offset,
+        .source_size = length,
+      };
+
+      /* arraybuffer pointers persist across gc runs, so passing the pointer to parse is ok */
+      result = jjs_parse_common (context_p, (void *) &source_char, options_p, JJS_PARSE_NO_OPTS);
+
+      jjs_value_free (context_p, buffer);
+    }
   }
   else
   {
@@ -2365,16 +2399,26 @@ jjs_error_sz (jjs_context_t* context_p, /**< JJS context */
  * If the options argument is an object containing a "cause" property, this cause property will be
  * copied to the new error object. Otherwise, the options argument is ignored.
  *
- * @param context_p JJS context
- * @param errors iterable value, like an Array or Set
- * @param message_p value to set as message
- * @param options optional options object containing "cause"
  * @return AggregateError object or exception if errors is not iterable
  */
-jjs_value_t jjs_aggregate_error (jjs_context_t* context_p, const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options) {
+jjs_value_t
+jjs_aggregate_error (jjs_context_t* context_p, /**< JJS context */
+                     const jjs_value_t errors, /**< iterable value, like an Array or Set */
+                     jjs_own_t errors_o, /**< errors value resource ownership */
+                     const jjs_value_t message, /**< value to set as message */
+                     jjs_own_t message_o, /**< message value resource ownership */
+                     const jjs_value_t options, /**< optional options object with "cause" property */
+                     jjs_own_t options_o) /**< errors value resource ownership */
+{
   jjs_assert_api_enabled (context_p);
 
-  return ecma_new_aggregate_error (context_p, errors, message, options);
+  jjs_value_t result = ecma_new_aggregate_error (context_p, errors, message, options);
+
+  jjs_disown_value (context_p, errors, errors_o);
+  jjs_disown_value (context_p, message, message_o);
+  jjs_disown_value (context_p, options, options_o);
+
+  return result;
 } /* jjs_aggregate_error */
 
 /**
@@ -2385,26 +2429,22 @@ jjs_value_t jjs_aggregate_error (jjs_context_t* context_p, const jjs_value_t err
  * If the options argument is an object containing a "cause" property, this cause property will be
  * copied to the new error object. Otherwise, the options argument is ignored.
  *
- * @param context_p JJS context
- * @param errors iterable value, like an Array or Set
- * @param message_p null terminated string message
- * @param options optional options object containing "cause"
  * @return AggregateError object or exception if errors is not iterable
  */
-jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t errors, const char *message_p, const jjs_value_t options) {
-  jjs_assert_api_enabled (context_p);
-
-  jjs_value_t message = ECMA_VALUE_UNDEFINED;
-
-  if (message_p != NULL)
-  {
-    message = jjs_string_sz (context_p, message_p);
-  }
-
-  ecma_value_t error = jjs_aggregate_error (context_p, errors, message, options);
-  ecma_free_value (context_p, message);
-
-  return error;
+jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, /**< JJS context */
+                                    const jjs_value_t errors, /**< iterable value, like an Array or Set */
+                                    jjs_own_t errors_o, /**< errors value resource ownership */
+                                    const char *message_p, /**< null-terminated message string */
+                                    const jjs_value_t options, /**< optional options object with "cause" property */
+                                    jjs_own_t options_o) /**< errors value resource ownership */
+{
+  return jjs_aggregate_error (context_p,
+                              errors,
+                              errors_o,
+                              message_p ? jjs_string_utf8_sz (context_p, message_p) : ECMA_VALUE_UNDEFINED,
+                              JJS_MOVE,
+                              options,
+                              options_o);
 } /* jjs_aggregate_error_sz */
 
 /**
@@ -2419,6 +2459,7 @@ jjs_throw (jjs_context_t* context_p, /**< JJS context */
            const jjs_value_t message, /**< message value */
            jjs_own_t message_o) /**< message value resource ownership */
 {
+  jjs_assert_api_enabled (context_p);
   return jjs_throw_value (context_p, jjs_error (context_p, error_type, message, message_o, ECMA_VALUE_UNDEFINED, JJS_KEEP), JJS_MOVE);
 } /* jjs_throw */
 

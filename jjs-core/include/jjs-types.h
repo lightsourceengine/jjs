@@ -390,44 +390,40 @@ typedef struct
 } jjs_parse_options_t;
 
 /**
- * Source code and configuration data of an in-memory ES module.
+ * Options for loading (parsing, linking and evaluating) ES modules from in-memory source.
  *
- * The source code is can be specified as a JS string value (source_value) or
- * a character buffer of a specified size (source_buffer_p + source_buffer_size).
- * Exactly one of these source code sources can be set or this object will fail validation.
+ * For in-memory modules to work with the ES module system, a referrer path and filename
+ * are required (for imports and caching). By default, the full path to an in-memory source
+ * module is "$CWD/<source>". The full path can be modified by changing dirname and filename
+ * in this structure. dirname MUST exist on the filesystem (for imports to work).
  *
- * The in-memory module is a module, so it needs a referrer path to support imports and
- * requires. dirname is used to specify this path. The path MUST exist on disk. If dirname
- * is not set, cwd will be used. The module will also need a filename for a possible
- * cache key, import.meta.filename and source name in stack traces. The filename does NOT
- * have to exist on disk. If filename is empty, <anonymous>.mjs will be used.
+ * By default this in-memory source will not be in the ESM cache. If cache is set to true,
+ * the module will be cached using the full path. You will receive an error if cache is
+ * true and another module uses the same full path (default full path can bite you). If
+ * not cached, other modules cannot import the in-memory source module.
  *
- * By default, this module will not be added to the internal esm cache and cannot be imported
- * by other modules. If the same source configuration was imported or evaluated twice, it
- * would run twice. However, if cache is true, the dirname + filename will be used as a cache
- * key. A subsequent attempt at loading the same source configuration OR the same cache key,
- * will result in an exception from the in-memory source loading functions.
+ * import.meta.extension is a non-standard JJS thing. It is an experimental way to get
+ * native bindings to ES modules. If meta_extension is set to something other than
+ * undefined, this will be the value meta_extension returns in JS.
  *
- * If meta_extension is set, then import.meta.extension for this module will return the
- * value of meta_extension. It's a mechanism to pass bindings or other native create JS
- * values to a module.
+ * This structure is used by jjs_esm_*_source_* family of functions.
  */
 typedef struct
 {
-  const jjs_char_t* source_buffer_p; /**< source code buffer; UTF8 encoded */
-  jjs_size_t source_buffer_size; /**< size, in bytes, of source_buffer_p */
+  jjs_optional_value_t filename; /**< simple filename of module. if not set, the default is "<source>" */
+  jjs_own_t filename_o; /**< filename resource ownership */
 
-  jjs_optional_value_t source_value; /**< source code as a JS value */
-
-  jjs_optional_value_t filename; /**< simple filename of module. if not set, <anonymous>.mjs */
   jjs_optional_value_t dirname; /**< fs dirname of the module. if not set, cwd. */
+  jjs_own_t dirname_o; /**< dirname resource ownership */
+
   jjs_optional_value_t meta_extension; /**< value of import.meta.extension. if not set, undefined */
+  jjs_own_t meta_extension_o;  /**< meta_extension resource ownership */
 
   jjs_optional_u32_t start_line; /**< start line of the source code. if not set, 0. */
   jjs_optional_u32_t start_column; /**< start column of the source code. if not set, 0. */
 
   bool cache; /**< if true, the module will be put in the esm cache using resolved dirname + filename as the key. default is false.*/
-} jjs_esm_source_t;
+} jjs_esm_source_options_t;
 
 /**
  * Description of ECMA property descriptor.

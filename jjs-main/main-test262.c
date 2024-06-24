@@ -274,13 +274,15 @@ main (int argc, char **argv)
 
   if (as_module)
   {
-    /* need to set up filename, dirname (uses cwd) and ensure cache is on. some tests import themselves. */
-    jjs_esm_source_t options = jjs_esm_source_of (source_buffer, (jjs_size_t) bytes_read);
-
-    options.filename = jjs_optional_value (jjs_string_sz (context_p, test_filename));
-    options.cache = true;
-
-    status = resolve_result_value (context_p, jjs_esm_evaluate_source (context_p, &options, JJS_MOVE), JJS_MOVE);
+    /* test262 test can import their own files. set their filename and include in esm cache so imports work. */
+    jjs_esm_source_options_t options = {
+      .cache = true,
+      .filename = jjs_optional_value (jjs_string_sz (context_p, test_filename)),
+      .filename_o = JJS_MOVE,
+    };
+    jjs_value_t result = jjs_esm_evaluate_source (context_p, source_buffer, (jjs_size_t) bytes_read, &options);
+    
+    status = resolve_result_value (context_p, result, JJS_MOVE);
   }
   else
   {

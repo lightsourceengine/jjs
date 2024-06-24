@@ -93,9 +93,9 @@ main (void)
 
   {
     /* ensure we get an uncaught error via jjs_run_jobs () if callback throws error */
-    jjs_esm_source_t source = jjs_esm_source_of_sz ("queueMicrotask(() => { throw new Error(); });");
+    const char *source_p = "queueMicrotask(() => { throw new Error(); });";
 
-    result = ctx_defer_free (jjs_esm_evaluate_source (ctx (), &source, JJS_MOVE));
+    result = ctx_defer_free (jjs_esm_evaluate_source_sz (ctx (), source_p, NULL));
     TEST_ASSERT (!jjs_value_is_exception (ctx (), result));
 
     run_pending_jobs (jjs_value_is_exception);

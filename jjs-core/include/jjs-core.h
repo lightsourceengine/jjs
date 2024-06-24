@@ -544,7 +544,8 @@ void *jjs_string_user_ptr (jjs_context_t* context_p, const jjs_value_t value, bo
  * @{
  */
 jjs_value_t jjs_string_substr (jjs_context_t* context_p, const jjs_value_t value, jjs_length_t start, jjs_length_t end);
-jjs_size_t jjs_string_to_buffer (jjs_context_t* context_p, const jjs_value_t value,
+jjs_size_t jjs_string_to_buffer (jjs_context_t* context_p,
+                                 const jjs_value_t value,
                                  jjs_encoding_t encoding,
                                  jjs_char_t *buffer_p,
                                  jjs_size_t buffer_size);
@@ -1258,8 +1259,19 @@ void jjs_error_on_created (jjs_context_t* context_p, jjs_error_object_created_cb
  * @defgroup jjs-api-aggregate-error-ctor Constructors
  * @{
  */
-jjs_value_t jjs_aggregate_error (jjs_context_t* context_p, const jjs_value_t errors, const jjs_value_t message, const jjs_value_t options);
-jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p, const jjs_value_t errors, const char *message_p, const jjs_value_t options);
+jjs_value_t jjs_aggregate_error (jjs_context_t* context_p,
+                                 const jjs_value_t errors,
+                                 jjs_own_t errors_o,
+                                 const jjs_value_t message,
+                                 jjs_own_t message_o,
+                                 const jjs_value_t options,
+                                 jjs_own_t options_o);
+jjs_value_t jjs_aggregate_error_sz (jjs_context_t* context_p,
+                                    const jjs_value_t errors,
+                                    jjs_own_t errors_o,
+                                    const char *message_p,
+                                    const jjs_value_t options,
+                                    jjs_own_t options_o);
 /**
  * jjs-api-aggregate-error--ctor @}
  */
@@ -1467,16 +1479,20 @@ jjs_value_t jjs_commonjs_require_sz (jjs_context_t* context_p, const char* speci
 
 jjs_value_t jjs_esm_import (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o);
 jjs_value_t jjs_esm_import_sz (jjs_context_t* context_p, const char* specifier_p);
-jjs_value_t jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_own_t source_values_o);
+
+jjs_value_t jjs_esm_import_source (jjs_context_t* context_p, const jjs_char_t *buffer_p, jjs_size_t buffer_size, const jjs_esm_source_options_t *options_p);
+jjs_value_t jjs_esm_import_source_sz (jjs_context_t* context_p, const char *source_p, const jjs_esm_source_options_t *options_p);
+jjs_value_t jjs_esm_import_source_value (jjs_context_t* context_p, jjs_value_t source, jjs_own_t source_o, const jjs_esm_source_options_t *options_p);
 
 jjs_value_t jjs_esm_evaluate (jjs_context_t* context_p, jjs_value_t specifier, jjs_own_t specifier_o);
 jjs_value_t jjs_esm_evaluate_sz (jjs_context_t* context_p, const char* specifier_p);
-jjs_value_t jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_esm_source_t* source_p, jjs_own_t source_values_o);
 
-jjs_esm_source_t jjs_esm_source (void);
-jjs_esm_source_t jjs_esm_source_of (const jjs_char_t *code_p, jjs_size_t len);
-jjs_esm_source_t jjs_esm_source_of_sz (const char* code_p);
-void jjs_esm_source_free_values (jjs_context_t* context_p, const jjs_esm_source_t* esm_source_p);
+jjs_value_t jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_char_t *buffer_p, jjs_size_t buffer_size, const jjs_esm_source_options_t *options_p);
+jjs_value_t jjs_esm_evaluate_source_sz (jjs_context_t* context_p, const char *source_p, const jjs_esm_source_options_t *options_p);
+jjs_value_t jjs_esm_evaluate_source_value (jjs_context_t* context_p, jjs_value_t source, jjs_own_t source_o, const jjs_esm_source_options_t *options_p);
+
+jjs_esm_source_options_t jjs_esm_source_options (void);
+void jjs_esm_source_options_disown (jjs_context_t *context_p, const jjs_esm_source_options_t* options_p);
 
 void jjs_esm_on_load (jjs_context_t* context_p, jjs_esm_load_cb_t callback_p, void *user_p);
 void jjs_esm_on_resolve (jjs_context_t* context_p, jjs_esm_resolve_cb_t callback_p, void *user_p);

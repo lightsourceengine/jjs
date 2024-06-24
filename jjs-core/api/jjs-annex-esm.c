@@ -50,7 +50,12 @@ static jjs_value_t esm_link_and_evaluate (jjs_context_t* context_p, jjs_value_t 
 static jjs_value_t user_value_to_path (jjs_context_t* context_p, jjs_value_t user_value);
 static jjs_value_t esm_link_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t referrer, void *user_p);
 static jjs_value_t
-esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o, esm_result_type_t result_type);
+esm_run_source (jjs_context_t* context_p,
+                const jjs_esm_source_options_t *options_p,
+                const jjs_char_t *source_p,
+                jjs_size_t source_size,
+                jjs_value_t source_value,
+                esm_result_type_t result_type);
 static void set_module_properties (jjs_context_t* context_p, jjs_value_t module, jjs_value_t filename, jjs_value_t url);
 #if JJS_ANNEX_COMMONJS
 static jjs_value_t commonjs_module_evaluate_cb (jjs_context_t* context_p, jjs_value_t native_module);
@@ -236,57 +241,6 @@ jjs_esm_default_on_resolve_cb (jjs_context_t* context_p, jjs_value_t specifier, 
 } /* jjs_esm_default_on_resolve_cb */
 
 /**
- * Create an empty jjs_esm_source_t object.
- */
-jjs_esm_source_t
-jjs_esm_source (void)
-{
-  return (jjs_esm_source_t) {0};
-} /* jjs_esm_source */
-
-/**
- * Create a jjs_esm_source_t object from a UTF8 encoded buffer of source code.
- */
-jjs_esm_source_t
-jjs_esm_source_of (const jjs_char_t *code_p, jjs_size_t len)
-{
-  return (jjs_esm_source_t) {
-    .source_buffer_p = code_p,
-    .source_buffer_size = len,
-  };
-} /* jjs_esm_source_of */
-
-/**
- * Create a jjs_esm_source_t object from a UTF8 encoded, null-terminated C
- * string of source code.
- */
-jjs_esm_source_t
-jjs_esm_source_of_sz (const char* code_p)
-{
-  return jjs_esm_source_of ((const jjs_char_t*) code_p, (jjs_size_t) strlen (code_p));
-} /* jjs_esm_source_of_sz */
-
-/**
- * Releases JS reference values inside a jjs_esm_source_t object.
- *
- * This function will zero out the memory of esm_source_p. Any
- * non-jjs_value_t, such as source code buffers, field cleanup
- * should be done before calling this function.
- *
- * @param context_p JJS context
- * @param esm_source_p source object
- */
-void
-jjs_esm_source_free_values (jjs_context_t* context_p, const jjs_esm_source_t *esm_source_p)
-{
-  JJS_ASSERT (esm_source_p != NULL);
-  jjs_value_free (context_p, jjs_optional_value_or_undefined (&esm_source_p->source_value));
-  jjs_value_free (context_p, jjs_optional_value_or_undefined (&esm_source_p->dirname));
-  jjs_value_free (context_p, jjs_optional_value_or_undefined (&esm_source_p->filename));
-  jjs_value_free (context_p, jjs_optional_value_or_undefined (&esm_source_p->meta_extension));
-} /* jjs_esm_source_free_values */
-
-/**
  * Import an ES module.
  *
  * The specifier can be a package name, relative path (qualified with
@@ -355,26 +309,70 @@ jjs_esm_import_sz (jjs_context_t* context_p, const char *specifier_p)
 } /* jjs_esm_import_sz */
 
 /**
- * import a module from in-memory source.
+ * Import a module from in-memory source.
  *
- * @param context_p JJS context
- * @param source_p UTF-8 encoded module source
- * @param source_len size of source_p in bytes (not encoded characters)
- * @param options_p configuration options for the new module
  * @return the namespace of the imported module or an exception on failure to import the
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_import_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o)
+jjs_esm_import_source (jjs_context_t* context_p, /**< JJS context */
+                       const jjs_char_t *buffer_p, /**< UTF8 encoded module source */
+                       jjs_size_t buffer_size, /**< size of buffer_p in bytes */
+                       const jjs_esm_source_options_t *options_p) /**< module load options */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+
 #if JJS_ANNEX_ESM
-  return esm_run_source (context_p, source_p, source_values_o, ESM_RUN_RESULT_NAMESPACE);
+  result = esm_run_source (context_p, options_p, buffer_p, buffer_size, ECMA_VALUE_EMPTY, ESM_RUN_RESULT_NAMESPACE);
 #else /* !JJS_ANNEX_ESM */
-  jjs_disown_source (context_p, source_p, source_values_o);
-  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (buffer_p, buffer_size);
+  result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
+
+  jjs_esm_source_options_disown (context_p, options_p);
+  return result;
 } /* jjs_esm_import_source */
+
+/**
+ * Import a module from in-memory source.
+ *
+ * @return the namespace of the imported module or an exception on failure to import the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t
+jjs_esm_import_source_sz (jjs_context_t* context_p, /**< JJS context */
+                          const char *source_p, /**< UTF8 encoded and null-terminated module source */
+                          const jjs_esm_source_options_t *options_p) /**< module load options */
+{
+  return jjs_esm_import_source (context_p, (const jjs_char_t *) source_p, (jjs_size_t) strlen (source_p), options_p);
+} /* jjs_esm_import_source_sz */
+
+/**
+ * Import a module from in-memory source.
+ *
+ * @return the namespace of the imported module or an exception on failure to import the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t
+jjs_esm_import_source_value (jjs_context_t* context_p, /**< JJS context */
+                             jjs_value_t source, /**< source value: string or buffer like */
+                             jjs_own_t source_o, /**< source value resource ownership */
+                             const jjs_esm_source_options_t *options_p) /**< module load options */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+
+#if JJS_ANNEX_ESM
+  result = esm_run_source (context_p, options_p, NULL, 0, source, ESM_RUN_RESULT_NAMESPACE);
+#else /* !JJS_ANNEX_ESM */
+  result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+#endif /* JJS_ANNEX_ESM */
+
+  jjs_disown_value (context_p, source, source_o);
+  jjs_esm_source_options_disown (context_p, options_p);
+  return result;
+} /* jjs_esm_import_source_value */
 
 /**
  * Evaluate an ES module.
@@ -443,26 +441,114 @@ jjs_esm_evaluate_sz (jjs_context_t* context_p, const char *specifier_p)
 } /* jjs_esm_evaluate_sz */
 
 /**
- * Evaluate a module from source.
+ * Evaluate a module from in-memory source.
  *
- * @param context_p JJS context
- * @param source_p UTF-8 encoded module source
- * @param source_len size of source_p in bytes (not encoded characters)
- * @param options_p configuration options for the new module
  * @return the evaluation result of the module or an exception on failure to evaluate the
  * module. the return value must be release with jjs_value_free
  */
 jjs_value_t
-jjs_esm_evaluate_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o)
+jjs_esm_evaluate_source (jjs_context_t* context_p, /**< JJS context */
+                         const jjs_char_t *buffer_p, /**< UTF-8 encoded module source */
+                         jjs_size_t buffer_size, /**< size of buffer_p in bytes */
+                         const jjs_esm_source_options_t *options_p) /**< module load options */
 {
   jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+
 #if JJS_ANNEX_ESM
-  return esm_run_source (context_p, source_p, source_values_o, ESM_RUN_RESULT_EVALUATE);
+  result = esm_run_source (context_p, options_p, buffer_p, buffer_size, ECMA_VALUE_EMPTY, ESM_RUN_RESULT_EVALUATE);
 #else /* !JJS_ANNEX_ESM */
-  jjs_disown_source (context_p, source_p, source_values_o);
-  return jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+  JJS_UNUSED_ALL (buffer_p, buffer_size);
+  result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
 #endif /* JJS_ANNEX_ESM */
+
+  jjs_esm_source_options_disown (context_p, options_p);
+
+  return result;
 } /* jjs_esm_evaluate_source */
+
+/**
+ * Evaluate a module from in-memory source.
+ *
+ * @return the evaluation result of the module or an exception on failure to evaluate the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t
+jjs_esm_evaluate_source_sz (jjs_context_t* context_p, /**< JJS context */
+                            const char *source_p, /**< module source code as a null-terminated string */
+                            const jjs_esm_source_options_t *options_p) /**< module load options */
+{
+  return jjs_esm_evaluate_source (context_p, (const jjs_char_t *) source_p, (jjs_size_t) strlen (source_p), options_p);
+} /* jjs_esm_evaluate_source_sz */
+
+/**
+ * Evaluate a module from in-memory source.
+ *
+ * @return the evaluation result of the module or an exception on failure to evaluate the
+ * module. the return value must be release with jjs_value_free
+ */
+jjs_value_t
+jjs_esm_evaluate_source_value (jjs_context_t* context_p, /**< JJS context */
+                               jjs_value_t source, /**< source value: string or buffer like */
+                               jjs_own_t source_o, /**< source value resource ownership */
+                               const jjs_esm_source_options_t *options_p) /**< module load options */
+{
+  jjs_assert_api_enabled (context_p);
+  jjs_value_t result;
+
+#if JJS_ANNEX_ESM
+  result = esm_run_source (context_p, options_p, NULL, 0, source, ESM_RUN_RESULT_EVALUATE);
+#else /* !JJS_ANNEX_ESM */
+  result = jjs_throw_sz (context_p, JJS_ERROR_TYPE, ecma_get_error_msg (ECMA_ERR_ESM_NOT_SUPPORTED));
+#endif /* JJS_ANNEX_ESM */
+
+  jjs_disown_value (context_p, source, source_o);
+  jjs_esm_source_options_disown (context_p, options_p);
+
+  return result;
+} /* jjs_esm_evaluate_source_value */
+
+/**
+ * Init an empty source options object.
+ *
+ * Note: this function is only for convenience. It is ok to use memset(0) or C's default struct
+ *       initialization on a jjs_esm_source_options_t object.
+ *
+ * @return empty object
+ */
+jjs_esm_source_options_t jjs_esm_source_options (void)
+{
+  return (jjs_esm_source_options_t) {0};
+} /* jjs_esm_source_options */
+
+/**
+ * Free all jjs_value_t values from an jjs_esm_source_options_t object.
+ *
+ * This function is exposed for narrow use cases. The jjs_esm_source family of functions
+ * will call this function for you on any jjs_esm_source_options_t passed to them.
+ */
+void jjs_esm_source_options_disown (jjs_context_t *context_p, /**< JJS context */
+                                    const jjs_esm_source_options_t* options_p) /**< options to clean up */
+{
+  jjs_assert_api_enabled (context_p);
+  if (options_p)
+  {
+    if (options_p->filename_o == JJS_MOVE && options_p->filename.has_value)
+    {
+      jjs_value_free (context_p, options_p->filename.value);
+    }
+
+    if (options_p->dirname_o == JJS_MOVE && options_p->dirname.has_value)
+    {
+      jjs_value_free (context_p, options_p->dirname.value);
+    }
+
+    if (options_p->meta_extension_o == JJS_MOVE && options_p->meta_extension.has_value)
+    {
+      jjs_value_free (context_p, options_p->meta_extension.value);
+    }
+  }
+} /* jjs_esm_source_options_disown */
 
 jjs_value_t
 jjs_esm_default_on_import_cb (jjs_context_t* context_p, jjs_value_t specifier, jjs_value_t user_value, void *user_p)
@@ -697,42 +783,27 @@ done:
   return result;
 } /* esm_link_and_evaluate */
 
+static jjs_esm_source_options_t DEFAULT_ESM_SOURCE_OPTIONS = {0};
+
 static jjs_value_t
-esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_own_t source_values_o, esm_result_type_t result_type)
+esm_run_source (jjs_context_t* context_p,
+                const jjs_esm_source_options_t *options_p,
+                const jjs_char_t *source_p,
+                jjs_size_t source_size,
+                jjs_value_t source_value,
+                esm_result_type_t result_type)
 {
-  if (source_p == NULL)
+  if (!options_p)
   {
-    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "source_p must not be NULL");
-  }
-  
-  bool has_source_value = source_p->source_value.has_value && jjs_value_is_string (context_p, source_p->source_value.value);
-  bool has_source_buffer = source_p->source_buffer_size != 0;
-  jjs_value_t validation;
-
-  if (has_source_buffer && has_source_value)
-  {
-    validation =
-      jjs_throw_sz (context_p,
-                    JJS_ERROR_TYPE,
-                    "source_p contains multiple sources. Use only one of source_value or source_buffer.");
-
-  }
-  else if (has_source_value || has_source_buffer)
-  {
-    validation = jjs_undefined (context_p);
-  }
-  else
-  {
-    validation = jjs_throw_sz (context_p, JJS_ERROR_TYPE, "source_p contains no sources");
+    options_p = &DEFAULT_ESM_SOURCE_OPTIONS;
   }
 
-  if (jjs_value_is_exception (context_p, validation))
-  {
-    jjs_disown_source (context_p, source_p, source_values_o);
-    return validation;
-  }
+  bool parse_from_source_buffer = ecma_is_value_empty (source_value);
 
-  jjs_value_free (context_p, validation);
+  if (parse_from_source_buffer && (source_p == NULL || source_size == 0))
+  {
+    return jjs_throw_sz (context_p, JJS_ERROR_TYPE, "source buffer is empty");
+  }
 
   ecma_value_t esm_cache = ecma_get_global_object (context_p)->esm_cache;
   jjs_parse_options_t parse_options;
@@ -741,7 +812,7 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
   jjs_value_t filename_value = ECMA_VALUE_UNDEFINED;
   jjs_value_t dirname_value;
 
-  dirname_value = esm_realpath_dirname (context_p, jjs_optional_value_or_undefined (&source_p->dirname));
+  dirname_value = esm_realpath_dirname (context_p, jjs_optional_value_or_undefined (&options_p->dirname));
 
   if (!jjs_value_is_string (context_p, dirname_value))
   {
@@ -749,7 +820,7 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
     goto after_parse;
   }
 
-  basename_value = esm_basename_or_default (context_p, jjs_optional_value_or_undefined (&source_p->filename));
+  basename_value = esm_basename_or_default (context_p, jjs_optional_value_or_undefined (&options_p->filename));
 
   if (!jjs_value_is_string (context_p, basename_value))
   {
@@ -773,19 +844,19 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
 
   parse_options = (jjs_parse_options_t){
     .parse_module = true,
-    .start_column = source_p->start_column,
-    .start_line = source_p->start_line,
+    .start_column = options_p->start_column,
+    .start_line = options_p->start_line,
     .user_value = jjs_optional_value (filename_value),
     .source_name = jjs_optional_value (basename_value),
   };
 
-  if (has_source_buffer)
+  if (parse_from_source_buffer)
   {
-    module = jjs_parse (context_p, source_p->source_buffer_p, source_p->source_buffer_size, &parse_options);
+    module = jjs_parse (context_p, source_p, source_size, &parse_options);
   }
   else
   {
-    module = jjs_parse_value (context_p, source_p->source_value.value, JJS_KEEP, &parse_options);
+    module = jjs_parse_value (context_p, source_value, JJS_KEEP, &parse_options);
   }
 
   if (!jjs_value_is_exception (context_p, module))
@@ -803,12 +874,12 @@ esm_run_source (jjs_context_t* context_p, const jjs_esm_source_t *source_p, jjs_
     ecma_set_m (context_p, module, LIT_MAGIC_STRING_URL, file_url);
     ecma_set_m (context_p, module, LIT_MAGIC_STRING_FILENAME, filename_value);
 
-    if (source_p->meta_extension.has_value)
+    if (options_p->meta_extension.has_value)
     {
-      ecma_set_m (context_p, module, LIT_MAGIC_STRING_EXTENSION, source_p->meta_extension.value);
+      ecma_set_m (context_p, module, LIT_MAGIC_STRING_EXTENSION, options_p->meta_extension.value);
     }
 
-    if (source_p->cache)
+    if (options_p->cache)
     {
       ecma_set_v (esm_cache, context_p, filename_value, module);
     }
@@ -820,8 +891,6 @@ after_parse:
   jjs_value_free (context_p, filename_value);
   jjs_value_free (context_p, basename_value);
   jjs_value_free (context_p, dirname_value);
-
-  jjs_disown_source (context_p, source_p, source_values_o);
 
   return esm_link_and_evaluate (context_p, module, true, result_type);
 } /* esm_run_source */
