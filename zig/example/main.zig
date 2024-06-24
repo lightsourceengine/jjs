@@ -42,7 +42,7 @@ pub fn main() anyerror!void {
     }
 
     // run the compiled byte code
-    const result = jjs.jjs_run(ctx, compiled);
+    const result = jjs.jjs_run(ctx, compiled, jjs.JJS_KEEP);
     defer jjs.jjs_value_free(ctx, result);
 
     if (jjs.jjs_value_is_exception(ctx, result)) {
