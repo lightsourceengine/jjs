@@ -19,6 +19,7 @@
 #include "ecma-big-uint.h"
 #include "ecma-bigint.h"
 #include "ecma-helpers.h"
+#include "ecma-helpers-number.h"
 
 #include "jcontext.h"
 
@@ -56,34 +57,6 @@ ecma_free_symbol_list (ecma_context_t *context_p, /**< JJS context */
     symbol_list_cp = next_item_cp;
   }
 } /* ecma_free_symbol_list */
-
-/**
- * Free string list
- */
-static void
-ecma_free_string_list (ecma_context_t *context_p, /**< JJS context */
-                       jmem_cpointer_t string_list_cp) /**< string list */
-{
-  while (string_list_cp != JMEM_CP_NULL)
-  {
-    ecma_lit_storage_item_t *string_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, string_list_cp);
-
-    for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
-    {
-      if (string_list_p->values[i] != JMEM_CP_NULL)
-      {
-        ecma_string_t *string_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_string_t, string_list_p->values[i]);
-
-        JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (string_p));
-        ecma_destroy_ecma_string (context_p, string_p);
-      }
-    }
-
-    jmem_cpointer_t next_item_cp = string_list_p->next_cp;
-    jmem_pools_free (context_p, string_list_p, sizeof (ecma_lit_storage_item_t));
-    string_list_cp = next_item_cp;
-  }
-} /* ecma_free_string_list */
 
 /**
  * Free number list
@@ -149,7 +122,8 @@ void
 ecma_finalize_lit_storage (ecma_context_t *context_p) /**< JJS context */
 {
   ecma_free_symbol_list (context_p, context_p->symbol_list_first_cp);
-  ecma_free_string_list (context_p, context_p->string_list_first_cp);
+  ecma_hash_set_audit_finalize (&context_p->string_literal_pool);
+  ecma_hashset_free (&context_p->string_literal_pool);
   ecma_free_number_list (context_p, context_p->number_list_first_cp);
 #if JJS_BUILTIN_BIGINT
   ecma_free_bigint_list (context_p, context_p->bigint_list_first_cp);
@@ -159,7 +133,18 @@ ecma_finalize_lit_storage (ecma_context_t *context_p) /**< JJS context */
 /**
  * Find or create a literal string.
  *
- * @return ecma_string_t compressed pointer
+ * This function is used during parsing source or loading snapshots to convert literal
+ * strings (function names, variable names, string constants, etc) to JS strings. During the
+ * process the same string will need to be converted. The function is backed by a global
+ * cache of converted string literals. This is done for performance to reduce object churn.
+ *
+ * Also, in the parser/scanner, the bookkeeping for managing the JS values can be a
+ * nightmare. The literal cache is global so the parser does not have to JS free the
+ * literals. The returned value of this function must not be freed. It will be freed
+ * when the poll is finalized (at context shutdown).
+ *
+ * @return ecma_value_t representing the string. the literal pool manages the reference,
+ * DO NOT CALL FREE on the returned value
  */
 ecma_value_t
 ecma_find_or_create_literal_string (ecma_context_t *context_p, /**< JJS context */
@@ -167,69 +152,67 @@ ecma_find_or_create_literal_string (ecma_context_t *context_p, /**< JJS context 
                                     lit_utf8_size_t size, /**< size of the string */
                                     bool is_ascii) /**< encode of the string */
 {
-  ecma_string_t *string_p =
-    (is_ascii ? ecma_new_ecma_string_from_ascii (context_p, chars_p, size) : ecma_new_ecma_string_from_utf8 (context_p, chars_p, size));
+  ecma_string_t *string_p = ecma_find_special_string (context_p, chars_p, size);
+  ecma_value_t value;
 
-  if (ECMA_IS_DIRECT_STRING (string_p))
+  if (string_p)
   {
-    return ecma_make_string_value (context_p, string_p);
-  }
+    value = ecma_make_string_value (context_p, string_p);
 
-  jmem_cpointer_t string_list_cp = context_p->string_list_first_cp;
-  jmem_cpointer_t *empty_cpointer_p = NULL;
-
-  while (string_list_cp != JMEM_CP_NULL)
-  {
-    ecma_lit_storage_item_t *string_list_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_lit_storage_item_t, string_list_cp);
-
-    for (int i = 0; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
+    /* direct strings do not need to be free'd, so they would clutter up the literal cache. */
+    if (ecma_is_value_direct_string (value))
     {
-      if (string_list_p->values[i] == JMEM_CP_NULL)
-      {
-        if (empty_cpointer_p == NULL)
-        {
-          empty_cpointer_p = string_list_p->values + i;
-        }
-      }
-      else
-      {
-        ecma_string_t *value_p = JMEM_CP_GET_NON_NULL_POINTER (context_p, ecma_string_t, string_list_p->values[i]);
-
-        if (ecma_compare_ecma_strings (string_p, value_p))
-        {
-          /* Return with string if found in the list. */
-          ecma_deref_ecma_string (context_p, string_p);
-          return ecma_make_string_value (context_p, value_p);
-        }
-      }
+      return value;
     }
 
-    string_list_cp = string_list_p->next_cp;
+    /*
+     * ecma_find_special_string will create a special value if the string is just
+     * number characters. If the parsed number is between ECMA_DIRECT_STRING_MAX_IMM
+     * and UINT_MAX, a non-direct special string is created. These need to be in the
+     * literal pool or there will be a leak.
+     *
+     * The hash of this special value != hash of the string characters. The ecma
+     * value, rather than the char hash, is required to check existence.
+     */
+
+    ecma_value_t existing = ecma_hashset_get (&context_p->string_literal_pool, value);
+
+    if (existing != ECMA_VALUE_NOT_FOUND)
+    {
+      ecma_deref_ecma_string (context_p, string_p);
+      return existing;
+    }
+
+    goto put;
   }
+
+  value = ecma_hashset_get_raw (&context_p->string_literal_pool, chars_p, size);
+
+  if (value != ECMA_VALUE_NOT_FOUND)
+  {
+    return value;
+  }
+
+  /* note: ecma_hashset_get_raw has computed the hash. these new functions will hash again. does not appear to be a big perf issue. */
+  string_p = (is_ascii ? ecma_new_ecma_string_from_ascii (context_p, chars_p, size) : ecma_new_ecma_string_from_utf8 (context_p, chars_p, size));
 
   ECMA_SET_STRING_AS_STATIC (string_p);
-  jmem_cpointer_t result;
-  JMEM_CP_SET_NON_NULL_POINTER (context_p, result, string_p);
+  value = ecma_make_string_value (context_p, string_p);
 
-  if (empty_cpointer_p != NULL)
+put:
+  /* transfer ownership of result to pool, not caller! */
   {
-    *empty_cpointer_p = result;
-    return ecma_make_string_value (context_p, string_p);
+    bool put_was_successful = ecma_hashset_put (&context_p->string_literal_pool, value, true);
+
+    JJS_ASSERT (put_was_successful);
+
+    if (!put_was_successful)
+    {
+      jjs_platform_fatal (context_p, JJS_FATAL_OUT_OF_MEMORY);
+    }
+
+    return value;
   }
-
-  ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
-
-  new_item_p->values[0] = result;
-  for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
-  {
-    new_item_p->values[i] = JMEM_CP_NULL;
-  }
-
-  new_item_p->next_cp = context_p->string_list_first_cp;
-  JMEM_CP_SET_NON_NULL_POINTER (context_p, context_p->string_list_first_cp, new_item_p);
-
-  return ecma_make_string_value (context_p, string_p);
 } /* ecma_find_or_create_literal_string */
 
 /**
@@ -241,14 +224,12 @@ ecma_value_t
 ecma_find_or_create_literal_number (ecma_context_t *context_p, /**< JJS context */
                                     ecma_number_t number_arg) /**< number to be searched */
 {
-  ecma_value_t num = ecma_make_number_value (context_p, number_arg);
+  ecma_integer_value_t int_num;
 
-  if (ecma_is_value_integer_number (num))
+  if (ecma_number_try_integer_cast (number_arg, &int_num))
   {
-    return num;
+    return ecma_make_int32_value (context_p, int_num);
   }
-
-  JJS_ASSERT (ecma_is_value_float_number (num));
 
   jmem_cpointer_t number_list_cp = context_p->number_list_first_cp;
   jmem_cpointer_t *empty_cpointer_p = NULL;
@@ -272,7 +253,6 @@ ecma_find_or_create_literal_number (ecma_context_t *context_p, /**< JJS context 
 
         if (*number_p == number_arg)
         {
-          ecma_free_value (context_p, num);
           return ecma_make_float_value (context_p, number_p);
         }
       }
@@ -281,6 +261,7 @@ ecma_find_or_create_literal_number (ecma_context_t *context_p, /**< JJS context 
     number_list_cp = number_list_p->next_cp;
   }
 
+  ecma_value_t num = ecma_make_number_value (context_p, number_arg);
   jmem_cpointer_t result;
   JMEM_CP_SET_NON_NULL_POINTER (context_p, result, ecma_get_pointer_from_float_value (context_p, num));
 

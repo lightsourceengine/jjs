@@ -296,7 +296,7 @@ ecma_new_ecma_string_from_utf8_buffer (ecma_context_t *context_p, /**< JJS conte
  * @return pointer to ecma string with the special representation
  *         NULL, if there is no special representation for the string
  */
-static ecma_string_t *
+ecma_string_t *
 ecma_find_special_string (ecma_context_t *context_p, /**< JJS context */
                           const lit_utf8_byte_t *string_p, /**< utf8 string */
                           lit_utf8_size_t string_size) /**< string size */
@@ -1678,7 +1678,7 @@ ecma_compare_ecma_strings_longpath (const ecma_string_t *string1_p, /**< ecma-st
     return false;
   }
 
-  return !memcmp ((char *) utf8_string1_p, (char *) utf8_string2_p, string1_size_and_length[0]);
+  return *utf8_string1_p == *utf8_string2_p && !memcmp ((char *) utf8_string1_p, (char *) utf8_string2_p, string1_size_and_length[0]);
 } /* ecma_compare_ecma_strings_longpath */
 
 /**

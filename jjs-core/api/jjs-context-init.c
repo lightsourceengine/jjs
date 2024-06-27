@@ -260,6 +260,7 @@ jjs_context_init (const jjs_context_options_t* options_p, const jjs_allocator_t 
 
   /* allocators */
   context_p->context_allocator = *allocator_p;
+  context_p->vm_allocator = jjs_util_vm_allocator (context_p);
   scratch_block_p = scratch_size_b > 0 ? block_p + (context_aligned_size_b + vm_heap_size_b) : NULL;
   context_set_scratch_allocator (context_p, scratch_block_p, scratch_size_b, options_p);
 

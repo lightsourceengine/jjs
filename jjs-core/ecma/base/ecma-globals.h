@@ -1400,6 +1400,27 @@ typedef struct
 } ecma_collection_t;
 
 /**
+ * Hashset node containing ecma values with the same hash value.
+ */
+typedef struct ecma_hashset_node_s
+{
+  ecma_value_t item; /**< ecma value representing this node. */
+  struct ecma_hashset_node_s *next_p; /**< next node */
+} ecma_hashset_node_t;
+
+/**
+ * String Hashset.
+ */
+typedef struct
+{
+  ecma_hashset_node_t *buckets; /**< all buckets. size is capacity. */
+  const jjs_allocator_t *allocator_p; /**< allocator for the buckets array */
+  jjs_size_t capacity; /**< number of buckets */
+  ecma_context_t *context_p; /**< JJS context */
+  jjs_size_t size; /**< number of items in the set */
+} ecma_hashset_t;
+
+/**
  * Initial capacity of an ecma-collection
  */
 #define ECMA_COLLECTION_INITIAL_CAPACITY 4

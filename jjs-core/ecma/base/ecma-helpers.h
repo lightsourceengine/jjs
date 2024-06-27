@@ -283,6 +283,7 @@ ecma_length_t ecma_op_advance_string_index (ecma_context_t *context_p, ecma_stri
 ecma_string_t *ecma_new_map_key_string (ecma_value_t value);
 bool ecma_prop_name_is_map_key (ecma_string_t *string_p);
 #endif /* JJS_BUILTIN_CONTAINER */
+ecma_string_t *ecma_find_special_string (ecma_context_t *context_p, const lit_utf8_byte_t *string_p, lit_utf8_size_t string_size);
 ecma_string_t *ecma_new_ecma_string_from_ascii (ecma_context_t *context_p, const lit_utf8_byte_t *string_p, lit_utf8_size_t string_size);
 ecma_string_t *ecma_new_ecma_string_from_utf8 (ecma_context_t *context_p, const lit_utf8_byte_t *string_p, lit_utf8_size_t string_size);
 ecma_string_t *ecma_new_ecma_string_from_utf16 (ecma_context_t *context_p, const ecma_char_t *string_p, lit_utf8_size_t string_size);
@@ -413,6 +414,14 @@ ecma_value_t *ecma_compact_collection_shrink (ecma_context_t *context_p, ecma_va
 void ecma_compact_collection_free (ecma_context_t *context_p, ecma_value_t *compact_collection_p);
 ecma_value_t *ecma_compact_collection_end (ecma_value_t *compact_collection_p);
 void ecma_compact_collection_destroy (ecma_context_t *context_p, ecma_value_t *compact_collection_p);
+
+/* string hashset */
+bool ecma_hashset_init (ecma_hashset_t *self, ecma_context_t *context_p, const jjs_allocator_t *allocator_p, jjs_size_t capacity);
+void ecma_hashset_free (ecma_hashset_t* self);
+void ecma_hash_set_audit_finalize (ecma_hashset_t *self);
+ecma_value_t ecma_hashset_get (ecma_hashset_t *self, ecma_value_t key);
+ecma_value_t ecma_hashset_get_raw (ecma_hashset_t *self, const lit_utf8_byte_t *key_p, lit_utf8_size_t key_size);
+bool ecma_hashset_put (ecma_hashset_t *self, ecma_value_t string_value, bool move_string_value);
 
 /* ecma-helpers.c */
 ecma_object_t *ecma_create_object (ecma_context_t *context_p, ecma_object_t *prototype_object_p, size_t ext_object_size, ecma_object_type_t type);

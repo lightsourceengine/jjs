@@ -205,14 +205,14 @@ static void*
 jjs_util_vm_allocator_alloc (void *internal_p, uint32_t size)
 {
   JJS_ASSERT (internal_p);
-  return jjs_heap_alloc (internal_p, size);
+  return jmem_heap_alloc_block_null_on_error (internal_p, size);
 }
 
 static void
 jjs_util_vm_allocator_free (void *internal_p, void* p, uint32_t size)
 {
   JJS_ASSERT (internal_p);
-  jjs_heap_free (internal_p, p, size);
+  jmem_heap_free_block (internal_p, p, size);
 }
 
 jjs_allocator_t

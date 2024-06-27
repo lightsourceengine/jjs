@@ -104,6 +104,7 @@ struct jjs_context_t
 
   uint32_t context_flags; /**< context flags */
   jjs_allocator_t context_allocator; /**< allocator that created this context, scratch and vm heap. stored for cleanup only. */
+  jjs_allocator_t vm_allocator; /**< vm allocator associated with the context */
   jjs_size_t context_block_size_b; /**< size of context allocation. used to free context. */
 
   ecma_global_object_t *global_object_p; /**< current global object */
@@ -142,14 +143,13 @@ struct jjs_context_t
   const lit_utf8_byte_t *const *lit_magic_string_ex_array; /**< array of external magic strings */
   const lit_utf8_size_t *lit_magic_string_ex_sizes; /**< external magic string lengths */
   jmem_cpointer_t ecma_gc_objects_cp; /**< List of currently alive objects. */
-  jmem_cpointer_t string_list_first_cp; /**< first item of the literal string list */
   jmem_cpointer_t symbol_list_first_cp; /**< first item of the global symbol list */
   jmem_cpointer_t number_list_first_cp; /**< first item of the literal number list */
 #if JJS_BUILTIN_BIGINT
   jmem_cpointer_t bigint_list_first_cp; /**< first item of the literal bigint list */
 #endif /* JJS_BUILTIN_BIGINT */
   jmem_cpointer_t global_symbols_cp[ECMA_BUILTIN_GLOBAL_SYMBOL_COUNT]; /**< global symbols */
-
+  ecma_hashset_t string_literal_pool; /**< string literal cache used during parsing and snapshot loading */
 #if JJS_MODULE_SYSTEM
   ecma_module_t *module_current_p; /**< current module context */
   ecma_module_on_init_scope_cb module_on_init_scope_p; /**< callback which is called on initialization

@@ -37,11 +37,28 @@
 #define JJS_GC_LOOP_LIMIT 100
 
 /**
+ * Initial capacity of the string literal pool.
+ */
+#define ECMA_STRING_LITERAL_POOL_SIZE (117)
+
+/**
  * Initialize ECMA components
  */
 void
 ecma_init (ecma_context_t *context_p)
 {
+  bool hashset_init = ecma_hashset_init (&context_p->string_literal_pool,
+                                         context_p,
+                               &context_p->vm_allocator,
+                                 ECMA_STRING_LITERAL_POOL_SIZE);
+
+  JJS_ASSERT (hashset_init);
+
+  if (!hashset_init)
+  {
+    jjs_fatal (JJS_FATAL_OUT_OF_MEMORY);
+  }
+
   if (context_p->gc_mark_limit != 0)
   {
     context_p->ecma_gc_mark_recursion_limit = context_p->gc_mark_limit;
