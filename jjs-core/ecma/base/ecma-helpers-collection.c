@@ -642,6 +642,8 @@ ecma_hash_set_audit_finalize (ecma_hashset_t *self) /**< this hashset */
       }
     }
   }
+#else /* JJS_NDEBUG */
+  (void) self;
 #endif /* !JJS_NDEBUG */
 } /* ecma_hash_set_audit_finalize */
 
