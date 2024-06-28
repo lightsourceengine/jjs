@@ -490,7 +490,7 @@ ecma_hashset_respec (ecma_hashset_t *self)
   }
   else
   {
-    new_capacity *= ECMA_HASHSET_GROW_BY;
+    new_capacity = self->capacity * ECMA_HASHSET_GROW_BY;
   }
 
   if (!ecma_hashset_init (&new_hashset,

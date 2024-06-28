@@ -24,7 +24,7 @@ COMMON_BUILDOPTIONS=--clean,--lto=OFF,--mem-stress-test=ON
 CPOINTER16=${COMMON_BUILDOPTIONS},--cpointer-32bit=OFF
 CPOINTER32=${COMMON_BUILDOPTIONS},--cpointer-32bit=ON
 
-./tools/run-tests.py -q --jjs-cli-tests --buildoptions=${COMMON_BUILDOPTIONS},--mem-stress-test=OFF,${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}
+./tools/run-tests.py -q --jjs-cli-tests ${BUILD_TYPE} --buildoptions=${COMMON_BUILDOPTIONS},--mem-stress-test=OFF,${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}
 
 #./tools/run-tests.py -q --unittests ${BUILD_TYPE} --buildoptions=${CPOINTER16},${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}
 ./tools/run-tests.py -q --unittests ${BUILD_TYPE} --buildoptions=${CPOINTER32},${SANITIZER_BUILDOPTIONS} ${EXTRA_BUILDOPTIONS}
