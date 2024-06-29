@@ -33,6 +33,9 @@
 #include <unistd.h>
 #endif
 
+#define IMCL_IMPLEMENTATION
+#include "imcl.h"
+
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
 #define READ_COMMON_OPTION_ERROR (-1)
@@ -76,12 +79,14 @@ typedef struct
 
 typedef struct
 {
+  imcl_state_t imcl;
+  const char *cwd;
   jjs_context_options_t context_options;
   const char *pmap_filename;
   const char *cwd_filename;
   int32_t log_level;
   bool has_log_level;
-} cli_common_options_t;
+} cli_state_t;
 
 static void
 stdout_wstream_write (jjs_context_t* context_p, const jjs_wstream_t *stream, const uint8_t *data, jjs_size_t size)
@@ -348,35 +353,6 @@ cli_execution_plan_run (cli_execution_plan_t *plan, jjs_context_t* context_p)
   return true;
 }
 
-static cli_js_loader_t
-cli_js_loader_from_string (const char *value)
-{
-  if (strcmp (value, "module") == 0)
-  {
-    return CLI_JS_LOADER_MODULE;
-  }
-  else if (strcmp (value, "commonjs") == 0)
-  {
-    return CLI_JS_LOADER_COMMONJS;
-  }
-  else if (strcmp (value, "strict") == 0)
-  {
-    return CLI_JS_LOADER_STRICT;
-  }
-  else if (strcmp (value, "sloppy") == 0)
-  {
-    return CLI_JS_LOADER_SLOPPY;
-  }
-  else if (strcmp (value, "snapshot") == 0)
-  {
-    return CLI_JS_LOADER_SNAPSHOT;
-  }
-  else
-  {
-    return CLI_JS_LOADER_UNKNOWN;
-  }
-}
-
 static bool
 set_cwd (const char *cwd)
 {
@@ -601,11 +577,13 @@ cleanup_engine (jjs_context_t *context_p)
 }
 
 static jjs_context_t*
-init_engine (const cli_common_options_t *options)
+init_engine (const cli_state_t *state)
 {
   jjs_context_t *context_p = NULL;
 
-  if (jjs_context_new (&options->context_options, &context_p) != JJS_STATUS_OK)
+  srand ((unsigned) time (NULL));
+
+  if (jjs_context_new (&state->context_options, &context_p) != JJS_STATUS_OK)
   {
     return NULL;
   }
@@ -616,14 +594,14 @@ init_engine (const cli_common_options_t *options)
   jjs_pack_init (context_p, JJS_PACK_INIT_ALL);
 #endif /* defined (JJS_PACK) && JJS_PACK */
 
-  if (options->has_log_level)
+  if (state->has_log_level)
   {
-    jjs_log_set_level (context_p, (jjs_log_level_t) options->log_level);
+    jjs_log_set_level (context_p, (jjs_log_level_t) state->log_level);
   }
 
-  if (options->pmap_filename)
+  if (state->pmap_filename)
   {
-    jjs_value_t result = jjs_pmap (context_p, jjs_string_sz (context_p, options->pmap_filename), JJS_MOVE, jjs_undefined (context_p), JJS_MOVE);
+    jjs_value_t result = jjs_pmap (context_p, jjs_string_sz (context_p, state->pmap_filename), JJS_MOVE, jjs_undefined (context_p), JJS_MOVE);
 
     if (jjs_value_is_exception (context_p, result))
     {
@@ -819,140 +797,77 @@ process_async_asserts (jjs_context_t* context_p)
 }
 
 static bool
-read_int32 (const char *str, int32_t *out)
+shift_common_option (cli_state_t *state)
 {
-  char *endptr;
-  long value = strtol (str, &endptr, 10);
-
-  if (*endptr != '\0' || value > INT32_MAX)
+  if (imcl_state_shift_if_option (&state->imcl, NULL, "--cwd"))
+  {
+    state->cwd = imcl_state_shift (&state->imcl);
+  }
+  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--pmap"))
+  {
+    state->pmap_filename = imcl_state_shift (&state->imcl);
+  }
+  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--mem-stats"))
+  {
+    state->context_options.enable_mem_stats = true;
+  }
+  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--show-opcodes"))
+  {
+    state->context_options.show_op_codes = true;
+  }
+  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--show-regexp-opcodes"))
+  {
+    state->context_options.show_regexp_op_codes = true;
+  }
+  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--log-level"))
+  {
+    state->log_level = imcl_state_shift_ranged_int (&state->imcl, 0, 3);
+    state->has_log_level = true;
+  }
+  else
   {
     return false;
   }
 
-  *out = (int32_t) value;
-
   return true;
 }
 
-static int
-read_common_option (cli_common_options_t *options, int index, int argc, char **argv)
+static cli_js_loader_t
+loader_enum_from_string (const char *value)
 {
-  int offset = 0;
-  const char *current = index + offset < argc ? argv[index + offset] : "";
-  const char *next = (index + offset + 1) < argc ? argv[index + offset + 1] : NULL;
-
-  if (strcmp ("--mem-stats", current) == 0)
+  if (strcmp ("module", value) == 0)
   {
-    options->context_options.enable_mem_stats = true;
+    return CLI_JS_LOADER_MODULE;
   }
-  else if (strcmp ("--show-opcodes", current) == 0)
+  else if (strcmp ("commonjs", value) == 0)
   {
-    options->context_options.show_op_codes = true;
+    return CLI_JS_LOADER_COMMONJS;
   }
-  else if (strcmp ("--show-regexp-opcodes", current) == 0)
+  else if (strcmp ("snapshot", value) == 0)
   {
-    options->context_options.show_regexp_op_codes = true;
+    return CLI_JS_LOADER_SNAPSHOT;
   }
-  else if (strcmp ("--pmap", current) == 0)
+  else if (strcmp ("sloppy", value) == 0)
   {
-    if (next)
-    {
-      options->pmap_filename = next;
-      offset++;
-    }
-    else
-    {
-      printf ("--pmap arg missing FILE\n");
-      return READ_COMMON_OPTION_ERROR;
-    }
+    return CLI_JS_LOADER_SLOPPY;
   }
-  else if (strcmp ("--cwd", current) == 0)
+  else if (strcmp ("strict", value) == 0)
   {
-    if (next)
-    {
-      options->cwd_filename = next;
-      offset++;
-    }
-    else
-    {
-      printf ("--cwd arg missing FILE\n");
-      return READ_COMMON_OPTION_ERROR;
-    }
-  }
-  else if (strcmp ("--log-level", current) == 0)
-  {
-    if (next)
-    {
-      int32_t value;
-
-      if (read_int32 (next, &value) && value >= 0 && value <= 3)
-      {
-        options->log_level = value;
-        options->has_log_level = true;
-        offset++;
-      }
-      else
-      {
-        printf ("--log-level expects a number [0,3] got %s\n", next);
-        return READ_COMMON_OPTION_ERROR;
-      }
-    }
-    else
-    {
-      printf ("--log-level arg missing FILE\n");
-      return READ_COMMON_OPTION_ERROR;
-    }
-  }
-  else
-  {
-    return READ_COMMON_OPTION_NO_ARGS;
+    return CLI_JS_LOADER_STRICT;
   }
 
-  offset++;
-
-  return offset;
+  return CLI_JS_LOADER_UNKNOWN;
 }
 
 static int
-repl (int argc, char **argv)
+repl (cli_state_t *state)
 {
-  int i = 0;
-  cli_common_options_t options = { 0 };
-
-  while (i < argc)
-  {
-    if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "--help") == 0)
-    {
-      print_command_help ("repl");
-      return EXIT_SUCCESS;
-    }
-    else
-    {
-      int offset = read_common_option (&options, i, argc, argv);
-
-      if (offset == READ_COMMON_OPTION_ERROR)
-      {
-        return EXIT_FAILURE;
-      }
-      else if (offset == READ_COMMON_OPTION_NO_ARGS)
-      {
-        break;
-      }
-      else if (offset > 1)
-      {
-        i += (offset - 1);
-      }
-    }
-
-    i++;
-  }
-
-  if (!set_cwd (options.cwd_filename))
+  if (!set_cwd (state->cwd))
   {
     return EXIT_FAILURE;
   }
 
-  jjs_context_t *context_p = init_engine (&options);
+  jjs_context_t *context_p = init_engine (state);
 
   if (context_p == NULL)
   {
@@ -982,7 +897,7 @@ repl (int argc, char **argv)
       continue;
     }
 
-    if (memcmp ((const char *) line_p, ".exit", strlen (".exit")) == 0)
+    if (memcmp ((const char *) line_p, ".exit", sizeof (".exit")) == 0)
     {
       free (line_p);
       break;
@@ -1041,156 +956,27 @@ done:
 }
 
 static int
-run (int argc, char **argv)
+run (cli_state_t *state, cli_execution_plan_t *plan)
 {
-  cli_js_loader_t main_loader = CLI_JS_LOADER_MODULE;
-  int i = 0;
-  int exit_code = EXIT_SUCCESS;
-  cli_execution_plan_t plan;
-  cli_common_options_t options = { 0 };
+  int exit_code = 0;
 
-  cli_execution_plan_init (&plan);
-
-  while (i < argc)
-  {
-    const char *next = i + 1 < argc ? argv[i + 1] : NULL;
-
-    if (strcmp (argv[i], "--loader") == 0)
-    {
-      if (i + 1 < argc)
-      {
-        main_loader = cli_js_loader_from_string (argv[++i]);
-      }
-      else
-      {
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-    }
-    else if (strcmp (argv[i], "--require") == 0)
-    {
-      if (next)
-      {
-        cli_execution_plan_push (&plan, next, CLI_JS_LOADER_COMMONJS);
-        i++;
-      }
-      else
-      {
-        printf ("--require arg missing FILE\n");
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-    }
-    else if (strcmp (argv[i], "--import") == 0)
-    {
-      if (next)
-      {
-        cli_execution_plan_push (&plan, next, CLI_JS_LOADER_MODULE);
-        i++;
-      }
-      else
-      {
-        printf ("--import arg missing FILE\n");
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-    }
-    else if (strcmp (argv[i], "--preload") == 0 || strcmp (argv[i], "--preload-strict") == 0)
-    {
-      if (next)
-      {
-        cli_execution_plan_push (&plan, next, CLI_JS_LOADER_STRICT);
-        i++;
-      }
-      else
-      {
-        printf ("--preload arg missing FILE\n");
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-    }
-    else if (strcmp (argv[i], "--preload-sloppy") == 0)
-    {
-      if (next)
-      {
-        cli_execution_plan_push (&plan, next, CLI_JS_LOADER_SLOPPY);
-        i++;
-      }
-      else
-      {
-        printf ("--preload-sloppy arg missing FILE\n");
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-    }
-    else if (strcmp (argv[i], "--preload-snapshot") == 0)
-    {
-      if (next)
-      {
-        cli_execution_plan_push (&plan, next, CLI_JS_LOADER_SNAPSHOT);
-        i++;
-      }
-      else
-      {
-        printf ("--preload-snapshot arg missing FILE\n");
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-    }
-    else if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "--help") == 0)
-    {
-      print_command_help ("run");
-      goto done;
-    }
-    else
-    {
-      int offset = read_common_option (&options, i, argc, argv);
-
-      if (offset == READ_COMMON_OPTION_ERROR)
-      {
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-      else if (offset == READ_COMMON_OPTION_NO_ARGS)
-      {
-        if (i == argc - 1)
-        {
-          cli_execution_plan_push (&plan, argv[i], main_loader);
-          break;
-        }
-        else
-        {
-          printf ("FILE must be the last arg of run.\n");
-          exit_code = EXIT_FAILURE;
-          goto done;
-        }
-      }
-      else if (offset > 1)
-      {
-        i += (offset - 1);
-      }
-    }
-
-    i++;
-  }
-
-  if (plan.size == 0)
+  if (plan->size == 0)
   {
     exit_code = EXIT_FAILURE;
     goto done;
   }
 
-  if (!set_cwd (options.cwd_filename))
+  if (!set_cwd (state->cwd))
   {
     exit_code = EXIT_FAILURE;
     goto done;
   }
 
-  jjs_context_t *context_p = init_engine (&options);
+  jjs_context_t *context_p = init_engine (state);
 
   if (context_p)
   {
-    exit_code = cli_execution_plan_run (&plan, context_p) ? 0 : 1;
+    exit_code = cli_execution_plan_run (plan, context_p) ? 0 : 1;
     cleanup_engine (context_p);
   }
   else
@@ -1199,87 +985,22 @@ run (int argc, char **argv)
   }
 
 done:
-  cli_execution_plan_drop (&plan);
-
   return exit_code;
 }
 
 static int
-test (int argc, char **argv)
+test (cli_state_t *state, const char *file, cli_js_loader_t loader)
 {
-  cli_js_loader_t loader = CLI_JS_LOADER_MODULE;
-  int i = 0;
   int exit_code = EXIT_SUCCESS;
   bool vm_cleanup = false;
-  cli_execution_plan_t plan;
-  cli_common_options_t options = { 0 };
 
-  cli_execution_plan_init (&plan);
-
-  while (i < argc)
-  {
-    if (strcmp (argv[i], "--loader") == 0)
-    {
-      if (i + 1 < argc)
-      {
-        loader = cli_js_loader_from_string (argv[++i]);
-      }
-      else
-      {
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-    }
-    else if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "--help") == 0)
-    {
-      print_command_help ("test");
-      goto done;
-    }
-    else
-    {
-      int offset = read_common_option (&options, i, argc, argv);
-
-      if (offset == READ_COMMON_OPTION_ERROR)
-      {
-        exit_code = EXIT_FAILURE;
-        goto done;
-      }
-      else if (offset == READ_COMMON_OPTION_NO_ARGS)
-      {
-        if (i == argc - 1)
-        {
-          cli_execution_plan_push (&plan, argv[i], loader);
-          break;
-        }
-        else
-        {
-          printf ("FILE must be the last arg of test.\n");
-          exit_code = EXIT_FAILURE;
-          goto done;
-        }
-      }
-      else if (offset > 1)
-      {
-        i += (offset - 1);
-      }
-    }
-
-    i++;
-  }
-
-  if (plan.size == 0)
+  if (!set_cwd (state->cwd))
   {
     exit_code = EXIT_FAILURE;
     goto done;
   }
 
-  if (!set_cwd (options.cwd_filename))
-  {
-    exit_code = EXIT_FAILURE;
-    goto done;
-  }
-
-  jjs_context_t *context_p = init_engine (&options);
+  jjs_context_t *context_p = init_engine (state);
 
   if (!context_p)
   {
@@ -1290,14 +1011,19 @@ test (int argc, char **argv)
   vm_cleanup = true;
   init_test_realm (context_p);
 
+  cli_execution_plan_t plan;
+
+  cli_execution_plan_init (&plan);
+  cli_execution_plan_push (&plan, file, loader);
+
   if (!cli_execution_plan_run (&plan, context_p) || !run_all_tests (context_p) || !process_async_asserts (context_p))
   {
     exit_code = EXIT_FAILURE;
   }
 
-done:
   cli_execution_plan_drop (&plan);
 
+done:
   if (vm_cleanup)
   {
     cleanup_engine (context_p);
@@ -1307,67 +1033,169 @@ done:
 }
 
 int
+main_cli_log_imcl_error (imcl_state_t *state)
+{
+  main_cli_assert (state->has_error, "imcl should be in the error state");
+
+  printf ("imcl error!\n");
+
+  return EXIT_FAILURE;
+}
+
+int
 main (int argc, char **argv)
 {
-  static const int ARG0_FIRST_SIZE = 2;
+  cli_state_t state = {
+    .imcl = imcl_state (argc, argv),
+  };
+  imcl_state_t *it = &state.imcl;
+  int exit_code = EXIT_SUCCESS;
 
-  if (argc < ARG0_FIRST_SIZE)
+  /* consume arg0 out */
+  imcl_state_shift (it);
+
+  if (imcl_state_shift_if_command (it, "run"))
   {
-    print_help ();
-    return EXIT_SUCCESS;
-  }
+    cli_js_loader_t loader = CLI_JS_LOADER_MODULE;
+    cli_execution_plan_t plan;
 
-  const char *first = argv[1];
+    cli_execution_plan_init (&plan);
 
-  srand ((unsigned) time (NULL));
-
-  if (strcmp (first, "run") == 0)
-  {
-    int exit_code = run (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
-
-    if (exit_code != EXIT_SUCCESS)
+    while (imcl_state_has_more (it))
     {
-      print_command_help (first);
+      if (imcl_state_shift_if_option (it, NULL, "--loader"))
+      {
+        loader = loader_enum_from_string (imcl_state_shift (it));
+      }
+      else if (imcl_state_shift_if_option (it, NULL, "--require"))
+      {
+        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_COMMONJS);
+      }
+      else if (imcl_state_shift_if_option (it, NULL, "--import"))
+      {
+        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_MODULE);
+      }
+      else if (imcl_state_shift_if_option (it, NULL, "--preload")
+               || imcl_state_shift_if_option (it, NULL, "--preload-sloppy"))
+      {
+        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_SLOPPY);
+      }
+      else if (imcl_state_shift_if_option (it, NULL, "--preload-strict"))
+      {
+        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_STRICT);
+      }
+      else if (imcl_state_shift_if_option (it, NULL, "--preload-snapshot"))
+      {
+        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_SNAPSHOT);
+      }
+      else if (imcl_state_shift_if_help_option (it))
+      {
+        print_command_help ("run");
+        cli_execution_plan_drop (&plan);
+        goto done;
+      }
+      else if (!shift_common_option (&state))
+      {
+        break;
+      }
     }
 
-    return exit_code;
-  }
-  else if (strcmp (first, "repl") == 0)
-  {
-    int exit_code = repl (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
+    const char *file;
 
-    if (exit_code != EXIT_SUCCESS)
+    if (!it->has_error)
     {
-      print_command_help (first);
+      file = imcl_state_shift (it);
     }
 
-    return exit_code;
-  }
-  else if (strcmp (first, "test") == 0)
-  {
-    int exit_code = test (argc - ARG0_FIRST_SIZE, argv + ARG0_FIRST_SIZE);
-
-    if (exit_code != EXIT_SUCCESS)
+    if (it->has_error)
     {
-      print_command_help (first);
+      exit_code = main_cli_log_imcl_error (it);
+    }
+    else
+    {
+      cli_execution_plan_push (&plan, file, loader);
+
+      exit_code = run (&state, &plan);
     }
 
-    return exit_code;
+    cli_execution_plan_drop (&plan);
   }
-  else if (strcmp (first, "-v") == 0 || strcmp (first, "--version") == 0)
+  else if (imcl_state_shift_if_command (it, "parse"))
+  {
+    // TODO: implement parse only
+    exit_code = EXIT_FAILURE;
+  }
+  else if (imcl_state_shift_if_command (it, "repl"))
+  {
+    while (imcl_state_has_more (it))
+    {
+      if (imcl_state_shift_if_help_option (it))
+      {
+        print_command_help ("repl");
+        goto done;
+      }
+      else if (!shift_common_option (&state))
+      {
+        break;
+      }
+    }
+
+    exit_code = it->has_error ? main_cli_log_imcl_error (it) : repl (&state);
+  }
+  else if (imcl_state_shift_if_command (it, "test"))
+  {
+    cli_js_loader_t loader = CLI_JS_LOADER_MODULE;
+
+    while (imcl_state_has_more (it))
+    {
+      if (imcl_state_shift_if_option (it, NULL, "--loader"))
+      {
+        loader = loader_enum_from_string (imcl_state_shift (it));
+      }
+      else if (imcl_state_shift_if_help_option (it))
+      {
+        print_command_help ("test");
+        goto done;
+      }
+      else if (!shift_common_option (&state))
+      {
+        break;
+      }
+    }
+
+    const char *file;
+
+    if (!it->has_error)
+    {
+      file = imcl_state_shift (it);
+    }
+
+    if (it->has_error)
+    {
+      exit_code = main_cli_log_imcl_error (it);
+    }
+    else
+    {
+      exit_code = test (&state, file, loader);
+    }
+  }
+  else if (imcl_state_shift_if_version_option (it))
   {
     printf ("%i.%i.%i\n", JJS_API_MAJOR_VERSION, JJS_API_MINOR_VERSION, JJS_API_PATCH_VERSION);
-    return EXIT_SUCCESS;
   }
-  else if (strcmp (first, "-h") == 0 || strcmp (first, "--help") == 0)
+  else if (imcl_state_shift_if_help_option (it))
   {
     print_help ();
-    return EXIT_SUCCESS;
   }
   else
   {
-    printf ("Invalid command: %s\n\n", first);
+    printf ("Invalid command: %s\n\n", imcl_state_shift (it));
     print_help ();
-    return EXIT_FAILURE;
+    exit_code = EXIT_FAILURE;
   }
+
+done:
+  imcl_state_drop (it);
+
+  return exit_code;
 }

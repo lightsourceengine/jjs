@@ -21,3 +21,8 @@ assert(typeof assert == 'function');
 assert(typeof queueAsyncAssert == 'function');
 assert(typeof createRealm == 'function');
 assert(typeof print == 'function');
+
+const { test } = require('jjs:test');
+
+test ('this is a test', () => {});
+test ('this is another test', () => {});
