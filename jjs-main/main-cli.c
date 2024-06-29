@@ -47,7 +47,7 @@
 #define JJS_TEST_META_PROP_OPTIONS "options"
 #define JJS_TEST_META_PROP_OPTIONS_SKIP "skip"
 
-#define main_cli_log(CTX, STREAM, FORMAT, ...)                                                        \
+#define jjs_cli_log(CTX, STREAM, FORMAT, ...)                                                         \
   do                                                                                                  \
   {                                                                                                   \
     jjs_value_t args__[] = { __VA_ARGS__ };                                                           \
@@ -56,37 +56,48 @@
 
 typedef enum
 {
-  CLI_JS_LOADER_UNKNOWN,
-  CLI_JS_LOADER_MODULE,
-  CLI_JS_LOADER_COMMONJS,
-  CLI_JS_LOADER_STRICT,
-  CLI_JS_LOADER_SLOPPY,
-  CLI_JS_LOADER_SNAPSHOT,
-} cli_js_loader_t;
+  JJS_CLI_LOADER_UNKNOWN,
+  JJS_CLI_LOADER_AUTO,
+  JJS_CLI_LOADER_ESM,
+  JJS_CLI_LOADER_CJS,
+  JJS_CLI_LOADER_JS,
+  JJS_CLI_LOADER_SNAPSHOT,
+} jjs_cli_loader_t;
+
+typedef enum
+{
+  JJS_CLI_PARSER_UNKNOWN,
+  JJS_CLI_PARSER_SLOPPY,
+  JJS_CLI_PARSER_STRICT,
+  JJS_CLI_PARSER_MODULE,
+  JJS_CLI_PARSER_SNAPSHOT,
+} jjs_cli_parser_t;
 
 typedef struct
 {
   const char *filename;
-  cli_js_loader_t loader;
-} cli_executable_t;
+  jjs_cli_loader_t loader;
+  jjs_cli_parser_t parser;
+  jjs_size_t snapshot_index;
+} jjs_cli_module_t;
 
 typedef struct
 {
-  cli_executable_t *executables;
+  jjs_cli_module_t *items;
   size_t size;
   size_t capacity;
-} cli_execution_plan_t;
+} jjs_cli_include_list_t;
 
 typedef struct
 {
-  imcl_state_t imcl;
+  imcl_args_t imcl;
   const char *cwd;
   jjs_context_options_t context_options;
   const char *pmap_filename;
   const char *cwd_filename;
   int32_t log_level;
   bool has_log_level;
-} cli_state_t;
+} jjs_cli_state_t;
 
 static void
 stdout_wstream_write (jjs_context_t* context_p, const jjs_wstream_t *stream, const uint8_t *data, jjs_size_t size)
@@ -115,7 +126,7 @@ static jjs_wstream_t stderr_wstream = {
 };
 
 static void
-main_cli_assert (bool condition, const char* message)
+jjs_cli_assert (bool condition, const char* message)
 {
   if (!condition)
   {
@@ -191,166 +202,47 @@ print_command_help (const char *name)
   }
   else
   {
-    main_cli_assert (false, "unsupported command name");
+    jjs_cli_assert (false, "unsupported command name");
   }
 
   print_help_common_flags ();
 }
 
 static void
-cli_execution_plan_init (cli_execution_plan_t *plan)
+jjs_cli_include_list_init (jjs_cli_include_list_t *includes)
 {
-  plan->size = 0;
-  plan->capacity = 8;
-  plan->executables = malloc (plan->capacity * sizeof (plan->executables[0]));
-  main_cli_assert (plan->executables, "cli_execution_plan_init: bad alloc");
+  includes->size = 0;
+  includes->capacity = 8;
+  includes->items = malloc (includes->capacity * sizeof (includes->items[0]));
+  jjs_cli_assert (includes->items, "jjs_cli_include_list_init: bad alloc");
 }
 
 static void
-cli_execution_plan_drop (cli_execution_plan_t *plan)
+jjs_cli_include_list_drop (jjs_cli_include_list_t *includes)
 {
-  free (plan->executables);
+  free (includes->items);
 }
 
 static void
-cli_execution_plan_push (cli_execution_plan_t *plan, const char *filename, cli_js_loader_t loader)
+jjs_cli_include_list_append (jjs_cli_include_list_t *includes,
+                             const char *filename,
+                             jjs_cli_loader_t loader,
+                             jjs_cli_parser_t parser,
+                             jjs_size_t snapshot_index)
 {
-  if (plan->size == plan->capacity)
+  if (includes->size == includes->capacity)
   {
-    plan->capacity += 8;
-    plan->executables = realloc (plan->executables, plan->capacity * sizeof (plan->executables[0]));
-    main_cli_assert (plan->executables, "cli_execution_plan_push: bad realloc");
+    includes->capacity += 8;
+    includes->items = realloc (includes->items, includes->capacity * sizeof (includes->items[0]));
+    jjs_cli_assert (includes->items, "jjs_cli_include_list_append: bad realloc");
   }
 
-  plan->executables[plan->size++] = (cli_executable_t){
+  includes->items[includes->size++] = (jjs_cli_module_t){
     .filename = filename,
     .loader = loader,
+    .parser = parser,
+    .snapshot_index = snapshot_index,
   };
-}
-
-static bool
-cli_execution_plan_run (cli_execution_plan_t *plan, jjs_context_t* context_p)
-{
-  for (size_t i = 0; i < plan->size; i++)
-  {
-    jjs_value_t resolved_filename =
-      jjs_platform_realpath (context_p, jjs_string_utf8_sz (context_p, plan->executables[i].filename), JJS_MOVE);
-
-    if (jjs_value_is_exception (context_p, resolved_filename))
-    {
-      main_cli_log (context_p, &stdout_wstream, "realpath: {}\n", resolved_filename);
-      jjs_value_free (context_p, resolved_filename);
-      return false;
-    }
-
-    jjs_value_t result;
-
-    switch (plan->executables[i].loader)
-    {
-      case CLI_JS_LOADER_MODULE:
-      {
-        result = jjs_esm_evaluate (context_p, resolved_filename, JJS_MOVE);
-        break;
-      }
-      case CLI_JS_LOADER_COMMONJS:
-      {
-        result = jjs_commonjs_require (context_p, resolved_filename, JJS_MOVE);
-        break;
-      }
-      case CLI_JS_LOADER_SNAPSHOT:
-      {
-        jjs_value_t snapshot = jjs_platform_read_file (context_p, resolved_filename, JJS_KEEP, NULL);
-
-        if (!jjs_value_is_exception (context_p, snapshot))
-        {
-          const uint32_t *buffer = (const uint32_t *) jjs_arraybuffer_data (context_p, snapshot);
-          jjs_size_t buffer_size = jjs_arraybuffer_size (context_p, snapshot);
-          jjs_exec_snapshot_option_values_t options = {
-            .source_name = resolved_filename,
-            .user_value = resolved_filename,
-          };
-
-          result = jjs_exec_snapshot (context_p,
-                                      buffer,
-                                      buffer_size,
-                                      0,
-                                      JJS_SNAPSHOT_EXEC_HAS_USER_VALUE | JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME
-                                        | JJS_SNAPSHOT_EXEC_COPY_DATA,
-                                      &options);
-          jjs_value_free (context_p, snapshot);
-        }
-        else
-        {
-          result = snapshot;
-        }
-
-        jjs_value_free (context_p, resolved_filename);
-
-        break;
-      }
-      case CLI_JS_LOADER_SLOPPY:
-      case CLI_JS_LOADER_STRICT:
-      {
-        jjs_platform_read_file_options_t read_options = {
-          .encoding = JJS_ENCODING_UTF8,
-        };
-
-        jjs_value_t source = jjs_platform_read_file (context_p, resolved_filename, JJS_KEEP, &read_options);
-
-        if (jjs_value_is_exception (context_p, source))
-        {
-          result = source;
-        }
-        else
-        {
-          jjs_parse_options_t options = {
-            .is_strict_mode = (plan->executables[i].loader == CLI_JS_LOADER_STRICT),
-            .source_name = jjs_optional_value (resolved_filename),
-            .user_value = jjs_optional_value (resolved_filename),
-          };
-
-          result = jjs_parse_value (context_p, source, JJS_MOVE, &options);
-
-          if (!jjs_value_is_exception (context_p, result))
-          {
-            result = jjs_run (context_p, result, JJS_MOVE);
-          }
-
-          jjs_value_free (context_p, resolved_filename);
-        }
-
-        break;
-      }
-      default:
-      {
-        jjs_value_free (context_p, resolved_filename);
-        result = jjs_throw_sz (context_p, JJS_ERROR_COMMON, "Unsupported loader type");
-        break;
-      }
-    }
-
-    if (jjs_value_is_exception (context_p, result))
-    {
-      main_cli_log (context_p, &stdout_wstream, "Compile/Run: {}\n", result);
-      jjs_value_free (context_p, result);
-      return false;
-    }
-
-    jjs_value_free (context_p, result);
-
-    result = jjs_run_jobs (context_p);
-
-    if (jjs_value_is_exception (context_p, result))
-    {
-      main_cli_log (context_p, &stdout_wstream, "Unhandled Error: {}\n", result);
-      jjs_value_free (context_p, result);
-      return false;
-    }
-
-    jjs_value_free (context_p, result);
-  }
-
-  return true;
 }
 
 static bool
@@ -439,11 +331,11 @@ js_queue_async_assert (const jjs_call_info_t *call_info_p, const jjs_value_t arg
   {
     jjs_value_free (context_p, queue);
     queue = jjs_array (context_p, 0);
-    main_cli_assert (jjs_object_set_internal (context_p, call_info_p->function, key, queue, JJS_KEEP),
-                     "error setting internal async assert queue");
+    jjs_cli_assert (jjs_object_set_internal (context_p, call_info_p->function, key, queue, JJS_KEEP),
+                    "error setting internal async assert queue");
   }
 
-  main_cli_assert (jjs_value_is_array (context_p, queue), "async assert queue must be an array");
+  jjs_cli_assert (jjs_value_is_array (context_p, queue), "async assert queue must be an array");
 
   jjs_object_set_index (context_p, queue, jjs_array_length (context_p, queue), callback, JJS_KEEP);
 
@@ -564,7 +456,7 @@ unhandled_rejection_cb (jjs_context_t* context_p, jjs_value_t promise, jjs_value
 {
   (void) promise;
   (void) user_p;
-  main_cli_log (context_p, &stdout_wstream, "Unhandled promise rejection: {}\n", reason);
+  jjs_cli_log (context_p, &stdout_wstream, "Unhandled promise rejection: {}\n", reason);
 }
 
 static void
@@ -576,45 +468,47 @@ cleanup_engine (jjs_context_t *context_p)
   jjs_context_free (context_p);
 }
 
-static jjs_context_t*
-init_engine (const cli_state_t *state)
+static bool
+init_engine (const jjs_cli_state_t *state, jjs_context_t **out)
 {
-  jjs_context_t *context_p = NULL;
-
   srand ((unsigned) time (NULL));
+  set_cwd (state->cwd);
 
-  if (jjs_context_new (&state->context_options, &context_p) != JJS_STATUS_OK)
+  jjs_context_t *context;
+
+  if (jjs_context_new (&state->context_options, &context) != JJS_STATUS_OK)
   {
-    return NULL;
+    return false;
   }
 
-  jjs_promise_on_unhandled_rejection (context_p, &unhandled_rejection_cb, NULL);
+  jjs_promise_on_unhandled_rejection (context, &unhandled_rejection_cb, NULL);
 
 #if defined (JJS_PACK) && JJS_PACK
-  jjs_pack_init (context_p, JJS_PACK_INIT_ALL);
+  jjs_pack_init (context, JJS_PACK_INIT_ALL);
 #endif /* defined (JJS_PACK) && JJS_PACK */
 
   if (state->has_log_level)
   {
-    jjs_log_set_level (context_p, (jjs_log_level_t) state->log_level);
+    jjs_log_set_level (context, (jjs_log_level_t) state->log_level);
   }
 
   if (state->pmap_filename)
   {
-    jjs_value_t result = jjs_pmap (context_p, jjs_string_sz (context_p, state->pmap_filename), JJS_MOVE, jjs_undefined (context_p), JJS_MOVE);
+    jjs_value_t result = jjs_pmap (context, jjs_string_sz (context, state->pmap_filename), JJS_MOVE, jjs_undefined (context), JJS_MOVE);
 
-    if (jjs_value_is_exception (context_p, result))
+    if (jjs_value_is_exception (context, result))
     {
-      main_cli_log (context_p, &stdout_wstream, "Failed to load pmap: {}\n", result);
-      jjs_value_free (context_p, result);
-      cleanup_engine (context_p);
-      return NULL;
+      jjs_cli_log (context, &stdout_wstream, "Failed to load pmap: {}\n", result);
+      jjs_value_free (context, result);
+      cleanup_engine (context);
+      return false;
     }
 
-    jjs_value_free (context_p, result);
+    jjs_value_free (context, result);
   }
 
-  return context_p;
+  *out = context;
+  return true;
 }
 
 static void
@@ -628,8 +522,8 @@ init_test_realm (jjs_context_t* context_p)
   jjs_value_t realm = jjs_current_realm (context_p);
 
   /* store the async function in internal so the queue can be retrieved later */
-  main_cli_assert (jjs_object_set_internal (context_p, realm, queue_async_assert_key, queue_async_assert_fn, JJS_KEEP),
-                   "cannot store queueAsyncAssert in internal global");
+  jjs_cli_assert (jjs_object_set_internal (context_p, realm, queue_async_assert_key, queue_async_assert_fn, JJS_KEEP),
+                  "cannot store queueAsyncAssert in internal global");
 
   jjs_value_free (context_p, jjs_object_set (context_p, realm, queue_async_assert_key, queue_async_assert_fn, JJS_MOVE));
   jjs_value_free (context_p, jjs_object_set_sz (context_p, realm, "print", print_fn, JJS_MOVE));
@@ -654,10 +548,10 @@ init_test_realm (jjs_context_t* context_p)
 
   if (jjs_value_is_exception (context_p, vmod_result))
   {
-    main_cli_log(context_p, &stderr_wstream, "unhandled exception while loading jjs:test: {}\n", vmod_result);
+    jjs_cli_log (context_p, &stderr_wstream, "unhandled exception while loading jjs:test: {}\n", vmod_result);
   }
 
-  main_cli_assert (!jjs_value_is_exception (context_p, vmod_result), "");
+  jjs_cli_assert (!jjs_value_is_exception (context_p, vmod_result), "");
 }
 
 static bool
@@ -711,7 +605,7 @@ run_all_tests (jjs_context_t* context_p)
 
       if (jjs_value_is_exception (context_p, test_result))
       {
-        main_cli_log (context_p, &stderr_wstream, "unhandled exception in test: {}\n{}\n", description, test_result);
+        jjs_cli_log (context_p, &stderr_wstream, "unhandled exception in test: {}\n{}\n", description, test_result);
         result = false;
       }
       else if (jjs_value_is_promise (context_p, test_result))
@@ -720,12 +614,12 @@ run_all_tests (jjs_context_t* context_p)
 
         if (jjs_value_is_exception (context_p, jobs_result))
         {
-          main_cli_log (context_p, &stderr_wstream, "unhandled exception running async jobs after test: {}\n{}\n", description, jobs_result);
+          jjs_cli_log (context_p, &stderr_wstream, "unhandled exception running async jobs after test: {}\n{}\n", description, jobs_result);
           result = false;
         }
         else if (jjs_promise_state (context_p, test_result) != JJS_PROMISE_STATE_FULFILLED)
         {
-          main_cli_log (context_p, &stderr_wstream, "unfulfilled promise after test: {}\n{}\n", description, test_result);
+          jjs_cli_log (context_p, &stderr_wstream, "unfulfilled promise after test: {}\n{}\n", description, test_result);
           result = false;
         }
 
@@ -778,7 +672,7 @@ process_async_asserts (jjs_context_t* context_p)
 
     if (jjs_value_is_exception (context_p, async_assert_result))
     {
-      main_cli_log (context_p, &stdout_wstream, "{}\n", async_assert_result);
+      jjs_cli_log (context_p, &stdout_wstream, "{}\n", async_assert_result);
       has_error = true;
       break;
     }
@@ -797,31 +691,31 @@ process_async_asserts (jjs_context_t* context_p)
 }
 
 static bool
-shift_common_option (cli_state_t *state)
+shift_common_option (jjs_cli_state_t *state)
 {
-  if (imcl_state_shift_if_option (&state->imcl, NULL, "--cwd"))
+  if (imcl_args_shift_if_option (&state->imcl, NULL, "--cwd"))
   {
-    state->cwd = imcl_state_shift (&state->imcl);
+    state->cwd = imcl_args_shift (&state->imcl);
   }
-  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--pmap"))
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--pmap"))
   {
-    state->pmap_filename = imcl_state_shift (&state->imcl);
+    state->pmap_filename = imcl_args_shift (&state->imcl);
   }
-  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--mem-stats"))
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--mem-stats"))
   {
     state->context_options.enable_mem_stats = true;
   }
-  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--show-opcodes"))
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--show-opcodes"))
   {
     state->context_options.show_op_codes = true;
   }
-  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--show-regexp-opcodes"))
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--show-regexp-opcodes"))
   {
     state->context_options.show_regexp_op_codes = true;
   }
-  else if (imcl_state_shift_if_option (&state->imcl, NULL, "--log-level"))
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--log-level"))
   {
-    state->log_level = imcl_state_shift_ranged_int (&state->imcl, 0, 3);
+    state->log_level = imcl_args_shift_ranged_int (&state->imcl, 0, 3);
     state->has_log_level = true;
   }
   else
@@ -832,63 +726,239 @@ shift_common_option (cli_state_t *state)
   return true;
 }
 
-static cli_js_loader_t
-loader_enum_from_string (const char *value)
+static jjs_cli_loader_t
+jjs_cli_loader_from_string (const char *value)
 {
-  if (strcmp ("module", value) == 0)
+  if (strcmp ("esm", value) == 0)
   {
-    return CLI_JS_LOADER_MODULE;
+    return JJS_CLI_LOADER_ESM;
   }
-  else if (strcmp ("commonjs", value) == 0)
+  else if (strcmp ("auto", value) == 0)
   {
-    return CLI_JS_LOADER_COMMONJS;
+    return JJS_CLI_LOADER_AUTO;
+  }
+  else if (strcmp ("cjs", value) == 0)
+  {
+    return JJS_CLI_LOADER_CJS;
+  }
+  else if (strcmp ("js", value) == 0)
+  {
+    return JJS_CLI_LOADER_JS;
   }
   else if (strcmp ("snapshot", value) == 0)
   {
-    return CLI_JS_LOADER_SNAPSHOT;
+    return JJS_CLI_LOADER_SNAPSHOT;
   }
-  else if (strcmp ("sloppy", value) == 0)
+
+  return JJS_CLI_LOADER_UNKNOWN;
+}
+
+static jjs_cli_parser_t
+jjs_cli_parser_from_string (const char *value)
+{
+  if (strcmp ("sloppy", value) == 0)
   {
-    return CLI_JS_LOADER_SLOPPY;
+    return JJS_CLI_PARSER_SLOPPY;
   }
   else if (strcmp ("strict", value) == 0)
   {
-    return CLI_JS_LOADER_STRICT;
+    return JJS_CLI_PARSER_STRICT;
+  }
+  else if (strcmp ("module", value) == 0)
+  {
+    return JJS_CLI_PARSER_MODULE;
+  }
+  else if (strcmp ("snapshot", value) == 0)
+  {
+    return JJS_CLI_PARSER_SNAPSHOT;
   }
 
-  return CLI_JS_LOADER_UNKNOWN;
+  return JJS_CLI_PARSER_UNKNOWN;
 }
 
 static int
-repl (cli_state_t *state)
+jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module, bool parse_only)
+{
+  jjs_value_t result;
+
+  switch (module->loader)
+  {
+    case JJS_CLI_LOADER_CJS:
+    {
+      result = jjs_commonjs_require_sz (context, module->filename);
+      break;
+    }
+    case JJS_CLI_LOADER_ESM:
+    {
+      result = jjs_esm_import_sz (context, module->filename);
+      break;
+    }
+    case JJS_CLI_LOADER_SNAPSHOT:
+    {
+      jjs_value_t filename = jjs_string_utf8_sz (context, module->filename);
+      jjs_value_t snapshot = jjs_platform_read_file (context, filename, JJS_KEEP, NULL);
+
+      if (!jjs_value_is_exception (context, snapshot))
+      {
+        uint8_t *snapshot_buffer = jjs_arraybuffer_data (context, snapshot);
+        jjs_size_t snapshot_buffer_size = jjs_arraybuffer_size (context, snapshot);
+        jjs_exec_snapshot_option_values_t options = {
+          .source_name = filename,
+        };
+
+        result = jjs_exec_snapshot (context,
+                                    (const uint32_t *) snapshot_buffer,
+                                    snapshot_buffer_size,
+                                    module->snapshot_index,
+                                    JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME,
+                                    &options);
+      }
+      else
+      {
+        result = jjs_value_copy(context, snapshot);
+      }
+
+      jjs_value_free (context, snapshot);
+      jjs_value_free (context, filename);
+
+      break;
+    }
+    case JJS_CLI_LOADER_JS:
+    {
+      jjs_value_t filename = jjs_string_utf8_sz (context, module->filename);
+      jjs_platform_read_file_options_t read_file_options = {
+        .encoding = JJS_ENCODING_UTF8,
+      };
+      jjs_value_t source = jjs_platform_read_file (context, filename, JJS_KEEP, &read_file_options);
+
+      if (!jjs_value_is_exception (context, source))
+      {
+        jjs_parse_options_t opts = {
+          .is_strict_mode = (module->parser == JJS_CLI_PARSER_STRICT),
+          .parse_module = (module->parser == JJS_CLI_PARSER_MODULE),
+          .source_name = jjs_optional_value (filename),
+          .source_name_o = JJS_KEEP,
+        };
+
+        jjs_value_t parse_result = jjs_parse_value (context, source, JJS_MOVE, &opts);
+
+        if (!jjs_value_is_exception (context, parse_result))
+        {
+          if (parse_only)
+          {
+            result = parse_result;
+          }
+          else
+          {
+            result = jjs_run (context, parse_result, JJS_MOVE);
+          }
+        }
+        else
+        {
+          result = parse_result;
+        }
+      }
+      else
+      {
+        result = source;
+      }
+
+      jjs_value_free (context, filename);
+      break;
+    }
+    default:
+      // TODO: assert?
+      return 1;
+  }
+
+  if (!jjs_value_free_unless (context, result, jjs_value_is_exception))
+  {
+    // TODO: print exception
+    jjs_value_free (context, result);
+    return 1;
+  }
+
+  result = jjs_run_jobs (context);
+
+  if (!jjs_value_free_unless (context, result, jjs_value_is_exception))
+  {
+    // TODO: print exception
+    jjs_value_free (context, result);
+    return 1;
+  }
+
+  return 0;
+}
+
+static int
+jjs_cli_run_entry_point (jjs_context_t *context,
+                         jjs_cli_include_list_t *includes,
+                         jjs_cli_module_t *entry_point,
+                         bool parse_only)
+{
+  if (includes && includes->size)
+  {
+    const jjs_size_t size = (jjs_size_t) includes->size;
+
+    for (size_t i = 0; i < size; i++)
+    {
+      jjs_cli_module_t *include = &includes->items[i];
+
+      if (jjs_cli_run_module (context, include, false) != EXIT_SUCCESS)
+      {
+        return EXIT_FAILURE;
+      }
+    }
+  }
+
+  return jjs_cli_run_module (context, entry_point, parse_only);
+}
+
+static int
+jjs_main_command_parse (jjs_cli_state_t *state, jjs_cli_module_t *entry_point)
+{
+  jjs_context_t *context;
+  int exit_code = EXIT_FAILURE;
+
+  if (init_engine (state, &context))
+  {
+    exit_code = jjs_cli_run_module (context, entry_point, true);
+    cleanup_engine (context);
+  }
+
+  return exit_code;
+}
+
+static int
+repl (jjs_cli_state_t *state)
 {
   if (!set_cwd (state->cwd))
   {
     return EXIT_FAILURE;
   }
 
-  jjs_context_t *context_p = init_engine (state);
+  jjs_context_t *context;
 
-  if (context_p == NULL)
+  if (!init_engine (state, &context))
   {
     return EXIT_FAILURE;
   }
 
   jjs_value_t result;
-  jjs_value_t prompt = jjs_string_sz (context_p, "jjs> ");
-  jjs_value_t new_line = jjs_string_sz (context_p, "\n");
-  jjs_value_t source_name = jjs_string_sz (context_p, "<repl>");
+  jjs_value_t prompt = jjs_string_sz (context, "jjs> ");
+  jjs_value_t new_line = jjs_string_sz (context, "\n");
+  jjs_value_t source_name = jjs_string_sz (context, "<repl>");
 
   while (true)
   {
-    jjs_platform_stdout_write (context_p, prompt, JJS_KEEP);
+    jjs_platform_stdout_write (context, prompt, JJS_KEEP);
 
     jjs_size_t length;
     jjs_char_t *line_p = stdin_readline (&length);
 
     if (line_p == NULL)
     {
-      jjs_platform_stdout_write (context_p, new_line, JJS_KEEP);
+      jjs_platform_stdout_write (context, new_line, JJS_KEEP);
       goto done;
     }
 
@@ -903,10 +973,10 @@ repl (cli_state_t *state)
       break;
     }
 
-    if (!jjs_validate_string (context_p, line_p, length, JJS_ENCODING_UTF8))
+    if (!jjs_validate_string (context, line_p, length, JJS_ENCODING_UTF8))
     {
       free (line_p);
-      result = jjs_throw_sz (context_p, JJS_ERROR_SYNTAX, "Input is not a valid UTF-8 string");
+      result = jjs_throw_sz (context, JJS_ERROR_SYNTAX, "Input is not a valid UTF-8 string");
       goto exception;
     }
 
@@ -914,28 +984,28 @@ repl (cli_state_t *state)
       .source_name = jjs_optional_value (source_name),
     };
 
-    result = jjs_parse (context_p, line_p, length, &opts);
+    result = jjs_parse (context, line_p, length, &opts);
 
     free (line_p);
 
-    if (jjs_value_is_exception (context_p, result))
+    if (jjs_value_is_exception (context, result))
     {
       goto exception;
     }
 
-    result = jjs_run (context_p, result, JJS_MOVE);
+    result = jjs_run (context, result, JJS_MOVE);
 
-    if (jjs_value_is_exception (context_p, result))
+    if (jjs_value_is_exception (context, result))
     {
       goto exception;
     }
 
-    main_cli_log (context_p, &stdout_wstream, "{}\n", result);
+    jjs_cli_log (context, &stdout_wstream, "{}\n", result);
 
-    jjs_value_free (context_p, result);
-    result = jjs_run_jobs (context_p);
+    jjs_value_free (context, result);
+    result = jjs_run_jobs (context);
 
-    if (jjs_value_free_unless (context_p, result, jjs_value_is_exception))
+    if (jjs_value_free_unless (context, result, jjs_value_is_exception))
     {
       goto exception;
     }
@@ -943,99 +1013,70 @@ repl (cli_state_t *state)
     continue;
 
 exception:
-    main_cli_log (context_p, &stdout_wstream, "{}\n", result);
-    jjs_value_free (context_p, result);
+    jjs_cli_log (context, &stdout_wstream, "{}\n", result);
+    jjs_value_free (context, result);
   }
 
 done:
-  jjs_value_free (context_p, prompt);
-  jjs_value_free (context_p, new_line);
-  jjs_value_free (context_p, source_name);
-  cleanup_engine (context_p);
+  jjs_value_free (context, prompt);
+  jjs_value_free (context, new_line);
+  jjs_value_free (context, source_name);
+  cleanup_engine (context);
   return 0;
 }
 
 static int
-run (cli_state_t *state, cli_execution_plan_t *plan)
+run (jjs_cli_state_t *state, jjs_cli_include_list_t *includes, jjs_cli_module_t *entry_point)
 {
   int exit_code = 0;
+  jjs_context_t *context;
 
-  if (plan->size == 0)
+  if (init_engine (state, &context))
   {
-    exit_code = EXIT_FAILURE;
-    goto done;
-  }
-
-  if (!set_cwd (state->cwd))
-  {
-    exit_code = EXIT_FAILURE;
-    goto done;
-  }
-
-  jjs_context_t *context_p = init_engine (state);
-
-  if (context_p)
-  {
-    exit_code = cli_execution_plan_run (plan, context_p) ? 0 : 1;
-    cleanup_engine (context_p);
+    exit_code = jjs_cli_run_entry_point (context, includes, entry_point, false);
+    cleanup_engine (context);
   }
   else
   {
     exit_code = EXIT_FAILURE;
   }
 
-done:
   return exit_code;
 }
 
 static int
-test (cli_state_t *state, const char *file, cli_js_loader_t loader)
+test (jjs_cli_state_t *state, jjs_cli_module_t *entry_point)
 {
-  int exit_code = EXIT_SUCCESS;
-  bool vm_cleanup = false;
+  int exit_code;
+  jjs_context_t *context;
 
-  if (!set_cwd (state->cwd))
+  if (!init_engine (state, &context))
   {
-    exit_code = EXIT_FAILURE;
-    goto done;
+    return EXIT_FAILURE;
   }
 
-  jjs_context_t *context_p = init_engine (state);
+  init_test_realm (context);
 
-  if (!context_p)
+  if (jjs_cli_run_module (context, entry_point, false) == EXIT_SUCCESS
+      && run_all_tests (context)
+      && process_async_asserts (context))
   {
-    exit_code = EXIT_FAILURE;
-    goto done;
+    exit_code = EXIT_SUCCESS;
   }
-
-  vm_cleanup = true;
-  init_test_realm (context_p);
-
-  cli_execution_plan_t plan;
-
-  cli_execution_plan_init (&plan);
-  cli_execution_plan_push (&plan, file, loader);
-
-  if (!cli_execution_plan_run (&plan, context_p) || !run_all_tests (context_p) || !process_async_asserts (context_p))
+  else
   {
     exit_code = EXIT_FAILURE;
   }
 
-  cli_execution_plan_drop (&plan);
-
-done:
-  if (vm_cleanup)
-  {
-    cleanup_engine (context_p);
-  }
+  cleanup_engine (context);
 
   return exit_code;
 }
 
 int
-main_cli_log_imcl_error (imcl_state_t *state)
+main_cli_log_imcl_error (imcl_args_t *state)
 {
-  main_cli_assert (state->has_error, "imcl should be in the error state");
+  jjs_cli_assert (state->has_error, "imcl should be in the error state");
 
   printf ("imcl error!\n");
 
@@ -1045,53 +1086,86 @@ main_cli_log_imcl_error (imcl_state_t *state)
 int
 main (int argc, char **argv)
 {
-  cli_state_t state = {
-    .imcl = imcl_state (argc, argv),
+  jjs_cli_state_t state = {
+    .imcl = imcl_args (argc, argv),
   };
-  imcl_state_t *it = &state.imcl;
+  imcl_args_t *it = &state.imcl;
   int exit_code = EXIT_SUCCESS;
 
-  /* consume arg0 out */
-  imcl_state_shift (it);
+  /* consume arg0 */
+  imcl_args_shift (it);
 
-  if (imcl_state_shift_if_command (it, "run"))
+  if (imcl_args_shift_if_command (it, "run"))
   {
-    cli_js_loader_t loader = CLI_JS_LOADER_MODULE;
-    cli_execution_plan_t plan;
+    jjs_cli_include_list_t includes;
+    jjs_cli_module_t entry_point = {
+      .loader = JJS_CLI_LOADER_AUTO,
+      .parser = JJS_CLI_PARSER_SLOPPY,
+    };
 
-    cli_execution_plan_init (&plan);
+    jjs_cli_include_list_init (&includes);
 
-    while (imcl_state_has_more (it))
+    while (imcl_args_has_more (it))
     {
-      if (imcl_state_shift_if_option (it, NULL, "--loader"))
+      if (imcl_args_shift_if_option (it, NULL, "--loader"))
       {
-        loader = loader_enum_from_string (imcl_state_shift (it));
+        entry_point.loader = jjs_cli_loader_from_string (imcl_args_shift (it));
       }
-      else if (imcl_state_shift_if_option (it, NULL, "--require"))
+      else if (imcl_args_shift_if_option (it, NULL, "--parser"))
       {
-        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_COMMONJS);
+        entry_point.parser = jjs_cli_parser_from_string (imcl_args_shift (it));
       }
-      else if (imcl_state_shift_if_option (it, NULL, "--import"))
+      else if (imcl_args_shift_if_option (it, NULL, "--index"))
       {
-        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_MODULE);
+        // TODO: shift_uint
+        entry_point.snapshot_index = imcl_args_shift_uint (it);
       }
-      else if (imcl_state_shift_if_option (it, NULL, "--preload")
-               || imcl_state_shift_if_option (it, NULL, "--preload-sloppy"))
+      else if (imcl_args_shift_if_option (it, NULL, "--require"))
       {
-        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_SLOPPY);
+        jjs_cli_include_list_append (&includes,
+                                     imcl_args_shift (it),
+                                     JJS_CLI_LOADER_CJS,
+                                     JJS_CLI_PARSER_UNKNOWN,
+                                     0);
       }
-      else if (imcl_state_shift_if_option (it, NULL, "--preload-strict"))
+      else if (imcl_args_shift_if_option (it, NULL, "--import"))
       {
-        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_STRICT);
+        jjs_cli_include_list_append (&includes,
+                                     imcl_args_shift (it),
+                                     JJS_CLI_LOADER_ESM,
+                                     JJS_CLI_PARSER_UNKNOWN,
+                                     0);
       }
-      else if (imcl_state_shift_if_option (it, NULL, "--preload-snapshot"))
+      else if (imcl_args_shift_if_option (it, NULL, "--preload")
+               || imcl_args_shift_if_option (it, NULL, "--preload:sloppy"))
       {
-        cli_execution_plan_push (&plan, imcl_state_shift (it), CLI_JS_LOADER_SNAPSHOT);
+        jjs_cli_include_list_append (&includes,
+                                     imcl_args_shift (it),
+                                     JJS_CLI_LOADER_JS,
+                                     JJS_CLI_PARSER_SLOPPY,
+                                     0);
       }
-      else if (imcl_state_shift_if_help_option (it))
+      else if (imcl_args_shift_if_option (it, NULL, "--preload:strict"))
+      {
+        jjs_cli_include_list_append (&includes,
+                                     imcl_args_shift (it),
+                                     JJS_CLI_LOADER_JS,
+                                     JJS_CLI_PARSER_STRICT,
+                                     0);
+      }
+      else if (imcl_args_shift_if_option (it, NULL, "--preload:snapshot"))
+      {
+        jjs_cli_include_list_append (&includes,
+                                     imcl_args_shift (it),
+                                     JJS_CLI_LOADER_JS,
+                                     JJS_CLI_PARSER_SNAPSHOT,
+                                     // TODO: snapshot index from command
+                                     0);
+      }
+      else if (imcl_args_shift_if_help_option (it))
       {
         print_command_help ("run");
-        cli_execution_plan_drop (&plan);
+        jjs_cli_include_list_drop (&includes);
         goto done;
       }
       else if (!shift_common_option (&state))
@@ -1100,11 +1174,9 @@ main (int argc, char **argv)
       }
     }
 
-    const char *file;
-
     if (!it->has_error)
     {
-      file = imcl_state_shift (it);
+      entry_point.filename = imcl_args_shift (it);
     }
 
     if (it->has_error)
@@ -1113,23 +1185,56 @@ main (int argc, char **argv)
     }
     else
     {
-      cli_execution_plan_push (&plan, file, loader);
-
-      exit_code = run (&state, &plan);
+      exit_code = run (&state, &includes, &entry_point);
     }
 
-    cli_execution_plan_drop (&plan);
+    jjs_cli_include_list_drop (&includes);
   }
-  else if (imcl_state_shift_if_command (it, "parse"))
+  else if (imcl_args_shift_if_command (it, "parse"))
   {
-    // TODO: implement parse only
-    exit_code = EXIT_FAILURE;
-  }
-  else if (imcl_state_shift_if_command (it, "repl"))
-  {
-    while (imcl_state_has_more (it))
+    jjs_cli_module_t entry_point = {
+      .loader = JJS_CLI_LOADER_AUTO,
+      .parser = JJS_CLI_PARSER_SLOPPY,
+    };
+
+    while (imcl_args_has_more (it))
     {
-      if (imcl_state_shift_if_help_option (it))
+      if (imcl_args_shift_if_option (it, NULL, "--parser"))
+      {
+        entry_point.parser = jjs_cli_parser_from_string (imcl_args_shift(it));
+      }
+      else if (imcl_args_shift_if_option (it, NULL, "--index"))
+      {
+        entry_point.snapshot_index = imcl_args_shift_uint (it);
+      }
+      else if (imcl_args_shift_if_help_option (it))
+      {
+        print_command_help ("parse");
+        goto done;
+      }
+      else if (!shift_common_option (&state))
+      {
+        break;
+      }
+    }
+
+    entry_point.filename = imcl_args_shift (it);
+
+    if (it->has_error)
+    {
+      exit_code = main_cli_log_imcl_error (it);
+    }
+    else
+    {
+      // TODO: auto
+      exit_code = jjs_main_command_parse (&state, &entry_point);
+    }
+  }
+  else if (imcl_args_shift_if_command (it, "repl"))
+  {
+    while (imcl_args_has_more (it))
+    {
+      if (imcl_args_shift_if_help_option (it))
       {
         print_command_help ("repl");
         goto done;
@@ -1142,17 +1247,24 @@ main (int argc, char **argv)
 
     exit_code = it->has_error ? main_cli_log_imcl_error (it) : repl (&state);
   }
-  else if (imcl_state_shift_if_command (it, "test"))
+  else if (imcl_args_shift_if_command (it, "test"))
   {
-    cli_js_loader_t loader = CLI_JS_LOADER_MODULE;
+    jjs_cli_module_t entry_point = {
+      .loader = JJS_CLI_LOADER_AUTO,
+      .parser = JJS_CLI_PARSER_SLOPPY,
+    };
 
-    while (imcl_state_has_more (it))
+    while (imcl_args_has_more (it))
     {
-      if (imcl_state_shift_if_option (it, NULL, "--loader"))
+      if (imcl_args_shift_if_option (it, NULL, "--loader"))
       {
-        loader = loader_enum_from_string (imcl_state_shift (it));
+        entry_point.loader = jjs_cli_loader_from_string (imcl_args_shift (it));
       }
-      else if (imcl_state_shift_if_help_option (it))
+      if (imcl_args_shift_if_option (it, NULL, "--parser"))
+      {
+        entry_point.parser = jjs_cli_parser_from_string (imcl_args_shift (it));
+      }
+      else if (imcl_args_shift_if_help_option (it))
       {
         print_command_help ("test");
         goto done;
@@ -1163,11 +1275,9 @@ main (int argc, char **argv)
       }
     }
 
-    const char *file;
-
     if (!it->has_error)
     {
-      file = imcl_state_shift (it);
+      entry_point.filename = imcl_args_shift (it);
     }
 
     if (it->has_error)
@@ -1176,26 +1286,26 @@ main (int argc, char **argv)
     }
     else
     {
-      exit_code = test (&state, file, loader);
+      exit_code = test (&state, &entry_point);
     }
   }
-  else if (imcl_state_shift_if_version_option (it))
+  else if (imcl_args_shift_if_version_option (it))
   {
     printf ("%i.%i.%i\n", JJS_API_MAJOR_VERSION, JJS_API_MINOR_VERSION, JJS_API_PATCH_VERSION);
   }
-  else if (imcl_state_shift_if_help_option (it))
+  else if (imcl_args_shift_if_help_option (it))
   {
     print_help ();
   }
   else
   {
-    printf ("Invalid command: %s\n\n", imcl_state_shift (it));
+    printf ("Invalid command: %s\n\n", imcl_args_shift (it));
     print_help ();
     exit_code = EXIT_FAILURE;
   }
 
 done:
-  imcl_state_drop (it);
+  imcl_args_drop (it);
 
   return exit_code;
 }

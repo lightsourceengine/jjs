@@ -140,7 +140,7 @@ def run_normal_tests(args, tests):
         test_path = os.path.relpath(test)
         is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
 
-        test_argument = ['--loader', 'module' if test.endswith('.mjs') else 'sloppy']
+        test_argument = ['--loader', 'esm' if test.endswith('.mjs') else 'js']
 
         (returncode, stdout) = execute_test_command(test_cmd + test_argument + [test], args.test_dir)
 

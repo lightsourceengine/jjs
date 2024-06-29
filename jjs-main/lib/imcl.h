@@ -55,67 +55,68 @@ typedef struct
   char *error;
   /* error message must be stdlib free'd */
   bool free_error;
-} imcl_state_t;
+} imcl_args_t;
 
-imcl_state_t imcl_state (int argc, char **argv);
-void imcl_state_drop (imcl_state_t *cursor);
+imcl_args_t imcl_args (int argc, char **argv);
+void imcl_args_drop (imcl_args_t *args);
 
-bool imcl_state_has_more (imcl_state_t *cursor);
+bool imcl_args_has_more (imcl_args_t *args);
 
-const char *imcl_state_shift (imcl_state_t *cursor);
-int32_t imcl_state_shift_int (imcl_state_t *cursor);
-int32_t imcl_state_shift_ranged_int (imcl_state_t *cursor, int32_t min, int32_t max);
+const char *imcl_args_shift (imcl_args_t *args);
+int32_t imcl_args_shift_int (imcl_args_t *args);
+uint32_t imcl_args_shift_uint (imcl_args_t *args);
+int32_t imcl_args_shift_ranged_int (imcl_args_t *args, int32_t min, int32_t max);
 
-bool imcl_state_shift_if_command (imcl_state_t *cursor, const char *command_name);
-bool imcl_state_shift_if_option (imcl_state_t *cursor, const char *option_short, const char *option_long);
-bool imcl_state_shift_if_help_option (imcl_state_t *cursor);
-bool imcl_state_shift_if_version_option (imcl_state_t *cursor);
+bool imcl_args_shift_if_command (imcl_args_t *args, const char *command_name);
+bool imcl_args_shift_if_option (imcl_args_t *args, const char *option_short, const char *option_long);
+bool imcl_args_shift_if_help_option (imcl_args_t *args);
+bool imcl_args_shift_if_version_option (imcl_args_t *args);
 
 #ifdef IMCL_IMPLEMENTATION
 
-imcl_state_t
-imcl_state (int argc, char **argv)
+imcl_args_t
+imcl_args (int argc, char **argv)
 {
-  return (imcl_state_t) {
+  return (imcl_args_t) {
     .argc = argc,
     .argv = argv,
   };
 }
 
 void
-imcl_state_drop (imcl_state_t *cursor)
+imcl_args_drop (imcl_args_t *processor)
 {
-  if (cursor && cursor->free_error)
+  if (processor && processor->free_error)
   {
-    free (cursor->error);
+    free (processor->error);
   }
 }
 
 bool
-imcl_state_has_more (imcl_state_t *cursor)
+imcl_args_has_more (imcl_args_t *args)
 {
-  return (cursor->index < cursor-> argc) && !cursor->has_error;
+  return (args->index < args-> argc) && !args->has_error;
 }
 
 const char *
-imcl_state_shift (imcl_state_t *cursor)
+imcl_args_shift (imcl_args_t *args)
 {
-  if (cursor->index < cursor-> argc)
+  if (args->index < args-> argc)
   {
-    return cursor->argv[cursor->index++];
+    return args->argv[args->index++];
   }
 
-  cursor->has_error = true;
+  args->has_error = true;
 
   return "";
 }
 
 int32_t
-imcl_state_shift_int (imcl_state_t *cursor)
+imcl_args_shift_int (imcl_args_t *args)
 {
-  const char * value = imcl_state_shift (cursor);
+  const char * value = imcl_args_shift (args);
 
-  if (cursor->has_error)
+  if (args->has_error)
   {
     return 0;
   }
@@ -125,26 +126,47 @@ imcl_state_shift_int (imcl_state_t *cursor)
 
   if (*endptr != '\0' || int_value > INT32_MAX)
   {
-    cursor->has_error = true;
+    args->has_error = true;
     return 0;
   }
 
   return (int32_t) int_value;
 }
 
-int32_t
-imcl_state_shift_ranged_int (imcl_state_t *cursor, int32_t min, int32_t max)
+uint32_t imcl_args_shift_uint (imcl_args_t *args)
 {
-  int32_t value = imcl_state_shift_int (cursor);
+  const char * value = imcl_args_shift (args);
 
-  if (cursor->has_error)
+  if (args->has_error)
+  {
+    return 0;
+  }
+
+  char *endptr;
+  long int_value = strtol (value, &endptr, 10);
+
+  if (*endptr != '\0' || int_value > UINT32_MAX)
+  {
+    args->has_error = true;
+    return 0;
+  }
+
+  return (uint32_t) int_value;
+}
+
+int32_t
+imcl_args_shift_ranged_int (imcl_args_t *args, int32_t min, int32_t max)
+{
+  int32_t value = imcl_args_shift_int (args);
+
+  if (args->has_error)
   {
     return 0;
   }
 
   if (value < min || value > max)
   {
-    cursor->has_error = true;
+    args->has_error = true;
     return 0;
   }
 
@@ -154,15 +176,15 @@ imcl_state_shift_ranged_int (imcl_state_t *cursor, int32_t min, int32_t max)
 // TODO: shift non-option
 
 bool
-imcl_state_shift_if_command (imcl_state_t *cursor, const char *command_name)
+imcl_args_shift_if_command (imcl_args_t *args, const char *command_name)
 {
   // TODO: check -
-  if (imcl_state_has_more (cursor) && (strcmp (cursor->argv[cursor->index], command_name) == 0))
+  if (imcl_args_has_more (args) && (strcmp (args->argv[args->index], command_name) == 0))
   {
-    cursor->command = command_name;
-    cursor->option_short = NULL;
-    cursor->option_long = NULL;
-    imcl_state_shift (cursor);
+    args->command = command_name;
+    args->option_short = NULL;
+    args->option_long = NULL;
+    imcl_args_shift (args);
     return true;
   }
 
@@ -170,16 +192,16 @@ imcl_state_shift_if_command (imcl_state_t *cursor, const char *command_name)
 }
 
 bool
-imcl_state_shift_if_option (imcl_state_t *cursor, const char *option_short, const char *option_long)
+imcl_args_shift_if_option (imcl_args_t *args, const char *option_short, const char *option_long)
 {
   // TODO: check -
-  if (imcl_state_has_more (cursor)
-      && (strcmp (cursor->argv[cursor->index], option_short ? option_short : "") == 0
-      || strcmp (cursor->argv[cursor->index], option_long ? option_long : "") == 0))
+  if (imcl_args_has_more (args)
+      && (strcmp (args->argv[args->index], option_short ? option_short : "") == 0
+      || strcmp (args->argv[args->index], option_long ? option_long : "") == 0))
   {
-    cursor->option_short = option_short;
-    cursor->option_long = option_long;
-    imcl_state_shift (cursor);
+    args->option_short = option_short;
+    args->option_long = option_long;
+    imcl_args_shift (args);
     return true;
   }
 
@@ -187,15 +209,15 @@ imcl_state_shift_if_option (imcl_state_t *cursor, const char *option_short, cons
 }
 
 bool
-imcl_state_shift_if_help_option (imcl_state_t *cursor)
+imcl_args_shift_if_help_option (imcl_args_t *args)
 {
-  return imcl_state_shift_if_option (cursor, "-h", "--help");
+  return imcl_args_shift_if_option (args, "-h", "--help");
 }
 
 bool
-imcl_state_shift_if_version_option (imcl_state_t *cursor)
+imcl_args_shift_if_version_option (imcl_args_t *args)
 {
-  return imcl_state_shift_if_option (cursor, "-v", "--version");
+  return imcl_args_shift_if_option (args, "-v", "--version");
 }
 
 #endif /* IMCL_IMPLEMENTATION */

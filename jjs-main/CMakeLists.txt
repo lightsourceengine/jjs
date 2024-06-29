@@ -84,6 +84,7 @@ if(JJS_CMDLINE)
   )
   target_include_directories("jjs" PRIVATE "${INCLUDE_PACK_PUBLIC}")
   target_include_directories("jjs" PRIVATE "debugger")
+  target_include_directories("jjs" PRIVATE "lib")
 
   if("${PLATFORM}" STREQUAL "WINDOWS")
     target_link_libraries(jjs ws2_32)
