@@ -491,12 +491,9 @@ static const keyword_string_t keywords_with_length_3[] = {
 static const keyword_string_t keywords_with_length_4[] = {
   LEXER_KEYWORD ("case", LEXER_KEYW_CASE), LEXER_KEYWORD ("else", LEXER_KEYW_ELSE),
   LEXER_KEYWORD ("enum", LEXER_KEYW_ENUM), LEXER_KEYWORD ("eval", LEXER_KEYW_EVAL),
-#if JJS_MODULE_SYSTEM
-  LEXER_KEYWORD ("meta", LEXER_KEYW_META),
-#endif /* JJS_MODULE_SYSTEM */
-  LEXER_KEYWORD ("null", LEXER_LIT_NULL),  LEXER_KEYWORD ("this", LEXER_KEYW_THIS),
-  LEXER_KEYWORD ("true", LEXER_LIT_TRUE),  LEXER_KEYWORD ("void", LEXER_KEYW_VOID),
-  LEXER_KEYWORD ("with", LEXER_KEYW_WITH),
+  LEXER_KEYWORD ("meta", LEXER_KEYW_META), LEXER_KEYWORD ("null", LEXER_LIT_NULL),  
+  LEXER_KEYWORD ("this", LEXER_KEYW_THIS), LEXER_KEYWORD ("true", LEXER_LIT_TRUE),  
+  LEXER_KEYWORD ("void", LEXER_KEYW_VOID), LEXER_KEYWORD ("with", LEXER_KEYW_WITH),
 };
 
 /**
@@ -569,22 +566,32 @@ JJS_STATIC_ASSERT (sizeof (keyword_strings_list) / sizeof (const keyword_string_
                        == (LEXER_KEYWORD_MAX_LENGTH - LEXER_KEYWORD_MIN_LENGTH) + 1,
                      keyword_strings_list_size_must_equal_to_keyword_max_length_difference);
 
-/**
- * List of the keyword groups length.
- */
-static const uint8_t keyword_lengths_list[] = {
-  LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_2), LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_3),
-  LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_4), LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_5),
-  LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_6), LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_7),
-  LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_8), LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_9),
-  LEXER_KEYWORD_LIST_LENGTH (keywords_with_length_10)
-};
-
 #undef LEXER_KEYWORD
 #undef LEXER_KEYWORD_LIST_LENGTH
 
 JJS_STATIC_ASSERT (LEXER_FIRST_NON_RESERVED_KEYWORD < LEXER_FIRST_FUTURE_STRICT_RESERVED_WORD,
                      lexer_first_non_reserved_keyword_must_be_before_lexer_first_future_strict_reserved_word);
+
+#define LEXER_KEYW_MATCH_START(CH) switch (CH) {
+
+#define LEXER_KEYW_MATCH_END(RESULT) default: { (RESULT) = NULL; break; } } break;
+
+#define LEXER_KEYW_MATCH_CASE(RESULT, STR, CH, KEYW_INDEX, KEYW_LEN) \
+  case CH: { \
+    (RESULT) = memcmp (STR, keywords_with_length_##KEYW_LEN[KEYW_INDEX].keyword_p, KEYW_LEN) == 0 ? &keywords_with_length_##KEYW_LEN[KEYW_INDEX] : NULL; \
+    break; \
+  }
+
+#define LEXER_KEYW_MATCH_CASE_COLLISION(RESULT, STR, CH, A0, A0_KEYW_INDEX, B0, B0_KEYW_INDEX, KEYW_LEN) \
+  case CH: {                                                                                             \
+    if (*(STR) == (A0))                                                                                                     \
+      (RESULT) = memcmp (STR, keywords_with_length_##KEYW_LEN[A0_KEYW_INDEX].keyword_p, KEYW_LEN) == 0 ? &keywords_with_length_##KEYW_LEN[A0_KEYW_INDEX] : NULL; \
+    else if (*(STR) == (B0))                                                                                                     \
+       (RESULT) = memcmp (STR, keywords_with_length_##KEYW_LEN[B0_KEYW_INDEX].keyword_p, KEYW_LEN) == 0 ? &keywords_with_length_##KEYW_LEN[B0_KEYW_INDEX] : NULL;\
+    else                                                                                                      \
+       (RESULT) = NULL;                                                                                                     \
+    break; \
+  }
 
 /**
  * Parse identifier.
@@ -750,110 +757,177 @@ lexer_parse_identifier (parser_context_t *context_p, /**< context */
       ident_start_p = buffer_p;
     }
 
-    const keyword_string_t *keyword_list_p = keyword_strings_list[length - LEXER_KEYWORD_MIN_LENGTH];
+    const keyword_string_t *match_p;
 
-    int start = 0;
-    int end = keyword_lengths_list[length - LEXER_KEYWORD_MIN_LENGTH];
-    int middle = end / 2;
-
-    do
+    /*
+     * Imperfect Hashtable for Keywords
+     *
+     * Keywords are stored in separate arrays by length. Rather than trying
+     * a conventional hash, switch on the keyword size to get the keyword
+     * table. Then, manually select an index that contains a unique char
+     * for all same sized keywords. If a single index is not unique another
+     * one is also considered. If those checks pass, the ident is compared
+     * to the matching keyword.
+     */
+    switch (length)
     {
-      const keyword_string_t *keyword_p = keyword_list_p + middle;
-      int compare_result = ident_start_p[0] - keyword_p->keyword_p[0];
-
-      if (compare_result == 0)
+      case 2:
       {
-        compare_result = memcmp (ident_start_p, keyword_p->keyword_p, length);
+        LEXER_KEYW_MATCH_START (ident_start_p[1])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'o', 0, 2) /* do */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'f', 1, 2) /* if */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'n', 2, 2) /* in */
+        LEXER_KEYW_MATCH_END (match_p)
+      }
+      case 3:
+        LEXER_KEYW_MATCH_START (ident_start_p[0])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'f', 0, 3) /* for */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'l', 1, 3) /* let */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'n', 2, 3) /* new */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 't', 3, 3) /* try */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'v', 4, 3) /* var */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 4:
+        LEXER_KEYW_MATCH_START (ident_start_p[1])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'a', 0, 4) /* case */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'l', 1, 4) /* else */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'n', 2, 4) /* enum */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'v', 3, 4) /* eval */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'e', 4, 4) /* meta */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'u', 5, 4) /* null */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'h', 6, 4) /* this */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'r', 7, 4) /* true */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'o', 8, 4) /* void */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'i', 9, 4) /* with */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 5:
+        LEXER_KEYW_MATCH_START (ident_start_p[2])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'y', 0, 5)  /* async */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 't', 3, 5)  /* catch */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'n', 5, 5)  /* const */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'l', 6, 5)  /* false */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'p', 7, 5)  /* super */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'r', 8, 5)  /* throw */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'i', 9, 5)  /* while */
+        LEXER_KEYW_MATCH_CASE_COLLISION (match_p, ident_start_p, 'a', 'a', 1, 'c', 4, 5) /* await, class */
+        LEXER_KEYW_MATCH_CASE_COLLISION (match_p, ident_start_p, 'e', 'b', 2, 'y', 10, 5) /* break, yield */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 6:
+        LEXER_KEYW_MATCH_START (ident_start_p[1])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'x', 1, 6) /* export */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'm', 2, 6) /* import */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'u', 3, 6) /* public */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 't', 5, 6) /* static */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'w', 6, 6) /* switch */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'y', 7, 6) /* typeof */
+        LEXER_KEYW_MATCH_CASE_COLLISION (match_p, ident_start_p, 'e', 'd', 0, 'r', 4, 6) /* delete, return */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 7:
+        LEXER_KEYW_MATCH_START (ident_start_p[1])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'e', 0, 7) /* default */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'x', 1, 7) /* extends */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'i', 2, 7) /* finally */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'a', 3, 7) /* package */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'r', 4, 7) /* private */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 8:
+        LEXER_KEYW_MATCH_START (ident_start_p[1])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'o', 0, 8) /* continue */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'e', 1, 8) /* debugger */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'u', 2, 8) /* function */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 9:
+        LEXER_KEYW_MATCH_START (ident_start_p[2])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'g', 0, 9) /* arguments */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 't', 1, 9) /* interface */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'o', 2, 9) /* protected */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 10:
+        LEXER_KEYW_MATCH_START (ident_start_p[1])
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'm', 0, 10) /* implements */
+        LEXER_KEYW_MATCH_CASE (match_p, ident_start_p, 'n', 1, 10) /* instanceof */
+        LEXER_KEYW_MATCH_END (match_p)
+      case 0:
+      case 1:
+      default:
+      {
+        match_p = NULL;
+        break;
+      }
+    }
 
-        if (compare_result == 0)
+    if (match_p)
+    {
+      context_p->token.keyword_type = (uint8_t) match_p->type;
+
+      /* TODO: should this be a simpler switch? */
+      if (JJS_LIKELY (match_p->type < LEXER_FIRST_NON_RESERVED_KEYWORD))
+      {
+        if (JJS_UNLIKELY (match_p->type == LEXER_KEYW_AWAIT))
         {
-          context_p->token.keyword_type = (uint8_t) keyword_p->type;
-
-          if (JJS_LIKELY (keyword_p->type < LEXER_FIRST_NON_RESERVED_KEYWORD))
+          if (!(context_p->status_flags & (PARSER_IS_ASYNC_FUNCTION | PARSER_IS_CLASS_STATIC_BLOCK))
+              && !(context_p->global_status_flags & ECMA_PARSE_MODULE))
           {
-            if (JJS_UNLIKELY (keyword_p->type == LEXER_KEYW_AWAIT))
-            {
-              if (!(context_p->status_flags & (PARSER_IS_ASYNC_FUNCTION | PARSER_IS_CLASS_STATIC_BLOCK))
-                  && !(context_p->global_status_flags & ECMA_PARSE_MODULE))
-              {
-                break;
-              }
-
-              if (context_p->status_flags & PARSER_DISALLOW_AWAIT_YIELD)
-              {
-                if (LEXER_CHECK_INVALID_KEYWORD (ident_start_p, buffer_p))
-                {
-                  parser_raise_error (context_p, PARSER_ERR_INVALID_KEYWORD);
-                }
-                parser_raise_error (context_p, PARSER_ERR_AWAIT_NOT_ALLOWED);
-              }
-
-              context_p->token.type = (uint8_t) LEXER_KEYW_AWAIT;
-              break;
-            }
-
-            if (LEXER_CHECK_INVALID_KEYWORD (ident_start_p, buffer_p))
-            {
-              /* Escape sequences are not allowed in a keyword. */
-              parser_raise_error (context_p, PARSER_ERR_INVALID_KEYWORD);
-            }
-
-            context_p->token.type = (uint8_t) keyword_p->type;
-            break;
+            /* fallthrough */
           }
-
-          if (keyword_p->type == LEXER_KEYW_LET && (context_p->status_flags & PARSER_IS_STRICT))
+          else if (context_p->status_flags & PARSER_DISALLOW_AWAIT_YIELD)
           {
             if (LEXER_CHECK_INVALID_KEYWORD (ident_start_p, buffer_p))
             {
               parser_raise_error (context_p, PARSER_ERR_INVALID_KEYWORD);
             }
+            parser_raise_error (context_p, PARSER_ERR_AWAIT_NOT_ALLOWED);
 
-            context_p->token.type = (uint8_t) LEXER_KEYW_LET;
-            break;
+            context_p->token.type = (uint8_t) LEXER_KEYW_AWAIT;
           }
-
-          if (keyword_p->type == LEXER_KEYW_YIELD && (context_p->status_flags & PARSER_IS_GENERATOR_FUNCTION))
+          else
           {
-            if (context_p->status_flags & PARSER_DISALLOW_AWAIT_YIELD)
-            {
-              if (LEXER_CHECK_INVALID_KEYWORD (ident_start_p, buffer_p))
-              {
-                parser_raise_error (context_p, PARSER_ERR_INVALID_KEYWORD);
-              }
-              parser_raise_error (context_p, PARSER_ERR_YIELD_NOT_ALLOWED);
-            }
-
-            context_p->token.type = (uint8_t) LEXER_KEYW_YIELD;
-            break;
+            context_p->token.type = (uint8_t) LEXER_KEYW_AWAIT;
           }
-
-          if (keyword_p->type == LEXER_KEYW_ARGUMENTS && (context_p->status_flags & PARSER_INSIDE_CLASS_FIELD))
-          {
-            parser_raise_error (context_p, PARSER_ERR_ARGUMENTS_IN_CLASS_FIELD);
-          }
-
-          if (keyword_p->type >= LEXER_FIRST_FUTURE_STRICT_RESERVED_WORD && (context_p->status_flags & PARSER_IS_STRICT)
-              && !(options & LEXER_PARSE_NO_STRICT_IDENT_ERROR))
-          {
-            parser_raise_error (context_p, PARSER_ERR_STRICT_IDENT_NOT_ALLOWED);
-          }
-          break;
+        }
+        else if (LEXER_CHECK_INVALID_KEYWORD (ident_start_p, buffer_p))
+        {
+          /* Escape sequences are not allowed in a keyword. */
+          parser_raise_error (context_p, PARSER_ERR_INVALID_KEYWORD);
+          context_p->token.type = (uint8_t) match_p->type;
+        }
+        else
+        {
+          context_p->token.type = (uint8_t) match_p->type;
         }
       }
-
-      if (compare_result > 0)
+      else if (match_p->type == LEXER_KEYW_LET && (context_p->status_flags & PARSER_IS_STRICT))
       {
-        start = middle + 1;
-      }
-      else
-      {
-        JJS_ASSERT (compare_result < 0);
-        end = middle;
-      }
+        if (LEXER_CHECK_INVALID_KEYWORD (ident_start_p, buffer_p))
+        {
+          parser_raise_error (context_p, PARSER_ERR_INVALID_KEYWORD);
+        }
 
-      middle = (start + end) / 2;
-    } while (start < end);
+        context_p->token.type = (uint8_t) LEXER_KEYW_LET;
+      }
+      else if (match_p->type == LEXER_KEYW_YIELD && (context_p->status_flags & PARSER_IS_GENERATOR_FUNCTION))
+      {
+        if (context_p->status_flags & PARSER_DISALLOW_AWAIT_YIELD)
+        {
+          if (LEXER_CHECK_INVALID_KEYWORD (ident_start_p, buffer_p))
+          {
+            parser_raise_error (context_p, PARSER_ERR_INVALID_KEYWORD);
+          }
+          parser_raise_error (context_p, PARSER_ERR_YIELD_NOT_ALLOWED);
+        }
+
+        context_p->token.type = (uint8_t) LEXER_KEYW_YIELD;
+      }
+      else if (match_p->type == LEXER_KEYW_ARGUMENTS && (context_p->status_flags & PARSER_INSIDE_CLASS_FIELD))
+      {
+        parser_raise_error (context_p, PARSER_ERR_ARGUMENTS_IN_CLASS_FIELD);
+      }
+      else if (match_p->type >= LEXER_FIRST_FUTURE_STRICT_RESERVED_WORD && (context_p->status_flags & PARSER_IS_STRICT)
+          && !(options & LEXER_PARSE_NO_STRICT_IDENT_ERROR))
+      {
+        parser_raise_error (context_p, PARSER_ERR_STRICT_IDENT_NOT_ALLOWED);
+      }
+    }
   }
 
   context_p->source_p = source_p;
