@@ -535,6 +535,7 @@ main (void)
   result = jjs_module_link (ctx (), module, resolve_callback5, NULL);
   TEST_ASSERT (jjs_value_is_exception (ctx (), result) && jjs_error_type (ctx (), result) == JJS_ERROR_SYNTAX);
   jjs_value_free (ctx (), result);
+  jjs_value_free (ctx (), module);
 
   ctx_close ();
 

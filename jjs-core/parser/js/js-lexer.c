@@ -553,19 +553,6 @@ static const keyword_string_t keywords_with_length_10[] = {
   LEXER_KEYWORD ("instanceof", LEXER_KEYW_INSTANCEOF),
 };
 
-/**
- * List of the keyword groups.
- */
-static const keyword_string_t *const keyword_strings_list[] = { keywords_with_length_2, keywords_with_length_3,
-                                                                keywords_with_length_4, keywords_with_length_5,
-                                                                keywords_with_length_6, keywords_with_length_7,
-                                                                keywords_with_length_8, keywords_with_length_9,
-                                                                keywords_with_length_10 };
-
-JJS_STATIC_ASSERT (sizeof (keyword_strings_list) / sizeof (const keyword_string_t *)
-                       == (LEXER_KEYWORD_MAX_LENGTH - LEXER_KEYWORD_MIN_LENGTH) + 1,
-                     keyword_strings_list_size_must_equal_to_keyword_max_length_difference);
-
 #undef LEXER_KEYWORD
 #undef LEXER_KEYWORD_LIST_LENGTH
 

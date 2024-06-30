@@ -59,11 +59,13 @@ main (void)
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result_val));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has (ctx (), object, symbol_1)));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has_own (ctx (), object, symbol_1)));
+  jjs_value_free (ctx (), result_val);
 
   result_val = jjs_object_set (ctx (), object, symbol_2, value_2, JJS_KEEP);
   TEST_ASSERT (jjs_value_is_boolean (ctx (), result_val));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has (ctx (), object, symbol_2)));
   TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_has_own (ctx (), object, symbol_2)));
+  jjs_value_free (ctx (), result_val);
 
   jjs_value_t get_value_1 = jjs_object_get (ctx (), object, symbol_1);
   TEST_ASSERT (jjs_value_as_number (ctx (), get_value_1) == jjs_value_as_number (ctx (), value_1));
@@ -74,10 +76,12 @@ main (void)
   jjs_value_free (ctx (), get_value_2);
 
   /* Test delete / has_{own}_property */
-  TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_delete (ctx (), object, symbol_1)));
+  jjs_value_t delete_result = jjs_object_delete (ctx (), object, symbol_1);
+  TEST_ASSERT (jjs_value_is_true (ctx (), delete_result));
   TEST_ASSERT (!jjs_value_is_true (ctx (), jjs_object_has (ctx (), object, symbol_1)));
   TEST_ASSERT (!jjs_value_is_true (ctx (), jjs_object_has_own (ctx (), object, symbol_1)));
 
+  jjs_value_free (ctx (), delete_result);
   jjs_value_free (ctx (), value_1);
   jjs_value_free (ctx (), symbol_1);
 
@@ -103,11 +107,13 @@ main (void)
   prop_desc.flags |= JJS_PROP_IS_VALUE_DEFINED | JJS_PROP_IS_WRITABLE_DEFINED | JJS_PROP_IS_ENUMERABLE_DEFINED
                      | JJS_PROP_IS_CONFIGURABLE_DEFINED;
   prop_desc.value = jjs_value_copy (ctx (), value_3);
-  TEST_ASSERT (jjs_value_is_true (ctx (), jjs_object_define_own_prop (ctx (), object, symbol_2, &prop_desc)));
+  jjs_value_t define_own_property_result = jjs_object_define_own_prop (ctx (), object, symbol_2, &prop_desc);
+  TEST_ASSERT (jjs_value_is_true (ctx (), define_own_property_result));
   jjs_property_descriptor_free (ctx (), &prop_desc);
+  jjs_value_free (ctx (), define_own_property_result);
 
   /* Check the modified fields */
-  TEST_ASSERT (jjs_object_get_own_prop (ctx (), object, symbol_2, &prop_desc));
+  TEST_ASSERT (ctx_defer_free (jjs_object_get_own_prop (ctx (), object, symbol_2, &prop_desc)));
   TEST_ASSERT (prop_desc.flags & JJS_PROP_IS_VALUE_DEFINED);
   TEST_ASSERT (value_3 == prop_desc.value);
   TEST_ASSERT (jjs_value_is_string (ctx (), prop_desc.value));

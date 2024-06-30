@@ -71,6 +71,7 @@ typedef struct
   const char *cwd_filename;
   int32_t log_level;
   bool has_log_level;
+  jjs_cli_allocator_strategy_t buffer_allocator_strategy;
 } jjs_cli_state_t;
 
 static void
@@ -194,6 +195,29 @@ unhandled_rejection_cb (jjs_context_t* context, jjs_value_t promise, jjs_value_t
   jjs_cli_fmt_info (context, "Unhandled promise rejection: {}\n", 1, reason);
 }
 
+uint8_t *
+system_arraybuffer_allocate (jjs_context_t *context_p,
+                             jjs_arraybuffer_type_t buffer_type,
+                             uint32_t buffer_size,
+                             void **arraybuffer_user_p,
+                             void *user_p)
+{
+  (void) context_p, (void) buffer_type, (void) arraybuffer_user_p, (void) user_p;
+  return malloc (buffer_size);
+}
+
+void
+system_arraybuffer_free (jjs_context_t *context_p,
+                         jjs_arraybuffer_type_t buffer_type,
+                         uint8_t *buffer_p,
+                         uint32_t buffer_size,
+                         void *arraybuffer_user_p,
+                         void *user_p)
+{
+  (void) context_p, (void) buffer_p, (void) buffer_size, (void) buffer_type, (void) arraybuffer_user_p, (void) user_p;
+  free (buffer_p);
+}
+
 static void
 cleanup_engine (jjs_context_t *context_p)
 {
@@ -218,14 +242,20 @@ init_engine (const jjs_cli_state_t *state, jjs_context_t **out)
 
   jjs_promise_on_unhandled_rejection (context, &unhandled_rejection_cb, NULL);
 
-#if defined (JJS_PACK) && JJS_PACK
-  jjs_pack_init (context, JJS_PACK_INIT_ALL);
-#endif /* defined (JJS_PACK) && JJS_PACK */
-
   if (state->has_log_level)
   {
     jjs_log_set_level (context, (jjs_log_level_t) state->log_level);
   }
+
+  if (state->buffer_allocator_strategy == JJS_CLI_ALLOCATOR_STRATEGY_SYSTEM
+      || state->buffer_allocator_strategy == JJS_CLI_ALLOCATOR_STRATEGY_AUTO)
+  {
+    jjs_arraybuffer_allocator (context, &system_arraybuffer_allocate, &system_arraybuffer_free, NULL);
+  }
+
+#if defined (JJS_PACK) && JJS_PACK
+  jjs_pack_init (context, JJS_PACK_INIT_ALL);
+#endif /* defined (JJS_PACK) && JJS_PACK */
 
   if (state->pmap_filename)
   {
@@ -260,6 +290,12 @@ shift_common_option (jjs_cli_state_t *state)
   else if (imcl_args_shift_if_option (&state->imcl, NULL, "--mem-stats"))
   {
     state->context_options.enable_mem_stats = true;
+
+    /* TODO: shouldn't have to do this. fix! */
+    if (state->log_level < JJS_LOG_LEVEL_DEBUG)
+    {
+      state->log_level = JJS_LOG_LEVEL_DEBUG;
+    }
   }
   else if (imcl_args_shift_if_option (&state->imcl, NULL, "--show-opcodes"))
   {
@@ -268,6 +304,54 @@ shift_common_option (jjs_cli_state_t *state)
   else if (imcl_args_shift_if_option (&state->imcl, NULL, "--show-regexp-opcodes"))
   {
     state->context_options.show_regexp_op_codes = true;
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--vm-heap-size"))
+  {
+    /* TODO: validate */
+    state->context_options.vm_heap_size_kb = jjs_optional_u32 (imcl_args_shift_uint (&state->imcl));
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--vm-stack-limit"))
+  {
+    /* TODO: validate */
+    state->context_options.vm_stack_limit_kb = jjs_optional_u32 (imcl_args_shift_uint (&state->imcl));
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--gc-new-objects-fraction"))
+  {
+    /* TODO: validate */
+    state->context_options.gc_new_objects_fraction = jjs_optional_u32 (imcl_args_shift_uint (&state->imcl));
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--gc-mark-limit"))
+  {
+    /* TODO: validate */
+    state->context_options.gc_mark_limit = jjs_optional_u32 (imcl_args_shift_uint (&state->imcl));
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--gc-limit"))
+  {
+    /* TODO: validate */
+    state->context_options.gc_limit_kb = jjs_optional_u32 (imcl_args_shift_uint (&state->imcl));
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--scratch-size"))
+  {
+    /* TODO: validate */
+    state->context_options.scratch_size_kb = jjs_optional_u32 (imcl_args_shift_uint (&state->imcl));
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--scratch-allocator"))
+  {
+    switch (jjs_cli_allocator_strategy_from_string (imcl_args_shift (&state->imcl)))
+    {
+      case JJS_CLI_ALLOCATOR_STRATEGY_VM:
+        state->context_options.scratch_fallback_allocator_type = JJS_SCRATCH_ALLOCATOR_VM;
+        break;
+      case JJS_CLI_ALLOCATOR_STRATEGY_SYSTEM:
+        state->context_options.scratch_fallback_allocator_type = JJS_SCRATCH_ALLOCATOR_SYSTEM;
+        break;
+      default:
+        break;
+    }
+  }
+  else if (imcl_args_shift_if_option (&state->imcl, NULL, "--buffer-allocator"))
+  {
+    state->buffer_allocator_strategy = jjs_cli_allocator_strategy_from_string (imcl_args_shift (&state->imcl));
   }
   else if (imcl_args_shift_if_option (&state->imcl, NULL, "--log-level"))
   {
@@ -316,15 +400,15 @@ jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module, bool parse
                                     (const uint32_t *) snapshot_buffer,
                                     snapshot_buffer_size,
                                     module->snapshot_index,
-                                    JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME,
+                                    JJS_SNAPSHOT_EXEC_HAS_SOURCE_NAME | JJS_SNAPSHOT_EXEC_COPY_DATA,
                                     &options);
+        jjs_value_free (context, snapshot);
       }
       else
       {
-        result = jjs_value_copy(context, snapshot);
+        result = snapshot;
       }
 
-      jjs_value_free (context, snapshot);
       jjs_value_free (context, filename);
 
       break;
@@ -594,6 +678,7 @@ main (int argc, char **argv)
 {
   jjs_cli_state_t state = {
     .imcl = imcl_args (argc, argv),
+    .buffer_allocator_strategy = JJS_CLI_ALLOCATOR_STRATEGY_AUTO,
   };
   imcl_args_t *it = &state.imcl;
   int exit_code = EXIT_SUCCESS;

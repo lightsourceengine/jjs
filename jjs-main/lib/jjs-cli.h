@@ -37,6 +37,14 @@ typedef enum
   JJS_CLI_PARSER_SNAPSHOT,
 } jjs_cli_parser_t;
 
+typedef enum
+{
+  JJS_CLI_ALLOCATOR_STRATEGY_AUTO,
+  JJS_CLI_ALLOCATOR_STRATEGY_SYSTEM,
+  JJS_CLI_ALLOCATOR_STRATEGY_VM,
+  JJS_CLI_ALLOCATOR_STRATEGY_UNKNOWN,
+} jjs_cli_allocator_strategy_t;
+
 jjs_char_t *jjs_cli_stdin_readline (jjs_size_t *out_size_p);
 
 void jjs_cli_assert (bool condition, const char* message);
@@ -46,6 +54,7 @@ void jjs_cli_fmt_error (jjs_context_t *context, const char *format, jjs_size_t c
 
 jjs_cli_loader_t jjs_cli_loader_from_string (const char *value);
 jjs_cli_parser_t jjs_cli_parser_from_string (const char *value);
+jjs_cli_allocator_strategy_t jjs_cli_allocator_strategy_from_string (const char *value);
 
 #endif /* !JJS_CLI_H */
 
@@ -220,6 +229,25 @@ jjs_cli_parser_from_string (const char *value)
   }
 
   return JJS_CLI_PARSER_UNKNOWN;
+}
+
+jjs_cli_allocator_strategy_t
+jjs_cli_allocator_strategy_from_string (const char *value)
+{
+  if (strcmp ("auto", value) == 0)
+  {
+    return JJS_CLI_ALLOCATOR_STRATEGY_AUTO;
+  }
+  else if (strcmp ("vm", value) == 0)
+  {
+    return JJS_CLI_ALLOCATOR_STRATEGY_VM;
+  }
+  else if (strcmp ("system", value) == 0)
+  {
+    return JJS_CLI_ALLOCATOR_STRATEGY_SYSTEM;
+  }
+
+  return JJS_CLI_ALLOCATOR_STRATEGY_UNKNOWN;
 }
 
 #endif /* JJS_CLI_IMPLEMENTATION */

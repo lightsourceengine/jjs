@@ -333,6 +333,7 @@ process_generate (cli_state_t *cli_state_p, /**< cli state */
 
   jjs_parse_options_t parse_options = {
     .source_name = jjs_optional_value (source_name),
+    .source_name_o = JJS_MOVE,
   };
 
   if (function_args_p != NULL)

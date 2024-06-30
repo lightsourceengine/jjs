@@ -249,6 +249,7 @@ jjs_context_free (jjs_context_t* context_p)
   ecma_free_all_enqueued_jobs (context_p);
   jjs_annex_finalize (context_p);
   ecma_finalize (context_p);
+  jmem_finalize (context_p);
   jjs_api_disable (context_p);
 
   jjs_context_cleanup (context_p);
@@ -1755,7 +1756,7 @@ jjs_throw_value (jjs_context_t* context_p, /**< JJS context */
      * binary size rather than performance. */
     if (!jjs_value_is_abort (context_p, value))
     {
-      return value == JJS_MOVE ? value : jjs_value_copy (context_p, value);
+      return value_o == JJS_MOVE ? value : jjs_value_copy (context_p, value);
     }
 
     value = jjs_exception_value (context_p, value, value_o);
