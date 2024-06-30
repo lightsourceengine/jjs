@@ -72,6 +72,8 @@ bool imcl_args_shift_if_option (imcl_args_t *args, const char *option_short, con
 bool imcl_args_shift_if_help_option (imcl_args_t *args);
 bool imcl_args_shift_if_version_option (imcl_args_t *args);
 
+#endif /* !IMCL_H */
+
 #ifdef IMCL_IMPLEMENTATION
 
 imcl_args_t
@@ -221,5 +223,3 @@ imcl_args_shift_if_version_option (imcl_args_t *args)
 }
 
 #endif /* IMCL_IMPLEMENTATION */
-
-#endif /* !IMCL_H */
