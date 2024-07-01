@@ -156,9 +156,9 @@ uint32_t imcl_args_shift_uint (imcl_args_t *args)
   }
 
   char *endptr;
-  long int_value = strtol (value, &endptr, 10);
+  int64_t int_value = strtoll (value, &endptr, 10);
 
-  if (*endptr != '\0' || int_value > UINT32_MAX)
+  if (*endptr != '\0' || int_value < 0 || int_value > (int64_t) UINT32_MAX)
   {
     args->has_error = true;
     return 0;

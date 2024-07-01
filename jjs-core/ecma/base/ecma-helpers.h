@@ -111,19 +111,18 @@ typedef enum
                                    utf8_str_size) /**< [out] output buffer size */ \
   lit_utf8_size_t utf8_str_size;                                                   \
   uint8_t utf8_ptr##flags = ECMA_STRING_FLAG_EMPTY;                                \
-  const lit_utf8_byte_t *utf8_ptr = ecma_string_get_chars (ctx, ecma_str_ptr, &utf8_str_size, NULL, NULL, &utf8_ptr##flags);
+  lit_utf8_byte_t utf8_ptr##uint32_to_string_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];   \
+  const lit_utf8_byte_t *utf8_ptr = ecma_string_get_chars (ctx, ecma_str_ptr, &utf8_str_size, NULL, &utf8_ptr##uint32_to_string_buffer[0], &utf8_ptr##flags);
+
+/* TODO: finalize should be removed, as it is no longer needed. kept around to limit refactoring footprint. */
 
 /**
- * Free the cesu-8 string buffer allocated by 'ECMA_STRING_TO_UTF8_STRING'
+ * Release ownership of the pointer returned by 'ECMA_STRING_TO_UTF8_STRING'.
  */
 #define ECMA_FINALIZE_UTF8_STRING(ctx, /**< JJS context */                      \
                                   utf8_ptr, /**< pointer to character buffer */ \
                                   utf8_str_size) /**< buffer size */            \
-  if (utf8_ptr##flags & ECMA_STRING_FLAG_MUST_BE_FREED)                         \
-  {                                                                             \
-    JJS_ASSERT (utf8_ptr != NULL);                                              \
-    jmem_heap_free_block ((ctx), (void *) utf8_ptr, utf8_str_size);             \
-  }
+  JJS_ASSERT ((utf8_ptr##flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
 #ifdef ECMA_VALUE_CAN_STORE_UINTPTR_VALUE_DIRECTLY
 
@@ -418,10 +417,11 @@ void ecma_compact_collection_destroy (ecma_context_t *context_p, ecma_value_t *c
 /* string hashset */
 bool ecma_hashset_init (ecma_hashset_t *self, ecma_context_t *context_p, const jjs_allocator_t *allocator_p, jjs_size_t capacity);
 void ecma_hashset_free (ecma_hashset_t* self);
-void ecma_hash_set_audit_finalize (ecma_hashset_t *self);
 ecma_value_t ecma_hashset_get (ecma_hashset_t *self, ecma_value_t key);
 ecma_value_t ecma_hashset_get_raw (ecma_hashset_t *self, const lit_utf8_byte_t *key_p, lit_utf8_size_t key_size);
 bool ecma_hashset_put (ecma_hashset_t *self, ecma_value_t string_value, bool move_string_value);
+
+void ecma_hashset_audit_finalize (ecma_hashset_t *self);
 
 /* ecma-helpers.c */
 ecma_object_t *ecma_create_object (ecma_context_t *context_p, ecma_object_t *prototype_object_p, size_t ext_object_size, ecma_object_type_t type);

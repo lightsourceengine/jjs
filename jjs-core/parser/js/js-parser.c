@@ -2001,6 +2001,8 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 {
   parser_context_t context;
   ecma_compiled_code_t *compiled_code_p;
+  lit_utf8_byte_t arguments_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
+  lit_utf8_byte_t source_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
 
   context.context_p = context_p;
   context.error = PARSER_ERR_NO_ERROR;
@@ -2055,12 +2057,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
     ecma_string_t *string_p = ecma_get_string_from_value (context_p, context.argument_list);
     uint8_t flags = ECMA_STRING_FLAG_EMPTY;
 
-    context.arguments_start_p = ecma_string_get_chars (context_p, string_p, &context.arguments_size, NULL, NULL, &flags);
-
-    if (flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-    {
-      context.global_status_flags |= ECMA_PARSE_INTERNAL_FREE_ARG_LIST;
-    }
+    context.arguments_start_p = ecma_string_get_chars (context_p, string_p, &context.arguments_size, NULL, &arguments_uint_buffer[0], &flags);
   }
 
   if (!(context.global_status_flags & ECMA_PARSE_HAS_SOURCE_VALUE))
@@ -2077,12 +2074,7 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
     ecma_string_t *string_p = ecma_get_string_from_value (context_p, source);
     uint8_t flags = ECMA_STRING_FLAG_EMPTY;
 
-    context.source_start_p = ecma_string_get_chars (context_p, string_p, &context.source_size, NULL, NULL, &flags);
-
-    if (flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-    {
-      context.global_status_flags |= ECMA_PARSE_INTERNAL_FREE_SOURCE;
-    }
+    context.source_start_p = ecma_string_get_chars (context_p, string_p, &context.source_size, NULL, &source_uint_buffer[0], &flags);
   }
 
 #if JJS_DEBUGGER
@@ -2439,16 +2431,6 @@ parser_parse_source (ecma_context_t *context_p, /**< JJS context */
 #endif /* JJS_PARSER_DUMP_BYTE_CODE */
 
   parser_stack_free (&context);
-
-  if (context.global_status_flags & ECMA_PARSE_INTERNAL_FREE_SOURCE)
-  {
-    jmem_heap_free_block (context_p, (void *) context.source_start_p, context.source_size);
-  }
-
-  if (context.global_status_flags & ECMA_PARSE_INTERNAL_FREE_ARG_LIST)
-  {
-    jmem_heap_free_block (context_p, (void *) context.arguments_start_p, context.arguments_size);
-  }
 
   if (compiled_code_p != NULL)
   {

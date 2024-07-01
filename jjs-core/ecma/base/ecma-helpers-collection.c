@@ -614,7 +614,7 @@ ecma_hashset_free (ecma_hashset_t *self) /**< this hashset */
  * only. This function is not intended for use outside of the context shutdown use case.
  */
 void
-ecma_hash_set_audit_finalize (ecma_hashset_t *self) /**< this hashset */
+ecma_hashset_audit_finalize (ecma_hashset_t *self) /**< this hashset */
 {
 #ifndef JJS_NDEBUG
   const jjs_size_t capacity = self->capacity;

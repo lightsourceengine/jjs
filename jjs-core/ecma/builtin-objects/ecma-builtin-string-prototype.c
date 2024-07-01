@@ -600,13 +600,18 @@ ecma_builtin_string_prototype_object_replace_helper (ecma_context_t *context_p, 
   }
 
   uint8_t input_flags = ECMA_STRING_FLAG_IS_ASCII;
-  replace_ctx.string_p = ecma_string_get_chars (context_p, input_str_p, &(replace_ctx.string_size), NULL, NULL, &input_flags);
-
+  lit_utf8_byte_t input_str_uint_buffer_p[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
+  lit_utf8_byte_t search_str_uint_buffer_p[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
   lit_utf8_size_t search_size;
   lit_utf8_size_t search_length;
   uint8_t search_flags = ECMA_STRING_FLAG_IS_ASCII;
-  const lit_utf8_byte_t *search_buf_p =
-    ecma_string_get_chars (context_p, search_str_p, &search_size, &search_length, NULL, &search_flags);
+  const lit_utf8_byte_t *search_buf_p;
+
+  replace_ctx.string_p = ecma_string_get_chars (context_p, input_str_p, &(replace_ctx.string_size), NULL, &input_str_uint_buffer_p[0], &input_flags);
+  JJS_ASSERT ((input_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
+
+  search_buf_p = ecma_string_get_chars (context_p, search_str_p, &search_size, &search_length, &search_str_uint_buffer_p[0], &search_flags);
+  JJS_ASSERT ((search_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   ecma_string_t *result_string_p = NULL;
 
@@ -698,16 +703,6 @@ ecma_builtin_string_prototype_object_replace_helper (ecma_context_t *context_p, 
   result = ecma_make_string_value (context_p, result_string_p);
 
 cleanup_replace:
-  if (input_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) replace_ctx.string_p, replace_ctx.string_size);
-  }
-
-  if (search_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) search_buf_p, search_size);
-  }
-
   if (replace_ctx.replace_str_p != NULL)
   {
     ecma_deref_ecma_string (context_p, replace_ctx.replace_str_p);
@@ -985,16 +980,21 @@ ecma_builtin_string_prototype_object_split (ecma_context_t *context_p, /**< JJS 
 
   lit_utf8_size_t string_size;
   uint8_t string_flags = ECMA_STRING_FLAG_IS_ASCII;
-  const lit_utf8_byte_t *string_buffer_p = ecma_string_get_chars (context_p, string_p, &string_size, NULL, NULL, &string_flags);
+  lit_utf8_byte_t string_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
+  const lit_utf8_byte_t *string_buffer_p = ecma_string_get_chars (context_p, string_p, &string_size, NULL, &string_uint_buffer[0], &string_flags);
   lit_utf8_size_t separator_size;
   uint8_t separator_flags = ECMA_STRING_FLAG_IS_ASCII;
+  lit_utf8_byte_t separator_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
   const lit_utf8_byte_t *separator_buffer_p =
-    ecma_string_get_chars (context_p, separator_p, &separator_size, NULL, NULL, &separator_flags);
+    ecma_string_get_chars (context_p, separator_p, &separator_size, NULL, &separator_uint_buffer[0], &separator_flags);
 
   const lit_utf8_byte_t *const string_end_p = string_buffer_p + string_size;
   const lit_utf8_byte_t *const compare_end_p = JJS_MIN (string_end_p - separator_size + 1, string_end_p);
   const lit_utf8_byte_t *current_p = string_buffer_p;
   const lit_utf8_byte_t *last_str_begin_p = string_buffer_p;
+
+  JJS_ASSERT ((string_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
+  JJS_ASSERT ((separator_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   while (current_p < compare_end_p)
   {
@@ -1012,7 +1012,7 @@ ecma_builtin_string_prototype_object_split (ecma_context_t *context_p, /**< JJS 
 
       if (array_length >= limit)
       {
-        goto cleanup_buffers;
+        goto cleanup_separator;
       }
 
       current_p += separator_size;
@@ -1032,17 +1032,6 @@ ecma_builtin_string_prototype_object_split (ecma_context_t *context_p, /**< JJS 
                                                                    ECMA_PROPERTY_CONFIGURABLE_ENUMERABLE_WRITABLE);
   JJS_ASSERT (put_result == ECMA_VALUE_TRUE);
   ecma_deref_ecma_string (context_p, end_substr_p);
-
-cleanup_buffers:
-  if (string_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) string_buffer_p, string_size);
-  }
-
-  if (separator_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) separator_buffer_p, separator_size);
-  }
 
 cleanup_separator:
   ecma_deref_ecma_string (context_p, separator_p);

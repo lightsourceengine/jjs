@@ -888,12 +888,14 @@ ecma_builtin_replace_substitute (ecma_context_t *context_p, /**< JJS context */
 
   lit_utf8_size_t replace_size;
   uint8_t replace_flags = ECMA_STRING_FLAG_IS_ASCII;
+  lit_utf8_byte_t uint32_to_string_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
   const lit_utf8_byte_t *replace_buf_p =
-    ecma_string_get_chars (context_p, ctx_p->replace_str_p, &replace_size, NULL, NULL, &replace_flags);
-
+    ecma_string_get_chars (context_p, ctx_p->replace_str_p, &replace_size, NULL, &uint32_to_string_buffer[0], &replace_flags);
   const lit_utf8_byte_t *const replace_end_p = replace_buf_p + replace_size;
   const lit_utf8_byte_t *curr_p = replace_buf_p;
   const lit_utf8_byte_t *last_inserted_end_p = replace_buf_p;
+
+  JJS_ASSERT ((replace_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   while (curr_p < replace_end_p)
   {
@@ -1034,11 +1036,6 @@ ecma_builtin_replace_substitute (ecma_context_t *context_p, /**< JJS context */
   ecma_stringbuilder_append_raw (&(ctx_p->builder),
                                  last_inserted_end_p,
                                  (lit_utf8_size_t) (replace_end_p - last_inserted_end_p));
-
-  if (replace_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) replace_buf_p, replace_size);
-  }
 } /* ecma_builtin_replace_substitute */
 
 /**

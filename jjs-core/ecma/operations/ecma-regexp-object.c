@@ -1625,8 +1625,9 @@ ecma_regexp_exec_helper (ecma_context_t *context_p, /**< JJS context */
   lit_utf8_size_t input_size;
   lit_utf8_size_t input_length;
   uint8_t input_flags = ECMA_STRING_FLAG_IS_ASCII;
+  lit_utf8_byte_t string_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
   const lit_utf8_byte_t *input_buffer_p =
-    ecma_string_get_chars (context_p, input_string_p, &input_size, &input_length, NULL, &input_flags);
+    ecma_string_get_chars (context_p, input_string_p, &input_size, &input_length, &string_uint_buffer[0], &input_flags);
 
   const lit_utf8_byte_t *input_curr_p = input_buffer_p;
   const lit_utf8_byte_t *input_end_p = input_buffer_p + input_size;
@@ -1637,6 +1638,8 @@ ecma_regexp_exec_helper (ecma_context_t *context_p, /**< JJS context */
   /* 4. */
   ecma_length_t index = 0;
   ecma_value_t lastindex_value = ecma_op_object_get_by_magic_id (context_p, regexp_object_p, LIT_MAGIC_STRING_LASTINDEX_UL);
+
+  JJS_ASSERT ((input_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   ret_value = ecma_op_to_length (context_p, lastindex_value, &index);
   ecma_free_value (context_p, lastindex_value);
@@ -1800,11 +1803,6 @@ match_found:
 
 cleanup_context:
   ecma_regexp_cleanup_context (context_p, &re_ctx);
-
-  if (input_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) input_buffer_p, input_size);
-  }
 
   return ret_value;
 } /* ecma_regexp_exec_helper */
@@ -1998,8 +1996,11 @@ ecma_regexp_split_helper (ecma_context_t *context_p, /**< JJS context */
 
   lit_utf8_size_t flags_size;
   uint8_t flags_str_flags = ECMA_STRING_FLAG_IS_ASCII;
+  lit_utf8_byte_t string_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
   const lit_utf8_byte_t *flags_buffer_p =
-    ecma_string_get_chars (context_p, flags_str_p, &flags_size, NULL, NULL, &flags_str_flags);
+    ecma_string_get_chars (context_p, flags_str_p, &flags_size, NULL, &string_uint_buffer[0], &flags_str_flags);
+
+  JJS_ASSERT ((flags_str_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   bool unicode = false;
   bool sticky = false;
@@ -2021,11 +2022,6 @@ ecma_regexp_split_helper (ecma_context_t *context_p, /**< JJS context */
         break;
       }
     }
-  }
-
-  if (flags_str_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) flags_buffer_p, flags_size);
   }
 
   /* 12. */
@@ -2303,7 +2299,9 @@ ecma_regexp_replace_helper_fast (ecma_context_t *context_p, /**< JJS context */
 
   uint8_t string_flags = ECMA_STRING_FLAG_IS_ASCII;
   lit_utf8_size_t string_length;
-  ctx_p->string_p = ecma_string_get_chars (context_p, string_p, &(ctx_p->string_size), &string_length, NULL, &string_flags);
+  lit_utf8_byte_t string_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
+  ctx_p->string_p = ecma_string_get_chars (context_p, string_p, &(ctx_p->string_size), &string_length, &string_uint_buffer[0], &string_flags);
+  JJS_ASSERT ((string_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   const lit_utf8_byte_t *const string_end_p = ctx_p->string_p + ctx_p->string_size;
   const uint8_t *const bc_start_p = (const uint8_t *) (bc_p + 1);
@@ -2518,11 +2516,6 @@ cleanup_builder:
 cleanup_context:
   ecma_regexp_cleanup_context (context_p, &re_ctx);
   ecma_bytecode_deref (context_p, (ecma_compiled_code_t *) bc_p);
-
-  if (string_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) ctx_p->string_p, ctx_p->string_size);
-  }
 
   return result;
 } /* ecma_regexp_replace_helper_fast */
@@ -2759,7 +2752,9 @@ ecma_regexp_replace_helper (ecma_context_t *context_p, /**< JJS context */
   }
 
   uint8_t string_flags = ECMA_STRING_FLAG_IS_ASCII;
-  replace_ctx.string_p = ecma_string_get_chars (context_p, string_p, &(replace_ctx.string_size), NULL, NULL, &string_flags);
+  lit_utf8_byte_t string_uint_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
+  replace_ctx.string_p = ecma_string_get_chars (context_p, string_p, &(replace_ctx.string_size), NULL, &string_uint_buffer[0], &string_flags);
+  JJS_ASSERT ((string_flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   /* 14. */
   replace_ctx.builder = ecma_stringbuilder_create (context_p);
@@ -2972,16 +2967,10 @@ ecma_regexp_replace_helper (ecma_context_t *context_p, /**< JJS context */
                                  (lit_utf8_size_t) (string_end_p - source_position_p));
 
   result = ecma_make_string_value (context_p, ecma_stringbuilder_finalize (&replace_ctx.builder));
-  goto cleanup_chars;
+  goto cleanup_results;
 
 cleanup_builder:
   ecma_stringbuilder_destroy (&replace_ctx.builder);
-
-cleanup_chars:
-  if (string_flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) replace_ctx.string_p, replace_ctx.string_size);
-  }
 
 cleanup_results:
   ecma_collection_free (context_p, results_p);

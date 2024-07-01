@@ -2391,7 +2391,9 @@ ecma_string_trim (ecma_context_t *context_p, /**< JJS context */
 
   lit_utf8_size_t utf8_str_size;
   uint8_t flags = ECMA_STRING_FLAG_IS_ASCII;
-  const lit_utf8_byte_t *utf8_str_p = ecma_string_get_chars (context_p, string_p, &utf8_str_size, NULL, NULL, &flags);
+  lit_utf8_byte_t uint32_to_string_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
+  const lit_utf8_byte_t *utf8_str_p = ecma_string_get_chars (context_p, string_p, &utf8_str_size, NULL, &uint32_to_string_buffer[0], &flags);
+  JJS_ASSERT ((flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
   if (utf8_str_size > 0)
   {
@@ -2401,11 +2403,6 @@ ecma_string_trim (ecma_context_t *context_p, /**< JJS context */
   else
   {
     ret_string_p = ecma_get_magic_string (LIT_MAGIC_STRING__EMPTY);
-  }
-
-  if (flags & ECMA_STRING_FLAG_MUST_BE_FREED)
-  {
-    jmem_heap_free_block (context_p, (void *) utf8_str_p, utf8_str_size);
   }
 
   return ret_string_p;

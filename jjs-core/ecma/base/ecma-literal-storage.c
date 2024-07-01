@@ -122,7 +122,7 @@ void
 ecma_finalize_lit_storage (ecma_context_t *context_p) /**< JJS context */
 {
   ecma_free_symbol_list (context_p, context_p->symbol_list_first_cp);
-  ecma_hash_set_audit_finalize (&context_p->string_literal_pool);
+  ecma_hashset_audit_finalize (&context_p->string_literal_pool);
   ecma_hashset_free (&context_p->string_literal_pool);
   ecma_free_number_list (context_p, context_p->number_list_first_cp);
 #if JJS_BUILTIN_BIGINT
