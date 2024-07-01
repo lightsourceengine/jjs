@@ -44,8 +44,6 @@
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
-#define READ_COMMON_OPTION_ERROR (-1)
-#define READ_COMMON_OPTION_NO_ARGS (0)
 
 typedef struct
 {
@@ -72,6 +70,8 @@ typedef struct
   int32_t log_level;
   bool has_log_level;
   jjs_cli_allocator_strategy_t buffer_allocator_strategy;
+  char **argv;
+  int argc;
 } jjs_cli_state_t;
 
 static void
@@ -272,6 +272,20 @@ init_engine (const jjs_cli_state_t *state, jjs_context_t **out)
     jjs_value_free (context, result);
   }
 
+  jjs_value_t global = jjs_current_realm (context);
+  jjs_value_t jjs = jjs_object_get_sz (context, global, "jjs");
+  jjs_value_t argv = jjs_array (context, (jjs_size_t) state->argc);
+  const jjs_size_t len = jjs_array_length (context, argv);
+
+  for (jjs_size_t i = 0; i < len; i++)
+  {
+    jjs_value_free (context, jjs_object_set_index (context, argv, i, jjs_string_utf8_sz (context, state->argv[i]), JJS_MOVE));
+  }
+
+  jjs_value_free (context, jjs_object_set_sz (context, jjs, "argv", argv, JJS_MOVE));
+  jjs_value_free (context, global);
+  jjs_value_free (context, jjs);
+
   *out = context;
   return true;
 }
@@ -292,9 +306,9 @@ shift_common_option (jjs_cli_state_t *state)
     state->context_options.enable_mem_stats = true;
 
     /* TODO: shouldn't have to do this. fix! */
-    if (state->log_level < JJS_LOG_LEVEL_DEBUG)
+    if (state->log_level < JJS_LOG_LEVEL_TRACE)
     {
-      state->log_level = JJS_LOG_LEVEL_DEBUG;
+      state->log_level = JJS_LOG_LEVEL_TRACE;
     }
   }
   else if (imcl_args_shift_if_option (&state->imcl, NULL, "--show-opcodes"))
@@ -776,6 +790,17 @@ main (int argc, char **argv)
     }
     else
     {
+      if (strcmp (imcl_args_current(it), "--") == 0)
+      {
+        imcl_args_shift(it);
+
+        if (it->index < it->argc)
+        {
+          state.argv = &it->argv[it->index];
+          state.argc = it->argc - it->index;
+        }
+      }
+
       exit_code = run (&state, &includes, &entry_point);
     }
 

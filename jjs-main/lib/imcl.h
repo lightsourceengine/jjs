@@ -67,6 +67,8 @@ int32_t imcl_args_shift_int (imcl_args_t *args);
 uint32_t imcl_args_shift_uint (imcl_args_t *args);
 int32_t imcl_args_shift_ranged_int (imcl_args_t *args, int32_t min, int32_t max);
 
+const char *imcl_args_current (imcl_args_t *args);
+
 bool imcl_args_shift_if_command (imcl_args_t *args, const char *command_name);
 bool imcl_args_shift_if_option (imcl_args_t *args, const char *option_short, const char *option_long);
 bool imcl_args_shift_if_help_option (imcl_args_t *args);
@@ -103,14 +105,23 @@ imcl_args_has_more (imcl_args_t *args)
 const char *
 imcl_args_shift (imcl_args_t *args)
 {
-  if (args->index < args-> argc)
+  if (!args->has_error)
   {
-    return args->argv[args->index++];
+    if (args->index < args->argc)
+    {
+      return args->argv[args->index++];
+    }
+
+    args->has_error = true;
   }
 
-  args->has_error = true;
-
   return "";
+}
+
+const char *
+imcl_args_current (imcl_args_t *args)
+{
+  return (!args->has_error && args->index < args-> argc) ? args->argv[args->index] : "";
 }
 
 int32_t
