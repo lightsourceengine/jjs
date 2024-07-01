@@ -130,9 +130,8 @@ void
 jjs_cli_fmt_info (jjs_context_t *context, const char *format, jjs_size_t count, ...)
 {
   jjs_value_t format_args [4];
-  const jjs_size_t args_size = (jjs_size_t) (sizeof (format_args) / sizeof (format_args[0]));
 
-  assert ((jjs_size_t) count < args_size);
+  assert ((jjs_size_t) count < (jjs_size_t) (sizeof (format_args) / sizeof (format_args[0])));
 
   va_list a;
   va_start (a, count);
@@ -151,9 +150,8 @@ void
 jjs_cli_fmt_error (jjs_context_t *context, const char *format, jjs_size_t count, ...)
 {
   jjs_value_t format_args [4];
-  const jjs_size_t args_size = (jjs_size_t) (sizeof (format_args) / sizeof (format_args[0]));
 
-  assert ((jjs_size_t) count < args_size);
+  assert ((jjs_size_t) count < (jjs_size_t) (sizeof (format_args) / sizeof (format_args[0])));
 
   va_list a;
   va_start (a, count);
