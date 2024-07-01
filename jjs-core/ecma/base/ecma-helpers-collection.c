@@ -411,134 +411,8 @@ ecma_compact_collection_destroy (ecma_context_t *context_p, /**< JJS context */
   jmem_heap_free_block (context_p, compact_collection_p, size * sizeof (ecma_value_t));
 } /* ecma_compact_collection_destroy */
 
-static bool
-ecma_hashset_put_internal (ecma_hashset_t *self, /**< this hashset */
-                  ecma_value_t string_value, /**< ecma string to insert */
-                  bool move_string_value) /**< transfer ownership of string_value to the hashset.
-                                           *   otherwise, string_value ref is copied. */
-{
-  lit_string_hash_t hash = ecma_string_hash (ecma_get_string_from_value (self->context_p, string_value));
-  ecma_hashset_node_t *node = &self->buckets[hash % self->capacity];
-
-  if (node->item == ECMA_VALUE_EMPTY)
-  {
-    node->item = move_string_value ? string_value : ecma_copy_value (self->context_p, string_value);
-  }
-  else
-  {
-    ecma_hashset_node_t *new_node = jmem_pools_alloc (self->context_p, (jjs_size_t) sizeof (*new_node));
-
-    if (new_node == NULL)
-    {
-      return false;
-    }
-
-    *new_node = (ecma_hashset_node_t) {
-      .item = move_string_value ? string_value : ecma_copy_value (self->context_p, string_value),
-      .next_p = node->next_p,
-    };
-
-    node->next_p = new_node;
-  }
-
-  self->size++;
-
-  return true;
-} /* ecma_hashset_put_internal */
-
-/**
- * If load factor is exceeded, the hashset will be rebuilt with capacity * ECMA_HASHSET_GROW_BY buckets.
- */
-#define ECMA_HASHSET_GROW_BY (2)
-
-/**
- * If size is exceeds capacity * ECMA_HASHSET_LOAD_FACTOR, the hashset will be rebuilt with
- * capacity * ECMA_HASHSET_GROW_BY buckets.
- */
-#define ECMA_HASHSET_LOAD_FACTOR (2)
-
-static bool
-ecma_hashset_respec (ecma_hashset_t *self)
-{
-  if (self->capacity == UINT32_MAX)
-  {
-    return true;
-  }
-
-  jjs_size_t limit;
-
-  if (self->capacity > UINT32_MAX / ECMA_HASHSET_LOAD_FACTOR)
-  {
-    limit = UINT32_MAX;
-  }
-  else
-  {
-    limit = self->capacity * ECMA_HASHSET_GROW_BY;
-  }
-
-  if (self->size < limit)
-  {
-    return true;
-  }
-
-  ecma_hashset_t new_hashset;
-  jjs_size_t new_capacity;
-
-  if (self->capacity > UINT32_MAX / ECMA_HASHSET_GROW_BY)
-  {
-    new_capacity = UINT32_MAX;
-  }
-  else
-  {
-    new_capacity = self->capacity * ECMA_HASHSET_GROW_BY;
-  }
-
-  if (!ecma_hashset_init (&new_hashset,
-                          self->context_p,
-                          self->allocator_p,
-                          new_capacity))
-  {
-    return false;
-  }
-
-  for (jjs_size_t i = 0; i < self->capacity; i++)
-  {
-    ecma_hashset_node_t *walker = self->buckets[i].next_p;
-    ecma_hashset_node_t *t;
-
-    if (self->buckets[i].item != ECMA_VALUE_EMPTY)
-    {
-      if (!ecma_hashset_put_internal (&new_hashset, self->buckets[i].item, true))
-      {
-        jjs_platform_fatal (self->context_p, JJS_FATAL_OUT_OF_MEMORY);
-      }
-      self->buckets[i].item = ECMA_VALUE_EMPTY;
-    }
-
-    while (walker)
-    {
-      t = walker;
-      walker = walker->next_p;
-
-      ecma_value_t item = t->item;
-
-      jmem_pools_free (self->context_p, t, (jjs_size_t) sizeof (*t));
-
-      if (!ecma_hashset_put_internal (&new_hashset, item, true))
-      {
-        jjs_platform_fatal (self->context_p, JJS_FATAL_OUT_OF_MEMORY);
-      }
-    }
-
-    self->buckets[i].next_p = NULL;
-  }
-
-  ecma_hashset_free (self);
-
-  *self = new_hashset;
-
-  return true;
-}
+#define ECMA_HASHSET_RESPEC_THRESHOLD (0.70)
+#define ECMA_HASHSET_GROW_RATE (2.0)
 
 /**
  * Specialized string hashset for internal use.
@@ -581,30 +455,97 @@ ecma_hashset_init (ecma_hashset_t *self, /**< this hashset */
 void
 ecma_hashset_free (ecma_hashset_t *self) /**< this hashset */
 {
+  ecma_value_t value;
   const jjs_size_t capacity = self->capacity;
+  jjs_context_t *context_p = self->context_p;
 
   for (jjs_size_t i = 0; i < capacity; i++)
   {
-    ecma_hashset_node_t *walker = self->buckets[i].next_p;
-    ecma_hashset_node_t *t;
+    value = self->buckets[i].item;
 
-    ecma_free_value (self->context_p, self->buckets[i].item);
-
-    while (walker)
+    if (value != ECMA_VALUE_EMPTY)
     {
-      t = walker;
-      walker = walker->next_p;
-
-      ecma_free_value (self->context_p, t->item);
-      jmem_pools_free (self->context_p, t, (jjs_size_t) sizeof (*t));
+      ecma_free_value (context_p, value);
     }
   }
 
-  if (self->buckets)
+  if (capacity)
   {
-    jjs_allocator_free (self->allocator_p, self->buckets, (jjs_size_t) sizeof (*self->buckets) * self->capacity);
+    jjs_allocator_free (self->allocator_p, self->buckets, capacity * sizeof (*self->buckets));
   }
 } /* ecma_hashset_free */
+
+/**
+ * Expand the capacity of the hashset iff it is required.
+ *
+ * Respec'ing is an internal detail of the hashset that should be hidden inside of
+ * insert operations. For performance reasons, for now, I don't want insert respec'ing
+ * and I want to control when a respec happens. This may change in the future.
+ *
+ * If this function returns false, self is still valid. The respec process makes a copy,
+ * inserts each element of self into copy and cleans up self. No matter what happens
+ * self will be a valid hashset.
+ *
+ * @return true if the hashset was resized. false for catastrophic failure - out of memory,
+ * capacity is max or hashset it full
+ */
+bool
+ecma_hashset_maybe_respec (ecma_hashset_t *self)
+{
+  if (self->capacity == UINT32_MAX)
+  {
+    /* capacity is full. cannot respec. it's gonna be slow, but return true if there are still available slots. */
+    return (self->size < self->capacity);
+  }
+
+  if ((double) self->size / (double) self->capacity < ECMA_HASHSET_RESPEC_THRESHOLD)
+  {
+    return true;
+  }
+
+  uint32_t new_capacity;
+  jjs_value_t value;
+  ecma_hashset_t copy;
+  bool success;
+
+  if (self->capacity >= UINT32_MAX / 2)
+  {
+    /* cap at UINT32 max to prevent overflow */
+    new_capacity = UINT32_MAX;
+  }
+  else
+  {
+    new_capacity = (uint32_t)((double) self->capacity * ECMA_HASHSET_GROW_RATE);
+  }
+
+  success = ecma_hashset_init (&copy, self->context_p, self->allocator_p, new_capacity);
+
+  if (!success)
+  {
+    return false;
+  }
+
+  for (jjs_size_t i = 0; i < self->capacity; i++)
+  {
+    value = self->buckets[i].item;
+
+    if (value == ECMA_VALUE_EMPTY)
+    {
+      continue;
+    }
+
+    if (!ecma_hashset_insert (&copy, value, false))
+    {
+      ecma_hashset_free (&copy);
+      return false;
+    }
+  }
+
+  ecma_hashset_free (self);
+  *self = copy;
+
+  return true;
+} /* ecma_hashset_maybe_respec */
 
 /**
  * Checks that all string references held by the hashset have exactly one reference.
@@ -621,31 +562,16 @@ ecma_hashset_audit_finalize (ecma_hashset_t *self) /**< this hashset */
 
   for (jjs_size_t i = 0; i < capacity; i++)
   {
-    ecma_hashset_node_t *walker = self->buckets[i].next_p;
-    ecma_hashset_node_t *t;
-
     if (self->buckets[i].item != ECMA_VALUE_EMPTY)
     {
       ecma_string_t *string_p = ecma_get_string_from_value (self->context_p, self->buckets[i].item);
       JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (string_p));
     }
-
-    while (walker)
-    {
-      t = walker;
-      walker = walker->next_p;
-
-      if (t->item != ECMA_VALUE_EMPTY)
-      {
-        ecma_string_t *string_p = ecma_get_string_from_value (self->context_p, t->item);
-        JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (string_p));
-      }
-    }
   }
 #else /* JJS_NDEBUG */
   (void) self;
 #endif /* !JJS_NDEBUG */
-} /* ecma_hash_set_audit_finalize */
+} /* ecma_hashset_audit_finalize */
 
 /**
  * Find a string value by raw string.
@@ -660,38 +586,40 @@ ecma_hashset_get_raw (ecma_hashset_t *self, /**< this hashset */
                   const lit_utf8_byte_t *key_p, /**< raw string key */
                   lit_utf8_size_t key_size) /**< raw string size in bytes */
 {
-  /* use the existing string hash, but it is not the best. */
-  lit_string_hash_t hash = lit_utf8_string_calc_hash (key_p, key_size);
-  ecma_hashset_node_t *node = &self->buckets[hash % self->capacity];
+  const lit_string_hash_t hash = lit_utf8_string_calc_hash (key_p, key_size);
+  const uint32_t capacity = self->capacity;
+  const lit_utf8_byte_t *chars;
+  /* avoid alloc path in ecma_string_get_chars by providing buffer */
+  lit_utf8_byte_t uint32_to_string_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
+  lit_utf8_size_t size;
+  uint8_t flags = 0;
+  uint32_t guard = 0;
+  ecma_context_t *context_p = self->context_p;
 
-  if (node->item != ECMA_VALUE_EMPTY)
-  {
-    lit_utf8_size_t size;
-    const lit_utf8_byte_t *chars;
-    /* avoid alloc path in ecma_string_get_chars by providing buffer */
-    lit_utf8_byte_t uint32_to_string_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
-    ecma_context_t *context_p = self->context_p;
-    uint8_t flags = 0;
-    ecma_hashset_node_t *walker = node;
-
-    while (walker)
+  for (uint32_t i = hash % capacity; guard < capacity; guard++, i++) {
+    if (i == capacity)
     {
-      chars = ecma_string_get_chars (context_p,
-                                     ecma_get_string_from_value (context_p, walker->item),
-                                     &size,
-                                     NULL,
-                                     uint32_to_string_buffer,
-                                     &flags);
+      i = 0;
+    }
 
-      /* item is always a non-direct string. no path through ecma_string_get_chars should allocate memory */
-      JJS_ASSERT ((flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
+    if (self->buckets[i].item == ECMA_VALUE_EMPTY)
+    {
+      break;
+    }
 
-      if (size == key_size && *key_p == *chars && memcmp (key_p, chars, key_size) == 0)
-      {
-        return walker->item;
-      }
+    chars = ecma_string_get_chars (context_p,
+                                   ecma_get_string_from_value (context_p, self->buckets[i].item),
+                                   &size,
+                                   NULL,
+                                   uint32_to_string_buffer,
+                                   &flags);
 
-      walker = walker->next_p;
+    /* item is always a non-direct string. no path through ecma_string_get_chars should allocate memory */
+    JJS_ASSERT ((flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
+
+    if (size == key_size && *key_p == *chars && memcmp (key_p, chars, key_size) == 0)
+    {
+      return self->buckets[i].item;
     }
   }
 
@@ -710,24 +638,28 @@ ecma_value_t
 ecma_hashset_get (ecma_hashset_t *self, /**< this hashset */
                   ecma_value_t key) /**< ecma string key */
 {
+  const uint32_t capacity = self->capacity;
+  /* avoid alloc path in ecma_string_get_chars by providing buffer */
   ecma_context_t *context_p = self->context_p;
-  JJS_ASSERT (ecma_is_value_string (key));
   ecma_string_t *key_string_p = ecma_get_string_from_value (self->context_p, key);
   lit_string_hash_t hash = ecma_string_hash (key_string_p);
-  ecma_hashset_node_t *node = &self->buckets[hash % self->capacity];
+  uint32_t guard = 0;
 
-  if (node->item != ECMA_VALUE_EMPTY)
+  for (uint32_t i = hash % capacity; guard < capacity; guard++, i++)
   {
-    ecma_hashset_node_t *walker = node;
-
-    while (walker)
+    if (i == capacity)
     {
-      if (ecma_compare_ecma_strings (ecma_get_string_from_value (context_p, walker->item), key_string_p))
-      {
-        return walker->item;
-      }
+      i = 0;
+    }
 
-      walker = walker->next_p;
+    if (self->buckets[i].item == ECMA_VALUE_EMPTY)
+    {
+      break;
+    }
+
+    if (ecma_compare_ecma_strings (ecma_get_string_from_value (context_p, self->buckets[i].item), key_string_p))
+    {
+      return self->buckets[i].item;
     }
   }
 
@@ -739,32 +671,38 @@ ecma_hashset_get (ecma_hashset_t *self, /**< this hashset */
  *
  * Note: for performance reasons, the caller must ensure that string is not already in the set.
  *
- * @return true: successful insert; false: out of memory.
+ * @return true: successful insert; false: table is full, respec might work
  */
 bool
-ecma_hashset_put (ecma_hashset_t *self, /**< this hashset */
-                  ecma_value_t string_value, /**< ecma string to insert */
-                  bool move_string_value) /**< transfer ownership of string_value to the hashset.
-                                           *   otherwise, string_value ref is copied. */
+ecma_hashset_insert (ecma_hashset_t *self, /**< this hashset */
+                     ecma_value_t string_value, /**< ecma string to insert */
+                     bool move_on_success) /**< transfer ownership of string_value to the hashset iff the string is inserted */
 {
-  /* assume string_value is not in the set */
-//  if (ecma_hashset_get (self, string_value) != ECMA_VALUE_NOT_FOUND)
-//  {
-//    ecma_hashset_get (self, string_value);
-//  }
-  JJS_ASSERT (ecma_hashset_get (self, string_value) == ECMA_VALUE_NOT_FOUND);
+  ecma_string_t *string_value_p = ecma_get_string_from_value (self->context_p, string_value);
+  const lit_string_hash_t hash = ecma_string_hash (string_value_p);
+  const uint32_t capacity = self->capacity;
+  jjs_context_t *context_p = self->context_p;
 
-  if (!ecma_hashset_respec (self))
+  for (uint32_t count = 0, i = hash % capacity; count < capacity; count++, i++)
   {
-    if (move_string_value)
+    if (i == capacity)
     {
-      ecma_free_value (self->context_p, string_value);
+      i = 0;
     }
-    return false;
+
+    if (self->buckets[i].item == ECMA_VALUE_EMPTY)
+    {
+      self->size++;
+      self->buckets[i].item = move_on_success ? string_value : ecma_copy_value (context_p, string_value);
+      return true;
+    }
+
+    /* string should not appear in the hashset */
+    JJS_ASSERT (!ecma_compare_ecma_strings (ecma_get_string_from_value (context_p, self->buckets[i].item), string_value_p));
   }
 
-  return ecma_hashset_put_internal (self, string_value, move_string_value);
-} /* ecma_hashset_put */
+  return false;
+} /* ecma_hashset_insert */
 
 /**
  * @}

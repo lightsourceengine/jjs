@@ -419,7 +419,9 @@ bool ecma_hashset_init (ecma_hashset_t *self, ecma_context_t *context_p, const j
 void ecma_hashset_free (ecma_hashset_t* self);
 ecma_value_t ecma_hashset_get (ecma_hashset_t *self, ecma_value_t key);
 ecma_value_t ecma_hashset_get_raw (ecma_hashset_t *self, const lit_utf8_byte_t *key_p, lit_utf8_size_t key_size);
-bool ecma_hashset_put (ecma_hashset_t *self, ecma_value_t string_value, bool move_string_value);
+bool ecma_hashset_insert (ecma_hashset_t *self, ecma_value_t string_value, bool move_on_success);
+void ecma_hashset_audit_finalize (ecma_hashset_t *self);
+bool ecma_hashset_maybe_respec (ecma_hashset_t *self);
 
 void ecma_hashset_audit_finalize (ecma_hashset_t *self);
 

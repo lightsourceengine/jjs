@@ -139,6 +139,11 @@ parser_compute_indicies (parser_context_t *context_p, /**< parser context */
         /* This literal should not be freed even if an error is encountered later. */
         literal_p->status_flags |= LEXER_FLAG_SOURCE_PTR;
       }
+
+      if (literal_p->u.value == ECMA_VALUE_EMPTY)
+      {
+        parser_raise_error (context_p, PARSER_ERR_OUT_OF_MEMORY);
+      }
     }
   }
 
@@ -1286,6 +1291,11 @@ parser_post_processing (parser_context_t *parser_context_p) /**< parser context 
                                                                      source_data >> 20,
                                                                      (literal_p->status_flags & LEXER_FLAG_ASCII) != 0);
         literal_pool_p[literal_p->prop.index] = lit_value;
+
+        if (lit_value == ECMA_VALUE_EMPTY)
+        {
+          parser_raise_error (parser_context_p, PARSER_ERR_OUT_OF_MEMORY);
+        }
       }
     }
   }
@@ -3267,6 +3277,11 @@ parser_compiled_code_set_function_name (parser_context_t *parser_context_p, /**<
 
   *func_name_start_p =
     ecma_find_or_create_literal_string (parser_context_p->context_p, name_buffer_p, name_length, (status_flags & LEXER_FLAG_ASCII) != 0);
+
+  if (*func_name_start_p == ECMA_VALUE_EMPTY)
+  {
+    parser_raise_error (parser_context_p, PARSER_ERR_OUT_OF_MEMORY);
+  }
 
   if (name_buffer_p != name_lit_p->u.char_p)
   {

@@ -202,13 +202,15 @@ ecma_find_or_create_literal_string (ecma_context_t *context_p, /**< JJS context 
 put:
   /* transfer ownership of result to pool, not caller! */
   {
-    bool put_was_successful = ecma_hashset_put (&context_p->string_literal_pool, value, true);
+    bool hashset_insert_result = ecma_hashset_insert (&context_p->string_literal_pool, value, true);
+    bool hashset_respec_result = hashset_insert_result && ecma_hashset_maybe_respec (&context_p->string_literal_pool);
 
-    JJS_ASSERT (put_was_successful);
+    JJS_ASSERT (hashset_insert_result && hashset_respec_result);
 
-    if (!put_was_successful)
+    if (!hashset_insert_result || !hashset_respec_result)
     {
-      jjs_platform_fatal (context_p, JJS_FATAL_OUT_OF_MEMORY);
+      ecma_free_value (context_p, value);
+      return ECMA_VALUE_EMPTY;
     }
 
     return value;

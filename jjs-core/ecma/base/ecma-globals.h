@@ -1405,7 +1405,6 @@ typedef struct
 typedef struct ecma_hashset_node_s
 {
   ecma_value_t item; /**< ecma value representing this node. */
-  struct ecma_hashset_node_s *next_p; /**< next node */
 } ecma_hashset_node_t;
 
 /**

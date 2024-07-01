@@ -195,7 +195,7 @@ unhandled_rejection_cb (jjs_context_t* context, jjs_value_t promise, jjs_value_t
   jjs_cli_fmt_info (context, "Unhandled promise rejection: {}\n", 1, reason);
 }
 
-uint8_t *
+static uint8_t *
 system_arraybuffer_allocate (jjs_context_t *context_p,
                              jjs_arraybuffer_type_t buffer_type,
                              uint32_t buffer_size,
@@ -206,7 +206,7 @@ system_arraybuffer_allocate (jjs_context_t *context_p,
   return malloc (buffer_size);
 }
 
-void
+static void
 system_arraybuffer_free (jjs_context_t *context_p,
                          jjs_arraybuffer_type_t buffer_type,
                          uint8_t *buffer_p,
