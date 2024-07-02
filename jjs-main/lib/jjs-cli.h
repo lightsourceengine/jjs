@@ -20,30 +20,50 @@
 
 typedef enum
 {
-  JJS_CLI_LOADER_UNKNOWN,
-  JJS_CLI_LOADER_AUTO,
+  JJS_CLI_LOADER_UNDEFINED,
   JJS_CLI_LOADER_ESM,
   JJS_CLI_LOADER_CJS,
-  JJS_CLI_LOADER_JS,
+  JJS_CLI_LOADER_STRICT,
+  JJS_CLI_LOADER_SLOPPY,
   JJS_CLI_LOADER_SNAPSHOT,
+  JJS_CLI_LOADER_UNKNOWN,
 } jjs_cli_loader_t;
 
 typedef enum
 {
-  JJS_CLI_PARSER_UNKNOWN,
-  JJS_CLI_PARSER_SLOPPY,
-  JJS_CLI_PARSER_STRICT,
-  JJS_CLI_PARSER_MODULE,
-  JJS_CLI_PARSER_SNAPSHOT,
-} jjs_cli_parser_t;
-
-typedef enum
-{
-  JJS_CLI_ALLOCATOR_STRATEGY_AUTO,
+  JJS_CLI_ALLOCATOR_STRATEGY_UNDEFINED,
   JJS_CLI_ALLOCATOR_STRATEGY_SYSTEM,
   JJS_CLI_ALLOCATOR_STRATEGY_VM,
   JJS_CLI_ALLOCATOR_STRATEGY_UNKNOWN,
 } jjs_cli_allocator_strategy_t;
+
+typedef struct
+{
+  jjs_context_options_t context_options;
+  const char *cwd;
+  const char *pmap_filename;
+  const char *cwd_filename;
+  int32_t log_level;
+  bool has_log_level;
+  jjs_cli_allocator_strategy_t buffer_allocator_strategy;
+  char **argv;
+  int argc;
+} jjs_cli_config_t;
+
+typedef struct
+{
+  const char *filename;
+  jjs_cli_loader_t loader;
+  jjs_size_t snapshot_index;
+  bool is_main;
+} jjs_cli_module_t;
+
+typedef struct
+{
+  jjs_cli_module_t *items;
+  size_t size;
+  size_t capacity;
+} jjs_cli_module_list_t;
 
 jjs_char_t *jjs_cli_stdin_readline (jjs_size_t *out_size_p);
 
@@ -53,8 +73,16 @@ void jjs_cli_fmt_info (jjs_context_t *context, const char *format, jjs_size_t co
 void jjs_cli_fmt_error (jjs_context_t *context, const char *format, jjs_size_t count, ...);
 
 jjs_cli_loader_t jjs_cli_loader_from_string (const char *value);
-jjs_cli_parser_t jjs_cli_parser_from_string (const char *value);
 jjs_cli_allocator_strategy_t jjs_cli_allocator_strategy_from_string (const char *value);
+
+void jjs_cli_engine_drop (jjs_context_t *context_p);
+bool jjs_cli_engine_init (const jjs_cli_config_t *config, jjs_context_t **out);
+
+void jjs_cli_module_list_drop (jjs_cli_module_list_t *includes);
+void jjs_cli_module_list_append (jjs_cli_module_list_t *includes,
+                                 const char *filename,
+                                 jjs_cli_loader_t loader,
+                                 jjs_size_t snapshot_index);
 
 #endif /* !JJS_CLI_H */
 
@@ -64,6 +92,49 @@ jjs_cli_allocator_strategy_t jjs_cli_allocator_strategy_from_string (const char 
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
+
+#if defined (JJS_PACK) && JJS_PACK
+#include <jjs-pack.h>
+#endif /* defined (JJS_PACK) && JJS_PACK */
+
+#ifdef _WIN32
+#include <direct.h>
+#ifndef chdir
+#define chdir _chdir
+#endif
+#else
+#include <unistd.h>
+#endif
+
+void
+jjs_cli_module_list_drop (jjs_cli_module_list_t *includes)
+{
+  free (includes->items);
+}
+
+void
+jjs_cli_module_list_append (jjs_cli_module_list_t *includes,
+                             const char *filename,
+                             jjs_cli_loader_t loader,
+                             jjs_size_t snapshot_index)
+{
+  if (includes->size == includes->capacity)
+  {
+    includes->capacity += 8;
+
+    size_t size = includes->capacity * sizeof (includes->items[0]);
+
+    includes->items = includes->items == NULL ? malloc (size) : realloc (includes->items, size);
+    jjs_cli_assert (includes->items, "jjs_cli_module_list_append: bad realloc");
+  }
+
+  includes->items[includes->size++] = (jjs_cli_module_t){
+    .filename = filename,
+    .loader = loader,
+    .snapshot_index = snapshot_index,
+  };
+}
 
 static void
 stdout_wstream_write (jjs_context_t* context, const jjs_wstream_t *stream, const uint8_t *data, jjs_size_t size)
@@ -90,6 +161,115 @@ static jjs_wstream_t stderr_wstream = {
   .write = stderr_wstream_write,
   .encoding = JJS_ENCODING_UTF8,
 };
+
+static bool
+set_cwd (const char *cwd)
+{
+  return cwd ? chdir (cwd) == 0 : true;
+}
+
+static void
+unhandled_rejection_cb (jjs_context_t* context, jjs_value_t promise, jjs_value_t reason, void *user_ptr)
+{
+  (void) promise;
+  (void) user_ptr;
+  jjs_cli_fmt_info (context, "Unhandled promise rejection: {}\n", 1, reason);
+}
+
+static uint8_t *
+system_arraybuffer_allocate (jjs_context_t *context_p,
+                             jjs_arraybuffer_type_t buffer_type,
+                             uint32_t buffer_size,
+                             void **arraybuffer_user_p,
+                             void *user_p)
+{
+  (void) context_p, (void) buffer_type, (void) arraybuffer_user_p, (void) user_p;
+  return malloc (buffer_size);
+}
+
+static void
+system_arraybuffer_free (jjs_context_t *context_p,
+                         jjs_arraybuffer_type_t buffer_type,
+                         uint8_t *buffer_p,
+                         uint32_t buffer_size,
+                         void *arraybuffer_user_p,
+                         void *user_p)
+{
+  (void) context_p, (void) buffer_p, (void) buffer_size, (void) buffer_type, (void) arraybuffer_user_p, (void) user_p;
+  free (buffer_p);
+}
+
+void
+jjs_cli_engine_drop (jjs_context_t *context_p)
+{
+#if defined (JJS_PACK) && JJS_PACK
+  jjs_pack_cleanup (context_p);
+#endif /* defined (JJS_PACK) && JJS_PACK */
+  jjs_context_free (context_p);
+}
+
+bool
+jjs_cli_engine_init (const jjs_cli_config_t *config, jjs_context_t **out)
+{
+  srand ((unsigned) time (NULL));
+  set_cwd (config->cwd);
+
+  jjs_context_t *context;
+
+  if (jjs_context_new (&config->context_options, &context) != JJS_STATUS_OK)
+  {
+    return false;
+  }
+
+  jjs_promise_on_unhandled_rejection (context, &unhandled_rejection_cb, NULL);
+
+  if (config->has_log_level)
+  {
+    jjs_log_set_level (context, (jjs_log_level_t) config->log_level);
+  }
+
+  if (config->buffer_allocator_strategy == JJS_CLI_ALLOCATOR_STRATEGY_SYSTEM
+      || config->buffer_allocator_strategy == JJS_CLI_ALLOCATOR_STRATEGY_UNDEFINED)
+  {
+    jjs_arraybuffer_allocator (context, &system_arraybuffer_allocate, &system_arraybuffer_free, NULL);
+  }
+
+#if defined (JJS_PACK) && JJS_PACK
+  jjs_pack_init (context, JJS_PACK_INIT_ALL);
+#endif /* defined (JJS_PACK) && JJS_PACK */
+
+  if (config->pmap_filename)
+  {
+    jjs_value_t result = jjs_pmap (context, jjs_string_sz (context, config->pmap_filename), JJS_MOVE, jjs_undefined (context), JJS_MOVE);
+
+    if (jjs_value_is_exception (context, result))
+    {
+      jjs_cli_fmt_info (context, "Failed to load pmap: {}\n", 1, result);
+      jjs_value_free (context, result);
+      jjs_cli_engine_drop (context);
+      return false;
+    }
+
+    jjs_value_free (context, result);
+  }
+
+  jjs_value_t global = jjs_current_realm (context);
+  jjs_value_t jjs = jjs_object_get_sz (context, global, "jjs");
+  jjs_value_t argv = jjs_array (context, (jjs_size_t) config->argc);
+  const jjs_size_t len = jjs_array_length (context, argv);
+
+  for (jjs_size_t i = 0; i < len; i++)
+  {
+    jjs_value_free (context, jjs_object_set_index (context, argv, i, jjs_string_utf8_sz (context, config->argv[i]), JJS_MOVE));
+  }
+
+  jjs_value_free (context, jjs_object_set_sz (context, jjs, "argv", argv, JJS_MOVE));
+  jjs_value_free (context, global);
+  jjs_value_free (context, jjs);
+
+  *out = context;
+  return true;
+}
 
 jjs_char_t *
 jjs_cli_stdin_readline (jjs_size_t *out_size)
@@ -182,21 +362,21 @@ jjs_cli_assert (bool condition, const char* message)
 jjs_cli_loader_t
 jjs_cli_loader_from_string (const char *value)
 {
-  if (strcmp ("esm", value) == 0)
+  if (strcmp ("esm", value) == 0 || strcmp ("module", value) == 0)
   {
     return JJS_CLI_LOADER_ESM;
   }
-  else if (strcmp ("auto", value) == 0)
-  {
-    return JJS_CLI_LOADER_AUTO;
-  }
-  else if (strcmp ("cjs", value) == 0)
+  else if (strcmp ("cjs", value) == 0 || strcmp ("commonjs", value) == 0)
   {
     return JJS_CLI_LOADER_CJS;
   }
-  else if (strcmp ("js", value) == 0)
+  else if (strcmp ("strict", value) == 0)
   {
-    return JJS_CLI_LOADER_JS;
+    return JJS_CLI_LOADER_STRICT;
+  }
+  else if (strcmp ("sloppy", value) == 0)
+  {
+    return JJS_CLI_LOADER_SLOPPY;
   }
   else if (strcmp ("snapshot", value) == 0)
   {
@@ -206,35 +386,12 @@ jjs_cli_loader_from_string (const char *value)
   return JJS_CLI_LOADER_UNKNOWN;
 }
 
-jjs_cli_parser_t
-jjs_cli_parser_from_string (const char *value)
-{
-  if (strcmp ("sloppy", value) == 0)
-  {
-    return JJS_CLI_PARSER_SLOPPY;
-  }
-  else if (strcmp ("strict", value) == 0)
-  {
-    return JJS_CLI_PARSER_STRICT;
-  }
-  else if (strcmp ("module", value) == 0)
-  {
-    return JJS_CLI_PARSER_MODULE;
-  }
-  else if (strcmp ("snapshot", value) == 0)
-  {
-    return JJS_CLI_PARSER_SNAPSHOT;
-  }
-
-  return JJS_CLI_PARSER_UNKNOWN;
-}
-
 jjs_cli_allocator_strategy_t
 jjs_cli_allocator_strategy_from_string (const char *value)
 {
   if (strcmp ("auto", value) == 0)
   {
-    return JJS_CLI_ALLOCATOR_STRATEGY_AUTO;
+    return JJS_CLI_ALLOCATOR_STRATEGY_UNDEFINED;
   }
   else if (strcmp ("vm", value) == 0)
   {

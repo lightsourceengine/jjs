@@ -63,6 +63,7 @@ void imcl_args_drop (imcl_args_t *args);
 bool imcl_args_has_more (imcl_args_t *args);
 
 const char *imcl_args_shift (imcl_args_t *args);
+const char *imcl_args_shift_file (imcl_args_t *args);
 int32_t imcl_args_shift_int (imcl_args_t *args);
 uint32_t imcl_args_shift_uint (imcl_args_t *args);
 int32_t imcl_args_shift_ranged_int (imcl_args_t *args, int32_t min, int32_t max);
@@ -116,6 +117,20 @@ imcl_args_shift (imcl_args_t *args)
   }
 
   return "";
+}
+
+const char *
+imcl_args_shift_file (imcl_args_t *args)
+{
+  const char *file = imcl_args_shift (args);
+
+  if (!args->has_error && (*file == '\0' || *file == '-'))
+  {
+    args->has_error = true;
+    file = "";
+  }
+
+  return file;
 }
 
 const char *

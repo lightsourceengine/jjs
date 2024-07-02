@@ -530,75 +530,89 @@ def run_cli_tests(options):
 
     ret, build_dir_path = create_binary(job, options)
 
+    common_flags = [
+        '--cwd', './cli',
+        '--pmap', 'pmap.json',
+        '--vm-heap-size', '2048',
+        '--log-level', '1',
+        '--mem-stats',
+        '--show-opcodes',
+        '--show-regexp-opcodes',
+        '--buffer-allocator', 'system',
+        '--scratch-allocator', 'system',
+        '--scratch-size', '1024'
+    ]
+
     suite = [
         # top level help / version
+        [['help'], 0],
         [['--help'], 0],
         [['-h'], 0],
+        [['version'], 0],
         [['--version'], 0],
         [['-v'], 0],
-        # command: repl
+        # repl: help
         [['repl', '--help'], 0],
         [['repl', '-h'], 0],
-        # command: test
+        # repl: with common flags
+        # [['repl'] + common_flags, 0],
+        # test: help
         [['test', '--help'], 0],
         [['test', '-h'], 0],
-        # execute test
+        # test: run tests
+        [['test', 'cli/test.mjs'], 0],
         [['test', './cli/test.mjs'], 0],
-        # individual flags
-        [['test', '--pmap', './cli/pmap.json', './cli/test.mjs'], 0],
-        [['test', '--loader', 'module', './cli/test.mjs'], 0],
-        [['test', '--loader', 'commonjs', './cli/test.cjs'], 0],
-        [['test', '--loader', 'xxx', './cli/test.mjs'], 1],
-        [['test', '--cwd', './cli', 'test.mjs'], 0],
-        [['test', '--cwd', 'file-not-found', 'test.mjs'], 1],
-        [['test', '--mem-stats', './cli/test.mjs'], 0],
-        [['test', '--show-opcodes', './cli/test.mjs'], 0],
-        [['test', '--show-regexp-opcodes', './cli/test.mjs'], 0],
-        [['test', '--log-level', '1', './cli/test.mjs'], 0],
-        [['test', '--log-level', 'x', './cli/test.mjs'], 1],
-        # all the flags
-        [['test', '--pmap', 'pmap.json', '--cwd', './cli', '--mem-stats', '--show-opcodes', '--show-regexp-opcodes', '--log-level', '1', 'test.mjs'], 0],
-        # missing FILE
-        [['test'], 1],
-        # args after FILE
-        # TODO: arguments after file are ignored. should fail, as this is confusing
-        # [['test', './cli/test.mjs', '--log-level', '3'], 1],
-        # command: run
+        [['test', '--loader', 'esm', './cli/test.mjs'], 0],
+        [['test', 'cli/test.cjs'], 0],
+        [['test', './cli/test.cjs'], 0],
+        # parse: file not found
+        [['test', 'xxx'], 1],
+        # test: with common flags
+        [['test'] + common_flags + ['test.mjs'], 0],
+        # parse: help
+        [['parse', '--help'], 0],
+        [['parse', '-h'], 0],
+        # parse: file
+        [['parse', 'cli/run.mjs'], 0],
+        [['parse', './cli/run.mjs'], 0],
+        [['parse', '--loader', 'esm', './cli/run.mjs'], 0],
+        [['parse', 'cli/run.cjs'], 0],
+        [['parse', './cli/run.cjs'], 0],
+        [['parse', '--loader', 'cjs', './cli/run.cjs'], 0],
+        [['parse', '--loader', 'strict', './cli/run.cjs'], 0],
+        [['parse', '--loader', 'sloppy', './cli/run.cjs'], 0],
+        # parse: file not found
+        [['parse', 'xxx'], 1],
+        # parse: with common flags
+        [['parse'] + common_flags + ['run.mjs'], 0],
+        # run: help
         [['run', '--help'], 0],
         [['run', '-h'], 0],
-        # run file
-        [['run', './cli/run.js'], 0],
-        [['run', '--loader', 'module', './cli/run.js'], 0],
-        [['run', '--loader', 'commonjs', './cli/run.js'], 0],
-        [['run', '--loader', 'strict', './cli/run.js'], 0],
-        [['run', '--loader', 'sloppy', './cli/run.js'], 0],
-        [['run', '--loader', 'xxx', './cli/run.js'], 1],
-        # require, import, preload
-        [['run', '--require', './cli/run-a.cjs', './cli/run.js'], 0],
-        [['run', '--require', './cli/run-a.mjs', './cli/run.js'], 1],
-        [['run', '--import', './cli/run-a.mjs', './cli/run.js'], 0],
-        [['run', '--import', './cli/run-a.mjs', '--import', './cli/run-b.mjs', './cli/run.js'], 0],
-        [['run', '--import', './cli/run-a.cjs', '--import', './cli/run-b.cjs', './cli/run.js'], 0],
-        [['run', '--preload', './cli/run-c.js', './cli/run.js'], 0],
-        [['run', '--preload-strict', './cli/run-c.js', './cli/run.js'], 0],
-        [['run', '--preload-sloppy', './cli/run-c.js', './cli/run.js'], 0],
-        [['run', '--require', 'file-not-found', './cli/run.js'], 1],
-        [['run', '--import', 'file-not-found', './cli/run.js'], 1],
-        [['run', '--preload', 'file-not-found', './cli/run.js'], 1],
-        [['run', '--preload-strict', 'file-not-found', './cli/run.js'], 1],
-        [['run', '--preload-sloppy', 'file-not-found', './cli/run.js'], 1],
-        # individual flags
-        [['run', '--pmap', './cli/pmap.json', './cli/run.js'], 0],
-        [['run', '--loader', 'module', './cli/run.js'], 0],
-        [['run', '--loader', 'commonjs', './cli/run.cjs'], 0],
-        [['run', '--loader', 'xxx', './cli/run.js'], 1],
-        [['run', '--cwd', './cli', 'run.js'], 0],
-        [['run', '--cwd', 'file-not-found', 'run.js'], 1],
-        [['run', '--mem-stats', './cli/run.js'], 0],
-        [['run', '--show-opcodes', './cli/run.js'], 0],
-        [['run', '--show-regexp-opcodes', './cli/run.js'], 0],
-        [['run', '--log-level', '1', './cli/run.js'], 0],
-        [['run', '--log-level', 'x', './cli/run.js'], 1],
+        # run: file with args
+        [['run', 'cli/run-with-args.js', '--', 'a', 'b', 'c'], 0],
+        [['run', './cli/run-with-args.js', '--', 'a', 'b', 'c'], 0],
+        [['run', './cli/run-with-args.js', '--', 'a', 'b'], 1],
+        [['run', './cli/run-with-args.js', 'a', 'b'], 1],
+        # run: file
+        [['run', 'cli/run.mjs'], 0],
+        [['run', './cli/run.mjs'], 0],
+        [['run', '--loader', 'esm', './cli/run.mjs'], 0],
+        [['run', 'cli/run.cjs'], 0],
+        [['run', './cli/run.cjs'], 0],
+        [['run', '--loader', 'cjs', './cli/run.cjs'], 0],
+        [['run', '--import', './cli/run-a.mjs', '--require', './cli/run-b.cjs', '--preload:strict', './cli/run.js', '--preload:sloppy', './cli/run-c.js', './cli/run.cjs'], 0],
+        # run: file not found
+        [['run', 'xxx'], 1],
+        [['run', '--import', 'xxx', 'cli/run.mjs'], 1],
+        [['run', '--require', 'xxx', 'cli/run.mjs'], 1],
+        [['run', '--preload', 'xxx', 'cli/run.mjs'], 1],
+        [['run', '--preload:strict', 'xxx', 'cli/run.mjs'], 1],
+        [['run', '--preload:sloppy', 'xxx', 'cli/run.mjs'], 1],
+        [['run', '--preload:snapshot', 'xxx', 'cli/run.mjs'], 1],
+        # run: with common flags
+        [['run'] + common_flags + ['run.mjs'], 0],
+        # TODO: add loader validation tests
+        # TODO: add fine grained tests for advanced options
     ]
 
     i = 1

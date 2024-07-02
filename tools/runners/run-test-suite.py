@@ -140,7 +140,7 @@ def run_normal_tests(args, tests):
         test_path = os.path.relpath(test)
         is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
 
-        test_argument = ['--loader', 'esm' if test.endswith('.mjs') else 'js']
+        test_argument = ['--loader', 'esm' if test.endswith('.mjs') else 'sloppy']
 
         (returncode, stdout) = execute_test_command(test_cmd + test_argument + [test], args.test_dir)
 
@@ -171,7 +171,7 @@ def run_snapshot_tests(args, tests):
     if args.pmap:
         execute_snapshot_cmd.extend(['--pmap', args.pmap])
 
-    execute_snapshot_cmd.extend(['--loader', 'snapshot', 'js.snapshot'])
+    execute_snapshot_cmd.extend(['js.snapshot'])
 
     # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
     engine = os.path.splitext(args.engine)
