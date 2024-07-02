@@ -211,9 +211,6 @@ jjs_context_init (const jjs_context_options_t* options_p, const jjs_allocator_t 
 
   context_p->platform = platform;
 
-  /* javascript jjs namespace exclusions */
-  context_p->jjs_namespace_exclusions = options_p->jjs_namespace_exclusions;
-
   context_p->vm_heap_size = vm_heap_size_b;
   context_p->vm_stack_limit = get_context_option_u32 (&options_p->vm_stack_limit_kb, JJS_DEFAULT_VM_STACK_LIMIT) * 1024;
   context_p->gc_mark_limit = get_context_option_u32 (&options_p->gc_mark_limit, JJS_DEFAULT_GC_MARK_LIMIT);

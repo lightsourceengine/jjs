@@ -1371,28 +1371,6 @@ typedef struct
 } jjs_platform_options_t;
 
 /**
- * Flags to exclude api from the jjs namespace exposed to javascript.
- *
- * If, for example, the vmod feature is disabled at compile time, it will
- * not appear in the jjs namespace. These exclusions are not the only
- * reason a JS api will not appear in jjs.
- *
- * Other symbols, such as version, platform, arch, etc. cannot be excluded
- * from the jjs namespace.
- */
-typedef struct
-{
-  bool exclude_read_file; /**< exclude jjs.readFile() */
-  bool exclude_cwd; /**< exclude jjs.cwd() */
-  bool exclude_realpath; /**< jjs.realpath() */
-  bool exclude_gc; /**< jjs.gc() */
-  bool exclude_vmod; /**< jjs.vmod() */
-  bool exclude_pmap; /**< jjs.pmap() */
-  bool exclude_stdout; /**< jjs.stdout() */
-  bool exclude_stderr; /**< jjs.stderr() */
-} jjs_namespace_exclusions_t;
-
-/**
  * Scratch fallback allocator type, used in jjs_context_options_t.
  */
 typedef enum
@@ -1432,17 +1410,6 @@ typedef struct
   bool strict_memory_layout;
 
   jjs_platform_options_t platform;
-
-  /**
-   * Control which apis are exposed to scripts in the javascript jjs object (globalThis.jjs).
-   *
-   * The exclusions here are limited to the jjs namespace. The native apis are not affected
-   * by these exclusions. But, if a feature is disabled at the native layer, the feature
-   * is automatically excluded from the jjs namespace. For example, if the context has no
-   * platform read file function, readFile will not be added to the jjs namespace regardless
-   * of the exclusion settings.
-   */
-  jjs_namespace_exclusions_t jjs_namespace_exclusions;
 
   /**
    * VM heap size in kilobytes.

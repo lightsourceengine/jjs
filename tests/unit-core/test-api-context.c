@@ -103,41 +103,6 @@ test_context_jjs_namespace (void)
   ctx_close ();
 }
 
-static void
-check_jjs_namespace_exclusion (jjs_namespace_exclusions_t exclusions, const char* api_name_sz)
-{
-  jjs_context_options_t options = {
-    .jjs_namespace_exclusions = exclusions,
-  };
-
-  ctx_open (&options);
-
-  jjs_value_t global = ctx_global();
-  jjs_value_t jjs = ctx_defer_free (jjs_object_get_sz (ctx (), global, "jjs"));
-
-  /* sanity check that jjs object exists and basics are populated */
-  TEST_ASSERT (jjs_value_is_object (ctx (), jjs));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "version"))));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "os"))));
-  TEST_ASSERT (jjs_value_is_string (ctx (), ctx_defer_free (jjs_object_get_sz (ctx (), jjs, "arch"))));
-  TEST_ASSERT (jjs_value_is_false (ctx (), ctx_defer_free (jjs_object_has_sz (ctx (), jjs, api_name_sz))));
-
-  ctx_close ();
-}
-
-static void
-test_context_jjs_namespace_exclusions (void)
-{
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_read_file = true }, "readFile");
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_stdout = true }, "stdout");
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_stderr = true }, "stderr");
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_pmap = true }, "pmap");
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_vmod = true }, "vmod");
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_realpath = true }, "realpath");
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_cwd = true }, "cwd");
-  check_jjs_namespace_exclusion ((jjs_namespace_exclusions_t) { .exclude_gc = true }, "gc");
-}
-
 static bool stdlib_alloc_called = false;
 static jjs_size_t stdlib_alloc_called_with = 0;
 static bool stdlib_free_called = false;
@@ -313,7 +278,6 @@ main (void)
   test_context_new_no_arena ();
   
   test_context_jjs_namespace ();
-  test_context_jjs_namespace_exclusions ();
   
   test_init_options_stack_limit ();
   test_init_options_stack_limit_when_stack_static ();

@@ -108,7 +108,6 @@ struct jjs_context_t
   jjs_size_t context_block_size_b; /**< size of context allocation. used to free context. */
 
   ecma_global_object_t *global_object_p; /**< current global object */
-  jjs_namespace_exclusions_t jjs_namespace_exclusions; /**< javascript jjs namespace exclusions */
 
   jjs_log_level_t log_level; /**< log level. log requests at this level of less will be logged. */
 
