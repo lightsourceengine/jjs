@@ -169,6 +169,7 @@ set(SOURCE_CORE_FILES
   api/jjs-module.c
   api/jjs-platform.c
   api/jjs-platform-win.c
+  api/jjs-platform-stub.c
   api/jjs-platform-unix.c
   api/jjs-stream.c
   api/jjs-util.c

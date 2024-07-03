@@ -46,7 +46,7 @@ jjsp_buffer_view_from_stdlib_alloc (void* buffer,
   jjs_platform_buffer_view_from_buffer (buffer_view_p, &source, encoding);
 }
 
-#if JJS_PLATFORM_API_PATH_CWD
+#if JJS_PLATFORM_API_PATH_CWD == 1
 #include <unistd.h>
 
 jjs_status_t
@@ -75,7 +75,7 @@ jjs_platform_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffe
 }
 #endif /* JJS_PLATFORM_API_PATH_CWD */
 
-#if JJS_PLATFORM_API_TIME_SLEEP
+#if JJS_PLATFORM_API_TIME_SLEEP == 1
 
 #include <time.h>
 #include <errno.h>
@@ -101,7 +101,7 @@ jjs_platform_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep
 
 #endif /* JJS_PLATFORM_API_TIME_SLEEP */
 
-#if JJS_PLATFORM_API_TIME_LOCAL_TZA
+#if JJS_PLATFORM_API_TIME_LOCAL_TZA == 1
 
 #include <time.h>
 
@@ -136,7 +136,7 @@ jjs_platform_time_local_tza_impl (double unix_ms, int32_t* out_p)
 
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
 
-#if JJS_PLATFORM_API_TIME_NOW_MS
+#if JJS_PLATFORM_API_TIME_NOW_MS == 1
 
 #include <time.h>
 #include <sys/time.h>
@@ -160,7 +160,7 @@ jjs_platform_time_now_ms_impl (double* out_p)
 
 #endif /* JJS_PLATFORM_API_TIME_NOW_MS */
 
-#if JJS_PLATFORM_API_PATH_REALPATH
+#if JJS_PLATFORM_API_PATH_REALPATH == 1
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -255,7 +255,7 @@ jjs_platform_path_realpath_impl (const jjs_allocator_t* allocator,
 
 #endif /* JJS_PLATFORM_API_PATH_REALPATH */
 
-#if JJS_PLATFORM_API_FS_READ_FILE
+#if JJS_PLATFORM_API_FS_READ_FILE == 1
 
 #include <stdlib.h>
 #include <stdio.h>

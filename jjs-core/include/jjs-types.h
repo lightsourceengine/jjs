@@ -116,6 +116,7 @@ typedef enum
 
   /* general errors */
   JJS_STATUS_GENERIC_ERROR, /**< */
+  JJS_STATUS_NOT_IMPLEMENTED, /**< */
   JJS_STATUS_INVALID_ARGUMENT, /**< */
   JJS_STATUS_BAD_ALLOC, /**< */
   JJS_STATUS_UNSUPPORTED_ENCODING, /**< */
