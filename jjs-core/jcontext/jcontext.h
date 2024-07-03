@@ -72,27 +72,6 @@ typedef struct
   void* data_p;
 } jjs_context_data_entry_t;
 
-typedef struct jjs_platform_s
-{
-  jjs_platform_fatal_fn_t fatal;
-
-  jjs_platform_io_write_fn_t io_write;
-  jjs_platform_io_flush_fn_t io_flush;
-  jjs_platform_io_stream_t io_stdout;
-  jjs_encoding_t io_stdout_encoding;
-  jjs_platform_io_stream_t io_stderr;
-  jjs_encoding_t io_stderr_encoding;
-
-  jjs_platform_time_local_tza_fn_t time_local_tza;
-  jjs_platform_time_now_ms_fn_t time_now_ms;
-  jjs_platform_time_sleep_fn_t time_sleep;
-
-  jjs_platform_path_cwd_fn_t path_cwd;
-  jjs_platform_path_realpath_fn_t path_realpath;
-
-  jjs_platform_fs_read_file_fn_t fs_read_file;
-} jjs_platform_t;
-
 /**
  * JJS context
  *
@@ -111,10 +90,8 @@ struct jjs_context_t
 
   jjs_log_level_t log_level; /**< log level. log requests at this level of less will be logged. */
 
-  jjs_platform_t platform; /**< platform api */
-
-  jjs_platform_io_stream_t *streams[2]; /**< installed platform io streams. validated at context init.
-                                           * indexes at jjs_platform_io_stream_id_t */
+  jjs_platform_io_stream_t *streams[2]; /**< JJS_STDOUT and JJS_STDERR native stream objects */
+  jjs_encoding_t stream_encoding[2]; /**< JJS_STDOUT and JJS_STDERR string encoding */
 
   jjs_promise_unhandled_rejection_cb_t
     unhandled_rejection_cb; /**< called when a promise rejection has no handler. cannot be NULL. */

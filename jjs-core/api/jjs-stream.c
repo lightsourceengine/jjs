@@ -59,9 +59,9 @@ static JJS_HANDLER (jjs_wstream_prototype_flush)
 
   JJS_ASSERT (wstream_p);
 
-  if (wstream_p && context_p->platform.io_flush)
+  if (wstream_p)
   {
-    context_p->platform.io_flush (wstream_p->state_p);
+    jjs_platform_io_flush_impl (wstream_p->state_p);
   }
 
   return jjs_undefined (context_p);
@@ -76,16 +76,19 @@ static void jjs_wstream_prototype_finalizer (jjs_context_t* context_p, void *nat
 static void
 wstream_io_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
 {
-  context_p->platform.io_write (self_p->state_p, data_p, data_size, self_p->encoding);
+  JJS_UNUSED (context_p);
+  jjs_platform_io_write_impl (self_p->state_p, data_p, data_size, self_p->encoding);
 } /* wstream_io_write */
 
 #if JJS_DEBUGGER
 static void
 wstream_log_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
 {
+  JJS_UNUSED (context_p);
+
   if (self_p->state_p)
   {
-    context_p->platform.io_write (self_p->state_p, data_p, data_size, self_p->encoding);
+    jjs_platform_io_write_impl (self_p->state_p, data_p, data_size, self_p->encoding);
   }
 
   #if JJS_DEBUGGER
@@ -197,6 +200,7 @@ jjs_wstream_from_buffer (jjs_wstream_buffer_state_t * buffer_p, /**< buffer to w
 bool
 jjs_wstream_from_id (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_wstream_t *out)
 {
+  /* TODO: refactor */
   if (jjs_stream_is_installed (context_p, id))
   {
     switch (id)
@@ -204,15 +208,15 @@ jjs_wstream_from_id (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, j
       case JJS_STDOUT:
       {
         out->write = wstream_io_write;
-        out->encoding = context_p->platform.io_stdout_encoding;
-        out->state_p = context_p->platform.io_stdout;
+        out->encoding = context_p->stream_encoding[JJS_STDOUT];
+        out->state_p = context_p->streams[JJS_STDOUT];
         return true;
       }
       case JJS_STDERR:
       {
         out->write = wstream_io_write;
-        out->encoding = context_p->platform.io_stderr_encoding;
-        out->state_p = context_p->platform.io_stderr;
+        out->encoding = context_p->stream_encoding[JJS_STDERR];
+        out->state_p = context_p->streams[JJS_STDERR];
         return true;
       }
       default:
@@ -248,13 +252,13 @@ bool
 jjs_wstream_log (jjs_context_t* context_p, jjs_wstream_t* out) /**< wstream object to intialize */
 {
 #if JJS_DEBUGGER
-  if (!context_p->platform.io_stderr && !jjs_debugger_is_connected (context_p))
+  if (!jjs_debugger_is_connected (context_p))
   {
     return false;
   }
 
-  out->state_p = context_p->platform.io_stderr;
-  out->encoding = context_p->platform.io_stderr_encoding;
+  out->state_p = context_p->streams[JJS_STDERR];
+  out->encoding = context_p->stream_encoding[JJS_STDERR];
   out->write = wstream_log_write;
 
   return true;
@@ -384,9 +388,10 @@ jjs_stream_is_installed (jjs_context_t* context_p, jjs_platform_io_stream_id_t i
 void
 jjs_stream_flush (jjs_context_t* context_p, jjs_platform_io_stream_id_t id) /**< platform stream id */
 {
-  if (context_p->platform.io_flush && jjs_stream_is_installed (context_p, id))
+  /* TODO: refactor */
+  if (jjs_stream_is_installed (context_p, id))
   {
-    context_p->platform.io_flush (context_p->streams[id]);
+    jjs_platform_io_flush_impl (context_p->streams[id]);
   }
 }
 

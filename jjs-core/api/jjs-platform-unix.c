@@ -50,7 +50,7 @@ jjsp_buffer_view_from_stdlib_alloc (void* buffer,
 #include <unistd.h>
 
 jjs_status_t
-jjsp_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
+jjs_platform_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
 {
   JJS_UNUSED (allocator);
   char* path_p = getcwd (NULL, 0);
@@ -81,7 +81,7 @@ jjsp_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t
 #include <errno.h>
 
 jjs_status_t
-jjsp_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
+jjs_platform_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   struct timespec timeout;
   int rc;
@@ -106,7 +106,7 @@ jjsp_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 #include <time.h>
 
 jjs_status_t
-jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
+jjs_platform_time_local_tza_impl (double unix_ms, int32_t* out_p)
 {
   time_t time = (time_t) unix_ms / 1000;
 
@@ -142,7 +142,7 @@ jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
 #include <sys/time.h>
 
 jjs_status_t
-jjsp_time_now_ms_impl (double* out_p)
+jjs_platform_time_now_ms_impl (double* out_p)
 {
   struct timeval tv;
 
@@ -166,7 +166,7 @@ jjsp_time_now_ms_impl (double* out_p)
 #include <stdlib.h>
 
 jjs_status_t
-jjsp_path_realpath_impl (const jjs_allocator_t* allocator,
+jjs_platform_path_realpath_impl (const jjs_allocator_t* allocator,
                          jjs_platform_path_t* path_p,
                          jjs_platform_buffer_view_t* buffer_view_p)
 {
@@ -261,7 +261,7 @@ jjsp_path_realpath_impl (const jjs_allocator_t* allocator,
 #include <stdio.h>
 
 jjs_status_t
-jjsp_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
+jjs_platform_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
 {
   jjs_status_t status;
   jjs_platform_buffer_view_t path_view_p;

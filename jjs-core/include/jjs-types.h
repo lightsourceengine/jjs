@@ -135,13 +135,6 @@ typedef enum
   JJS_STATUS_PLATFORM_FILE_SEEK_ERR, /**< */
   JJS_STATUS_PLATFORM_FILE_OPEN_ERR, /**< */
 
-  /* context initialization errors */
-  JJS_STATUS_CONTEXT_STDOUT_INVALID_ENCODING, /**< platform.io_stdout was set with an unsupported platform.io_stdout_encoding value */
-  JJS_STATUS_CONTEXT_STDERR_INVALID_ENCODING, /**< platform.io_stderr was set with an unsupported platform.io_stderr_encoding value */
-  JJS_STATUS_CONTEXT_REQUIRES_API_FATAL, /**< platform.fatal function is required by the engine */
-  JJS_STATUS_CONTEXT_REQUIRES_API_TIME_SLEEP, /**< platform.time_sleep function is required by the engine */
-  JJS_STATUS_CONTEXT_REQUIRES_API_TIME_LOCAL_TZA, /**< platform.time_local_tza function is required by the engine */
-  JJS_STATUS_CONTEXT_REQUIRES_API_TIME_NOW_MS, /**< platform.time_now_ms function is required by the engine */
   JJS_STATUS_CONTEXT_VM_STACK_LIMIT_DISABLED,
 } jjs_status_t;
 
@@ -1408,8 +1401,6 @@ typedef struct
    * vm heap will be a few K smaller at runtime.
    */
   bool strict_memory_layout;
-
-  jjs_platform_options_t platform;
 
   /**
    * VM heap size in kilobytes.

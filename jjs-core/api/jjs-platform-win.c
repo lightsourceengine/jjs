@@ -24,7 +24,7 @@
 #include <windows.h>
 
 jjs_status_t
-jjsp_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
+jjs_platform_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
 {
   WCHAR* p;
   DWORD n;
@@ -93,7 +93,7 @@ jjsp_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t
 #include <windows.h>
 
 jjs_status_t
-jjsp_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
+jjs_platform_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 {
   Sleep (sleep_time_ms);
 
@@ -107,7 +107,7 @@ jjsp_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
 #include <time.h>
 
 jjs_status_t
-jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
+jjs_platform_time_local_tza_impl (double unix_ms, int32_t* out_p)
 {
   time_t time = (time_t) unix_ms / 1000;
 
@@ -128,61 +128,6 @@ jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
   return JJS_STATUS_OK;
 }
 
-//#include <windows.h>
-//
-//#define UNIX_EPOCH_IN_TICKS 116444736000000000ull /* difference between 1970 and 1601 */
-//#define TICKS_PER_MS        10000ull /* 1 tick is 100 nanoseconds */
-//
-//static void
-//unix_time_to_filetime (double t, LPFILETIME ft_p)
-//{
-//  // https://support.microsoft.com/en-us/help/167296/how-to-convert-a-unix-time-t-to-a-win32-filetime-or-systemtime
-//
-//  LONGLONG ll = (LONGLONG) t * (LONGLONG) TICKS_PER_MS + (LONGLONG) UNIX_EPOCH_IN_TICKS;
-//
-//  /* FILETIME values before the epoch are invalid. */
-//  if (ll < 0)
-//  {
-//    ll = 0;
-//  }
-//
-//  ft_p->dwLowDateTime = (DWORD) ll;
-//  ft_p->dwHighDateTime = (DWORD) (ll >> 32);
-//}
-//
-//static double
-//filetime_to_unix_time (LPFILETIME ft_p)
-//{
-//  ULARGE_INTEGER date;
-//  date.HighPart = ft_p->dwHighDateTime;
-//  date.LowPart = ft_p->dwLowDateTime;
-//  return (((double) date.QuadPart - (double) UNIX_EPOCH_IN_TICKS) / (double) TICKS_PER_MS);
-//}
-//
-//jjs_status_t
-//jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
-//{
-//  FILETIME utc;
-//  FILETIME local;
-//  SYSTEMTIME utc_sys;
-//  SYSTEMTIME local_sys;
-//
-//  unix_time_to_filetime (unix_ms, &utc);
-//
-//  if (FileTimeToSystemTime (&utc, &utc_sys) && SystemTimeToTzSpecificLocalTime (NULL, &utc_sys, &local_sys)
-//      && SystemTimeToFileTime (&local_sys, &local))
-//  {
-//    double unix_local = filetime_to_unix_time (&local);
-//    *out_p = (int32_t) (unix_local - unix_ms);
-//
-//    return JJS_STATUS_OK;
-//  }
-//
-//  *out_p = 0;
-//
-//  return JJS_STATUS_PLATFORM_TIME_API_ERR;
-//}
-
 #endif /* JJS_PLATFORM_API_TIME_LOCAL_TZA */
 
 #if JJS_PLATFORM_API_TIME_NOW_MS
@@ -190,7 +135,7 @@ jjsp_time_local_tza_impl (double unix_ms, int32_t* out_p)
 #include <windows.h>
 
 jjs_status_t
-jjsp_time_now_ms_impl (double* out_p)
+jjs_platform_time_now_ms_impl (double* out_p)
 {
   // Based on https://doxygen.postgresql.org/gettimeofday_8c_source.html
   static const uint64_t epoch = (uint64_t) 116444736000000000ULL;
@@ -222,7 +167,7 @@ static const WCHAR UNC_PATH_PREFIX[] = L"\\\\?\\UNC\\";
 static const WCHAR UNC_PATH_PREFIX_LEN = 8;
 
 jjs_status_t
-jjsp_path_realpath_impl (const jjs_allocator_t* allocator,
+jjs_platform_path_realpath_impl (const jjs_allocator_t* allocator,
                          jjs_platform_path_t* path_p,
                          jjs_platform_buffer_view_t* buffer_view_p)
 {
@@ -305,7 +250,7 @@ jjsp_path_realpath_impl (const jjs_allocator_t* allocator,
 #include <windows.h>
 
 jjs_status_t
-jjsp_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
+jjs_platform_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
 {
   jjs_status_t status;
   jjs_platform_buffer_view_t path_view;

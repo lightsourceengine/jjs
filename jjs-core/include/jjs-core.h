@@ -1413,23 +1413,18 @@ jjs_value_t jjs_pmap_resolve_sz (jjs_context_t* context_p, const char* specifier
  */
 
 jjs_value_t jjs_platform_cwd (jjs_context_t* context_p);
-bool jjs_platform_has_cwd (jjs_context_t* context_p);
 
 jjs_value_t jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_own_t path_o);
 jjs_value_t jjs_platform_realpath_sz (jjs_context_t* context_p, const char* path_p);
-bool jjs_platform_has_realpath (jjs_context_t* context_p);
 
 jjs_value_t jjs_platform_read_file (jjs_context_t* context_p, jjs_value_t path, jjs_own_t path_o, const jjs_platform_read_file_options_t* opts);
 jjs_value_t jjs_platform_read_file_sz (jjs_context_t* context_p, const char* path_p, const jjs_platform_read_file_options_t* opts);
-bool jjs_platform_has_read_file (jjs_context_t* context_p);
 
 void jjs_platform_stdout_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o);
 void jjs_platform_stdout_flush (jjs_context_t* context_p);
-bool jjs_platform_has_stdout (jjs_context_t* context_p);
 
 void jjs_platform_stderr_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o);
 void jjs_platform_stderr_flush (jjs_context_t* context_p);
-bool jjs_platform_has_stderr (jjs_context_t* context_p);
 
 jjs_value_t jjs_platform_os (jjs_context_t* context_p);
 jjs_platform_os_t JJS_ATTR_CONST jjs_platform_os_type (void);

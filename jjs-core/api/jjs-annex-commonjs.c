@@ -103,14 +103,7 @@ jjs_value_t jjs_annex_create_require (jjs_context_t* context_p, jjs_value_t refe
 
   if (jjs_value_is_undefined (context_p, referrer))
   {
-    if (context_p->platform.path_cwd != NULL)
-    {
-      path = annex_path_cwd (context_p);
-    }
-    else
-    {
-      return create_require_from_directory (context_p, jjs_undefined (context_p));
-    }
+    path = annex_path_cwd (context_p);
   }
   else if (jjs_value_is_string (context_p, referrer))
   {
