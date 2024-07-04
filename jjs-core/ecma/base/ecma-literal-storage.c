@@ -196,7 +196,8 @@ ecma_find_or_create_literal_string (ecma_context_t *context_p, /**< JJS context 
   /* note: ecma_hashset_get_raw has computed the hash. these new functions will hash again. does not appear to be a big perf issue. */
   string_p = (is_ascii ? ecma_new_ecma_string_from_ascii (context_p, chars_p, size) : ecma_new_ecma_string_from_utf8 (context_p, chars_p, size));
 
-  ECMA_SET_STRING_AS_STATIC (string_p);
+  // TODO: static causes memory leak in release! string ref, unref, free and more (?) don't handle it correctly
+  // ECMA_SET_STRING_AS_STATIC (string_p);
   value = ecma_make_string_value (context_p, string_p);
 
 put:
