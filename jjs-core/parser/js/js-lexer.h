@@ -205,9 +205,7 @@ typedef enum
 
   /* Keywords which are not keyword tokens. */
   LEXER_KEYW_ASYNC, /**< async */
-#if JJS_MODULE_SYSTEM
   LEXER_KEYW_META, /**< meta */
-#endif /* JJS_MODULE_SYSTEM */
 
 /* Keywords which cannot be assigned in strict mode. */
 #define LEXER_FIRST_NON_STRICT_ARGUMENTS LEXER_KEYW_EVAL
