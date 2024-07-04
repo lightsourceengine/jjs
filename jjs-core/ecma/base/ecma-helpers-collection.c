@@ -414,6 +414,15 @@ ecma_compact_collection_destroy (ecma_context_t *context_p, /**< JJS context */
 #define ECMA_HASHSET_RESPEC_THRESHOLD (0.70)
 #define ECMA_HASHSET_GROW_RATE (2.0)
 
+static void
+ecma_hashset_free_buckets (ecma_hashset_t *self)
+{
+  if (self->capacity)
+  {
+    jjs_allocator_free (self->allocator_p, self->buckets, self->capacity * sizeof (*self->buckets));
+  }
+}
+
 /**
  * Specialized string hashset for internal use.
  */
@@ -455,15 +464,29 @@ ecma_hashset_init (ecma_hashset_t *self, /**< this hashset */
 void
 ecma_hashset_free (ecma_hashset_t *self) /**< this hashset */
 {
-  ecma_value_t value;
   const jjs_size_t capacity = self->capacity;
+  ecma_value_t value;
   jjs_context_t *context_p = self->context_p;
+  ecma_string_t *value_p;
 
   for (jjs_size_t i = 0; i < capacity; i++)
   {
     value = self->buckets[i].item;
 
-    if (value != ECMA_VALUE_EMPTY)
+    /* TODO: this is taking lit storage use case... */
+    if (value == ECMA_VALUE_EMPTY || ecma_is_value_direct_string (value))
+    {
+      continue;
+    }
+
+    value_p = ecma_get_string_from_value (context_p, value);
+
+    if (ECMA_STRING_IS_STATIC (value_p))
+    {
+      JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (value_p));
+      ecma_destroy_ecma_string (context_p, value_p);
+    }
+    else
     {
       ecma_free_value (context_p, value);
     }
@@ -534,14 +557,14 @@ ecma_hashset_maybe_respec (ecma_hashset_t *self)
       continue;
     }
 
-    if (!ecma_hashset_insert (&copy, value, false))
+    if (!ecma_hashset_insert (&copy, value, true))
     {
-      ecma_hashset_free (&copy);
+      ecma_hashset_free_buckets (&copy);
       return false;
     }
   }
 
-  ecma_hashset_free (self);
+  ecma_hashset_free_buckets (self);
   *self = copy;
 
   return true;

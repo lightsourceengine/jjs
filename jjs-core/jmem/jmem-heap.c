@@ -107,6 +107,10 @@ void
 jmem_heap_finalize (jjs_context_t *context_p)
 {
   JJS_ASSERT (context_p->jmem_heap_allocated_size == 0);
+  if (context_p->jmem_heap_allocated_size > 0)
+  {
+    jjs_fatal (JJS_FATAL_FAILED_ASSERTION);
+  }
   JMEM_VALGRIND_NOACCESS_SPACE (&context_p->heap_p->first, context_p->vm_heap_size);
 } /* jmem_heap_finalize */
 
