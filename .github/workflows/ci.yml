@@ -70,7 +70,7 @@ jobs:
         arch: [x64]
         type: [release, debug]
       fail-fast: false
-    runs-on: macos-11
+    runs-on: macos-13
     name: ci-macos-${{matrix.arch}}-${{matrix.type}}
     steps:
       - uses: actions/checkout@v4

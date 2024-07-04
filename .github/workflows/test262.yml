@@ -87,7 +87,7 @@ jobs:
     strategy:
       matrix:
         type: [release, debug]
-    runs-on: macos-11
+    runs-on: macos-13
     name: test262-macos-${{matrix.type}}
     steps:
       - uses: actions/checkout@v4

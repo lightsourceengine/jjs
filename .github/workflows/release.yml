@@ -64,7 +64,7 @@ jobs:
             build/jjs-*.tgz
             build/jjs-*.rev
   macos-x64:
-    runs-on: macos-11
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - run: $CREATOR macos-x64 tgz
@@ -76,7 +76,7 @@ jobs:
             build/jjs-*.tgz
             build/jjs-*.rev
   macos-arm64:
-    runs-on: macos-11
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - run: $CREATOR arm64-x64 tgz "--compile-flag=-arch arm64"
