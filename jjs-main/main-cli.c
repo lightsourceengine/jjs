@@ -28,9 +28,6 @@
 #define JJS_TEST_RUNNER_IMPLEMENTATION
 #include <jjs-test-runner.h>
 
-#define EXIT_SUCCESS 0
-#define EXIT_FAILURE 1
-
 typedef struct
 {
   jjs_cli_config_t config;
@@ -117,6 +114,15 @@ jjs_app_has_ext (const char *filename, const char *ext)
 {
   filename = strrchr (filename, '.');
   return (filename != NULL) ? strcmp (ext, filename) == 0 : false;
+}
+
+static bool
+jjs_app_starts_with (const char *prefix, const char *value)
+{
+  size_t prefix_len = strlen (prefix);
+  size_t value_len = strlen (value);
+
+  return value_len < prefix_len ? false : memcmp (prefix, value, prefix_len) == 0;
 }
 
 static jjs_cli_loader_t
@@ -246,7 +252,7 @@ jjs_cli_parse_only (jjs_context_t *context, jjs_cli_module_t *module)
   {
     jjs_value_free (context, filename);
     jjs_cli_fmt_error (context, "Cannot find module: {}\n", 1, filename);
-    return EXIT_FAILURE;
+    return JJS_CLI_EXIT_FAILURE;
   }
 
   jjs_cli_loader_t loader = jjs_app_resolve_loader (module->filename, module->loader);
@@ -278,10 +284,10 @@ jjs_cli_parse_only (jjs_context_t *context, jjs_cli_module_t *module)
   {
     // TODO: print exception
     jjs_value_free (context, result);
-    return 1;
+    return JJS_CLI_EXIT_FAILURE;
   }
 
-  return 0;
+  return JJS_CLI_EXIT_SUCCESS;
 }
 
 static int
@@ -293,7 +299,7 @@ jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module)
   {
     jjs_value_free (context, filename);
     jjs_cli_fmt_error (context, "Cannot find module: {}\n", 1, filename);
-    return EXIT_FAILURE;
+    return JJS_CLI_EXIT_FAILURE;
   }
 
   jjs_value_t result;
@@ -378,14 +384,14 @@ jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module)
     default:
       // TODO: assert?
       jjs_value_free (context, filename);
-      return 1;
+      return JJS_CLI_EXIT_FAILURE;
   }
 
   if (!jjs_value_free_unless (context, result, jjs_value_is_exception))
   {
     // TODO: print exception
     jjs_value_free (context, result);
-    return 1;
+    return JJS_CLI_EXIT_FAILURE;
   }
 
   result = jjs_run_jobs (context);
@@ -394,10 +400,10 @@ jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module)
   {
     // TODO: print exception
     jjs_value_free (context, result);
-    return 1;
+    return JJS_CLI_EXIT_FAILURE;
   }
 
-  return 0;
+  return JJS_CLI_EXIT_SUCCESS;
 }
 
 static int
@@ -413,9 +419,9 @@ jjs_cli_run_entry_point (jjs_context_t *context,
     {
       jjs_cli_module_t *include = &includes->items[i];
 
-      if (jjs_cli_run_module (context, include) != EXIT_SUCCESS)
+      if (jjs_cli_run_module (context, include) != JJS_CLI_EXIT_SUCCESS)
       {
-        return EXIT_FAILURE;
+        return JJS_CLI_EXIT_FAILURE;
       }
     }
   }
@@ -427,7 +433,7 @@ static int
 jjs_app_command_parse (jjs_app_t *app)
 {
   jjs_context_t *context;
-  int exit_code = EXIT_FAILURE;
+  int exit_code = JJS_CLI_EXIT_FAILURE;
 
   if (jjs_cli_engine_init (&app->config, &context))
   {
@@ -445,7 +451,7 @@ jjs_app_command_repl (jjs_app_t *config)
 
   if (!jjs_cli_engine_init (&config->config, &context))
   {
-    return EXIT_FAILURE;
+    return JJS_CLI_EXIT_FAILURE;
   }
 
   jjs_value_t result;
@@ -526,13 +532,13 @@ done:
   jjs_value_free (context, new_line);
   jjs_value_free (context, source_name);
   jjs_cli_engine_drop (context);
-  return 0;
+  return JJS_CLI_EXIT_SUCCESS;
 }
 
 static int
 jjs_app_command_run (jjs_app_t *app)
 {
-  int exit_code = 0;
+  int exit_code;
   jjs_context_t *context;
 
   if (jjs_cli_engine_init (&app->config, &context))
@@ -542,7 +548,7 @@ jjs_app_command_run (jjs_app_t *app)
   }
   else
   {
-    exit_code = EXIT_FAILURE;
+    exit_code = JJS_CLI_EXIT_FAILURE;
   }
 
   return exit_code;
@@ -556,20 +562,20 @@ jjs_app_command_test (jjs_app_t *app)
 
   if (!jjs_cli_engine_init (&app->config, &context))
   {
-    return EXIT_FAILURE;
+    return JJS_CLI_EXIT_FAILURE;
   }
 
   jjs_test_runner_install(context);
 
-  if (jjs_cli_run_module (context, &app->entry_point) == EXIT_SUCCESS
+  if (jjs_cli_run_module (context, &app->entry_point) == JJS_CLI_EXIT_SUCCESS
       && jjs_test_runner_run_all_tests (context)
       && process_async_asserts (context))
   {
-    exit_code = EXIT_SUCCESS;
+    exit_code = JJS_CLI_EXIT_SUCCESS;
   }
   else
   {
-    exit_code = EXIT_FAILURE;
+    exit_code = JJS_CLI_EXIT_FAILURE;
   }
 
   jjs_cli_engine_drop (context);
@@ -584,20 +590,93 @@ main_cli_log_imcl_error (imcl_args_t *args)
 
   printf ("imcl error!\n");
 
-  return EXIT_FAILURE;
+  return JJS_CLI_EXIT_FAILURE;
+}
+
+static bool
+jjs_app_shift_if_preload (imcl_args_t *args, jjs_cli_loader_t *out_loader, jjs_size_t *out_index)
+{
+  if (!imcl_args_has_more (args))
+  {
+    return false;
+  }
+
+  const size_t PREFIX_LEN = sizeof ("--preload") - 1;
+  const char* option = imcl_args_current (args);
+
+  if (!jjs_app_starts_with ("--preload", option))
+  {
+    return false;
+  }
+
+  args->option_long = option;
+  args->option_short = NULL;
+
+  if (option[PREFIX_LEN] == '\0')
+  {
+    *out_loader = JJS_CLI_LOADER_UNDEFINED;
+    *out_index = 0;
+  }
+  else if (strcmp(&option[PREFIX_LEN], ":sloppy") == 0)
+  {
+    *out_loader = JJS_CLI_LOADER_SLOPPY;
+    *out_index = 0;
+  }
+  else if (strcmp(&option[PREFIX_LEN], ":strict") == 0)
+  {
+    *out_loader = JJS_CLI_LOADER_STRICT;
+    *out_index = 0;
+  }
+  else if (strcmp(&option[PREFIX_LEN], ":snapshot") == 0)
+  {
+    *out_loader = JJS_CLI_LOADER_SNAPSHOT;
+    *out_index = 0;
+  }
+  else
+  {
+    printf ("invalid tagged option %s\n", option);
+    return false;
+  }
+
+  imcl_args_shift (args);
+  return true;
+}
+
+static bool
+jjs_app_shift_loader_option (imcl_args_t *args, jjs_cli_loader_t *out_loader)
+{
+  if (!imcl_args_shift_if_option (args, NULL, "--loader"))
+  {
+    return false;
+  }
+
+  jjs_cli_loader_t loader = jjs_cli_loader_from_string (imcl_args_shift (args));
+
+  if (args->has_error)
+  {
+    return false;
+  }
+
+  if (loader == JJS_CLI_LOADER_UNKNOWN)
+  {
+    args->has_error = true;
+    // TODO: fix error
+    args->error = "invalid loader value";
+    return false;
+  }
+
+  *out_loader = loader;
+  return true;
 }
 
 int
 main (int argc, char **argv)
 {
-  jjs_app_t app = {
-    .config = {
-      .buffer_allocator_strategy = JJS_CLI_ALLOCATOR_STRATEGY_UNDEFINED,
-    }
-  };
-
+  jjs_app_t app = {0};
   imcl_args_t args = imcl_args (argc, argv);
-  int exit_code = EXIT_SUCCESS;
+  int exit_code = JJS_CLI_EXIT_SUCCESS;
+  jjs_cli_loader_t preload_loader;
+  jjs_size_t preload_index;
 
   /* consume arg0 */
   imcl_args_shift (&args);
@@ -606,13 +685,12 @@ main (int argc, char **argv)
   {
     while (imcl_args_has_more (&args))
     {
-      if (imcl_args_shift_if_option (&args, NULL, "--loader"))
+      if (jjs_app_shift_loader_option (&args, &app.entry_point.loader))
       {
-        app.entry_point.loader = jjs_cli_loader_from_string (imcl_args_shift (&args));
+        continue;
       }
       else if (imcl_args_shift_if_option (&args, NULL, "--index"))
       {
-        // TODO: shift_uint
         app.entry_point.snapshot_index = imcl_args_shift_uint (&args);
       }
       else if (imcl_args_shift_if_option (&args, NULL, "--require"))
@@ -629,34 +707,12 @@ main (int argc, char **argv)
                                     JJS_CLI_LOADER_ESM,
                                     0);
       }
-      else if (imcl_args_shift_if_option (&args, NULL, "--preload"))
+      else if (jjs_app_shift_if_preload (&args, &preload_loader, &preload_index))
       {
         jjs_cli_module_list_append (&app.includes,
                                     imcl_args_shift (&args),
-                                    JJS_CLI_LOADER_UNDEFINED,
-                                    0);
-      }
-      else if (imcl_args_shift_if_option (&args, NULL, "--preload:sloppy"))
-      {
-        jjs_cli_module_list_append (&app.includes,
-                                    imcl_args_shift (&args),
-                                    JJS_CLI_LOADER_SLOPPY,
-                                    0);
-      }
-      else if (imcl_args_shift_if_option (&args, NULL, "--preload:strict"))
-      {
-        jjs_cli_module_list_append (&app.includes,
-                                    imcl_args_shift (&args),
-                                    JJS_CLI_LOADER_STRICT,
-                                    0);
-      }
-      else if (imcl_args_shift_if_option (&args, NULL, "--preload:snapshot"))
-      {
-        jjs_cli_module_list_append (&app.includes,
-                                    imcl_args_shift (&args),
-                                    JJS_CLI_LOADER_SNAPSHOT,
-                                    // TODO: snapshot index from command
-                                    0);
+                                    preload_loader,
+                                    preload_index);
       }
       else if (imcl_args_shift_if_help_option (&args))
       {
@@ -682,15 +738,15 @@ main (int argc, char **argv)
       }
     }
 
-    exit_code = args.has_error ? EXIT_FAILURE : jjs_app_command_run (&app);
+    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_run (&app);
   }
   else if (imcl_args_shift_if_command (&args, "parse"))
   {
     while (imcl_args_has_more (&args))
     {
-      if (imcl_args_shift_if_option (&args, NULL, "--loader"))
+      if (jjs_app_shift_loader_option (&args, &app.entry_point.loader))
       {
-        app.entry_point.loader = jjs_cli_loader_from_string (imcl_args_shift(&args));
+        continue;
       }
       else if (imcl_args_shift_if_option (&args, NULL, "--index"))
       {
@@ -709,7 +765,7 @@ main (int argc, char **argv)
       }
     }
 
-    exit_code = args.has_error ? EXIT_FAILURE : jjs_app_command_parse (&app);
+    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_parse (&app);
   }
   else if (imcl_args_shift_if_command (&args, "repl"))
   {
@@ -738,9 +794,13 @@ main (int argc, char **argv)
   {
     while (imcl_args_has_more (&args))
     {
-      if (imcl_args_shift_if_option (&args, NULL, "--loader"))
+      if (jjs_app_shift_loader_option (&args, &app.entry_point.loader))
       {
-        app.entry_point.loader = jjs_cli_loader_from_string (imcl_args_shift (&args));
+        continue;
+      }
+      else if (imcl_args_shift_if_option (&args, NULL, "--index"))
+      {
+        app.entry_point.snapshot_index = imcl_args_shift_uint (&args);
       }
       else if (imcl_args_shift_if_help_option (&args))
       {
@@ -755,7 +815,7 @@ main (int argc, char **argv)
       }
     }
 
-    exit_code = args.has_error ? EXIT_FAILURE : jjs_app_command_test (&app);
+    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_test (&app);
   }
   else if (imcl_args_shift_if_command (&args, "version") || imcl_args_shift_if_version_option (&args))
   {
@@ -769,7 +829,7 @@ main (int argc, char **argv)
   {
     printf ("Invalid command: %s\n\n", imcl_args_shift (&args));
     jjs_app_command_help ();
-    exit_code = EXIT_FAILURE;
+    exit_code = JJS_CLI_EXIT_FAILURE;
   }
 
 done:

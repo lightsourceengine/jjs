@@ -19,8 +19,11 @@ import argparse
 import os
 import subprocess
 import sys
-
 import util
+
+import multiprocessing
+import signal
+from itertools import count
 
 def get_arguments():
     execution_runtime = os.environ.get('RUNTIME')
@@ -122,7 +125,59 @@ def main(args):
     return bool(failed)
 
 
+class TestCase:
+    def __init__(self, test, cmd, test_dir):
+        self.test = test
+        self.cmd = cmd
+        self.test_dir = test_dir
+        self.code = -1
+        self.stdout = ''
+
+    def run(self):
+        test_argument = ['--loader', 'esm' if self.test.endswith('.mjs') else 'sloppy']
+
+        (returncode, stdout) = execute_test_command(self.cmd + test_argument + [self.test], self.test_dir)
+
+        self.code = returncode
+        self.stdout = stdout
+
+        return self
+
+
+snapshot_counter = count(start=1)
+
+
+class SnapshotTestCase(TestCase):
+    def __init__(self, test, generate_snapshot_cmd, execute_snapshot_cmd, test_dir):
+        super().__init__(test, '', test_dir)
+        self.unique = next(snapshot_counter)
+        self.snapshot_failed = False
+        self.generate_snapshot_cmd = generate_snapshot_cmd
+        self.execute_snapshot_cmd = execute_snapshot_cmd
+
+    def run(self):
+        # TODO: should not go in source root
+        snapshot_filename = os.path.join(self.test_dir, 'js-{}.snapshot'.format(self.unique))
+        (returncode, stdout) = execute_test_command(
+            self.generate_snapshot_cmd + ['-o', snapshot_filename] + [self.test], self.test_dir)
+
+        if returncode != 0:
+            self.code = returncode
+            self.stdout = stdout
+            self.snapshot_failed = True
+            return self
+
+        (returncode, stdout) = execute_test_command(self.execute_snapshot_cmd + [snapshot_filename], self.test_dir)
+        os.remove(snapshot_filename)
+
+        self.code = returncode
+        self.stdout = stdout
+
+        return self
+
+
 def run_normal_tests(args, tests):
+    test_dir = args.test_dir
     test_cmd = util.get_platform_cmd_prefix()
     if args.runtime:
         test_cmd.append(args.runtime)
@@ -135,26 +190,31 @@ def run_normal_tests(args, tests):
     total = len(tests)
     tested = 0
     passed = 0
-    for test in tests:
-        tested += 1
-        test_path = os.path.relpath(test)
-        is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
 
-        test_argument = ['--loader', 'esm' if test.endswith('.mjs') else 'sloppy']
+    job_count = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=job_count, initializer=pool_init)
 
-        (returncode, stdout) = execute_test_command(test_cmd + test_argument + [test], args.test_dir)
+    try:
+        for case in pool.imap(test_case_run, map(lambda x: TestCase(x, test_cmd, test_dir), tests)):
+            tested += 1
+            test_path = os.path.relpath(case.test)
+            is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in case.test
+            code = case.code
 
-        if (returncode == 0 and not is_expected_to_fail) or (returncode == 1 and is_expected_to_fail):
-            passed += 1
-            if not args.quiet:
-                passed_string = 'PASS' + (' (XFAIL)' if is_expected_to_fail else '')
-                util.print_test_result(tested, total, True, passed_string, test_path)
-        else:
-            passed_string = 'FAIL%s (%d)' % (' (XPASS)' if returncode == 0 and is_expected_to_fail else '', returncode)
-            util.print_test_result(tested, total, False, passed_string, test_path)
-            print("================================================")
-            print(stdout)
-            print("================================================")
+            if (code == 0 and not is_expected_to_fail) or (code == 1 and is_expected_to_fail):
+                passed += 1
+                if not args.quiet:
+                    passed_string = 'PASS' + (' (XFAIL)' if is_expected_to_fail else '')
+                    util.print_test_result(tested, total, True, passed_string, test_path)
+            else:
+                passed_string = 'FAIL%s (%d)' % (' (XPASS)' if code == 0 and is_expected_to_fail else '', code)
+                util.print_test_result(tested, total, False, passed_string, test_path)
+                print("================================================")
+                print(case.stdout)
+                print("================================================")
+    except KeyboardInterrupt:
+        pool.terminate()
+        pool.join()
 
     return passed
 
@@ -171,8 +231,6 @@ def run_snapshot_tests(args, tests):
     if args.pmap:
         execute_snapshot_cmd.extend(['--pmap', args.pmap])
 
-    execute_snapshot_cmd.extend(['js.snapshot'])
-
     # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
     engine = os.path.splitext(args.engine)
     generate_snapshot_cmd.append(engine[0] + '-snapshot' + engine[1])
@@ -181,43 +239,44 @@ def run_snapshot_tests(args, tests):
     total = len(tests)
     tested = 0
     passed = 0
-    for test in tests:
-        tested += 1
-        test_path = os.path.relpath(test)
-        is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in test
-        (returncode, stdout) = execute_test_command(generate_snapshot_cmd + [test], args.test_dir)
 
-        if (returncode == 0) or (returncode == 1 and is_expected_to_fail):
-            if not args.quiet:
-                passed_string = 'PASS' + (' (XFAIL)' if returncode else '')
-                util.print_test_result(tested, total, True, passed_string, test_path, True)
-        else:
-            util.print_test_result(tested, total, False, 'FAIL (%d)' % (returncode), test_path, True)
-            print("================================================")
-            print(stdout)
-            print("================================================")
+    job_count = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=job_count, initializer=pool_init)
 
-        if returncode:
-            if is_expected_to_fail:
+    def gen(test):
+        return SnapshotTestCase(test, generate_snapshot_cmd, execute_snapshot_cmd, args.test_dir)
+
+    try:
+        for case in pool.imap(test_case_run, map(gen, tests)):
+            tested += 1
+            test_path = os.path.relpath(case.test)
+            is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in case.test
+
+            if (case.code == 0 and not is_expected_to_fail) or (case.code == 1 and is_expected_to_fail):
                 passed += 1
-            continue
-
-        (returncode, stdout) = execute_test_command(execute_snapshot_cmd, args.test_dir)
-        os.remove(os.path.join(args.test_dir, 'js.snapshot'))
-
-        if (returncode == 0 and not is_expected_to_fail) or (returncode == 1 and is_expected_to_fail):
-            passed += 1
-            if not args.quiet:
-                passed_string = 'PASS' + (' (XFAIL)' if is_expected_to_fail else '')
-                util.print_test_result(tested, total, True, passed_string, test_path, False)
-        else:
-            passed_string = 'FAIL%s (%d)' % (' (XPASS)' if returncode == 0 and is_expected_to_fail else '', returncode)
-            util.print_test_result(tested, total, False, passed_string, test_path, False)
-            print("================================================")
-            print(stdout)
-            print("================================================")
+                if not args.quiet:
+                    passed_string = 'PASS' + (' (XFAIL)' if is_expected_to_fail else '')
+                    util.print_test_result(tested, total, True, passed_string, test_path, False)
+            else:
+                passed_string = 'FAIL%s (%d)' % (' (XPASS)' if case.code == 0 and is_expected_to_fail else '', case.code)
+                util.print_test_result(tested, total, False, passed_string, test_path, False)
+                print("================================================")
+                print(case.stdout)
+                print("================================================")
+    except KeyboardInterrupt:
+        pool.terminate()
+        pool.join()
 
     return passed
+
+
+def pool_init():
+    """Ignore CTRL+C in the worker process."""
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
+def test_case_run(case):
+    return case.run()
 
 
 if __name__ == "__main__":

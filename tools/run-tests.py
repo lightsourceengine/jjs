@@ -565,8 +565,12 @@ def run_cli_tests(options):
         [['test', '--loader', 'esm', './cli/test.mjs'], 0],
         [['test', 'cli/test.cjs'], 0],
         [['test', './cli/test.cjs'], 0],
-        # parse: file not found
+        # test: file not found
         [['test', 'xxx'], 1],
+        # test: invalid loader
+        [['test', '--loader', 'xxx', './cli/test.cjs'], 1],
+        # test: invalid index
+        [['test', '--index', 'xxx', './cli/test.cjs'], 1],
         # test: with common flags
         [['test'] + common_flags + ['test.mjs'], 0],
         # parse: help
@@ -583,6 +587,8 @@ def run_cli_tests(options):
         [['parse', '--loader', 'sloppy', './cli/run.cjs'], 0],
         # parse: file not found
         [['parse', 'xxx'], 1],
+        # parse: invalid loader
+        [['parse', '--loader', 'xxx', './cli/run.cjs'], 1],
         # parse: with common flags
         [['parse'] + common_flags + ['run.mjs'], 0],
         # run: help
@@ -601,6 +607,13 @@ def run_cli_tests(options):
         [['run', './cli/run.cjs'], 0],
         [['run', '--loader', 'cjs', './cli/run.cjs'], 0],
         [['run', '--import', './cli/run-a.mjs', '--require', './cli/run-b.cjs', '--preload:strict', './cli/run.js', '--preload:sloppy', './cli/run-c.js', './cli/run.cjs'], 0],
+        # run: invalid preload tag
+        [['run', '--preload:xxx', './cli/run-c.js', './cli/run.cjs'], 1],
+        [['run', '--preload:', './cli/run-c.js', './cli/run.cjs'], 1],
+        # run: invalid loader
+        [['run', '--loader', 'xxx', './cli/run.cjs'], 1],
+        # run: invalid index
+        [['run', '--index', 'xxx', './cli/run.cjs'], 1],
         # run: file not found
         [['run', 'xxx'], 1],
         [['run', '--import', 'xxx', 'cli/run.mjs'], 1],
@@ -611,7 +624,7 @@ def run_cli_tests(options):
         [['run', '--preload:snapshot', 'xxx', 'cli/run.mjs'], 1],
         # run: with common flags
         [['run'] + common_flags + ['run.mjs'], 0],
-        # TODO: add loader validation tests
+        # TODO: add snapshot tests
         # TODO: add fine grained tests for advanced options
     ]
 

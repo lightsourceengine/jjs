@@ -17,6 +17,10 @@
 #define JJS_CLI_H
 
 #include <jjs.h>
+#include <stdlib.h>
+
+#define JJS_CLI_EXIT_SUCCESS EXIT_SUCCESS
+#define JJS_CLI_EXIT_FAILURE EXIT_FAILURE
 
 typedef enum
 {
