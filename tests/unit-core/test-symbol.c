@@ -190,6 +190,7 @@ main (void)
   jjs_value_t undefined_description = jjs_symbol_description (ctx (), undefined_symbol);
   TEST_ASSERT (jjs_value_is_undefined (ctx (), undefined_description));
   jjs_value_free (ctx (), undefined_description);
+  jjs_value_free (ctx (), undefined_symbol);
 
   /* Test symbol to string operation with non-symbol argument */
   jjs_value_t null_value = jjs_null (ctx ());

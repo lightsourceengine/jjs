@@ -65,8 +65,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-module-dynamic.c
   test-module-import-meta.c
   test-module.c
-# TODO: broken when mem stress is on
-#  test-native-callback-nested.c
+  test-native-callback-nested.c
   test-native-instanceof.c
   test-native-pointer.c
   test-newtarget.c
@@ -93,8 +92,7 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-string-to-number.c
   test-stringbuilder.c
   test-strings.c
-#  TODO: fix broken test -> leaks 16 bytes
-#  test-symbol.c
+  test-symbol.c
   test-synthetic-module.c
   test-to-integer.c
   test-to-length.c
