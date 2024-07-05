@@ -36,10 +36,11 @@
  */
 #define JJS_GC_LOOP_LIMIT 100
 
+/* TODO: move to config.h or context options */
 /**
  * Initial capacity of the string literal pool.
  */
-#define ECMA_STRING_LITERAL_POOL_SIZE (117)
+#define ECMA_STRING_LITERAL_POOL_SIZE (1024)
 
 /**
  * Initialize ECMA components

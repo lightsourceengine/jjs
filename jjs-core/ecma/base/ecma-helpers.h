@@ -420,10 +420,6 @@ void ecma_hashset_free (ecma_hashset_t* self);
 ecma_value_t ecma_hashset_get (ecma_hashset_t *self, ecma_value_t key);
 ecma_value_t ecma_hashset_get_raw (ecma_hashset_t *self, const lit_utf8_byte_t *key_p, lit_utf8_size_t key_size);
 bool ecma_hashset_insert (ecma_hashset_t *self, ecma_value_t string_value, bool move_on_success);
-void ecma_hashset_audit_finalize (ecma_hashset_t *self);
-bool ecma_hashset_maybe_respec (ecma_hashset_t *self);
-
-void ecma_hashset_audit_finalize (ecma_hashset_t *self);
 
 /* ecma-helpers.c */
 ecma_object_t *ecma_create_object (ecma_context_t *context_p, ecma_object_t *prototype_object_p, size_t ext_object_size, ecma_object_type_t type);

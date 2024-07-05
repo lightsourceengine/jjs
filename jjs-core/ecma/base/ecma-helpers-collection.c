@@ -411,8 +411,22 @@ ecma_compact_collection_destroy (ecma_context_t *context_p, /**< JJS context */
   jmem_heap_free_block (context_p, compact_collection_p, size * sizeof (ecma_value_t));
 } /* ecma_compact_collection_destroy */
 
-#define ECMA_HASHSET_RESPEC_THRESHOLD (0.70)
-#define ECMA_HASHSET_GROW_RATE (2.0)
+/* TODO: move to config or context_options? this is tuned for the literal pool */
+#define ECMA_HASHSET_GROW_THRESHOLD_PERCENT (70)
+
+/* TODO: move to config or context_options? this is tuned for the literal pool */
+#define ECMA_HASHSET_GROW_RATE_PERCENT      (50)
+
+/*
+ * for an open addressed hashtable, if an insert lands on an occupied index, the
+ * value needs to be stored somewhere. the simple solution is the next index, but
+ * that ends up creating a LOT of collisions in practice. more expensive to insert
+ * future items and look up existing. the solution is to jump somewhere far away
+ * from the occupied bucket. the hash is used to achieve this. compared to going
+ * to the next index, this results in 90%+ fewer collisions on get or insert. It
+ * can be slightly better or slightly worse based on threshold.
+ */
+#define ECMA_HASHSET_PROBE_INDEX(HASH, CAPACITY) (1 + (HASH) % ((CAPACITY) - 1))
 
 static void
 ecma_hashset_free_buckets (ecma_hashset_t *self)
@@ -421,6 +435,97 @@ ecma_hashset_free_buckets (ecma_hashset_t *self)
   {
     jjs_allocator_free (self->allocator_p, self->buckets, self->capacity * sizeof (*self->buckets));
   }
+}
+
+static bool
+ecma_hashset_need_to_grow (ecma_hashset_t *self)
+{
+  if (self->capacity == UINT32_MAX)
+  {
+    return false;
+  }
+
+  const uint64_t size_64 = (self->size + 1) * 100;
+  const uint64_t capacity_threshold_64 = self->capacity*ECMA_HASHSET_GROW_THRESHOLD_PERCENT;
+
+  return (size_64 >= capacity_threshold_64);
+}
+
+static bool
+ecma_hashset_insert_internal (ecma_hashset_t *self,
+                              ecma_value_t string_value,
+                              bool move_on_success)
+{
+  ecma_string_t *string_value_p = ecma_get_string_from_value (self->context_p, string_value);
+  /* TODO: this hash is not compatible with the hash calculated in get_raw */
+  const lit_string_hash_t hash = ecma_string_hash (string_value_p);
+  const uint64_t capacity = self->capacity;
+  jjs_context_t *context_p = self->context_p;
+  uint64_t i = hash % capacity;
+
+  if (self->buckets[i].item == ECMA_VALUE_EMPTY)
+  {
+    goto insert;
+  }
+
+  uint64_t probe = ECMA_HASHSET_PROBE_INDEX (hash, capacity);
+
+  i = probe;
+
+  while (self->buckets[i].item != ECMA_VALUE_EMPTY)
+  {
+    i += probe++;
+    while (i >= capacity) i -= capacity;
+  }
+
+insert:
+  self->size++;
+  self->buckets[i].item = move_on_success ? string_value : ecma_copy_value (context_p, string_value);
+  return true;
+}
+
+static bool
+ecma_hashset_grow (ecma_hashset_t *self)
+{
+  jjs_value_t value;
+  ecma_hashset_t copy;
+  bool success;
+
+  uint64_t new_capacity = self->capacity + ((self->capacity*ECMA_HASHSET_GROW_RATE_PERCENT) / 100UL);
+
+  if (new_capacity > UINT32_MAX)
+  {
+    /* cap at UINT32 max to prevent overflow */
+    new_capacity = UINT32_MAX;
+  }
+
+  success = ecma_hashset_init (&copy, self->context_p, self->allocator_p, (uint32_t) new_capacity);
+
+  if (!success)
+  {
+    return false;
+  }
+
+  for (jjs_size_t i = 0; i < self->capacity; i++)
+  {
+    value = self->buckets[i].item;
+
+    if (value == ECMA_VALUE_EMPTY)
+    {
+      continue;
+    }
+
+    if (!ecma_hashset_insert_internal (&copy, value, true))
+    {
+      ecma_hashset_free_buckets (&copy);
+      return false;
+    }
+  }
+
+  ecma_hashset_free_buckets (self);
+  *self = copy;
+
+  return true;
 }
 
 /**
@@ -450,9 +555,7 @@ ecma_hashset_init (ecma_hashset_t *self, /**< this hashset */
 
   for (jjs_size_t i = 0; i < capacity; i++)
   {
-    self->buckets[i] = (ecma_hashset_node_t) {
-      .item = ECMA_VALUE_EMPTY,
-    };
+    self->buckets[i].item = ECMA_VALUE_EMPTY;
   }
 
   return true;
@@ -473,23 +576,20 @@ ecma_hashset_free (ecma_hashset_t *self) /**< this hashset */
   {
     value = self->buckets[i].item;
 
-    /* TODO: this is taking lit storage use case... */
-    if (value == ECMA_VALUE_EMPTY || ecma_is_value_direct_string (value))
+    if (ecma_is_value_non_direct_string (value))
     {
-      continue;
+      value_p = ecma_get_string_from_value (context_p, value);
+
+      if (ECMA_STRING_IS_STATIC (value_p))
+      {
+        /* free value will not handle release of static string. must do it manually. */
+        JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (value_p));
+        ecma_destroy_ecma_string (context_p, value_p);
+        continue;
+      }
     }
 
-    value_p = ecma_get_string_from_value (context_p, value);
-
-    if (ECMA_STRING_IS_STATIC (value_p))
-    {
-      JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (value_p));
-      ecma_destroy_ecma_string (context_p, value_p);
-    }
-    else
-    {
-      ecma_free_value (context_p, value);
-    }
+    ecma_free_value (context_p, value);
   }
 
   if (capacity)
@@ -497,104 +597,6 @@ ecma_hashset_free (ecma_hashset_t *self) /**< this hashset */
     jjs_allocator_free (self->allocator_p, self->buckets, capacity * sizeof (*self->buckets));
   }
 } /* ecma_hashset_free */
-
-/**
- * Expand the capacity of the hashset iff it is required.
- *
- * Respec'ing is an internal detail of the hashset that should be hidden inside of
- * insert operations. For performance reasons, for now, I don't want insert respec'ing
- * and I want to control when a respec happens. This may change in the future.
- *
- * If this function returns false, self is still valid. The respec process makes a copy,
- * inserts each element of self into copy and cleans up self. No matter what happens
- * self will be a valid hashset.
- *
- * @return true if the hashset was resized. false for catastrophic failure - out of memory,
- * capacity is max or hashset it full
- */
-bool
-ecma_hashset_maybe_respec (ecma_hashset_t *self)
-{
-  if (self->capacity == UINT32_MAX)
-  {
-    /* capacity is full. cannot respec. it's gonna be slow, but return true if there are still available slots. */
-    return (self->size < self->capacity);
-  }
-
-  if ((double) self->size / (double) self->capacity < ECMA_HASHSET_RESPEC_THRESHOLD)
-  {
-    return true;
-  }
-
-  uint32_t new_capacity;
-  jjs_value_t value;
-  ecma_hashset_t copy;
-  bool success;
-
-  if (self->capacity >= UINT32_MAX / 2)
-  {
-    /* cap at UINT32 max to prevent overflow */
-    new_capacity = UINT32_MAX;
-  }
-  else
-  {
-    new_capacity = (uint32_t)((double) self->capacity * ECMA_HASHSET_GROW_RATE);
-  }
-
-  success = ecma_hashset_init (&copy, self->context_p, self->allocator_p, new_capacity);
-
-  if (!success)
-  {
-    return false;
-  }
-
-  for (jjs_size_t i = 0; i < self->capacity; i++)
-  {
-    value = self->buckets[i].item;
-
-    if (value == ECMA_VALUE_EMPTY)
-    {
-      continue;
-    }
-
-    if (!ecma_hashset_insert (&copy, value, true))
-    {
-      ecma_hashset_free_buckets (&copy);
-      return false;
-    }
-  }
-
-  ecma_hashset_free_buckets (self);
-  *self = copy;
-
-  return true;
-} /* ecma_hashset_maybe_respec */
-
-/**
- * Checks that all string references held by the hashset have exactly one reference.
- *
- * During context shutdown, the final GC is run. If there are no leaks, all strings should
- * have exactly one ref or there is a leak somewhere. This audit is done in debug builds
- * only. This function is not intended for use outside of the context shutdown use case.
- */
-void
-ecma_hashset_audit_finalize (ecma_hashset_t *self) /**< this hashset */
-{
-#ifndef JJS_NDEBUG
-  const jjs_size_t capacity = self->capacity;
-
-  for (jjs_size_t i = 0; i < capacity; i++)
-  {
-    if (self->buckets[i].item != ECMA_VALUE_EMPTY)
-    {
-      ecma_string_t *string_p = ecma_get_string_from_value (self->context_p, self->buckets[i].item);
-      JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (string_p));
-    }
-  }
-#else /* JJS_NDEBUG */
-  (void) self;
-#endif /* !JJS_NDEBUG */
-} /* ecma_hashset_audit_finalize */
 
 /**
  * Find a string value by raw string.
@@ -610,28 +612,43 @@ ecma_hashset_get_raw (ecma_hashset_t *self, /**< this hashset */
                   lit_utf8_size_t key_size) /**< raw string size in bytes */
 {
   const lit_string_hash_t hash = lit_utf8_string_calc_hash (key_p, key_size);
-  const uint32_t capacity = self->capacity;
-  const lit_utf8_byte_t *chars;
-  /* avoid alloc path in ecma_string_get_chars by providing buffer */
+  const uint64_t capacity = self->capacity;
+  jjs_context_t *context_p = self->context_p;
+  uint64_t i = hash % capacity;
+  ecma_value_t item = self->buckets[i].item;
+
+  if (item == ECMA_VALUE_EMPTY)
+  {
+    return ECMA_VALUE_NOT_FOUND;
+  }
+
   lit_utf8_byte_t uint32_to_string_buffer[ECMA_MAX_CHARS_IN_STRINGIFIED_UINT32];
   lit_utf8_size_t size;
   uint8_t flags = 0;
-  uint32_t guard = 0;
-  ecma_context_t *context_p = self->context_p;
 
-  for (uint32_t i = hash % capacity; guard < capacity; guard++, i++) {
-    if (i == capacity)
-    {
-      i = 0;
-    }
+  const lit_utf8_byte_t *chars = ecma_string_get_chars (context_p,
+                                 ecma_get_string_from_value (context_p, item),
+                                 &size,
+                                 NULL,
+                                 uint32_to_string_buffer,
+                                 &flags);
 
-    if (self->buckets[i].item == ECMA_VALUE_EMPTY)
-    {
-      break;
-    }
+  /* item is always a non-direct string. no path through ecma_string_get_chars should allocate memory */
+  JJS_ASSERT ((flags & ECMA_STRING_FLAG_MUST_BE_FREED) == 0);
 
+  if (size == key_size && *key_p == *chars && memcmp (key_p, chars, key_size) == 0)
+  {
+    return item;
+  }
+
+  uint64_t probe = ECMA_HASHSET_PROBE_INDEX (hash, capacity);
+
+  i = probe;
+
+  while ((item = self->buckets[i].item) != ECMA_VALUE_EMPTY)
+  {
     chars = ecma_string_get_chars (context_p,
-                                   ecma_get_string_from_value (context_p, self->buckets[i].item),
+                                   ecma_get_string_from_value (context_p, item),
                                    &size,
                                    NULL,
                                    uint32_to_string_buffer,
@@ -642,8 +659,11 @@ ecma_hashset_get_raw (ecma_hashset_t *self, /**< this hashset */
 
     if (size == key_size && *key_p == *chars && memcmp (key_p, chars, key_size) == 0)
     {
-      return self->buckets[i].item;
+      return item;
     }
+
+    i += probe++;
+    while (i >= capacity) i -= capacity;
   }
 
   return ECMA_VALUE_NOT_FOUND;
@@ -659,35 +679,42 @@ ecma_hashset_get_raw (ecma_hashset_t *self, /**< this hashset */
  */
 ecma_value_t
 ecma_hashset_get (ecma_hashset_t *self, /**< this hashset */
-                  ecma_value_t key) /**< ecma string key */
+                  ecma_value_t string_value) /**< ecma string key */
 {
-  const uint32_t capacity = self->capacity;
-  /* avoid alloc path in ecma_string_get_chars by providing buffer */
-  ecma_context_t *context_p = self->context_p;
-  ecma_string_t *key_string_p = ecma_get_string_from_value (self->context_p, key);
-  lit_string_hash_t hash = ecma_string_hash (key_string_p);
-  uint32_t guard = 0;
+  ecma_string_t *string_value_p = ecma_get_string_from_value (self->context_p, string_value);
+  const lit_string_hash_t hash = ecma_string_hash (string_value_p);
+  const uint64_t capacity = self->capacity;
+  jjs_context_t *context_p = self->context_p;
+  uint64_t i = hash % capacity;
+  ecma_value_t item = self->buckets[i].item;
 
-  for (uint32_t i = hash % capacity; guard < capacity; guard++, i++)
+  if (item == ECMA_VALUE_EMPTY)
   {
-    if (i == capacity)
+    return ECMA_VALUE_NOT_FOUND;
+  }
+
+  if (ecma_compare_ecma_strings (ecma_get_string_from_value (context_p, item), string_value_p))
+  {
+    return item;
+  }
+
+  uint64_t probe = ECMA_HASHSET_PROBE_INDEX (hash, capacity);
+
+  i = probe;
+
+  while ((item = self->buckets[i].item) != ECMA_VALUE_EMPTY)
+  {
+    if (ecma_compare_ecma_strings (ecma_get_string_from_value (context_p, item), string_value_p))
     {
-      i = 0;
+      return item;
     }
 
-    if (self->buckets[i].item == ECMA_VALUE_EMPTY)
-    {
-      break;
-    }
-
-    if (ecma_compare_ecma_strings (ecma_get_string_from_value (context_p, self->buckets[i].item), key_string_p))
-    {
-      return self->buckets[i].item;
-    }
+    i += probe++;
+    while (i >= capacity) i -= capacity;
   }
 
   return ECMA_VALUE_NOT_FOUND;
-}
+} /* ecma_hashset_get */
 
 /**
  * Insert a string into the set.
@@ -701,30 +728,12 @@ ecma_hashset_insert (ecma_hashset_t *self, /**< this hashset */
                      ecma_value_t string_value, /**< ecma string to insert */
                      bool move_on_success) /**< transfer ownership of string_value to the hashset iff the string is inserted */
 {
-  ecma_string_t *string_value_p = ecma_get_string_from_value (self->context_p, string_value);
-  const lit_string_hash_t hash = ecma_string_hash (string_value_p);
-  const uint32_t capacity = self->capacity;
-  jjs_context_t *context_p = self->context_p;
-
-  for (uint32_t count = 0, i = hash % capacity; count < capacity; count++, i++)
+  if (ecma_hashset_need_to_grow (self) && !ecma_hashset_grow (self))
   {
-    if (i == capacity)
-    {
-      i = 0;
-    }
-
-    if (self->buckets[i].item == ECMA_VALUE_EMPTY)
-    {
-      self->size++;
-      self->buckets[i].item = move_on_success ? string_value : ecma_copy_value (context_p, string_value);
-      return true;
-    }
-
-    /* string should not appear in the hashset */
-    JJS_ASSERT (!ecma_compare_ecma_strings (ecma_get_string_from_value (context_p, self->buckets[i].item), string_value_p));
+    return false;
   }
 
-  return false;
+  return ecma_hashset_insert_internal (self, string_value, move_on_success);
 } /* ecma_hashset_insert */
 
 /**

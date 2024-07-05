@@ -122,7 +122,6 @@ void
 ecma_finalize_lit_storage (ecma_context_t *context_p) /**< JJS context */
 {
   ecma_free_symbol_list (context_p, context_p->symbol_list_first_cp);
-  ecma_hashset_audit_finalize (&context_p->string_literal_pool);
   ecma_hashset_free (&context_p->string_literal_pool);
   ecma_free_number_list (context_p, context_p->number_list_first_cp);
 #if JJS_BUILTIN_BIGINT
@@ -201,17 +200,19 @@ put:
   /* transfer ownership of result to pool, not caller! */
   {
     bool hashset_insert_result = ecma_hashset_insert (&context_p->string_literal_pool, value, true);
-    bool hashset_respec_result = hashset_insert_result && ecma_hashset_maybe_respec (&context_p->string_literal_pool);
-    JJS_ASSERT (hashset_insert_result && hashset_respec_result);
 
-    if (!hashset_insert_result || !hashset_respec_result)
+    JJS_ASSERT (hashset_insert_result);
+
+    if (!hashset_insert_result)
     {
       ecma_free_value (context_p, value);
       return ECMA_VALUE_EMPTY;
     }
 
+    /* literals live forever. mark them as static so the app avoids ref and free paths. */
     JJS_ASSERT (ECMA_STRING_IS_REF_EQUALS_TO_ONE (string_p));
     ECMA_SET_STRING_AS_STATIC (string_p);
+
     return value;
   }
 } /* ecma_find_or_create_literal_string */
