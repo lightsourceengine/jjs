@@ -1726,6 +1726,7 @@ jjs_snapshot_get_string_literals (jjs_context_t* context_p,
                                    const uint32_t *snapshot_p,
                                    size_t snapshot_size)
 {
+#if JJS_SNAPSHOT_SAVE
   const uint8_t *snapshot_data_p = (uint8_t *) snapshot_p;
   const jjs_snapshot_header_t *header_p = (const jjs_snapshot_header_t *) snapshot_data_p;
 
@@ -1787,4 +1788,8 @@ jjs_snapshot_get_string_literals (jjs_context_t* context_p,
   ecma_collection_destroy (context_p, lit_pool_p);
 
   return result;
+#else /* !JJS_SNAPSHOT_SAVE */
+  JJS_UNUSED_ALL (context_p, snapshot_p, snapshot_size);
+  return jjs_throw_sz (context_p, JJS_ERROR_COMMON, ecma_get_error_msg (ECMA_ERR_SNAPSHOT_SAVE_DISABLED));
+#endif /* JJS_SNAPSHOT_SAVE */
 }
