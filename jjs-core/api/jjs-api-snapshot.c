@@ -1717,7 +1717,74 @@ jjs_get_literals_from_snapshot (jjs_context_t *context_p, /**< JJS context */
   return lit_buf_p <= buffer_end_p ? (size_t) (lit_buf_p - buffer_start_p) : 0;
 #else /* !JJS_SNAPSHOT_SAVE */
   JJS_UNUSED_ALL (context_p, snapshot_p, snapshot_size, lit_buf_p, lit_buf_size, is_c_format);
-
   return 0;
 #endif /* JJS_SNAPSHOT_SAVE */
 } /* jjs_get_literals_from_snapshot */
+
+jjs_value_t
+jjs_snapshot_get_string_literals (jjs_context_t* context_p,
+                                   const uint32_t *snapshot_p,
+                                   size_t snapshot_size)
+{
+  const uint8_t *snapshot_data_p = (uint8_t *) snapshot_p;
+  const jjs_snapshot_header_t *header_p = (const jjs_snapshot_header_t *) snapshot_data_p;
+
+  if (snapshot_size <= sizeof (jjs_snapshot_header_t) || header_p->magic != JJS_SNAPSHOT_MAGIC
+      || header_p->version != JJS_SNAPSHOT_VERSION || !snapshot_check_global_flags (header_p->global_flags))
+  {
+    /* Invalid snapshot format */
+    return jjs_throw_sz (context_p, JJS_ERROR_COMMON, "invalid snapshot format");
+  }
+
+  JJS_ASSERT ((header_p->lit_table_offset % sizeof (uint32_t)) == 0);
+  const uint8_t *literal_base_p = snapshot_data_p + header_p->lit_table_offset;
+
+  ecma_collection_t *lit_pool_p = ecma_new_collection (context_p);
+  scan_snapshot_functions (context_p, snapshot_data_p + header_p->func_offsets[0], literal_base_p, lit_pool_p, literal_base_p);
+
+  lit_utf8_size_t literal_count = 0;
+  ecma_value_t *buffer_p = lit_pool_p->buffer_p;
+
+  /* Count the valid and non-magic identifiers in the list. */
+  for (uint32_t i = 0; i < lit_pool_p->item_count; i++)
+  {
+    if (ecma_is_value_string (buffer_p[i]))
+    {
+      ecma_string_t *literal_p = ecma_get_string_from_value (context_p, buffer_p[i]);
+
+      if (ecma_get_string_magic (literal_p) == LIT_MAGIC_STRING__COUNT)
+      {
+        literal_count++;
+      }
+    }
+  }
+
+  if (literal_count == 0)
+  {
+    ecma_collection_destroy (context_p, lit_pool_p);
+    return jjs_array (context_p, 0);
+  }
+
+  jjs_value_t result = jjs_array (context_p, 0);
+  lit_utf8_size_t literal_idx = 0;
+
+  buffer_p = lit_pool_p->buffer_p;
+
+  /* Count the valid and non-magic identifiers in the list. */
+  for (uint32_t i = 0; i < lit_pool_p->item_count; i++)
+  {
+    if (ecma_is_value_string (buffer_p[i]))
+    {
+      ecma_string_t *literal_p = ecma_get_string_from_value (context_p, buffer_p[i]);
+
+      if (ecma_get_string_magic (literal_p) == LIT_MAGIC_STRING__COUNT)
+      {
+        jjs_value_free (context_p, jjs_object_set_index (context_p, result, literal_idx++, buffer_p[i], JJS_KEEP));
+      }
+    }
+  }
+
+  ecma_collection_destroy (context_p, lit_pool_p);
+
+  return result;
+}

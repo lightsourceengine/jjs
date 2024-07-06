@@ -104,17 +104,6 @@ typedef struct ecma_module_resolve_set
 } ecma_module_resolve_set_t;
 
 /**
- * A list that is used like a stack to drive the resolution process, instead of recursion.
- */
-typedef struct ecma_module_resolve_stack
-{
-  struct ecma_module_resolve_stack *next_p; /**< next in linked list */
-  ecma_module_t *module_p; /**< module request */
-  ecma_string_t *export_name_p; /**< export identifier name */
-  bool resolving; /**< flag storing wether the current frame started resolving */
-} ecma_module_resolve_stack_t;
-
-/**
  * Callback registered with context to be called with a module's lexical
  * scope is created.
  */

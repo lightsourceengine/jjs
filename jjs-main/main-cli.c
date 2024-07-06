@@ -97,6 +97,10 @@ print_command_help (const char *name)
   {
 
   }
+  else if (strcmp (name, "snapshot") == 0)
+  {
+
+  }
   else if (strcmp (name, "test") == 0)
   {
     printf ("      --loader TYPE            Set the loader for the test FILE. Values: [module, commonjs, strict, sloppy, snapshot] Default: module");
@@ -241,6 +245,42 @@ jjs_app_shift_common_option (imcl_args_t *args, jjs_cli_config_t *config)
   }
 
   return true;
+}
+
+static int
+jjs_app_write_file (const char *filename, void *buffer, size_t buffer_size)
+{
+  FILE *file_p = fopen (filename, "wb");
+
+  if (file_p == NULL)
+  {
+    printf ("Could not open file: %s\n", filename);
+    return JJS_CLI_EXIT_FAILURE;
+  }
+
+  size_t written = fwrite (buffer, sizeof (uint8_t), buffer_size, file_p);
+
+  fclose (file_p);
+
+  if (written != buffer_size)
+  {
+    printf ("Error writing file '%s' to disk\n", filename);
+    return JJS_CLI_EXIT_FAILURE;
+  }
+
+  return JJS_CLI_EXIT_SUCCESS;
+}
+
+static int32_t
+jjs_app_to_file_size (size_t size)
+{
+  return (int32_t) (size < 1024 ? size : (size / 1024));
+}
+
+static char
+jjs_app_to_file_size_unit (size_t size)
+{
+  return size < 1024 ? 'B' : 'K';
 }
 
 static int
@@ -584,6 +624,219 @@ jjs_app_command_test (jjs_app_t *app)
 }
 
 static int
+jjs_app_command_snapshot (jjs_app_t *app, const char *argument_list, const char *outfile)
+{
+  int exit_code;
+  jjs_context_t *context;
+  uint32_t *snapshot_buffer = NULL;
+
+  if (!jjs_cli_engine_init (&app->config, &context))
+  {
+    return JJS_CLI_EXIT_FAILURE;
+  }
+
+  jjs_value_t source = jjs_platform_read_file_sz (context, app->entry_point.filename, NULL);
+  jjs_size_t source_size;
+
+  if (jjs_value_is_exception (context, source))
+  {
+    // TODO: log exception
+    jjs_value_free (context, source);
+    exit_code = JJS_CLI_EXIT_FAILURE;
+    goto done;
+  }
+
+  source_size = jjs_arraybuffer_size (context, source);
+
+  jjs_parse_options_t parse_options = {
+    .is_strict_mode = app->entry_point.loader == JJS_CLI_LOADER_STRICT,
+  };
+
+  if (argument_list)
+  {
+    parse_options.argument_list = jjs_optional_value (jjs_string_utf8_sz (context, argument_list));
+    parse_options.argument_list_o = JJS_MOVE;
+  }
+
+  jjs_value_t compiled = jjs_parse_value (context, source, JJS_MOVE, &parse_options);
+
+  if (jjs_value_is_exception (context, compiled))
+  {
+    // TODO: log exception
+    jjs_value_free (context, compiled);
+    exit_code = JJS_CLI_EXIT_FAILURE;
+    goto done;
+  }
+
+  jjs_size_t snapshot_buffer_size = (source_size < 500 ? 500 : source_size) * 2;
+  snapshot_buffer = malloc (source_size);
+  jjs_cli_assert (snapshot_buffer != NULL, "could not allocate snapshot buffer");
+
+  jjs_value_t result = jjs_generate_snapshot (context, compiled, 0, snapshot_buffer, snapshot_buffer_size);
+  jjs_size_t actual_size = jjs_value_as_uint32 (context, result);
+
+  jjs_value_free (context, compiled);
+
+  if (!jjs_value_free_unless (context, result, jjs_value_is_exception))
+  {
+    // TODO: log exception
+    jjs_value_free (context, result);
+    exit_code = JJS_CLI_EXIT_FAILURE;
+    goto done;
+  }
+
+  exit_code = jjs_app_write_file (outfile, snapshot_buffer, actual_size);
+
+done:
+  free (snapshot_buffer);
+  jjs_cli_engine_drop (context);
+
+  return exit_code;
+}
+
+static int
+jjs_app_command_merge (jjs_app_t *app, const char *outfile)
+{
+  int exit_code = JJS_CLI_EXIT_SUCCESS;
+  jjs_context_t *context;
+  jjs_value_t *snapshot_arraybuffer = NULL;
+  const uint32_t **snapshot_raw_buffer = NULL;
+  size_t *snapshot_size = NULL;
+  uint32_t *merged_buffer = NULL;
+
+  if (!jjs_cli_engine_init (&app->config, &context))
+  {
+    return JJS_CLI_EXIT_FAILURE;
+  }
+
+  size_t i;
+  size_t count = app->includes.size;
+  size_t merged_buffer_size = 1024;
+
+  snapshot_arraybuffer = malloc (count * sizeof (*snapshot_arraybuffer));
+  snapshot_raw_buffer = malloc (count * sizeof (*snapshot_raw_buffer));
+  snapshot_size = malloc (count * sizeof (*snapshot_size));
+
+  for (i = 0; i < count; i++)
+  {
+    snapshot_arraybuffer[i] = jjs_undefined (context);
+  }
+
+  for (i = 0; i < count; i++)
+  {
+    jjs_value_t snapshot = jjs_platform_read_file_sz (context, app->includes.items[i].filename, NULL);
+
+    if (jjs_value_is_exception (context, snapshot))
+    {
+      exit_code = JJS_CLI_EXIT_FAILURE;
+      goto done;
+    }
+
+    snapshot_arraybuffer[i] = snapshot;
+    snapshot_raw_buffer[i] = (uint32_t *) jjs_arraybuffer_data (context, snapshot);
+    snapshot_size[i] = jjs_arraybuffer_size (context, snapshot);
+    merged_buffer_size += snapshot_size[i];
+
+    printf ("merging: %s (%i%c)\n", app->includes.items[i].filename, jjs_app_to_file_size (snapshot_size[i]), jjs_app_to_file_size_unit (snapshot_size[i]));
+  }
+
+  const char * error;
+
+  merged_buffer = malloc (merged_buffer_size);
+
+  size_t final_size = jjs_merge_snapshots (context,
+                                           snapshot_raw_buffer,
+                                           snapshot_size,
+                                           count,
+                                           merged_buffer,
+                                           merged_buffer_size,
+                                           &error);
+
+  if (final_size == 0)
+  {
+    printf ("%s\n", error);
+    exit_code = JJS_CLI_EXIT_FAILURE;
+    goto done;
+  }
+
+  exit_code = jjs_app_write_file (outfile, merged_buffer, final_size);
+
+  if (exit_code == JJS_CLI_EXIT_SUCCESS)
+  {
+    printf ("merged: %s (%i%c)\n", outfile, jjs_app_to_file_size (final_size), jjs_app_to_file_size_unit (final_size));
+  }
+
+done:
+  jjs_value_free_array (context, snapshot_arraybuffer, (jjs_size_t) count);
+  free (snapshot_arraybuffer);
+  free (snapshot_raw_buffer);
+  free (snapshot_size);
+  free (merged_buffer);
+  jjs_cli_engine_drop (context);
+
+  return exit_code;
+}
+
+static int
+jjs_app_command_strings (jjs_app_t *app, const char *outfile)
+{
+  (void) outfile;
+  int exit_code = JJS_CLI_EXIT_SUCCESS;
+  jjs_context_t *context;
+
+  if (!jjs_cli_engine_init (&app->config, &context))
+  {
+    return JJS_CLI_EXIT_FAILURE;
+  }
+
+  jjs_value_t source = jjs_platform_read_file_sz (context, app->entry_point.filename, NULL);
+
+  if (jjs_value_is_exception (context, source))
+  {
+    // TODO: log exception
+    jjs_value_free (context, source);
+    exit_code = JJS_CLI_EXIT_FAILURE;
+    goto done;
+  }
+
+  jjs_value_t result = jjs_snapshot_get_string_literals (context,
+                                                         (const uint32_t *) jjs_arraybuffer_data (context, source),
+                                                         jjs_arraybuffer_size (context, source));
+  jjs_value_free (context, source);
+
+  if (jjs_value_is_exception (context, result))
+  {
+    jjs_value_free (context, result);
+    exit_code = JJS_CLI_EXIT_FAILURE;
+    goto done;
+  }
+
+  // TODO: stdout or file or count
+  jjs_value_t global = jjs_current_realm (context);
+  jjs_value_t json = jjs_object_get_sz (context, global, "JSON");
+  jjs_value_t stringify = jjs_object_get_sz (context, json, "stringify");
+  jjs_value_t args [] = {
+    result,
+    jjs_null (context),
+    jjs_number_from_int32 (context, 2),
+  };
+
+  jjs_value_t result_str = jjs_call (context, stringify, args, 3, JJS_MOVE);
+
+  jjs_cli_fmt_info (context, "{}\n", 1, result_str);
+
+  jjs_value_free (context, result_str);
+  jjs_value_free (context, json);
+  jjs_value_free (context, stringify);
+  jjs_value_free (context, global);
+
+done:
+  jjs_cli_engine_drop (context);
+
+  return exit_code;
+}
+
+static int
 main_cli_log_imcl_error (imcl_args_t *args)
 {
   jjs_cli_assert (args->has_error, "imcl should be in the error state");
@@ -816,6 +1069,107 @@ main (int argc, char **argv)
     }
 
     exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_test (&app);
+  }
+  else if (imcl_args_shift_if_command (&args, "snapshot"))
+  {
+    const char *argument_list = NULL;
+    const char *outfile = "js.snapshot";
+
+    app.entry_point.loader = JJS_CLI_LOADER_SLOPPY;
+
+    while (imcl_args_has_more (&args))
+    {
+      // TODO: strict or sloppy only
+      if (jjs_app_shift_loader_option (&args, &app.entry_point.loader))
+      {
+        continue;
+      }
+      else if (imcl_args_shift_if_option (&args, NULL, "--commonjs"))
+      {
+        // TODO: put in a common place?
+        argument_list = "module,exports,require,__filename,__dirname";
+      }
+      else if (imcl_args_shift_if_option (&args, NULL, "--function"))
+      {
+        argument_list = imcl_args_shift (&args);
+      }
+      else if (imcl_args_shift_if_option (&args, NULL, "--outfile"))
+      {
+        outfile = imcl_args_shift (&args);
+      }
+      else if (imcl_args_shift_if_help_option (&args))
+      {
+        print_command_help ("snapshot");
+        goto done;
+      }
+      else if (!jjs_app_shift_common_option (&args, &app.config))
+      {
+        app.entry_point.filename = imcl_args_shift_file (&args);
+        app.entry_point.is_main = true;
+        break;
+      }
+    }
+
+    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_snapshot (&app, argument_list, outfile);
+  }
+  else if (imcl_args_shift_if_command (&args, "merge"))
+  {
+    const char *outfile = "merged.snapshot";
+
+    while (imcl_args_has_more (&args))
+    {
+      if (imcl_args_shift_if_option (&args, NULL, "--outfile"))
+      {
+        outfile = imcl_args_shift (&args);
+      }
+      else if (imcl_args_shift_if_help_option (&args))
+      {
+        print_command_help ("snapshot");
+        goto done;
+      }
+      else if (!jjs_app_shift_common_option (&args, &app.config))
+      {
+        if (imcl_args_has_more (&args))
+        {
+          jjs_cli_module_list_append (&app.includes, imcl_args_shift_file (&args), JJS_CLI_LOADER_SNAPSHOT, 0);
+        }
+      }
+    }
+
+    if (app.includes.size < 2)
+    {
+      args.has_error = true;
+      args.error = "need 2 or more snapshot file to perform merge";
+    }
+
+    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_merge (&app, outfile);
+  }
+  else if (imcl_args_shift_if_command (&args, "strings"))
+  {
+    const char *outfile = NULL;
+
+    app.entry_point.loader = JJS_CLI_LOADER_SNAPSHOT;
+
+    while (imcl_args_has_more (&args))
+    {
+      if (imcl_args_shift_if_option (&args, NULL, "--outfile"))
+      {
+        outfile = imcl_args_shift (&args);
+      }
+      else if (imcl_args_shift_if_help_option (&args))
+      {
+        print_command_help ("snapshot");
+        goto done;
+      }
+      else if (!jjs_app_shift_common_option (&args, &app.config))
+      {
+        app.entry_point.filename = imcl_args_shift_file (&args);
+        app.entry_point.is_main = true;
+        break;
+      }
+    }
+
+    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_strings (&app, outfile);
   }
   else if (imcl_args_shift_if_command (&args, "version") || imcl_args_shift_if_version_option (&args))
   {
