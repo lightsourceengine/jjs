@@ -277,9 +277,8 @@ extern inline int32_t JJS_ATTR_ALWAYS_INLINE
 ecma_date_local_time_zone_adjustment (ecma_context_t *context_p, /**< JJS context */
                                       ecma_number_t time) /**< time value */
 {
-  JJS_UNUSED (context_p);
   int32_t tza;
-  jjs_status_t status = jjs_platform_time_local_tza_impl( time, &tza);
+  jjs_status_t status = jjs_platform_time_local_tza_impl(context_p, time, &tza);
 
   return (status == JJS_STATUS_OK) ? tza : 0;
 } /* ecma_date_local_time_zone_adjustment */

@@ -90,8 +90,8 @@ struct jjs_context_t
 
   jjs_log_level_t log_level; /**< log level. log requests at this level of less will be logged. */
 
-  jjs_platform_io_stream_t *streams[2]; /**< JJS_STDOUT and JJS_STDERR native stream objects */
-  jjs_encoding_t stream_encoding[2]; /**< JJS_STDOUT and JJS_STDERR string encoding */
+  jjs_platform_io_target_t *io_target[2]; /**< JJS_STDOUT and JJS_STDERR native stream objects */
+  jjs_encoding_t io_target_encoding[2]; /**< JJS_STDOUT and JJS_STDERR string encoding */
 
   jjs_promise_unhandled_rejection_cb_t
     unhandled_rejection_cb; /**< called when a promise rejection has no handler. cannot be NULL. */

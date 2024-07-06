@@ -1721,10 +1721,18 @@ jjs_get_literals_from_snapshot (jjs_context_t *context_p, /**< JJS context */
 #endif /* JJS_SNAPSHOT_SAVE */
 } /* jjs_get_literals_from_snapshot */
 
+/**
+ * Get all string literals from a snapshot.
+ *
+ * String literals are constant strings in the source code, such as key names, function
+ * names and string constants.
+ *
+ * @return Array object containing an unordered list of string literals. On failure, an exception is returned.
+ */
 jjs_value_t
-jjs_snapshot_get_string_literals (jjs_context_t* context_p,
-                                   const uint32_t *snapshot_p,
-                                   size_t snapshot_size)
+jjs_snapshot_get_string_literals (jjs_context_t* context_p, /**< JJS context */
+                                  const uint32_t *snapshot_p, /**< snapshot */
+                                  size_t snapshot_size) /**< size of snapshot in bytes */
 {
 #if JJS_SNAPSHOT_SAVE
   const uint8_t *snapshot_data_p = (uint8_t *) snapshot_p;

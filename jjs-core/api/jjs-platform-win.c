@@ -24,8 +24,11 @@
 #include <windows.h>
 
 jjs_status_t
-jjs_platform_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p)
+jjs_platform_path_cwd_impl (jjs_context_t *context_p,
+                            const jjs_allocator_t* allocator,
+                            jjs_platform_buffer_view_t* buffer_view_p)
 {
+  JJS_UNUSED (context_p);
   WCHAR* p;
   DWORD n;
   DWORD t = GetCurrentDirectoryW (0, NULL);
@@ -93,8 +96,9 @@ jjs_platform_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffe
 #include <windows.h>
 
 jjs_status_t
-jjs_platform_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep */
+jjs_platform_time_sleep_impl (jjs_context_t *context_p, uint32_t sleep_time_ms)
 {
+  JJS_UNUSED (context_p);
   Sleep (sleep_time_ms);
 
   return JJS_STATUS_OK;
@@ -107,8 +111,9 @@ jjs_platform_time_sleep_impl (uint32_t sleep_time_ms) /**< milliseconds to sleep
 #include <time.h>
 
 jjs_status_t
-jjs_platform_time_local_tza_impl (double unix_ms, int32_t* out_p)
+jjs_platform_time_local_tza_impl (jjs_context_t *context_p, double unix_ms, int32_t* out_p)
 {
+  JJS_UNUSED (context_p);
   time_t time = (time_t) unix_ms / 1000;
 
   struct tm gmt_tm;
@@ -135,8 +140,9 @@ jjs_platform_time_local_tza_impl (double unix_ms, int32_t* out_p)
 #include <windows.h>
 
 jjs_status_t
-jjs_platform_time_now_ms_impl (double* out_p)
+jjs_platform_time_now_ms_impl (jjs_context_t *context_p, double* out_p)
 {
+  JJS_UNUSED (context_p);
   // Based on https://doxygen.postgresql.org/gettimeofday_8c_source.html
   static const uint64_t epoch = (uint64_t) 116444736000000000ULL;
   FILETIME file_time;
@@ -167,10 +173,12 @@ static const WCHAR UNC_PATH_PREFIX[] = L"\\\\?\\UNC\\";
 static const WCHAR UNC_PATH_PREFIX_LEN = 8;
 
 jjs_status_t
-jjs_platform_path_realpath_impl (const jjs_allocator_t* allocator,
-                         jjs_platform_path_t* path_p,
-                         jjs_platform_buffer_view_t* buffer_view_p)
+jjs_platform_path_realpath_impl (jjs_context_t *context_p,
+                                 const jjs_allocator_t* allocator,
+                                 jjs_platform_path_t* path_p,
+                                 jjs_platform_buffer_view_t* buffer_view_p)
 {
+  JJS_UNUSED (context_p);
   jjs_status_t status;
   jjs_platform_buffer_view_t path_view;
 
@@ -250,8 +258,12 @@ jjs_platform_path_realpath_impl (const jjs_allocator_t* allocator,
 #include <windows.h>
 
 jjs_status_t
-jjs_platform_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p)
+jjs_platform_fs_read_file_impl (jjs_context_t *context_p,
+                                const jjs_allocator_t* allocator,
+                                jjs_platform_path_t* path_p,
+                                jjs_platform_buffer_t* out_p)
 {
+  JJS_UNUSED (context_p);
   jjs_status_t status;
   jjs_platform_buffer_view_t path_view;
 

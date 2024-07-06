@@ -117,11 +117,11 @@ test_platform_stream (void)
   TEST_ASSERT (jjs_context_new (NULL, &context_p) == JJS_STATUS_OK);
   TEST_ASSERT (context_p != NULL);
 
-  jjs_platform_stdout_write (context_p, jjs_string_sz (context_p, "hello\n"), JJS_MOVE);
-  jjs_platform_stdout_flush (context_p);
+  jjs_platform_io_write (context_p, JJS_STDOUT, jjs_string_sz (context_p, "hello\n"), JJS_MOVE);
+  jjs_platform_io_flush (context_p, JJS_STDOUT);
 
-  jjs_platform_stderr_write (context_p, jjs_string_sz (context_p, "hello\n"), JJS_MOVE);
-  jjs_platform_stderr_flush (context_p);
+  jjs_platform_io_write (context_p, JJS_STDERR, jjs_string_sz (context_p, "hello\n"), JJS_MOVE);
+  jjs_platform_io_flush (context_p, JJS_STDERR);
 
   jjs_context_free (context_p);
 }

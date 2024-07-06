@@ -76,9 +76,9 @@ js_print (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], jjs_le
     return value;
   }
 
-  jjs_platform_stdout_write (context_p, value, JJS_MOVE);
-  jjs_platform_stdout_write (context_p, jjs_string_sz (context_p, "\n"), JJS_MOVE);
-  jjs_platform_stdout_flush (context_p);
+  jjs_platform_io_write (context_p, JJS_STDOUT, value, JJS_MOVE);
+  jjs_platform_io_write (context_p, JJS_STDOUT, jjs_string_sz (context_p, "\n"), JJS_MOVE);
+  jjs_platform_io_flush (context_p, JJS_STDOUT);
 
   return jjs_undefined (context_p);
 }

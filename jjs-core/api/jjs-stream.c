@@ -61,7 +61,7 @@ static JJS_HANDLER (jjs_wstream_prototype_flush)
 
   if (wstream_p)
   {
-    jjs_platform_io_flush_impl (wstream_p->state_p);
+    jjs_platform_io_flush_impl (context_p, wstream_p->state_p);
   }
 
   return jjs_undefined (context_p);
@@ -76,19 +76,16 @@ static void jjs_wstream_prototype_finalizer (jjs_context_t* context_p, void *nat
 static void
 wstream_io_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
 {
-  JJS_UNUSED (context_p);
-  jjs_platform_io_write_impl (self_p->state_p, data_p, data_size, self_p->encoding);
+  jjs_platform_io_write_impl (context_p, self_p->state_p, data_p, data_size, self_p->encoding);
 } /* wstream_io_write */
 
 #if JJS_DEBUGGER
 static void
 wstream_log_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, const uint8_t *data_p, uint32_t data_size)
 {
-  JJS_UNUSED (context_p);
-
   if (self_p->state_p)
   {
-    jjs_platform_io_write_impl (self_p->state_p, data_p, data_size, self_p->encoding);
+    jjs_platform_io_write_impl (context_p, self_p->state_p, data_p, data_size, self_p->encoding);
   }
 
   #if JJS_DEBUGGER
@@ -136,16 +133,18 @@ wstream_memory_write (jjs_context_t* context_p, const jjs_wstream_t *self_p, con
  * Creates a new JS writable stream instance that writes to a platform stream.
  *
  * @param context_p JJS context
- * @param id platform stream id
+ * @param tag platform stream id
  * @param out stream object; set if returns true
  * @return true: success, false: error
  */
 bool
-jjs_wstream_new (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_value_t *out)
+jjs_wstream_new (jjs_context_t* context_p, /**< JJS context */
+                 jjs_platform_io_tag_t tag, /**< io target id */
+                 jjs_value_t *out) /**< stream object; set if returns true */
 {
   jjs_wstream_t wstream;
 
-  if (!jjs_wstream_from_id (context_p, id, &wstream))
+  if (!jjs_wstream_from_id (context_p, tag, &wstream))
   {
     return false;
   }
@@ -159,7 +158,7 @@ jjs_wstream_new (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_v
 
   memcpy (wstream_p, &wstream, sizeof (jjs_wstream_t));
 
-  jjs_value_t wstream_value = jjs_object(context_p);
+  jjs_value_t wstream_value = jjs_object (context_p);
   ecma_object_t *wstream_value_p = ecma_get_object_from_value (context_p, wstream_value);
 
   jjs_object_set_native_ptr (context_p, wstream_value, &jjs_wstream_class_info, wstream_p);
@@ -198,30 +197,15 @@ jjs_wstream_from_buffer (jjs_wstream_buffer_state_t * buffer_p, /**< buffer to w
  * @return true: initialized, false: failed
  */
 bool
-jjs_wstream_from_id (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_wstream_t *out)
+jjs_wstream_from_id (jjs_context_t* context_p, jjs_platform_io_tag_t tag, jjs_wstream_t *out)
 {
   /* TODO: refactor */
-  if (jjs_stream_is_installed (context_p, id))
+  if (jjs_stream_is_installed (context_p, tag))
   {
-    switch (id)
-    {
-      case JJS_STDOUT:
-      {
-        out->write = wstream_io_write;
-        out->encoding = context_p->stream_encoding[JJS_STDOUT];
-        out->state_p = context_p->streams[JJS_STDOUT];
-        return true;
-      }
-      case JJS_STDERR:
-      {
-        out->write = wstream_io_write;
-        out->encoding = context_p->stream_encoding[JJS_STDERR];
-        out->state_p = context_p->streams[JJS_STDERR];
-        return true;
-      }
-      default:
-        break;
-    }
+    out->write = wstream_io_write;
+    out->encoding = context_p->io_target_encoding[tag];
+    out->state_p = context_p->io_target[tag];
+    return true;
   }
 
   return false;
@@ -257,8 +241,8 @@ jjs_wstream_log (jjs_context_t* context_p, jjs_wstream_t* out) /**< wstream obje
     return false;
   }
 
-  out->state_p = context_p->streams[JJS_STDERR];
-  out->encoding = context_p->stream_encoding[JJS_STDERR];
+  out->state_p = context_p->io_target[JJS_STDERR];
+  out->encoding = context_p->io_target_encoding[JJS_STDERR];
   out->write = wstream_log_write;
 
   return true;
@@ -375,10 +359,11 @@ done:
  * @return boolean status
  */
 bool
-jjs_stream_is_installed (jjs_context_t* context_p, jjs_platform_io_stream_id_t id) /**< platform stream id */
+jjs_stream_is_installed (jjs_context_t* context_p, /**< JJS context */
+                         jjs_platform_io_tag_t tag) /**< io target id */
 {
-  JJS_ASSERT (id == JJS_STDOUT || id == JJS_STDERR);
-  return context_p->streams[id] != NULL;
+  JJS_ASSERT (tag == JJS_STDOUT || tag == JJS_STDERR);
+  return context_p->io_target[tag] != NULL;
 }
 
 /**
@@ -386,12 +371,13 @@ jjs_stream_is_installed (jjs_context_t* context_p, jjs_platform_io_stream_id_t i
  * function does nothing.
  */
 void
-jjs_stream_flush (jjs_context_t* context_p, jjs_platform_io_stream_id_t id) /**< platform stream id */
+jjs_stream_flush (jjs_context_t* context_p, /**< JJS context */
+                  jjs_platform_io_tag_t tag) /**< io target id */
 {
   /* TODO: refactor */
-  if (jjs_stream_is_installed (context_p, id))
+  if (jjs_stream_is_installed (context_p, tag))
   {
-    jjs_platform_io_flush_impl (context_p->streams[id]);
+    jjs_platform_io_flush_impl (context_p, context_p->io_target[tag]);
   }
 }
 
@@ -399,18 +385,16 @@ jjs_stream_flush (jjs_context_t* context_p, jjs_platform_io_stream_id_t id) /**<
  * Write a string to the platform streams writable stream.
  *
  * If the value is not a string or the stream is not installed, this function does nothing.
- *
- * @param context_p JJS context
- * @param id platform stream id
- * @param value string JS value
- * @param value_o value reference ownership
  */
 void
-jjs_stream_write_string (jjs_context_t* context_p, jjs_platform_io_stream_id_t id, jjs_value_t value, jjs_value_t value_o)
+jjs_stream_write_string (jjs_context_t* context_p, /**< JJS context */
+                         jjs_platform_io_tag_t tag, /**< io target id */
+                         jjs_value_t value, /**< string JS value */
+                         jjs_value_t value_o) /**< value reference ownership */
 {
   jjs_wstream_t wstream;
 
-  if (jjs_value_is_string (context_p, value) && jjs_wstream_from_id (context_p, id, &wstream))
+  if (jjs_value_is_string (context_p, value) && jjs_wstream_from_id (context_p, tag, &wstream))
   {
     jjs_wstream_write_string (context_p, &wstream, value, value_o);
   }

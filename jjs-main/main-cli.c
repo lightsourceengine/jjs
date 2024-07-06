@@ -501,14 +501,14 @@ jjs_app_command_repl (jjs_app_t *config)
 
   while (true)
   {
-    jjs_platform_stdout_write (context, prompt, JJS_KEEP);
+    jjs_platform_io_write (context, JJS_STDOUT, prompt, JJS_KEEP);
 
     jjs_size_t length;
     jjs_char_t *line_p = jjs_cli_stdin_readline (&length);
 
     if (line_p == NULL)
     {
-      jjs_platform_stdout_write (context, new_line, JJS_KEEP);
+      jjs_platform_io_write (context, JJS_STDOUT, new_line, JJS_KEEP);
       goto done;
     }
 

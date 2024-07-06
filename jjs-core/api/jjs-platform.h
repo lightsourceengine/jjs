@@ -37,16 +37,16 @@ jjs_status_t jjs_platform_buffer_view_new (jjs_platform_buffer_view_t* self_p, c
 
 void JJS_ATTR_NORETURN jjsp_fatal_impl (jjs_fatal_code_t code);
 
-void jjs_platform_io_write_impl (void* target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding);
-void jjs_platform_io_flush_impl (void* target_p);
+void jjs_platform_io_write_impl (jjs_context_t *context_p, jjs_platform_io_target_t target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding);
+void jjs_platform_io_flush_impl (jjs_context_t *context_p, jjs_platform_io_target_t target_p);
 
-jjs_status_t jjs_platform_time_sleep_impl (uint32_t sleep_time_ms);
-jjs_status_t jjs_platform_time_local_tza_impl (double unix_ms, int32_t* out_p);
-jjs_status_t jjs_platform_time_now_ms_impl (double* out_p);
+jjs_status_t jjs_platform_time_sleep_impl (jjs_context_t *context_p, uint32_t sleep_time_ms);
+jjs_status_t jjs_platform_time_local_tza_impl (jjs_context_t *context_p, double unix_ms, int32_t* out_p);
+jjs_status_t jjs_platform_time_now_ms_impl (jjs_context_t *context_p, double* out_p);
 
-jjs_status_t jjs_platform_path_cwd_impl (const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p);
-jjs_status_t jjs_platform_path_realpath_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_view_t* buffer_view_p);
+jjs_status_t jjs_platform_path_cwd_impl (jjs_context_t *context_p, const jjs_allocator_t* allocator, jjs_platform_buffer_view_t* buffer_view_p);
+jjs_status_t jjs_platform_path_realpath_impl (jjs_context_t *context_p, const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_view_t* buffer_view_p);
 
-jjs_status_t jjs_platform_fs_read_file_impl (const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p);
+jjs_status_t jjs_platform_fs_read_file_impl (jjs_context_t *context_p, const jjs_allocator_t* allocator, jjs_platform_path_t* path_p, jjs_platform_buffer_t* out_p);
 
 #endif /* JJS_PLATFORM_H */

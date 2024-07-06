@@ -1167,14 +1167,23 @@ typedef struct jjs_platform_path_s
   const jjs_allocator_t* allocator; /**< allocator used by convert */
 } jjs_platform_path_t;
 
+/**
+ * Platform IO target IDs.
+ */
+typedef enum
+{
+  JJS_STDOUT = 0, /**< stdout io target */
+  JJS_STDERR = 1, /**< stderr io target */
+} jjs_platform_io_tag_t;
+
 /* Platform API Signatures */
 
 typedef void (*jjs_platform_fatal_fn_t) (jjs_fatal_code_t);
 
 /* io */
-typedef void* jjs_platform_io_stream_t;
-typedef void (*jjs_platform_io_write_fn_t) (void*, const uint8_t*, uint32_t, jjs_encoding_t);
-typedef void (*jjs_platform_io_flush_fn_t) (void*);
+typedef void*jjs_platform_io_target_t;
+typedef void (*jjs_platform_io_write_fn_t) (jjs_context_t *context_p, jjs_platform_io_target_t target_p, const uint8_t* buffer, uint32_t buffer_size, jjs_encoding_t encoding);
+typedef void (*jjs_platform_io_flush_fn_t) (jjs_context_t *context_p, jjs_platform_io_target_t target_p);
 
 /* fs */
 typedef jjs_status_t (*jjs_platform_fs_read_file_fn_t) (const jjs_allocator_t* allocator, jjs_platform_path_t*, jjs_platform_buffer_t*);
@@ -1254,7 +1263,7 @@ typedef struct
    * The value is opaque, but must be compatible with the io_write function. With the
    * default io_write, this value can be set to a FILE*.
    */
-  jjs_platform_io_stream_t io_stdout;
+  jjs_platform_io_target_t io_stdout;
   bool exclude_io_stdout; /**< do not use stdout if io_stdout is NULL */
 
   /**
@@ -1275,7 +1284,7 @@ typedef struct
    * The value is opaque, but must be compatible with the io_write function. With the
    * default io_write, this value can be set to a FILE*.
    */
-  jjs_platform_io_stream_t io_stderr;
+  jjs_platform_io_target_t io_stderr;
   bool exclude_io_stderr; /**< do not use stderr if io_stderr is NULL */
 
   /**

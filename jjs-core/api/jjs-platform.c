@@ -56,7 +56,7 @@ jjs_platform_cwd (jjs_context_t* context_p) /**< JJS context */
     .source = jjs_platform_buffer (NULL, 0, allocator),
   };
 
-  if (jjs_platform_path_cwd_impl (allocator, &buffer) == JJS_STATUS_OK)
+  if (jjs_platform_path_cwd_impl (context_p, allocator, &buffer) == JJS_STATUS_OK)
   {
     ecma_value_t result = jjsp_buffer_view_to_string_value (context_p, &buffer, true);
 
@@ -111,7 +111,7 @@ jjs_platform_realpath (jjs_context_t* context_p, jjs_value_t path, jjs_own_t pat
     ecma_string_get_length (context_p, ecma_get_string_from_value (context_p, path)) == path_bytes_len ? JJS_ENCODING_ASCII
                                                                                  : JJS_ENCODING_CESU8);
   jjs_platform_buffer_view_t buffer;
-  jjs_status_t status = jjs_platform_path_realpath_impl (allocator, &p, &buffer);
+  jjs_status_t status = jjs_platform_path_realpath_impl (context_p, allocator, &p, &buffer);
   jjs_value_t result;
 
   if (status == JJS_STATUS_OK)
@@ -186,65 +186,130 @@ jjs_platform_read_file_sz (jjs_context_t* context_p, const char* path_p, const j
   return jjs_platform_read_file (context_p, annex_util_create_string_utf8_sz (context_p, path_p), JJS_MOVE, opts);
 } /* jjs_platform_read_file_sz */
 
+static bool
+jjs_platform_validate_tag (jjs_platform_io_tag_t tag)
+{
+  return tag == JJS_STDOUT || tag == JJS_STDERR;
+}
+
 /**
- * Write a string to the platform stdout write stream.
+ * Write a string to a platform io target.
  *
  * If the value is not a string or the platform does not have stdout stream installed,
  * this function does nothing.
- *
- * @param context_p JJS context
- * @param value JS string value
- * @param value_o value reference ownership
  */
-void jjs_platform_stdout_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o)
+void
+jjs_platform_io_write (jjs_context_t* context_p, /**< JJS context */
+                       jjs_platform_io_tag_t tag, /**< platform io target tag */
+                       jjs_value_t value, /**< JS string value */
+                       jjs_own_t value_o) /**< value reference ownership **/
 {
   jjs_assert_api_enabled (context_p);
-  jjs_stream_write_string (context_p, JJS_STDOUT, value, value_o);
-} /* jjs_platform_stdout_write */
+  JJS_ASSERT (jjs_platform_validate_tag (tag));
+
+  if (jjs_platform_validate_tag (tag))
+  {
+    jjs_stream_write_string (context_p, tag, value, value_o);
+  }
+} /* jjs_platform_io_write */
 
 /**
- * Flush the platform stdout write stream.
+ * Flush a platform io target.
  *
  * If the platform does not have stdout stream installed, this function does nothing.
- *
- * @param context_p JJS context
- */
-void jjs_platform_stdout_flush (jjs_context_t* context_p)
-{
-  jjs_assert_api_enabled (context_p);
-  jjs_stream_flush (context_p, JJS_STDOUT);
-} /* jjs_platform_stdout_flush */
-
-/**
- * Write a string to the platform stderr write stream.
- *
- * If the value is not a string or the platform does not have stderr stream installed,
- * this function does nothing.
- *
- * @param context_p JJS context
- * @param value JS string value
- * @param value_o value reference ownership
  */
 void
-jjs_platform_stderr_write (jjs_context_t* context_p, jjs_value_t value, jjs_own_t value_o)
+jjs_platform_io_flush (jjs_context_t* context_p, /**< JJS context */
+                       jjs_platform_io_tag_t tag) /**< platform io target tag */
 {
   jjs_assert_api_enabled (context_p);
-  jjs_stream_write_string (context_p, JJS_STDERR, value, value_o);
-} /* jjs_platform_stderr_write */
+  JJS_ASSERT (jjs_platform_validate_tag (tag));
+
+  if (jjs_platform_validate_tag (tag))
+  {
+    jjs_stream_flush (context_p, tag);
+  }
+} /* jjs_platform_io_flush */
 
 /**
- * Flush the platform stderr write stream.
+ * Get a platform io target.
  *
- * If the platform does not have stderr stream installed, this function does nothing.
- *
- * @param context_p JJS context
+ * @return platform io target (can be NULL)
  */
-void
-jjs_platform_stderr_flush (jjs_context_t* context_p)
+jjs_platform_io_target_t
+jjs_platform_io_target (jjs_context_t *context_p, /**> JJS context */
+                        jjs_platform_io_tag_t tag) /**< platform io target tag */
 {
   jjs_assert_api_enabled (context_p);
-  jjs_stream_flush (context_p, JJS_STDERR);
-} /* jjs_platform_stderr_flush */
+  JJS_ASSERT (jjs_platform_validate_tag (tag));
+
+  if (jjs_platform_validate_tag (tag))
+  {
+    return context_p->io_target[tag];
+  }
+
+  return NULL;
+} /* jjs_platform_io_target */
+
+/**
+ * Set the stdout target.
+ *
+ * The target must be compatible with the installed platform io write and
+ * flush apis. The default io methods expect targets to be of type FILE* or NULL.
+ */
+void
+jjs_platform_io_set_target (jjs_context_t *context_p, /**> JJS context */
+                            jjs_platform_io_tag_t tag, /**< platform io target tag */
+                            jjs_platform_io_target_t target) /**> io stream target object */
+{
+  jjs_assert_api_enabled (context_p);
+  JJS_ASSERT (jjs_platform_validate_tag (tag));
+
+  if (jjs_platform_validate_tag (tag))
+  {
+    context_p->io_target[tag] = target;
+  }
+} /* jjs_platform_io_set_target */
+
+/**
+ * Set the preferred encoding format of a target.
+ *
+ * Before calling write, the system will try to convert the bytes to this format.
+ */
+void
+jjs_platform_io_set_encoding (jjs_context_t *context_p, /**> JJS context */
+                              jjs_platform_io_tag_t tag, /**< platform io target tag */
+                              jjs_encoding_t encoding) /**> encoding */
+
+{
+  jjs_assert_api_enabled (context_p);
+  JJS_ASSERT (jjs_platform_validate_tag (tag));
+
+  if (jjs_platform_validate_tag (tag))
+  {
+    context_p->io_target_encoding[tag] = encoding;
+  }
+} /* jjs_platform_io_set_encoding */
+
+/**
+ * Get the encoding type of target.
+ *
+ * @return encoding
+ */
+jjs_encoding_t
+jjs_platform_io_encoding (jjs_context_t *context_p, /**> JJS context */
+                          jjs_platform_io_tag_t tag) /**< platform io target tag */
+{
+  jjs_assert_api_enabled (context_p);
+  JJS_ASSERT (jjs_platform_validate_tag (tag));
+
+  if (jjs_platform_validate_tag (tag))
+  {
+    return context_p->io_target_encoding[tag];
+  }
+
+  return JJS_ENCODING_NONE;
+} /* jjs_platform_io_encoding */
 
 /**
  * Get the OS identifier as a JS string.
@@ -517,7 +582,7 @@ jjsp_read_file_buffer (jjs_context_t* context_p,
                               path_len,
                               ecma_string_get_length (context_p, path_p) == path_len ? JJS_ENCODING_ASCII : JJS_ENCODING_CESU8);
 
-  jjs_status_t status = jjs_platform_fs_read_file_impl (buffer_allocator, &platform_path, buffer_p);
+  jjs_status_t status = jjs_platform_fs_read_file_impl (context_p, buffer_allocator, &platform_path, buffer_p);
 
   ECMA_FINALIZE_UTF8_STRING (context_p, path_bytes_p, path_len);
 
@@ -671,20 +736,34 @@ jjs_platform_create_path (jjs_allocator_t* allocator, const uint8_t* path_p, jjs
   };
 }
 
+#if JJS_PLATFORM_API_IO_WRITE == 1
+
 void
-jjs_platform_io_write_impl (void* target_p, const uint8_t* data_p, uint32_t data_size, jjs_encoding_t encoding)
+jjs_platform_io_write_impl (jjs_context_t *context_p,
+                            jjs_platform_io_target_t target_p,
+                            const uint8_t* data_p,
+                            uint32_t data_size,
+                            jjs_encoding_t encoding)
 {
+  JJS_UNUSED (context_p);
   JJS_ASSERT (target_p != NULL);
   JJS_ASSERT (encoding == JJS_ENCODING_ASCII || encoding == JJS_ENCODING_UTF8);
   fwrite (data_p, 1, data_size, target_p);
 }
 
+#endif /* JJS_PLATFORM_API_IO_WRITE */
+
+#if JJS_PLATFORM_API_IO_FLUSH == 1
+
 void
-jjs_platform_io_flush_impl (void* target_p)
+jjs_platform_io_flush_impl (jjs_context_t *context_p, void* target_p)
 {
+  JJS_UNUSED (context_p);
   JJS_ASSERT (target_p != NULL);
   fflush (target_p);
 }
+
+#endif /* JJS_PLATFORM_API_IO_FLUSH */
 
 void
 jjsp_fatal_impl (jjs_fatal_code_t code)

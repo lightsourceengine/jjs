@@ -28,10 +28,10 @@ static JJS_HANDLER (jjs_pack_console_println)
 
   if (args_cnt > 0 && jjs_value_is_string (context_p, args_p[0]))
   {
-    jjs_platform_stdout_write (context_p, args_p[0], JJS_KEEP);
+    jjs_platform_io_write (context_p, JJS_STDOUT, args_p[0], JJS_KEEP);
   }
 
-  jjs_platform_stdout_write (context_p, jjs_string_sz(context_p, "\n"), JJS_MOVE);
+  jjs_platform_io_write (context_p, JJS_STDOUT, jjs_string_sz (context_p, "\n"), JJS_MOVE);
 
   return jjs_undefined (call_info_p->context_p);
 } /* jjs_pack_console_println */

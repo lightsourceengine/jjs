@@ -698,9 +698,8 @@ ecma_builtin_date_utc (ecma_context_t *context_p, /**< JJS context */
 static ecma_number_t
 ecma_builtin_date_now_helper (ecma_context_t *context_p) /**< JJS context */
 {
-  JJS_UNUSED (context_p);
   double unix_timestamp_ms;
-  jjs_status_t status = jjs_platform_time_now_ms_impl (&unix_timestamp_ms);
+  jjs_status_t status = jjs_platform_time_now_ms_impl (context_p, &unix_timestamp_ms);
 
   return (status == JJS_STATUS_OK) ? floor (DOUBLE_TO_ECMA_NUMBER_T (unix_timestamp_ms)) : 0;
 } /* ecma_builtin_date_now_helper */

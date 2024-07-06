@@ -245,8 +245,7 @@ jjs_debugger_transport_receive_completed (jjs_context_t* context_p, /**< JJS con
 void
 jjs_debugger_transport_sleep (jjs_context_t *context_p)
 {
-  JJS_UNUSED (context_p);
-  jjs_platform_time_sleep_impl (JJS_DEBUGGER_TRANSPORT_TIMEOUT);
+  jjs_platform_time_sleep_impl (context_p, JJS_DEBUGGER_TRANSPORT_TIMEOUT);
 } /* jjs_debugger_transport_sleep */
 
 #endif /* JJS_DEBUGGER */

@@ -161,10 +161,10 @@ jjs_context_init (const jjs_context_options_t* options_p, const jjs_allocator_t 
   }
 
   /* default stream settings */
-  context_p->streams[JJS_STDOUT] = (void *) stdout;
-  context_p->stream_encoding[JJS_STDOUT] = JJS_ENCODING_UTF8;
-  context_p->streams[JJS_STDERR] = (void *) stderr;
-  context_p->stream_encoding[JJS_STDERR] = JJS_ENCODING_UTF8;
+  context_p->io_target[JJS_STDOUT] = (void *) stdout;
+  context_p->io_target_encoding[JJS_STDOUT] = JJS_ENCODING_UTF8;
+  context_p->io_target[JJS_STDERR] = (void *) stderr;
+  context_p->io_target_encoding[JJS_STDERR] = JJS_ENCODING_UTF8;
 
   /* allocators */
   context_p->context_allocator = *allocator_p;

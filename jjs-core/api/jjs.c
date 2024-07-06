@@ -5633,10 +5633,11 @@ jjs_log_string (jjs_context_t* context_p, /**< JJS context */
                 jjs_size_t size) /**< message size */
 {
   /* TODO: logging does not specify encoding. use stderr encoding for now. */
-  if (context_p->streams[JJS_STDERR]) {
-    jjs_platform_io_write_impl (context_p->streams[JJS_STDERR],
-                                     (const uint8_t *) str_p, size,
-                                context_p->stream_encoding[JJS_STDERR]);
+  if (context_p->io_target[JJS_STDERR]) {
+    jjs_platform_io_write_impl (context_p,
+                                context_p->io_target[JJS_STDERR],
+                                (const uint8_t *) str_p, size,
+                                context_p->io_target_encoding[JJS_STDERR]);
   }
 
 #if JJS_DEBUGGER
