@@ -25,6 +25,7 @@ import subprocess
 import sys
 import settings
 import shutil
+import multiprocessing
 
 if sys.version_info.major >= 3:
     import runners.util as util  # pylint: disable=import-error
@@ -137,7 +138,7 @@ JJS_BUILDOPTIONS = [
             JJS_BUILDOPTIONS_COMMON + ['--compile-flag=-DJJS_ANNEX_COMMONJS=0']),
     Options('buildoption_test-esm-off',
             JJS_BUILDOPTIONS_COMMON + ['--compile-flag=-DJJS_ANNEX_ESM=0']),
-    Options('buildoption_test-commonjs-off',
+    Options('buildoption_test-pmap-off',
             JJS_BUILDOPTIONS_COMMON + ['--compile-flag=-DJJS_ANNEX_PMAP=0']),
     Options('buildoption_test-vmod-off',
             JJS_BUILDOPTIONS_COMMON + ['--compile-flag=-DJJS_ANNEX_VMOD=0']),
@@ -251,7 +252,7 @@ def report_skip(job):
         sys.stderr.write(' (%s)' % job.skip)
     sys.stderr.write('%s\n' % TERM_NORMAL)
 
-def create_binary(job, options):
+def create_binary(job, options, cache = True):
     build_args = job.build_args[:]
     build_dir_path = os.path.join(options.outdir, job.name)
     if options.build_debug:
@@ -275,22 +276,25 @@ def create_binary(job, options):
     if options.toolchain:
         build_cmd.append('--toolchain=%s' % options.toolchain)
 
-    report_command('Build command:', build_cmd)
+    report_command('Build command (%s):' % job.name, build_cmd)
 
-    binary_key = tuple(sorted(build_args))
-    if binary_key in BINARY_CACHE:
-        ret, build_dir_path = BINARY_CACHE[binary_key]
-        sys.stderr.write('(skipping: already built at %s with returncode %d)\n' % (build_dir_path, ret))
-        return ret, build_dir_path
+    if cache:
+        binary_key = tuple(sorted(build_args))
+        if binary_key in BINARY_CACHE:
+            ret, build_dir_path = BINARY_CACHE[binary_key]
+            sys.stderr.write('(skipping: already built at %s with returncode %d)\n' % (build_dir_path, ret))
+            return ret, build_dir_path
 
     try:
         subprocess.check_output(build_cmd)
         ret = 0
     except subprocess.CalledProcessError as err:
-        print(err.output.decode(errors="ignore"))
+        print('%s: %s' % (job.name, err.output.decode(errors="ignore")))
         ret = err.returncode
 
-    BINARY_CACHE[binary_key] = (ret, build_dir_path)
+    if cache:
+        BINARY_CACHE[binary_key] = (ret, build_dir_path)
+
     return ret, build_dir_path
 
 def get_binary_path(build_dir_path):
@@ -512,23 +516,59 @@ def run_unittests(options):
 
     return ret_build | ret_test
 
+class BuildOptionTestCase:
+    def __init__(self, job, options):
+        self.job = job
+        self.options = options
+        self.return_code = -1
+
+    def run(self):
+        ret, _ = create_binary(self.job, self.options, False)
+        self.return_code = ret
+        return self
+
 def run_buildoption_test(options):
+    test_cases = []
+    suite_success = True
+
     for job in JJS_BUILDOPTIONS:
         if job.skip:
             report_skip(job)
             continue
+        test_cases.append(BuildOptionTestCase(job, options))
 
-        ret, _ = create_binary(job, options)
-        if ret:
-            print("\n%sBuild failed%s\n" % (TERM_RED, TERM_NORMAL))
-            break
+    job_count = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=job_count, initializer=util.pool_init)
 
-    return ret
+    try:
+        for case in pool.imap(util.run_test_case, test_cases):
+            if case.return_code:
+                print("\n%sBuild failed%s\n" % (TERM_RED, TERM_NORMAL))
+                break
+    except KeyboardInterrupt:
+        util.pool_kill(pool)
+
+    return 0 if suite_success else 1
+
+class CLITestCase:
+    def __init__(self, test_id, cmd, expected_return_code):
+        self.test_id = test_id
+        self.cmd = cmd
+        self.expected_return_code = expected_return_code
+        self.return_code = -1
+        self.stdout = None
+
+    def run(self):
+        kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
+        proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=settings.TESTS_DIR, **kwargs) # , env=env
+
+        self.stdout = proc.communicate()[0]
+        self.return_code = proc.returncode
+        return self
 
 def run_cli_tests(options):
     job = Options('jjs_cli_tests', ['--lto=off', '--snapshot-exec=on', '--logging=on', '--mem-stats=on', '--show-opcodes=on', '--show-regexp-opcodes=on'])
     execution_runtime = os.environ.get('RUNTIME')
-
     ret, build_dir_path = create_binary(job, options)
 
     common_flags = [
@@ -631,6 +671,7 @@ def run_cli_tests(options):
 
     i = 1
     suite_success = True
+    test_cases = []
 
     for test in suite:
         (commands, expected_return_code) = test
@@ -639,21 +680,23 @@ def run_cli_tests(options):
         runnable.extend([get_binary_path(build_dir_path)])
         runnable.extend(commands)
 
-        kwargs = {'errors': 'replace', 'encoding': 'utf-8'}
-        proc = subprocess.Popen(runnable, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=settings.TESTS_DIR, **kwargs) # , env=env
-
-        stdout = proc.communicate()[0]
-        ret = proc.returncode
-        test_passed = (ret == expected_return_code)
-
-        if not options.quiet or not test_passed:
-            util.print_test_result(i, len(suite), test_passed, ('PASS' if test_passed else 'FAIL') + ': jjs ' + ' '.join(commands), '')
-
-        if not test_passed:
-            print(stdout)
-            suite_success = False
-
+        test_cases.append(CLITestCase(i, runnable, expected_return_code))
         i += 1
+
+    job_count = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=job_count, initializer=util.pool_init)
+
+    try:
+        for case in pool.imap(util.run_test_case, test_cases):
+            test_passed = (case.return_code == case.expected_return_code)
+            if not options.quiet or not test_passed:
+                util.print_test_result(i, len(suite), test_passed, ('PASS' if test_passed else 'FAIL') + ': jjs ' + ' '.join(case.cmd), '')
+
+            if not test_passed:
+                print(case.stdout)
+                suite_success = False
+    except KeyboardInterrupt:
+        util.pool_kill(pool)
 
     return 0 if suite_success else 1
 

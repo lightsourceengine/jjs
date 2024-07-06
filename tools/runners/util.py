@@ -76,3 +76,17 @@ def get_platform_cmd_prefix():
 def get_python_cmd_prefix():
     # python script doesn't have execute permission on github actions windows runner
     return get_platform_cmd_prefix() + [sys.executable or 'python']
+
+
+def pool_init():
+    """Ignore CTRL+C in the worker process."""
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
+def pool_kill(pool):
+    pool.terminate()
+    pool.join()
+
+
+def run_test_case(t):
+    return t.run()

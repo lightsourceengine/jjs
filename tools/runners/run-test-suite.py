@@ -192,10 +192,10 @@ def run_normal_tests(args, tests):
     passed = 0
 
     job_count = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=job_count, initializer=pool_init)
+    pool = multiprocessing.Pool(processes=job_count, initializer=util.pool_init)
 
     try:
-        for case in pool.imap(test_case_run, map(lambda x: TestCase(x, test_cmd, test_dir), tests)):
+        for case in pool.imap(util.run_test_case, map(lambda x: TestCase(x, test_cmd, test_dir), tests)):
             tested += 1
             test_path = os.path.relpath(case.test)
             is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in case.test
@@ -213,8 +213,7 @@ def run_normal_tests(args, tests):
                 print(case.stdout)
                 print("================================================")
     except KeyboardInterrupt:
-        pool.terminate()
-        pool.join()
+        util.pool_kill(pool)
 
     return passed
 
@@ -241,13 +240,13 @@ def run_snapshot_tests(args, tests):
     passed = 0
 
     job_count = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=job_count, initializer=pool_init)
+    pool = multiprocessing.Pool(processes=job_count, initializer=util.pool_init)
 
     def gen(test):
         return SnapshotTestCase(test, generate_snapshot_cmd, execute_snapshot_cmd, args.test_dir)
 
     try:
-        for case in pool.imap(test_case_run, map(gen, tests)):
+        for case in pool.imap(util.run_test_case, map(gen, tests)):
             tested += 1
             test_path = os.path.relpath(case.test)
             is_expected_to_fail = os.path.join(os.path.sep, 'fail', '') in case.test
@@ -264,19 +263,9 @@ def run_snapshot_tests(args, tests):
                 print(case.stdout)
                 print("================================================")
     except KeyboardInterrupt:
-        pool.terminate()
-        pool.join()
+        util.pool_kill(pool)
 
     return passed
-
-
-def pool_init():
-    """Ignore CTRL+C in the worker process."""
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-
-def test_case_run(case):
-    return case.run()
 
 
 if __name__ == "__main__":
