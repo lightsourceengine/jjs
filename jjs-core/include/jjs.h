@@ -31,6 +31,17 @@
  */
 #define JJS_API_PATCH_VERSION 0
 
+#define JJS_API_VERSION_STRING_2(X) #X
+#define JJS_API_VERSION_STRING_1(X) JJS_API_VERSION_STRING_2(X)
+
+/**
+ * semver version string
+ */
+#define JJS_API_VERSION_STRING \
+  JJS_API_VERSION_STRING_1 (JJS_API_MAJOR_VERSION) \
+  JJS_API_VERSION_STRING_1 (JJS_API_MINOR_VERSION) \
+  JJS_API_VERSION_STRING_1 (JJS_API_PATCH_VERSION)
+
 #include "jjs-core.h"
 #include "jjs-debugger.h"
 #include "jjs-snapshot.h"

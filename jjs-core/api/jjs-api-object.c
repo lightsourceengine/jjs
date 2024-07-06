@@ -94,20 +94,10 @@ static JJS_HANDLER (jjs_api_read_file_handler)
 static jjs_value_t
 jjs_api_object_version (jjs_context_t *context_p)
 {
-  jjs_value_t components [] = {
-    jjs_number_from_int32 (context_p, JJS_API_MAJOR_VERSION),
-    jjs_number_from_int32 (context_p, JJS_API_MINOR_VERSION),
-    jjs_number_from_int32 (context_p, JJS_API_PATCH_VERSION),
-  };
-  const jjs_size_t components_len = sizeof (components) / sizeof (components[0]);
-  jjs_value_t result = jjs_fmt_join_v (context_p, jjs_string_sz(context_p, "."), JJS_MOVE, components, components_len);
+  ecma_string_t *str_p = ecma_new_ecma_string_from_ascii (
+    context_p, (const lit_utf8_byte_t *) JJS_API_VERSION_STRING, (jjs_size_t) sizeof (JJS_API_VERSION_STRING));
 
-  for (jjs_size_t i = 0; i < components_len; i++)
-  {
-    jjs_value_free (context_p, components[i]);
-  }
-
-  return result;
+  return ecma_make_string_value (context_p, str_p);
 }
 
 void

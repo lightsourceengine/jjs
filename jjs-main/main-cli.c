@@ -1173,7 +1173,7 @@ main (int argc, char **argv)
   }
   else if (imcl_args_shift_if_command (&args, "version") || imcl_args_shift_if_version_option (&args))
   {
-    printf ("%i.%i.%i\n", JJS_API_MAJOR_VERSION, JJS_API_MINOR_VERSION, JJS_API_PATCH_VERSION);
+    printf ("%s\n", JJS_API_VERSION_STRING);
   }
   else if (imcl_args_shift_if_command (&args, "help") || imcl_args_shift_if_help_option (&args))
   {
