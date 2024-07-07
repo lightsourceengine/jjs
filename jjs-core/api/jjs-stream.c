@@ -159,16 +159,12 @@ jjs_wstream_new (jjs_context_t* context_p, /**< JJS context */
   memcpy (wstream_p, &wstream, sizeof (jjs_wstream_t));
 
   jjs_value_t wstream_value = jjs_object (context_p);
+  ecma_object_t *wstream_value_p = ecma_get_object_from_value (context_p, wstream_value);
 
   jjs_object_set_native_ptr (context_p, wstream_value, &jjs_wstream_class_info, wstream_p);
 
-  jjs_value_t prototype = jjs_object_proto (context_p, wstream_value);
-  ecma_object_t *prototype_p = ecma_get_object_from_value (context_p, prototype);
-
-  annex_util_define_function (context_p, prototype_p, LIT_MAGIC_STRING_WRITE, jjs_wstream_prototype_write);
-  annex_util_define_function (context_p, prototype_p, LIT_MAGIC_STRING_FLUSH, jjs_wstream_prototype_flush);
-
-  jjs_value_free (context_p, prototype);
+  annex_util_define_function (context_p, wstream_value_p, LIT_MAGIC_STRING_WRITE, jjs_wstream_prototype_write);
+  annex_util_define_function (context_p, wstream_value_p, LIT_MAGIC_STRING_FLUSH, jjs_wstream_prototype_flush);
 
   *out = wstream_value;
 

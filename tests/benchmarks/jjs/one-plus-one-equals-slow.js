@@ -21,7 +21,7 @@ if (globalThis.console?.time) {
   start = Date.now();
 }
 
-for (let i = 0; i < 1000; i++)
+for (let i = 0; i < 200000; i++)
 {
   eval("1 + 1");
 }
@@ -29,5 +29,7 @@ for (let i = 0; i < 1000; i++)
 if (globalThis.console?.time) {
   console.timeEnd('loop');
 } else {
-  (globalThis.print || jjs.stdout.write)(`${Date.now() - start}ms\n`);
+  const { print = ((s) => jjs.stdout.write(s)) } = globalThis;
+
+  print(`${Date.now() - start}ms\n`);
 }

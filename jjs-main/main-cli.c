@@ -290,10 +290,12 @@ jjs_cli_parse_only (jjs_context_t *context, jjs_cli_module_t *module)
 
   if (jjs_value_is_exception (context, filename))
   {
+    jjs_value_t input = jjs_string_utf8_sz (context, module->filename);
+    jjs_cli_fmt_error (context, "Cannot find module: {}\n", 1, input);
+    jjs_cli_fmt_error (context, "{}\n", 1, filename);
+    jjs_value_free (context, input);
     jjs_value_free (context, filename);
-    filename = jjs_string_utf8_sz (context, module->filename);
-    jjs_cli_fmt_error (context, "Cannot find module: {}\n", 1, filename);
-    jjs_value_free (context, filename);
+    return JJS_CLI_EXIT_FAILURE;
   }
 
   jjs_cli_loader_t loader = jjs_app_resolve_loader (module->filename, module->loader);
@@ -338,9 +340,10 @@ jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module)
 
   if (jjs_value_is_exception (context, filename))
   {
-    jjs_value_free (context, filename);
-    filename = jjs_string_utf8_sz (context, module->filename);
-    jjs_cli_fmt_error (context, "Cannot find module: {}\n", 1, filename);
+    jjs_value_t input = jjs_string_utf8_sz (context, module->filename);
+    jjs_cli_fmt_error (context, "Cannot find module: {}\n", 1, input);
+    jjs_cli_fmt_error (context, "{}\n", 1, filename);
+    jjs_value_free (context, input);
     jjs_value_free (context, filename);
     return JJS_CLI_EXIT_FAILURE;
   }
