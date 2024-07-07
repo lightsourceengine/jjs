@@ -53,9 +53,9 @@ js_print (const jjs_call_info_t *call_info_p, const jjs_value_t args_p[], const 
     value_as_string = jjs_string_sz (context_p, "Error converting exception to string.");
   }
 
-  jjs_platform_stdout_write (context_p, value_as_string, JJS_MOVE);
-  jjs_platform_stdout_write (context_p, jjs_string_sz (context_p, "\n"), JJS_MOVE);
-  jjs_platform_stdout_flush (context_p);
+  jjs_platform_io_write (context_p, JJS_STDOUT, value_as_string, JJS_MOVE);
+  jjs_platform_io_write (context_p, JJS_STDOUT, jjs_string_sz (context_p, "\n"), JJS_MOVE);
+  jjs_platform_io_flush (context_p, JJS_STDOUT);
 
   return jjs_undefined (context_p);
 }
@@ -169,11 +169,11 @@ resolve_result_value (jjs_context_t* context_p, jjs_value_t result, jjs_own_t re
 
     if (jjs_value_is_string (context_p, value_as_string))
     {
-      jjs_platform_stderr_write (context_p, value_as_string, JJS_MOVE);
+      jjs_platform_io_write (context_p, JJS_STDOUT, value_as_string, JJS_MOVE);
     }
     else
     {
-      jjs_platform_stderr_write (context_p, jjs_string_sz (context_p, "Failed to toString() exception."), JJS_MOVE);
+      jjs_platform_io_write (context_p, JJS_STDERR, jjs_string_sz (context_p, "Failed to toString() exception."), JJS_MOVE);
       jjs_value_free (context_p, value_as_string);
     }
   }
