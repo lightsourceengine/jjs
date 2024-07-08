@@ -2366,6 +2366,10 @@ scanner_create_variables (parser_context_t *parser_context_p, /**< context */
       scope_stack_end_p = scope_stack_p + parser_context_p->scope_stack_size;
       scope_stack_p += parser_context_p->scope_stack_top;
     }
+    else
+    {
+      scope_stack_end_p = NULL;
+    }
   }
 
   literal.char_p = info_p->source_p - 1;
