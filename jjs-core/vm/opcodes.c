@@ -89,7 +89,7 @@ opfunc_set_data_property (ecma_context_t *context_p, /**< JJS context */
       getter_setter_pair_p = ECMA_GET_NON_NULL_POINTER (context_p,
                                                         ecma_getter_setter_pointers_t,
                                                         ECMA_PROPERTY_VALUE_PTR (property_p)->getter_setter_pair_cp);
-      jmem_pools_free (context_p, getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
+      jmem_heap_free_block (context_p, getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
 #endif /* JJS_CPOINTER_32_BIT */
 
       *property_p |= ECMA_PROPERTY_FLAG_DATA | ECMA_PROPERTY_FLAG_WRITABLE;
@@ -150,7 +150,7 @@ opfunc_set_accessor (ecma_context_t *context_p, /**< JJS context */
     {
 #if JJS_CPOINTER_32_BIT
       ecma_getter_setter_pointers_t *getter_setter_pair_p;
-      getter_setter_pair_p = jmem_pools_alloc (context_p, sizeof (ecma_getter_setter_pointers_t));
+      getter_setter_pair_p = jmem_heap_alloc_block (context_p, sizeof (ecma_getter_setter_pointers_t));
 #endif /* JJS_CPOINTER_32_BIT */
 
       ecma_free_value_if_not_object (context_p, prop_value_p->value);

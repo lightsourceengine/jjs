@@ -51,6 +51,7 @@ set(JJS_VM_THROW                  OFF          CACHE BOOL   "Enable VM throw cal
 set(JJS_DEFAULT_SCRATCH_SIZE_KB   "(32)"       CACHE STRING "Size of scratch buffer in kilobytes?")
 set(JJS_VM_STACK_LIMIT            OFF          CACHE BOOL   "Enable vm stack limit checks?")
 set(JJS_DEFAULT_VM_HEAP_SIZE_KB   "(1024)"     CACHE STRING "Size of vm memory heap in kilobytes")
+set(JJS_DEFAULT_VM_CELL_COUNT     "(1024)"     CACHE STRING "Number of cells per vm cell allocator page")
 set(JJS_DEFAULT_VM_STACK_LIMIT_KB "(0)"        CACHE STRING "Default maximum stack usage size, in kilobytes.")
 
 set(JJS_PLATFORM_API_FS_READ_FILE   ON         CACHE BOOL   "Enable default platform.fs.read_file implementation?")
@@ -116,6 +117,7 @@ message(STATUS "JJS_VM_THROW                    " ${JJS_VM_THROW})
 message(STATUS "JJS_VM_STACK_LIMIT              " ${JJS_VM_STACK_LIMIT})
 message(STATUS "JJS_DEFAULT_SCRATCH_SIZE_KB     " ${JJS_DEFAULT_SCRATCH_SIZE_KB})
 message(STATUS "JJS_DEFAULT_VM_HEAP_SIZE_KB     " ${JJS_DEFAULT_VM_HEAP_SIZE_KB})
+message(STATUS "JJS_DEFAULT_VM_CELL_COUNT       " ${JJS_DEFAULT_VM_CELL_COUNT})
 message(STATUS "JJS_DEFAULT_VM_STACK_LIMIT_KB   " ${JJS_DEFAULT_VM_STACK_LIMIT_KB})
 message(STATUS "JJS_PLATFORM_API_FS_READ_FILE   " ${JJS_PLATFORM_API_FS_READ_FILE})
 message(STATUS "JJS_PLATFORM_API_IO_WRITE       " ${JJS_PLATFORM_API_IO_WRITE})
@@ -337,8 +339,8 @@ set(SOURCE_CORE_FILES
   ecma/operations/ecma-typedarray-object.c
   jcontext/jcontext.c
   jmem/jmem-allocator.c
+  jmem/jmem-cellocator.c
   jmem/jmem-heap.c
-  jmem/jmem-poolman.c
   jmem/jmem-scratch-allocator.c
   jrt/jrt-fatals.c
   lit/lit-char-helpers.c
@@ -665,6 +667,9 @@ set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_HEAP_SIZE_KB=${JJS_DEFAULT_VM_HEAP
 
 # Default vm stack limit size
 set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_STACK_LIMIT_KB=${JJS_DEFAULT_VM_STACK_LIMIT_KB})
+
+# Default vm cell count
+set(DEFINES_JJS ${DEFINES_JJS} JJS_DEFAULT_VM_CELL_COUNT=${JJS_DEFAULT_VM_CELL_COUNT})
 
 # platform apis
 jjs_add_define01(JJS_PLATFORM_API_FS_READ_FILE)

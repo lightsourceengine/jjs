@@ -184,7 +184,7 @@ ecma_builtin_symbol_for_helper (ecma_context_t *context_p, /**< JJS context */
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
+  new_item_p = jmem_heap_alloc_block (context_p, sizeof (ecma_lit_storage_item_t));
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)

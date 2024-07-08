@@ -482,6 +482,20 @@
 #endif /* !defined (JJS_DEFAULT_VM_HEAP_SIZE_KB) */
 
 /**
+ * Set the default number of cells per page for the vm heap cell allocator.
+ *
+ * Any allocation of 32 bytes or less is put into a 32 byte cell. The cells are grouped into
+ * pages. This setting is the number of cells per page (excluding a small header). If the
+ * context has a small heap or too many pages are generated, are reasons you may want to
+ * change the default value.
+ *
+ * Default Value: 1024
+ */
+#ifndef JJS_DEFAULT_VM_CELL_COUNT
+#define JJS_DEFAULT_VM_CELL_COUNT (1024)
+#endif /* !defined (JJS_DEFAULT_VM_CELL_COUNT) */
+
+/**
  * Allowed heap usage limit until next garbage collection
  *
  * Whenever the total allocated memory size reaches the current heap limit, garbage collection will be triggered

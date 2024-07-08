@@ -569,7 +569,7 @@ ecma_create_named_accessor_property (ecma_context_t *context_p, /**< JJS context
   ecma_property_value_t value;
 #if JJS_CPOINTER_32_BIT
   ecma_getter_setter_pointers_t *getter_setter_pair_p;
-  getter_setter_pair_p = jmem_pools_alloc (context_p, sizeof (ecma_getter_setter_pointers_t));
+  getter_setter_pair_p = jmem_heap_alloc_block (context_p, sizeof (ecma_getter_setter_pointers_t));
   ECMA_SET_POINTER (context_p, getter_setter_pair_p->getter_cp, get_p);
   ECMA_SET_POINTER (context_p, getter_setter_pair_p->setter_cp, set_p);
   ECMA_SET_NON_NULL_POINTER (context_p, value.getter_setter_pair_cp, getter_setter_pair_p);
@@ -1276,7 +1276,7 @@ ecma_deref_exception (ecma_context_t *context_p, /**< JJS context */
   if (error_ref_p->refs_and_type < ECMA_EXTENDED_PRIMITIVE_REF_ONE)
   {
     ecma_free_value (context_p, error_ref_p->u.value);
-    jmem_pools_free (context_p, error_ref_p, sizeof (ecma_extended_primitive_t));
+    jmem_heap_free_block (context_p, error_ref_p, sizeof (ecma_extended_primitive_t));
   }
 } /* ecma_deref_exception */
 
@@ -1322,7 +1322,7 @@ ecma_create_exception (ecma_context_t *context_p, /**< JJS context */
                        uint32_t options) /**< ECMA_ERROR_API_* options */
 {
   ecma_extended_primitive_t *error_ref_p;
-  error_ref_p = (ecma_extended_primitive_t *) jmem_pools_alloc (context_p, sizeof (ecma_extended_primitive_t));
+  error_ref_p = jmem_heap_alloc_block (context_p, sizeof (ecma_extended_primitive_t));
 
   error_ref_p->refs_and_type = ECMA_EXTENDED_PRIMITIVE_REF_ONE | options;
   error_ref_p->u.value = value;
@@ -1414,7 +1414,7 @@ ecma_throw_exception (ecma_context_t *context_p, /**< JJS context */
   }
   else
   {
-    jmem_pools_free (context_p, error_ref_p, sizeof (ecma_extended_primitive_t));
+    jmem_heap_free_block (context_p, error_ref_p, sizeof (ecma_extended_primitive_t));
   }
 
   context_p->error_value = referenced_value;

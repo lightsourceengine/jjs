@@ -75,7 +75,6 @@ set(SOURCE_UNIT_TEST_MAIN_MODULES
   test-number-to-string.c
   test-objects-foreach.c
   test-pmap.c
-  test-poolman.c
   test-promise-callback.c
   test-promise.c
   test-proxy.c

@@ -21,6 +21,7 @@
 
 #include "jcontext.h"
 #include "jmem.h"
+#include "jrt.h"
 #include "jrt-bit-fields.h"
 #include "jrt-libc-includes.h"
 
@@ -94,6 +95,8 @@ jmem_heap_init (jjs_context_t *context_p)
 
   context_p->jmem_heap_list_skip_p = &context_p->heap_p->first;
 
+  jmem_cellocator_init (context_p);
+
   JMEM_VALGRIND_NOACCESS_SPACE (&context_p->heap_p->first, sizeof (jmem_heap_free_t));
   JMEM_VALGRIND_NOACCESS_SPACE (context_p->heap_p->area, heap_area_size);
 
@@ -106,6 +109,8 @@ jmem_heap_init (jjs_context_t *context_p)
 void
 jmem_heap_finalize (jjs_context_t *context_p)
 {
+  jmem_cellocator_finalize (context_p);
+
   JJS_ASSERT (context_p->jmem_heap_allocated_size == 0);
   if (context_p->jmem_heap_allocated_size > 0)
   {
@@ -132,6 +137,33 @@ jmem_heap_alloc (jjs_context_t *context_p, /**< JJS context */
   jmem_heap_free_t *data_space_p = NULL;
 
   JMEM_VALGRIND_DEFINED_SPACE (&context_p->heap_p->first, sizeof (jmem_heap_free_t));
+
+  if (required_size <= JMEM_CELLOCATOR_CELL_SIZE)
+  {
+    void *chunk_p = jmem_cellocator_alloc (&context_p->jmem_cellocator_32);
+
+    if (chunk_p)
+    {
+      return chunk_p;
+    }
+    else
+    {
+      ecma_free_unused_memory (context_p, JMEM_PRESSURE_LOW);
+      chunk_p = jmem_cellocator_alloc (&context_p->jmem_cellocator_32);
+
+      if (chunk_p)
+      {
+        return chunk_p;
+      }
+    }
+
+    if (jmem_cellocator_add_page (context_p, &context_p->jmem_cellocator_32))
+    {
+      return jmem_cellocator_alloc (&context_p->jmem_cellocator_32);
+    }
+
+    return NULL;
+  }
 
   /* Fast path for 8 byte chunks, first region is guaranteed to be sufficient. */
   if (required_size == JMEM_ALIGNMENT && JJS_LIKELY (context_p->heap_p->first.next_offset != JMEM_HEAP_END_OF_LIST))
@@ -460,6 +492,16 @@ jmem_heap_free_block_internal (jjs_context_t *context_p, /**< JJS context */
   JJS_ASSERT (jmem_is_heap_pointer (context_p, ptr));
   JJS_ASSERT ((uintptr_t) ptr % JMEM_ALIGNMENT == 0);
 
+  /* TODO: can't use size because it will be removed. is there a better way to do this? */
+  /* find the page associated with this buffer. if not page, this is not a cell free. */
+  jmem_cellocator_page_t *page_p = jmem_cellocator_find (&context_p->jmem_cellocator_32, ptr);
+
+  if (page_p)
+  {
+    jmem_cellocator_cell_free (&context_p->jmem_cellocator_32, page_p, ptr);
+    return;
+  }
+
   const size_t aligned_size = (size + JMEM_ALIGNMENT - 1) / JMEM_ALIGNMENT * JMEM_ALIGNMENT;
 
   jmem_heap_free_t *const block_p = (jmem_heap_free_t *) ptr;
@@ -500,6 +542,32 @@ jmem_heap_realloc_block (jjs_context_t *context_p, /**< JJS context */
   const size_t aligned_new_size = (new_size + JMEM_ALIGNMENT - 1) / JMEM_ALIGNMENT * JMEM_ALIGNMENT;
   const size_t aligned_old_size = (old_size + JMEM_ALIGNMENT - 1) / JMEM_ALIGNMENT * JMEM_ALIGNMENT;
 
+  /* search for the page of the ptr. if null, the ptr is not a cell */
+  jmem_cellocator_page_t *page_p = jmem_cellocator_find (&context_p->jmem_cellocator_32, ptr);
+
+  if (page_p)
+  {
+    if (aligned_new_size <= JMEM_CELLOCATOR_CELL_SIZE)
+    {
+      /* cell has extra space to accommodate the realloc */
+      return ptr;
+    }
+    else
+    {
+      /* new size is bigger than a cell, transfer to the main heap. */
+      void *chunk_p = jmem_heap_alloc_block_internal (context_p, aligned_new_size);
+
+      if (chunk_p)
+      {
+        memcpy (chunk_p, ptr, aligned_old_size);
+        jmem_cellocator_cell_free (&context_p->jmem_cellocator_32, page_p, ptr);
+      }
+
+      /* if null, pass it on */
+      return chunk_p;
+    }
+  }
+
   if (aligned_old_size == aligned_new_size)
   {
     JMEM_VALGRIND_RESIZE_SPACE (block_p, old_size, new_size);
@@ -510,6 +578,24 @@ jmem_heap_realloc_block (jjs_context_t *context_p, /**< JJS context */
 
   if (aligned_new_size < aligned_old_size)
   {
+    /* handle downsize from main heap to cellocator */
+    if (aligned_new_size <= JMEM_CELLOCATOR_CELL_SIZE)
+    {
+      /* jmem_heap_alloc will go through cellocator for this size */
+      void* new_buffer = jmem_heap_alloc (context_p, aligned_new_size);
+      JJS_ASSERT (jmem_cellocator_find (&context_p->jmem_cellocator_32, new_buffer));
+
+      if (new_buffer)
+      {
+        memcpy (new_buffer, ptr, aligned_new_size);
+      }
+
+      /* free the old block! */
+      jmem_heap_free_block (context_p, ptr, aligned_old_size);
+
+      return new_buffer;
+    }
+
     JMEM_VALGRIND_RESIZE_SPACE (block_p, old_size, new_size);
     JMEM_HEAP_STAT_FREE (context_p, old_size);
     JMEM_HEAP_STAT_ALLOC (context_p, new_size);

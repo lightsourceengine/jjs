@@ -124,6 +124,8 @@ def get_arguments():
                          help='enable logging (%(choices)s)')
     coregrp.add_argument('--default-vm-heap-size-kb', metavar='SIZE', type=int,
                          help='default size of memory heap (in kilobytes)')
+    coregrp.add_argument('--default-vm-cell-count', metavar='SIZE', type=int,
+                         help='number of cells per vm cell allocator page')
     coregrp.add_argument('--default-vm-stack-limit-kb', metavar='SIZE', type=int,
                          help='default maximum stack usage (in kilobytes)')
     coregrp.add_argument('--default-scratch-size-kb', metavar='SIZE', type=int,
@@ -222,6 +224,7 @@ def generate_build_options(arguments):
     build_options_append('JJS_LINE_INFO', arguments.line_info)
     build_options_append('JJS_LOGGING', arguments.logging)
     build_options_append('JJS_DEFAULT_VM_HEAP_SIZE_KB', arguments.default_vm_heap_size_kb)
+    build_options_append('JJS_DEFAULT_VM_CELL_COUNT', arguments.default_vm_cell_count)
     build_options_append('JJS_DEFAULT_VM_STACK_LIMIT_KB', arguments.default_vm_stack_limit_kb)
     build_options_append('JJS_DEFAULT_SCRATCH_SIZE_KB', arguments.default_scratch_size_kb)
     build_options_append('JJS_MEM_STATS', arguments.mem_stats)

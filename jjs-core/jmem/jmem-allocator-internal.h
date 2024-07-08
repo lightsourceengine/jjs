@@ -54,18 +54,6 @@ void *jmem_heap_alloc_block_internal (jjs_context_t *context_p, const size_t siz
 void jmem_heap_free_block_internal (jjs_context_t *context_p, void *ptr, const size_t size);
 
 /**
- * \addtogroup poolman Memory pool manager
- * @{
- */
-
-void jmem_pools_finalize (jjs_context_t *context_p);
-
-/**
- * @}
- * @}
- */
-
-/**
  * @{
  * JJS mem-stat definitions
  */

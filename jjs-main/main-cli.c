@@ -196,6 +196,11 @@ jjs_app_shift_common_option (imcl_args_t *args, jjs_cli_config_t *config)
     /* TODO: validate */
     config->context_options.vm_stack_limit_kb = jjs_optional_u32 (imcl_args_shift_uint (args));
   }
+  else if (imcl_args_shift_if_option (args, NULL, "--vm-cell-count"))
+  {
+    /* TODO: validate */
+    config->context_options.vm_cell_count = jjs_optional_u32 (imcl_args_shift_uint (args));
+  }
   else if (imcl_args_shift_if_option (args, NULL, "--gc-new-objects-fraction"))
   {
     /* TODO: validate */

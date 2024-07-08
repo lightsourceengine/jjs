@@ -53,7 +53,7 @@ ecma_free_symbol_list (ecma_context_t *context_p, /**< JJS context */
     }
 
     jmem_cpointer_t next_item_cp = symbol_list_p->next_cp;
-    jmem_pools_free (context_p, symbol_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_heap_free_block (context_p, symbol_list_p, sizeof (ecma_lit_storage_item_t));
     symbol_list_cp = next_item_cp;
   }
 } /* ecma_free_symbol_list */
@@ -78,7 +78,7 @@ ecma_free_number_list (ecma_context_t *context_p, /**< JJS context */
     }
 
     jmem_cpointer_t next_item_cp = number_list_p->next_cp;
-    jmem_pools_free (context_p, number_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_heap_free_block (context_p, number_list_p, sizeof (ecma_lit_storage_item_t));
     number_list_cp = next_item_cp;
   }
 } /* ecma_free_number_list */
@@ -108,7 +108,7 @@ ecma_free_bigint_list (ecma_context_t *context_p, /**< JJS context */
     }
 
     jmem_cpointer_t next_item_cp = bigint_list_p->next_cp;
-    jmem_pools_free (context_p, bigint_list_p, sizeof (ecma_lit_storage_item_t));
+    jmem_heap_free_block (context_p, bigint_list_p, sizeof (ecma_lit_storage_item_t));
     bigint_list_cp = next_item_cp;
   }
 } /* ecma_free_bigint_list */
@@ -274,7 +274,13 @@ ecma_find_or_create_literal_number (ecma_context_t *context_p, /**< JJS context 
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_heap_alloc_block_null_on_error (
+    context_p, sizeof (ecma_lit_storage_item_t));
+
+  if (!new_item_p)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)
@@ -349,7 +355,13 @@ ecma_find_or_create_literal_bigint (ecma_context_t *context_p, /**< JJS context 
   }
 
   ecma_lit_storage_item_t *new_item_p;
-  new_item_p = (ecma_lit_storage_item_t *) jmem_pools_alloc (context_p, sizeof (ecma_lit_storage_item_t));
+  new_item_p = (ecma_lit_storage_item_t *) jmem_heap_alloc_block_null_on_error (
+    context_p, sizeof (ecma_lit_storage_item_t));
+
+  if (!new_item_p)
+  {
+    return ECMA_VALUE_EMPTY;
+  }
 
   new_item_p->values[0] = result;
   for (int i = 1; i < ECMA_LIT_STORAGE_VALUE_COUNT; i++)

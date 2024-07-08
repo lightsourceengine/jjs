@@ -1601,7 +1601,7 @@ ecma_gc_free_property (ecma_context_t *context_p, /**< JJS context */
     ecma_getter_setter_pointers_t *getter_setter_pair_p;
     getter_setter_pair_p =
       ECMA_GET_NON_NULL_POINTER (context_p, ecma_getter_setter_pointers_t, prop_pair_p->values[index].getter_setter_pair_cp);
-    jmem_pools_free (context_p, getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
+    jmem_heap_free_block (context_p, getter_setter_pair_p, sizeof (ecma_getter_setter_pointers_t));
 #endif /* JJS_CPOINTER_32_BIT */
     return;
   }
@@ -2374,7 +2374,7 @@ ecma_free_unused_memory (ecma_context_t *context_p, /**< JJS context */
     }
 #endif /* JJS_PROPERTY_HASHMAP */
 
-    jmem_pools_collect_empty (context_p);
+    /* TODO: clear empty cellocator pages? */
     return;
   }
   else if (JJS_UNLIKELY (pressure == JMEM_PRESSURE_FULL))

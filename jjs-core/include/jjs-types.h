@@ -1488,6 +1488,18 @@ typedef struct
    */
   jjs_allocator_t custom_scratch_fallback_allocator;
 
+  /**
+   * Set the number of cells per page for the vm heap cell allocator.
+   *
+   * Any allocation of 32 bytes or less is put into a 32 byte cell. The cells are grouped into
+   * pages. This setting is the number of cells per page (excluding a small header). If the
+   * context has a small heap or too many pages are generated, are reasons you may want to
+   * change the default value.
+   *
+   * Default Value: JJS_DEFAULT_VM_CELL_COUNT
+   */
+  jjs_optional_u32_t vm_cell_count;
+
 } jjs_context_options_t;
 
 /**

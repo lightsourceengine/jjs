@@ -123,14 +123,6 @@ typedef enum
 } jmem_pressure_t;
 
 /**
- * Node for free chunk list
- */
-typedef struct jmem_pools_chunk_t
-{
-  struct jmem_pools_chunk_t *next_p; /**< pointer to next pool chunk */
-} jmem_pools_chunk_t;
-
-/**
  *  Free region node
  */
 typedef struct
@@ -305,16 +297,6 @@ void *JJS_ATTR_PURE jmem_decompress_pointer (jjs_context_t *context_p, uintptr_t
 
 /**
  * @}
- * \addtogroup poolman Memory pool manager
- * @{
- */
-
-void *jmem_pools_alloc (jjs_context_t *context_p, size_t size);
-void jmem_pools_free (jjs_context_t *context_p, void *chunk_p, size_t size);
-void jmem_pools_collect_empty (jjs_context_t *context_p);
-
-/**
- * @}
  * @}
  */
 
@@ -348,5 +330,35 @@ void jmem_scratch_allocator_deinit (jmem_scratch_allocator_t *allocator_p);
 void jmem_scratch_allocator_reset (jmem_scratch_allocator_t *allocator_p);
 jjs_allocator_t *jmem_scratch_allocator_acquire (jjs_context_t* context_p);
 void jmem_scratch_allocator_release (jjs_context_t* context_p);
+
+typedef struct jmem_cellocator_free_cell_s
+{
+  struct jmem_cellocator_free_cell_s *next_p;
+} jmem_cellocator_free_cell_t;
+
+typedef struct jmem_cellocator_page_s
+{
+  uint8_t *start_p;
+  uint8_t *end_p;
+  struct jmem_cellocator_page_s *next_p;
+} jmem_cellocator_page_t;
+
+typedef struct
+{
+  jmem_cellocator_page_t *pages;
+  jmem_cellocator_free_cell_t *free_cells;
+} jmem_cellocator_t;
+
+void jmem_cellocator_init (jjs_context_t *context_p);
+void jmem_cellocator_finalize (jjs_context_t *context_p);
+
+jmem_cellocator_page_t *jmem_cellocator_find (jmem_cellocator_t *cellocator_p, void *chunk_p);
+void jmem_cellocator_cell_free (jmem_cellocator_t *cellocator_p, jmem_cellocator_page_t *page_p, void *chunk_p);
+void *jmem_cellocator_alloc (jmem_cellocator_t *cellocator_p);
+bool jmem_cellocator_add_page (jjs_context_t *context_p, jmem_cellocator_t *cellocator_p);
+
+#define JMEM_CELLOCATOR_CELL_SIZE (32)
+#define JMEM_CELLOCATOR_PAGE_HEADER_SIZE ((size_t) JJS_ALIGNUP (sizeof (jmem_cellocator_page_t), JMEM_ALIGNMENT))
+#define JMEM_CELLOCATOR_PAGE_SIZE(COUNT) (JMEM_CELLOCATOR_PAGE_HEADER_SIZE + (size_t) (JMEM_CELLOCATOR_CELL_SIZE * (COUNT)))
 
 #endif /* !JMEM_H */

@@ -132,6 +132,7 @@ jjs_context_init (const jjs_context_options_t* options_p, const jjs_allocator_t 
 
   context_p->vm_heap_size = vm_heap_size_b;
   context_p->vm_stack_limit = get_context_option_u32 (&options_p->vm_stack_limit_kb, JJS_DEFAULT_VM_STACK_LIMIT) * 1024;
+  context_p->vm_cell_count = get_context_option_u32 (&options_p->vm_cell_count, JJS_DEFAULT_VM_CELL_COUNT);
   context_p->gc_mark_limit = get_context_option_u32 (&options_p->gc_mark_limit, JJS_DEFAULT_GC_MARK_LIMIT);
   context_p->gc_new_objects_fraction = get_context_option_u32 (&options_p->gc_new_objects_fraction, JJS_DEFAULT_GC_NEW_OBJECTS_FRACTION);
   context_p->gc_limit = get_context_option_u32 (&options_p->gc_limit_kb, JJS_DEFAULT_MAX_GC_LIMIT);

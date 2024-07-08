@@ -80,6 +80,7 @@ typedef struct
 struct jjs_context_t
 {
   jmem_heap_t *heap_p; /**< point to the heap aligned to JMEM_ALIGNMENT. */
+  jmem_cellocator_t jmem_cellocator_32; /**< vm heap cell allocator. 32 byte cells. */
 
   uint32_t context_flags; /**< context flags */
   jjs_allocator_t context_allocator; /**< allocator that created this context, scratch and vm heap. stored for cleanup only. */
@@ -99,12 +100,12 @@ struct jjs_context_t
 
   uint32_t vm_heap_size; /**< size of vm heap */
   uint32_t vm_stack_limit; /**< vm stack limit. if 0, no stack limit checks are performed. */
+  uint32_t vm_cell_count; /**< number of cells per vm cell allocator page */
   uint32_t gc_limit; /**< allocation limit before triggering a gc */
   uint32_t gc_mark_limit; /**< gc mark recursion depth */
   uint32_t gc_new_objects_fraction; /**< number of new objects before triggering gc */
 
   jmem_heap_free_t *jmem_heap_list_skip_p; /**< improves deallocation performance */
-  jmem_pools_chunk_t *jmem_free_8_byte_chunk_p; /**< list of free eight byte pool chunks */
   uint8_t* jmem_area_end; /**< precomputed address of end of heap; only for pointer validation */
 
   jjs_context_data_entry_t data_entries[JJS_CONTEXT_DATA_LIMIT]; /**< context data entries */
@@ -113,9 +114,6 @@ struct jjs_context_t
 #if JJS_BUILTIN_REGEXP
   re_compiled_code_t *re_cache[RE_CACHE_SIZE]; /**< regex cache */
 #endif /* JJS_BUILTIN_REGEXP */
-#if JJS_CPOINTER_32_BIT
-  jmem_pools_chunk_t *jmem_free_16_byte_chunk_p; /**< list of free sixteen byte pool chunks */
-#endif /* JJS_CPOINTER_32_BIT */
   const lit_utf8_byte_t *const *lit_magic_string_ex_array; /**< array of external magic strings */
   const lit_utf8_size_t *lit_magic_string_ex_sizes; /**< external magic string lengths */
   jmem_cpointer_t ecma_gc_objects_cp; /**< List of currently alive objects. */

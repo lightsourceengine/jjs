@@ -159,8 +159,6 @@ jmem_init (jjs_context_t *context_p)
 void
 jmem_finalize (jjs_context_t *context_p)
 {
-  jmem_pools_finalize (context_p);
-
 #if JJS_MEM_STATS
   if (context_p->context_flags & JJS_CONTEXT_FLAG_MEM_STATS)
   {
