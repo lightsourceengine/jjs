@@ -36,6 +36,9 @@
 #include <string.h>
 #include <time.h>
 
+#define JJS_CLI_IMPLEMENTATION
+#include "./lib/jjs-cli.h"
+
 static jjs_value_t create_262 (jjs_context_t* context_p, jjs_value_t realm);
 
 static jjs_value_t
@@ -237,20 +240,12 @@ main (int argc, char **argv)
     return 1;
   }
 
-  /* being lazy. the test262 tests are small so 100K is more than enough. saves reallocing and buffer math. */
-  uint8_t source_buffer [100 * 1024];
-  static const size_t SOURCE_BUFFER_SIZE = sizeof (source_buffer) / sizeof (*source_buffer);
-  size_t bytes_read = fread (source_buffer, 1, SOURCE_BUFFER_SIZE, stdin);
+  uint8_t *source_buffer = NULL;
+  jjs_size_t source_buffer_size;
 
-  if (bytes_read == 0)
+  if (!jjs_cli_stdin_drain (&source_buffer, &source_buffer_size))
   {
-    printf ("Error: reading from stdin");
-    return 1;
-  }
-
-  if (!feof (stdin))
-  {
-    printf ("Error: missing stdin eof");
+    puts ("Failed to read source from stdin\n");
     return 1;
   }
 
@@ -259,6 +254,7 @@ main (int argc, char **argv)
 
   if (context_status != JJS_STATUS_OK)
   {
+    free (source_buffer);
     printf ("Failed to create JJS context: %i\n", context_status);
     return 1;
   }
@@ -280,19 +276,19 @@ main (int argc, char **argv)
       .filename = jjs_optional_value (jjs_string_sz (context_p, test_filename)),
       .filename_o = JJS_MOVE,
     };
-    jjs_value_t result = jjs_esm_evaluate_source (context_p, source_buffer, (jjs_size_t) bytes_read, &options);
+    jjs_value_t result = jjs_esm_evaluate_source (context_p, source_buffer, source_buffer_size, &options);
     
     status = resolve_result_value (context_p, result, JJS_MOVE);
   }
   else
   {
     /* parse in sloppy mode. harness will add use strict, as necessary. add user value for import() to work. */
-    jjs_value_t user_value = jjs_platform_realpath (context_p, jjs_string_sz (context_p, test_filename), JJS_MOVE);
+    jjs_value_t user_value = jjs_platform_realpath_sz (context_p, test_filename);
     jjs_parse_options_t options = {
       .user_value = jjs_optional_value (user_value),
       .user_value_o = JJS_MOVE,
     };
-    jjs_value_t parsed = jjs_parse (context_p, source_buffer, (jjs_size_t) bytes_read, &options);
+    jjs_value_t parsed = jjs_parse (context_p, source_buffer, source_buffer_size, &options);
 
     if (resolve_result_value (context_p, parsed, JJS_KEEP))
     {
@@ -312,6 +308,7 @@ main (int argc, char **argv)
   }
 
   jjs_context_free (context_p);
+  free (source_buffer);
 
   return status ? 0 : 1;
 }

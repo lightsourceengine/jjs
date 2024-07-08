@@ -641,24 +641,12 @@ jjs_app_command_snapshot (jjs_app_t *app, const char *argument_list, const char 
   int exit_code;
   jjs_context_t *context;
   uint32_t *snapshot_buffer = NULL;
+  jjs_size_t source_size;
 
   if (!jjs_cli_engine_init (&app->config, &context))
   {
     return JJS_CLI_EXIT_FAILURE;
   }
-
-  jjs_value_t source = jjs_platform_read_file_sz (context, app->entry_point.filename, NULL);
-  jjs_size_t source_size;
-
-  if (jjs_value_is_exception (context, source))
-  {
-    // TODO: log exception
-    jjs_value_free (context, source);
-    exit_code = JJS_CLI_EXIT_FAILURE;
-    goto done;
-  }
-
-  source_size = jjs_arraybuffer_size (context, source);
 
   jjs_parse_options_t parse_options = {
     .is_strict_mode = app->entry_point.loader == JJS_CLI_LOADER_STRICT,
@@ -670,7 +658,37 @@ jjs_app_command_snapshot (jjs_app_t *app, const char *argument_list, const char 
     parse_options.argument_list_o = JJS_MOVE;
   }
 
-  jjs_value_t compiled = jjs_parse_value (context, source, JJS_MOVE, &parse_options);
+  jjs_value_t compiled;
+
+  if (app->entry_point.from_stdin)
+  {
+    uint8_t *source_buffer = NULL;
+
+    if (!jjs_cli_stdin_drain (&source_buffer, &source_size))
+    {
+      exit_code = JJS_CLI_EXIT_FAILURE;
+      goto done;
+    }
+
+    compiled = jjs_parse (context, source_buffer, source_size, &parse_options);
+    free (source_buffer);
+  }
+  else
+  {
+    jjs_value_t source = jjs_platform_read_file_sz (context, app->entry_point.filename, NULL);
+
+    if (jjs_value_is_exception (context, source))
+    {
+      // TODO: log exception
+      jjs_value_free (context, source);
+      exit_code = JJS_CLI_EXIT_FAILURE;
+      goto done;
+    }
+
+    source_size = jjs_arraybuffer_size (context, source);
+
+    compiled = jjs_parse_value (context, source, JJS_MOVE, &parse_options);
+  }
 
   if (jjs_value_is_exception (context, compiled))
   {
@@ -1109,6 +1127,11 @@ main (int argc, char **argv)
       {
         outfile = imcl_args_shift (&args);
       }
+      else if (imcl_args_shift_if_option (&args, NULL, "-"))
+      {
+        app.entry_point.from_stdin = true;
+        app.entry_point.is_main = true;
+      }
       else if (imcl_args_shift_if_help_option (&args))
       {
         print_command_help ("snapshot");
@@ -1118,8 +1141,14 @@ main (int argc, char **argv)
       {
         app.entry_point.filename = imcl_args_shift_file (&args);
         app.entry_point.is_main = true;
+
         break;
       }
+    }
+
+    if (app.entry_point.from_stdin && app.entry_point.filename != NULL)
+    {
+      args.has_error = true;
     }
 
     exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_snapshot (&app, argument_list, outfile);

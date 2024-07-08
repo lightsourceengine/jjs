@@ -57,6 +57,7 @@ typedef struct
 typedef struct
 {
   const char *filename;
+  bool from_stdin;
   jjs_cli_loader_t loader;
   jjs_size_t snapshot_index;
   bool is_main;
@@ -70,6 +71,7 @@ typedef struct
 } jjs_cli_module_list_t;
 
 jjs_char_t *jjs_cli_stdin_readline (jjs_size_t *out_size_p);
+bool jjs_cli_stdin_drain (uint8_t **buffer, jjs_size_t *buffer_size);
 
 void jjs_cli_assert (bool condition, const char* message);
 
@@ -110,6 +112,51 @@ void jjs_cli_module_list_append (jjs_cli_module_list_t *includes,
 #else
 #include <unistd.h>
 #endif
+
+bool
+jjs_cli_stdin_drain (uint8_t **buffer, jjs_size_t *buffer_size)
+{
+  const size_t READ_SIZE = 8192;
+  uint8_t *local_buffer = NULL;
+  size_t bytes_read;
+  jjs_size_t local_buffer_size = 0;
+
+  while (true)
+  {
+    uint8_t *temp = realloc (local_buffer, local_buffer_size + READ_SIZE);
+
+    if (temp == NULL)
+    {
+      free (local_buffer);
+      return false;
+    }
+
+    local_buffer = temp;
+    bytes_read = fread (local_buffer + local_buffer_size, 1, READ_SIZE, stdin);
+    assert (bytes_read <= READ_SIZE);
+
+    if (bytes_read < READ_SIZE)
+    {
+      local_buffer_size += (jjs_size_t) bytes_read;
+      break;
+    }
+    else
+    {
+      local_buffer_size += READ_SIZE;
+    }
+  }
+
+  if (!feof (stdin))
+  {
+    free (local_buffer);
+    return false;
+  }
+
+  *buffer = local_buffer;
+  *buffer_size = local_buffer_size;
+
+  return true;
+}
 
 void
 jjs_cli_module_list_drop (jjs_cli_module_list_t *includes)
