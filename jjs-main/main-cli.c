@@ -28,6 +28,8 @@
 #define JJS_TEST_RUNNER_IMPLEMENTATION
 #include <jjs-test-runner.h>
 
+#define JJS_CLI_MAX(a,b) (((a)>(b))?(a):(b))
+
 typedef struct
 {
   jjs_cli_config_t config;
@@ -698,8 +700,12 @@ jjs_app_command_snapshot (jjs_app_t *app, const char *argument_list, const char 
     goto done;
   }
 
-  jjs_size_t snapshot_buffer_size = (source_size < 500 ? 500 : source_size) * 2;
-  snapshot_buffer = malloc (source_size);
+  /* no api to calculate snapshot size. in minified or very small source files, the snapshot can
+   * be slightly larger in file size than the source (header and alignment overhead). doubling
+   * the source size with a minimum of 1K is more than enough space.
+   */
+  const jjs_size_t snapshot_buffer_size = JJS_CLI_MAX (1024, source_size * 2);
+  snapshot_buffer = malloc (snapshot_buffer_size);
   jjs_cli_assert (snapshot_buffer != NULL, "could not allocate snapshot buffer");
 
   jjs_value_t result = jjs_generate_snapshot (context, compiled, 0, snapshot_buffer, snapshot_buffer_size);
@@ -1146,7 +1152,7 @@ main (int argc, char **argv)
       }
     }
 
-    if (app.entry_point.from_stdin && app.entry_point.filename != NULL)
+    if (!app.entry_point.from_stdin && app.entry_point.filename == NULL)
     {
       args.has_error = true;
     }

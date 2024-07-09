@@ -17,11 +17,11 @@
 // bytes to $PACK/jjs-pack-$PACK-js.c file (similar to xxd, as this version of c does not 
 // have #embed).
 //
-// The script assumes jjs-snapshot has been built and is in $SRCROOT/build/bin. jjs-snapshot
+// The script assumes jjs has been built and is in $SRCROOT/build/bin. jjs-snapshot
 // can be built with the flag:
 //
-//   build.py: --jjs-cmdline-snapshot ON --line-info=off
-//   cmake:    -DJJS_CMDLINE_SNAPSHOT=ON -DJJS_LINE_INFO=OFF
+//   build.py: --snapshot-save on --clean
+//   cmake:    -DJJS_SNAPSHOT_SAVE=ON
 // 
 // The c file is checked into git so that the build does not depend on esbuild and node.
 // The downside is that working on js file will require a dev to run this script and 
@@ -36,7 +36,7 @@
 
 import esbuild from 'esbuild';
 import { basename, dirname, join } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { access, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -48,22 +48,18 @@ const moduleArgumentList = 'module,exports,require';
 
 async function embedPackJS(pack) {
   const jsFile = join(moduleDirname, 'pack', pack, `${pack}.cjs`);
-  // esbuild changes the extension to js for some reason
-  const minifiedFile = join(buildDir, `${pack}.js`);
 
-  await esbuild.build({
+  const esBuildResult = await esbuild.build({
     entryPoints: [jsFile],
     bundle: true,
     minify: true,
     format: 'cjs',
     outdir: buildDir,
+    write: false,
     external: ['jjs:*'],
   });
 
-  const snapshotBytes = await snapshot(minifiedFile);
-
-  await unlink(minifiedFile);
-
+  const snapshotBytes = await snapshot(jsFile, esBuildResult.outputFiles[0].contents);
   let bytes = '';
 
   snapshotBytes.forEach((b, i) => {
@@ -86,14 +82,14 @@ async function embedPackJS(pack) {
 
 async function findSnapshotCommand() {
   const binDir = join(moduleDirname, '..', 'build', 'bin');
-  const exe = 'jjs-snapshot';
+  const exe = 'jjs';
   const paths = [];
 
   if (process.platform === 'win32') {
     const wexe = `${exe}.exe`;
-    paths.push(join(binDir, 'MinSizeRel', wexe));
-    paths.push(join(binDir, 'Release', wexe));
     paths.push(join(binDir, 'Debug', wexe));
+    paths.push(join(binDir, 'Release', wexe));
+    paths.push(join(binDir, 'MinSizeRel', wexe));
   } else {
     paths.push(join(binDir, exe));
   }
@@ -103,38 +99,49 @@ async function findSnapshotCommand() {
       await access(path);
       return path;
     } catch {
-      throw Error('jjs-snapshot not found in $SRCROOT/build/bin. '
-        + 'Minimal build command/flags to install: ./tools/build.py --jjs-cmdline-snapshot ON')
+      throw Error('jjs not found in $SRCROOT/build/bin. '
+        + 'Minimal build command/flags to install: ./tools/build.py --snapshot-save on --clean')
     }
   }
 }
 
-async function snapshot(jsFile) {
+class SnapshotError extends Error {
+  constructor(file, result) {
+    super(`jjs snapshot failed (${result.status === null ? result.signal : result.status})`);
+    this.stderr = result.stderr.toString();
+    this.file = file;
+  }
+
+  static isError(result) {
+    return (result.status === null || result.status !== 0);
+  }
+}
+
+async function snapshot(jsFile, jsSource) {
   const snapshotFile = join(dirname(jsFile), basename(jsFile, ".js")) + '.snapshot';
   const cmd = await findSnapshotCommand();
-  const child = spawn(cmd, ['generate', '-f', moduleArgumentList, '-o', snapshotFile, jsFile ]);
+  const args = [
+    'snapshot',
+    '--vm-heap-size',
+    '4096',
+    '--loader', 'strict',
+    '--function', moduleArgumentList,
+    '--outfile', snapshotFile,
+    '-',
+  ];
+  // spawn is a bit of a pain to handle errors. use the slower version instead.
+  const jjsSnapshotResult = spawnSync(cmd, args, { input: jsSource });
 
-  let data = '';
-  for await (const chunk of child.stdout) {
-    data += chunk;
-  }
-  let error = '';
-  for await (const chunk of child.stderr) {
-    error += chunk;
-  }
-  const exitCode = await new Promise((resolve, reject) => {
-    child.on('close', resolve);
-  });
-
-  if (exitCode) {
-    throw new Error(`subprocess error exit ${exitCode}, ${error}`);
+  if (SnapshotError.isError(jjsSnapshotResult))
+  {
+    throw new SnapshotError(basename(jsFile), jjsSnapshotResult);
   }
 
-  const result = Uint8Array.from(await readFile(snapshotFile));
+  const snapshotBytes = Uint8Array.from(await readFile(snapshotFile));
 
   await unlink(snapshotFile);
 
-  return result;
+  return snapshotBytes;
 }
 
 const result = await Promise.allSettled([
@@ -149,6 +156,11 @@ const result = await Promise.allSettled([
 
 result.forEach(result => {
   if (result.status === 'rejected') {
-    throw Error("embedPackJS: Unhandled Error", { cause: result.reason });
-  };
+    if (result.reason instanceof SnapshotError)
+    {
+      console.log(`FILE: ${result.reason.file}`);
+      console.log(`STDERR: ${result.reason.stderr}`);
+    }
+    throw Error("Unhandled Error", { cause: result.reason });
+  }
 });

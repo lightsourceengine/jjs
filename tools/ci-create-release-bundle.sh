@@ -13,9 +13,9 @@ if [ -z "${TAG}" ]; then
 fi
 
 shift
-ARCHIVE=$1
+ARCHIVE_TYPE=$1
 
-case "${ARCHIVE}" in
+case "${ARCHIVE_TYPE}" in
   tgz|zip) ;;
   *)
     echo "Second argument must be tgz or zip"
@@ -25,60 +25,62 @@ esac
 
 shift
 
-TAG="jjs-$(./tools/version.py)-${TAG}"
+ARCHIVE_NAME="jjs-$(./tools/version.py)-${TAG}"
 
 # standard jjs configuration
-./tools/build.py --builddir build/cmdline \
-  --default-vm-heap-size 8192 \
+./tools/build.py \
+  --default-vm-heap-size-kb 8192 \
   --show-opcodes ON \
   --show-regexp-opcodes ON \
-  --vm-heap-static ON \
-  --mem-stats ON \
   --jjs-pack ON \
   --jjs-cmdline ON \
   --logging ON \
   --snapshot-exec ON \
-  --clean \
-  "$@"
-
-# jjs-snapshot must be a separate build because jjs-pack, mem-stats and opcodes are not needed
-./tools/build.py --builddir build/cmdline-snapshot \
-  --default-vm-heap-size 8192 \
-  --vm-heap-static ON \
-  --jjs-cmdline OFF \
-  --jjs-cmdline-snapshot ON \
+  --snapshot-save ON \
   --clean \
   "$@"
 
 cd build
 
 # prepare staging directory in build
-if [ -d "${TAG}" ]; then
-  rm -rf "${TAG}"
+if [ -d "${ARCHIVE_NAME}" ]; then
+  rm -rf "${ARCHIVE_NAME}"
 fi
 
-mkdir -p "${TAG}/bin"
+mkdir "${ARCHIVE_NAME}"
 
-# copy jjs commandline programs
-if [ -d "cmdline/bin/MinSizeRel" ]; then
-  cp cmdline/bin/MinSizeRel/jjs.exe cmdline-snapshot/bin/MinSizeRel/jjs-snapshot.exe "${TAG}/bin"
+# copy jjs commandline program
+if [ -d "bin/MinSizeRel" ]; then
+  JJS_EXE="jjs-${TAG}.exe"
+  cp bin/MinSizeRel/jjs.exe "${ARCHIVE_NAME}/${JJS_EXE}"
+elif [ -d "bin" ]; then
+  JJS_EXE="jjs-${TAG}"
+  cp bin/jjs "${ARCHIVE_NAME}/${JJS_EXE}"
 else
-  cp cmdline/bin/jjs cmdline-snapshot/bin/jjs-snapshot "${TAG}/bin"
+  echo "Could not find jjs executable in build/"
+  exit 1
 fi
 
 # archive
-JJS_ARCHIVE="${TAG}.${ARCHIVE}"
-rm -f "${JJS_ARCHIVE}"
+JJS_ARCHIVE_FILENAME="${ARCHIVE_NAME}.${ARCHIVE_TYPE}"
+rm -f "${JJS_ARCHIVE_FILENAME}"
 
-if [ "${ARCHIVE}" = "tgz" ]; then
-  tar -czf "${JJS_ARCHIVE}" "${TAG}"
+cd "${ARCHIVE_NAME}"
+
+if [ "${ARCHIVE_TYPE}" = "tgz" ]; then
+  tar -czf "../${JJS_ARCHIVE_FILENAME}" "${JJS_EXE}"
 else
   # zip is not available on windows github actions runner. use 7z instead.
-  7z a -r -tzip "${JJS_ARCHIVE}" "${TAG}"
+  7z a -r -tzip "../${JJS_ARCHIVE_FILENAME}" "${JJS_EXE}"
 fi
 
+cd ..
+
 # add git hash to a file
-git rev-parse HEAD > "${TAG}.rev"
+git rev-parse HEAD > "${ARCHIVE_NAME}.rev"
+
+echo "archive:      ${JJS_ARCHIVE_FILENAME}"
+echo "git revision: ${ARCHIVE_NAME}.rev"
 
 # cleanup staging directory
-rm -rf "${TAG}"
+rm -rf "${ARCHIVE_NAME}"
