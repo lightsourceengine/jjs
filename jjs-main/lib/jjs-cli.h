@@ -142,7 +142,7 @@ jjs_cli_stdin_drain (uint8_t **buffer, jjs_size_t *buffer_size)
     }
     else
     {
-      local_buffer_size += READ_SIZE;
+      local_buffer_size += (jjs_size_t) READ_SIZE;
     }
   }
 
