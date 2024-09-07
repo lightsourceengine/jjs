@@ -102,14 +102,6 @@ if(JJS_CMDLINE_TEST)
   endif()
 endif()
 
-if(JJS_CMDLINE_SNAPSHOT)
-  jjs_create_executable(
-      "jjs-snapshot"
-      "main-snapshot.c"
-      "arguments/cli.c"
-  )
-endif()
-
 if(JJS_CMDLINE_TEST262)
   jjs_create_executable(
       "jjs-test262"

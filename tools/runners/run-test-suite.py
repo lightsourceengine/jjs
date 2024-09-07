@@ -148,18 +148,18 @@ snapshot_counter = count(start=1)
 
 
 class SnapshotTestCase(TestCase):
-    def __init__(self, test, generate_snapshot_cmd, execute_snapshot_cmd, test_dir):
+    def __init__(self, test, cmd, pmap, test_dir):
         super().__init__(test, '', test_dir)
         self.unique = next(snapshot_counter)
         self.snapshot_failed = False
-        self.generate_snapshot_cmd = generate_snapshot_cmd
-        self.execute_snapshot_cmd = execute_snapshot_cmd
+        self.cmd = cmd
+        self.pmap = pmap
 
     def run(self):
         # TODO: should not go in source root
         snapshot_filename = os.path.join(self.test_dir, 'js-{}.snapshot'.format(self.unique))
         (returncode, stdout) = execute_test_command(
-            self.generate_snapshot_cmd + ['-o', snapshot_filename] + [self.test], self.test_dir)
+            self.cmd + ['snapshot', '--loader', 'sloppy', '--outfile', snapshot_filename] + [self.test], self.test_dir)
 
         if returncode != 0:
             self.code = returncode
@@ -167,7 +167,7 @@ class SnapshotTestCase(TestCase):
             self.snapshot_failed = True
             return self
 
-        (returncode, stdout) = execute_test_command(self.execute_snapshot_cmd + [snapshot_filename], self.test_dir)
+        (returncode, stdout) = execute_test_command(self.cmd + ['test', '--pmap', self.pmap, '--loader', 'snapshot', snapshot_filename], self.test_dir)
         os.remove(snapshot_filename)
 
         self.code = returncode
@@ -219,21 +219,14 @@ def run_normal_tests(args, tests):
 
 
 def run_snapshot_tests(args, tests):
-    execute_snapshot_cmd = util.get_platform_cmd_prefix()
-    generate_snapshot_cmd = util.get_platform_cmd_prefix()
+    cmd = util.get_platform_cmd_prefix()
+
     if args.runtime:
-        execute_snapshot_cmd.append(args.runtime)
-        generate_snapshot_cmd.append(args.runtime)
+        cmd.append(args.runtime)
 
-    execute_snapshot_cmd = [args.engine, 'test']
-
-    if args.pmap:
-        execute_snapshot_cmd.extend(['--pmap', args.pmap])
-
-    # engine: jjs[.exe] -> snapshot generator: jjs-snapshot[.exe]
-    engine = os.path.splitext(args.engine)
-    generate_snapshot_cmd.append(engine[0] + '-snapshot' + engine[1])
-    generate_snapshot_cmd.append('generate')
+    # engine = os.path.splitext(args.engine)
+    # generate_snapshot_cmd.append(engine[0] + '-snapshot' + engine[1])
+    # generate_snapshot_cmd.append('generate')
 
     total = len(tests)
     tested = 0
@@ -243,7 +236,7 @@ def run_snapshot_tests(args, tests):
     pool = multiprocessing.Pool(processes=job_count, initializer=util.pool_init)
 
     def gen(test):
-        return SnapshotTestCase(test, generate_snapshot_cmd, execute_snapshot_cmd, args.test_dir)
+        return SnapshotTestCase(test, cmd, args.pmap, args.test_dir)
 
     try:
         for case in pool.imap(util.run_test_case, map(gen, tests)):

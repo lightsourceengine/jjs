@@ -94,8 +94,6 @@ def get_arguments():
     compgrp = parser.add_argument_group('optional components')
     compgrp.add_argument('--jjs-cmdline', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help='build jjs command line tool (%(choices)s)')
-    compgrp.add_argument('--jjs-cmdline-snapshot', metavar='X', choices=['ON', 'OFF'], type=str.upper,
-                         help='build snapshot command line tool (%(choices)s)')
     compgrp.add_argument('--jjs-cmdline-test', metavar='X', choices=['ON', 'OFF'], type=str.upper,
                          help=devhelp('build test version of the jjs command line tool (%(choices)s)'))
     compgrp.add_argument('--jjs-cmdline-test262', metavar='X', choices=['ON', 'OFF'], type=str.upper,
@@ -208,7 +206,6 @@ def generate_build_options(arguments):
 
     # optional components
     build_options_append('JJS_CMDLINE', arguments.jjs_cmdline)
-    build_options_append('JJS_CMDLINE_SNAPSHOT', arguments.jjs_cmdline_snapshot)
     build_options_append('JJS_CMDLINE_TEST', arguments.jjs_cmdline_test)
     build_options_append('JJS_CMDLINE_TEST262', arguments.jjs_cmdline_test262)
     build_options_append('JJS_LIBFUZZER', arguments.libfuzzer)

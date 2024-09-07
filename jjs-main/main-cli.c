@@ -35,7 +35,18 @@ typedef struct
   jjs_cli_config_t config;
   jjs_cli_module_t entry_point;
   jjs_cli_module_list_t includes;
+  const char *snapshot_strings_filename;
+  const jjs_char_t **strings;
+  jjs_size_t *strings_sizes;
+  jjs_size_t strings_count;
 } jjs_app_t;
+
+typedef enum
+{
+  JJS_APP_STRINGS_FILE_FORMAT_JSON,
+  JJS_APP_STRINGS_FILE_FORMAT_C,
+  JJS_APP_STRINGS_FILE_FORMAT_TXT,
+} jjs_app_strings_file_format;
 
 static void
 print_help_common_flags (void)
@@ -343,7 +354,7 @@ jjs_cli_parse_only (jjs_context_t *context, jjs_cli_module_t *module)
 static int
 jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module)
 {
-  jjs_value_t filename = module->is_main ? jjs_platform_realpath_sz (context, module->filename) : jjs_string_utf8_sz (context, module->filename);
+  jjs_value_t filename = jjs_platform_realpath_sz (context, module->filename);
 
   if (jjs_value_is_exception (context, filename))
   {
@@ -380,6 +391,7 @@ jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module)
         jjs_size_t snapshot_buffer_size = jjs_arraybuffer_size (context, snapshot);
         jjs_exec_snapshot_option_values_t options = {
           .source_name = filename,
+          .user_value = filename,
         };
 
         result = jjs_exec_snapshot (context,
@@ -413,6 +425,8 @@ jjs_cli_run_module (jjs_context_t *context, jjs_cli_module_t *module)
           .is_strict_mode = (loader == JJS_CLI_LOADER_STRICT),
           .source_name = jjs_optional_value (filename),
           .source_name_o = JJS_KEEP,
+          .user_value = jjs_optional_value (filename),
+          .user_value_o = JJS_KEEP,
         };
 
         jjs_value_t parse_result = jjs_parse_value (context, source, JJS_MOVE, &opts);
@@ -650,6 +664,57 @@ jjs_app_command_snapshot (jjs_app_t *app, const char *argument_list, const char 
     return JJS_CLI_EXIT_FAILURE;
   }
 
+  if (app->snapshot_strings_filename)
+  {
+    jjs_value_t strings = jjs_json_parse_file (context, jjs_string_utf8_sz (context, app->snapshot_strings_filename), JJS_MOVE);
+
+    if (jjs_value_is_array (context, strings))
+    {
+      jjs_size_t len = jjs_array_length (context, strings);
+
+      if (len > 0)
+      {
+        app->strings = malloc (len * sizeof (*app->strings));
+        app->strings_sizes = malloc (len * sizeof (*app->strings_sizes));
+        app->strings_count = len;
+
+        for (jjs_size_t k = 0; k < len; k++)
+        {
+          jjs_value_t item = jjs_object_get_index (context, strings, k);
+
+          if (!jjs_value_is_string (context, item))
+          {
+            // bail
+          }
+
+          jjs_size_t size = jjs_string_size (context, item, JJS_ENCODING_CESU8);
+          jjs_char_t *string = malloc (size);
+
+          jjs_string_to_buffer (context, item, JJS_ENCODING_CESU8, string, size);
+
+          app->strings[k] = string;
+          app->strings_sizes[k] = size;
+
+          jjs_value_free (context, item);
+        }
+      }
+
+      jjs_value_free (context, strings);
+    }
+    else if (jjs_value_is_exception (context, strings))
+    {
+      jjs_value_free (context, strings);
+      exit_code = JJS_CLI_EXIT_FAILURE;
+      goto done;
+    }
+    else
+    {
+      jjs_value_free (context, strings);
+      exit_code = JJS_CLI_EXIT_FAILURE;
+      goto done;
+    }
+  }
+
   jjs_parse_options_t parse_options = {
     .is_strict_mode = app->entry_point.loader == JJS_CLI_LOADER_STRICT,
   };
@@ -814,9 +879,10 @@ done:
 }
 
 static int
-jjs_app_command_strings (jjs_app_t *app, const char *outfile)
+jjs_app_command_strings (jjs_app_t *app, const char *outfile, jjs_app_strings_file_format format)
 {
   (void) outfile;
+  (void) format;
   int exit_code = JJS_CLI_EXIT_SUCCESS;
   jjs_context_t *context;
 
@@ -839,6 +905,8 @@ jjs_app_command_strings (jjs_app_t *app, const char *outfile)
                                                          (const uint32_t *) jjs_arraybuffer_data (context, source),
                                                          jjs_arraybuffer_size (context, source));
   jjs_value_free (context, source);
+
+  // TODO: jjs_get_literals_from_snapshot ()
 
   if (jjs_value_is_exception (context, result))
   {
@@ -1129,6 +1197,10 @@ main (int argc, char **argv)
       {
         argument_list = imcl_args_shift (&args);
       }
+      else if (imcl_args_shift_if_option (&args, NULL, "--static"))
+      {
+        app.snapshot_strings_filename = imcl_args_shift_file (&args);
+      }
       else if (imcl_args_shift_if_option (&args, NULL, "--outfile"))
       {
         outfile = imcl_args_shift (&args);
@@ -1194,6 +1266,7 @@ main (int argc, char **argv)
   else if (imcl_args_shift_if_command (&args, "strings"))
   {
     const char *outfile = NULL;
+    jjs_app_strings_file_format format = JJS_APP_STRINGS_FILE_FORMAT_JSON;
 
     app.entry_point.loader = JJS_CLI_LOADER_SNAPSHOT;
 
@@ -1202,6 +1275,30 @@ main (int argc, char **argv)
       if (imcl_args_shift_if_option (&args, NULL, "--outfile"))
       {
         outfile = imcl_args_shift (&args);
+      }
+      else if (imcl_args_shift_if_option (&args, NULL, "--format"))
+      {
+        const char *value = imcl_args_shift (&args);
+
+        if (strcmp (value, "json") == 0)
+        {
+          format = JJS_APP_STRINGS_FILE_FORMAT_JSON;
+        }
+        else if (strcmp (value, "c") == 0)
+        {
+          format = JJS_APP_STRINGS_FILE_FORMAT_C;
+        }
+        else if (strcmp (value, "txt") == 0)
+        {
+          format = JJS_APP_STRINGS_FILE_FORMAT_TXT;
+        }
+        else
+        {
+          if (!args.has_error)
+          {
+            args.has_error = true;
+          }
+        }
       }
       else if (imcl_args_shift_if_help_option (&args))
       {
@@ -1216,7 +1313,7 @@ main (int argc, char **argv)
       }
     }
 
-    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_strings (&app, outfile);
+    exit_code = args.has_error ? JJS_CLI_EXIT_FAILURE : jjs_app_command_strings (&app, outfile, format);
   }
   else if (imcl_args_shift_if_command (&args, "version") || imcl_args_shift_if_version_option (&args))
   {
@@ -1241,6 +1338,13 @@ done:
 
   imcl_args_drop (&args);
   jjs_cli_module_list_drop (&app.includes);
+
+  for (jjs_size_t i = 0; i < app.strings_count; i++)
+  {
+    free ((void *) app.strings[i]);
+  }
+
+  free (app.strings_sizes);
 
   return exit_code;
 }

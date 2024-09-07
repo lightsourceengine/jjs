@@ -55,7 +55,6 @@ OPTIONS_DEBUG = ['--debug']
 OPTIONS_SNAPSHOT = [
     '--snapshot-save=on',
     '--snapshot-exec=on',
-    '--jjs-cmdline-snapshot=on',
 ]
 OPTIONS_UNITTESTS = [
     # enable unittests
@@ -85,7 +84,7 @@ JJS_TESTS_OPTIONS = [
 
 # Test options for jjs-snapshot-tests
 JJS_SNAPSHOT_TESTS_OPTIONS = [
-    Options('jjs_tests-snapshot', OPTIONS_COMMON + OPTIONS_SNAPSHOT, ['--snapshot']),
+    Options('jjs_tests-snapshot', OPTIONS_COMMON + OPTIONS_SNAPSHOT),
 ]
 
 # Test options for jjs-pack-tests
@@ -575,6 +574,7 @@ def run_cli_tests(options):
         '--cwd', './cli',
         '--pmap', 'pmap.json',
         '--vm-heap-size', '2048',
+        '--vm-cell-count', '1024',
         '--log-level', '1',
         '--mem-stats',
         '--show-opcodes',

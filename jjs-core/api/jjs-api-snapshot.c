@@ -1774,10 +1774,12 @@ jjs_snapshot_get_string_literals (jjs_context_t* context_p, /**< JJS context */
     return jjs_array (context_p, 0);
   }
 
-  jjs_value_t result = jjs_array (context_p, 0);
   lit_utf8_size_t literal_idx = 0;
+  jjs_value_t result;
 
   buffer_p = lit_pool_p->buffer_p;
+
+  JMEM_DEFINE_LOCAL_ARRAY (context_p, literal_array, literal_count, ecma_string_t *)
 
   /* Count the valid and non-magic identifiers in the list. */
   for (uint32_t i = 0; i < lit_pool_p->item_count; i++)
@@ -1788,10 +1790,28 @@ jjs_snapshot_get_string_literals (jjs_context_t* context_p, /**< JJS context */
 
       if (ecma_get_string_magic (literal_p) == LIT_MAGIC_STRING__COUNT)
       {
-        jjs_value_free (context_p, jjs_object_set_index (context_p, result, literal_idx++, buffer_p[i], JJS_KEEP));
+        literal_array[literal_idx++] = literal_p;
       }
     }
   }
+
+  if (literal_idx > 0)
+  {
+    jjs_save_literals_sort (context_p, literal_array, literal_idx);
+    result = jjs_array (context_p, literal_idx);
+
+    for (uint32_t k = 0; k < literal_idx; k++)
+    {
+      ecma_value_t value = ecma_make_string_value (context_p, literal_array[k]);
+      jjs_value_free (context_p, jjs_object_set_index (context_p, result, k, value, JJS_KEEP));
+    }
+  }
+  else
+  {
+    result = jjs_array (context_p, 0);
+  }
+
+  JMEM_FINALIZE_LOCAL_ARRAY (context_p, literal_array)
 
   ecma_collection_destroy (context_p, lit_pool_p);
 

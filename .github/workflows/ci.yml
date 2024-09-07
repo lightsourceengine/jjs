@@ -79,7 +79,7 @@ jobs:
       - run: |
           if [ '${{ matrix.arch }}' == 'arm64' ]; then
             # build only, as this running does not
-            ./tools/build.py ${BUILD_OPTS} ${TARGET} --jjs-pack ON --jjs-cmdline ON --jjs-cmdline-snapshot ON
+            ./tools/build.py ${BUILD_OPTS} ${TARGET} --jjs-pack ON --jjs-cmdline ON
           else
             $TEST_BATTERY ${{matrix.type}}
           fi
